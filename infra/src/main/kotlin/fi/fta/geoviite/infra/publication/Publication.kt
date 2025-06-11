@@ -2,7 +2,25 @@ package fi.fta.geoviite.infra.publication
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DesignBranch
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.MainBranch
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.TrackNumberDescription
+import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -19,7 +37,26 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrackCacheKey
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
+import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
+import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import java.time.Instant
@@ -128,15 +165,20 @@ data class PublishedReferenceLine(
 
 data class PublishedLocationTrack(
     val cacheKey: AugLocationTrackCacheKey,
-    val namingScheme: LocationTrackNamingScheme,
-    val nameFreeText: AlignmentName?,
-    val nameSpecifier: LocationTrackNameSpecifier?,
-    val trackNumberId: IntId<LayoutTrackNumber>,
     val operation: Operation,
     val changedKmNumbers: Set<KmNumber>,
 ) {
+    val trackVersion: LayoutRowVersion<LocationTrack>
+        get() = cacheKey.trackVersion
+
     val id: IntId<LocationTrack>
         get() = cacheKey.trackVersion.id
+
+    val trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>
+        get() = cacheKey.trackNumberVersion
+
+    val trackNumberId: IntId<LayoutTrackNumber>
+        get() = cacheKey.trackNumberVersion.id
 }
 
 data class PublishedSwitch(

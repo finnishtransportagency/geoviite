@@ -1,20 +1,99 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumberDescription
+import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_LOCATION_TRACKS
 import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_SWITCHES
 import fi.fta.geoviite.infra.geometry.MetaDataName
-import fi.fta.geoviite.infra.integration.*
-import fi.fta.geoviite.infra.logging.AccessType.*
+import fi.fta.geoviite.infra.integration.CalculatedChanges
+import fi.fta.geoviite.infra.integration.LocationTrackChange
+import fi.fta.geoviite.infra.integration.SwitchChange
+import fi.fta.geoviite.infra.integration.SwitchJointChange
+import fi.fta.geoviite.infra.integration.TrackNumberChange
+import fi.fta.geoviite.infra.logging.AccessType.FETCH
+import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
-import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.*
 import java.sql.Timestamp
 import java.time.Instant
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrackCacheKey
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
+import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.LayoutRowId
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import fi.fta.geoviite.infra.util.getBboxOrNull
+import fi.fta.geoviite.infra.util.getBooleanOrNull
+import fi.fta.geoviite.infra.util.getChange
+import fi.fta.geoviite.infra.util.getChangeGeometryPoint
+import fi.fta.geoviite.infra.util.getChangePoint
+import fi.fta.geoviite.infra.util.getChangeRowVersion
+import fi.fta.geoviite.infra.util.getDoubleOrNull
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getEnumOrNull
+import fi.fta.geoviite.infra.util.getFreeTextWithNewLines
+import fi.fta.geoviite.infra.util.getInstant
+import fi.fta.geoviite.infra.util.getInstantOrNull
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdArray
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getJointNumber
+import fi.fta.geoviite.infra.util.getKmNumber
+import fi.fta.geoviite.infra.util.getKmNumberOrNull
+import fi.fta.geoviite.infra.util.getLayoutBranch
+import fi.fta.geoviite.infra.util.getLayoutBranchArrayOrNull
+import fi.fta.geoviite.infra.util.getLayoutRowVersion
+import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
+import fi.fta.geoviite.infra.util.getList
+import fi.fta.geoviite.infra.util.getListOrNull
+import fi.fta.geoviite.infra.util.getOidOrNull
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getPoint
+import fi.fta.geoviite.infra.util.getPointOrNull
+import fi.fta.geoviite.infra.util.getPublicationPublishedIn
+import fi.fta.geoviite.infra.util.getSridOrNull
+import fi.fta.geoviite.infra.util.getStringArray
+import fi.fta.geoviite.infra.util.getStringArrayOrNull
+import fi.fta.geoviite.infra.util.getTrackMeter
+import fi.fta.geoviite.infra.util.getTrackMeterOrNull
+import fi.fta.geoviite.infra.util.getTrackNumber
+import fi.fta.geoviite.infra.util.getTrackNumberOrNull
+import fi.fta.geoviite.infra.util.getUuid
+import fi.fta.geoviite.infra.util.queryOptional
+import fi.fta.geoviite.infra.util.setUser
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -1829,6 +1908,7 @@ class PublicationDao(
         )
     }
 
+    // TODO: GVT-3080 Implement multi-fetch for publications to reduce round trips in publication log
     @Cacheable(CACHE_PUBLISHED_LOCATION_TRACKS, sync = true)
     fun fetchPublishedLocationTracks(publicationId: IntId<Publication>): PublishedItemListing<PublishedLocationTrack> {
         val sql =
@@ -1838,24 +1918,36 @@ class PublicationDao(
               ltv.design_id,
               ltv.draft,
               ltv.version,
-              ltv.naming_scheme,
-              ltv.name_free_text,
-              ltv.name_specifier,
-              ltv.track_number_id,
+              tn.id as tn_id,
+              tn.draft as tn_draft,
+              tn.design_id as tn_design_id,
+              tn.version as tn_version,
+              start_switch.id as start_switch_id,
+              start_switch.draft as start_switch_draft,
+              start_switch.design_id as start_switch_design_id,
+              start_switch.version as start_switch_version,
+              end_switch.id as end_switch_id,
+              end_switch.draft as end_switch_draft,
+              end_switch.design_id as end_switch_design_id,
+              end_switch.version as end_switch_version,
               layout.infer_operation_from_location_track_state_transition(ltc.old_state, ltc.state) as operation,
               direct_change,
               changed_km
-            from publication.location_track plt
-              inner join layout.location_track_version ltv
-                on plt.location_track_id = ltv.id and plt.layout_context_id = ltv.layout_context_id and plt.location_track_version = ltv.version
-              inner join layout.location_track_change_view ltc
-                on ltc.id = plt.location_track_id and ltc.layout_context_id = plt.layout_context_id and ltc.version = plt.location_track_version
-              left join lateral(
+              from publication.location_track plt
+                inner join publication.publication p on p.id = plt.publication_id
+                inner join layout.location_track_version ltv
+                           on plt.location_track_id = ltv.id and plt.layout_context_id = ltv.layout_context_id and plt.location_track_version = ltv.version
+                inner join layout.location_track_change_view ltc
+                           on ltc.id = plt.location_track_id and ltc.layout_context_id = plt.layout_context_id and ltc.version = plt.location_track_version
+                left join lateral(
                 select array_remove(array_agg(pltk.km_number), null) as changed_km
-                from publication.location_track_km pltk
-                where pltk.location_track_id = plt.location_track_id and pltk.publication_id = plt.publication_id
-              ) pltk on (true)
-            where plt.publication_id = :publication_id
+                  from publication.location_track_km pltk
+                  where pltk.location_track_id = plt.location_track_id and pltk.publication_id = plt.publication_id
+                ) pltk on (true)
+              inner join layout.track_number_at(p.publication_time) tn on tn.id = ltv.track_number_id
+                left join layout.switch_at(p.publication_time) start_switch on start_switch.id = ltv.start_switch_id
+                left join layout.switch_at(p.publication_time) end_switch on end_switch.id = ltv.end_switch_id
+              where plt.publication_id = :publication_id;
         """
                 .trimIndent()
 
@@ -1863,17 +1955,32 @@ class PublicationDao(
             .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
                 rs.getBoolean("direct_change") to
                     PublishedLocationTrack(
-                        cacheKey = throw NotImplementedError(), // TODO: GVT-3080
-                        namingScheme = rs.getEnum("naming_scheme"),
-                        nameFreeText = rs.getString("name_free_text")?.let(::AlignmentName),
-                        nameSpecifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
-                        trackNumberId = rs.getIntId("track_number_id"),
+                        cacheKey =
+                            AugLocationTrackCacheKey(
+                                trackVersion = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+                                trackNumberVersion =
+                                    rs.getLayoutRowVersion("tn_id", "tn_design_id", "tn_draft", "tn_version"),
+                                startSwitchVersion =
+                                    rs.getLayoutRowVersionOrNull(
+                                        "start_switch_id",
+                                        "start_switch_design_id",
+                                        "start_switch_draft",
+                                        "start_switch_version",
+                                    ),
+                                endSwitchVersion =
+                                    rs.getLayoutRowVersionOrNull(
+                                        "end_switch_id",
+                                        "end_switch_design_id",
+                                        "end_switch_draft",
+                                        "end_switch_version",
+                                    ),
+                            ),
                         operation = rs.getEnum("operation"),
                         changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
                     )
             }
             .let { locationTrackRows ->
-                logger.daoAccess(FETCH, PublishedLocationTrack::class, locationTrackRows.map { it.second.cacheKey })
+                logger.daoAccess(FETCH, PublishedLocationTrack::class, locationTrackRows.map { it.second.trackVersion })
                 partitionDirectIndirectChanges(locationTrackRows)
             }
     }
