@@ -12,7 +12,9 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.ILayoutAssetDao
+import fi.fta.geoviite.infra.tracklayout.ILocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -25,8 +27,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
-import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import java.util.concurrent.ConcurrentHashMap
@@ -127,8 +129,9 @@ class ValidationContext(
     fun getLocationTrack(id: IntId<LocationTrack>): LocationTrack? =
         getObject(target.baseContext, id, publicationSet.locationTracks, locationTrackDao, locationTrackVersionCache)
 
-    fun getLocationTrackName(id: IntId<LocationTrack>): AlignmentName? =
-        locationTrackService.getNames(target.baseContext, listOf(id)).firstOrNull()?.name
+    fun getAugLocationTrack(id: IntId<LocationTrack>): AugLocationTrack? =
+        // TODO GVT-3080
+        throw NotImplementedError("AugLocationTrack is not implemented in ValidationContext")
 
     fun getLocationTracksByName(name: AlignmentName): List<LocationTrack> =
         trackNameCache.get(name).mapNotNull(::getLocationTrack)
@@ -136,11 +139,11 @@ class ValidationContext(
     fun getDuplicateTrackIds(trackId: IntId<LocationTrack>): List<IntId<LocationTrack>>? =
         trackDuplicateLinks.get(trackId) { id -> fetchLocationTrackDuplicateLinks(listOf(id))[id] }
 
-    fun getDuplicateTracks(id: IntId<LocationTrack>): List<LocationTrack> =
-        (getDuplicateTrackIds(id) ?: emptyList()).mapNotNull(::getLocationTrack)
+    fun getDuplicateAugTracks(id: IntId<LocationTrack>): List<AugLocationTrack> =
+        (getDuplicateTrackIds(id) ?: emptyList()).mapNotNull(::getAugLocationTrack)
 
-    fun getLocationTrackWithGeometry(id: IntId<LocationTrack>): Pair<LocationTrack, LocationTrackGeometry>? =
-        getLocationTrack(id)?.let { track -> track to alignmentDao.fetch(track.versionOrThrow) }
+    fun getAugLocationTrackWithGeometry(id: IntId<LocationTrack>): Pair<AugLocationTrack, LocationTrackGeometry>? =
+        getAugLocationTrack(id)?.let { track -> track to alignmentDao.fetch(track.versionOrThrow) }
 
     fun getSwitch(id: IntId<LayoutSwitch>): LayoutSwitch? =
         getObject(target.baseContext, id, publicationSet.switches, switchDao, switchVersionCache)
@@ -169,11 +172,14 @@ class ValidationContext(
             .get(trackNumberId) { id -> fetchLocationTrackIdsByTrackNumbers(listOf(id))[id] }
             ?.mapNotNull(::getLocationTrack) ?: emptyList()
 
+    fun getAugLocationTracksByTrackNumber(trackNumberId: IntId<LayoutTrackNumber>): List<AugLocationTrack> =
+        throw NotImplementedError() // TODO: GVT-3080
+
     fun getSwitchTrackLinks(switchId: IntId<LayoutSwitch>): List<IntId<LocationTrack>>? =
         switchTrackLinks.get(switchId) { id -> fetchSwitchTrackLinks(listOf(id))[id] }
 
-    fun getSwitchTracksWithGeometries(id: IntId<LayoutSwitch>): List<Pair<LocationTrack, LocationTrackGeometry>> =
-        getSwitchTrackLinks(id)?.mapNotNull(::getLocationTrackWithGeometry) ?: emptyList()
+    fun getSwitchTracksWithGeometries(id: IntId<LayoutSwitch>): List<Pair<AugLocationTrack, LocationTrackGeometry>> =
+        getSwitchTrackLinks(id)?.mapNotNull(::getAugLocationTrackWithGeometry) ?: emptyList()
 
     fun getPotentiallyAffectedSwitchIds(trackId: IntId<LocationTrack>): List<IntId<LayoutSwitch>> {
         val track =
@@ -222,7 +228,7 @@ class ValidationContext(
     fun getAddressPoints(trackId: IntId<LocationTrack>): AlignmentAddresses? =
         getLocationTrack(trackId)?.let(::getAddressPoints)
 
-    fun getAddressPoints(track: LocationTrack): AlignmentAddresses? =
+    fun getAddressPoints(track: ILocationTrack): AlignmentAddresses? =
         getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
             geocodingService.getAddressPoints(key, track.versionOrThrow)
         }
@@ -373,6 +379,9 @@ class ValidationContext(
     }
 
     fun getCandidateLocationTrack(id: IntId<LocationTrack>) = allDraftLocationTracks[id]?.let(locationTrackDao::fetch)
+
+    fun getCandidateAugLocationTrack(int: IntId<LocationTrack>): AugLocationTrack? =
+        throw NotImplementedError() // TODO: GVT-3080
 
     private val allDraftLocationTracks: Map<IntId<LocationTrack>, LayoutRowVersion<LocationTrack>> by lazy {
         locationTrackDao.fetchCandidateVersions(target.candidateContext).associateBy { it.id }

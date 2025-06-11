@@ -38,12 +38,12 @@ import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
@@ -199,7 +199,7 @@ constructor(
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
                 val (sourceLocationTrack, sourceAlignment) =
-                    locationTrackService.getWithGeometry(split.sourceLocationTrackVersion)
+                    locationTrackService.getAugWithGeometryForVersion(split.sourceLocationTrackVersion)
                 val oid =
                     requireNotNull(
                         locationTrackDao
@@ -241,7 +241,7 @@ constructor(
         publicationTime: Instant,
         split: Split,
     ): SplitTargetInPublication? {
-        val (track, geometry) = locationTrackService.getWithGeometry(rowVersion)
+        val (track, geometry) = locationTrackService.getAugWithGeometryForVersion(rowVersion)
         return split.getTargetLocationTrack(track.id as IntId)?.let { target ->
             val ctx =
                 requireNotNull(
@@ -262,7 +262,7 @@ constructor(
 
             return SplitTargetInPublication(
                 id = track.id,
-                name = locationTrackService.getNameOrThrow(publicationBranch.official, track.id).name,
+                name = track.name,
                 oid = locationTrackDao.fetchExternalId(publicationBranch, track.id)?.oid,
                 startAddress = startAddress,
                 endAddress = endAddress,
@@ -279,10 +279,7 @@ constructor(
             printCsv(
                 splitCsvColumns(localizationService.getLocalization(lang), publication.layoutBranch.branch),
                 data,
-            ) to
-                splitInPublication?.locationTrack?.let { track ->
-                    locationTrackService.getNameOrThrow(LayoutBranch.main.official, track.id as IntId).name
-                }
+            ) to splitInPublication?.locationTrack?.name
         }
     }
 
@@ -427,7 +424,7 @@ constructor(
                 oldAndTime,
                 newAndTime,
                 { (duplicateOf, timestamp) ->
-                    duplicateOf?.let { id -> locationTrackService.getNameOrThrow(branch.official, id).name }
+                    duplicateOf?.let { id -> locationTrackService.getAugLocationTrackOrThrow(id, branch.official).name }
                 },
                 PropKey("duplicate-of"),
             ),
@@ -699,11 +696,13 @@ constructor(
 
         val oldLinkedTrackNames =
             oldLinkedLocationTracks.values
-                .map { (lt, _) -> locationTrackService.getNameOrThrow(branch.official, lt.id as IntId).name }
+                .mapNotNull { (lt, _) ->
+                    lt.version?.let { locationTrackService.getAugLocationTrackForVersion(lt.version).name }
+                }
                 .sorted()
         val newLinkedTrackNames =
             changes.locationTracks
-                .map { locationTrackService.getNameOrThrow(branch.official, it.oldVersion.id).name }
+                .map { locationTrackService.getAugLocationTrackForVersion(it.oldVersion).name }
                 .sorted()
 
         return listOfNotNull(
@@ -828,7 +827,7 @@ constructor(
                         ?.number
                 mapToPublicationTableItem(
                     name =
-                        "${translation.t("publication-table.location-track")} ${locationTrackService.getNameAtMoment(publication.layoutBranch.branch, lt.id, publication.publicationTime)?.name}",
+                        "${translation.t("publication-table.location-track")} ${locationTrackService.getAugLocationTrackAtMoment(publication.layoutBranch.branch.official, lt.id, publication.publicationTime)?.name}",
                     trackNumbers = setOfNotNull(trackNumber),
                     changedKmNumbers = lt.changedKmNumbers,
                     operation = lt.operation,
@@ -909,7 +908,7 @@ constructor(
                         ?.number
                 mapToPublicationTableItem(
                     name =
-                        "${translation.t("publication-table.location-track")} ${locationTrackService.getNameAtMoment(publication.layoutBranch.branch, lt.id, publication.publicationTime)?.name}",
+                        "${translation.t("publication-table.location-track")} ${locationTrackService.getAugLocationTrackAtMoment(publication.layoutBranch.branch.official, lt.id, publication.publicationTime)?.name}",
                     trackNumbers = setOfNotNull(tn),
                     changedKmNumbers = lt.changedKmNumbers,
                     operation = Operation.CALCULATED,
@@ -1000,7 +999,9 @@ constructor(
         mapOf<String, (item: Pair<SplitInPublication, SplitTargetInPublication>) -> Any?>(
                 "split-details-csv.source-name" to
                     { (split, _) ->
-                        locationTrackService.getNameOrThrow(branch.official, split.locationTrack.id as IntId).name
+                        locationTrackService
+                            .getAugLocationTrackOrThrow(split.locationTrack.id as IntId, branch.official)
+                            .name
                     },
                 "split-details-csv.source-oid" to { (split, _) -> split.locationTrackOid },
                 "split-details-csv.target-name" to { (_, split) -> split.name },

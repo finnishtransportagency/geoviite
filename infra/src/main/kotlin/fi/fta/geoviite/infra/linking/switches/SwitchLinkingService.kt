@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.ContextCache
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
+import fi.fta.geoviite.infra.tracklayout.ILocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -312,7 +313,7 @@ constructor(
     @Transactional(readOnly = true)
     fun getTrackSwitchSuggestions(
         layoutContext: LayoutContext,
-        track: LocationTrack,
+        track: ILocationTrack,
     ): List<Pair<IntId<LayoutSwitch>, SuggestedSwitch?>> {
         val replacementSwitchLocations =
             track.switchIds.map { switchId ->
@@ -325,7 +326,7 @@ constructor(
 
     fun collectAllSwitchesOnTrackAndNearby(
         branch: LayoutBranch,
-        locationTrack: LocationTrack,
+        locationTrack: ILocationTrack,
         geometry: LocationTrackGeometry,
     ): List<IntId<LayoutSwitch>> {
         val trackSwitches = geometry.switchIds
@@ -611,9 +612,7 @@ private fun linkJointToEdgeMiddle(
     isFirstJointInSequence: Boolean,
     isLastJointInSequence: Boolean,
 ): List<TmpLayoutEdge> {
-    require(!(isFirstJointInSequence && isLastJointInSequence)) {
-        "can't link joint topologically mid-track"
-    }
+    require(!(isFirstJointInSequence && isLastJointInSequence)) { "can't link joint topologically mid-track" }
     val middleOuterNodeConnection = NodeConnection.switch(inner = null, outer = switchLink)
     val middleInnerNodeConnection = NodeConnection.switch(inner = switchLink, outer = null)
     return listOf(

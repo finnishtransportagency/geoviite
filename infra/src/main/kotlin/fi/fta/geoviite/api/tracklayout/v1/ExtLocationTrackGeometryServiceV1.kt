@@ -90,7 +90,7 @@ constructor(
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrack =
-            locationTrackService.getLocationTrackByOidAtMoment(oid, layoutContext, publication.publicationTime)
+            locationTrackService.getAugLocationTrackByOidAtMoment(oid, layoutContext, publication.publicationTime)
                 ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
 
         val geocodingContextCacheKey =

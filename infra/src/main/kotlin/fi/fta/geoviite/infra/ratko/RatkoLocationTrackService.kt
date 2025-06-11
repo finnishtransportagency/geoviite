@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.ratko.model.PushableLayoutBranch
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
@@ -23,6 +22,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoNodeCollection
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegmentMetadata
@@ -56,9 +56,9 @@ constructor(
     ): List<Oid<LocationTrack>> {
         return publishedLocationTracks
             .groupBy { it.id }
-            .map { (_, locationTracks) ->
-                val newestVersion = locationTracks.maxBy { it.version.version }.version
-                locationTrackDao.fetch(newestVersion) to locationTracks.flatMap { it.changedKmNumbers }.toSet()
+            .map { (id, locationTracks) ->
+                locationTrackService.getAugLocationTrackOrThrow(id, branch.branch.official) to
+                    locationTracks.flatMap { it.changedKmNumbers }.toSet()
             }
             .sortedWith(
                 compareBy(
@@ -71,7 +71,7 @@ constructor(
                     getFullExtIdAndManagePlanItem(
                         branch,
                         locationTrack.id as IntId,
-                        locationTrack.designAssetState,
+                        locationTrack.contextData.designAssetState,
                         ratkoClient,
                         locationTrackDao::fetchExternalId,
                         locationTrackDao::savePlanItemId,
@@ -81,7 +81,7 @@ constructor(
                     ratkoClient.getLocationTrack(RatkoOid(externalId.oid))?.let { existingLocationTrack ->
                         if (
                             locationTrack.state == LocationTrackState.DELETED ||
-                                locationTrack.designAssetState == DesignAssetState.CANCELLED
+                                locationTrack.contextData.designAssetState == DesignAssetState.CANCELLED
                         ) {
                             deleteLocationTrack(
                                 branch = branch.branch,
@@ -103,7 +103,7 @@ constructor(
                     }
                         ?: if (
                             locationTrack.state != LocationTrackState.DELETED &&
-                                locationTrack.designAssetState != DesignAssetState.CANCELLED
+                                locationTrack.contextData.designAssetState != DesignAssetState.CANCELLED
                         ) {
                             createLocationTrack(branch.branch, locationTrack, externalId, publicationTime)
                         } else {
@@ -137,7 +137,7 @@ constructor(
 
     private fun createLocationTrack(
         branch: LayoutBranch,
-        locationTrack: LocationTrack,
+        locationTrack: AugLocationTrack,
         locationTrackExternalId: FullRatkoExternalId<LocationTrack>,
         moment: Instant,
     ) {
@@ -158,12 +158,6 @@ constructor(
                     trackNumberOid = trackNumberOid,
                     nodeCollection = ratkoNodes,
                     duplicateOfOid = duplicateOfOidLocationTrack,
-                    descriptionGetter = { track ->
-                        locationTrackService.getFullDescription(branch.official, track, LocalizationLanguage.FI)
-                    },
-                    nameGetter = { track ->
-                        locationTrackService.getNameOrThrow(branch.official, track.id as IntId).name
-                    },
                     owner = owner,
                 )
             checkNotNull(ratkoClient.newLocationTrack(ratkoLocationTrack)) {
@@ -205,7 +199,7 @@ constructor(
 
     private fun createLocationTrackMetadata(
         branch: LayoutBranch,
-        locationTrack: LocationTrack,
+        locationTrack: AugLocationTrack,
         locationTrackExternalId: FullRatkoExternalId<LocationTrack>,
         alignmentPoints: List<AddressPoint>,
         trackNumberOid: Oid<LayoutTrackNumber>,
@@ -300,7 +294,7 @@ constructor(
 
     private fun deleteLocationTrack(
         branch: LayoutBranch,
-        locationTrack: LocationTrack,
+        locationTrack: AugLocationTrack,
         locationTrackExternalId: FullRatkoExternalId<LocationTrack>,
         existingRatkoLocationTrack: RatkoLocationTrack,
         moment: Instant,
@@ -326,7 +320,7 @@ constructor(
 
     private fun updateLocationTrack(
         branch: LayoutBranch,
-        locationTrack: LocationTrack,
+        locationTrack: AugLocationTrack,
         locationTrackExternalId: FullRatkoExternalId<LocationTrack>,
         existingRatkoLocationTrack: RatkoLocationTrack,
         changedKmNumbers: Set<KmNumber>,
@@ -406,7 +400,7 @@ constructor(
 
     private fun updateLocationTrackProperties(
         branch: LayoutBranch,
-        locationTrack: LocationTrack,
+        locationTrack: AugLocationTrack,
         locationTrackExternalId: FullRatkoExternalId<LocationTrack>,
         changedNodeCollection: RatkoNodes? = null,
     ) {
@@ -422,10 +416,6 @@ constructor(
                 trackNumberOid = trackNumberOid,
                 nodeCollection = changedNodeCollection,
                 duplicateOfOid = duplicateOfOidLocationTrack,
-                descriptionGetter = { track ->
-                    locationTrackService.getFullDescription(branch.official, track, LocalizationLanguage.FI)
-                },
-                nameGetter = { track -> locationTrackService.getNameOrThrow(branch.official, track.id as IntId).name },
                 owner = owner,
             )
 
@@ -434,7 +424,7 @@ constructor(
 
     private fun getLocationTrackPoints(
         branch: LayoutBranch,
-        locationTrack: LocationTrack,
+        locationTrack: AugLocationTrack,
         moment: Instant,
     ): Pair<AlignmentAddresses, List<AddressPoint>> {
         val geocodingContext =

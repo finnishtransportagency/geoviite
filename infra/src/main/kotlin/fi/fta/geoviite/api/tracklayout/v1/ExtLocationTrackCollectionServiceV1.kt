@@ -8,18 +8,17 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.time.Instant
 
 @Schema(name = "Vastaus: Sijaintiraidekokoelma")
 data class ExtLocationTrackCollectionResponseV1(
@@ -51,7 +50,6 @@ constructor(
         trackNetworkVersion: Uuid<Publication>?,
         coordinateSystem: Srid,
     ): ExtLocationTrackCollectionResponseV1 {
-        val lang = LocalizationLanguage.FI
         val layoutContext = MainLayoutContext.official
 
         val (publication, locationTracks) =
@@ -59,7 +57,8 @@ constructor(
                 null -> {
                     publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single().let {
                         newestPublication ->
-                        newestPublication to locationTrackDao.list(layoutContext, includeDeleted = false)
+                        newestPublication to
+                            locationTrackService.listAugLocationTracks(layoutContext, includeDeleted = false)
                     }
                 }
                 else -> {
@@ -68,8 +67,10 @@ constructor(
                         .let(::requireNotNull)
                         .let { specifiedPublication ->
                             specifiedPublication to
-                                locationTrackDao.listPublishedLocationTracksAtMoment(
-                                    specifiedPublication.publicationTime
+                                locationTrackService.listAugLocationTracksAtMoment(
+                                    layoutContext,
+                                    includeDeleted = false,
+                                    moment = specifiedPublication.publicationTime,
                                 )
                         }
                 }
@@ -84,7 +85,6 @@ constructor(
                     locationTracks,
                     coordinateSystem,
                     publication.publicationTime,
-                    lang,
                 ),
         )
     }
@@ -94,7 +94,6 @@ constructor(
         trackNetworkVersion: Uuid<Publication>?,
         coordinateSystem: Srid,
     ): ExtModifiedLocationTrackCollectionResponseV1? {
-        val lang = LocalizationLanguage.FI
         val layoutContext = MainLayoutContext.official
 
         val fromPublication =
@@ -119,8 +118,8 @@ constructor(
                     toPublication.publicationTime,
                 )
             val modifiedLocationTracks =
-                locationTrackDao.getManyOfficialAtMoment(
-                    layoutContext.branch,
+                locationTrackService.getManyAugLocationTracksAtMoment(
+                    layoutContext,
                     changedIds,
                     toPublication.publicationTime,
                 )
@@ -141,7 +140,6 @@ constructor(
                             modifiedLocationTracks,
                             coordinateSystem,
                             toPublication.publicationTime,
-                            lang,
                         ),
                 )
             }
@@ -150,10 +148,9 @@ constructor(
 
     fun extGetLocationTrackCollection(
         layoutContext: LayoutContext,
-        locationTracks: List<LocationTrack>,
+        locationTracks: List<AugLocationTrack>,
         coordinateSystem: Srid,
         moment: Instant,
-        lang: LocalizationLanguage,
     ): List<ExtLocationTrackV1> {
         val locationTrackIds = locationTracks.map { locationTrack -> locationTrack.id as IntId }
         val distinctTrackNumberIds = locationTracks.map { locationTrack -> locationTrack.trackNumberId }.distinct()
@@ -166,15 +163,8 @@ constructor(
         val externalLocationTrackIds = locationTrackDao.fetchExternalIds(layoutContext.branch, locationTrackIds)
         val externalTrackNumberIds = layoutTrackNumberDao.fetchExternalIds(layoutContext.branch, distinctTrackNumberIds)
 
-        val locationTrackDescriptions =
-            locationTrackService.getFullDescriptionsAtMoment(layoutContext, locationTracks, lang, moment)
-
         val locationTrackStartsAndEnds =
             locationTrackService.getStartAndEndAtMoment(layoutContext, locationTrackIds, moment)
-
-        require(locationTracks.size == locationTrackDescriptions.size) {
-            "locationTracks.size=${locationTracks.size} != locationTrackDescriptions.size=${locationTrackDescriptions.size}"
-        }
 
         require(locationTracks.size == locationTrackStartsAndEnds.size) {
             "locationTracks.size=${locationTracks.size} != locationTrackStartsAndEnds.size=${locationTrackStartsAndEnds.size}"
@@ -187,7 +177,6 @@ constructor(
                         "location track oid not found, locationTrackId=${locationTrack.id}"
                     )
 
-            val locationTrackDescription = locationTrackDescriptions[index]
             val (startLocation, endLocation) =
                 layoutAlignmentStartAndEndToCoordinateSystem(coordinateSystem, locationTrackStartsAndEnds[index]).let {
                     startAndEnd ->
@@ -212,7 +201,7 @@ constructor(
                 locationTrackName = locationTrack.name,
                 locationTrackType = ExtLocationTrackTypeV1.of(locationTrack.type),
                 locationTrackState = ExtLocationTrackStateV1.of(locationTrack.state),
-                locationTrackDescription = locationTrackDescription,
+                locationTrackDescription = locationTrack.description,
                 locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
                 startLocation = startLocation?.let(::ExtAddressPointV1),
                 endLocation = endLocation?.let(::ExtAddressPointV1),

@@ -571,7 +571,7 @@ data class LocationTrackPublicationSwitchLinkChanges(
 data class SplitInPublication(
     val id: IntId<Publication>,
     val splitId: IntId<Split>,
-    val locationTrack: LocationTrack,
+    val locationTrack: AugLocationTrack,
     val locationTrackOid: Oid<LocationTrack>,
     val targetLocationTracks: List<SplitTargetInPublication>,
 )

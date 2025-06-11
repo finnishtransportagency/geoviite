@@ -88,6 +88,25 @@ sealed class DbLocationTrackNaming {
     abstract val namingScheme: LocationTrackNamingScheme
     open val nameFreeText: AlignmentName? = null
     open val nameSpecifier: LocationTrackNameSpecifier? = null
+
+    companion object {
+        fun of(
+            namingScheme: LocationTrackNamingScheme,
+            nameFreeText: AlignmentName? = null,
+            nameSpecifier: LocationTrackNameSpecifier? = null,
+        ): DbLocationTrackNaming {
+            when (namingScheme) {
+                LocationTrackNamingScheme.FREE_TEXT -> return DbFreeTextTrackNaming(requireNotNull(nameFreeText))
+                LocationTrackNamingScheme.WITHIN_OPERATING_POINT ->
+                    return DbWithinOperatingPointTrackNaming(requireNotNull(nameFreeText))
+                LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS ->
+                    return DbBetweenOperatingPointsTrackNaming(requireNotNull(nameSpecifier))
+                LocationTrackNamingScheme.TRACK_NUMBER_TRACK ->
+                    return DbTrackNumberTrackNaming(requireNotNull(nameFreeText), requireNotNull(nameSpecifier))
+                LocationTrackNamingScheme.CHORD -> return DbChordTrackNaming
+            }
+        }
+    }
 }
 
 data class DbFreeTextTrackNaming(override val nameFreeText: AlignmentName) : DbLocationTrackNaming() {
@@ -255,11 +274,13 @@ interface ILocationTrack : Loggable {
     @get:JsonIgnore
     val exists
         get() = !state.isRemoved()
+
+    @get:JsonIgnore val versionOrThrow: LayoutRowVersion<LocationTrack>
 }
 
 data class AugLocationTrack(
     private val translation: Translation,
-    private val dbTrack: LocationTrack,
+    @JsonIgnore val dbTrack: LocationTrack,
     val reifiedNaming: ReifiedTrackNaming,
     val reifiedDescription: ReifiedTrackDescription,
 ) : ILocationTrack by dbTrack {

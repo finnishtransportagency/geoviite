@@ -125,8 +125,8 @@ fun toElementListing(
                         trackNumber,
                         linked.idString,
                         linked.segment,
-                        track,
-                        getEdgeSwitchName(linked.edge, getSwitchName, getLocationTrackName),
+                        getEdgeSwitchName(linked.edge, getSwitchName),
+                        getLocationTrackName(track.id as IntId<LocationTrack>),
                     )
                 else null
             } else {
@@ -191,7 +191,6 @@ private fun toMissingElementListing(
     trackNumber: TrackNumber?,
     identifier: String,
     segment: ISegment,
-    locationTrack: LocationTrack,
     switchName: SwitchName?,
     locationTrackName: AlignmentName?,
 ) =
@@ -262,7 +261,6 @@ private fun toElementListing(
         trackNumberDescription = plan.trackNumberDescription,
         alignment = alignment,
         element = element,
-        locationTrack = null,
         linkedSwitch = element.switchId?.let { sId -> plan.switches.find { s -> s.id == sId } }?.name,
         planTime = plan.planTime,
     )
@@ -341,7 +339,7 @@ private fun elementListing(
     trackNumber: TrackNumber?,
     trackNumberDescription: PlanElementName?,
     alignment: GeometryAlignment,
-    locationTrack: LocationTrack?,
+    locationTrack: LocationTrack,
     element: GeometryElement,
     linkedSwitch: SwitchName?,
     getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
@@ -361,7 +359,47 @@ private fun elementListing(
             trackNumberDescription = trackNumberDescription,
             alignmentId = alignment.id,
             alignmentName = alignment.name,
-            locationTrackName = locationTrack?.let { getLocationTrackName(locationTrack.id as IntId<LocationTrack>) },
+            locationTrackName = getLocationTrackName(locationTrack.id as IntId<LocationTrack>),
+            elementId = element.id,
+            elementType = TrackGeometryElementType.of(element.type),
+            lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),
+            start = start,
+            end = end,
+            connectedSwitchName = linkedSwitch,
+            isPartial = false,
+            planTime = planTime,
+        )
+    }
+
+private fun elementListing(
+    context: GeocodingContext?,
+    getTransformation: (srid: Srid) -> Transformation,
+    planId: DomainId<GeometryPlan>,
+    planSource: PlanSource?,
+    fileName: FileName,
+    units: GeometryUnits,
+    trackNumber: TrackNumber?,
+    trackNumberDescription: PlanElementName?,
+    alignment: GeometryAlignment,
+    element: GeometryElement,
+    linkedSwitch: SwitchName?,
+    planTime: Instant?,
+) =
+    units.coordinateSystemSrid?.let(getTransformation).let { transformation ->
+        val start = getStartLocation(context, transformation, alignment, element)
+        val end = getEndLocation(context, transformation, alignment, element)
+        ElementListing(
+            id = StringId("EL_${element.id}"),
+            planId = planId,
+            planSource = planSource,
+            fileName = fileName,
+            coordinateSystemSrid = units.coordinateSystemSrid,
+            coordinateSystemName = units.coordinateSystemName,
+            trackNumber = trackNumber,
+            trackNumberDescription = trackNumberDescription,
+            alignmentId = alignment.id,
+            alignmentName = alignment.name,
+            locationTrackName = null,
             elementId = element.id,
             elementType = TrackGeometryElementType.of(element.type),
             lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),

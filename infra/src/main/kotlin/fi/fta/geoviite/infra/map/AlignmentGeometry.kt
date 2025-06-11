@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -107,17 +108,13 @@ fun toAlignmentHeader(trackNumber: LayoutTrackNumber, referenceLine: ReferenceLi
         boundingBox = alignment?.boundingBox,
     )
 
-fun toAlignmentHeader(
-    locationTrack: LocationTrack,
-    alignment: DbLocationTrackGeometry,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
-) =
+fun toAlignmentHeader(locationTrack: AugLocationTrack, alignment: DbLocationTrackGeometry) =
     LocationTrackHeader(
         id = locationTrack.id.also { require(it is IntId) } as IntId,
         version = requireNotNull(locationTrack.version),
         trackNumberId = locationTrack.trackNumberId,
         duplicateOf = locationTrack.duplicateOf,
-        name = getLocationTrackName(locationTrack.id as IntId),
+        name = locationTrack.name,
         state = locationTrack.state,
         trackType = locationTrack.type,
         length = alignment.length,

@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -80,7 +81,7 @@ constructor(
                 ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrack =
-            locationTrackService.getLocationTrackByOidAtMoment(oid, layoutContext, publication.publicationTime)
+            locationTrackService.getAugLocationTrackByOidAtMoment(oid, layoutContext, publication.publicationTime)
                 ?: throw ExtOidNotFoundExceptionV1(
                     "location track lookup failed for oid=$oid, layoutContext=$layoutContext, publicationId=${publication.id}"
                 )
@@ -129,27 +130,27 @@ constructor(
                 locationTrackDao.lookupByExternalId(oid)?.id
                     ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
 
-            val fromLocationTrackVersion =
-                locationTrackDao.fetchOfficialVersionAtMoment(
-                    layoutContext.branch,
+            val fromLocationTrack =
+                locationTrackService.getAugLocationTrackAtMoment(
+                    layoutContext,
                     locationTrackId,
                     fromPublication.publicationTime,
                 )
                     ?: throw ExtLocationTrackNotFoundExceptionV1(
-                        "'from' version fetch failed, moment=${fromPublication.publicationTime}, locationTrackId=$locationTrackId"
+                        "fromLocationTrack doesn't exist, moment=${fromPublication.publicationTime}, locationTrackId=$locationTrackId"
                     )
 
-            val toLocationTrackVersion =
-                locationTrackDao.fetchOfficialVersionAtMoment(
-                    layoutContext.branch,
+            val toLocationTrack =
+                locationTrackService.getAugLocationTrackAtMoment(
+                    layoutContext,
                     locationTrackId,
                     toPublication.publicationTime,
                 )
                     ?: throw ExtLocationTrackNotFoundExceptionV1(
-                        "'to' version fetch failed, moment=${toPublication.publicationTime}, locationTrackId=$locationTrackId"
+                        "toLocationTrack doesn't exist, moment=${toPublication.publicationTime}, locationTrackId=$locationTrackId"
                     )
 
-            return if (fromLocationTrackVersion == toLocationTrackVersion) {
+            return if (fromLocationTrack == toLocationTrack) {
                 logger.info(
                     "location track version was the same for locationTrackId=$locationTrackId, earlierPublication=${fromPublication.id}, laterPublication=${toPublication.id}"
                 )
@@ -162,7 +163,7 @@ constructor(
                     locationTrack =
                         getExtLocationTrack(
                             oid,
-                            locationTrackDao.fetch(toLocationTrackVersion),
+                            toLocationTrack,
                             MainLayoutContext.official,
                             toPublication.publicationTime,
                             coordinateSystem,
@@ -175,7 +176,7 @@ constructor(
 
     fun getExtLocationTrack(
         oid: Oid<LocationTrack>,
-        locationTrack: LocationTrack,
+        locationTrack: AugLocationTrack,
         layoutContext: LayoutContext,
         moment: Instant,
         coordinateSystem: Srid,
@@ -203,15 +204,12 @@ constructor(
                 .let { startAndEnd -> layoutAlignmentStartAndEndToCoordinateSystem(coordinateSystem, startAndEnd) }
                 .let { startAndEnd -> startAndEnd.start to startAndEnd.end }
 
-        val locationTrackDescription =
-            locationTrackService.getFullDescriptionsAtMoment(layoutContext, listOf(locationTrack), lang, moment).first()
-
         return ExtLocationTrackV1(
             locationTrackOid = oid,
             locationTrackName = locationTrack.name,
             locationTrackType = ExtLocationTrackTypeV1.of(locationTrack.type),
             locationTrackState = ExtLocationTrackStateV1.of(locationTrack.state),
-            locationTrackDescription = locationTrackDescription,
+            locationTrackDescription = locationTrack.description,
             locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
             startLocation = startLocation?.let(::ExtAddressPointV1),
             endLocation = endLocation?.let(::ExtAddressPointV1),

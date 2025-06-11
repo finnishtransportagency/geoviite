@@ -237,7 +237,7 @@ constructor(
         switchService.get(context, switchId)?.name ?: unknownSwitchName
 
     private fun getLocationTrackName(context: LayoutContext, trackId: IntId<LocationTrack>): AlignmentName =
-        locationTrackService.getNameOrThrow(context, trackId).name
+        locationTrackService.getAugLocationTrack(trackId, context).let(::requireNotNull).name
 
     @Transactional(readOnly = true)
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {

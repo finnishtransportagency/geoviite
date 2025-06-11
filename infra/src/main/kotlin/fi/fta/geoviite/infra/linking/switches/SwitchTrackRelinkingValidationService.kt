@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.SwitchName
@@ -17,6 +16,7 @@ import fi.fta.geoviite.infra.publication.validateWithParams
 import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
@@ -43,7 +43,7 @@ constructor(
         branch: LayoutBranch,
         trackId: IntId<LocationTrack>,
     ): List<SwitchRelinkingValidationResult> {
-        val (track, alignment) = locationTrackService.getWithGeometryOrThrow(branch.draft, trackId)
+        val (track, alignment) = locationTrackService.getAugWithGeometryOrThrow(branch.draft, trackId)
         val switchIds = switchLinkingService.collectAllSwitchesOnTrackAndNearby(branch, track, alignment)
         val originalSwitches = getOriginalSwitches(branch, switchIds)
         val switchStructures = originalSwitches.map { switchLibraryService.getSwitchStructure(it.switchStructureId) }
@@ -74,7 +74,6 @@ constructor(
                 originalSwitches[index],
                 switchLibraryService.getSwitchStructure(originalSwitches[index].switchStructureId),
                 changedLocationTracks[index],
-                { id -> locationTrackService.getNameOrThrow(branch.draft, id).name },
             )
         }
     }
@@ -142,14 +141,13 @@ private fun currentSwitchLocationsAsSwitchPlacingRequests(
 ) = locations.zip(switchIds) { location, switchId -> SwitchPlacingRequest(SamplingGridPoints(location), switchId) }
 
 private fun validateChangeFromSwitchRelinking(
-    track: LocationTrack,
+    track: AugLocationTrack,
     geocodingContext: GeocodingContext,
     switchId: IntId<LayoutSwitch>,
     suggestedSwitchWithOriginallyLinkedTracks: SuggestedSwitchWithOriginallyLinkedTracks?,
     originalSwitch: LayoutSwitch,
     switchStructure: SwitchStructure,
     changedTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): SwitchRelinkingValidationResult {
     return if (suggestedSwitchWithOriginallyLinkedTracks == null) failRelinkingValidationFor(switchId, originalSwitch)
     else {
@@ -162,7 +160,6 @@ private fun validateChangeFromSwitchRelinking(
                 track,
                 changedTracks,
                 suggestedSwitchWithOriginallyLinkedTracks.originallyLinkedTracks.toList(),
-                getLocationTrackName,
             )
         val presentationJointLocation = getSuggestedLocation(switchId, suggestedSwitch, switchStructure)
         val address =
@@ -181,10 +178,9 @@ private fun validateForSplit(
     suggestedSwitch: SuggestedSwitch,
     originalSwitch: LayoutSwitch,
     switchStructure: SwitchStructure,
-    track: LocationTrack,
+    track: AugLocationTrack,
     changedTracksFromSwitchSuggestion: List<Pair<LocationTrack, LocationTrackGeometry>>,
     currentSwitchLocationTrackConnections: List<IntId<LocationTrack>>,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> {
     val createdSwitch = createModifiedLayoutSwitchLinking(suggestedSwitch, originalSwitch)
 
@@ -194,14 +190,12 @@ private fun validateForSplit(
             track,
             originalSwitch.name,
             currentSwitchLocationTrackConnections,
-            getLocationTrackName,
         )
     val publicationValidationErrorsMapped =
         validateSwitchLocationTrackLinkStructure(
                 createdSwitch,
                 switchStructure,
-                draft(changedTracksFromSwitchSuggestion),
-                getLocationTrackName,
+                locationTracks = draft(changedTracksFromSwitchSuggestion),
             )
             .map { error ->
                 // Structure based issues aren't critical for splitting/relinking -> turn them
@@ -214,17 +208,16 @@ private fun validateForSplit(
 
 private fun validateRelinkingRetainsLocationTrackConnections(
     suggestedSwitch: SuggestedSwitch,
-    track: LocationTrack,
+    track: AugLocationTrack,
     switchName: SwitchName,
     currentConnections: List<IntId<LocationTrack>>,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> {
     val suggestedConnections = suggestedSwitch.trackLinks.filter { link -> link.value.isLinked() }.keys
 
     return listOfNotNull(
         validateWithParams(suggestedConnections.containsAll(currentConnections), LayoutValidationIssueType.ERROR) {
             "$VALIDATION_SPLIT.track-links-missing-after-relinking" to
-                localizationParams("switchName" to switchName, "sourceName" to getLocationTrackName(track.id as IntId))
+                localizationParams("switchName" to switchName, "sourceName" to track.name)
         }
     )
 }

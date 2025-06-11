@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.util
 
 import fi.fta.geoviite.infra.authorization.AuthCode
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DesignLayoutContext
 import fi.fta.geoviite.infra.common.FeatureTypeCode
@@ -37,6 +38,7 @@ import fi.fta.geoviite.infra.publication.PublishedInBranch
 import fi.fta.geoviite.infra.publication.PublishedInDesign
 import fi.fta.geoviite.infra.publication.PublishedInMain
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackNaming
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
@@ -45,6 +47,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.StoredAssetId
@@ -471,6 +475,20 @@ inline fun <reified T> verifyType(value: Any?): T =
         }
         v
     }
+
+fun ResultSet.getDbLocationTrackNaming(
+    namingSchemeName: String,
+    specifierName: String,
+    freeTextName: String,
+): DbLocationTrackNaming {
+    val namingScheme =
+        getEnum<LocationTrackNamingScheme>(namingSchemeName)
+            ?: error("DbLocationTrackNaming.NamingScheme was null: column=$namingSchemeName")
+    val freeText = getString(freeTextName)?.let(::AlignmentName)
+    val specifier = getEnumOrNull<LocationTrackNameSpecifier>(specifierName)
+
+    return DbLocationTrackNaming.of(namingScheme, freeText, specifier)
+}
 
 fun <T : LayoutAsset<T>> ResultSet.getLayoutContextData(
     idName: String,

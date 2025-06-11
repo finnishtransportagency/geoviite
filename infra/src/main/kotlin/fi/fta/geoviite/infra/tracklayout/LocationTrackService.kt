@@ -1,11 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.DataType.STORED
-import fi.fta.geoviite.infra.common.DataType.TEMP
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
-import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
@@ -214,6 +210,13 @@ class LocationTrackService(
     }
 
     @Transactional
+    fun fetchAugDuplicates(layoutContext: LayoutContext, id: IntId<LocationTrack>): List<AugLocationTrack> {
+        return dao.fetchDuplicateVersions(layoutContext, id).map { ver ->
+            dao.fetchAugLocationTrackOrThrow(defaultTranslation, ver.id, layoutContext)
+        }
+    }
+
+    @Transactional
     fun clearDuplicateReferences(branch: LayoutBranch, id: IntId<LocationTrack>) =
         dao.fetchDuplicateVersions(branch.draft, id, includeDeleted = true)
             .map { version -> asDraft(branch, dao.fetch(version)) to alignmentDao.fetch(version) }
@@ -295,6 +298,24 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
+    fun getManyAugsWithGeometries(
+        layoutContext: LayoutContext,
+        ids: List<IntId<LocationTrack>>,
+    ): List<Pair<AugLocationTrack, DbLocationTrackGeometry>> {
+        return getManyAugLocationTracks(layoutContext, ids).let(::associateWithGeometries)
+    }
+
+    @Transactional(readOnly = true)
+    fun getAugWithGeometryOrThrow(
+        layoutContext: LayoutContext,
+        id: IntId<LocationTrack>,
+    ): Pair<AugLocationTrack, DbLocationTrackGeometry> {
+        return getAugLocationTrackOrThrow(id, layoutContext).let { aug ->
+            aug to alignmentDao.fetch(aug.versionOrThrow)
+        }
+    }
+
+    @Transactional(readOnly = true)
     fun getWithGeometryOrThrow(
         layoutContext: LayoutContext,
         id: IntId<LocationTrack>,
@@ -335,6 +356,11 @@ class LocationTrackService(
     fun getWithGeometry(version: LayoutRowVersion<LocationTrack>): Pair<LocationTrack, DbLocationTrackGeometry> {
         return getWithGeometryInternal(version)
     }
+
+    @Transactional(readOnly = true)
+    fun getAugWithGeometryForVersion(
+        version: LayoutRowVersion<LocationTrack>
+    ): Pair<AugLocationTrack, DbLocationTrackGeometry> = throw NotImplementedError()
 
     @Transactional(readOnly = true)
     fun listNearWithGeometries(
@@ -478,9 +504,7 @@ class LocationTrackService(
         version: LayoutRowVersion<LocationTrack>
     ): Pair<LocationTrack, DbLocationTrackGeometry> = locationTrackWithGeometry(dao, alignmentDao, version)
 
-    private fun <T>associateWithGeometries(
-        lines: List<T>
-    ): List<Pair<T, DbLocationTrackGeometry>> where T : ILocationTrack {
+    private fun <T : ILocationTrack> associateWithGeometries(lines: List<T>): List<Pair<T, DbLocationTrackGeometry>> {
         // This is a little convoluted to avoid extra passes of transaction annotation handling in
         // alignmentDao.fetch
         val alignments = alignmentDao.getMany(lines.map(ILocationTrack::versionOrThrow))
@@ -498,8 +522,30 @@ class LocationTrackService(
     fun getAugLocationTrack(id: IntId<LocationTrack>, layoutContext: LayoutContext): AugLocationTrack? =
         dao.fetchAugLocationTrack(defaultTranslation, id, layoutContext)
 
-    fun getManyLocationTracks(layoutContext: LayoutContext, ids: List<IntId<LocationTrack>>): List<AugLocationTrack> =
-        dao.fetchManyAugLocationTracks(defaultTranslation, layoutContext, ids)
+    fun getAugLocationTrackOrThrow(id: IntId<LocationTrack>, layoutContext: LayoutContext): AugLocationTrack =
+        dao.fetchAugLocationTrackOrThrow(defaultTranslation, id, layoutContext)
+
+    fun getAugLocationTrackForVersion(version: LayoutRowVersion<LocationTrack>): AugLocationTrack =
+        throw NotImplementedError()
+
+    fun getManyAugLocationTracks(
+        layoutContext: LayoutContext,
+        ids: List<IntId<LocationTrack>>,
+    ): List<AugLocationTrack> = dao.fetchManyAugLocationTracks(defaultTranslation, layoutContext, ids)
+
+    // TODO: GVT-3080
+    fun getManyAugLocationTracksAtMoment(
+        layoutContext: LayoutContext,
+        ids: List<IntId<LocationTrack>>,
+        moment: Instant,
+    ): List<AugLocationTrack> = throw NotImplementedError()
+
+    // TODO: GVT-3080
+    fun getAugLocationTrackAtMoment(
+        layoutContext: LayoutContext,
+        id: IntId<LocationTrack>,
+        moment: Instant,
+    ): AugLocationTrack? = throw NotImplementedError()
 
     fun listAugLocationTracks(
         layoutContext: LayoutContext,
@@ -516,6 +562,13 @@ class LocationTrackService(
 
     fun listAugLocationTracks(layoutContext: LayoutContext, includeDeleted: Boolean): List<AugLocationTrack> =
         locationTrackDao.listAugLocationTracks(defaultTranslation, layoutContext, includeDeleted = includeDeleted)
+
+    // TODO: GVT-3080
+    fun listAugLocationTracksAtMoment(
+        layoutContext: LayoutContext,
+        includeDeleted: Boolean,
+        moment: Instant,
+    ): List<AugLocationTrack> = throw NotImplementedError()
 
     fun fillTrackAddresses(
         duplicates: List<LocationTrackDuplicate>,
@@ -601,7 +654,7 @@ class LocationTrackService(
     @Transactional(readOnly = true)
     fun getLocationTrackDuplicates(
         layoutContext: LayoutContext,
-        track: LocationTrack,
+        track: ILocationTrack,
         alignment: LocationTrackGeometry,
     ): List<LocationTrackDuplicate> {
         val markedDuplicateVersions = dao.fetchDuplicateVersions(layoutContext, track.id as IntId)
@@ -773,7 +826,7 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
-    fun getAlignmentsForTracks(tracks: List<LocationTrack>): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
+    fun <T> getAlignmentsForTracks(tracks: List<T>): List<Pair<T, DbLocationTrackGeometry>> where T : ILocationTrack {
         return tracks.map { track -> track to alignmentDao.fetch(track.versionOrThrow) }
     }
 
@@ -792,21 +845,14 @@ class LocationTrackService(
         return mapNonNullValues(locationTrackDao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
     }
 
+    // TODO: GVT-3080
     @Transactional(readOnly = true)
-    fun getLocationTrackByOidAtMoment(
+    fun getAugLocationTrackByOidAtMoment(
         oid: Oid<LocationTrack>,
         layoutContext: LayoutContext,
         moment: Instant,
-    ): LocationTrack? {
-        return locationTrackDao
-            .lookupByExternalId(oid)
-            ?.let { layoutRowId ->
-                locationTrackDao.fetchOfficialVersionAtMoment(layoutContext.branch, layoutRowId.id, moment)
-            }
-            ?.let(locationTrackDao::fetch)
-    }
-}
-}
+    ): AugLocationTrack? =
+        throw NotImplementedError()
 
 private fun locationTrackDbName(request: LocationTrackSaveRequest): DbLocationTrackNaming {
     return when (request.namingScheme) {

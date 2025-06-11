@@ -1,7 +1,5 @@
 package fi.fta.geoviite.infra.split
 
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.math.lineLength
@@ -10,6 +8,7 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.VALIDATION
 import fi.fta.geoviite.infra.publication.validate
 import fi.fta.geoviite.infra.publication.validationError
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -101,47 +100,35 @@ internal fun validateTargetGeometry(
 }
 
 internal fun validateTargetTrackNumberIsUnchanged(
-    sourceLocationTrack: LocationTrack,
-    targetLocationTrack: LocationTrack,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
+    sourceLocationTrack: AugLocationTrack,
+    targetLocationTrack: AugLocationTrack,
 ): LayoutValidationIssue? =
     produceIf(sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) {
         validationError(
             "$VALIDATION_SPLIT.source-and-target-track-numbers-are-different",
-            "sourceName" to getLocationTrackName(sourceLocationTrack.id as IntId),
-            "targetName" to getLocationTrackName(targetLocationTrack.id as IntId),
+            "sourceName" to sourceLocationTrack.name,
+            "targetName" to targetLocationTrack.name,
         )
     }
 
 internal fun validateSplitStatus(
-    track: LocationTrack,
-    sourceTrack: LocationTrack,
+    track: AugLocationTrack,
+    sourceTrack: AugLocationTrack,
     split: Split,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): LayoutValidationIssue? =
-    produceIf(track.isDraft && split.isPublishedAndWaitingTransfer) {
-        validationError(
-            "$VALIDATION_SPLIT.track-split-in-progress",
-            "sourceName" to getLocationTrackName(sourceTrack.id as IntId),
-        )
+    produceIf(track.contextData.isDraft && split.isPublishedAndWaitingTransfer) {
+        validationError("$VALIDATION_SPLIT.track-split-in-progress", "sourceName" to sourceTrack.name)
     }
 
 internal fun validateSplitSourceLocationTrack(
-    locationTrack: LocationTrack,
+    locationTrack: AugLocationTrack,
     split: Split,
-    getLocationTrackName: (IntId<LocationTrack>) -> AlignmentName,
 ): List<LayoutValidationIssue> =
     listOfNotNull(
         produceIf(locationTrack.exists) {
-            validationError(
-                "$VALIDATION_SPLIT.source-not-deleted",
-                "sourceName" to getLocationTrackName(locationTrack.id as IntId),
-            )
+            validationError("$VALIDATION_SPLIT.source-not-deleted", "sourceName" to locationTrack.name)
         },
         produceIf(locationTrack.version != split.sourceLocationTrackVersion) {
-            validationError(
-                "$VALIDATION_SPLIT.source-edited-after-split",
-                "sourceName" to getLocationTrackName(locationTrack.id as IntId),
-            )
+            validationError("$VALIDATION_SPLIT.source-edited-after-split", "sourceName" to locationTrack.name)
         },
     )

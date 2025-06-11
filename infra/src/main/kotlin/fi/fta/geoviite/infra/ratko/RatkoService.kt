@@ -36,6 +36,7 @@ import fi.fta.geoviite.infra.ratko.model.newRatkoPlan
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -56,7 +57,7 @@ open class RatkoPushException(val type: RatkoPushErrorType, val operation: Ratko
 class RatkoSwitchPushException(exception: RatkoPushException, val switch: LayoutSwitch) :
     RatkoPushException(exception.type, exception.operation, exception)
 
-class RatkoLocationTrackPushException(exception: RatkoPushException, val locationTrack: LocationTrack) :
+class RatkoLocationTrackPushException(exception: RatkoPushException, val locationTrack: AugLocationTrack) :
     RatkoPushException(exception.type, exception.operation, exception)
 
 class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumber: LayoutTrackNumber) :
@@ -251,9 +252,9 @@ constructor(
                             checkNotNull(locationTrack.version) {
                                 "Location track missing version, id=${locationTrackChange.locationTrackId}"
                             },
-                        namingScheme = locationTrack.namingScheme,
-                        nameFreeText = locationTrack.nameFreeText,
-                        nameSpecifier = locationTrack.nameSpecifier,
+                        namingScheme = locationTrack.dbName.namingScheme,
+                        nameFreeText = locationTrack.dbName.nameFreeText,
+                        nameSpecifier = locationTrack.dbName.nameSpecifier,
                         trackNumberId = locationTrack.trackNumberId,
                         operation = Operation.MODIFY,
                         changedKmNumbers = locationTrackChange.changedKmNumbers,

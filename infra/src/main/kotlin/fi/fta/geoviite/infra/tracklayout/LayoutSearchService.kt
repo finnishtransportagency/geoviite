@@ -144,7 +144,7 @@ constructor(
         locationTrackSearchScope: IntId<LocationTrack>,
     ): List<AugLocationTrack> =
         locationTrackService
-            .getWithGeometryOrThrow(layoutContext, locationTrackSearchScope)
+            .getAugWithGeometryOrThrow(layoutContext, locationTrackSearchScope)
             .let { (lt, alignment) ->
                 lt to locationTrackService.getLocationTrackDuplicates(layoutContext, lt, alignment)
             }

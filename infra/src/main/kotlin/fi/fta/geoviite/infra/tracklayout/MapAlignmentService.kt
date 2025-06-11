@@ -132,7 +132,8 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         locationTrackIds: List<IntId<LocationTrack>>,
     ): List<AlignmentHeader<LocationTrack, LocationTrackState>> {
-        return locationTrackService.getManyWithGeometries(layoutContext, locationTrackIds).map { (track, alignment) ->
+        return locationTrackService.getManyAugsWithGeometries(layoutContext, locationTrackIds).map { (track, alignment)
+            ->
             toAlignmentHeader(track, alignment)
         }
     }

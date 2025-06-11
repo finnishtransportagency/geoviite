@@ -23,9 +23,9 @@ fun getDuplicateTrackParentStatus(
     return LocationTrackDuplicate(
         parentTrack.id as IntId,
         parentTrack.trackNumberId,
-        parentTrack.namingScheme,
-        nameFreeText = parentTrack.nameFreeText,
-        nameSpecifier = parentTrack.nameSpecifier,
+        parentTrack.dbName.namingScheme,
+        nameFreeText = parentTrack.dbName.nameFreeText,
+        nameSpecifier = parentTrack.dbName.nameSpecifier,
         start = childGeometry.start,
         end = childGeometry.end,
         length = childGeometry.length,
@@ -34,7 +34,7 @@ fun getDuplicateTrackParentStatus(
 }
 
 fun getLocationTrackDuplicatesBySplitPoints(
-    mainTrack: LocationTrack,
+    mainTrack: ILocationTrack,
     mainGeometry: LocationTrackGeometry,
     duplicateTracksAndAlignments: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): List<LocationTrackDuplicate> {
@@ -68,9 +68,9 @@ private fun getLocationTrackDuplicatesBySplitPoints(
             LocationTrackDuplicate(
                 duplicateTrack.id as IntId,
                 trackNumberId = duplicateTrack.trackNumberId,
-                namingScheme = duplicateTrack.namingScheme,
-                nameFreeText = duplicateTrack.nameFreeText,
-                nameSpecifier = duplicateTrack.nameSpecifier,
+                namingScheme = duplicateTrack.dbName.namingScheme,
+                nameFreeText = duplicateTrack.dbName.nameFreeText,
+                nameSpecifier = duplicateTrack.dbName.nameSpecifier,
                 start = duplicateGeometry.start,
                 end = duplicateGeometry.end,
                 length = duplicateGeometry.length,

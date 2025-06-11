@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.amazonaws.services.cloudfront.model.EntityNotFoundException
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
@@ -20,8 +21,8 @@ import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
+import fi.fta.geoviite.infra.util.getDbLocationTrackNaming
 import fi.fta.geoviite.infra.util.getEnum
-import fi.fta.geoviite.infra.util.getEnumOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
@@ -68,6 +69,14 @@ class LocationTrackDao(
         id: IntId<LocationTrack>,
         layoutContext: LayoutContext,
     ): AugLocationTrack? = fetchAugLocationTrackKey(id, layoutContext)?.let { key -> fetch(key, translation) }
+
+    fun fetchAugLocationTrackOrThrow(
+        translation: Translation,
+        id: IntId<LocationTrack>,
+        layoutContext: LayoutContext,
+    ): AugLocationTrack =
+        fetchAugLocationTrack(translation, id, layoutContext)
+            ?: throw EntityNotFoundException("Location track with id $id not found in layout context $layoutContext")
 
     fun fetchManyAugLocationTracks(
         defaultTranslation: Translation,
@@ -332,11 +341,12 @@ class LocationTrackDao(
         LocationTrack(
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
-            namingScheme = rs.getEnum("naming_scheme"),
-            nameFreeText = rs.getString("name_free_text")?.let(::AlignmentName),
-            nameSpecifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
-            descriptionBase = rs.getString("description_base").let(::LocationTrackDescriptionBase),
-            descriptionSuffix = rs.getEnum<LocationTrackDescriptionSuffix>("description_suffix"),
+            dbName = rs.getDbLocationTrackNaming("naming_scheme", "name_free_text", "name_specifier"),
+            dbDescription =
+                DbLocationTrackDescription(
+                    descriptionBase = rs.getString("description_base").let(::LocationTrackDescriptionBase),
+                    descriptionSuffix = rs.getEnum<LocationTrackDescriptionSuffix>("description_suffix"),
+                ),
             type = rs.getEnum("type"),
             state = rs.getEnum("state"),
             boundingBox = rs.getBboxOrNull("bounding_box"),
@@ -428,11 +438,11 @@ class LocationTrackDao(
                 "layout_context_id" to item.layoutContext.toSqlString(),
                 "id" to id.intValue,
                 "track_number_id" to item.trackNumberId.intValue,
-                "naming_scheme" to item.namingScheme,
-                "name_free_text" to item.nameFreeText,
-                "name_specifier" to item.nameSpecifier?.name,
-                "description_base" to item.descriptionBase,
-                "description_suffix" to item.descriptionSuffix.name,
+                "naming_scheme" to item.dbName.namingScheme,
+                "name_free_text" to item.dbName.nameFreeText,
+                "name_specifier" to item.dbName.nameSpecifier?.name,
+                "description_base" to item.dbDescription.descriptionBase,
+                "description_suffix" to item.dbDescription.descriptionSuffix.name,
                 "type" to item.type.name,
                 "state" to item.state.name,
                 "draft" to item.isDraft,
@@ -461,11 +471,8 @@ class LocationTrackDao(
     override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
         fetchVersions(layoutContext, includeDeleted, null)
 
-    fun list(
-        layoutContext: LayoutContext,
-        includeDeleted: Boolean,
-        trackNumberId: IntId<LayoutTrackNumber>? = null,
-    ) = fetchVersions(layoutContext, includeDeleted, trackNumberId).map(::fetch)
+    fun list(layoutContext: LayoutContext, includeDeleted: Boolean, trackNumberId: IntId<LayoutTrackNumber>? = null) =
+        fetchVersions(layoutContext, includeDeleted, trackNumberId).map(::fetch)
 
     fun fetchVersions(
         layoutContext: LayoutContext,
