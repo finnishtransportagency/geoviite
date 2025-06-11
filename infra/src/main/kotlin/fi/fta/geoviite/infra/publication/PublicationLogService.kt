@@ -23,8 +23,8 @@ import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrackCacheKey
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -199,7 +199,7 @@ constructor(
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
                 val (sourceLocationTrack, sourceAlignment) =
-                    locationTrackService.getAugWithGeometryForVersion(split.sourceLocationTrackVersion)
+                    locationTrackService.getAugWithGeometry(split.sourceLocationTrackCacheKey)
                 val oid =
                     requireNotNull(
                         locationTrackDao
@@ -211,12 +211,12 @@ constructor(
                 val targetLocationTracks =
                     publicationDao
                         .fetchPublishedLocationTracks(id)
-                        .let { changes -> (changes.indirectChanges + changes.directChanges).map { c -> c.version } }
+                        .let { changes -> (changes.indirectChanges + changes.directChanges).map { c -> c.cacheKey } }
                         .distinct()
                         .mapNotNull { v ->
                             createSplitTargetInPublication(
                                 sourceGeometry = sourceAlignment,
-                                rowVersion = v,
+                                augCacheKey = v,
                                 publicationBranch = publication.layoutBranch.branch,
                                 publicationTime = publication.publicationTime,
                                 split = split,
@@ -236,12 +236,12 @@ constructor(
 
     private fun createSplitTargetInPublication(
         sourceGeometry: LocationTrackGeometry,
-        rowVersion: LayoutRowVersion<LocationTrack>,
+        augCacheKey: AugLocationTrackCacheKey,
         publicationBranch: LayoutBranch,
         publicationTime: Instant,
         split: Split,
     ): SplitTargetInPublication? {
-        val (track, geometry) = locationTrackService.getAugWithGeometryForVersion(rowVersion)
+        val (track, geometry) = locationTrackService.getAugWithGeometry(augCacheKey)
         return split.getTargetLocationTrack(track.id as IntId)?.let { target ->
             val ctx =
                 requireNotNull(
@@ -638,7 +638,7 @@ constructor(
 
         val oldLinkedLocationTracks =
             changes.locationTracks.associate { lt ->
-                locationTrackService.getWithGeometry(lt.oldVersion).let { (track, geometry) ->
+                locationTrackService.getAugWithGeometry(lt.trackCacheKey).let { (track, geometry) ->
                     track.id as IntId to (track to geometry)
                 }
             }
@@ -694,15 +694,10 @@ constructor(
                 }
                 .sortedBy { it.propKey.key }
 
-        val oldLinkedTrackNames =
-            oldLinkedLocationTracks.values
-                .mapNotNull { (lt, _) ->
-                    lt.version?.let { locationTrackService.getAugLocationTrackForVersion(lt.version).name }
-                }
-                .sorted()
+        val oldLinkedTrackNames = oldLinkedLocationTracks.values.map { (lt, _) -> lt.name }.sorted()
         val newLinkedTrackNames =
             changes.locationTracks
-                .map { locationTrackService.getAugLocationTrackForVersion(it.oldVersion).name }
+                .mapNotNull { lt -> locationTrackService.getAugLocationTrack(lt.trackCacheKey)?.name }
                 .sorted()
 
         return listOfNotNull(
@@ -836,7 +831,7 @@ constructor(
                         diffLocationTrack(
                             translation,
                             publicationLocationTrackChanges.getOrElse(lt.id) {
-                                error("Location track changes not found: id=${lt.id} version=${lt.version}")
+                                error("Location track changes not found: id=${lt.id} cacheKey=${lt.cacheKey}")
                             },
                             switchLinkChanges[lt.id],
                             publication.layoutBranch.branch,
@@ -917,7 +912,7 @@ constructor(
                         diffLocationTrack(
                             translation,
                             publicationLocationTrackChanges.getOrElse(lt.id) {
-                                error("Location track changes not found: id=${lt.id} version=${lt.version}")
+                                error("Location track changes not found: id=${lt.id} cacheKey=${lt.cacheKey}")
                             },
                             switchLinkChanges[lt.id],
                             publication.layoutBranch.branch,

@@ -65,6 +65,7 @@ class LocationTrackService(
     private val localizationService: LocalizationService,
     private val transactionTemplate: TransactionTemplate,
 ) : LayoutAssetService<LocationTrack, LocationTrackGeometry, LocationTrackDao>(locationTrackDao) {
+
     val defaultTranslation = localizationService.getLocalization(LocalizationLanguage.FI)
 
     @Transactional
@@ -357,9 +358,10 @@ class LocationTrackService(
         return getWithGeometryInternal(version)
     }
 
+    // TODO: GVT-3080
     @Transactional(readOnly = true)
-    fun getAugWithGeometryForVersion(
-        version: LayoutRowVersion<LocationTrack>
+    fun getAugWithGeometry(
+        augLocationTrackCacheKey: AugLocationTrackCacheKey
     ): Pair<AugLocationTrack, DbLocationTrackGeometry> = throw NotImplementedError()
 
     @Transactional(readOnly = true)
@@ -525,9 +527,6 @@ class LocationTrackService(
     fun getAugLocationTrackOrThrow(id: IntId<LocationTrack>, layoutContext: LayoutContext): AugLocationTrack =
         dao.fetchAugLocationTrackOrThrow(defaultTranslation, id, layoutContext)
 
-    fun getAugLocationTrackForVersion(version: LayoutRowVersion<LocationTrack>): AugLocationTrack =
-        throw NotImplementedError()
-
     fun getManyAugLocationTracks(
         layoutContext: LayoutContext,
         ids: List<IntId<LocationTrack>>,
@@ -546,6 +545,9 @@ class LocationTrackService(
         id: IntId<LocationTrack>,
         moment: Instant,
     ): AugLocationTrack? = throw NotImplementedError()
+
+    // TODO: GVT-3080
+    fun getAugLocationTrack(cacheKey: AugLocationTrackCacheKey): AugLocationTrack? = throw NotImplementedError()
 
     fun listAugLocationTracks(
         layoutContext: LayoutContext,
@@ -851,19 +853,20 @@ class LocationTrackService(
         oid: Oid<LocationTrack>,
         layoutContext: LayoutContext,
         moment: Instant,
-    ): AugLocationTrack? =
-        throw NotImplementedError()
+    ): AugLocationTrack? = throw NotImplementedError()
 
-private fun locationTrackDbName(request: LocationTrackSaveRequest): DbLocationTrackNaming {
-    return when (request.namingScheme) {
-        LocationTrackNamingScheme.FREE_TEXT -> DbFreeTextTrackNaming(requireNotNull(request.nameFreeText))
-        LocationTrackNamingScheme.TRACK_NUMBER_TRACK ->
-            DbTrackNumberTrackNaming(requireNotNull(request.nameFreeText), requireNotNull(request.nameSpecifier))
-        LocationTrackNamingScheme.CHORD -> DbChordTrackNaming
-        LocationTrackNamingScheme.WITHIN_OPERATING_POINT ->
-            DbWithinOperatingPointTrackNaming(requireNotNull(request.nameFreeText))
-        LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS ->
-            DbBetweenOperatingPointsTrackNaming(requireNotNull(request.nameSpecifier))
+    private fun locationTrackDbName(request: LocationTrackSaveRequest): DbLocationTrackNaming {
+        return when (request.namingScheme) {
+            LocationTrackNamingScheme.FREE_TEXT -> DbFreeTextTrackNaming(requireNotNull(request.nameFreeText))
+            LocationTrackNamingScheme.TRACK_NUMBER_TRACK ->
+                DbTrackNumberTrackNaming(requireNotNull(request.nameFreeText), requireNotNull(request.nameSpecifier))
+
+            LocationTrackNamingScheme.CHORD -> DbChordTrackNaming
+            LocationTrackNamingScheme.WITHIN_OPERATING_POINT ->
+                DbWithinOperatingPointTrackNaming(requireNotNull(request.nameFreeText))
+            LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS ->
+                DbBetweenOperatingPointsTrackNaming(requireNotNull(request.nameSpecifier))
+        }
     }
 }
 

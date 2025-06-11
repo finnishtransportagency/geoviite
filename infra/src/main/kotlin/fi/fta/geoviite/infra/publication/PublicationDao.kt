@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -1436,7 +1436,8 @@ class PublicationDao(
                     locationTrackIds.indices.map { index ->
                         SwitchLocationTrack(
                             trackNumberId = trackNumberIds[index],
-                            oldVersion = LayoutRowVersion(locationTrackIds[index], locationTrackOldVersions[index]),
+                            // TODO: GVT-3080
+                            trackCacheKey = throw NotImplementedError(),
                         )
                     }
                 val id = rs.getIntId<LayoutSwitch>("switch_id")
@@ -1862,7 +1863,7 @@ class PublicationDao(
             .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
                 rs.getBoolean("direct_change") to
                     PublishedLocationTrack(
-                        version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+                        cacheKey = throw NotImplementedError(), // TODO: GVT-3080
                         namingScheme = rs.getEnum("naming_scheme"),
                         nameFreeText = rs.getString("name_free_text")?.let(::AlignmentName),
                         nameSpecifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
@@ -1872,7 +1873,7 @@ class PublicationDao(
                     )
             }
             .let { locationTrackRows ->
-                logger.daoAccess(FETCH, PublishedLocationTrack::class, locationTrackRows.map { it.second.version })
+                logger.daoAccess(FETCH, PublishedLocationTrack::class, locationTrackRows.map { it.second.cacheKey })
                 partitionDirectIndirectChanges(locationTrackRows)
             }
     }

@@ -328,15 +328,17 @@ class ValidationContext(
         return mapIdsByField(names, { s -> s.name }, publicationSet.switches, baseVersions, switchDao)
     }
 
-    fun preloadLocationTracksByName(trackIds: List<IntId<LocationTrack>>) =
-        trackNameCache.preload(trackIds.mapNotNull(::getLocationTrackName).distinct())
+    // TODO: GVT-3080
+    fun preloadLocationTracksByName(trackIds: List<IntId<LocationTrack>>): Unit = throw NotImplementedError()
+
+    // trackNameCache.preload(trackIds.mapNotNull(::getLocationTrackName).distinct())
 
     fun fetchLocationTracksByName(names: List<AlignmentName>): Map<AlignmentName, List<IntId<LocationTrack>>> {
         val baseVersions = locationTrackDao.findNameDuplicates(target.baseContext, names)
         cacheBaseVersions(baseVersions.values.flatten(), locationTrackVersionCache)
         return mapIdsByField(
             names,
-            { t -> getLocationTrackName(t.id as IntId) ?: AlignmentName("") },
+            { t -> getAugLocationTrack(t.id as IntId)?.name ?: AlignmentName("") },
             publicationSet.locationTracks,
             baseVersions,
             locationTrackDao,

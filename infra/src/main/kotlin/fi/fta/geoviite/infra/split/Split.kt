@@ -7,9 +7,9 @@ import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrackCacheKey
 import fi.fta.geoviite.infra.tracklayout.DuplicateStatus
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -50,7 +50,7 @@ data class Split(
     val id: IntId<Split>,
     val rowVersion: RowVersion<Split>,
     val sourceLocationTrackId: IntId<LocationTrack>,
-    val sourceLocationTrackVersion: LayoutRowVersion<LocationTrack>,
+    val sourceLocationTrackCacheKey: AugLocationTrackCacheKey,
     val bulkTransferState: BulkTransferState,
     val bulkTransferId: IntId<BulkTransfer>?,
     val publicationId: IntId<Publication>?,

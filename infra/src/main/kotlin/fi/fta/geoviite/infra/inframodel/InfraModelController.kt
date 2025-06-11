@@ -234,7 +234,7 @@ constructor(
         val alignmentName =
             requireNotNull(
                 locationTrack?.let {
-                    locationTrackService.getNameOrThrow(layoutContext, locationTrack.id as IntId).toString()
+                    locationTrackService.getAugLocationTrack(locationTrack.id as IntId, layoutContext)?.name?.toString()
                 } ?: trackNumber?.number?.toString()
             )
         return LocalizationParams(

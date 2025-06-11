@@ -248,10 +248,7 @@ constructor(
                     // Fake PublishedLocationTrack, Ratko integration is built around published
                     // items
                     PublishedLocationTrack(
-                        version =
-                            checkNotNull(locationTrack.version) {
-                                "Location track missing version, id=${locationTrackChange.locationTrackId}"
-                            },
+                        cacheKey = throw NotImplementedError(), // TODO: GVT-3080
                         namingScheme = locationTrack.dbName.namingScheme,
                         nameFreeText = locationTrack.dbName.nameFreeText,
                         nameSpecifier = locationTrack.dbName.nameSpecifier,

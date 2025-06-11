@@ -17,7 +17,6 @@ import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
-import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.getRowVersion
@@ -32,13 +31,13 @@ private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) =
         id = rs.getIntId("id"),
         rowVersion = rs.getRowVersion("id", "version"),
         sourceLocationTrackId = rs.getIntId("source_location_track_id"),
-        sourceLocationTrackVersion =
-            rs.getLayoutRowVersion(
-                "source_location_track_id",
-                "source_location_track_design_id",
-                "source_location_track_draft",
-                "source_location_track_version",
-            ),
+        sourceLocationTrackCacheKey = throw NotImplementedError(), // GVT-3080: Todo
+        /*rs.getLayoutRowVersion(
+            "source_location_track_id",
+            "source_location_track_design_id",
+            "source_location_track_draft",
+            "source_location_track_version",
+        ),*/
         bulkTransferState = rs.getEnum("bulk_transfer_state"),
         bulkTransferId = rs.getIntIdOrNull("bulk_transfer_id"),
         publicationId = rs.getIntIdOrNull("publication_id"),

@@ -127,7 +127,7 @@ data class PublishedReferenceLine(
 }
 
 data class PublishedLocationTrack(
-    val version: LayoutRowVersion<LocationTrack>,
+    val cacheKey: AugLocationTrackCacheKey,
     val namingScheme: LocationTrackNamingScheme,
     val nameFreeText: AlignmentName?,
     val nameSpecifier: LocationTrackNameSpecifier?,
@@ -136,7 +136,7 @@ data class PublishedLocationTrack(
     val changedKmNumbers: Set<KmNumber>,
 ) {
     val id: IntId<LocationTrack>
-        get() = version.id
+        get() = cacheKey.trackVersion.id
 }
 
 data class PublishedSwitch(
@@ -489,7 +489,7 @@ data class KmPostPublicationCandidate(
 
 data class SwitchLocationTrack(
     val trackNumberId: IntId<LayoutTrackNumber>,
-    val oldVersion: LayoutRowVersion<LocationTrack>,
+    val trackCacheKey: AugLocationTrackCacheKey,
 )
 
 data class Change<T>(val old: T?, val new: T?)

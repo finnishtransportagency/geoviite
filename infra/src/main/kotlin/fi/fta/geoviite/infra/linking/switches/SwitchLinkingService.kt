@@ -623,12 +623,12 @@ private fun linkJointToEdgeMiddle(
     )
 }
 
-fun withChangesFromLinkingSwitch(
+fun <T : ILocationTrack> withChangesFromLinkingSwitch(
     suggestedSwitch: SuggestedSwitch,
     switchStructure: SwitchStructure,
     switchId: IntId<LayoutSwitch>,
-    clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
-): List<Pair<LocationTrack, LocationTrackGeometry>> {
+    clearedTracks: Map<IntId<LocationTrack>, Pair<T, LocationTrackGeometry>>,
+): List<Pair<T, LocationTrackGeometry>> {
     require(clearedTracks.values.none { it.second.containsSwitch(switchId) }) {
         "Must clear switch from tracks before calling withChangesFromLinkingSwitch on it"
     }
@@ -647,9 +647,9 @@ fun withChangesFromLinkingSwitch(
     }
 }
 
-fun clearSwitchFromTracks(
+fun <T : ILocationTrack> clearSwitchFromTracks(
     switchId: IntId<LayoutSwitch>,
-    tracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+    tracks: Map<IntId<LocationTrack>, Pair<T, LocationTrackGeometry>>,
 ) = tracks.mapValues { (_, track) -> track.first to track.second.withoutSwitch(switchId) }
 
 fun createModifiedLayoutSwitchLinking(suggestedSwitch: SuggestedSwitch, layoutSwitch: LayoutSwitch): LayoutSwitch {

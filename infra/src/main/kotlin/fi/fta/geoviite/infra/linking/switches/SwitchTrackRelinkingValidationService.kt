@@ -100,7 +100,7 @@ constructor(
         switchSuggestions: List<SuggestedSwitchWithOriginallyLinkedTracks?>,
         switchPlacingRequests: List<SwitchPlacingRequest>,
         switchStructures: List<SwitchStructure>,
-    ): List<List<Pair<LocationTrack, LocationTrackGeometry>>> =
+    ): List<List<Pair<AugLocationTrack, LocationTrackGeometry>>> =
         lookupTracksForSuggestedSwitchValidation(branch, switchSuggestions.map { it?.suggestedSwitch })
             .mapIndexed { index, tracks -> index to tracks }
             .parallelStream()
@@ -119,11 +119,11 @@ constructor(
     private fun lookupTracksForSuggestedSwitchValidation(
         branch: LayoutBranch,
         suggestedSwitches: List<SuggestedSwitch?>,
-    ): List<Map<IntId<LocationTrack>, Pair<LocationTrack, DbLocationTrackGeometry>>> {
+    ): List<Map<IntId<LocationTrack>, Pair<AugLocationTrack, DbLocationTrackGeometry>>> {
         val changedTracksIds =
             suggestedSwitches.asSequence().mapNotNull { it?.trackLinks?.keys }.flatten().distinct().toList()
         val tracks =
-            locationTrackService.getManyWithGeometries(branch.draft, changedTracksIds).associateBy { it.first.id }
+            locationTrackService.getManyAugsWithGeometries(branch.draft, changedTracksIds).associateBy { it.first.id }
         return suggestedSwitches.map { suggestedSwitch ->
             suggestedSwitch?.trackLinks?.keys?.associateWith { id -> tracks.getValue(id) } ?: mapOf()
         }
@@ -147,7 +147,7 @@ private fun validateChangeFromSwitchRelinking(
     suggestedSwitchWithOriginallyLinkedTracks: SuggestedSwitchWithOriginallyLinkedTracks?,
     originalSwitch: LayoutSwitch,
     switchStructure: SwitchStructure,
-    changedTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    changedTracks: List<Pair<AugLocationTrack, LocationTrackGeometry>>,
 ): SwitchRelinkingValidationResult {
     return if (suggestedSwitchWithOriginallyLinkedTracks == null) failRelinkingValidationFor(switchId, originalSwitch)
     else {
@@ -179,7 +179,7 @@ private fun validateForSplit(
     originalSwitch: LayoutSwitch,
     switchStructure: SwitchStructure,
     track: AugLocationTrack,
-    changedTracksFromSwitchSuggestion: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    changedTracksFromSwitchSuggestion: List<Pair<AugLocationTrack, LocationTrackGeometry>>,
     currentSwitchLocationTrackConnections: List<IntId<LocationTrack>>,
 ): List<LayoutValidationIssue> {
     val createdSwitch = createModifiedLayoutSwitchLinking(suggestedSwitch, originalSwitch)
@@ -195,7 +195,9 @@ private fun validateForSplit(
         validateSwitchLocationTrackLinkStructure(
                 createdSwitch,
                 switchStructure,
-                locationTracks = draft(changedTracksFromSwitchSuggestion),
+                // TODO: GVT-3080 used to be "locationTracks = draft(changedTracksFromSwitchSuggestion)", see if
+                // drafting was somehow necessary
+                locationTracks = changedTracksFromSwitchSuggestion,
             )
             .map { error ->
                 // Structure based issues aren't critical for splitting/relinking -> turn them

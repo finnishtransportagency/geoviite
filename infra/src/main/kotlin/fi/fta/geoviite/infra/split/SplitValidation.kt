@@ -128,7 +128,7 @@ internal fun validateSplitSourceLocationTrack(
         produceIf(locationTrack.exists) {
             validationError("$VALIDATION_SPLIT.source-not-deleted", "sourceName" to locationTrack.name)
         },
-        produceIf(locationTrack.version != split.sourceLocationTrackVersion) {
+        produceIf(locationTrack.version != split.sourceLocationTrackCacheKey.trackVersion) {
             validationError("$VALIDATION_SPLIT.source-edited-after-split", "sourceName" to locationTrack.name)
         },
     )
