@@ -205,7 +205,7 @@ constructor(
 
     private data class TrackNumberRequests(
         val trackNumberDetails: TrackNumberDetails,
-        val tracksAndAlignments: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
+        val tracksAndGeometries: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
         val trackDetailInfos: Map<DomainId<LocationTrack>, LocationTrackDetails>?,
         val requests: List<ValidTrackAddressToCoordinateRequestV1>,
     )
@@ -234,21 +234,21 @@ constructor(
             }
             .map { (trackNumberRequests, trackNumberDetails) ->
                 val trackNumberId = trackNumberRequests.first().trackNumber.id as IntId
-                val tracksAndAlignments =
+                val tracksAndGeometries =
                     locationTrackService.listWithGeometries(
                         layoutContext = layoutContext,
                         trackNumberId = trackNumberId,
                         includeDeleted = false,
                     )
                 val trackDescriptions =
-                    getLocationTrackFeatureDetailInfo(params, tracksAndAlignments.map { (track) -> track })
-                TrackNumberRequests(trackNumberDetails, tracksAndAlignments, trackDescriptions, trackNumberRequests)
+                    getLocationTrackFeatureDetailInfo(params, tracksAndGeometries.map { (track) -> track })
+                TrackNumberRequests(trackNumberDetails, tracksAndGeometries, trackDescriptions, trackNumberRequests)
             }
             .parallelStream()
             .map { r ->
                 processForwardGeocodingRequestsForTrackNumber(
                     r.trackNumberDetails,
-                    r.tracksAndAlignments,
+                    r.tracksAndGeometries,
                     r.trackDetailInfos,
                     r.requests,
                     params,
@@ -260,7 +260,7 @@ constructor(
 
     private fun processForwardGeocodingRequestsForTrackNumber(
         trackNumberDetails: TrackNumberDetails,
-        tracksAndAlignments: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
+        tracksAndGeometries: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
         locationTrackDetails: Map<DomainId<LocationTrack>, LocationTrackDetails>?,
         requests: List<ValidTrackAddressToCoordinateRequestV1>,
         params: FrameConverterQueryParamsV1,
@@ -271,13 +271,13 @@ constructor(
             }
         }
         val resultsAndIndicesByTrack =
-            tracksAndAlignments
+            tracksAndGeometries
                 .parallelStream()
-                .map { (locationTrack, alignment) ->
+                .map { (locationTrack, geometry) ->
                     processForwardGeocodingRequestsForLocationTrack(
                         requests,
                         locationTrack,
-                        alignment,
+                        geometry,
                         trackNumberDetails.geocodingContext,
                         params,
                         locationTrackDetails,
@@ -298,7 +298,7 @@ constructor(
     private fun processForwardGeocodingRequestsForLocationTrack(
         requests: List<ValidTrackAddressToCoordinateRequestV1>,
         locationTrack: LocationTrack,
-        alignment: DbLocationTrackGeometry,
+        geometry: DbLocationTrackGeometry,
         geocodingContext: GeocodingContext,
         params: FrameConverterQueryParamsV1,
         locationTrackDetails: Map<DomainId<LocationTrack>, LocationTrackDetails>?,
@@ -322,7 +322,7 @@ constructor(
                 }
             }
         val trackAddresses =
-            geocodingContext.getTrackLocations(alignment, requests.map { request -> request.trackAddress })
+            geocodingContext.getTrackLocations(geometry, requests.map { request -> request.trackAddress })
         return requestIndicesOnTrack
             .zip(trackAddresses) { requestIndex, addressPoint ->
                 if (addressPoint != null) {

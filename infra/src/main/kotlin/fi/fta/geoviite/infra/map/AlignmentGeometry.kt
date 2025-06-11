@@ -107,7 +107,7 @@ fun toAlignmentHeader(trackNumber: LayoutTrackNumber, referenceLine: ReferenceLi
         boundingBox = alignment?.boundingBox,
     )
 
-fun toAlignmentHeader(locationTrack: LocationTrack, alignment: DbLocationTrackGeometry) =
+fun toAlignmentHeader(locationTrack: LocationTrack, geometry: DbLocationTrackGeometry) =
     LocationTrackHeader(
         id = locationTrack.id.also { require(it is IntId) } as IntId,
         version = requireNotNull(locationTrack.version),
@@ -116,9 +116,9 @@ fun toAlignmentHeader(locationTrack: LocationTrack, alignment: DbLocationTrackGe
         name = locationTrack.name,
         state = locationTrack.state,
         trackType = locationTrack.type,
-        length = alignment.length,
+        length = geometry.length,
         segmentCount = locationTrack.segmentCount,
-        boundingBox = alignment.boundingBox,
+        boundingBox = geometry.boundingBox,
     )
 
 fun getSegmentBorderMValues(alignment: IAlignment): List<Double> =

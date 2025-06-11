@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -40,7 +41,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -110,10 +110,10 @@ constructor(
 
         val boundingBox = BoundingBox(Point(0.0, 0.0), Point(10.0, 10.0))
 
-        val tracksAndAlignments = locationTrackService.listNearWithGeometries(MainLayoutContext.draft, boundingBox)
+        val tracksAndGeometries = locationTrackService.listNearWithGeometries(MainLayoutContext.draft, boundingBox)
 
-        assertTrue(tracksAndAlignments.any { (t, _) -> t.id == alignmentIdInBbox })
-        assertTrue(tracksAndAlignments.none { (t, _) -> t.id == alignmentIdOutsideBbox })
+        assertTrue(tracksAndGeometries.any { (t, _) -> t.id == alignmentIdInBbox })
+        assertTrue(tracksAndGeometries.none { (t, _) -> t.id == alignmentIdOutsideBbox })
     }
 
     @Test

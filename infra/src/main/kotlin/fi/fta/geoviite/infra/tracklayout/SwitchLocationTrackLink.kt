@@ -34,10 +34,10 @@ fun getDuplicateTrackParentStatus(
 fun getLocationTrackDuplicatesBySplitPoints(
     mainTrack: LocationTrack,
     mainGeometry: LocationTrackGeometry,
-    duplicateTracksAndAlignments: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    duplicateTracksAndGeometries: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): List<LocationTrackDuplicate> {
     val mainTrackSplitPoints = collectSplitPoints(mainGeometry)
-    return duplicateTracksAndAlignments
+    return duplicateTracksAndGeometries
         .asSequence()
         .flatMap { (duplicateTrack, duplicateAlignment) ->
             getLocationTrackDuplicatesBySplitPoints(

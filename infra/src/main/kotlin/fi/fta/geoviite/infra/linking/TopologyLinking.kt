@@ -99,6 +99,7 @@ private fun comparePorts(port1: NodePort?, port2: NodePort?): Int =
         port2 == null -> -1
         port1.isBefore(port2) -> -1
         port2.isBefore(port1) -> 1
+        port1 == port2 -> 0
         else -> 0
     }
 

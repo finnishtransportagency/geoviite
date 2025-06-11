@@ -56,8 +56,8 @@ fun targetParams(
                 descriptionSuffix = descriptionSuffixType,
             ),
         duplicate =
-            duplicate?.let { (track, alignment) ->
-                SplitTargetDuplicate(SplitTargetDuplicateOperation.OVERWRITE, track, alignment)
+            duplicate?.let { (track, geometry) ->
+                SplitTargetDuplicate(SplitTargetDuplicateOperation.OVERWRITE, track, geometry)
             },
     )
 }

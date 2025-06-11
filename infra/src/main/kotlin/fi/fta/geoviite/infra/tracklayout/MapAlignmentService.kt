@@ -132,8 +132,8 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         locationTrackIds: List<IntId<LocationTrack>>,
     ): List<AlignmentHeader<LocationTrack, LocationTrackState>> {
-        return locationTrackService.getManyWithGeometries(layoutContext, locationTrackIds).map { (track, alignment) ->
-            toAlignmentHeader(track, alignment)
+        return locationTrackService.getManyWithGeometries(layoutContext, locationTrackIds).map { (track, geometry) ->
+            toAlignmentHeader(track, geometry)
         }
     }
 
@@ -199,8 +199,8 @@ class MapAlignmentService(
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<LocationTrack>> =
         locationTrackService.listWithGeometries(layoutContext, boundingBox = bbox, includeDeleted = false).mapNotNull {
-            (track, alignment) ->
-            getMissingLinkings(track.id, LOCATION_TRACK, alignment)
+            (track, geometry) ->
+            getMissingLinkings(track.id, LOCATION_TRACK, geometry)
         }
 
     private fun getReferenceLineMissingLinkings(

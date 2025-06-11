@@ -183,12 +183,12 @@ private data class PossibleSegment(
 private fun findSuggestedSwitchJointMatches(
     joint: SwitchStructureJoint,
     locationTrack: LocationTrack,
-    alignment: CroppedTrackGeometry,
+    geometry: CroppedTrackGeometry,
     tolerance: Double,
     switchDirectionVector: IPoint,
 ): List<FittedSwitchJointMatch> {
     val jointLocation = joint.location
-    val possibleSegments = findPossiblyMatchableSegments(alignment, jointLocation, tolerance)
+    val possibleSegments = findPossiblyMatchableSegments(geometry, jointLocation, tolerance)
     if (possibleSegments.isEmpty()) {
         return listOf()
     }
@@ -261,16 +261,16 @@ private fun findSuggestedSwitchJointMatches(
 }
 
 private fun findPossiblyMatchableSegments(
-    alignment: CroppedTrackGeometry,
+    geometry: CroppedTrackGeometry,
     jointLocation: Point,
     tolerance: Double,
 ): List<PossibleSegment> {
     val maxMatchableDistance = max(TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT, tolerance)
-    val closestSegmentIndex = alignment.findClosestSegmentIndex(jointLocation) ?: return listOf()
+    val closestSegmentIndex = geometry.findClosestSegmentIndex(jointLocation) ?: return listOf()
     val firstPossibleSegmentIndex = (closestSegmentIndex - 1).coerceAtLeast(0)
 
-    return alignment.segmentsWithM
-        .subList(firstPossibleSegmentIndex, (closestSegmentIndex + 2).coerceAtMost(alignment.segments.size))
+    return geometry.segmentsWithM
+        .subList(firstPossibleSegmentIndex, (closestSegmentIndex + 2).coerceAtMost(geometry.segments.size))
         .mapIndexed { index, (segment, segmentMRange) ->
             val closestPointM = segment.getClosestPointM(segmentMRange.min, jointLocation).first
             val pointSeekResult = segment.seekPointAtM(segmentMRange.min, closestPointM)
@@ -278,7 +278,7 @@ private fun findPossiblyMatchableSegments(
             val jointDistanceToSegment = lineLength(pointSeekResult.point, jointLocation)
             PossibleSegment(
                 segment,
-                index + firstPossibleSegmentIndex + alignment.cropStartSegmentIndex,
+                index + firstPossibleSegmentIndex + geometry.cropStartSegmentIndex,
                 segmentMRange,
                 closestPointM,
                 closestSegmentPointIndex,
@@ -325,15 +325,15 @@ fun takeSegmentLineMatches(
 
 private fun findSuggestedSwitchJointMatches(
     joints: List<SwitchStructureJoint>,
-    locationTrackAlignment: Pair<LocationTrack, CroppedTrackGeometry>,
+    locationTrackAndGeometry: Pair<LocationTrack, CroppedTrackGeometry>,
     tolerance: Double,
     switchDirectionVector: IPoint,
 ): List<FittedSwitchJointMatch> {
     return joints.flatMap { joint ->
         findSuggestedSwitchJointMatches(
             joint = joint,
-            locationTrack = locationTrackAlignment.first,
-            alignment = locationTrackAlignment.second,
+            locationTrack = locationTrackAndGeometry.first,
+            geometry = locationTrackAndGeometry.second,
             tolerance = tolerance,
             switchDirectionVector = switchDirectionVector,
         )
@@ -354,19 +354,19 @@ fun getSwitchDirectionVector(
 fun fitSwitch(
     jointsInLayoutSpace: List<SwitchStructureJoint>,
     switchStructure: SwitchStructure,
-    alignments: List<Pair<LocationTrack, CroppedTrackGeometry>>,
+    tracksAndGeometries: List<Pair<LocationTrack, CroppedTrackGeometry>>,
     locationAccuracy: LocationAccuracy?,
 ): FittedSwitch {
     val jointMatchTolerance = 0.2 // TODO: There could be tolerance per joint point in switch structure
     val switchDirectionVector = getSwitchDirectionVector(switchStructure, jointsInLayoutSpace)
 
     val matchesByLocationTrack =
-        alignments
-            .associate { alignment ->
-                alignment.first to
+        tracksAndGeometries
+            .associate { trackAndGeometry ->
+                trackAndGeometry.first to
                     findSuggestedSwitchJointMatches(
                         joints = jointsInLayoutSpace,
-                        locationTrackAlignment = alignment,
+                        locationTrackAndGeometry = trackAndGeometry,
                         tolerance = jointMatchTolerance,
                         switchDirectionVector = switchDirectionVector,
                     )
@@ -705,7 +705,7 @@ fun fitSwitch(
     return fitSwitch(
         jointsInLayoutSpace = jointsInLayoutSpace,
         switchStructure = switchStructure,
-        alignments = tracks,
+        tracksAndGeometries = tracks,
         locationAccuracy = locationAccuracy,
     )
 }
@@ -838,7 +838,7 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
         grid.points.associateWith { point -> BoundingBox(0.0..pointBboxSize, 0.0..pointBboxSize).centerAt(point) }
 
     val croppedTracks =
-        nearbyLocationTracks.map { (track, alignment) -> track to cropPoints(track.id as IntId, alignment, gridBbox) }
+        nearbyLocationTracks.map { (track, geometry) -> track to cropPoints(track.id as IntId, geometry, gridBbox) }
 
     val intersections = findTrackIntersectionsForGridPoints(croppedTracks.map { it.second }, grid)
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
@@ -871,10 +871,10 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
 }
 
 private fun getOriginallyLinkedAlignmentsJoints(
-    alignments: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    tracksAndGeometries: List<Pair<LocationTrack, LocationTrackGeometry>>,
     switchId: IntId<LayoutSwitch>,
 ): Set<Pair<IntId<LocationTrack>, JointNumber>> =
-    alignments
+    tracksAndGeometries
         .flatMap { (track, geometry) ->
             geometry.trackSwitchLinks.mapNotNull { switchLink ->
                 if (switchLink.switchId == switchId && switchLink.type == TrackSwitchLinkType.INNER)

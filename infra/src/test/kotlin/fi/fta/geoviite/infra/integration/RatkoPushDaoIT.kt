@@ -244,8 +244,8 @@ constructor(
     }
 
     fun insertAndPublishLocationTrack(): LayoutRowVersion<LocationTrack> =
-        locationTrackAndGeometry(trackNumberId, draft = true).let { (track, alignment) ->
-            val draftVersion = locationTrackService.saveDraft(LayoutBranch.main, track, alignment)
+        locationTrackAndGeometry(trackNumberId, draft = true).let { (track, geometry) ->
+            val draftVersion = locationTrackService.saveDraft(LayoutBranch.main, track, geometry)
             locationTrackService.publish(LayoutBranch.main, draftVersion).published
         }
 

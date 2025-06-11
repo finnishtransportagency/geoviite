@@ -952,10 +952,10 @@ fun externalIdForTrackNumber(): Oid<LayoutTrackNumber> {
 
 fun switchLinkingAtStart(
     locationTrackId: DomainId<LocationTrack>,
-    alignment: LocationTrackGeometry,
+    geometry: LocationTrackGeometry,
     segmentIndex: Int,
     jointNumber: Int,
-) = switchLinkingAtStart(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)
+) = switchLinkingAtStart(locationTrackId, geometry.segmentMValues, segmentIndex, jointNumber)
 
 fun switchLinkingAtStart(
     locationTrackId: DomainId<LocationTrack>,
@@ -966,10 +966,10 @@ fun switchLinkingAtStart(
 
 fun switchLinkingAtEnd(
     locationTrackId: DomainId<LocationTrack>,
-    alignment: LocationTrackGeometry,
+    geometry: LocationTrackGeometry,
     segmentIndex: Int,
     jointNumber: Int,
-) = switchLinkingAtEnd(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)
+) = switchLinkingAtEnd(locationTrackId, geometry.segmentMValues, segmentIndex, jointNumber)
 
 fun switchLinkingAtEnd(
     locationTrackId: DomainId<LocationTrack>,
@@ -980,10 +980,10 @@ fun switchLinkingAtEnd(
 
 fun switchLinkingAtHalf(
     locationTrackId: DomainId<LocationTrack>,
-    alignment: LocationTrackGeometry,
+    geometry: LocationTrackGeometry,
     segmentIndex: Int,
     jointNumber: Int,
-) = switchLinkingAtHalf(locationTrackId, alignment.segmentMValues, segmentIndex, jointNumber)
+) = switchLinkingAtHalf(locationTrackId, geometry.segmentMValues, segmentIndex, jointNumber)
 
 fun switchLinkingAtHalf(
     locationTrackId: DomainId<LocationTrack>,

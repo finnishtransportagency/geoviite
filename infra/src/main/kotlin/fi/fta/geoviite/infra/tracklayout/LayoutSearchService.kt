@@ -137,8 +137,8 @@ constructor(
     ): List<LocationTrack> =
         locationTrackService
             .getWithGeometryOrThrow(layoutContext, locationTrackSearchScope)
-            .let { (lt, alignment) ->
-                lt to locationTrackService.getLocationTrackDuplicates(layoutContext, lt, alignment)
+            .let { (lt, geometry) ->
+                lt to locationTrackService.getLocationTrackDuplicates(layoutContext, lt, geometry)
             }
             .let { (locationTrack, duplicates) ->
                 listOf(locationTrack) + locationTrackService.getMany(layoutContext, duplicates.map { d -> d.id })

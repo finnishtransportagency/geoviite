@@ -124,8 +124,8 @@ constructor(
             referenceLine(trackNumberId, draft = true),
             alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
-        val (track, alignment) = locationTrackAndGeometry(trackNumberId, draft = true)
-        val draftId = locationTrackService.saveDraft(LayoutBranch.main, track, alignment).id
+        val (track, geometry) = locationTrackAndGeometry(trackNumberId, draft = true)
+        val draftId = locationTrackService.saveDraft(LayoutBranch.main, track, geometry).id
         assertThrows<NoSuchEntityException> {
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.official, draftId)
         }

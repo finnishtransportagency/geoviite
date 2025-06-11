@@ -39,9 +39,9 @@ import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -517,8 +517,8 @@ class SplitService(
                 }
             val duplicate =
                 target.duplicateTrack?.let { d ->
-                    val (track, alignment) = locationTrackService.getWithGeometryOrThrow(branch.draft, d.id)
-                    SplitTargetDuplicate(d.operation, track, alignment)
+                    val (track, geometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, d.id)
+                    SplitTargetDuplicate(d.operation, track, geometry)
                 }
             SplitTargetParams(target, startSwitch, duplicate)
         }
