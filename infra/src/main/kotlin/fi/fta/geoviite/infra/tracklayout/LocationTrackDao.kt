@@ -140,16 +140,9 @@ class LocationTrackDao(
               end_switch.design_id as end_switch_design_id,
               end_switch.version as end_switch_version
               from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
-                inner join layout.location_track_version_topology_view lt_topology
-                           on lt.id = lt_topology.id
-                             and lt.layout_context_id = lt_topology.layout_context_id
-                             and lt.version = lt_topology.version
-                inner join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
-                           on lt.track_number_id = tn.id
-                left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) start_switch
-                           on lt_topology.start_switch_id = start_switch.id
-                left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) end_switch
-                           on lt_topology.end_switch_id = end_switch.id
+                inner join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn on lt.track_number_id = tn.id
+                left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) start_switch on lt.start_switch_id = start_switch.id
+                left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) end_switch on lt.end_switch_id = end_switch.id
               where (:ids::int[] is null or lt.id = any(:ids))
                 and (:include_deleted or lt.state != 'DELETED')
                 and (:track_number_id::int is null or lt.track_number_id = :track_number_id)
@@ -405,7 +398,9 @@ class LocationTrackDao(
               length,
               edge_count,
               segment_count,
-              bounding_box
+              bounding_box,
+              start_switch_id,
+              end_switch_id
             ) 
             values (
               :layout_context_id,
@@ -428,7 +423,9 @@ class LocationTrackDao(
               :length,
               :edge_count,
               :segment_count,
-              postgis.st_polygonfromtext(:polygon_string, 3067)
+              postgis.st_polygonfromtext(:polygon_string, 3067),
+              :start_switch_id,
+              :end_switch_id
             ) on conflict (id, layout_context_id) do update set
               track_number_id = excluded.track_number_id,
               naming_scheme = excluded.naming_scheme,
@@ -446,7 +443,9 @@ class LocationTrackDao(
               length = excluded.length,
               edge_count = excluded.edge_count,
               segment_count = excluded.segment_count,
-              bounding_box = excluded.bounding_box
+              bounding_box = excluded.bounding_box,
+              start_switch_id = excluded.start_switch_id,
+              end_switch_id = excluded.end_switch_id
             returning id, design_id, draft, version
         """
                 .trimIndent()
@@ -472,7 +471,10 @@ class LocationTrackDao(
                 "length" to geometry.length,
                 "edge_count" to geometry.edges.size,
                 "segment_count" to geometry.segments.size,
-                "polygon_string" to geometry.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
+                "polygon_string" to
+                    geometry.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
+                "start_switch_id" to geometry.startSwitchLink?.id?.intValue,
+                "end_switch_id" to geometry.endSwitchLink?.id?.intValue,
             )
 
         jdbcTemplate.setUser()
