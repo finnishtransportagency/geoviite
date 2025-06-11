@@ -181,6 +181,7 @@ class LocationTrackDao(
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
         return AugLocationTrack(
             translation,
+            key,
             dbTrack,
             ReifiedTrackNaming.of(dbTrack, trackNumber, startSwitch, endSwitch),
             ReifiedTrackDescription(dbTrack.dbDescription, startSwitch?.name, endSwitch?.name),
@@ -351,7 +352,7 @@ class LocationTrackDao(
         LocationTrack(
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
-            dbName = rs.getDbLocationTrackNaming("naming_scheme", "name_free_text", "name_specifier"),
+            dbName = rs.getDbLocationTrackNaming("naming_scheme", "name_specifier", "name_free_text"),
             dbDescription =
                 DbLocationTrackDescription(
                     descriptionBase = rs.getString("description_base").let(::LocationTrackDescriptionBase),

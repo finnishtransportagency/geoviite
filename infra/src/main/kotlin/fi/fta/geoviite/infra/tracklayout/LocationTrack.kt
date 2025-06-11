@@ -278,6 +278,7 @@ interface ILocationTrack : Loggable {
 
 data class AugLocationTrack(
     private val translation: Translation,
+    @JsonIgnore val cacheKey: AugLocationTrackCacheKey,
     @JsonIgnore val dbTrack: LocationTrack,
     val reifiedNaming: ReifiedTrackNaming,
     val reifiedDescription: ReifiedTrackDescription,

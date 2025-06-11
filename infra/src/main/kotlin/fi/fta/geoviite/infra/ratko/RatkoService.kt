@@ -44,12 +44,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import java.time.Duration
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import java.time.Duration
+import java.time.Instant
 
 open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
     RuntimeException(cause)
@@ -236,8 +236,8 @@ constructor(
             val publishedLocationTrackChanges =
                 locationTrackChanges.map { locationTrackChange ->
                     val locationTrack =
-                        locationTrackService.getOfficialAtMoment(
-                            branch = branch,
+                        locationTrackService.getAugLocationTrackAtMoment(
+                            layoutContext = branch.official,
                             id = locationTrackChange.locationTrackId,
                             moment = latestPublicationMoment,
                         )
@@ -248,11 +248,7 @@ constructor(
                     // Fake PublishedLocationTrack, Ratko integration is built around published
                     // items
                     PublishedLocationTrack(
-                        cacheKey = throw NotImplementedError(), // TODO: GVT-3080
-                        namingScheme = locationTrack.dbName.namingScheme,
-                        nameFreeText = locationTrack.dbName.nameFreeText,
-                        nameSpecifier = locationTrack.dbName.nameSpecifier,
-                        trackNumberId = locationTrack.trackNumberId,
+                        cacheKey = locationTrack.cacheKey,
                         operation = Operation.MODIFY,
                         changedKmNumbers = locationTrackChange.changedKmNumbers,
                     )
