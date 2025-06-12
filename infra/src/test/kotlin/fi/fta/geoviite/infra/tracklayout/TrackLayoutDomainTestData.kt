@@ -500,14 +500,21 @@ fun toAugLocationTrack(
     trackNumber: LayoutTrackNumber,
     startSwitch: LayoutSwitch? = null,
     endSwitch: LayoutSwitch? = null,
-): AugLocationTrack =
-    AugLocationTrack(
+): AugLocationTrack {
+    return AugLocationTrack(
         translation,
-        AugLocationTrackCacheKey(locationTrack.version!!, trackNumber.version!!, null, null),
+        AugLocationTrackCacheKey(
+            // TODO: GVT-3080 add non-stupid version faking if needed and also fake switch versions
+            LayoutRowVersion(LayoutRowId(IntId<LocationTrack>(1), locationTrack.contextData.layoutContext), 1),
+            LayoutRowVersion(LayoutRowId(IntId<LayoutTrackNumber>(1), trackNumber.contextData.layoutContext), 1),
+            null,
+            null,
+        ),
         locationTrack,
         ReifiedTrackNaming.of(locationTrack, trackNumber, startSwitch, endSwitch),
         ReifiedTrackDescription(locationTrack.dbDescription, startSwitch?.name, endSwitch?.name),
     )
+}
 
 fun <T> someOid() = Oid<T>("${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}")
 
