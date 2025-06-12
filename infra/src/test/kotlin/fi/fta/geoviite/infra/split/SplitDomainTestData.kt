@@ -16,7 +16,7 @@ fun splitRequest(trackId: IntId<LocationTrack>, vararg targets: SplitRequestTarg
 fun targetRequest(
     startAtSwitchId: IntId<LayoutSwitch>?,
     name: DbLocationTrackNaming,
-    descriptionBase: String = "Split desc $name",
+    descriptionBase: String = "Split desc ${name.nameFreeText}",
     descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
     duplicateTrackId: IntId<LocationTrack>? = null,
     operation: SplitTargetDuplicateOperation = SplitTargetDuplicateOperation.OVERWRITE,

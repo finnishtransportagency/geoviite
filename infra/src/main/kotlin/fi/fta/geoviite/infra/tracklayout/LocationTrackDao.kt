@@ -103,7 +103,7 @@ class LocationTrackDao(
     fun fetchManyAugLocationTrackKeys(
         ids: List<IntId<LocationTrack>>,
         layoutContext: LayoutContext,
-    ): List<AugLocationTrackCacheKey> = fetchManyAugLocationTrackKeys(ids, layoutContext)
+    ): List<AugLocationTrackCacheKey> = TODO("GVT-3080")
 
     fun listAugLocationTrackKeys(
         layoutContext: LayoutContext,

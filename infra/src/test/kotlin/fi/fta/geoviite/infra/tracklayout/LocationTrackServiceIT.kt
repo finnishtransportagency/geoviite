@@ -159,7 +159,7 @@ constructor(
         val editedVersion2 =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                editedDraft.copy(dbName = locationTrackDbName("EDITED1")),
+                editedDraft.copy(dbName = locationTrackDbName("EDITED2")),
                 TmpLocationTrackGeometry.empty,
             )
         assertEquals(publicationResponse.id, editedVersion2.id)
@@ -707,7 +707,7 @@ constructor(
                 .getInfoboxExtras(MainLayoutContext.draft, originalLocationTrackId)
                 ?.duplicates
                 ?.firstOrNull()
-                ?.let { locationTrackService.getAugLocationTrack(it.id, MainLayoutContext.official)?.name },
+                ?.let { locationTrackService.getAugLocationTrack(it.id, MainLayoutContext.draft)?.name },
         )
     }
 
