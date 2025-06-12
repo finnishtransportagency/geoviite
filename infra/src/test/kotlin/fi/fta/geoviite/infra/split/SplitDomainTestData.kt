@@ -35,7 +35,7 @@ fun targetParams(
     switchId: IntId<LayoutSwitch>?,
     switchJoint: JointNumber?,
     name: DbLocationTrackNaming,
-    descriptionBase: String = "split desc $name $switchId $switchJoint",
+    descriptionBase: String = "split desc ${name.nameFreeText} $switchId $switchJoint",
     descriptionSuffixType: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
     duplicate: Pair<LocationTrack, LocationTrackGeometry>? = null,
 ): SplitTargetParams {
