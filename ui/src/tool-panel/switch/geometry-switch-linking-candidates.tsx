@@ -4,7 +4,7 @@ import styles from 'tool-panel/switch/switch-infobox.scss';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { LoaderStatus, useImmediateLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { getSwitchesByBoundingBox } from 'track-layout/layout-switch-api';
-import { GeometrySwitchSuggestionResult, SuggestedSwitch } from 'linking/linking-model';
+import { LinkingGeometrySwitch, SuggestedSwitch } from 'linking/linking-model';
 import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -12,40 +12,32 @@ import { useTranslation } from 'react-i18next';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { getSuggestedSwitchForGeometrySwitch } from 'linking/linking-api';
 import { GeometrySwitchId } from 'geometry/geometry-model';
+import { GeometrySwitchSuggestionLoadResult } from 'tool-panel/switch/geometry-switch-linking-infobox';
 
 type GeometrySwitchLinkingCandidatesProps = {
     layoutContext: LayoutContext;
+    linkingState: LinkingGeometrySwitch;
     suggestedSwitch?: SuggestedSwitch;
     geometrySwitchId: GeometrySwitchId;
-    onSelectSuggestedSwitch: (
-        selectedSuggestedSwitch: SuggestedSwitch,
-        layoutSwitchId: LayoutSwitchId,
-    ) => void;
+    onLoadSuggestedSwitchResult: (result: GeometrySwitchSuggestionLoadResult) => void;
     switchChangeTime: TimeStamp;
     onShowAddSwitchDialog: () => void;
 };
 
-type SuggestionResultAndSwitchId = {
-    result: GeometrySwitchSuggestionResult | undefined;
-    switchId: LayoutSwitchId;
-};
-
 export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCandidatesProps> = ({
     layoutContext,
+    linkingState,
     suggestedSwitch,
     geometrySwitchId,
-    onSelectSuggestedSwitch,
+    onLoadSuggestedSwitchResult,
     switchChangeTime,
     onShowAddSwitchDialog,
 }) => {
     const { t } = useTranslation();
 
-    const [selectedSwitchId, setSelectedSwitchId] = React.useState<LayoutSwitchId>();
-    const suggestedSwitchLoader = useImmediateLoader<SuggestionResultAndSwitchId>(
-        (result) =>
-            result.result &&
-            result.result.switch &&
-            onSelectSuggestedSwitch(result.result.switch, result.switchId),
+    const selectedSwitchId = linkingState.layoutSwitchId;
+    const suggestedSwitchLoader = useImmediateLoader<GeometrySwitchSuggestionLoadResult>(
+        onLoadSuggestedSwitchResult,
     );
 
     const [switches, loadingStatus] = useLoaderWithStatus(() => {
@@ -65,6 +57,19 @@ export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCand
         }
     }, [suggestedSwitch, switchChangeTime]);
 
+    function onClickSwitchCandidate(layoutSwitchId: LayoutSwitchId): void {
+        suggestedSwitchLoader.load(
+            getSuggestedSwitchForGeometrySwitch(
+                layoutContext.branch,
+                geometrySwitchId,
+                layoutSwitchId,
+            ).then((suggestionResult) => ({
+                suggestionResult,
+                layoutSwitchId,
+            })),
+        );
+    }
+
     return (
         <React.Fragment>
             <div className={styles['geometry-switch-infobox__search-container']}>
@@ -81,17 +86,7 @@ export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCand
                         <li
                             key={s.id}
                             className={styles['geometry-switch-infobox__switch']}
-                            onClick={() => {
-                                const switchId = s.id;
-                                setSelectedSwitchId(switchId);
-                                suggestedSwitchLoader.load(
-                                    getSuggestedSwitchForGeometrySwitch(
-                                        layoutContext.branch,
-                                        geometrySwitchId,
-                                        switchId,
-                                    ).then((result) => ({ result, switchId })),
-                                );
-                            }}>
+                            onClick={() => onClickSwitchCandidate(s.id)}>
                             <SwitchBadge
                                 switchItem={s}
                                 status={

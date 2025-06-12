@@ -2,16 +2,15 @@ import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { fieldComparator, filterNotEmpty, first, last } from 'utils/array-utils';
 import {
+    AlignmentTypeAndId,
     emptyLinkInterval,
     GeometryLinkingAlignmentLockParameters,
     GeometryPreliminaryLinkingParameters,
-    LayoutAlignmentTypeAndId,
     LinkingAlignment,
-    LinkingAssetSource,
+    LinkingGeometrySwitch,
     LinkingGeometryWithAlignment,
     LinkingGeometryWithEmptyAlignment,
     LinkingState,
-    LinkingSwitch,
     LinkingType,
     LinkInterval,
     LinkPoint,
@@ -26,7 +25,7 @@ import {
     MapAlignmentType,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { GeometryKmPostId } from 'geometry/geometry-model';
+import { GeometryKmPostId, GeometryPlanId, GeometrySwitch } from 'geometry/geometry-model';
 import { angleDiffRads, directionBetweenPoints } from 'utils/math-utils';
 import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 import { draftLayoutContext, LayoutContext, LayoutContextMode } from 'common/common-model';
@@ -71,7 +70,6 @@ export const linkingReducers = {
     stopLinking: function (state: TrackLayoutState): void {
         state.linkingState = undefined;
         state.selection.selectedItems.clusterPoints = [];
-        state.selection.selectedItems.suggestedSwitches = [];
     },
     setLayoutLinkPoint: function (
         state: TrackLayoutState,
@@ -205,27 +203,34 @@ export const linkingReducers = {
         { payload: layoutSwitch }: PayloadAction<LayoutSwitch>,
     ) => {
         state.linkingState = {
-            type: LinkingType.PlacingSwitch,
+            type: LinkingType.PlacingLayoutSwitch,
             layoutSwitch: layoutSwitch,
             location: undefined,
             state: 'preliminary',
             issues: [],
         };
     },
-    startSwitchLinking: (
+    startGeometrySwitchLinking: (
         state: TrackLayoutState,
         {
-            payload: { suggestedSwitch, source },
-        }: PayloadAction<{ suggestedSwitch: SuggestedSwitch; source: LinkingAssetSource }>,
+            payload: { suggestedSwitch, geometrySwitch, geometryPlanId },
+        }: PayloadAction<{
+            suggestedSwitch: SuggestedSwitch;
+            geometrySwitch: GeometrySwitch;
+            geometryPlanId: GeometryPlanId;
+        }>,
     ): void => {
         const newLayoutContext = draftLayoutContext(state.layoutContext);
         state.layoutContext = newLayoutContext;
         state.layoutContextMode = inferLayoutContextMode(newLayoutContext);
 
         state.linkingState = {
-            type: LinkingType.LinkingSwitch,
+            type: LinkingType.LinkingGeometrySwitch,
             suggestedSwitch: suggestedSwitch,
-            switchSource: source,
+            geometrySwitchId: geometrySwitch.id,
+            suggestedSwitchName: geometrySwitch.name,
+            geometryPlanId,
+            layoutSwitchId: undefined,
             state: 'preliminary',
             issues: [],
         };
@@ -234,14 +239,47 @@ export const linkingReducers = {
         // operator needs to take an action to select a switch
         state.selection.selectedItems.switches = [];
     },
-    selectLayoutSwitchForLinking: (
+    startLayoutSwitchLinking: (
         state: TrackLayoutState,
-        { payload: switchId }: PayloadAction<LayoutSwitchId | undefined>,
+        {
+            payload: { suggestedSwitch, layoutSwitch },
+        }: PayloadAction<{ suggestedSwitch: SuggestedSwitch; layoutSwitch: LayoutSwitch }>,
+    ): void => {
+        goToDraftContext(state);
+
+        state.linkingState = {
+            type: LinkingType.LinkingLayoutSwitch,
+            suggestedSwitch: suggestedSwitch,
+            layoutSwitchId: layoutSwitch.id,
+            suggestedSwitchName: layoutSwitch.name,
+            state: 'preliminary',
+            issues: [],
+        };
+    },
+    selectOnlyLayoutSwitchForGeometrySwitchLinking: (
+        state: TrackLayoutState,
+        {
+            payload: { layoutSwitchId },
+        }: PayloadAction<{ suggestedSwitch?: SuggestedSwitch; layoutSwitchId: LayoutSwitchId }>,
     ) => {
-        if (state.linkingState?.type === LinkingType.LinkingSwitch) {
+        if (state.linkingState?.type === LinkingType.LinkingGeometrySwitch) {
             state.linkingState = validateLinkingState({
                 ...state.linkingState,
-                layoutSwitchId: switchId,
+                layoutSwitchId,
+            });
+        }
+    },
+    selectCandidateSwitchForGeometrySwitchLinking: (
+        state: TrackLayoutState,
+        {
+            payload: { suggestedSwitch, layoutSwitchId },
+        }: PayloadAction<{ suggestedSwitch: SuggestedSwitch; layoutSwitchId: LayoutSwitchId }>,
+    ) => {
+        if (state.linkingState?.type === LinkingType.LinkingGeometrySwitch) {
+            state.linkingState = validateLinkingState({
+                ...state.linkingState,
+                suggestedSwitch,
+                layoutSwitchId,
             });
         }
     },
@@ -261,6 +299,12 @@ export const linkingReducers = {
         };
     },
 };
+
+function goToDraftContext(state: TrackLayoutState): void {
+    const newLayoutContext = draftLayoutContext(state.layoutContext);
+    state.layoutContext = newLayoutContext;
+    state.layoutContextMode = inferLayoutContextMode(newLayoutContext);
+}
 
 export const inferLayoutContextMode = (layoutContext: LayoutContext): LayoutContextMode =>
     layoutContext.branch === 'MAIN'
@@ -317,11 +361,12 @@ function validateLinkingState(state: LinkingState): LinkingState {
             return validateLinkingGeometryWithAlignment(state);
         case LinkingType.LinkingAlignment:
             return validateLinkingAlignment(state);
-        case LinkingType.LinkingSwitch:
-            return validateLinkingSwitch(state);
-        case LinkingType.PlacingSwitch:
+        case LinkingType.LinkingGeometrySwitch:
+            return validateLinkingGeometrySwitch(state);
+        case LinkingType.PlacingLayoutSwitch:
         case LinkingType.LinkingKmPost:
         case LinkingType.UnknownAlignment:
+        case LinkingType.LinkingLayoutSwitch:
             return state;
         default:
             return exhaustiveMatchingGuard(state);
@@ -456,7 +501,7 @@ function validateLinkingAlignment(state: LinkingAlignment): LinkingAlignment {
     };
 }
 
-function validateLinkingSwitch(state: LinkingSwitch): LinkingSwitch {
+function validateLinkingGeometrySwitch(state: LinkingGeometrySwitch): LinkingGeometrySwitch {
     const canLink = state.suggestedSwitch && state.layoutSwitchId;
     return {
         ...state,
@@ -465,7 +510,7 @@ function validateLinkingSwitch(state: LinkingSwitch): LinkingSwitch {
 }
 
 export function createLinkPoints(
-    alignment: LayoutAlignmentTypeAndId,
+    alignment: AlignmentTypeAndId,
     alignmentLength: number,
     segmentEndMs: number[],
     points: AlignmentPoint[],

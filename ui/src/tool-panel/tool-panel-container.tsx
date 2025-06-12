@@ -28,22 +28,18 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
         suggestedSwitch: SuggestedSwitch,
         layoutSwitch: LayoutSwitch,
     ) {
-        delegates.onSelect({
-            suggestedSwitches: [suggestedSwitch],
-        });
-        delegates.startSwitchLinking({ suggestedSwitch, source: 'PREDEFINED' });
+        delegates.startLayoutSwitchLinking({ suggestedSwitch, layoutSwitch });
         delegates.onSelect({
             switches: [layoutSwitch.id],
         });
         delegates.showLayers(['switch-linking-layer']);
-    },
-    []);
+    }, []);
 
     const infoboxVisibilities = useTrackLayoutAppSelector((state) => state.infoboxVisibilities);
 
     React.useEffect(() => {
         const linkingState = store.linkingState;
-        if (linkingState?.type === LinkingType.PlacingSwitch && linkingState.location) {
+        if (linkingState?.type === LinkingType.PlacingLayoutSwitch && linkingState.location) {
             getSuggestedSwitchForLayoutSwitchPlacing(
                 store.layoutContext.branch,
                 linkingState.location,
@@ -76,7 +72,6 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             splittingState={store.splittingState}
             changeTimes={changeTimes}
             layoutContext={store.layoutContext}
-            suggestedSwitches={store.selection.selectedItems.suggestedSwitches}
             onDataChange={typeChange}
             setSelectedAsset={delegates.setToolPanelTab}
             selectedAsset={store.selectedToolPanelTab}

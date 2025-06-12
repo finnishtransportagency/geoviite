@@ -15,7 +15,7 @@ import {
     LocationTrackId,
     MapAlignmentType,
 } from 'track-layout/track-layout-model';
-import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';
+import { LinkingState, LinkingType } from 'linking/linking-model';
 import { SelectedGeometryItem } from 'selection/selection-model';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
 import { compareByField, filterNotEmpty, filterUnique, first } from 'utils/array-utils';
@@ -33,6 +33,7 @@ import {
     GeometryKmPostInfoboxVisibilities,
     InfoboxVisibilities,
     KmPostInfoboxVisibilities,
+    SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID,
     TOOL_PANEL_ASSET_ORDER,
 } from 'track-layout/track-layout-slice';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
@@ -41,12 +42,12 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { KmPostInfoboxContainer } from 'tool-panel/km-post/km-post-infobox-container';
 import { GeometryKmPostInfoboxContainer } from 'tool-panel/km-post/geometry-km-post-infobox-container';
 import { SwitchInfoboxContainer } from 'tool-panel/switch/switch-infobox-container';
-import { SuggestedSwitchInfoboxContainer } from 'tool-panel/switch/dialog/suggested-switch-infobox-container';
-import { GeometrySwitchInfoboxContainer } from 'tool-panel/switch/dialog/geometry-switch-infobox-container';
+import { GeometrySwitchInfoboxContainer } from 'tool-panel/switch/geometry-switch-infobox-container';
 import { LocationTrackTaskListContainer } from 'tool-panel/location-track/location-track-task-list/location-track-task-list-container';
 import { TabHeader, TabHeaderSize } from 'geoviite-design-lib/tab-header/tab-header';
 import { LayoutContext } from 'common/common-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { LayoutSwitchLinkingInfoboxContainer } from 'tool-panel/switch/layout-switch-linking-infobox-container';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -57,7 +58,6 @@ type ToolPanelProps = {
     geometrySwitchIds: SelectedGeometryItem<GeometrySwitchId>[];
     locationTrackIds: LocationTrackId[];
     geometryAlignmentIds: SelectedGeometryItem<GeometryAlignmentId>[];
-    suggestedSwitches: SuggestedSwitch[];
     linkingState?: LinkingState;
     splittingState?: SplittingState;
     changeTimes: ChangeTimes;
@@ -81,7 +81,7 @@ export type ToolPanelAssetType =
     | 'GEOMETRY_PLAN'
     | 'GEOMETRY_KM_POST'
     | 'GEOMETRY_SWITCH'
-    | 'GEOMETRY_SWITCH_SUGGESTION';
+    | 'SUGGESTED_SWITCH';
 export type ToolPanelAsset = {
     id: string;
     type: ToolPanelAssetType;
@@ -116,7 +116,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     geometrySwitchIds,
     locationTrackIds,
     geometryAlignmentIds,
-    suggestedSwitches,
     linkingState,
     splittingState,
     changeTimes,
@@ -260,7 +259,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         });
 
         const geometryKmPostTabs = geometryKmPostIds.map(
-            (k: SelectedGeometryItem<LayoutKmPostId>) => {
+            (k: SelectedGeometryItem<GeometryKmPostId>) => {
                 const kmPost = getPlan(k.planId)?.kmPosts?.find((p) => p.sourceId === k.geometryId);
                 return {
                     asset: { type: 'GEOMETRY_KM_POST', id: k.geometryId },
@@ -298,40 +297,62 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             } as ToolPanelTab;
         });
 
-        const suggestedSwitchTabs: ToolPanelTab[] = suggestedSwitches.map((ss) => {
-            return {
-                asset: { type: 'GEOMETRY_SWITCH_SUGGESTION', id: ss.id },
-                title: ss.name ?? '...',
-                element: (
-                    <SuggestedSwitchInfoboxContainer
-                        visibilities={infoboxVisibilities.geometrySwitch}
-                        onVisibilityChange={(visibilities) =>
-                            infoboxVisibilityChange('geometrySwitch', visibilities)
-                        }
-                        layoutSwitch={first(switches)}
-                        suggestedSwitch={ss}
-                    />
-                ),
-            };
-        });
+        const suggestedSwitchTabs: ToolPanelTab[] =
+            linkingState?.type === LinkingType.LinkingLayoutSwitch ||
+            linkingState?.type === LinkingType.LinkingGeometrySwitch
+                ? [
+                      {
+                          asset: {
+                              type: 'SUGGESTED_SWITCH',
+                              id: SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID,
+                          },
+                          title: linkingState.suggestedSwitchName,
+                          element:
+                              linkingState.type === LinkingType.LinkingGeometrySwitch ? (
+                                  <GeometrySwitchInfoboxContainer
+                                      linkingState={linkingState}
+                                      visibilities={infoboxVisibilities.geometrySwitch}
+                                      onVisibilityChange={(visibilities) =>
+                                          infoboxVisibilityChange('geometrySwitch', visibilities)
+                                      }
+                                      geometrySwitchId={linkingState.geometrySwitchId}
+                                      geometryPlanId={linkingState.geometryPlanId}
+                                  />
+                              ) : (
+                                  <LayoutSwitchLinkingInfoboxContainer
+                                      layoutSwitchId={linkingState.layoutSwitchId}
+                                      suggestedSwitch={linkingState.suggestedSwitch}
+                                      visibilities={infoboxVisibilities.geometrySwitch}
+                                      onVisibilityChange={(visibilities) =>
+                                          infoboxVisibilityChange('geometrySwitch', visibilities)
+                                      }
+                                  />
+                              ),
+                      },
+                  ]
+                : [];
+
         const geometrySwitchTabs: ToolPanelTab[] = geometrySwitchIds
-            .filter((s) => !suggestedSwitches.some((ss) => ss.id === s.geometryId))
+            .filter((s) =>
+                linkingState?.type === LinkingType.LinkingGeometrySwitch
+                    ? s.geometryId === linkingState.geometrySwitchId
+                    : true,
+            )
             .map((s) => {
-                const geomSwitch = getPlan(s.planId)?.switches?.find(
+                const geometrySwitchLayout = getPlan(s.planId)?.switches?.find(
                     (gs) => gs.sourceId === s.geometryId,
                 );
                 return {
                     asset: { type: 'GEOMETRY_SWITCH', id: s.geometryId },
-                    title: geomSwitch?.name ?? '...',
+                    title: geometrySwitchLayout?.name ?? '...',
                     element: (
                         <GeometrySwitchInfoboxContainer
                             visibilities={infoboxVisibilities.geometrySwitch}
                             onVisibilityChange={(visibilities) =>
                                 infoboxVisibilityChange('geometrySwitch', visibilities)
                             }
-                            switchId={s.geometryId}
-                            layoutSwitch={first(switches)}
-                            planId={s.planId ?? undefined}
+                            geometrySwitchId={s.geometryId}
+                            geometryPlanId={s.planId}
                         />
                     ),
                 };
@@ -403,7 +424,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         geometryKmPostIds,
         switches,
         geometrySwitchIds,
-        suggestedSwitches,
         locationTracks,
         geometryAlignmentIds,
         linkingState,
@@ -436,13 +456,18 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     t.asset.type === 'GEOMETRY_ALIGNMENT' &&
                     t.asset.id === linkingState.geometryAlignmentId,
             )?.asset;
-        } else if (linkingState?.type === LinkingType.LinkingSwitch) {
+        } else if (linkingState?.type === LinkingType.LinkingGeometrySwitch) {
             return tabs.find((t) => {
                 return (
-                    ((t.asset.type === 'GEOMETRY_SWITCH' ||
-                        t.asset.type === 'GEOMETRY_SWITCH_SUGGESTION') &&
-                        t.asset.id === linkingState.suggestedSwitch.id) ||
-                    suggestedSwitches.some((s) => t.asset.id === s.id)
+                    (t.asset.type === 'GEOMETRY_SWITCH' || t.asset.type === 'SUGGESTED_SWITCH') &&
+                    t.asset.id === SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID
+                );
+            })?.asset;
+        } else if (linkingState?.type === LinkingType.LinkingLayoutSwitch) {
+            return tabs.find((t) => {
+                return (
+                    t.asset.type === 'SUGGESTED_SWITCH' &&
+                    t.asset.id === SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID
                 );
             })?.asset;
         } else if (linkingState?.type === LinkingType.LinkingKmPost) {

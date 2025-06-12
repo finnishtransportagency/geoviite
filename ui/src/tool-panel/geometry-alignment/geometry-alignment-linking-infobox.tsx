@@ -49,7 +49,7 @@ import {
     GeometryAlignmentLinkingLocationTrackCandidates,
     GeometryAlignmentLinkingReferenceLineCandidates,
 } from 'tool-panel/geometry-alignment/geometry-alignment-linking-candidates';
-import { AlignmentHeader } from 'track-layout/layout-map-api';
+import { GeometryAlignmentHeader } from 'track-layout/layout-map-api';
 import {
     refreshLocationTrackSelection,
     refreshTrackNumberSelection,
@@ -109,7 +109,7 @@ function createLinkingGeometryWithEmptyAlignmentParameters(
 type GeometryAlignmentLinkingInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    geometryAlignment: AlignmentHeader;
+    geometryAlignment: GeometryAlignmentHeader;
     selectedLayoutLocationTrack?: LayoutLocationTrack;
     selectedLayoutReferenceLine?: LayoutReferenceLine;
     planId: GeometryPlanId;
@@ -228,7 +228,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
 
     function linkingTypeBySegmentCount(
         alignment: LayoutLocationTrack | LayoutReferenceLine,
-    ): number {
+    ): LinkingType.LinkingGeometryWithAlignment | LinkingType.LinkingGeometryWithEmptyAlignment {
         return alignment.segmentCount > 0
             ? LinkingType.LinkingGeometryWithAlignment
             : LinkingType.LinkingGeometryWithEmptyAlignment;

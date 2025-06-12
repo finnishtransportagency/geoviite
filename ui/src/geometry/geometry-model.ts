@@ -19,13 +19,14 @@ import {
 } from 'common/common-model';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
 import { PVDocumentId } from 'infra-model/projektivelho/pv-model';
+import { Brand } from 'common/brand';
 
 export type GeometryPlanLayoutId = string;
 export type GeometryPlanId = string;
-export type GeometryAlignmentId = string;
+export type GeometryAlignmentId = Brand<string, 'GeometryAlignmentId'>;
 export type GeometryElementId = string;
-export type GeometrySwitchId = string;
-export type GeometryKmPostId = string;
+export type GeometrySwitchId = Brand<string, 'GeometrySwitchId'>;
+export type GeometryKmPostId = Brand<string, 'GeometryKmPostId'>;
 
 export type PlanSource = 'GEOMETRIAPALVELU' | 'PAIKANNUSPALVELU';
 export type PlanState = 'ABANDONED' | 'DESTROYED' | 'EXISTING' | 'PROPOSED';

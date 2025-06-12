@@ -19,6 +19,7 @@ import {
     LinkingGeometryWithAlignmentParameters,
     LinkingGeometryWithEmptyAlignmentParameters,
     SuggestedSwitch,
+    SwitchLinkingParameters,
     SwitchRelinkingValidationResult,
     TrackSwitchRelinkingResult,
 } from 'linking/linking-model';
@@ -243,10 +244,12 @@ function getSuggestedSwitch<SuggestedSwitchType>(
 
 export async function linkSwitch(
     layoutBranch: LayoutBranch,
-    params: SuggestedSwitch,
+    suggestedSwitch: SuggestedSwitch,
     switchId: LayoutSwitchId,
+    geometrySwitchId: GeometrySwitchId | undefined,
 ): Promise<LayoutSwitchId> {
-    const result = await postNonNull<SuggestedSwitch, LayoutSwitchId>(
+    const params = { suggestedSwitch, geometrySwitchId };
+    const result = await postNonNull<SwitchLinkingParameters, LayoutSwitchId>(
         linkingUri(layoutBranch, 'switches', 'geometry', switchId),
         params,
     );

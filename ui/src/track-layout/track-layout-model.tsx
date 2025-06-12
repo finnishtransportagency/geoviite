@@ -23,7 +23,7 @@ import {
     TrackNumber,
 } from 'common/common-model';
 import { deduplicateById } from 'utils/array-utils';
-import { AlignmentHeader, AlignmentPolyLine } from './layout-map-api';
+import { AlignmentPolyLine, GeometryAlignmentHeader } from './layout-map-api';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { Brand } from 'common/brand';
@@ -340,7 +340,7 @@ export type PlanAndStatus = {
 };
 
 export type PlanLayoutAlignment = {
-    header: AlignmentHeader;
+    header: GeometryAlignmentHeader;
     polyLine?: AlignmentPolyLine;
     segmentMValues: number[];
 };

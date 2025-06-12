@@ -37,7 +37,6 @@ export function createEmptyItemCollections(): ItemCollections {
         layoutLinkPoints: [],
         geometryLinkPoints: [],
         clusterPoints: [],
-        suggestedSwitches: [],
         geometryPlans: [],
     };
 }
@@ -194,11 +193,6 @@ function updateItemCollectionsByOptions(
         options['clusterPoints'],
         flags,
     );
-    itemCollections['suggestedSwitches'] = getNewItemCollection(
-        itemCollections['suggestedSwitches'],
-        options['suggestedSwitches'],
-        flags,
-    );
     itemCollections['geometryPlans'] = getNewIdCollection(
         itemCollections['geometryPlans'],
         options['geometryPlans'],
@@ -245,10 +239,6 @@ function updateItemCollectionsByUnselecting(
     itemCollections['geometryLinkPoints'] = filterItemCollection(
         itemCollections['geometryLinkPoints'],
         unselectItemCollections['geometryLinkPoints'],
-    );
-    itemCollections['suggestedSwitches'] = filterItemCollection(
-        itemCollections['suggestedSwitches'],
-        unselectItemCollections['suggestedSwitches'],
     );
     itemCollections['geometryPlans'] = filterIdCollection(
         itemCollections['geometryPlans'],
@@ -442,30 +432,52 @@ function toggleVisibility(
     itemId: GeometryAlignmentId | GeometrySwitchId | GeometryKmPostId,
 ) {
     const visiblePlan = state.visiblePlans.find((p) => p.id === planId);
-    const itemVisible = visiblePlan?.[type]?.includes(itemId) ?? false;
-    if (visiblePlan && itemVisible) {
+    if (visiblePlan) {
+        toggleItemVisibilityInPlan(visiblePlan, type, itemId, keepVisible, state, planId);
+    } else {
+        addVisiblePlanWithItem(state, planId, type, itemId);
+    }
+}
+
+function toggleItemVisibilityInPlan(
+    visiblePlan: VisiblePlanLayout,
+    type: 'alignments' | 'switches' | 'kmPosts',
+    itemId: VisiblePlanLayout[typeof type][number],
+    keepVisible: boolean,
+    state: Selection,
+    planId: string,
+) {
+    const itemIndex = visiblePlan?.[type]?.findIndex((e) => e === itemId) ?? -1;
+    if (itemIndex !== -1) {
         if (!keepVisible) {
-            visiblePlan[type] = visiblePlan[type].filter((id) => id !== itemId);
+            visiblePlan[type].splice(itemIndex, 1);
             if (!arePlanPartsVisible(visiblePlan)) {
                 state.visiblePlans = state.visiblePlans.filter((p) => p.id !== planId);
             }
         }
-    } else if (visiblePlan) {
-        visiblePlan[type] = [...visiblePlan[type], itemId];
     } else {
-        state.visiblePlans = [
-            ...state.visiblePlans,
-            {
-                ...{
-                    id: planId,
-                    switches: [],
-                    kmPosts: [],
-                    alignments: [],
-                },
-                [type]: [itemId],
-            },
-        ];
+        visiblePlan[type] = [...visiblePlan[type], itemId] as never;
     }
+}
+
+function addVisiblePlanWithItem(
+    state: Selection,
+    planId: string,
+    type: 'alignments' | 'switches' | 'kmPosts',
+    itemId: VisiblePlanLayout[typeof type][number],
+): void {
+    state.visiblePlans = [
+        ...state.visiblePlans,
+        {
+            ...{
+                id: planId,
+                switches: [],
+                kmPosts: [],
+                alignments: [],
+            },
+            [type]: [itemId],
+        },
+    ];
 }
 
 function arePlanPartsVisible(plan: VisiblePlanLayout): boolean {

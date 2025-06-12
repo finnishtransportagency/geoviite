@@ -107,6 +107,11 @@ export type AlignmentHeader = {
     boundingBox?: BoundingBox;
 } & AlignmentHeaderIdAndType;
 
+export type GeometryAlignmentHeader = AlignmentHeader & {
+    id: GeometryAlignmentId;
+    alignmentSource: 'GEOMETRY';
+};
+
 export type AlignmentPolyLine = {
     id: LocationTrackId | ReferenceLineId;
     alignmentType: MapAlignmentType;
@@ -501,7 +506,7 @@ export async function getGeometryLinkPointsByTiles(
             {
                 type: header.alignmentType,
                 id: header.id,
-            } as LayoutAlignmentTypeAndId,
+            },
             header.length,
             segmentMValues,
             points,

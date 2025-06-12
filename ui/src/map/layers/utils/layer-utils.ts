@@ -248,10 +248,6 @@ export function mergePartialItemSearchResults(
                 searchResult.geometryLinkPoints,
             ),
             clusterPoints: mergeOptionalArrays(merged.clusterPoints, searchResult.clusterPoints),
-            suggestedSwitches: mergeOptionalArrays(
-                merged.suggestedSwitches,
-                searchResult.suggestedSwitches,
-            ),
             geometryPlans: mergeOptionalArrays(merged.geometryPlans, searchResult.geometryPlans),
             locationTrackPublicationCandidates: mergeOptionalArrays(
                 merged.locationTrackPublicationCandidates,

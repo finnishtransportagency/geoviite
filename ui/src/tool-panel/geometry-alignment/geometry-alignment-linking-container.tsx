@@ -12,10 +12,10 @@ import {
     useLocationTrack,
     useTrackNumberReferenceLine,
 } from 'track-layout/track-layout-react-utils';
-import { AlignmentHeader } from 'track-layout/layout-map-api';
+import { GeometryAlignmentHeader } from 'track-layout/layout-map-api';
 
 type GeometryAlignmentLinkingContainerProps = {
-    geometryAlignment: AlignmentHeader;
+    geometryAlignment: GeometryAlignmentHeader;
     selectedLocationTrackId?: LocationTrackId;
     selectedTrackNumberId?: LayoutTrackNumberId;
     planId: GeometryPlanId;

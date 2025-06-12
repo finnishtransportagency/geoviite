@@ -38,7 +38,7 @@ export const SwitchInfoboxContainer: React.FC<SwitchInfoboxContainerProps> = ({
             onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}
             placingSwitchLinkingState={
-                trackLayoutState.linkingState?.type === LinkingType.PlacingSwitch
+                trackLayoutState.linkingState?.type === LinkingType.PlacingLayoutSwitch
                     ? trackLayoutState.linkingState
                     : undefined
             }

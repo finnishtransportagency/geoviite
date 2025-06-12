@@ -50,7 +50,7 @@ import {
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
-import { AlignmentHeader } from 'track-layout/layout-map-api';
+import { GeometryAlignmentHeader } from 'track-layout/layout-map-api';
 import i18next from 'i18next';
 import { contextInUri } from 'track-layout/track-layout-api';
 
@@ -366,7 +366,7 @@ export interface PlanLinkingSummaryItem {
     startM: number;
     endM: number;
     filename?: string;
-    alignmentHeader?: AlignmentHeader;
+    alignmentHeader?: GeometryAlignmentHeader;
     planId?: GeometryPlanId;
     verticalCoordinateSystem?: VerticalCoordinateSystem;
     elevationMeasurementMethod?: ElevationMeasurementMethod;

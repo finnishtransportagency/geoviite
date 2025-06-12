@@ -25,7 +25,7 @@ export const LinkingStatus: React.FC<LinkingStatusProps> = ({
 }) => {
     const { t } = useTranslation();
     const [planStatus, planStatusFetchStatus] = useLoaderWithStatus(
-        () => (planId ? getPlanLinkStatus(planId, layoutContext) : undefined),
+        () => getPlanLinkStatus(planId, layoutContext),
         [
             planId,
             layoutContext.branch,

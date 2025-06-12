@@ -129,7 +129,12 @@ constructor(
                 insertedSwitch.id as IntId,
             )
         val rowVersion =
-            switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, insertedSwitch.id as IntId)
+            switchLinkingService.saveSwitchLinking(
+                LayoutBranch.main,
+                suggestedSwitch,
+                insertedSwitch.id as IntId,
+                geometrySwitchId = null,
+            )
         val switch = switchDao.fetch(rowVersion)
         assertEquals(switch.source, GeometrySource.GENERATED)
     }
@@ -236,6 +241,7 @@ constructor(
                 insertedSwitch.id as IntId,
             ),
             insertedSwitch.id as IntId,
+            geometrySwitchId = null,
         )
 
         val (_, alignment) = locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, locationTrackId)
@@ -273,6 +279,7 @@ constructor(
                         storedSwitch.id as IntId,
                     ),
                     storedSwitch.id as IntId,
+                    geometrySwitchId = null,
                 )
             }
             .let { switchDaoResponse -> switchDao.fetch(switchDaoResponse) }
@@ -1067,7 +1074,7 @@ constructor(
             )
         val suggestedSwitch =
             switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(134.321, 0.0), switch.id)!!
-        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id)
+        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id, geometrySwitchId = null)
         assertTrackDraftVersionSwitchLinks(originallyLinkedBranchingTrack.id, null, null, listOf(0.0..34.3 to null))
         assertTrackDraftVersionSwitchLinks(newBranchingTrack.id, null, null, listOf(0.0..34.3 to switch.id))
         assertTrackDraftVersionSwitchLinks(
@@ -1131,7 +1138,7 @@ constructor(
             )
 
         val suggestedSwitch = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(0.0, 0.0), switch.id)!!
-        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id)
+        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id, geometrySwitchId = null)
 
         assertTrackDraftVersionSwitchLinks(oneFiveTrack.id, null, null, listOf(0.0..5.2 to switch.id))
         assertTrackDraftVersionSwitchLinks(fiveTwoTrack.id, null, null, listOf(0.0..5.2 to switch.id))
@@ -1204,7 +1211,7 @@ constructor(
                 trackGeometryOfSegments(shiftTrack(templateThroughTrackSegments, fullShift - Point(1.0, 1.0))),
             )
         val suggestedSwitch = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, fullShift, switch.id)!!
-        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id)
+        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id, geometrySwitchId = null)
 
         assertTrackDraftVersionSwitchLinks(throughTrackStart.id, null, switch.id, listOf(0.0..134.4 to null))
         val updatedThroughTrackStartGeometry =
@@ -1245,7 +1252,7 @@ constructor(
                 ),
             )
         val suggestedSwitch = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(0.0, 0.0), switch.id)!!
-        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id)
+        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id, geometrySwitchId = null)
         assertTrackDraftVersionSwitchLinks(
             otherLocationTrackWithTopoSwitchLink.id,
             null,
@@ -1261,6 +1268,7 @@ constructor(
             LayoutBranch.main,
             switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(0.0, 0.0), switchId)!!,
             switchId,
+            geometrySwitchId = null,
         )
         val expected = SwitchLink(switchId, SwitchJointRole.CONNECTION, JointNumber(3))
         val actual =
@@ -1293,7 +1301,12 @@ constructor(
             )
         val ex =
             assertThrows<LinkingFailureException> {
-                switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, insertedSwitch.id as IntId)
+                switchLinkingService.saveSwitchLinking(
+                    LayoutBranch.main,
+                    suggestedSwitch,
+                    insertedSwitch.id as IntId,
+                    geometrySwitchId = null,
+                )
             }
         assertEquals(ex.localizationKey, LocalizationKey("error.linking.switch-deleted"))
     }

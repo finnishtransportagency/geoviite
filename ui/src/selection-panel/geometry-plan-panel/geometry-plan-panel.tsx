@@ -31,7 +31,7 @@ import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { useTranslation } from 'react-i18next';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
-import { AlignmentHeader } from 'track-layout/layout-map-api';
+import { AlignmentHeader, GeometryAlignmentHeader } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
 
 type GeometryPlanProps = {
@@ -40,7 +40,7 @@ type GeometryPlanProps = {
     changeTimes: ChangeTimes;
     onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
-    onToggleAlignmentSelection: (alignment: AlignmentHeader) => void;
+    onToggleAlignmentSelection: (alignment: GeometryAlignmentHeader) => void;
     onToggleSwitchSelection: (switchItem: LayoutSwitch) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostSelection: (kmPost: LayoutKmPost) => void;
@@ -175,7 +175,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         }
     };
 
-    const onAlignmentSelect = (alignment: AlignmentHeader) => {
+    const onAlignmentSelect = (alignment: GeometryAlignmentHeader) => {
         if (planLayout) {
             onToggleAlignmentSelection(alignment);
             onToggleAlignmentVisibility({

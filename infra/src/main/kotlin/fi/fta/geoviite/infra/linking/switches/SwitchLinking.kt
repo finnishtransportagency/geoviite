@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
@@ -77,12 +76,11 @@ data class FittedSwitch(val switchStructure: SwitchStructure, val joints: List<F
 data class SwitchPlacingRequest(val points: SamplingGridPoints, val layoutSwitchId: IntId<LayoutSwitch>)
 
 data class SuggestedSwitch(
-    val id: DomainId<GeometrySwitch>,
-    val switchStructureId: IntId<SwitchStructure>,
     val joints: List<LayoutSwitchJoint>,
     val trackLinks: Map<IntId<LocationTrack>, SwitchLinkingTrackLinks>,
-    val name: SwitchName,
 )
+
+data class SwitchLinkingParameters(val suggestedSwitch: SuggestedSwitch, val geometrySwitchId: IntId<GeometrySwitch>?)
 
 data class SwitchLinkingTrackLinks(val locationTrackVersion: Int, val suggestedLinks: SuggestedLinks?) {
     @JsonIgnore fun isLinked(): Boolean = suggestedLinks != null

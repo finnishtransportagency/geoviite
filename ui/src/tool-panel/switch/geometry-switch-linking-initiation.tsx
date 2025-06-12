@@ -4,27 +4,32 @@ import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize } from 'vayla-design-lib/button/button';
-import { GeometrySwitchSuggestionFailureReason, LinkingState } from 'linking/linking-model';
+import {
+    GeometrySwitchSuggestionFailureReason,
+    LinkingState,
+    SuggestedSwitch,
+} from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { LayoutContext } from 'common/common-model';
 
 type GeometrySwitchLinkingInitiationProps = {
     linkingState: LinkingState | undefined;
-    hasSuggestedSwitch: boolean;
+    initialSuggestedSwitch: SuggestedSwitch | undefined;
     geometrySwitchInvalidityReason: GeometrySwitchSuggestionFailureReason | undefined;
-    onStartLinking: () => void;
+    onStartLinking: (suggestedSwitch: SuggestedSwitch) => void;
     layoutContext: LayoutContext;
 };
 
 export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInitiationProps> = ({
     linkingState,
-    hasSuggestedSwitch,
+    initialSuggestedSwitch,
     onStartLinking,
     geometrySwitchInvalidityReason,
     layoutContext,
 }) => {
     const { t } = useTranslation();
+
     const warningVisible =
         linkingState === undefined && geometrySwitchInvalidityReason !== undefined;
 
@@ -46,11 +51,16 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
             )}
             <InfoboxButtons>
                 <Button
-                    disabled={layoutContext.publicationState !== 'DRAFT' || !hasSuggestedSwitch}
+                    disabled={
+                        layoutContext.publicationState !== 'DRAFT' ||
+                        initialSuggestedSwitch === undefined
+                    }
                     size={ButtonSize.SMALL}
                     qa-id="start-geometry-switch-linking"
                     title={disabledReason}
-                    onClick={onStartLinking}>
+                    onClick={() =>
+                        initialSuggestedSwitch && onStartLinking(initialSuggestedSwitch)
+                    }>
                     {t('tool-panel.switch.geometry.start-setup')}
                 </Button>
             </InfoboxButtons>

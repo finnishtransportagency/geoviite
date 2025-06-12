@@ -1578,9 +1578,9 @@ constructor(
                     switch.id as IntId,
                 ),
                 layoutSwitchId = switch.id as IntId,
-                geometrySwitchId = null,
             ),
             switch.id as IntId,
+            geometrySwitchId = null,
         )
         return switch
     }

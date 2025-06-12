@@ -12,13 +12,7 @@ import {
     GeometryPlanId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import {
-    ClusterPoint,
-    LinkPoint,
-    LinkPointId,
-    SuggestedSwitch,
-    SuggestedSwitchId,
-} from 'linking/linking-model';
+import { ClusterPoint, LinkPoint, LinkPointId } from 'linking/linking-model';
 import { ensureAllKeys } from 'utils/type-utils';
 import { Point } from 'model/geometry';
 import { PublicationId, PublicationSearch } from 'publication/publication-model';
@@ -36,7 +30,6 @@ export type ItemCollections = {
     layoutLinkPoints: LinkPoint[];
     geometryLinkPoints: LinkPoint[];
     clusterPoints: ClusterPoint[];
-    suggestedSwitches: SuggestedSwitch[];
     geometryPlans: GeometryPlanId[];
 };
 
@@ -53,7 +46,6 @@ export type UnselectableItemCollections = {
     geometrySegments: LayoutSegmentId[];
     layoutLinkPoints: LinkPointId[];
     geometryLinkPoints: LinkPointId[];
-    suggestedSwitches: SuggestedSwitchId[];
     geometryPlans: GeometryPlanId[];
 };
 
@@ -78,7 +70,6 @@ export const allSelectableItemTypes: SelectableItemType[] = ensureAllKeys<Select
     'layoutLinkPoints',
     'geometryLinkPoints',
     'clusterPoints',
-    'suggestedSwitches',
     'geometryPlans',
 ]);
 
