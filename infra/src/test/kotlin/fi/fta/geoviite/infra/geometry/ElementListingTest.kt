@@ -17,14 +17,16 @@ import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.CLOTHOID
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.CURVE
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.LINE
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo3Decimals
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.geocodingContext
@@ -33,7 +35,9 @@ import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchLinkKV
+import fi.fta.geoviite.infra.tracklayout.toAugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -45,10 +49,11 @@ private val allTrackElementTypes = TrackGeometryElementType.entries
 private val getTransformation = { srid: Srid -> geotoolsTransformation(srid, LAYOUT_SRID) }
 
 class ElementListingTest {
+    private val dummyTranslation: Translation = Translation(LocalizationLanguage.FI, "")
 
     @Test
     fun `Basic info is filled from LocationTrack & GeometryPlanHeader`() {
-        val trackNumber = TrackNumber("12345")
+        val trackNumber = trackNumber(TrackNumber("12345"))
         val alignment =
             geometryAlignment(
                 id = IntId(1),
@@ -65,13 +70,14 @@ class ElementListingTest {
             planHeader(
                 source = PlanSource.PAIKANNUSPALVELU,
                 id = IntId(2),
-                trackNumber = trackNumber,
+                trackNumber = trackNumber.number,
                 fileName = FileName("test-file 002.xml"),
                 srid = LAYOUT_SRID,
                 coordinateSystemName = CoordinateSystemName("KKJ test-name"),
             )
         val (locationTrack, geometry) =
             locationTrackAndGeometry(trackNumberId = IntId(1), segments = createSegments(alignment), draft = false)
+                .let { (track, alignment) -> toAugLocationTrack(dummyTranslation, track, trackNumber) to alignment }
         val listing = getListing(locationTrack, geometry, planHeader, alignment)
         listing.forEach { l ->
             assertEquals(PlanSource.PAIKANNUSPALVELU, l.planSource)
@@ -79,7 +85,7 @@ class ElementListingTest {
             assertEquals(FileName("test-file 002.xml"), l.fileName)
             assertEquals(LAYOUT_SRID, l.coordinateSystemSrid)
             assertEquals(CoordinateSystemName("KKJ test-name"), l.coordinateSystemName)
-            assertEquals(trackNumber, l.trackNumber)
+            assertEquals(trackNumber.number, l.trackNumber)
             assertEquals(alignment.id, l.alignmentId)
             assertEquals(AlignmentName("TSTTrack002"), l.alignmentName)
         }
@@ -216,7 +222,8 @@ class ElementListingTest {
 
     @Test
     fun `Track element listing is filtered by types`() {
-        val plan = planHeader(trackNumber = TrackNumber("001"))
+        val trackNumber = trackNumber(TrackNumber("001"))
+        val plan = planHeader(trackNumber = trackNumber.number)
         val geometryAlignment =
             createAlignment(
                 GeometryElementType.LINE,
@@ -228,10 +235,11 @@ class ElementListingTest {
             )
         val (track, layoutAlignment) =
             locationTrackAndGeometry(
-                trackNumberId = IntId(12345),
-                segments = createSegments(geometryAlignment),
-                draft = false,
-            )
+                    trackNumberId = IntId(12345),
+                    segments = createSegments(geometryAlignment),
+                    draft = false,
+                )
+                .let { (track, alignment) -> toAugLocationTrack(dummyTranslation, track, trackNumber) to alignment }
         assertEquals(
             getElementTypes(geometryAlignment).filter { t -> t == LINE },
             getListingTypes(track, layoutAlignment, plan, geometryAlignment, listOf(LINE)),
@@ -256,7 +264,7 @@ class ElementListingTest {
 
     @Test
     fun `Track element listing is filtered by linking and track meters`() {
-        val trackNumber = TrackNumber("001")
+        val trackNumber = trackNumber(TrackNumber("001"))
         val alignment1 =
             geometryAlignment(
                 id = IntId(1),
@@ -281,20 +289,21 @@ class ElementListingTest {
         val elementIds2 = alignment2.elements.map { e -> e.id }
         val (track, layoutAlignment) =
             locationTrackAndGeometry(
-                IntId(1),
-                segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = elementIds1[1]),
-                segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = elementIds1[2]),
-                segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = elementIds2[0]),
-                segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = elementIds2[1]),
-                draft = false,
-            )
-        val planHeader = planHeader(trackNumber = trackNumber, srid = LAYOUT_SRID)
+                    IntId(1),
+                    segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = elementIds1[1]),
+                    segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = elementIds1[2]),
+                    segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = elementIds2[0]),
+                    segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = elementIds2[1]),
+                    draft = false,
+                )
+                .let { (track, alignment) -> toAugLocationTrack(dummyTranslation, track, trackNumber) to alignment }
+        val planHeader = planHeader(trackNumber = trackNumber.number, srid = LAYOUT_SRID)
         val alignments = listOf(planHeader to alignment1, planHeader to alignment2)
 
         val context =
             geocodingContext(
                 referenceLinePoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
-                trackNumber = trackNumber,
+                trackNumber = trackNumber.number,
             )
         val listing =
             toElementListing(
@@ -302,7 +311,7 @@ class ElementListingTest {
                 getTransformation,
                 track,
                 layoutAlignment,
-                trackNumber,
+                trackNumber.number,
                 allTrackElementTypes,
                 TrackMeter(KmNumber.ZERO, 25),
                 TrackMeter(KmNumber.ZERO, 35),
@@ -318,13 +327,13 @@ class ElementListingTest {
 
     @Test
     fun `Track element listing contains switch names`() {
-        val trackNumber = TrackNumber("001")
+        val trackNumber = trackNumber(TrackNumber("001"))
         val alignment =
             geometryAlignment(
                 id = IntId(1),
                 elements = listOf(minimalLine(id = IndexedId(1, 1)), minimalLine(id = IndexedId(1, 2))),
             )
-        val track = locationTrack(IntId(1), draft = false)
+        val track = locationTrack(IntId(1), draft = false).let { toAugLocationTrack(dummyTranslation, it, trackNumber) }
         val geometry =
             trackGeometry(
                 edge(
@@ -354,13 +363,13 @@ class ElementListingTest {
                 ),
             )
 
-        val planHeader = planHeader(id = IntId(1), trackNumber = trackNumber, srid = LAYOUT_SRID)
+        val planHeader = planHeader(id = IntId(1), trackNumber = trackNumber.number, srid = LAYOUT_SRID)
         val alignments = listOf(planHeader to alignment)
 
         val context =
             geocodingContext(
                 referenceLinePoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
-                trackNumber = trackNumber,
+                trackNumber = trackNumber.number,
             )
         val listing =
             toElementListing(
@@ -368,7 +377,7 @@ class ElementListingTest {
                 getTransformation,
                 track,
                 geometry,
-                trackNumber,
+                trackNumber.number,
                 allTrackElementTypes,
                 null,
                 null,
@@ -385,7 +394,7 @@ class ElementListingTest {
 
     @Test
     fun `Elements linked through multiple segments are listed once`() {
-        val trackNumber = TrackNumber("001")
+        val trackNumber = trackNumber(TrackNumber("001"))
         val alignment =
             geometryAlignment(
                 id = IntId(1),
@@ -399,22 +408,23 @@ class ElementListingTest {
         val elementIds = alignment.elements.map { e -> e.id }
         val (track, layoutAlignment) =
             locationTrackAndGeometry(
-                IntId(1),
-                segment(Point(0.0, 0.0), Point(10.0, 1.0), source = PLAN, sourceId = elementIds[2]),
-                segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = elementIds[0]),
-                segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = elementIds[0]),
-                segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = elementIds[1]),
-                segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = elementIds[0]),
-                draft = false,
-            )
+                    IntId(1),
+                    segment(Point(0.0, 0.0), Point(10.0, 1.0), source = PLAN, sourceId = elementIds[2]),
+                    segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = elementIds[0]),
+                    segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = elementIds[0]),
+                    segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = elementIds[1]),
+                    segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = elementIds[0]),
+                    draft = false,
+                )
+                .let { (track, alignment) -> toAugLocationTrack(dummyTranslation, track, trackNumber) to alignment }
 
-        val planHeader = planHeader(id = IntId(1), trackNumber = trackNumber, srid = LAYOUT_SRID)
+        val planHeader = planHeader(id = IntId(1), trackNumber = trackNumber.number, srid = LAYOUT_SRID)
         val alignments = listOf(planHeader to alignment)
 
         val context =
             geocodingContext(
                 referenceLinePoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
-                trackNumber = trackNumber,
+                trackNumber = trackNumber.number,
             )
         val listing =
             toElementListing(
@@ -422,7 +432,7 @@ class ElementListingTest {
                 getTransformation,
                 track,
                 layoutAlignment,
-                trackNumber,
+                trackNumber.number,
                 allTrackElementTypes,
                 null,
                 null,
@@ -447,7 +457,7 @@ class ElementListingTest {
         toElementListing(null, getTransformation, plan, types.toList()).map { e -> e.elementType }
 
     private fun getListingTypes(
-        locationTrack: LocationTrack,
+        locationTrack: AugLocationTrack,
         geometry: LocationTrackGeometry,
         planHeader: GeometryPlanHeader,
         geometryAlignment: GeometryAlignment,
@@ -455,7 +465,7 @@ class ElementListingTest {
     ) = getListing(locationTrack, geometry, planHeader, geometryAlignment, elementTypes).map { l -> l.elementType }
 
     private fun getListing(
-        locationTrack: LocationTrack,
+        locationTrack: AugLocationTrack,
         geometry: LocationTrackGeometry,
         planHeader: GeometryPlanHeader,
         geometryAlignment: GeometryAlignment,

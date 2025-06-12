@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
-import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
+import fi.fta.geoviite.infra.tracklayout.ILocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -32,6 +32,7 @@ data class TrackForSwitchFitting(
     val locationTrackId = locationTrack.id as IntId
     val trackAndGeometry = locationTrack to geometry
     val length = geometry.length
+    val dbName = locationTrack.dbName
 
     fun asNew(name: String): TrackForSwitchFitting {
         val newId = locationTrackIdByName(name)
@@ -395,7 +396,7 @@ fun switchJointDistance(switchStructureData: SwitchStructureData, start: Int, en
 fun assertJoint(
     fitted: FittedSwitch,
     joint: Int,
-    track: AugLocationTrack,
+    track: ILocationTrack,
     expectedM: Double,
     direction: RelativeDirection = RelativeDirection.Along,
     absoluteMPrecision: Double = 0.001,
@@ -403,18 +404,18 @@ fun assertJoint(
     val jointNumber = JointNumber(joint)
     val fittedJoint = fitted.joints.first { fittedJoint -> fittedJoint.number == jointNumber }
     val matches = fittedJoint.matches.filter { match -> match.locationTrackId == track.id as IntId }
-    assertEquals(1, matches.count(), "Expecting one match per location track \"${track.name}\" and joint $joint")
+    assertEquals(1, matches.count(), "Expecting one match per location track \"${track.id}\" and joint $joint")
     val match = matches.first()
     assertEquals(
         expectedM,
         match.mOnTrack,
         absoluteMPrecision,
-        "M-value is not matching for location track \"${track.name}\" and joint $joint",
+        "M-value is not matching for location track \"${track.id}\" and joint $joint",
     )
     assertEquals(
         direction,
         match.direction,
-        "Direction is not matching for location track \"${track.name}\" and joint $joint",
+        "Direction is not matching for location track \"${track.id}\" and joint $joint",
     )
 }
 

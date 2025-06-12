@@ -48,7 +48,8 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
         assertTrue { split.bulkTransferState == BulkTransferState.PENDING }
         assertNull(split.publicationId)
         assertEquals(sourceTrack.id, split.sourceLocationTrackId)
-        assertEquals(sourceTrack, split.sourceLocationTrackVersion)
+        // TODO: GVT-3080 check everything in cache key or just the version?
+        assertEquals(sourceTrack, split.sourceLocationTrackCacheKey.trackVersion)
         assertContains(split.targetLocationTracks, SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE))
         assertContains(split.relinkedSwitches, relinkedSwitchId)
     }

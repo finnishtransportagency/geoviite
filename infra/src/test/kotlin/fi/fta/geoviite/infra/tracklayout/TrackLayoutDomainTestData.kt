@@ -29,6 +29,8 @@ import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.linking.switches.FittedSwitchJointMatch
 import fi.fta.geoviite.infra.linking.switches.RelativeDirection
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchJointMatchType
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.map.GeometryAlignmentHeader
 import fi.fta.geoviite.infra.map.MapAlignmentType
 import fi.fta.geoviite.infra.math.IPoint
@@ -60,6 +62,8 @@ import kotlin.random.Random.Default.nextInt
 private const val SEED = 123321L
 
 private val rand = Random(SEED)
+
+private val dummyTranslation: Translation = Translation(LocalizationLanguage.FI, "")
 
 fun switchStructureYV60_300_1_9(): SwitchStructure {
     return SwitchStructure(
@@ -139,7 +143,7 @@ fun switchAndMatchingAlignments(
     trackNumberId: IntId<LayoutTrackNumber>,
     structure: SwitchStructure,
     draft: Boolean,
-): Pair<LayoutSwitch, List<Pair<LocationTrack, LocationTrackGeometry>>> {
+): Pair<LayoutSwitch, List<Pair<AugLocationTrack, LocationTrackGeometry>>> {
     val switchId = IntId<LayoutSwitch>(1)
     val jointLocations = mutableMapOf<JointNumber, Point>()
     val tracks =
@@ -153,7 +157,10 @@ fun switchAndMatchingAlignments(
                         }
                     jointNumber to point
                 }
-            val track = locationTrack(trackNumberId, draft = draft)
+            val track =
+                locationTrack(trackNumberId, draft = draft).let {
+                    toAugLocationTrack(dummyTranslation, it, trackNumber(TrackNumber("001")))
+                }
             val geometry =
                 trackGeometry(
                     alignmentPoints.zipWithNext { start, end ->
@@ -485,6 +492,21 @@ fun locationTrack(
         topologicalConnectivity = topologicalConnectivity,
         ownerId = ownerId,
         contextData = contextData,
+    )
+
+fun toAugLocationTrack(
+    translation: Translation,
+    locationTrack: LocationTrack,
+    trackNumber: LayoutTrackNumber,
+    startSwitch: LayoutSwitch? = null,
+    endSwitch: LayoutSwitch? = null,
+): AugLocationTrack =
+    AugLocationTrack(
+        translation,
+        AugLocationTrackCacheKey(locationTrack.version!!, trackNumber.version!!, null, null),
+        locationTrack,
+        ReifiedTrackNaming.of(locationTrack, trackNumber, startSwitch, endSwitch),
+        ReifiedTrackDescription(locationTrack.dbDescription, startSwitch?.name, endSwitch?.name),
     )
 
 fun <T> someOid() = Oid<T>("${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}")

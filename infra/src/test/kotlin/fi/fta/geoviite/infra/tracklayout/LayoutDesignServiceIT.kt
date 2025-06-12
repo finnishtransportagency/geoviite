@@ -14,14 +14,14 @@ import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.queryOne
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -144,7 +144,10 @@ constructor(
         val details = publicationLogService.getPublicationDetails(latestPublication[0].id)
         assertContainsSingleCancelledOfficialObject(details.trackNumbers.map { it.version }, trackNumberDao)
         assertContainsSingleCancelledOfficialObject(details.referenceLines.map { it.version }, referenceLineDao)
-        assertContainsSingleCancelledOfficialObject(details.locationTracks.map { it.version }, locationTrackDao)
+        assertContainsSingleCancelledOfficialObject(
+            details.locationTracks.map { it.cacheKey.trackVersion },
+            locationTrackDao,
+        )
         assertContainsSingleCancelledOfficialObject(details.switches.map { it.version }, switchDao)
         assertContainsSingleCancelledOfficialObject(details.kmPosts.map { it.version }, kmPostDao)
     }
@@ -217,7 +220,10 @@ constructor(
         val details = publicationLogService.getPublicationDetails(latestPublicationAfterDelete[0].id)
 
         assertContainsSingleCancelledOfficialObject(details.switches.map { it.version }, switchDao)
-        assertContainsSingleCancelledOfficialObject(details.locationTracks.map { it.version }, locationTrackDao)
+        assertContainsSingleCancelledOfficialObject(
+            details.locationTracks.map { it.cacheKey.trackVersion },
+            locationTrackDao,
+        )
         assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_LOCATION_TRACK))
         assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_SWITCH))
     }

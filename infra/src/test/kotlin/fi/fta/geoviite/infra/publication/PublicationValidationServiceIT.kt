@@ -1184,18 +1184,23 @@ constructor(
         publish(publicationService, locationTracks = splitSetup.trackIds)
 
         val draft =
-            locationTrackService.saveDraft(
-                LayoutBranch.main,
-                locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.targetTracks.first().first.id),
-                TmpLocationTrackGeometry.empty,
-            )
+            locationTrackService
+                .saveDraft(
+                    LayoutBranch.main,
+                    locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.targetTracks.first().first.id),
+                    TmpLocationTrackGeometry.empty,
+                )
+                .let { version -> locationTrackService.getAugLocationTrackOrThrow(version.id, version.context) }
 
-        val errors = validateLocationTracks(listOf(draft.id))
+        val errors = validateLocationTracks(listOf(draft.id as IntId))
         assertContains(
             errors,
             validationError(
                 "validation.layout.split.track-split-in-progress",
-                "sourceName" to locationTrackDao.fetch(splitSetup.sourceTrack).name,
+                "sourceName" to
+                    locationTrackService
+                        .getAugLocationTrackOrThrow(splitSetup.sourceTrack.id, splitSetup.sourceTrack.context)
+                        .name,
             ),
         )
     }
@@ -1239,7 +1244,7 @@ constructor(
             errors,
             validationError(
                 "validation.layout.split.track-split-in-progress",
-                "sourceName" to locationTrackDao.fetch(draft).name,
+                "sourceName" to locationTrackService.getAugLocationTrackOrThrow(draft.id, mainDraftContext.context).name,
             ),
         )
     }
@@ -1277,7 +1282,12 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.ERROR,
                 LocalizationKey("validation.layout.split.source-not-deleted"),
-                localizationParams("sourceName" to locationTrackDao.fetch(splitSetup.sourceTrack).name),
+                localizationParams(
+                    "sourceName" to
+                        locationTrackService
+                            .getAugLocationTrackOrThrow(splitSetup.sourceTrack.id, splitSetup.sourceTrack.context)
+                            .name
+                ),
             ),
         )
     }
@@ -1287,10 +1297,13 @@ constructor(
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
         val startTargetVersion = splitSetup.targetTracks.first().first
         val startTarget = locationTrackDao.fetch(startTargetVersion)
-        locationTrackDao.save(
-            startTarget.copy(trackNumberId = mainDraftContext.createLayoutTrackNumber().id),
-            alignmentDao.fetch(startTargetVersion),
-        )
+        val startTargetAug =
+            locationTrackDao
+                .save(
+                    startTarget.copy(trackNumberId = mainDraftContext.createLayoutTrackNumber().id),
+                    alignmentDao.fetch(startTargetVersion),
+                )
+                .let { locationTrackService.getAugLocationTrackOrThrow(it.id, mainDraftContext.context) }
 
         publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
 
@@ -1301,8 +1314,11 @@ constructor(
                 LayoutValidationIssueType.ERROR,
                 LocalizationKey("validation.layout.split.source-and-target-track-numbers-are-different"),
                 localizationParams(
-                    "targetName" to startTarget.name,
-                    "sourceName" to locationTrackDao.fetch(splitSetup.sourceTrack).name,
+                    "targetName" to startTargetAug.name,
+                    "sourceName" to
+                        locationTrackService
+                            .getAugLocationTrackOrThrow(splitSetup.sourceTrack.id, mainDraftContext.context)
+                            .name,
                 ),
             ),
         )
@@ -1328,7 +1344,10 @@ constructor(
             errors,
             validationError(
                 "validation.layout.split.affected-split-in-progress",
-                "sourceName" to locationTrackDao.fetch(locationTrackResponse).name,
+                "sourceName" to
+                    locationTrackService
+                        .getAugLocationTrackOrThrow(locationTrackResponse.id, locationTrackResponse.context)
+                        .name,
             ),
         )
     }
@@ -1362,7 +1381,10 @@ constructor(
             errors,
             validationError(
                 "validation.layout.split.affected-split-in-progress",
-                "sourceName" to locationTrackDao.fetch(locationTrackResponse).name,
+                "sourceName" to
+                    locationTrackService
+                        .getAugLocationTrackOrThrow(locationTrackResponse.id, locationTrackResponse.context)
+                        .name,
             ),
         )
     }

@@ -403,8 +403,8 @@ constructor(
             ),
         )
         assertNotEquals(
-            locationTrackService.getOrThrow(MainLayoutContext.official, officialId).name,
-            locationTrackService.getOrThrow(MainLayoutContext.draft, officialId).name,
+            locationTrackService.getAugLocationTrackOrThrow(officialId, MainLayoutContext.official).name,
+            locationTrackService.getAugLocationTrackOrThrow(officialId, MainLayoutContext.draft).name,
         )
         assertEquals(
             1,
@@ -421,8 +421,8 @@ constructor(
         )
 
         assertEquals(
-            locationTrackService.getOrThrow(MainLayoutContext.official, officialId).name,
-            locationTrackService.getOrThrow(MainLayoutContext.draft, officialId).name,
+            locationTrackService.getAugLocationTrackOrThrow(officialId, MainLayoutContext.official).name,
+            locationTrackService.getAugLocationTrackOrThrow(officialId, MainLayoutContext.draft).name,
         )
         assertEquals(
             2,
@@ -1053,7 +1053,7 @@ constructor(
 
         assertEquals("edited", mainOfficialContext.fetch(trackNumber)!!.number.toString())
         assertEquals("0001+0123", mainOfficialContext.fetch(referenceLine)!!.startAddress.toString())
-        assertEquals("edited", mainOfficialContext.fetch(locationTrack)!!.name.toString())
+        assertEquals("edited", mainOfficialContext.fetch(locationTrack)!!.dbName.nameFreeText.toString())
         assertEquals("0123", mainOfficialContext.fetch(kmPost)!!.kmNumber.toString())
         assertEquals("edited", mainOfficialContext.fetch(switch)!!.name.toString())
     }

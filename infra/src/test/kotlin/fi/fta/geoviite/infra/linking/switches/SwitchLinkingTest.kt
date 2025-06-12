@@ -24,10 +24,10 @@ import fi.fta.geoviite.infra.tracklayout.segmentPoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class SwitchLinkingTest {
 
@@ -676,7 +676,12 @@ class SwitchLinkingTest {
 
         // validate
 
-        assertTracksExists(linkedTracks, trackA.name, trackB.name, trackC.name)
+        assertTracksExists(
+            linkedTracks,
+            trackA.dbName.nameFreeText!!,
+            trackB.dbName.nameFreeText!!,
+            trackC.dbName.nameFreeText!!,
+        )
 
         assertSwitchDoesNotExist(linkedTracks, trackC.locationTrackId, newSwitchId)
         assertInnerSwitchNodeExists(
@@ -1180,15 +1185,19 @@ fun assertTrackAndGeometry(
 
 fun assertTrackAndGeometry(
     tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
-    name: AlignmentName,
+    nameFreeText: AlignmentName,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    val trackAndGeometry = tracks.firstOrNull { (locationTrack, _) -> locationTrack.name == name }
-    assertNotNull(trackAndGeometry, "Tracks do not contain location track '$name'")
+    val trackAndGeometry =
+        tracks.firstOrNull { (locationTrack, _) -> locationTrack.dbName.nameFreeText == nameFreeText }
+    assertNotNull(trackAndGeometry, "Tracks do not contain location track '$nameFreeText'")
     return trackAndGeometry
 }
 
-fun assertTracksExists(tracks: List<Pair<LocationTrack, LocationTrackGeometry>>, vararg trackNames: AlignmentName) {
-    trackNames.forEach { name -> assertTrackAndGeometry(tracks, name) }
+fun assertTracksExists(
+    tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    vararg trackNameFreeTexts: AlignmentName,
+) {
+    trackNameFreeTexts.forEach { nameFreeText -> assertTrackAndGeometry(tracks, nameFreeText) }
 }
 
 fun assertSwitchDoesNotExist(
@@ -1197,7 +1206,7 @@ fun assertSwitchDoesNotExist(
     switchId: IntId<LayoutSwitch>,
 ) {
     val (locationTrack, geometry) = assertTrackAndGeometry(tracks, locationTrackId)
-    assertTrue(!geometry.containsSwitch(switchId), "Track ${locationTrack.name} should not contain switch $switchId")
+    assertTrue(!geometry.containsSwitch(switchId), "Track ${locationTrack.id} should not contain switch $switchId")
 }
 
 fun assertTopologySwitchAtStart(
@@ -1211,7 +1220,7 @@ fun assertTopologySwitchAtStart(
         geometry.startNode?.switchOut?.let { switchLink ->
             switchLink.id == switchId && switchLink.jointNumber == JointNumber(jointNumber)
         } ?: false,
-        "Track ${locationTrack.name} should have switch: $switchId joint: $jointNumber as start topology connection",
+        "Track ${locationTrack.id} should have switch: $switchId joint: $jointNumber as start topology connection",
     )
 }
 
@@ -1226,7 +1235,7 @@ fun assertTopologySwitchAtEnd(
         geometry.endNode?.switchOut?.let { switchLink ->
             switchLink.id == switchId && switchLink.jointNumber == JointNumber(jointNumber)
         } ?: false,
-        "Track ${locationTrack.name} should have switch: $switchId joint: $jointNumber as end topology connection",
+        "Track ${locationTrack.id} should have switch: $switchId joint: $jointNumber as end topology connection",
     )
 }
 
@@ -1259,7 +1268,7 @@ fun assertInnerSwitchNodeExists(
         geometry.trackSwitchLinks.firstOrNull { link ->
             link.switchId == switchId && link.jointNumber.intValue == joint
         }
-    assertNotNull(switchLink, "Location track ${locationTrack.name} nodes do not contain switch $switchId joint $joint")
+    assertNotNull(switchLink, "Location track ${locationTrack.id} nodes do not contain switch $switchId joint $joint")
     assertEquals(mValue, switchLink.location.m, 0.001, "Node for joint $joint M-value is not matching")
 }
 
@@ -1278,7 +1287,7 @@ fun assertJointsOnSequentialEdges(
                 }
             assertTrue(
                 nodeIndex != -1,
-                "Location track ${locationTrack.name} nodes do not contain switch $switchId with joint $joint",
+                "Location track ${locationTrack.id} nodes do not contain switch $switchId with joint $joint",
             )
             nodeIndex
         }
@@ -1297,7 +1306,7 @@ fun assertTopologicalConnectionAtStart(
     assertTrue(
         geometry.startNode?.switchOut?.let { it.id == switchId && it.jointNumber == JointNumber(jointNumber) } ?: false
     ) {
-        "location track ${locationTrack.name} does not contain topology connection for switch: $switchId and joint: $jointNumber"
+        "location track ${locationTrack.id} does not contain topology connection for switch: $switchId and joint: $jointNumber"
     }
 }
 
@@ -1312,6 +1321,6 @@ fun assertTopologicalConnectionAtEnd(
     assertTrue(
         geometry.endNode?.switchOut?.let { it.id == switchId && it.jointNumber == JointNumber(jointNumber) } ?: false
     ) {
-        "location track ${locationTrack.name} does not contain topology connection for switch: $switchId and joint: $jointNumber"
+        "location track ${locationTrack.id} does not contain topology connection for switch: $switchId and joint: $jointNumber"
     }
 }

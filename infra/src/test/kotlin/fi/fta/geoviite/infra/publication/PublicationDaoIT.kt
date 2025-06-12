@@ -112,21 +112,24 @@ constructor(
     @Test
     fun locationTrackPublicationCandidatesAreFound() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
-        val (_, draft) =
+        val draft =
             insertAndCheck(
-                asMainDraft(track)
-                    .copy(
-                        dbName =
-                            DbLocationTrackNaming.of(
-                                LocationTrackNamingScheme.FREE_TEXT,
-                                AlignmentName("${track.dbName.nameFreeText} DRAFT"),
-                            )
-                    )
-            )
+                    asMainDraft(track)
+                        .copy(
+                            dbName =
+                                DbLocationTrackNaming.of(
+                                    LocationTrackNamingScheme.FREE_TEXT,
+                                    AlignmentName("${track.dbName.nameFreeText} DRAFT"),
+                                )
+                        )
+                )
+                .let { (_, track) ->
+                    locationTrackService.getAugLocationTrackOrThrow(track.id as IntId, mainDraftContext.context)
+                }
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
-        assertEquals(draft.dbName, candidates.first().dbName)
+        assertEquals(draft.name, candidates.first().name)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
         assertEquals(UserName.of(TEST_USER), candidates.first().userName)
         assertEquals(Operation.MODIFY, candidates.first().operation)

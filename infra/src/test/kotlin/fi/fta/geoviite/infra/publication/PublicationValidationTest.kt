@@ -9,10 +9,14 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
+import fi.fta.geoviite.infra.geocoding.trackNumber
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
@@ -47,17 +51,18 @@ import fi.fta.geoviite.infra.tracklayout.switchAndMatchingAlignments
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
+import fi.fta.geoviite.infra.tracklayout.toAugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Test
 
 class PublicationValidationTest {
-
+    private val dummyTranslation: Translation = Translation(LocalizationLanguage.FI, "")
     private val structure = switchStructureYV60_300_1_9()
 
     @Test
@@ -69,21 +74,27 @@ class PublicationValidationTest {
             true,
             trackNumber.copy(state = LayoutState.DELETED),
             referenceLine,
-            locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.IN_USE),
+            locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.IN_USE).let {
+                toAugLocationTrack(dummyTranslation, it, trackNumber(TrackNumber("001")))
+            },
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = LayoutState.DELETED),
             referenceLine,
-            alignment.copy(state = LocationTrackState.DELETED),
+            alignment.copy(state = LocationTrackState.DELETED).let {
+                toAugLocationTrack(dummyTranslation, it, trackNumber(TrackNumber("001")))
+            },
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = LayoutState.IN_USE),
             referenceLine,
-            alignment.copy(state = LocationTrackState.IN_USE),
+            alignment.copy(state = LocationTrackState.IN_USE).let {
+                toAugLocationTrack(dummyTranslation, it, trackNumber(TrackNumber("001")))
+            },
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
     }
@@ -146,7 +157,10 @@ class PublicationValidationTest {
                 id = IntId(2),
                 joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 10.0), null)),
             )
-        val track = locationTrack(trackNumberId = IntId(0))
+        val track =
+            locationTrack(trackNumberId = IntId(0)).let {
+                toAugLocationTrack(dummyTranslation, it, trackNumber(TrackNumber("001")))
+            }
         val goodGeom =
             trackGeometry(
                 edge(
@@ -312,7 +326,9 @@ class PublicationValidationTest {
             listOf(),
             validateAddressPoints(
                 trackNumber(draft = true),
-                locationTrack(trackNumberId = IntId(1), draft = true),
+                locationTrack(trackNumberId = IntId(1), draft = true).let {
+                    toAugLocationTrack(dummyTranslation, it, trackNumber(TrackNumber("001")))
+                },
                 "",
             ) {
                 // Alignment at slight angle to reference line -> should be OK
@@ -475,7 +491,10 @@ class PublicationValidationTest {
 
     @Test
     fun validationCatchesLoopyDuplicate() {
-        val lt = locationTrack(IntId(0), duplicateOf = IntId(0), draft = true)
+        val lt =
+            locationTrack(IntId(0), duplicateOf = IntId(0), draft = true).let {
+                toAugLocationTrack(dummyTranslation, it, trackNumber(TrackNumber("001")))
+            }
         assertContainsError(
             true,
             validateDuplicateOfState(lt, lt, AlignmentName("duplicateof"), false, listOf()),
@@ -500,7 +519,9 @@ class PublicationValidationTest {
                 draft = true,
             )
         val lt =
-            locationTrack(IntId(0), draft = true, state = LocationTrackState.IN_USE) to
+            locationTrack(IntId(0), draft = true, state = LocationTrackState.IN_USE).let {
+                toAugLocationTrack(dummyTranslation, it, trackNumber(TrackNumber("001")))
+            } to
                 trackGeometry(
                     edge(
                         startOuterSwitch = switchLinkYV(wrongPlaceSwitch.id as IntId, 1),
@@ -912,7 +933,7 @@ class PublicationValidationTest {
         hasError: Boolean,
         trackNumber: LayoutTrackNumber,
         referenceLine: ReferenceLine?,
-        locationTrack: LocationTrack,
+        locationTrack: AugLocationTrack,
         error: String,
     ) =
         assertTrackNumberReferenceError(
@@ -929,7 +950,7 @@ class PublicationValidationTest {
         referenceLine: ReferenceLine?,
         error: String,
         kmPosts: List<LayoutKmPost> = listOf(),
-        locationTracks: List<LocationTrack> = listOf(),
+        locationTracks: List<AugLocationTrack> = listOf(),
     ) =
         assertContainsError(
             hasError,
@@ -973,28 +994,29 @@ class PublicationValidationTest {
     private fun assertSwitchSegmentStructureError(
         hasError: Boolean,
         switch: LayoutSwitch,
-        track: Pair<LocationTrack, LocationTrackGeometry>,
+        track: Pair<AugLocationTrack, LocationTrackGeometry>,
         error: String,
     ) = assertSwitchSegmentStructureError(hasError, switch, listOf(track), error)
 
     private fun assertSwitchSegmentStructureError(
         hasError: Boolean,
         switch: LayoutSwitch,
-        tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+        tracks: List<Pair<AugLocationTrack, LocationTrackGeometry>>,
         error: String,
     ) = assertContainsError(hasError, getSwitchSegmentStructureErrors(switch, tracks), error)
 
     private fun getSwitchSegmentStructureErrors(
         switch: LayoutSwitch,
-        tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+        tracks: List<Pair<AugLocationTrack, LocationTrackGeometry>>,
     ): List<LayoutValidationIssue> = validateSwitchLocationTrackLinkStructure(switch, structure, tracks)
 
     private fun assertAddressPointError(hasError: Boolean, geocode: () -> AlignmentAddresses?, error: String) {
+        val trackNumber = trackNumber(draft = true)
         assertContainsError(
             hasError,
             validateAddressPoints(
-                trackNumber(draft = true),
-                locationTrack(IntId(1), draft = true),
+                trackNumber,
+                locationTrack(IntId(1), draft = true).let { toAugLocationTrack(dummyTranslation, it, trackNumber) },
                 VALIDATION_GEOCODING,
                 geocode,
             ),
@@ -1006,8 +1028,14 @@ class PublicationValidationTest {
         geocode: () -> AlignmentAddresses?,
         errorRangeDescription: String,
     ) {
+        val trackNumber = trackNumber(draft = true)
         val errors =
-            validateAddressPoints(trackNumber(draft = true), locationTrack(IntId(1), draft = true), "", geocode)
+            validateAddressPoints(
+                trackNumber,
+                locationTrack(IntId(1), draft = true).let { toAugLocationTrack(dummyTranslation, it, trackNumber) },
+                "",
+                geocode,
+            )
         assertEquals(errorRangeDescription, errors[0].params.get("kmNumbers"))
     }
 

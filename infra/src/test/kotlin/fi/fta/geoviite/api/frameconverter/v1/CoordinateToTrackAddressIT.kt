@@ -679,10 +679,12 @@ constructor(
         val trackStart = Point(-5.0, 1.0)
         val trackEnd = Point(5.0, 2.0)
         val trackSegments = listOf(segment(trackStart, trackEnd))
-        val (track, _) =
-            mainOfficialContext.saveAndFetchLocationTrack(
-                locationTrackAndGeometry(trackNumberId, segments = trackSegments)
-            )
+        val track =
+            mainOfficialContext
+                .saveAndFetchLocationTrack(locationTrackAndGeometry(trackNumberId, segments = trackSegments))
+                .let { (track, _) ->
+                    locationTrackService.getAugLocationTrackOrThrow(track.id as IntId, mainOfficialContext.context)
+                }
 
         // Seek a point that is offset from both the track and the reference line - perpendicular
         // from track point x=0 y=1.5

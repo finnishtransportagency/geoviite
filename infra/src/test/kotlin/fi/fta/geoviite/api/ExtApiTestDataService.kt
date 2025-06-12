@@ -4,13 +4,15 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
-import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -64,7 +66,8 @@ class ExtApiTestDataServiceV1
 constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
-    private val locationTrackService: LocationTrackService,
+    private val locationTrackDao: LocationTrackDao,
+    private val localizationService: LocalizationService,
 ) : DBTestBase() {
 
     fun insertGeocodableTrack(
@@ -101,7 +104,10 @@ constructor(
             layoutContext = layoutContext.context,
             trackNumber = trackNumberDao.get(layoutContext.context, trackNumberId)!!,
             referenceLine = referenceLineDao.get(layoutContext.context, usedReferenceLineId)!!,
-            locationTrack = locationTrackService.getAugLocationTrack(locationTrackId, layoutContext.context)!!,
+            locationTrack =
+                locationTrackDao.fetchAugLocationTrackKey(locationTrackId, layoutContext.context)?.let {
+                    locationTrackDao.fetch(it, localizationService.getLocalization(LocalizationLanguage.FI))
+                }!!,
         )
     }
 }

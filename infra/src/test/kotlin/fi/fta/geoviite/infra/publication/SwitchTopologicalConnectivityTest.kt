@@ -2,12 +2,15 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.SwitchTopologicalConnectivityTest.MakeSwitchLinkPair
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.tracklayout.AugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
@@ -15,16 +18,20 @@ import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchStructureRR54_4x1_9
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
+import fi.fta.geoviite.infra.tracklayout.toAugLocationTrack
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 
 class SwitchTopologicalConnectivityTest {
+    private val dummyTranslation: Translation = Translation(LocalizationLanguage.FI, "")
 
     @Test
     fun `minimal OK switch topological connectivity is OK`() {
@@ -308,15 +315,16 @@ class SwitchTopologicalConnectivityTest {
         isDuplicate: Boolean = false,
         isDeleted: Boolean = false,
         topologyLinks: SwitchLinkPair? = null,
-    ): Pair<LocationTrack, LocationTrackGeometry> {
+    ): Pair<AugLocationTrack, LocationTrackGeometry> {
         val locationTrack =
             locationTrack(
-                IntId(1),
-                id = IntId(idCounter++),
-                name = name,
-                duplicateOf = if (isDuplicate) IntId(12345) else null,
-                state = if (isDeleted) LocationTrackState.DELETED else LocationTrackState.IN_USE,
-            )
+                    IntId(1),
+                    id = IntId(idCounter++),
+                    name = locationTrackDbName(name),
+                    duplicateOf = if (isDuplicate) IntId(12345) else null,
+                    state = if (isDeleted) LocationTrackState.DELETED else LocationTrackState.IN_USE,
+                )
+                .let { toAugLocationTrack(dummyTranslation, it, trackNumber(TrackNumber("001"))) }
         val switchEdges =
             switchLinks.mapIndexed { index, link ->
                 edge(

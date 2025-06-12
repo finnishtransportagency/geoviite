@@ -1484,8 +1484,8 @@ constructor(
         }
         publicationDao.fetchPublishedLocationTracks(originalPublication).let { (directChanges, indirectChanges) ->
             assertEquals(
-                listOf(locationTrackDao.fetchVersion(MainLayoutContext.official, locationTrack.id)),
-                directChanges.map { it.version },
+                listOf(locationTrackDao.fetchAugLocationTrackKey(locationTrack.id, MainLayoutContext.official)),
+                directChanges.map { it.cacheKey },
             )
             assertEquals(listOf(), indirectChanges)
         }

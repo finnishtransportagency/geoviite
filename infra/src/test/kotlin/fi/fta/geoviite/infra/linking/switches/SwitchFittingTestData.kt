@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.tracklayout.TmpNodeConnection
 import fi.fta.geoviite.infra.tracklayout.TmpTrackBoundaryNode
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.tracklayout.segment
 
 fun asJointNumbers(vararg joints: Int): List<JointNumber> {
@@ -90,7 +91,12 @@ fun createTrack(
         )
 
     val locationTrack =
-        locationTrack(trackNumberId = trackNumberId, geometry = geometry, contextData = contextData, name = trackName)
+        locationTrack(
+            trackNumberId = trackNumberId,
+            geometry = geometry,
+            contextData = contextData,
+            name = locationTrackDbName(trackName),
+        )
     return locationTrack to geometry
 }
 
@@ -130,7 +136,7 @@ fun expandTrackFromStart(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
             contextData = locationTrack.contextData,
-            name = locationTrack.name.toString(),
+            name = locationTrackDbName(locationTrack.dbName.nameFreeText.toString()),
         )
     return newLocationTrack to newGeometry
 }
@@ -161,7 +167,7 @@ fun cutFromStart(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
             contextData = locationTrack.contextData,
-            name = locationTrack.name.toString(),
+            name = locationTrackDbName(locationTrack.dbName.nameFreeText.toString()),
         )
 
     return newLocationTrack to newGeometry
@@ -193,7 +199,7 @@ fun cutFromEnd(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
             contextData = locationTrack.contextData,
-            name = locationTrack.name.toString(),
+            name = locationTrackDbName(locationTrack.dbName.nameFreeText.toString()),
         )
 
     return newLocationTrack to newGeometry
@@ -221,7 +227,7 @@ fun expandTrackFromEnd(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
             contextData = locationTrack.contextData,
-            name = locationTrack.name.toString(),
+            name = locationTrackDbName(locationTrack.dbName.nameFreeText.toString()),
         )
     return newLocationTrack to newGeometry
 }
@@ -255,7 +261,7 @@ fun moveTrackForward(
             trackNumberId = locationTrack.trackNumberId,
             geometry = newGeometry,
             contextData = locationTrack.contextData,
-            name = locationTrack.name.toString(),
+            name = locationTrackDbName(locationTrack.dbName.nameFreeText.toString()),
         )
     return newLocationTrack to newGeometry
 }

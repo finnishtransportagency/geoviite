@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.locationTrackDbName
 import fi.fta.geoviite.infra.ui.SeleniumTest
@@ -12,7 +14,7 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
-class SearchTestUI @Autowired constructor() : SeleniumTest() {
+class SearchTestUI @Autowired constructor(private val locationTrackService: LocationTrackService) : SeleniumTest() {
 
     @BeforeEach
     fun goToMapPage() {
@@ -46,14 +48,18 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
     @Test
     fun `Search opens specific location track`() {
         val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
-        val (track, _) =
-            mainOfficialContext.saveAndFetchLocationTrack(
-                locationTrackAndGeometry(
-                    trackNumberId = trackNumberId,
-                    name = locationTrackDbName("test-lt specific 001"),
-                    description = "specific track selection test track 001",
+        val track =
+            mainOfficialContext
+                .saveAndFetchLocationTrack(
+                    locationTrackAndGeometry(
+                        trackNumberId = trackNumberId,
+                        name = locationTrackDbName("test-lt specific 001"),
+                        description = "specific track selection test track 001",
+                    )
                 )
-            )
+                .let { (track, _) ->
+                    locationTrackService.getAugLocationTrackOrThrow(track.id as IntId, track.contextData.layoutContext)
+                }
 
         startGeoviite()
         val mapPage = goToMap()
