@@ -28,15 +28,16 @@ import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
+import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -123,22 +124,22 @@ class LocationTrackDao(
         val sql =
             """
             select
-              lt.id,
-              lt.draft,
-              lt.design_id,
-              lt.version,
+              lt.id as lt_id,
+              lt.draft as lt_draft,
+              lt.design_id as lt_design_id,
+              lt.version as lt_version,
               tn.id as tn_id,
               tn.draft as tn_draft,
               tn.design_id as tn_design_id,
               tn.version as tn_version,
-              start_switch.id as start_switch_id,
-              start_switch.draft as start_switch_draft,
-              start_switch.design_id as start_switch_design_id,
-              start_switch.version as start_switch_version,
-              end_switch.id as end_switch_id,
-              end_switch.draft as end_switch_draft,
-              end_switch.design_id as end_switch_design_id,
-              end_switch.version as end_switch_version
+              start_switch.id as sw_start_id,
+              start_switch.draft as sw_start_draft,
+              start_switch.design_id as sw_start_design_id,
+              start_switch.version as sw_start_version,
+              end_switch.id as sw_end_id,
+              end_switch.draft as sw_end_draft,
+              end_switch.design_id as sw_end_design_id,
+              end_switch.version as sw_end_version
               from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
                 inner join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn on lt.track_number_id = tn.id
                 left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) start_switch on lt.start_switch_id = start_switch.id
@@ -162,14 +163,19 @@ class LocationTrackDao(
             val trackNumberVersion =
                 rs.getLayoutRowVersion<LayoutTrackNumber>("tn_id", "tn_design_id", "tn_draft", "tn_version")
             val startSwitchVersion =
-                rs.getLayoutRowVersion<LayoutSwitch>(
+                rs.getLayoutRowVersionOrNull<LayoutSwitch>(
                     "sw_start_id",
                     "sw_start_design_id",
                     "sw_start_draft",
                     "sw_start_version",
                 )
             val endSwitchVersion =
-                rs.getLayoutRowVersion<LayoutSwitch>("sw_end_id", "sw_end_design_id", "sw_end_draft", "sw_end_version")
+                rs.getLayoutRowVersionOrNull<LayoutSwitch>(
+                    "sw_end_id",
+                    "sw_end_design_id",
+                    "sw_end_draft",
+                    "sw_end_version",
+                )
             AugLocationTrackCacheKey(trackVersion, trackNumberVersion, startSwitchVersion, endSwitchVersion)
         }
     }
@@ -407,9 +413,9 @@ class LocationTrackDao(
               :layout_context_id,
               :id,
               :track_number_id,
-              :naming_scheme::layout.naming_scheme,
+              :naming_scheme::layout.location_track_naming_scheme,
               :name_free_text,
-              :name_specifier::layout.location_track_name_specifier,
+              :name_specifier::layout.location_track_specifier,
               :description_base,
               :description_suffix::layout.location_track_description_suffix,
               :type::layout.track_type,
@@ -455,7 +461,7 @@ class LocationTrackDao(
                 "layout_context_id" to item.layoutContext.toSqlString(),
                 "id" to id.intValue,
                 "track_number_id" to item.trackNumberId.intValue,
-                "naming_scheme" to item.dbName.namingScheme,
+                "naming_scheme" to item.dbName.namingScheme.name,
                 "name_free_text" to item.dbName.nameFreeText,
                 "name_specifier" to item.dbName.nameSpecifier?.name,
                 "description_base" to item.dbDescription.descriptionBase,
