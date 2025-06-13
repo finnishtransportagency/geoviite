@@ -349,6 +349,23 @@
             "CHORD": "Kujaraide",
             "WITHIN_OPERATING_POINT": "Liikennepaikan raide",
             "BETWEEN_OPERATING_POINTS": "Liikennepaikkojen välinen raide"
+        },
+        "LocationTrackNameSpecifier": {
+            "PR": "PR (Pohjoinen raide)",
+            "ER": "ER (Eteläinen raide)",
+            "IR": "IR (Itäinen raide)",
+            "KR": "KR (Keskiraide)",
+            "LR": "LR (Läntinen raide)",
+            "PSR": "PsR (Pohjoisin raide)",
+            "ESR": "EsR (Eteläisin raide)",
+            "ISR": "IsR (Itäisin raide)",
+            "LSR": "LsR (Läntisin raide)",
+            "PKR": "PKR (Pohjoinen keskiraide)",
+            "EKR": "EKR (Eteläinen keskiraide)",
+            "IKR": "IKR (Itäinen keskiraide)",
+            "LKR": "LKR (Läntinen keskiraide)",
+            "ITHR": "ItHR (Itäinen huoltoraide (Helsinki-Ilmala)",
+            "LANHR": "LänHR (Läntinen huoltoraide (Helsinki-Ilmala)"
         }
     },
     "environment": {
@@ -479,7 +496,24 @@
         "move-to-edit": "Voit siirtyä muokkaamaan raidetta {{name}} tästä",
         "name-in-use-deleted": "Huomaa, että ratanumerolla on poistettu raide samalla tunnuksella",
         "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun raiteen tästä",
-        "track-already-has-duplicates": "Tällä raiteella on jo duplikaattiraiteita"
+        "track-already-has-duplicates": "Tällä raiteella on jo duplikaattiraiteita",
+        "name-specifiers": {
+            "PR": "PR",
+            "ER": "ER",
+            "IR": "IR",
+            "KR": "KR",
+            "LR": "LR",
+            "PSR": "PsR",
+            "ESR": "EsR",
+            "ISR": "IsR",
+            "LSR": "LsR",
+            "PKR": "PKR",
+            "EKR": "EKR",
+            "IKR": "IKR",
+            "LKR": "LKR",
+            "ITHR": "ItHR",
+            "LANHR": "LänHR"
+        }
     },
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",

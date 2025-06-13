@@ -941,13 +941,13 @@ fun locationTrackNameBetweenOperatingPoints(
     specifier: LocationTrackNameSpecifier,
     startSwitchName: String?,
     endSwitchName: String?,
-) = AlignmentName("${specifier.name} ${startSwitchName ?: "???"}-${endSwitchName ?: "???"}")
+) = AlignmentName("${specifier.properForm} ${startSwitchName ?: "???"}-${endSwitchName ?: "???"}")
 
 fun locationTrackNameTrackNumberTrack(
     trackNumber: TrackNumber?,
     specifier: LocationTrackNameSpecifier?,
     freeText: FreeText,
-) = AlignmentName("${trackNumber ?: "???"} ${specifier ?: "???"} ${freeText}".trim())
+) = AlignmentName("${trackNumber ?: "???"} ${specifier?.properForm ?: "???"} ${freeText}".trim())
 
 fun locationTrackNameChord(startSwitchName: String?, endSwitchName: String?): AlignmentName {
     val startNameSplits = startSwitchName?.split(" ")

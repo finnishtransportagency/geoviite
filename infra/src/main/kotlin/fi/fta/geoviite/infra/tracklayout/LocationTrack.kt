@@ -31,22 +31,22 @@ enum class LocationTrackNamingScheme {
     CHORD,
 }
 
-enum class LocationTrackNameSpecifier {
-    PR,
-    ER,
-    IR,
-    KR,
-    LR,
-    PSR,
-    ESR,
-    ISR,
-    LSR,
-    PKR,
-    EKR,
-    IKR,
-    LKR,
-    ITHR,
-    LANHR,
+enum class LocationTrackNameSpecifier(val properForm: String) {
+    PR("PR"),
+    ER("ER"),
+    IR("IR"),
+    KR("KR"),
+    LR("LR"),
+    PSR("PsR"),
+    ESR("EsR"),
+    ISR("IsR"),
+    LSR("LsR"),
+    PKR("PKR"),
+    EKR("EKR"),
+    IKR("IKR"),
+    LKR("LKR"),
+    ITHR("ItHR"),
+    LANHR("LänHR"),
 }
 
 val locationTrackDescriptionLength = 4..256

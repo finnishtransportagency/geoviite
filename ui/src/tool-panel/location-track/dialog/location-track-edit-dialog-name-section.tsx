@@ -137,7 +137,7 @@ const LocationTrackNameTrackNumber: React.FC<LocationTrackNameTrackNumberProps> 
             />
             <FieldLayout
                 label={`${t('location-track-dialog.full-name')}`}
-                value={`${trackNumber?.number ?? ''} ${request.nameSpecifier ?? ''} ${request.nameFreeText}`}
+                value={`${trackNumber?.number ?? '???'} ${request.nameSpecifier ? t(`location-track-dialog.name-specifiers.${request.nameSpecifier}`) : '???'} ${request.nameFreeText}`}
             />
         </React.Fragment>
     );
@@ -179,7 +179,7 @@ const LocationTrackNameBetweenOperatingPoints: React.FC<
             />
             <FieldLayout
                 label={`${t('location-track-dialog.full-name')}`}
-                value={`${request.nameSpecifier ?? '???'} ${extraInfo?.switchAtStart?.shortName ?? '???'}-${extraInfo?.switchAtEnd?.shortName ?? '???'}`}
+                value={`${t(`location-track-dialog.name-specifier.${request.nameSpecifier}`) ?? '???'} ${extraInfo?.switchAtStart?.shortName ?? '???'}-${extraInfo?.switchAtEnd?.shortName ?? '???'}`}
             />
         </React.Fragment>
     );

@@ -180,7 +180,7 @@ export const locationTrackNamingSchemes: LocalizedEnum<LocationTrackNamingScheme
 );
 
 export const locationTrackNameSpecifiers: LocalizedEnum<LocationTrackSpecifier>[] = values(
-    'locationTrackNameSpecifier',
+    'LocationTrackNameSpecifier',
     [
         LocationTrackSpecifier.PR,
         LocationTrackSpecifier.ER,
