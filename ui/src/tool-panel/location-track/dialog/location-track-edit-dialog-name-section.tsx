@@ -179,7 +179,7 @@ const LocationTrackNameBetweenOperatingPoints: React.FC<
             />
             <FieldLayout
                 label={`${t('location-track-dialog.full-name')}`}
-                value={`${t(`location-track-dialog.name-specifier.${request.nameSpecifier}`) ?? '???'} ${extraInfo?.switchAtStart?.shortName ?? '???'}-${extraInfo?.switchAtEnd?.shortName ?? '???'}`}
+                value={`${t(`location-track-dialog.name-specifiers.${request.nameSpecifier}`) ?? '???'} ${extraInfo?.switchAtStart?.shortName ?? '???'}-${extraInfo?.switchAtEnd?.shortName ?? '???'}`}
             />
         </React.Fragment>
     );
