@@ -242,6 +242,7 @@ export type LocationTrackDuplicate = {
 export type LayoutSwitchIdAndName = {
     id: LayoutSwitchId;
     name: string;
+    shortName?: string;
 };
 
 export type LocationTrackInfoboxExtras = {

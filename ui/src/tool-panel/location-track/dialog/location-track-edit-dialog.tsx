@@ -62,7 +62,7 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 import { first } from 'utils/array-utils';
 import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
 import { UnknownAction } from 'redux';
-import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import { LocationTrackEditDialogNameSection } from 'tool-panel/location-track/dialog/location-track-edit-dialog-name-section';
 
 type LocationTrackDialogContainerProps = {
     locationTrackId?: LocationTrackId;
@@ -176,7 +176,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const validTrackName = !state.validationIssues.some((e) => e.field === 'nameFreeText')
         ? (state.locationTrack.nameFreeText ?? '') // TODO: GVT-3080
         : '';
-    const trackWithSameName = ifDefined(
+
+    // TODO: GVT-3080 this will probably need to be used somewhere else
+    const _trackWithSameName = ifDefined(
         useConflictingTracks(
             state.locationTrack.trackNumberId,
             [validTrackName],
@@ -245,7 +247,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         if (canSaveLocationTrack(state) && state.locationTrack) {
             const locationTrackWithTrimmedStrings = {
                 ...state.locationTrack,
-                name: (state.locationTrack.nameFreeText ?? '').trim(), // TODO: GVT-3080
+                nameFreeText: state.locationTrack.nameFreeText?.trim(),
                 descriptionBase: state.locationTrack.descriptionBase?.trim(),
             };
 
@@ -314,22 +316,18 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     }
 
     const switchToSwitchDescriptionSuffix = () =>
-        `${shortenSwitchName(extraInfo?.switchAtStart?.name) ?? '???'} - ${
-            shortenSwitchName(extraInfo?.switchAtEnd?.name) ?? '???'
+        `${extraInfo?.switchAtStart?.shortName ?? '???'} - ${
+            extraInfo?.switchAtEnd?.shortName ?? '???'
         }`;
 
     const switchToBufferDescriptionSuffix = () =>
         `${
-            shortenSwitchName(extraInfo?.switchAtStart?.name) ??
-            shortenSwitchName(extraInfo?.switchAtEnd?.name) ??
-            '???'
+            extraInfo?.switchAtStart?.shortName ?? extraInfo?.switchAtEnd?.shortName ?? '???'
         } - ${t('location-track-dialog.buffer')}`;
 
     const switchToOwnershipBoundaryDescriptionSuffix = () =>
         `${
-            shortenSwitchName(extraInfo?.switchAtStart?.name) ??
-            shortenSwitchName(extraInfo?.switchAtEnd?.name) ??
-            '???'
+            extraInfo?.switchAtStart?.shortName ?? extraInfo?.switchAtEnd?.shortName ?? '???'
         } - ${t('location-track-dialog.ownership-boundary')}`;
 
     const descriptionSuffix = (mode: LocationTrackDescriptionSuffixMode) => {
@@ -353,13 +351,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         return suffix ? `${base} ${suffix}` : base;
     };
 
-    const shortenSwitchName = (name?: string) => {
-        const splits = (name && name.split(' ')) ?? '';
-        const last = splits.length ? splits[splits.length - 1] : '';
-        const numberPart = last?.[0] === 'V' ? last.substring(1) : '';
-        const number = parseInt(numberPart, 10);
-        return !isNaN(number) ? `V${number.toString(10).padStart(3, '0')}` : undefined;
-    };
     const trackNumberOptions = state.trackNumbers
         .filter(
             (tn) => tn.id === state.existingLocationTrack?.trackNumberId || tn.state !== 'DELETED',
@@ -369,7 +360,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             return { name: tn.number + note, value: tn.id, qaId: `track-number-${tn.id}` };
         });
 
-    const moveToEditLinkText = (track: LayoutLocationTrack) => {
+    // TODO: GVT-3080 This will probably need to be used somewhere else
+    const _moveToEditLinkText = (track: LayoutLocationTrack) => {
         return track.state === 'DELETED'
             ? t('location-track-dialog.move-to-edit-deleted')
             : t('location-track-dialog.move-to-edit', { name: track.name });
@@ -437,8 +429,16 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         <Heading size={HeadingSize.SUB}>
                             {t('location-track-dialog.basic-info-heading')}
                         </Heading>
-
-                        <FieldLayout
+                        <LocationTrackEditDialogNameSection
+                            state={state}
+                            existingLocationTrack={props.locationTrack}
+                            layoutContext={props.layoutContext}
+                            updateProp={updateProp}
+                            onCommitField={stateActions.onCommitField}
+                            getVisibleErrorsByProp={getVisibleErrorsByProp}
+                            onEditTrack={props.onEditTrack}
+                        />
+                        {/*<FieldLayout
                             label={`${t('location-track-dialog.track-logo')} *`}
                             value={
                                 // TODO: GVT-3080 yoink proper name components from original branch and use them instead
@@ -470,7 +470,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     </AnchorLink>
                                 </>
                             )}
-                        </FieldLayout>
+                        </FieldLayout>*/}
                         <FieldLayout
                             label={`${t('location-track-dialog.track-number')} *`}
                             value={
@@ -519,7 +519,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             }
                             errors={getVisibleErrorsByProp('type')}
                         />
-
                         <FieldLayout
                             label={`${t('location-track-dialog.description')}`}
                             value={
@@ -566,7 +565,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 </div>
                             }
                         />
-
                         <FieldLayout
                             label={`${t('location-track-dialog.duplicate-of')}`}
                             value={

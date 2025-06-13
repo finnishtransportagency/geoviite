@@ -163,7 +163,7 @@ data class SwitchOnLocationTrack(
     val nearestOperatingPoint: RatkoOperatingPoint?,
 )
 
-data class LayoutSwitchIdAndName(val id: IntId<LayoutSwitch>, val name: SwitchName)
+data class LayoutSwitchIdAndName(val id: IntId<LayoutSwitch>, val name: SwitchName, val shortName: String?)
 
 enum class DuplicateEndPointType {
     START,

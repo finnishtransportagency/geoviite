@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
@@ -139,6 +140,9 @@ class LocationTrackService(
                         request.trackNumberId,
                         branch.draft,
                     ),
+                namingScheme = request.namingScheme,
+                nameFreeText = request.nameFreeText,
+                nameSpecifier = request.nameSpecifier,
                 descriptionBase = request.descriptionBase,
                 descriptionSuffix = request.descriptionSuffix,
                 type = request.type,
@@ -694,7 +698,7 @@ class LocationTrackService(
         }
 
     private fun fetchSwitchAtEndById(layoutContext: LayoutContext, id: IntId<LayoutSwitch>): LayoutSwitchIdAndName? =
-        switchDao.get(layoutContext, id)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
+        switchDao.get(layoutContext, id)?.let { switch -> LayoutSwitchIdAndName(id, switch.name, switch.shortName) }
 
     @Transactional
     fun recalculateTopology(
@@ -873,11 +877,35 @@ class LocationTrackService(
     ): AlignmentName {
         val startSwitch = startSwitchId?.let { switchDao.get(layoutContext, startSwitchId) }
         val endSwitch = endSwitchId?.let { switchDao.get(layoutContext, endSwitchId) }
-        val trackNumber = trackNumberDao.get(layoutContext, trackNumberId)
+        val trackNumber = trackNumberDao.getOrThrow(layoutContext, trackNumberId)
 
-        return AlignmentName(
-            "Blee bloo ${freeTextPart ?: ""} ${specifier ?: ""} ${startSwitch?.name ?: "???"}-${endSwitch?.name ?: "???"}"
-        )
+        return when (namingScheme) {
+            LocationTrackNamingScheme.FREE_TEXT ->
+                AlignmentName(
+                    requireNotNull(freeTextPart.toString()) { "nameFreeText is required if namingScheme is FREE_TEXT" }
+                )
+            LocationTrackNamingScheme.WITHIN_OPERATING_POINT ->
+                AlignmentName(
+                    requireNotNull(freeTextPart.toString()) {
+                        "nameFreeText is required if namingScheme is WITHIN_OPERATING_POINT"
+                    }
+                )
+            LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS ->
+                locationTrackNameBetweenOperatingPoints(
+                    requireNotNull(specifier) { "specifier is required if namingScheme is BETWEEN_OPERATING_POINTS" },
+                    startSwitch?.shortName,
+                    endSwitch?.shortName,
+                )
+
+            LocationTrackNamingScheme.TRACK_NUMBER_TRACK ->
+                locationTrackNameTrackNumberTrack(
+                    trackNumber.number,
+                    requireNotNull(specifier) { "specifier is required if namingScheme is TRACK_NUMBER_TRACK" },
+                    requireNotNull(freeTextPart) { "nameFreeText is required if namingScheme is TRACK_NUMBER_TRACK" },
+                )
+
+            LocationTrackNamingScheme.CHORD -> locationTrackNameChord(startSwitch?.shortName, endSwitch?.shortName)
+        }
     }
 }
 
@@ -906,5 +934,38 @@ fun isSplitSourceReferenceError(exception: DataIntegrityViolationException): Boo
 
             else -> false
         }
+    }
+}
+
+fun locationTrackNameBetweenOperatingPoints(
+    specifier: LocationTrackNameSpecifier,
+    startSwitchName: String?,
+    endSwitchName: String?,
+) = AlignmentName("${specifier.name} ${startSwitchName ?: "???"}-${endSwitchName ?: "???"}")
+
+fun locationTrackNameTrackNumberTrack(
+    trackNumber: TrackNumber?,
+    specifier: LocationTrackNameSpecifier?,
+    freeText: FreeText,
+) = AlignmentName("${trackNumber ?: "???"} ${specifier ?: "???"} ${freeText}".trim())
+
+fun locationTrackNameChord(startSwitchName: String?, endSwitchName: String?): AlignmentName {
+    val startNameSplits = startSwitchName?.split(" ")
+    val endNameSplits = endSwitchName?.split(" ")
+
+    return if (
+        startNameSplits != null &&
+            endNameSplits != null &&
+            startNameSplits.size > 0 &&
+            endNameSplits.size > 0 &&
+            startNameSplits[0] == endNameSplits[0]
+    ) {
+        val commonPrefix = startNameSplits[0]
+        val restOfStartName = startNameSplits.subList(1, startNameSplits.lastIndex).joinToString(" ")
+        val restOfEndName = endNameSplits.subList(1, endNameSplits.lastIndex).joinToString(" ")
+
+        AlignmentName("$commonPrefix $restOfStartName-$restOfEndName")
+    } else {
+        AlignmentName("${startSwitchName ?: "???"}-${endSwitchName ?: "???"}")
     }
 }
