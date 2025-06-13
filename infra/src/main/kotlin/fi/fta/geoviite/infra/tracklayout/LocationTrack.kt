@@ -23,6 +23,32 @@ enum class LocationTrackType {
     CHORD, // Kujaraide: Kujaraide on raide, joka ei ole sivu-, eikä pääraide.
 }
 
+enum class LocationTrackNamingScheme {
+    FREE_TEXT,
+    WITHIN_OPERATING_POINT,
+    BETWEEN_OPERATING_POINTS,
+    TRACK_NUMBER_TRACK,
+    CHORD,
+}
+
+enum class LocationTrackNameSpecifier {
+    PR,
+    ER,
+    IR,
+    KR,
+    LR,
+    PSR,
+    ESR,
+    ISR,
+    LSR,
+    PKR,
+    EKR,
+    IKR,
+    LKR,
+    ITHR,
+    LANHR,
+}
+
 val locationTrackDescriptionLength = 4..256
 
 enum class LocationTrackDescriptionSuffix {
@@ -56,6 +82,9 @@ enum class LocationTrackState(val category: LayoutStateCategory) {
 
 data class LocationTrack(
     val name: AlignmentName,
+    val namingScheme: LocationTrackNamingScheme,
+    val nameFreeText: FreeText?,
+    val nameSpecifier: LocationTrackNameSpecifier?,
     val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: LocationTrackDescriptionSuffix,
     val type: LocationTrackType,

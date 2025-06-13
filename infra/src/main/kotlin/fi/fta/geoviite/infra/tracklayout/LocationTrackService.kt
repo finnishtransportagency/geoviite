@@ -65,13 +65,26 @@ class LocationTrackService(
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
     private val localizationService: LocalizationService,
     private val transactionTemplate: TransactionTemplate,
+    private val trackNumberDao: LayoutTrackNumberDao,
 ) : LayoutAssetService<LocationTrack, LocationTrackGeometry, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
     fun insert(branch: LayoutBranch, request: LocationTrackSaveRequest): LayoutRowVersion<LocationTrack> {
         val locationTrack =
             LocationTrack(
-                name = request.name,
+                namingScheme = request.namingScheme,
+                name =
+                    recalculateName(
+                        request.nameFreeText,
+                        request.namingScheme,
+                        request.nameSpecifier,
+                        null,
+                        null,
+                        request.trackNumberId,
+                        branch.draft,
+                    ),
+                nameFreeText = request.nameFreeText,
+                nameSpecifier = request.nameSpecifier,
                 descriptionBase = request.descriptionBase,
                 descriptionSuffix = request.descriptionSuffix,
                 type = request.type,
@@ -98,7 +111,10 @@ class LocationTrackService(
             return requireNotNull(transactionTemplate.execute { updateLocationTrackTransaction(branch, id, request) })
         } catch (dataIntegrityException: DataIntegrityViolationException) {
             throw if (isSplitSourceReferenceError(dataIntegrityException)) {
-                SplitSourceLocationTrackUpdateException(request.name, dataIntegrityException)
+                SplitSourceLocationTrackUpdateException(
+                    AlignmentName(request.nameFreeText?.toString() ?: ""),
+                    dataIntegrityException,
+                )
             } else {
                 dataIntegrityException
             }
@@ -113,7 +129,16 @@ class LocationTrackService(
         val (originalTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
         val locationTrack =
             originalTrack.copy(
-                name = request.name,
+                name =
+                    recalculateName(
+                        request.nameFreeText,
+                        request.namingScheme,
+                        request.nameSpecifier,
+                        originalGeometry.startSwitchLink?.id,
+                        originalGeometry.endSwitchLink?.id,
+                        request.trackNumberId,
+                        branch.draft,
+                    ),
                 descriptionBase = request.descriptionBase,
                 descriptionSuffix = request.descriptionSuffix,
                 type = request.type,
@@ -835,6 +860,24 @@ class LocationTrackService(
                 locationTrackDao.fetchOfficialVersionAtMoment(layoutContext.branch, layoutRowId.id, moment)
             }
             ?.let(locationTrackDao::fetch)
+    }
+
+    fun recalculateName(
+        freeTextPart: FreeText?,
+        namingScheme: LocationTrackNamingScheme,
+        specifier: LocationTrackNameSpecifier?,
+        startSwitchId: IntId<LayoutSwitch>?,
+        endSwitchId: IntId<LayoutSwitch>?,
+        trackNumberId: IntId<LayoutTrackNumber>,
+        layoutContext: LayoutContext,
+    ): AlignmentName {
+        val startSwitch = startSwitchId?.let { switchDao.get(layoutContext, startSwitchId) }
+        val endSwitch = endSwitchId?.let { switchDao.get(layoutContext, endSwitchId) }
+        val trackNumber = trackNumberDao.get(layoutContext, trackNumberId)
+
+        return AlignmentName(
+            "Blee bloo ${freeTextPart ?: ""} ${specifier ?: ""} ${startSwitch?.name ?: "???"}-${endSwitch?.name ?: "???"}"
+        )
     }
 }
 

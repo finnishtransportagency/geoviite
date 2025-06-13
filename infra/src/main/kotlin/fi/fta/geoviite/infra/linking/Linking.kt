@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
@@ -24,10 +23,13 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
+import fi.fta.geoviite.infra.util.FreeText
 
 enum class LocationTrackPointUpdateType {
     START_POINT,
@@ -51,7 +53,9 @@ data class EmptyAlignmentLinkingParameters<T>(
 )
 
 data class LocationTrackSaveRequest(
-    val name: AlignmentName,
+    val namingScheme: LocationTrackNamingScheme,
+    val nameFreeText: FreeText?,
+    val nameSpecifier: LocationTrackNameSpecifier?,
     val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: LocationTrackDescriptionSuffix,
     val type: LocationTrackType,

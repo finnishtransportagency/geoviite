@@ -14,8 +14,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SwitchOnLocationTrack
+import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 
 class BulkTransfer
@@ -129,7 +132,9 @@ data class SplitRequestTargetDuplicate(val id: IntId<LocationTrack>, val operati
 data class SplitRequestTarget(
     val duplicateTrack: SplitRequestTargetDuplicate?,
     val startAtSwitchId: IntId<LayoutSwitch>?,
-    val name: AlignmentName,
+    val namingScheme: LocationTrackNamingScheme,
+    val nameFreeText: FreeText?,
+    val nameSpecifier: LocationTrackNameSpecifier?,
     val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: LocationTrackDescriptionSuffix,
 ) {

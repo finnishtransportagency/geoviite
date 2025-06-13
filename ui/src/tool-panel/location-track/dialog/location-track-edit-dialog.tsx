@@ -173,8 +173,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         if (duplicate && !selectedDuplicateTrack) setSelectedDuplicateTrack(duplicate);
     }, [duplicate]);
 
-    const validTrackName = !state.validationIssues.some((e) => e.field === 'name')
-        ? state.locationTrack.name
+    const validTrackName = !state.validationIssues.some((e) => e.field === 'nameFreeText')
+        ? (state.locationTrack.nameFreeText ?? '') // TODO: GVT-3080
         : '';
     const trackWithSameName = ifDefined(
         useConflictingTracks(
@@ -245,7 +245,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         if (canSaveLocationTrack(state) && state.locationTrack) {
             const locationTrackWithTrimmedStrings = {
                 ...state.locationTrack,
-                name: state.locationTrack.name.trim(),
+                name: (state.locationTrack.nameFreeText ?? '').trim(), // TODO: GVT-3080
                 descriptionBase: state.locationTrack.descriptionBase?.trim(),
             };
 
@@ -441,17 +441,18 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         <FieldLayout
                             label={`${t('location-track-dialog.track-logo')} *`}
                             value={
+                                // TODO: GVT-3080 yoink proper name components from original branch and use them instead
                                 <TextField
                                     qa-id="location-track-name"
-                                    value={state.locationTrack?.name}
-                                    onChange={(e) => updateProp('name', e.target.value)}
-                                    onBlur={() => stateActions.onCommitField('name')}
-                                    hasError={hasErrors('name')}
+                                    value={state.locationTrack?.nameFreeText}
+                                    onChange={(e) => updateProp('nameFreeText', e.target.value)}
+                                    onBlur={() => stateActions.onCommitField('nameFreeText')}
+                                    hasError={hasErrors('nameFreeText')}
                                     ref={firstInputRef}
                                     wide
                                 />
                             }
-                            errors={getVisibleErrorsByProp('name')}>
+                            errors={getVisibleErrorsByProp('nameFreeText')}>
                             {trackWithSameName && (
                                 <>
                                     <div

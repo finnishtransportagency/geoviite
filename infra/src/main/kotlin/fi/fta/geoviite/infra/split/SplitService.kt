@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -571,9 +572,17 @@ fun splitLocationTrack(
                                 request = target.request,
                                 edges = edges,
                                 topologicalConnectivityType = connectivityType,
+                                calculatedName = AlignmentName("blee"), // TODO: GVT-3080
                             )
                     }
-                } ?: createSplitTarget(track, target.request, edges, connectivityType)
+                }
+                    ?: createSplitTarget(
+                        track,
+                        target.request,
+                        edges,
+                        connectivityType,
+                        AlignmentName("bloo"), // TODO: GVT-3080
+                    )
             SplitTargetResult(
                 locationTrack = newTrack,
                 geometry = newGeometry,
@@ -632,11 +641,15 @@ private fun updateSplitTargetForOverwriteDuplicate(
     request: SplitRequestTarget,
     edges: List<LayoutEdge>,
     topologicalConnectivityType: TopologicalConnectivityType,
+    calculatedName: AlignmentName,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val newGeometry = TmpLocationTrackGeometry.of(edges, duplicateTrack.id as? IntId)
     val newTrack =
         duplicateTrack.copy(
-            name = request.name,
+            name = calculatedName,
+            namingScheme = request.namingScheme,
+            nameFreeText = request.nameFreeText,
+            nameSpecifier = request.nameSpecifier,
             descriptionBase = request.descriptionBase,
             descriptionSuffix = request.descriptionSuffix,
 
@@ -662,11 +675,15 @@ private fun createSplitTarget(
     request: SplitRequestTarget,
     edges: List<LayoutEdge>,
     topologicalConnectivityType: TopologicalConnectivityType,
+    calculatedName: AlignmentName,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val newGeometry = TmpLocationTrackGeometry.of(edges, null)
     val newTrack =
         LocationTrack(
-            name = request.name,
+            name = calculatedName,
+            namingScheme = request.namingScheme,
+            nameFreeText = request.nameFreeText,
+            nameSpecifier = request.nameSpecifier,
             descriptionBase = request.descriptionBase,
             descriptionSuffix = request.descriptionSuffix,
 

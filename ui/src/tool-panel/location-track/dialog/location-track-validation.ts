@@ -4,6 +4,7 @@ export const ALIGNMENT_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-_]+$/g;
 export const ALIGNMENT_DESCRIPTION_REGEX = /^[A-ZÄÖÅa-zäöå0-9 _\-–—+().,'"/\\<>:!?&]+$/g;
 export const ALIGNMENT_NAME_MAX_LENGTH = 50;
 
+// TODO: GVT-3080
 export const validateLocationTrackName = (
     name: string,
 ): FieldValidationIssue<{ name: string }>[] => {

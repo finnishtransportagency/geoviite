@@ -20,6 +20,8 @@ import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getEnumOrNull
+import fi.fta.geoviite.infra.util.getFreeTextOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
@@ -130,6 +132,9 @@ class LocationTrackDao(
               ltv.design_asset_state,
               ltv.track_number_id, 
               ltv.name, 
+              ltv.naming_scheme,
+              ltv.name_free_text,
+              ltv.name_specifier,
               ltv.description_base,
               ltv.description_suffix,
               ltv.type, 
@@ -180,6 +185,9 @@ class LocationTrackDao(
               lt.design_asset_state,
               lt.track_number_id, 
               lt.name, 
+              lt.naming_scheme,
+              lt.name_free_text,
+              lt.name_specifier,
               lt.description_base,
               lt.description_suffix,
               lt.type, 
@@ -220,6 +228,9 @@ class LocationTrackDao(
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
             name = rs.getString("name").let(::AlignmentName),
+            namingScheme = rs.getEnum("naming_scheme"),
+            nameFreeText = rs.getFreeTextOrNull("name_free_text"),
+            nameSpecifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
             descriptionBase = rs.getString("description_base").let(::LocationTrackDescriptionBase),
             descriptionSuffix = rs.getEnum<LocationTrackDescriptionSuffix>("description_suffix"),
             type = rs.getEnum("type"),
@@ -247,6 +258,9 @@ class LocationTrackDao(
               id,
               track_number_id,
               name,
+              naming_scheme,
+              name_free_text,
+              name_specifier,
               description_base,
               description_suffix,
               type,
@@ -268,6 +282,9 @@ class LocationTrackDao(
               :id,
               :track_number_id,
               :name,
+              :naming_scheme::layout.location_track_naming_scheme,
+              :name_free_text,
+              :name_specifier::layout.location_track_specifier,
               :description_base,
               :description_suffix::layout.location_track_description_suffix,
               :type::layout.track_type,
@@ -286,6 +303,9 @@ class LocationTrackDao(
             ) on conflict (id, layout_context_id) do update set
               track_number_id = excluded.track_number_id,
               name = excluded.name,
+              naming_scheme = excluded.naming_scheme,
+              name_free_text = excluded.name_free_text,
+              name_specifier = excluded.name_specifier,
               description_base = excluded.description_base,
               description_suffix = excluded.description_suffix,
               type = excluded.type,
@@ -308,6 +328,9 @@ class LocationTrackDao(
                 "id" to id.intValue,
                 "track_number_id" to item.trackNumberId.intValue,
                 "name" to item.name,
+                "naming_scheme" to item.namingScheme.name,
+                "name_free_text" to item.nameFreeText?.toString(),
+                "name_specifier" to item.nameSpecifier?.name,
                 "description_base" to item.descriptionBase,
                 "description_suffix" to item.descriptionSuffix.name,
                 "type" to item.type.name,
