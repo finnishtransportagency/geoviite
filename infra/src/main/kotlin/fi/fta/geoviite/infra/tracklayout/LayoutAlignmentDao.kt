@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geography.create3DMLineString
 import fi.fta.geoviite.infra.geography.get3DMLineStringContent
 import fi.fta.geoviite.infra.geography.parseSegmentPoint
@@ -56,15 +55,15 @@ import fi.fta.geoviite.infra.util.produceIf
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
 import fi.fta.geoviite.infra.util.setUser
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.sql.ResultSet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import kotlin.math.abs
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -350,7 +349,7 @@ class LayoutAlignmentDao(
                 "source_start_m_values" to content.segments.map { s -> s.sourceStartM }.toTypedArray(),
                 "sources" to content.segments.map { s -> s.source.name }.toTypedArray(),
                 "geometry_ids" to content.segments.map { s -> (s.geometry.id as IntId).intValue }.toTypedArray(),
-                "polygon_string" to create2DPolygonString(content.boundingBox.polygonFromCorners),
+                "polygon_string" to content.boundingBox.polygonFromCorners.toWkt(),
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutEdge>("id") }.single()
     }
@@ -571,8 +570,7 @@ class LayoutAlignmentDao(
                 .trimIndent()
         val params =
             mapOf(
-                "polygon_string" to
-                    alignment.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
+                "polygon_string" to alignment.boundingBox?.let { bbox -> bbox.polygonFromCorners.toWkt() },
                 "segment_count" to alignment.segments.size,
                 "length" to alignment.length,
             )
@@ -604,8 +602,7 @@ class LayoutAlignmentDao(
         val params =
             mapOf(
                 "id" to alignmentId.intValue,
-                "polygon_string" to
-                    alignment.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
+                "polygon_string" to alignment.boundingBox?.let(BoundingBox::polygonFromCorners)?.toWkt(),
                 "segment_count" to alignment.segments.size,
                 "length" to alignment.length,
             )

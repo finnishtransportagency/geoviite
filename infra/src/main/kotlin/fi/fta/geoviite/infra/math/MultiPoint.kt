@@ -8,7 +8,7 @@ data class MultiPoint(val points: List<Point>) {
     constructor(vararg points: IPoint) : this(points.map { Point(it) })
 
     init {
-        require(points.isNotEmpty()) { "Cannot create empty MultiPoint" }
+        require(points.isNotEmpty()) { "Cannot create empty ${MultiPoint::class.simpleName}" }
     }
 
     fun isWithinDistance(target: IPoint, distance: Double): Boolean =

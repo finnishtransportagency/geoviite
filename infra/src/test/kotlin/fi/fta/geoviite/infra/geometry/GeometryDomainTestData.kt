@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.inframodel.getPlanNameByFileName
 import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Grads
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.circleArcLength
 import fi.fta.geoviite.infra.math.clothoidLength
 import fi.fta.geoviite.infra.math.clothoidPointAtOffset
@@ -716,7 +717,7 @@ fun application(
 fun testFile() = InfraModelFile(FileName("testfile_empty_xml.xml"), "<a></a>")
 
 fun someBoundingPolygon() =
-    listOf(
+    Polygon(
         Point(494585.0, 6710975.0),
         Point(494791.0, 6711265.0),
         Point(495074.0, 6711718.0),

@@ -1,20 +1,29 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LinearUnit
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryUnits
+import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.line
+import fi.fta.geoviite.infra.geometry.minimalPlan
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -63,7 +72,7 @@ constructor(private val geocodingService: GeocodingService, private val geometry
             geometryDao.insertPlan(
                 plan,
                 InfraModelFile(plan.fileName, "<plan />"),
-                listOf(
+                Polygon(
                     Point(450000.0, 7000000.0),
                     Point(460000.0, 7000000.0),
                     Point(460000.0, 7100000.0),

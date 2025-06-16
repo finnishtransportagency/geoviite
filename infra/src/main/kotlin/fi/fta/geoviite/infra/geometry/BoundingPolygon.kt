@@ -3,13 +3,15 @@ package fi.fta.geoviite.infra.geometry
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.MIN_POLYGON_POINTS
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 
 fun collectAnglePoints(alignments: List<GeometryAlignment>): List<Point> =
     alignments.flatMap { a: GeometryAlignment -> a.elements.flatMap { e -> e.bounds } }
 
-fun getBoundingPolygonFromPlan(plan: GeometryPlan, transformation: Transformation): List<Point> =
-    tryCreateBoundingPolygonPoints(
+fun getBoundingPolygonFromPlan(plan: GeometryPlan, transformation: Transformation): Polygon? =
+    tryCreateBoundingPolygon(
         collectAnglePoints(plan.alignments) + plan.kmPosts.mapNotNull { it.location },
         transformation,
     )
@@ -17,16 +19,20 @@ fun getBoundingPolygonFromPlan(plan: GeometryPlan, transformation: Transformatio
 fun getBoundingPolygonPointsFromAlignments(
     alignments: List<GeometryAlignment>,
     transformation: Transformation,
-): List<Point> = tryCreateBoundingPolygonPoints(collectAnglePoints(alignments), transformation)
+): Polygon? = tryCreateBoundingPolygon(collectAnglePoints(alignments), transformation)
 
-fun tryCreateBoundingPolygonPoints(anglePoints: List<IPoint>, transformation: Transformation): List<Point> =
+private fun tryCreateBoundingPolygon(anglePoints: List<IPoint>, transformation: Transformation): Polygon? =
     try {
         createBoundingPolygonPoints(anglePoints, transformation)
+            ?.takeIf { p -> p.size >= MIN_POLYGON_POINTS }
+            ?.let(::Polygon)
     } catch (e: Exception) {
-        listOf()
+        null
     }
 
-fun createBoundingPolygonPoints(points: List<IPoint>, transformation: Transformation): List<Point> {
-    val bounds = boundingPolygonPointsByConvexHull(points, transformation.sourceSrid)
-    return bounds.map { p -> transformation.transform(p) }
-}
+private fun createBoundingPolygonPoints(points: List<IPoint>, transformation: Transformation): List<Point>? =
+    try {
+        boundingPolygonPointsByConvexHull(points, transformation.sourceSrid).map(transformation::transform)
+    } catch (e: Exception) {
+        null
+    }

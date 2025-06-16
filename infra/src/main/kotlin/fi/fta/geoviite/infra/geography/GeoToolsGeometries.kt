@@ -3,12 +3,10 @@ package fi.fta.geoviite.infra.geography
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.logger
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.concurrent.getOrSet
-import kotlin.math.round
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem
 import org.geotools.api.referencing.operation.MathTransform
 import org.geotools.geometry.jts.GeometryBuilder
@@ -17,12 +15,15 @@ import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.referencing.CRS
 import org.geotools.referencing.GeodeticCalculator
 import org.locationtech.jts.algorithm.ConvexHull
-import org.locationtech.jts.geom.Coordinate as JtsCoordinate
 import org.locationtech.jts.geom.GeometryFactory
+import org.locationtech.jts.geom.PrecisionModel
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.concurrent.getOrSet
+import kotlin.math.round
+import org.locationtech.jts.geom.Coordinate as JtsCoordinate
 import org.locationtech.jts.geom.LineString as JtsLineString
 import org.locationtech.jts.geom.Point as JtsPoint
 import org.locationtech.jts.geom.Polygon as JtsPolygon
-import org.locationtech.jts.geom.PrecisionModel
 
 val FINNISH_GK_LONGITUDE_RANGE = 19..31
 
@@ -91,13 +92,16 @@ fun calculateDistance(points: List<IPoint>, ref: CoordinateReferenceSystem): Dou
         }
 }
 
+fun contains(polygon: Polygon, point: IPoint, srid: Srid): Boolean =
+    toJtsGeoPolygon(polygon.points, srid).contains(toJtsGeoPoint(point, srid))
+
 private val crsCache: MutableMap<Srid, CoordinateReferenceSystem> = ConcurrentHashMap()
 
 private fun crs(srid: Srid): CoordinateReferenceSystem = crsCache.getOrPut(srid) { CRS.decode(srid.toString()) }
 
 private val geometryFactory = JTSFactoryFinder.getGeometryFactory()
 
-internal fun toJtsGeoPolygon(points: List<IPoint>, srid: Srid): JtsPolygon {
+internal fun <T : IPoint> toJtsGeoPolygon(points: List<T>, srid: Srid): JtsPolygon {
     val jtsPoints = points.map { point -> toJtsGeoPoint(point, crs(srid)) }.toTypedArray()
     val geometryCollection = geometryFactory.createGeometryCollection(jtsPoints).coordinates
     return requireNotNull(geometryFactory.createPolygon(geometryCollection)) {
@@ -149,6 +153,9 @@ private fun toJtsCoordinate(point: IPoint, ref: CoordinateReferenceSystem): JtsC
         else -> throw CoordinateTransformationException(order, point.x, point.y, ref.name.code)
     }
 
+fun boundingPolygonByConvexHull(points: List<IPoint>, srid: Srid): Polygon =
+    Polygon(boundingPolygonPointsByConvexHull(points, srid))
+
 fun boundingPolygonPointsByConvexHull(points: List<IPoint>, srid: Srid): List<Point> {
     val crs = crs(srid)
     val coordinates = points.map { p -> toJtsCoordinate(p, crs) }.toTypedArray()
@@ -159,7 +166,7 @@ fun boundingPolygonPointsByConvexHull(points: List<IPoint>, srid: Srid): List<Po
     }
 }
 
-fun bufferedPolygonForLineStringPoints(points: List<IPoint>, buffer: Double, srid: Srid): List<IPoint> {
+fun bufferedPolygonForLineStringPoints(points: List<IPoint>, buffer: Double, srid: Srid): List<Point> {
     val crs = crs(srid)
     val lineString = toJtsLineString(points)
     val buffered = lineString.buffer(buffer)

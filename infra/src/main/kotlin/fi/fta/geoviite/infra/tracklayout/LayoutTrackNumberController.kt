@@ -140,8 +140,9 @@ class LayoutTrackNumberController(
         @RequestParam("endKm") endKmNumber: KmNumber? = null,
     ): List<GeometryPlanHeader> {
         val context = LayoutContext.of(branch, publicationState)
-        return trackNumberService.getReferenceLinePolygon(context, id, startKmNumber, endKmNumber)
-            .let(geometryService::getOverlappingPlanHeaders)
+        return trackNumberService
+            .getReferenceLinePolygon(context, id, startKmNumber, endKmNumber)
+            ?.let(geometryService::getOverlappingPlanHeaders) ?: emptyList()
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)

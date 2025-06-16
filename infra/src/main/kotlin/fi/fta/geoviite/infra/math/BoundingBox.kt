@@ -37,8 +37,8 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
     }
 
     @get:JsonIgnore
-    val polygonFromCorners: List<Point> by lazy {
-        listOf(Point(x.min, y.min), Point(x.max, y.min), Point(x.max, y.max), Point(x.min, y.max), Point(x.min, y.min))
+    val polygonFromCorners: Polygon by lazy {
+        Polygon(Point(x.min, y.min), Point(x.max, y.min), Point(x.max, y.max), Point(x.min, y.max), Point(x.min, y.min))
     }
 
     @get:JsonIgnore val center: Point by lazy { Point((x.min + x.max) / 2, (y.min + y.max) / 2) }
