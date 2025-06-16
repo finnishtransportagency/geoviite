@@ -145,9 +145,9 @@ fun addOperationClarificationsToPublicationTableItem(
 fun getKmNumbersChangedRemarkOrNull(
     translation: Translation,
     changedKmNumbers: Set<KmNumber>,
-    summaries: List<GeometryChangeSummary>?,
+    summaries: List<GeometryChangeSummary>,
 ): String =
-    if (summaries.isNullOrEmpty()) {
+    if (summaries.isEmpty()) {
         publicationChangeRemark(
             translation,
             if (changedKmNumbers.size > 1) "changed-km-numbers" else "changed-km-number",

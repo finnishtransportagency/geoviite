@@ -27,10 +27,10 @@ import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.requireOne
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 // The Kotlin thing to do would be to just use Unit, but for some reason, the overriden functions returning Unit end up
 // giving null to the caller. Not sure why, but perhaps due to reflection shenanigans done by Spring.
@@ -56,6 +56,8 @@ interface LayoutAssetWriter<T : LayoutAsset<T>, SaveParams> {
 
 interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetch(version: LayoutRowVersion<T>): T
+
+    fun fetchMany(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T>
 
     fun fetchChangeTime(): Instant
 
@@ -123,6 +125,14 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
             cache.get(version, ::fetchInternal)
         } else {
             fetchInternal(version)
+        }
+
+    override fun fetchMany(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T> =
+        // TODO: GVT-3080 Optimize this to an actual batch fetch
+        if (cacheEnabled) {
+            cache.getAll(versions) { nonCached -> nonCached.associateWith(::fetchInternal) }
+        } else {
+            versions.associateWith(::fetchInternal)
         }
 
     protected abstract fun fetchInternal(version: LayoutRowVersion<T>): T
