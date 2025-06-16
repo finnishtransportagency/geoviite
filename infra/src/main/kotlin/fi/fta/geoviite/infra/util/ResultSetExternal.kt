@@ -207,6 +207,9 @@ fun ResultSet.getIntListOrNullFromString(name: String): List<Int>? = getString(n
 
 fun <T> ResultSet.getIntIdArray(name: String): List<IntId<T>> = getListOrNull<Int>(name)?.map(::IntId) ?: emptyList()
 
+fun <T> ResultSet.getNullableIntIdArray(name: String): List<IntId<T>?> =
+    getNullableListOrNull<Int>(name)?.map { it?.let(::IntId) } ?: emptyList()
+
 fun ResultSet.getIntArray(name: String): List<Int> = verifyNotNull(name, ::getIntArrayOrNull)
 
 fun ResultSet.getIntArrayOrNull(name: String): List<Int>? = getListOrNull(name)
@@ -292,6 +295,28 @@ fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionOrNull(
     return if (rowId != null && version != null) LayoutRowVersion(rowId, version) else null
 }
 
+// fun ResultSet.getAugLocationTrackCacheKey(
+//    trackPrefix: String,
+//    trackNumberPrefix: String,
+//    startSwitchPrefix: String,
+//    endSwitchPrefix: String,
+// ): AugLocationTrackCacheKey {
+//    fun <T : LayoutAsset<T>> getVersionOrNull(namePrefix: String): LayoutRowVersion<T> =
+//        getLayoutRowVersion(
+//            "${namePrefix}_id",
+//            "${namePrefix}_design_id",
+//            "${namePrefix}_draft",
+//            "${namePrefix}_version",
+//        )
+//    fun <T : LayoutAsset<T>> getVersion(namePrefix: String): LayoutRowVersion<T> =
+//        verifyNotNull(namePrefix, ::getVersionOrNull)
+//    val trackVersion: LayoutRowVersion<LocationTrack> = getVersion(trackPrefix)
+//    val trackNumberVersion = getVersion<LayoutTrackNumber>(trackNumberPrefix)
+//    val startSwitchVersion = getVersionOrNull<LayoutSwitch>(startSwitchPrefix)
+//    val endSwitchVersion = getVersionOrNull<LayoutSwitch>(endSwitchPrefix)
+//    return AugLocationTrackCacheKey(trackVersion, trackNumberVersion, startSwitchVersion, endSwitchVersion)
+// }
+//
 fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersion(
     idName: String,
     layoutBranchName: String,
@@ -323,6 +348,44 @@ fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionArray(
     val versions = getIntArray(versionsName)
     return ids.mapIndexed { index, id ->
         LayoutRowVersion(id, branches[index].let { if (drafts[index]) it.draft else it.official }, versions[index])
+    }
+}
+
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionArray(prefix: String): List<LayoutRowVersion<T>> =
+    getLayoutRowVersionArray("${prefix}_ids", "${prefix}_layout_context_ids", "${prefix}_versions")
+
+fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionArray(
+    idsName: String,
+    layoutContextIdsName: String,
+    versionsName: String,
+): List<LayoutRowVersion<T>> {
+    val ids = getIntIdArray<T>(idsName)
+    val contextIds = getLayoutContextArray(layoutContextIdsName)
+    val versions = getIntArray(versionsName)
+    return ids.mapIndexed { index, id -> LayoutRowVersion(id, contextIds[index], versions[index]) }
+}
+
+fun <T : LayoutAsset<T>> ResultSet.getNullableLayoutRowVersionArray(prefix: String): List<LayoutRowVersion<T>?> =
+    getNullableLayoutRowVersionArray("${prefix}_ids", "${prefix}_layout_context_ids", "${prefix}_versions")
+
+fun <T : LayoutAsset<T>> ResultSet.getNullableLayoutRowVersionArray(
+    idsName: String,
+    layoutContextIdsName: String,
+    versionsName: String,
+): List<LayoutRowVersion<T>?> {
+    val ids = getNullableIntIdArray<T>(idsName)
+    val contextIds = getNullableLayoutContextArray(layoutContextIdsName)
+    val versions = getNullableIntArray(versionsName)
+    return ids.mapIndexed { index, id ->
+        id?.let {
+            LayoutRowVersion(
+                id,
+                requireNotNull(contextIds[index]) {
+                    "Layout context id was null for index $index in $layoutContextIdsName"
+                },
+                requireNotNull(versions[index]) { "Version was null for index $index in $versionsName" },
+            )
+        }
     }
 }
 
@@ -397,6 +460,12 @@ fun <T> ResultSet.getChangeRowVersion(idName: String, versionName: String): Chan
 
 fun ResultSet.getLayoutContext(contextIdName: String): LayoutContext =
     verifyNotNull(contextIdName, ::getLayoutContextOrNull)
+
+fun ResultSet.getNullableLayoutContextArray(contextIdsName: String): List<LayoutContext?> =
+    getNullableStringArray(contextIdsName).map { it?.let(::parseLayoutContextSqlString) }
+
+fun ResultSet.getLayoutContextArray(contextIdsName: String): List<LayoutContext> =
+    getStringArray(contextIdsName).map(::parseLayoutContextSqlString)
 
 fun ResultSet.getLayoutContextOrNull(contextIdName: String): LayoutContext? =
     getString(contextIdName)?.let(::parseLayoutContextSqlString)

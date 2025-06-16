@@ -1303,24 +1303,40 @@ class PublicationDao(
                 group by switch_id
             ),
             location_tracks as (
-              select switch_id,
-                array_agg(lt.track_number_id order by location_track_id) as lt_track_number_ids,
-                array_agg(lt.name order by location_track_id) as lt_names,
-                array_agg(lt.id order by location_track_id) as lt_location_track_ids,
-                array_agg(lt.design_id order by location_track_id) as lt_design_ids,
+              select
+                switch_id,
+                array_agg(lt.id order by location_track_id) as lt_ids,
+                array_agg(lt.layout_context_id order by location_track_id) as lt_layout_context_ids,
+                array_agg(lt.version order by location_track_id) as lt_versions,
+                array_agg(tn.id order by location_track_id) as lt_tn_ids,
+                array_agg(tn.layout_context_id order by location_track_id) as lt_tn_layout_context_ids,
+                array_agg(tn.version order by location_track_id) as lt_tn_versions,
+                array_agg(start_switch.id order by location_track_id) as lt_start_switch_ids,
+                array_agg(start_switch.layout_context_id order by location_track_id) as lt_start_switch_layout_context_ids,
+                array_agg(start_switch.version order by location_track_id) as lt_start_switch_versions,
+                array_agg(end_switch.id order by location_track_id) as lt_end_switch_ids,
+                array_agg(end_switch.layout_context_id order by location_track_id) as lt_end_switch_layout_context_ids,
+                array_agg(end_switch.version order by location_track_id) as lt_end_switch_versions,
                 array_agg(
-                  greatest(1, lt.version - case when plt.direct_change is true then 1 else 0 end) order by location_track_id
-                ) as lt_location_track_old_versions
+                    greatest(1, lt.version - case when plt.direct_change is true then 1 else 0 end) order by location_track_id
+                ) as old_lt_versions
                 from publication.switch_location_tracks
+                  inner join publication.publication on publication.id = publication_id
                   left join layout.location_track_version lt
-                    on lt.id = location_track_id
-                      and lt.version = location_track_version
-                      and lt.layout_context_id = location_track_layout_context_id
+                            on lt.id = location_track_id
+                              and lt.version = location_track_version
+                              and lt.layout_context_id = location_track_layout_context_id
+                  left join layout.track_number_at(publication.publication_time) tn
+                           on tn.id = lt.track_number_id
+                  left join layout.switch_at(publication.publication_time) start_switch
+                            on start_switch.id = lt.start_switch_id
+                  left join layout.switch_at(publication.publication_time) end_switch
+                            on end_switch.id = lt.end_switch_id
                   left join lateral
-                    (select direct_change
-                    from publication.location_track plt
-                    where plt.publication_id = :publication_id
-                      and plt.location_track_id = switch_location_tracks.location_track_id) plt on (true)
+                  (select direct_change
+                     from publication.location_track plt
+                     where plt.publication_id = :publication_id
+                       and plt.location_track_id = switch_location_tracks.location_track_id) plt on (true)
                 where publication_id = :publication_id
                 group by switch_id
             )
@@ -1346,11 +1362,19 @@ class PublicationDao(
               joints.addresses,
               joints.track_number_ids,
               switch_structure.presentation_joint_number,
-              location_tracks.lt_track_number_ids,
-              location_tracks.lt_names,
-              location_tracks.lt_location_track_ids,
-              location_tracks.lt_design_ids,
-              location_tracks.lt_location_track_old_versions
+              location_tracks.lt_ids,
+              location_tracks.lt_layout_context_ids,
+              location_tracks.lt_versions,
+              location_tracks.lt_tn_ids,
+              location_tracks.lt_tn_layout_context_ids,
+              location_tracks.lt_tn_versions,
+              location_tracks.lt_start_switch_ids,
+              location_tracks.lt_start_switch_layout_context_ids,
+              location_tracks.lt_start_switch_versions,
+              location_tracks.lt_end_switch_ids,
+              location_tracks.lt_end_switch_layout_context_ids,
+              location_tracks.lt_end_switch_versions,
+              location_tracks.old_lt_versions
               from publication.switch
                 join publication.publication on switch.publication_id = publication.id
                 left join layout.switch_version switch_version
@@ -1417,24 +1441,28 @@ class PublicationDao(
                         }
                         .filter { joint -> joint.jointNumber == presentationJointNumber }
 
-                val locationTrackNames = rs.getListOrNull<String>("lt_names")?.map(::AlignmentName) ?: emptyList()
-                val trackNumberIds =
-                    rs.getListOrNull<Int>("lt_track_number_ids")?.map { IntId<LayoutTrackNumber>(it) } ?: emptyList()
-                val locationTrackIds =
-                    rs.getListOrNull<Int>("lt_location_track_ids")?.let { ids ->
-                        rs.getLayoutBranchArrayOrNull("lt_design_ids")?.let { branches ->
-                            ids.zip(branches) { id, branch -> LayoutRowId(IntId<LocationTrack>(id), branch.official) }
-                        }
-                    } ?: emptyList()
-                val locationTrackOldVersions = rs.getListOrNull<Int>("lt_location_track_old_versions") ?: emptyList()
+                val newTrackVersions = rs.getLayoutRowVersionArray<LocationTrack>("lt")
+                val newTrackNumberVersions = rs.getLayoutRowVersionArray<LayoutTrackNumber>("lt_tn")
+                val newStartSwitchVersions = rs.getNullableLayoutRowVersionArray<LayoutSwitch>("lt_start_switch")
+                val newEndSwitchVersions = rs.getNullableLayoutRowVersionArray<LayoutSwitch>("lt_end_switch")
+                val oldTrackVersions =
+                    rs.getIntArray("old_lt_versions").mapIndexed { index, version ->
+                        newTrackVersions[index].copy(version = version)
+                    }
+
                 val lts =
-                    locationTrackNames.indices.map { index ->
+                    newTrackVersions.indices.map { index ->
                         SwitchLocationTrack(
-                            trackNumberId = trackNumberIds[index],
-                            name = locationTrackNames[index],
-                            oldVersion = LayoutRowVersion(locationTrackIds[index], locationTrackOldVersions[index]),
+                            oldTrackVersions[index],
+                            AugLocationTrackCacheKey(
+                                trackVersion = newTrackVersions[index],
+                                trackNumberVersion = newTrackNumberVersions[index],
+                                startSwitchVersion = newStartSwitchVersions[index],
+                                endSwitchVersion = newEndSwitchVersions[index],
+                            ),
                         )
                     }
+
                 val id = rs.getIntId<LayoutSwitch>("switch_id")
 
                 id to

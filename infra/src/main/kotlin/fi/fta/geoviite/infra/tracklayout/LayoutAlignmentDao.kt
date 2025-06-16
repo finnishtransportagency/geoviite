@@ -473,6 +473,7 @@ class LayoutAlignmentDao(
     fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment =
         if (cacheEnabled) alignmentsCache.get(alignmentVersion, ::fetchInternal) else fetchInternal(alignmentVersion)
 
+    // TODO: GVT-3080 implement proper multi-fetch with single round-trip
     @Transactional(readOnly = true)
     fun fetchMany(versions: List<RowVersion<LayoutAlignment>>): Map<RowVersion<LayoutAlignment>, LayoutAlignment> =
         versions.associateWith(this::fetch)
