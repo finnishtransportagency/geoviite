@@ -47,9 +47,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
-import kotlin.math.max
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import kotlin.math.max
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
 const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
@@ -749,7 +749,7 @@ fun getSuggestedSwitchScore(
     farthestJoint: SwitchStructureJoint,
     maxFarthestJointDistance: Double,
     desiredLocation: IPoint,
-    originallyLinkedAlignments: Set<Pair<IntId<LocationTrack>, JointNumber>>,
+    originallyLinkedTracks: Set<Pair<IntId<LocationTrack>, JointNumber>>,
 ): List<SuggestedSwitchJointScore> {
     val alignmentJointNumbers = switchStructure.alignmentJoints.map { joint -> joint.number }
     val suggestedAlignmentJoints =
@@ -771,7 +771,7 @@ fun getSuggestedSwitchScore(
         val maintainingAlignmentLinkScore =
             if (
                 joint.matches.any { jointMatch ->
-                    originallyLinkedAlignments.contains(jointMatch.locationTrackId to joint.number)
+                    originallyLinkedTracks.contains(jointMatch.locationTrackId to joint.number)
                 }
             )
                 0.1
@@ -785,7 +785,7 @@ private fun selectBestSuggestedSwitch(
     switchStructure: SwitchStructure,
     farthestJoint: SwitchStructureJoint,
     desiredLocation: IPoint,
-    originallyLinkedAlignments: Set<Pair<IntId<LocationTrack>, JointNumber>>,
+    originallyLinkedTracks: Set<Pair<IntId<LocationTrack>, JointNumber>>,
 ): FittedSwitch {
     assert(switchSuggestions.isNotEmpty()) { "switchSuggestions.isNotEmpty()" }
 
@@ -805,7 +805,7 @@ private fun selectBestSuggestedSwitch(
                 farthestJoint,
                 maxFarthestJointDistance,
                 desiredLocation,
-                originallyLinkedAlignments,
+                originallyLinkedTracks,
             )
             .sumOf { it.sum() }
     }
@@ -864,13 +864,13 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
         transformations.map(parallel = true) { transformation ->
             fitSwitch(transformation, croppedTracks, switchStructure, LocationAccuracy.GEOMETRY_CALCULATED)
         }
-    val originallyLinkedAlignments = getOriginallyLinkedAlignmentsJoints(nearbyLocationTracks, switchId).toSet()
+    val originallyLinkedTracks = getOriginallyLinkedTrackJoints(nearbyLocationTracks, switchId).toSet()
     return fits.aggregateByPoint(parallel = true) { point, pointFits ->
-        selectBestSuggestedSwitch(pointFits, switchStructure, farthestJoint, point, originallyLinkedAlignments)
+        selectBestSuggestedSwitch(pointFits, switchStructure, farthestJoint, point, originallyLinkedTracks)
     }
 }
 
-private fun getOriginallyLinkedAlignmentsJoints(
+private fun getOriginallyLinkedTrackJoints(
     tracksAndGeometries: List<Pair<LocationTrack, LocationTrackGeometry>>,
     switchId: IntId<LayoutSwitch>,
 ): Set<Pair<IntId<LocationTrack>, JointNumber>> =
