@@ -955,9 +955,9 @@ data class PolyLineEdge(
 
 fun getSplitTargetTrackStartAndEndAddresses(
     geocodingContext: GeocodingContext,
-    sourceTrackAlignment: LayoutAlignment,
+    sourceTrackAlignment: LocationTrackGeometry,
     splitTarget: SplitTarget,
-    splitTargetAlignment: LayoutAlignment,
+    splitTargetAlignment: LocationTrackGeometry,
 ): Pair<TrackMeter?, TrackMeter?> {
     val startBySegments =
         sourceTrackAlignment.segments[splitTarget.segmentIndices.first]
