@@ -12,10 +12,7 @@ enum class ExtLocationTrackTypeV1(val value: String) {
     TRAP("turvaraide"),
     CHORD("kujaraide");
 
-    @JsonValue
-    override fun toString(): String {
-        return this.value
-    }
+    @JsonValue override fun toString() = value
 
     companion object {
         fun of(locationTrackType: LocationTrackType): ExtLocationTrackTypeV1 {
@@ -36,10 +33,7 @@ enum class ExtLocationTrackStateV1(val value: String) {
     NOT_IN_USE("käytöstä poistettu"),
     DELETED("poistettu");
 
-    @JsonValue
-    override fun toString(): String {
-        return this.value
-    }
+    @JsonValue override fun toString() = value
 
     companion object {
         fun of(locationTrackState: LocationTrackState): ExtLocationTrackStateV1 {
