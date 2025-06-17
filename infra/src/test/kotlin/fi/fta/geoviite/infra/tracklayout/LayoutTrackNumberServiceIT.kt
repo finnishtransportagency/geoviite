@@ -12,10 +12,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
-import fi.fta.geoviite.infra.geometry.GeometryDao
-import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
@@ -44,15 +41,11 @@ constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val kmPostDao: LayoutKmPostDao,
-    private val coordinateTransformationService: CoordinateTransformationService,
-    private val geometryDao: GeometryDao,
-    private val geometryService: GeometryService,
 ) : DBTestBase() {
 
     @BeforeEach
     fun cleanup() {
         testDBService.clearLayoutTables()
-        testDBService.clearGeometryTables()
     }
 
     @Test

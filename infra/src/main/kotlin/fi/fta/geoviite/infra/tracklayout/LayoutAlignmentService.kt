@@ -8,14 +8,13 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
-class LayoutAlignmentService(private val dao: LayoutAlignmentDao, private val geometryDao: GeometryDao) {
+class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
 
     fun update(alignment: LayoutAlignment) = dao.update(alignment)
 
