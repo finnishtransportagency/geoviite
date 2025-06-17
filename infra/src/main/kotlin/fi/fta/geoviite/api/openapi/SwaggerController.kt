@@ -37,7 +37,7 @@ class SwaggerController {
         params = ["!url"],
     )
     fun sendGeoviiteSwaggerIndexRedirect(response: HttpServletResponse) {
-        response.sendRedirect("/geoviite/swagger-ui/index.html?url=$OPENAPI_GEOVIITE_PATH")
+        sendRedirect(response, "/geoviite/swagger-ui/index.html?url=$OPENAPI_GEOVIITE_PATH")
     }
 
     @Profile("ext-api-dev-swagger")
@@ -51,7 +51,7 @@ class SwaggerController {
         params = ["!url"],
     )
     fun sendGeoviiteDevSwaggerIndexRedirect(response: HttpServletResponse) {
-        response.sendRedirect("/geoviite/dev/swagger-ui/index.html?url=$OPENAPI_GEOVIITE_DEV_PATH")
+        sendRedirect(response, "/geoviite/dev/swagger-ui/index.html?url=$OPENAPI_GEOVIITE_DEV_PATH")
     }
 
     @PreAuthorize(AUTH_API_FRAME_CONVERTER)
@@ -64,7 +64,7 @@ class SwaggerController {
         params = ["!url"],
     )
     fun sendRataVkmSwaggerIndexRedirect(response: HttpServletResponse) {
-        response.sendRedirect("/rata-vkm/swagger-ui/index.html?url=$OPENAPI_RATAVKM_PATH")
+        sendRedirect(response, "/rata-vkm/swagger-ui/index.html?url=$OPENAPI_RATAVKM_PATH")
     }
 
     @Profile("ext-api-dev-swagger")
@@ -78,7 +78,7 @@ class SwaggerController {
         params = ["!url"],
     )
     fun sendRataVkmDevSwaggerIndexRedirect(response: HttpServletResponse) {
-        response.sendRedirect("/rata-vkm/dev/swagger-ui/index.html?url=$OPENAPI_RATAVKM_DEV_PATH")
+        sendRedirect(response, "/rata-vkm/dev/swagger-ui/index.html?url=$OPENAPI_RATAVKM_DEV_PATH")
     }
 
     // Resource redirects (eg. swagger-ui javascript and css files)
@@ -119,4 +119,12 @@ private fun swaggerResourceRequest(
     } else {
         response.status = HttpServletResponse.SC_NOT_FOUND
     }
+}
+
+// Although HttpServletResponse has the .sendRedirect-method, it also uses the request URL within the Location header.
+// This causes issues in environments were the URL of the request is an internal URL instead of the one that the
+// user has for example in their browser (the redirects are sent to the inaccessible internal URL).
+private fun sendRedirect(response: HttpServletResponse, redirectPath: String) {
+    response.status = HttpServletResponse.SC_FOUND
+    response.setHeader("Location", redirectPath)
 }
