@@ -29,9 +29,9 @@ import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.printCsv
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.stream.Collectors
-import org.springframework.transaction.annotation.Transactional
 
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
 
@@ -48,6 +48,7 @@ class LayoutTrackNumberService(
     private val alignmentService: LayoutAlignmentService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
+    private val locationTrackService: LocationTrackService,
 ) : LayoutAssetService<LayoutTrackNumber, NoParams, LayoutTrackNumberDao>(dao) {
 
     @Transactional
@@ -225,7 +226,9 @@ class LayoutTrackNumberService(
 
     @Transactional
     fun saveDraft(branch: LayoutBranch, draftAsset: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> =
-        saveDraftInternal(branch, draftAsset, NoParams.instance)
+        saveDraftInternal(branch, draftAsset, NoParams.instance).also { v ->
+            locationTrackService.updateDependencies(branch, trackNumberId = v.id)
+        }
 }
 
 private fun asCsvFile(

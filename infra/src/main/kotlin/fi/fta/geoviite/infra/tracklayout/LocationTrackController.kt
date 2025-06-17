@@ -20,13 +20,11 @@ import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidatedAsset
-import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.publication.publicationInOrMergeFromBranch
 import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.util.FreeText
@@ -142,34 +140,6 @@ class LocationTrackController(
     ): ResponseEntity<Int> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(locationTrackService.getRelinkableSwitchesCount(context, id))
-    }
-
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/description")
-    fun getDescription(
-        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
-        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("ids") ids: List<IntId<LocationTrack>>,
-        @RequestParam("lang") lang: LocalizationLanguage,
-    ): List<LocationTrackDescription> {
-        val context = LayoutContext.of(layoutBranch, publicationState)
-        return ids.mapNotNull { id ->
-            id.let { locationTrackService.get(context, it) }
-                ?.let { lt -> LocationTrackDescription(id, locationTrackService.getFullDescription(context, lt, lang)) }
-        }
-    }
-
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/validation")
-    fun validateLocationTrack(
-        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
-        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<LocationTrack>,
-    ): ResponseEntity<ValidatedAsset<LocationTrack>> {
-        return publicationValidationService
-            .validateLocationTracks(draftTransitionOrOfficialState(publicationState, layoutBranch), listOf(id))
-            .firstOrNull()
-            .let(::toResponse)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

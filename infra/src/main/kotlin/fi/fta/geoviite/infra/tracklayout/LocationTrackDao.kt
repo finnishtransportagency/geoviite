@@ -21,23 +21,29 @@ import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
-import fi.fta.geoviite.infra.util.getFreeTextOrNull
+import fi.fta.geoviite.infra.util.getFreeText
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
+
+data class LocationTrackDependencyVersions(
+    val trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
+    val startSwitchVersion: LayoutRowVersion<LayoutSwitch>?,
+    val endSwitchVersion: LayoutRowVersion<LayoutSwitch>?,
+)
 
 @Component
 class LocationTrackDao(
@@ -135,6 +141,7 @@ class LocationTrackDao(
               ltv.naming_scheme,
               ltv.name_free_text,
               ltv.name_specifier,
+              ltv.description,
               ltv.description_base,
               ltv.description_suffix,
               ltv.type, 
@@ -188,6 +195,7 @@ class LocationTrackDao(
               lt.naming_scheme,
               lt.name_free_text,
               lt.name_specifier,
+              lt.description,
               lt.description_base,
               lt.description_suffix,
               lt.type, 
@@ -228,11 +236,18 @@ class LocationTrackDao(
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
             name = rs.getString("name").let(::AlignmentName),
-            namingScheme = rs.getEnum("naming_scheme"),
-            nameFreeText = rs.getFreeTextOrNull("name_free_text"),
-            nameSpecifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
-            descriptionBase = rs.getString("description_base").let(::LocationTrackDescriptionBase),
-            descriptionSuffix = rs.getEnum<LocationTrackDescriptionSuffix>("description_suffix"),
+            naming =
+                TrackNameStructure.of(
+                    namingScheme = rs.getEnum("naming_scheme"),
+                    nameFreeText = rs.getString("name_free_text")?.let(::AlignmentName),
+                    nameSpecifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
+                ),
+            descriptionStructure =
+                TrackDescriptionStructure(
+                    descriptionBase = rs.getString("description_base").let(::LocationTrackDescriptionBase),
+                    descriptionSuffix = rs.getEnum<LocationTrackDescriptionSuffix>("description_suffix"),
+                ),
+            description = rs.getFreeText("description"),
             type = rs.getEnum("type"),
             state = rs.getEnum("state"),
             boundingBox = rs.getBboxOrNull("bounding_box"),
@@ -261,6 +276,7 @@ class LocationTrackDao(
               naming_scheme,
               name_free_text,
               name_specifier,
+              description,
               description_base,
               description_suffix,
               type,
@@ -285,6 +301,7 @@ class LocationTrackDao(
               :naming_scheme::layout.location_track_naming_scheme,
               :name_free_text,
               :name_specifier::layout.location_track_specifier,
+              :description,
               :description_base,
               :description_suffix::layout.location_track_description_suffix,
               :type::layout.track_type,
@@ -306,6 +323,7 @@ class LocationTrackDao(
               naming_scheme = excluded.naming_scheme,
               name_free_text = excluded.name_free_text,
               name_specifier = excluded.name_specifier,
+              description = excluded.description,
               description_base = excluded.description_base,
               description_suffix = excluded.description_suffix,
               type = excluded.type,
@@ -328,11 +346,12 @@ class LocationTrackDao(
                 "id" to id.intValue,
                 "track_number_id" to item.trackNumberId.intValue,
                 "name" to item.name,
-                "naming_scheme" to item.namingScheme.name,
-                "name_free_text" to item.nameFreeText?.toString(),
-                "name_specifier" to item.nameSpecifier?.name,
-                "description_base" to item.descriptionBase,
-                "description_suffix" to item.descriptionSuffix.name,
+                "naming_scheme" to item.naming.namingScheme.name,
+                "name_free_text" to item.naming.nameFreeText,
+                "name_specifier" to item.naming.nameSpecifier?.name,
+                "description" to item.description,
+                "description_base" to item.descriptionStructure.descriptionBase,
+                "description_suffix" to item.descriptionStructure.descriptionSuffix.name,
                 "type" to item.type.name,
                 "state" to item.state.name,
                 "draft" to item.isDraft,
@@ -579,5 +598,22 @@ class LocationTrackDao(
     fun insertExternalId(id: IntId<LocationTrack>, branch: LayoutBranch, oid: Oid<LocationTrack>) {
         jdbcTemplate.setUser()
         insertExternalIdInExistingTransaction(branch, id, oid)
+    }
+
+    fun fetchDependencyVersions(
+        trackNumberId: IntId<LayoutTrackNumber>,
+        startSwitchId: IntId<LayoutSwitch>?,
+        endSwitchId: IntId<LayoutSwitch>?,
+    ): LocationTrackDependencyVersions {
+        TODO()
+    }
+
+    fun fetchDependencyVersions(
+        branch: LayoutBranch,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
+        switchId: IntId<LayoutSwitch>? = null,
+    ): Map<LayoutRowVersion<LocationTrack>, LocationTrackDependencyVersions> {
+        if (trackNumberId == null && switchId == null) return emptyMap()
+        TODO()
     }
 }

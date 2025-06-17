@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geometry.MetaDataName
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -22,10 +21,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.util.FreeText
 import io.swagger.v3.oas.annotations.media.Schema
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @Schema(name = "Vastaus: Sijaintiraide")
 data class ExtLocationTrackResponseV1(
@@ -73,7 +72,6 @@ constructor(
         coordinateSystem: Srid,
     ): ExtLocationTrackResponseV1 {
         val layoutContext = MainLayoutContext.official
-        val lang = LocalizationLanguage.FI
 
         val publication =
             trackNetworkVersion?.let { uuid -> publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull) }
@@ -89,14 +87,7 @@ constructor(
             trackNetworkVersion = publication.uuid,
             coordinateSystem = coordinateSystem,
             locationTrack =
-                getExtLocationTrack(
-                    oid,
-                    locationTrack,
-                    layoutContext,
-                    publication.publicationTime,
-                    coordinateSystem,
-                    lang,
-                ),
+                getExtLocationTrack(oid, locationTrack, layoutContext, publication.publicationTime, coordinateSystem),
         )
     }
 
@@ -107,7 +98,6 @@ constructor(
         coordinateSystem: Srid,
     ): ExtModifiedLocationTrackResponseV1? {
         val layoutContext = MainLayoutContext.official
-        val lang = LocalizationLanguage.FI
 
         val fromPublication =
             publicationDao.fetchPublicationByUuid(modificationsFromVersion)
@@ -166,7 +156,6 @@ constructor(
                             MainLayoutContext.official,
                             toPublication.publicationTime,
                             coordinateSystem,
-                            lang,
                         ),
                 )
             }
@@ -179,7 +168,6 @@ constructor(
         layoutContext: LayoutContext,
         moment: Instant,
         coordinateSystem: Srid,
-        lang: LocalizationLanguage,
     ): ExtLocationTrackV1 {
         val trackNumberName =
             layoutTrackNumberDao
@@ -203,15 +191,12 @@ constructor(
                 .let { startAndEnd -> layoutAlignmentStartAndEndToCoordinateSystem(coordinateSystem, startAndEnd) }
                 .let { startAndEnd -> startAndEnd.start to startAndEnd.end }
 
-        val locationTrackDescription =
-            locationTrackService.getFullDescriptionsAtMoment(layoutContext, listOf(locationTrack), lang, moment).first()
-
         return ExtLocationTrackV1(
             locationTrackOid = oid,
             locationTrackName = locationTrack.name,
             locationTrackType = ExtLocationTrackTypeV1.of(locationTrack.type),
             locationTrackState = ExtLocationTrackStateV1.of(locationTrack.state),
-            locationTrackDescription = locationTrackDescription,
+            locationTrackDescription = locationTrack.description,
             locationTrackOwner = locationTrackService.getLocationTrackOwner(locationTrack.ownerId).name,
             startLocation = startLocation?.let(::ExtAddressPointV1),
             endLocation = endLocation?.let(::ExtAddressPointV1),

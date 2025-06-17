@@ -7,7 +7,9 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
@@ -80,13 +82,127 @@ enum class LocationTrackState(val category: LayoutStateCategory) {
     fun isRemoved() = this == DELETED
 }
 
-data class LocationTrack(
-    val name: AlignmentName,
-    val namingScheme: LocationTrackNamingScheme,
-    val nameFreeText: FreeText?,
-    val nameSpecifier: LocationTrackNameSpecifier?,
+sealed class TrackNameStructure {
+    abstract val namingScheme: LocationTrackNamingScheme
+    open val nameFreeText: AlignmentName? = null
+    open val nameSpecifier: LocationTrackNameSpecifier? = null
+
+    companion object {
+        fun of(
+            namingScheme: LocationTrackNamingScheme,
+            nameFreeText: AlignmentName? = null,
+            nameSpecifier: LocationTrackNameSpecifier? = null,
+        ): TrackNameStructure =
+            when (namingScheme) {
+                LocationTrackNamingScheme.FREE_TEXT -> FreeTextTrackNameStructure(requireNotNull(nameFreeText))
+                LocationTrackNamingScheme.WITHIN_OPERATING_POINT ->
+                    WithinOperatingPointTrackNameStructure(requireNotNull(nameFreeText))
+                LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS ->
+                    BetweenOperatingPointsTrackNameStructure(requireNotNull(nameSpecifier))
+                LocationTrackNamingScheme.TRACK_NUMBER_TRACK ->
+                    TrackNumberTrackNameStructure(requireNotNull(nameFreeText), requireNotNull(nameSpecifier))
+                LocationTrackNamingScheme.CHORD -> ChordTrackNameStructure
+            }
+    }
+
+    fun reify(trackNumber: LayoutTrackNumber, startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName =
+        when (this) {
+            is FreeTextTrackNameStructure -> nameFreeText
+            is WithinOperatingPointTrackNameStructure -> nameFreeText
+            is BetweenOperatingPointsTrackNameStructure -> format(startSwitch?.name, endSwitch?.name)
+            is TrackNumberTrackNameStructure -> format(trackNumber.number)
+            is ChordTrackNameStructure -> format(startSwitch?.name, endSwitch?.name)
+        }
+}
+
+data class FreeTextTrackNameStructure(override val nameFreeText: AlignmentName) : TrackNameStructure() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT
+}
+
+data class WithinOperatingPointTrackNameStructure(override val nameFreeText: AlignmentName) : TrackNameStructure() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.WITHIN_OPERATING_POINT
+}
+
+data class TrackNumberTrackNameStructure(
+    override val nameFreeText: AlignmentName,
+    override val nameSpecifier: LocationTrackNameSpecifier,
+) : TrackNameStructure() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.TRACK_NUMBER_TRACK
+
+    fun format(trackNumber: TrackNumber): AlignmentName =
+        AlignmentName("$trackNumber ${nameSpecifier.properForm} $nameFreeText".trim())
+}
+
+data class BetweenOperatingPointsTrackNameStructure(override val nameSpecifier: LocationTrackNameSpecifier) :
+    TrackNameStructure() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS
+
+    fun format(startSwitchName: SwitchName?, endSwitchName: SwitchName?): AlignmentName =
+        AlignmentName("${nameSpecifier.properForm} ${startSwitchName ?: "???"}-${endSwitchName ?: "???"}")
+}
+
+data object ChordTrackNameStructure : TrackNameStructure() {
+    override val namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.CHORD
+
+    fun format(startSwitchName: SwitchName?, endSwitchName: SwitchName?): AlignmentName {
+        val startNameParts = startSwitchName?.split(" ")
+        val endNameParts = endSwitchName?.split(" ")
+        val startPrefix = startNameParts?.firstOrNull()
+        val endPrefix = endNameParts?.firstOrNull()
+        return if (startPrefix != null && startPrefix == endPrefix) {
+            val restOfStartName = startNameParts.subList(1, startNameParts.lastIndex).joinToString(" ")
+            val restOfEndName = endNameParts.subList(1, endNameParts.lastIndex).joinToString(" ")
+            AlignmentName("$startPrefix $restOfStartName-$restOfEndName")
+        } else {
+            AlignmentName("${startSwitchName ?: "???"}-${endSwitchName ?: "???"}")
+        }
+    }
+}
+
+data class TrackDescriptionStructure(
     val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: LocationTrackDescriptionSuffix,
+) {
+    init {
+        require(descriptionBase.length in locationTrackDescriptionLength) {
+            "LocationTrack descriptionBase length invalid  not in range 4-256: " +
+                "length=${descriptionBase.length} " +
+                "allowed=$locationTrackDescriptionLength"
+        }
+    }
+
+    fun reify(translation: Translation, startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): FreeText =
+        when (descriptionSuffix) {
+            LocationTrackDescriptionSuffix.NONE -> FreeText(descriptionBase.toString())
+
+            LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER ->
+                FreeText(
+                    "$descriptionBase ${startSwitch?.name ?: endSwitch?.name ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
+                )
+
+            LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ->
+                FreeText("$descriptionBase ${startSwitch?.name ?: "???"} - ${endSwitch?.name ?: "???"}")
+
+            LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ->
+                FreeText(
+                    "$descriptionBase ${startSwitch?.name ?: endSwitch?.name ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
+                )
+        }
+}
+
+data class LocationTrack(
+    val naming: TrackNameStructure,
+    /**
+     * Reified name from the structured fields, using dependencies (end switches & track numbers). Should not be edited
+     * directly, only via the method [TrackNameStructure.reify]
+     */
+    val name: AlignmentName,
+    val descriptionStructure: TrackDescriptionStructure,
+    /**
+     * Reified description from the structured fields, using dependencies (end switches). Should not be edited directly,
+     * only, only via the method [TrackDescriptionStructure.reify]
+     */
+    val description: FreeText,
     val type: LocationTrackType,
     val state: LocationTrackState,
     val trackNumberId: IntId<LayoutTrackNumber>,
@@ -103,15 +219,6 @@ data class LocationTrack(
 
     @JsonIgnore val exists = !state.isRemoved()
 
-    init {
-        require(descriptionBase.length in locationTrackDescriptionLength) {
-            "LocationTrack descriptionBase length invalid  not in range 4-256: " +
-                "id=$id " +
-                "length=${descriptionBase.length} " +
-                "allowed=$locationTrackDescriptionLength"
-        }
-    }
-
     override fun toLog(): String =
         logFormat(
             "id" to id,
@@ -124,8 +231,6 @@ data class LocationTrack(
     override fun withContext(contextData: LayoutContextData<LocationTrack>): LocationTrack =
         copy(contextData = contextData)
 }
-
-data class LocationTrackDescription(val id: IntId<LocationTrack>, val description: FreeText)
 
 data class LocationTrackInfoboxExtras(
     val duplicateOf: LocationTrackDuplicate?,
@@ -151,8 +256,6 @@ fun topologicalConnectivityTypeOf(startConnected: Boolean, endConnected: Boolean
     if (startConnected && endConnected) TopologicalConnectivityType.START_AND_END
     else if (startConnected) TopologicalConnectivityType.START
     else if (endConnected) TopologicalConnectivityType.END else TopologicalConnectivityType.NONE
-
-data class TopologyLocationTrackSwitch(val switchId: IntId<LayoutSwitch>, val jointNumber: JointNumber)
 
 data class SwitchOnLocationTrack(
     val switchId: IntId<LayoutSwitch>,

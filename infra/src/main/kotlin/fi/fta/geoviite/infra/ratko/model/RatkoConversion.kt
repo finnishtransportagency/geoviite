@@ -1,6 +1,12 @@
 package fi.fta.geoviite.infra.ratko.model
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DesignRatkoExternalId
+import fi.fta.geoviite.infra.common.FullRatkoExternalId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.integration.SwitchJointChange
@@ -9,8 +15,20 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
+import fi.fta.geoviite.infra.tracklayout.DesignState
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.LayoutSegmentMetadata
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -171,14 +189,13 @@ fun convertToRatkoLocationTrack(
     trackNumberOid: Oid<LayoutTrackNumber>?,
     nodeCollection: RatkoNodes? = null,
     duplicateOfOid: Oid<LocationTrack>?,
-    descriptionGetter: (LocationTrack) -> FreeText,
     owner: LocationTrackOwner,
 ) =
     RatkoLocationTrack(
         id = locationTrackExternalId?.oid?.toString(),
         name = locationTrack.name.toString(),
         routenumber = trackNumberOid?.let(::RatkoOid),
-        description = descriptionGetter(locationTrack).toString(),
+        description = locationTrack.description.toString(),
         state = mapToRatkoLocationTrackState(locationTrack.state),
         type = mapToRatkoLocationTrackType(locationTrack.type),
         nodecollection = nodeCollection,

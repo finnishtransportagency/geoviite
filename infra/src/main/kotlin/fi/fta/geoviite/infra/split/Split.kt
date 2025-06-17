@@ -18,7 +18,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SwitchOnLocationTrack
-import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.tracklayout.TrackDescriptionStructure
+import fi.fta.geoviite.infra.tracklayout.TrackNameStructure
 import java.time.Instant
 
 class BulkTransfer
@@ -133,13 +134,19 @@ data class SplitRequestTarget(
     val duplicateTrack: SplitRequestTargetDuplicate?,
     val startAtSwitchId: IntId<LayoutSwitch>?,
     val namingScheme: LocationTrackNamingScheme,
-    val nameFreeText: FreeText?,
+    val nameFreeText: AlignmentName?,
     val nameSpecifier: LocationTrackNameSpecifier?,
     val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: LocationTrackDescriptionSuffix,
 ) {
     fun getOperation(): SplitTargetOperation =
         duplicateTrack?.operation?.toSplitTargetOperation() ?: SplitTargetOperation.CREATE
+
+    fun getNaming() =
+        TrackNameStructure.of(namingScheme = namingScheme, nameFreeText = nameFreeText, nameSpecifier = nameSpecifier)
+
+    fun getDescription(): TrackDescriptionStructure =
+        TrackDescriptionStructure(descriptionBase = descriptionBase, descriptionSuffix = descriptionSuffix)
 }
 
 data class SplitRequest(val sourceTrackId: IntId<LocationTrack>, val targetTracks: List<SplitRequestTarget>)

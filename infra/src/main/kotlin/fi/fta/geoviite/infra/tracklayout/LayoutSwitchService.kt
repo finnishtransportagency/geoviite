@@ -171,7 +171,9 @@ constructor(
 
     @Transactional
     fun saveDraft(branch: LayoutBranch, draftAsset: LayoutSwitch): LayoutRowVersion<LayoutSwitch> =
-        saveDraftInternal(branch, draftAsset, NoParams.instance)
+        saveDraftInternal(branch, draftAsset, NoParams.instance).also { v ->
+            locationTrackService.updateDependencies(branch, switchId = v.id)
+        }
 }
 
 fun pageSwitches(

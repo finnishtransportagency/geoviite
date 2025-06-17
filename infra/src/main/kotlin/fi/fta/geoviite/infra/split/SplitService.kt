@@ -39,10 +39,11 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -572,17 +573,9 @@ fun splitLocationTrack(
                                 request = target.request,
                                 edges = edges,
                                 topologicalConnectivityType = connectivityType,
-                                calculatedName = AlignmentName("blee"), // TODO: GVT-3080
                             )
                     }
-                }
-                    ?: createSplitTarget(
-                        track,
-                        target.request,
-                        edges,
-                        connectivityType,
-                        AlignmentName("bloo"), // TODO: GVT-3080
-                    )
+                } ?: createSplitTarget(track, target.request, edges, connectivityType)
             SplitTargetResult(
                 locationTrack = newTrack,
                 geometry = newGeometry,
@@ -641,17 +634,13 @@ private fun updateSplitTargetForOverwriteDuplicate(
     request: SplitRequestTarget,
     edges: List<LayoutEdge>,
     topologicalConnectivityType: TopologicalConnectivityType,
-    calculatedName: AlignmentName,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val newGeometry = TmpLocationTrackGeometry.of(edges, duplicateTrack.id as? IntId)
     val newTrack =
         duplicateTrack.copy(
-            name = calculatedName,
-            namingScheme = request.namingScheme,
-            nameFreeText = request.nameFreeText,
-            nameSpecifier = request.nameSpecifier,
-            descriptionBase = request.descriptionBase,
-            descriptionSuffix = request.descriptionSuffix,
+            // Actual name/description will be automatically recalculated upon saving
+            naming = request.getNaming(),
+            descriptionStructure = request.getDescription(),
 
             // After split, the track is no longer duplicate
             duplicateOf = null,
@@ -675,17 +664,16 @@ private fun createSplitTarget(
     request: SplitRequestTarget,
     edges: List<LayoutEdge>,
     topologicalConnectivityType: TopologicalConnectivityType,
-    calculatedName: AlignmentName,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val newGeometry = TmpLocationTrackGeometry.of(edges, null)
     val newTrack =
         LocationTrack(
-            name = calculatedName,
-            namingScheme = request.namingScheme,
-            nameFreeText = request.nameFreeText,
-            nameSpecifier = request.nameSpecifier,
-            descriptionBase = request.descriptionBase,
-            descriptionSuffix = request.descriptionSuffix,
+            naming = request.getNaming(),
+            descriptionStructure = request.getDescription(),
+
+            // These will be automatically recalculated upon saving
+            name = AlignmentName("?"),
+            description = FreeText("?"),
 
             // After split, tracks are not duplicates
             duplicateOf = null,
