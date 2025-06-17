@@ -3,39 +3,85 @@ package fi.fta.geoviite.infra.geometry
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.ProjectName
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_SWITCH
 import fi.fta.geoviite.infra.configuration.planCacheDuration
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geography.create2DPolygonString
-import fi.fta.geoviite.infra.geometry.GeometryElementType.*
+import fi.fta.geoviite.infra.geometry.GeometryElementType.BIQUADRATIC_PARABOLA
+import fi.fta.geoviite.infra.geometry.GeometryElementType.CLOTHOID
+import fi.fta.geoviite.infra.geometry.GeometryElementType.CURVE
+import fi.fta.geoviite.infra.geometry.GeometryElementType.LINE
 import fi.fta.geoviite.infra.inframodel.FileHash
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.InfraModelFileWithSource
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.logging.AccessType.*
+import fi.fta.geoviite.infra.logging.AccessType.FETCH
+import fi.fta.geoviite.infra.logging.AccessType.INSERT
+import fi.fta.geoviite.infra.logging.AccessType.UPDATE
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.toAngle
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.util.*
-import fi.fta.geoviite.infra.util.DbTable.*
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
+import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN
+import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN_AUTHOR
+import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN_PROJECT
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getEnumOrNull
+import fi.fta.geoviite.infra.util.getFeatureTypeCodeOrNull
+import fi.fta.geoviite.infra.util.getFileName
+import fi.fta.geoviite.infra.util.getFreeTextOrNull
+import fi.fta.geoviite.infra.util.getFreeTextWithNewLinesOrNull
+import fi.fta.geoviite.infra.util.getIndexedId
+import fi.fta.geoviite.infra.util.getInstant
+import fi.fta.geoviite.infra.util.getInstantOrNull
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdArray
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getJointNumber
+import fi.fta.geoviite.infra.util.getJointNumberOrNull
+import fi.fta.geoviite.infra.util.getKmNumberOrNull
+import fi.fta.geoviite.infra.util.getLayoutRowVersion
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getPlanName
+import fi.fta.geoviite.infra.util.getPoint
+import fi.fta.geoviite.infra.util.getPointOrNull
+import fi.fta.geoviite.infra.util.getPolygonPointList
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.getSridOrNull
+import fi.fta.geoviite.infra.util.getStringArrayOrNull
+import fi.fta.geoviite.infra.util.getTrackNumberOrNull
+import fi.fta.geoviite.infra.util.queryOne
+import fi.fta.geoviite.infra.util.queryOptional
+import fi.fta.geoviite.infra.util.setUser
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 
 enum class VerticalIntersectionType {
     POINT,
@@ -60,7 +106,7 @@ constructor(
     fun insertPlan(
         plan: GeometryPlan,
         file: InfraModelFile,
-        boundingBoxInLayoutCoordinates: List<Point>?,
+        boundingBoxInLayoutCoordinates: Polygon?,
     ): RowVersion<GeometryPlan> {
         jdbcTemplate.setUser()
 
@@ -147,10 +193,7 @@ constructor(
                 "direction_unit" to plan.units.directionUnit.name,
                 "srid" to plan.units.coordinateSystemSrid?.code,
                 "coordinate_system_name" to plan.units.coordinateSystemName,
-                "polygon_string" to
-                    if (!boundingBoxInLayoutCoordinates.isNullOrEmpty())
-                        create2DPolygonString(boundingBoxInLayoutCoordinates)
-                    else null,
+                "polygon_string" to boundingBoxInLayoutCoordinates?.toWkt(),
                 "vertical_coordinate_system" to plan.units.verticalCoordinateSystem?.name,
                 "mapSrid" to LAYOUT_SRID.code,
                 "source" to plan.source.name,
@@ -875,7 +918,7 @@ constructor(
         val params =
             mapOf(
                 "sources" to (sources.ifEmpty { PlanSource.entries }).map(PlanSource::name),
-                "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
+                "polygon_wkt" to bbox?.let(BoundingBox::polygonFromCorners)?.toWkt(),
                 "map_srid" to LAYOUT_SRID.code,
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
@@ -904,7 +947,6 @@ constructor(
     fun fetchPlanChangeTime(): Instant = fetchLatestChangeTime(GEOMETRY_PLAN)
 
     fun fetchPlanAreas(mapBoundingBox: BoundingBox): List<GeometryPlanArea> {
-        val searchPolygonWkt = create2DPolygonString(mapBoundingBox.polygonFromCorners)
         val sql =
             """
           select 
@@ -919,7 +961,7 @@ constructor(
               )
         """
                 .trimIndent()
-        val params = mapOf("polygon_wkt" to searchPolygonWkt, "map_srid" to LAYOUT_SRID.code)
+        val params = mapOf("polygon_wkt" to mapBoundingBox.polygonFromCorners.toWkt(), "map_srid" to LAYOUT_SRID.code)
         val result =
             jdbcTemplate
                 .query(sql, params) { rs, _ ->
@@ -936,8 +978,7 @@ constructor(
         return result
     }
 
-    fun fetchIntersectingPlans(polygon: List<IPoint>, srid: Srid): List<IntId<GeometryPlan>> {
-        val searchPolygonWkt = create2DPolygonString(polygon)
+    fun fetchIntersectingPlans(polygon: Polygon, srid: Srid): List<IntId<GeometryPlan>> {
         // search_input is materialized to work around an issue where PostgreSQL repeatedly
         // re-parses the (possibly quite large) :polygon_wkt for each geometry.plan row while
         // checking that its generic query plan is still valid. Note that the generic query plan is
@@ -957,7 +998,7 @@ constructor(
               )
         """
                 .trimIndent()
-        val params = mapOf("polygon_wkt" to searchPolygonWkt, "map_srid" to srid.code)
+        val params = mapOf("polygon_wkt" to polygon.toWkt(), "map_srid" to srid.code)
         return jdbcTemplate
             .query(sql, params) { rs, _ -> rs.getIntId<GeometryPlan>("id") }
             .filterNotNull()

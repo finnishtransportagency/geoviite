@@ -31,7 +31,7 @@ import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ElementListingFile
@@ -52,14 +52,14 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.processFlattened
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import withUser
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
-import withUser
 
 val unknownSwitchName = SwitchName("-")
 
@@ -119,9 +119,8 @@ constructor(
         }
     }
 
-    fun getOverlappingPlanHeaders(polygon: List<IPoint>): List<GeometryPlanHeader> =
-        if (polygon.isEmpty()) emptyList()
-        else geometryDao.getPlanHeaders(geometryDao.fetchIntersectingPlans(polygon, LAYOUT_SRID))
+    fun getOverlappingPlanHeaders(polygon: Polygon): List<GeometryPlanHeader> =
+        geometryDao.getPlanHeaders(geometryDao.fetchIntersectingPlans(polygon, LAYOUT_SRID))
 
     fun getPlanHeader(planId: IntId<GeometryPlan>): GeometryPlanHeader {
         return geometryDao.getPlanHeader(planId)

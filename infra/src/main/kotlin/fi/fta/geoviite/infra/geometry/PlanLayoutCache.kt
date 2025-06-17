@@ -95,12 +95,12 @@ class PlanLayoutCache(
 
         val polygon = getBoundingPolygonFromPlan(geometryPlan, planToLayoutTransformation)
 
-        if (polygon.isEmpty()) {
+        if (polygon == null) {
             logger.warn(
                 "Not converting plan to layout as bounds could not be resolved: id=${geometryPlan.id} file=${geometryPlan.fileName}"
             )
             return { null to TransformationError("bounds-resolution-failed", geometryPlan.units) }
-        } else if (!polygon.all { point -> validHeightTriangulationArea.contains(point) }) {
+        } else if (!polygon.points.all { point -> validHeightTriangulationArea.contains(point) }) {
             logger.warn(
                 "Not converting plan to layout as bounds are outside height triangulation network: id=${geometryPlan.id} file=${geometryPlan.fileName}"
             )

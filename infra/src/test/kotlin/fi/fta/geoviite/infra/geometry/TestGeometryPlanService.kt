@@ -5,8 +5,9 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
+import fi.fta.geoviite.infra.geography.boundingPolygonByConvexHull
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -99,7 +100,7 @@ constructor(val switchStructureDao: SwitchStructureDao, val geometryDao: Geometr
                     srid = LAYOUT_SRID,
                     units = tmi35GeometryUnit(),
                 ),
-                boundingPolygonPointsByConvexHull(
+                boundingPolygonByConvexHull(
                     builtAlignments.flatMap { alignment -> alignment.elements.flatMap { element -> element.bounds } } +
                         kmPosts.mapNotNull { kmPost -> kmPost.location },
                     LAYOUT_SRID,
@@ -110,7 +111,7 @@ constructor(val switchStructureDao: SwitchStructureDao, val geometryDao: Geometr
 
     fun buildPlan(trackNumber: TrackNumber) = BuildGeometryPlan(trackNumber)
 
-    fun saveAndRefetchGeometryPlan(plan: GeometryPlan, boundingBox: List<Point>): GeometryPlan {
+    fun saveAndRefetchGeometryPlan(plan: GeometryPlan, boundingBox: Polygon): GeometryPlan {
         return geometryDao.fetchPlan(geometryDao.insertPlan(plan, testFile(), boundingBox))
     }
 }
