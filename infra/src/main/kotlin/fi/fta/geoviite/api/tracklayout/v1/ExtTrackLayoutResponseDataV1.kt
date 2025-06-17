@@ -12,6 +12,11 @@ enum class ExtLocationTrackTypeV1(val value: String) {
     TRAP("turvaraide"),
     CHORD("kujaraide");
 
+    @JsonValue
+    override fun toString(): String {
+        return this.value
+    }
+
     companion object {
         fun of(locationTrackType: LocationTrackType): ExtLocationTrackTypeV1 {
             return when (locationTrackType) {
