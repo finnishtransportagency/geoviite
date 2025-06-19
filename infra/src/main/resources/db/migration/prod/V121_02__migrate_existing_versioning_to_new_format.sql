@@ -42,6 +42,7 @@ select common.add_version_expiry_times('projektivelho', 'search');
 select common.add_version_expiry_times('projektivelho', 'project_group');
 select common.add_version_expiry_times('projektivelho', 'project');
 select common.add_version_expiry_times('projektivelho', 'assignment');
+select common.add_version_expiry_times('projektivelho', 'document');
 select common.add_version_expiry_times('projektivelho', 'project_state');
 select common.add_version_expiry_times('projektivelho', 'material_category');
 select common.add_version_expiry_times('projektivelho', 'material_group');
