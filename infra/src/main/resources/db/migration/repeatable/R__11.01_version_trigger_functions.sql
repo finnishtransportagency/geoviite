@@ -1,1 +1,0 @@
--- TODO: New version trigger functions that add version end-time to previous version (+ don't use deleted flag?)

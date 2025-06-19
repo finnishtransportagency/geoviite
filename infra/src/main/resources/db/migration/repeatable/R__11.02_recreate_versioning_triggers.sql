@@ -1,3 +1,0 @@
--- select common.create_timed_fetch_function('layout', 'track_number');
--- select common.create_timed_fetch_function('layout', 'switch');
--- select common.create_timed_fetch_function('layout', 'location_track');
