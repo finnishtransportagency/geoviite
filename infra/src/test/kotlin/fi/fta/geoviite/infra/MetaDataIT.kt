@@ -1,14 +1,19 @@
 package fi.fta.geoviite.infra
 
 import fi.fta.geoviite.infra.authorization.UserName
+import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.util.getInstant
+import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.setUser
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import withUser
+import java.time.Instant
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 const val TEST_ROLE_CODE = "it_tst"
 
@@ -16,7 +21,12 @@ const val TEST_ROLE_CODE = "it_tst"
 @SpringBootTest
 class MetaDataIT : DBTestBase() {
 
-    private data class VersionData(val changeUser: String, val deleted: Boolean)
+    private data class VersionData(
+        val changeUser: String,
+        val deleted: Boolean,
+        val changeTime: Instant,
+        val expiryTime: Instant?,
+    )
 
     @BeforeEach
     fun setUp() {
@@ -27,31 +37,48 @@ class MetaDataIT : DBTestBase() {
     fun `Versioning works`() {
         assertEquals(null, getUserGroup(TEST_ROLE_CODE))
 
+        val time0 = testDBService.getDbTime()
         insertRole(TEST_ROLE_CODE, "IT_test_group")
         assertEquals("IT_test_group", getUserGroup(TEST_ROLE_CODE))
 
+        val time1 = testDBService.getDbTime()
         updateRole(TEST_ROLE_CODE, "IT_test_group_2")
         assertEquals("IT_test_group_2", getUserGroup(TEST_ROLE_CODE))
 
+        val time2 = testDBService.getDbTime()
         withUser(UserName.of("TST_USER_2")) { updateRole(TEST_ROLE_CODE, "IT_test_group_3") }
         assertEquals("IT_test_group_3", getUserGroup(TEST_ROLE_CODE))
 
+        val time3 = testDBService.getDbTime()
         withUser(UserName.of("TST_USER_3")) { deleteRole(TEST_ROLE_CODE) }
         assertEquals(null, getUserGroup(TEST_ROLE_CODE))
 
+        val time4 = testDBService.getDbTime()
         withUser(UserName.of("TST_USER_4")) { insertRole(TEST_ROLE_CODE, "IT_test_restored") }
         assertEquals("IT_test_restored", getUserGroup(TEST_ROLE_CODE))
+        val time5 = testDBService.getDbTime()
 
-        assertEquals(
-            mapOf(
-                1 to VersionData(TEST_USER, false),
-                2 to VersionData(TEST_USER, false),
-                3 to VersionData("TST_USER_2", false),
-                4 to VersionData("TST_USER_3", true),
-                5 to VersionData("TST_USER_4", false),
-            ),
-            getRoleVersionData(TEST_ROLE_CODE),
-        )
+        val versionData = getRoleVersionData(TEST_ROLE_CODE)
+        assertEquals(5, versionData.size)
+        assertVersionDataMatches(versionData[1], TEST_USER, false, Range(time0, time1), versionData[2]?.changeTime)
+        assertVersionDataMatches(versionData[2], TEST_USER, false, Range(time1, time2), versionData[3]?.changeTime)
+        assertVersionDataMatches(versionData[3], "TST_USER_2", false, Range(time2, time3), versionData[4]?.changeTime)
+        assertVersionDataMatches(versionData[4], "TST_USER_3", true, Range(time3, time4), versionData[5]?.changeTime)
+        assertVersionDataMatches(versionData[5], "TST_USER_4", false, Range(time4, time5), null)
+    }
+
+    private fun assertVersionDataMatches(
+        data: VersionData?,
+        changeUser: String,
+        deleted: Boolean,
+        changeTimeInterval: Range<Instant>,
+        expiryTime: Instant?,
+    ) {
+        assertNotNull(data)
+        assertEquals(changeUser, data.changeUser)
+        assertEquals(deleted, data.deleted)
+        assertTrue { changeTimeInterval.contains(data.changeTime) }
+        assertEquals(expiryTime, data.expiryTime)
     }
 
     private fun getUserGroup(code: String): String? {
@@ -62,11 +89,17 @@ class MetaDataIT : DBTestBase() {
     }
 
     private fun getRoleVersionData(code: String): Map<Int, VersionData> {
-        val sql = "select version, change_user, deleted from common.role_version where code = :code"
+        val sql =
+            "select version, change_user, deleted, change_time, expiry_time from common.role_version where code = :code"
         return jdbc
             .query(sql, mapOf("code" to code)) { rs, _ ->
                 rs.getInt("version") to
-                    VersionData(changeUser = rs.getString("change_user"), deleted = rs.getBoolean("deleted"))
+                    VersionData(
+                        changeUser = rs.getString("change_user"),
+                        deleted = rs.getBoolean("deleted"),
+                        changeTime = rs.getInstant("change_time"),
+                        expiryTime = rs.getInstantOrNull("expiry_time"),
+                    )
             }
             .associate { it }
     }
