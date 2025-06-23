@@ -72,6 +72,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -80,6 +81,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.TrackDescriptionStructure
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.edge
@@ -93,14 +95,11 @@ import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.queryOne
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -109,6 +108,10 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -330,8 +333,12 @@ constructor(
                 locationTrackDao
                     .fetch(officialVersion)
                     .copy(
-                        descriptionBase = LocationTrackDescriptionBase("aoeu"),
-                        name = AlignmentName("uuba aaba"),
+                        descriptionStructure =
+                            TrackDescriptionStructure(
+                                LocationTrackDescriptionBase("aoeu"),
+                                LocationTrackDescriptionSuffix.NONE,
+                            ),
+                        nameStructure = trackNameStructure("uuba aaba"),
                         type = LocationTrackType.MAIN,
                     )
             ),
@@ -1158,7 +1165,7 @@ constructor(
         // conversion from GK to layout coordinates
         pushedPoints.flatten().zip(updatedPoints.flatten()) { expected, actual ->
             assertEquals(expected.geometry!!.coordinates[0], actual.geometry!!.coordinates[0], 0.000001)
-            assertEquals(expected.geometry!!.coordinates[1], actual.geometry!!.coordinates[1], 0.000001)
+            assertEquals(expected.geometry.coordinates[1], actual.geometry.coordinates[1], 0.000001)
         }
         assertEquals("0000", updatedPoints[0].map { p -> p.kmM.kmNumber.toString() }.distinct().single())
         assertEquals("0001", updatedPoints[1].map { p -> p.kmM.kmNumber.toString() }.distinct().single())
@@ -1495,9 +1502,7 @@ constructor(
         }
 
         splitsAndExpectedBulkTransferStates.forEach { (splitId, expectedBulkTransferState) ->
-            splitDao.getOrThrow(splitId).let { split ->
-                assertEquals(expectedBulkTransferState, split.bulkTransferState)
-            }
+            assertEquals(expectedBulkTransferState, splitDao.getOrThrow(splitId).bulkTransferState)
         }
     }
 

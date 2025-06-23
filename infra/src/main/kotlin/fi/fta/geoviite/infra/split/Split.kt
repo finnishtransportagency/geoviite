@@ -142,10 +142,10 @@ data class SplitRequestTarget(
     fun getOperation(): SplitTargetOperation =
         duplicateTrack?.operation?.toSplitTargetOperation() ?: SplitTargetOperation.CREATE
 
-    fun getNaming() =
+    fun getNameStructure() =
         TrackNameStructure.of(namingScheme = namingScheme, nameFreeText = nameFreeText, nameSpecifier = nameSpecifier)
 
-    fun getDescription(): TrackDescriptionStructure =
+    fun getDescriptionStructure(): TrackDescriptionStructure =
         TrackDescriptionStructure(descriptionBase = descriptionBase, descriptionSuffix = descriptionSuffix)
 }
 

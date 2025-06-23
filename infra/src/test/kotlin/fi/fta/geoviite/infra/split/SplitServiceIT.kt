@@ -31,7 +31,6 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -40,6 +39,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -274,8 +274,9 @@ constructor(
 
         // TRANSFER operation should not change the duplicate track geometry or fields
         assertEquals(originalTrack.name, track.name)
-        assertEquals(originalTrack.descriptionBase, track.descriptionBase)
-        assertEquals(originalTrack.descriptionSuffix, track.descriptionSuffix)
+        assertEquals(originalTrack.nameStructure, track.nameStructure)
+        assertEquals(originalTrack.description, track.description)
+        assertEquals(originalTrack.descriptionStructure, track.descriptionStructure)
         assertNull(track.duplicateOf)
         request.startAtSwitchId?.let { startSwitchId -> assertEquals(startSwitchId, track.switchIds.first()) }
 
@@ -294,9 +295,11 @@ constructor(
         val (track, geometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
 
-        assertEquals(request.name, track.name)
-        assertEquals(request.descriptionBase, track.descriptionBase)
-        assertEquals(request.descriptionSuffix, track.descriptionSuffix)
+        assertEquals(request.namingScheme, track.nameStructure.namingScheme)
+        assertEquals(request.nameFreeText, track.nameStructure.nameFreeText)
+        assertEquals(request.nameSpecifier, track.nameStructure.nameSpecifier)
+        assertEquals(request.descriptionBase, track.descriptionStructure.descriptionBase)
+        assertEquals(request.descriptionSuffix, track.descriptionStructure.descriptionSuffix)
         assertNull(track.duplicateOf)
         request.startAtSwitchId?.let { startSwitchId -> assertEquals(startSwitchId, track.switchIds.first()) }
 

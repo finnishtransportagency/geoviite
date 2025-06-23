@@ -167,9 +167,11 @@ private fun assertSplitResultFields(track: LocationTrack, request: SplitRequestT
     assertEquals(track.type, result.locationTrack.type)
     assertEquals(track.state, result.locationTrack.state)
     assertEquals(track.sourceId, result.locationTrack.sourceId)
-    assertEquals(request.name, result.locationTrack.name)
-    assertEquals(request.descriptionBase, result.locationTrack.descriptionBase)
-    assertEquals(request.descriptionSuffix, result.locationTrack.descriptionSuffix)
+    assertEquals(request.namingScheme, result.locationTrack.nameStructure.namingScheme)
+    assertEquals(request.nameFreeText, result.locationTrack.nameStructure.nameFreeText)
+    assertEquals(request.nameSpecifier, result.locationTrack.nameStructure.nameSpecifier)
+    assertEquals(request.descriptionBase, result.locationTrack.descriptionStructure.descriptionBase)
+    assertEquals(request.descriptionSuffix, result.locationTrack.descriptionStructure.descriptionSuffix)
     assertEquals(null, result.locationTrack.duplicateOf)
     assertEquals(
         boundingBoxCombining(result.geometry.edges.map { edge -> edge.boundingBox }),

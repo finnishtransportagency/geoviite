@@ -42,12 +42,12 @@ import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.getIndexRangeForRangeInOrderedList
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.processSortedBy
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
 import kotlin.math.abs
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 data class AddressPoint(val point: AlignmentPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
@@ -575,7 +575,7 @@ data class GeocodingContext(
         val target = roundTo3Decimals(targetDistance) // Round to 1mm to work around small imprecision
         if (target < BigDecimal.ZERO) throw GeocodingFailureException("Cannot geocode with negative distance")
         return referencePoints.findLast { referencePoint -> referencePoint.distanceRounded <= target }
-            ?: throw GeocodingFailureException("Target point is not withing the reference line length")
+            ?: throw GeocodingFailureException("Target point is not within the reference line length")
     }
 
     fun cutRangeByKms(

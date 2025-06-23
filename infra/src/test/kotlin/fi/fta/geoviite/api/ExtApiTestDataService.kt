@@ -18,10 +18,10 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
-import java.util.*
-import kotlin.test.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.util.*
 
 data class GeocodableTrack(
     val layoutContext: LayoutContext,
@@ -54,7 +54,7 @@ fun assertNullDetailedProperties(properties: Map<String, Any>) {
 }
 
 private fun assertNullProperties(properties: Map<String, Any>, vararg propertyNames: String) {
-    propertyNames.forEach { name -> assertEquals(null, properties[name]) }
+    propertyNames.forEach { name -> assertNull(properties[name]) }
 }
 
 @Service

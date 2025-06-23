@@ -24,8 +24,8 @@ import fi.fta.geoviite.infra.linking.resolveNodeCombinations
 import fi.fta.geoviite.infra.linking.switches.cropAlignment
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
-import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.localization.Translation
+import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.MultiPoint
@@ -85,7 +85,7 @@ class LocationTrackService(
             )
         val locationTrack =
             LocationTrack(
-                naming = nameStructure,
+                nameStructure = nameStructure,
                 name = nameStructure.reify(trackNumberDao.getOrThrow(branch.draft, request.trackNumberId), null, null),
                 descriptionStructure = descriptionStructure,
                 description = descriptionStructure.reify(descriptionTranslation, null, null),
@@ -133,7 +133,7 @@ class LocationTrackService(
         val (originalTrack: LocationTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
         val locationTrack =
             originalTrack.copy(
-                naming =
+                nameStructure =
                     TrackNameStructure.of(
                         namingScheme = request.namingScheme,
                         nameFreeText = request.nameFreeText,
@@ -205,6 +205,7 @@ class LocationTrackService(
     ): LayoutRowVersion<LocationTrack> {
         val versions =
             dao.fetchDependencyVersions(
+                context = branch.draft,
                 trackNumberId = track.trackNumberId,
                 startSwitchId = params.startSwitchLink?.id,
                 endSwitchId = params.endSwitchLink?.id,
@@ -766,7 +767,8 @@ class LocationTrackService(
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         switchId: IntId<LayoutSwitch>? = null,
     ): List<LayoutRowVersion<LocationTrack>> =
-        dao.fetchDependencyVersions(branch, trackNumberId, switchId).mapNotNull { (trackVersion, dependencyVersions) ->
+        dao.fetchDependencyVersions(branch.draft, trackNumberId, switchId).mapNotNull {
+            (trackVersion, dependencyVersions) ->
             val (track, trackGeometry) = getWithGeometryInternal(trackVersion)
             recalculateDependencies(track, dependencyVersions)
                 .takeIf { updatedTrack -> updatedTrack != track }
@@ -791,7 +793,7 @@ fun recalculateDependencies(
     startSwitch: LayoutSwitch?,
     endSwitch: LayoutSwitch?,
 ): LocationTrack {
-    val newName = track.naming.reify(trackNumber, startSwitch, endSwitch)
+    val newName = track.nameStructure.reify(trackNumber, startSwitch, endSwitch)
     val newDescription = track.descriptionStructure.reify(translation, startSwitch, endSwitch)
     return track.takeIf { t -> newName == t.name && newDescription == t.description }
         ?: track.copy(name = newName, description = newDescription)

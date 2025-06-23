@@ -44,6 +44,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -69,12 +70,6 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
 import fi.fta.geoviite.infra.util.SortOrder
-import java.sql.Timestamp
-import java.time.Instant
-import kotlin.math.absoluteValue
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -83,6 +78,12 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import java.sql.Timestamp
+import java.time.Instant
+import kotlin.math.absoluteValue
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -198,7 +199,7 @@ constructor(
         val rl = referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumber.id as IntId)!!
         publicationTestSupportService.publishAndVerify(
             LayoutBranch.main,
-            publicationRequest(trackNumbers = listOf(trackNumber.id as IntId), referenceLines = listOf(rl.id as IntId)),
+            publicationRequest(trackNumbers = listOf(trackNumber.id), referenceLines = listOf(rl.id as IntId)),
         )
         trackNumberService.update(
             LayoutBranch.main,
@@ -211,7 +212,7 @@ constructor(
         )
         publicationTestSupportService.publishAndVerify(
             LayoutBranch.main,
-            publicationRequest(trackNumbers = listOf(trackNumber.id as IntId)),
+            publicationRequest(trackNumbers = listOf(trackNumber.id)),
         )
         val thisAndPreviousPublication =
             publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
@@ -225,7 +226,7 @@ constructor(
         val diff =
             publicationLogService.diffTrackNumber(
                 localizationService.getLocalization(LocalizationLanguage.FI),
-                changes.getValue(trackNumber.id as IntId),
+                changes.getValue(trackNumber.id),
                 thisAndPreviousPublication.first().publicationTime,
                 thisAndPreviousPublication.last().publicationTime,
             ) { _, _ ->
@@ -253,7 +254,7 @@ constructor(
         val rl = referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumber.id as IntId)!!
         publicationTestSupportService.publishAndVerify(
             LayoutBranch.main,
-            publicationRequest(trackNumbers = listOf(trackNumber.id as IntId), referenceLines = listOf(rl.id as IntId)),
+            publicationRequest(trackNumbers = listOf(trackNumber.id), referenceLines = listOf(rl.id as IntId)),
         )
 
         val idOfUpdated =
@@ -270,7 +271,7 @@ constructor(
                 .id
         publicationTestSupportService.publishAndVerify(
             LayoutBranch.main,
-            publicationRequest(trackNumbers = listOf(trackNumber.id as IntId)),
+            publicationRequest(trackNumbers = listOf(trackNumber.id)),
         )
         val thisAndPreviousPublication =
             publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
@@ -285,7 +286,7 @@ constructor(
         val diff =
             publicationLogService.diffTrackNumber(
                 localizationService.getLocalization(LocalizationLanguage.FI),
-                changes.getValue(trackNumber.id as IntId),
+                changes.getValue(trackNumber.id),
                 thisAndPreviousPublication.first().publicationTime,
                 thisAndPreviousPublication.last().publicationTime,
             ) { _, _ ->
@@ -304,7 +305,9 @@ constructor(
                 locationTrackService.insert(
                     LayoutBranch.main,
                     LocationTrackSaveRequest(
+                        LocationTrackNamingScheme.FREE_TEXT,
                         AlignmentName("TEST duplicate"),
+                        null,
                         LocationTrackDescriptionBase("Test"),
                         LocationTrackDescriptionSuffix.NONE,
                         LocationTrackType.MAIN,
@@ -322,7 +325,9 @@ constructor(
                 locationTrackService.insert(
                     LayoutBranch.main,
                     LocationTrackSaveRequest(
+                        LocationTrackNamingScheme.FREE_TEXT,
                         AlignmentName("TEST duplicate 2"),
+                        null,
                         LocationTrackDescriptionBase("Test"),
                         LocationTrackDescriptionSuffix.NONE,
                         LocationTrackType.MAIN,
@@ -340,13 +345,15 @@ constructor(
                 locationTrackService.insert(
                     LayoutBranch.main,
                     LocationTrackSaveRequest(
+                        LocationTrackNamingScheme.FREE_TEXT,
                         AlignmentName("TEST"),
+                        null,
                         LocationTrackDescriptionBase("Test"),
                         LocationTrackDescriptionSuffix.NONE,
                         LocationTrackType.MAIN,
                         LocationTrackState.IN_USE,
                         mainDraftContext.createLayoutTrackNumber().id,
-                        duplicate.id as IntId<LocationTrack>,
+                        duplicate.id as IntId,
                         TopologicalConnectivityType.NONE,
                         IntId(1),
                     ),
@@ -354,29 +361,24 @@ constructor(
             )
         publicationTestSupportService.publishAndVerify(
             LayoutBranch.main,
-            publicationRequest(
-                locationTracks =
-                    listOf(
-                        locationTrack.id as IntId<LocationTrack>,
-                        duplicate.id as IntId<LocationTrack>,
-                        duplicate2.id as IntId<LocationTrack>,
-                    )
-            ),
+            publicationRequest(locationTracks = listOf(locationTrack.id as IntId, duplicate.id, duplicate2.id as IntId)),
         )
 
         val updatedLocationTrack =
             locationTrackDao.fetch(
                 locationTrackService.update(
                     LayoutBranch.main,
-                    locationTrack.id as IntId,
+                    locationTrack.id,
                     LocationTrackSaveRequest(
-                        name = AlignmentName("TEST2"),
+                        namingScheme = LocationTrackNamingScheme.FREE_TEXT,
+                        nameFreeText = AlignmentName("TEST2"),
+                        nameSpecifier = null,
                         descriptionBase = LocationTrackDescriptionBase("Test2"),
                         descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
                         type = LocationTrackType.SIDE,
                         state = LocationTrackState.NOT_IN_USE,
                         trackNumberId = locationTrack.trackNumberId,
-                        duplicate2.id as IntId<LocationTrack>,
+                        duplicate2.id,
                         topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
                         IntId(1),
                     ),
@@ -391,7 +393,7 @@ constructor(
         val diff =
             publicationLogService.diffLocationTrack(
                 localizationService.getLocalization(LocalizationLanguage.FI),
-                changes.getValue(locationTrack.id as IntId<LocationTrack>),
+                changes.getValue(locationTrack.id),
                 null,
                 LayoutBranch.main,
                 latestPub.publicationTime,
@@ -414,7 +416,9 @@ constructor(
     fun `Changing specific Location Track field returns only that field`() {
         val saveReq =
             LocationTrackSaveRequest(
+                LocationTrackNamingScheme.FREE_TEXT,
                 AlignmentName("TEST"),
+                null,
                 LocationTrackDescriptionBase("Test"),
                 LocationTrackDescriptionSuffix.NONE,
                 LocationTrackType.MAIN,
@@ -426,17 +430,17 @@ constructor(
             )
 
         val locationTrack = locationTrackDao.fetch(locationTrackService.insert(LayoutBranch.main, saveReq))
-        publish(publicationService, locationTracks = listOf(locationTrack.id as IntId<LocationTrack>))
+        publish(publicationService, locationTracks = listOf(locationTrack.id as IntId))
 
         val updatedLocationTrack =
             locationTrackDao.fetch(
                 locationTrackService.update(
                     LayoutBranch.main,
-                    locationTrack.id as IntId,
+                    locationTrack.id,
                     saveReq.copy(descriptionBase = LocationTrackDescriptionBase("TEST2")),
                 )
             )
-        publish(publicationService, locationTracks = listOf(updatedLocationTrack.id as IntId<LocationTrack>))
+        publish(publicationService, locationTracks = listOf(updatedLocationTrack.id as IntId))
         val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
         val latestPub = latestPubs.first()
         val previousPub = latestPubs.last()
@@ -445,7 +449,7 @@ constructor(
         val diff =
             publicationLogService.diffLocationTrack(
                 localizationService.getLocalization(LocalizationLanguage.FI),
-                changes.getValue(locationTrack.id as IntId<LocationTrack>),
+                changes.getValue(locationTrack.id),
                 null,
                 LayoutBranch.main,
                 latestPub.publicationTime,
@@ -457,8 +461,8 @@ constructor(
             }
         assertEquals(1, diff.size)
         assertEquals("description-base", diff[0].propKey.key.toString())
-        assertEquals(locationTrack.descriptionBase, diff[0].value.oldValue)
-        assertEquals(updatedLocationTrack.descriptionBase, diff[0].value.newValue)
+        assertEquals(locationTrack.descriptionStructure.descriptionBase, diff[0].value.oldValue)
+        assertEquals(updatedLocationTrack.descriptionStructure.descriptionBase, diff[0].value.newValue)
     }
 
     @Test
@@ -502,7 +506,7 @@ constructor(
                 MainLayoutContext.draft,
                 kmPostService.updateKmPost(
                     LayoutBranch.main,
-                    kmPost.id as IntId,
+                    kmPost.id,
                     LayoutKmPostSaveRequest(
                         KmNumber(1),
                         LayoutState.NOT_IN_USE,
@@ -521,7 +525,7 @@ constructor(
         val diff =
             publicationLogService.diffKmPost(
                 localizationService.getLocalization(LocalizationLanguage.FI),
-                changes.getValue(kmPost.id as IntId),
+                changes.getValue(kmPost.id),
                 latestPub.publicationTime,
                 latestPub.publicationTime.minusMillis(1),
                 trackNumberDao.fetchTrackNumberNames(),
@@ -585,7 +589,7 @@ constructor(
         val updatedKmPost =
             kmPostService.getOrThrow(
                 MainLayoutContext.draft,
-                kmPostService.updateKmPost(LayoutBranch.main, kmPost.id as IntId, saveReq.copy(kmNumber = KmNumber(1))),
+                kmPostService.updateKmPost(LayoutBranch.main, kmPost.id, saveReq.copy(kmNumber = KmNumber(1))),
             )
         publish(publicationService, kmPosts = listOf(updatedKmPost.id as IntId))
         val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
@@ -595,7 +599,7 @@ constructor(
         val diff =
             publicationLogService.diffKmPost(
                 localizationService.getLocalization(LocalizationLanguage.FI),
-                changes.getValue(kmPost.id as IntId),
+                changes.getValue(kmPost.id),
                 latestPub.publicationTime,
                 latestPub.publicationTime.minusMillis(1),
                 trackNumberDao.fetchTrackNumberNames(),
@@ -647,7 +651,7 @@ constructor(
                 MainLayoutContext.draft,
                 switchService.updateSwitch(
                     LayoutBranch.main,
-                    switch.id as IntId,
+                    switch.id,
                     LayoutSwitchSaveRequest(
                         SwitchName("TEST 2"),
                         IntId(2),
@@ -668,7 +672,7 @@ constructor(
         val diff =
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
-                changes.getValue(switch.id as IntId),
+                changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 Operation.DELETE,
@@ -702,11 +706,7 @@ constructor(
         val updatedSwitch =
             switchService.getOrThrow(
                 MainLayoutContext.draft,
-                switchService.updateSwitch(
-                    LayoutBranch.main,
-                    switch.id as IntId,
-                    saveReq.copy(name = SwitchName("TEST 2")),
-                ),
+                switchService.updateSwitch(LayoutBranch.main, switch.id, saveReq.copy(name = SwitchName("TEST 2"))),
             )
         publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
 
@@ -718,7 +718,7 @@ constructor(
         val diff =
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
-                changes.getValue(switch.id as IntId),
+                changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 Operation.MODIFY,
@@ -1454,12 +1454,10 @@ constructor(
                 assertEquals(null, change.trackNumber.old)
                 assertEquals("original", change.trackNumber.new.toString())
             }
-        publicationDao.fetchPublishedReferenceLines(originalPublication).let { published ->
-            assertEquals(
-                listOf(referenceLineDao.fetchVersion(MainLayoutContext.official, referenceLine.id)),
-                published.map { it.version },
-            )
-        }
+        assertEquals(
+            listOf(referenceLineDao.fetchVersion(MainLayoutContext.official, referenceLine.id)),
+            publicationDao.fetchPublishedReferenceLines(originalPublication).map { it.version },
+        )
         publicationDao.fetchPublicationReferenceLineChanges(originalPublication).let { changes ->
             assertEquals(1, changes.size)
             val change = changes[referenceLine.id]!!

@@ -8,191 +8,43 @@ alter table layout.location_track_version
 alter table layout.location_track
   add column description varchar(256) not null default '';
 
-
-select
-  t.id,
-  t.layout_context_id,
-  t.version,
-  t.change_time,
-  t.expiry_time,
-  case
-    when t.draft then coalesce(draft_start_sv.name, start_sv.name)
-    else start_sv.name
-  end as start_switch_name,
-  case
-    when t.draft then coalesce(draft_end_sv.name, end_sv.name)
-    else end_sv.name
-  end as end_switch_name,
-  start_sv.id,
-  start_sv.layout_context_id,
-  start_sv.version,
-  start_sv.change_time,
-  start_sv.expiry_time,
-  end_sv.id,
-  end_sv.layout_context_id,
-  end_sv.version,
-  end_sv.change_time,
-  end_sv.expiry_time,
-  draft_start_sv.id,
-  draft_start_sv.layout_context_id,
-  draft_start_sv.version,
-  draft_start_sv.change_time,
-  draft_start_sv.expiry_time,
-  draft_end_sv.id,
-  draft_end_sv.layout_context_id,
-  draft_end_sv.version,
-  draft_end_sv.change_time,
-  draft_end_sv.expiry_time
-  from layout.location_track_version t
-    left join layout.switch_at(t.change_time) start_sv on t.start_switch_id = start_sv.id and start_sv.layout_context_id = 'main_official'
-    left join layout.switch_at(t.change_time) end_sv on t.end_switch_id = end_sv.id and end_sv.layout_context_id = 'main_official'
-    left join layout.switch_at(t.change_time) draft_start_sv on t.start_switch_id = draft_start_sv.id and draft_start_sv.layout_context_id = 'main_draft'
-    left join layout.switch_at(t.change_time) draft_end_sv on t.end_switch_id = draft_end_sv.id and draft_end_sv.layout_context_id = 'main_draft'
-where t.id = 4104
-;
-
-drop index layout.layout_switch_version_change_time_idx;
-create index layout_switch_version_change_time_idx
-  on layout.switch_version (change_time, expiry_time, deleted);
-select common.refresh_versioning_functions('layout', 'switch');
-select * from layout.switch_at('2023-10-24 10:21:51.232818') where id = 5615 and layout_context_id = 'main_official';
-select
-  * from layout.switch_version version
-  left join layout.switch_version other on version.id = other.id and version.layout_context_id = other.layout_context_id and version.version <> other.version
-where version.change_time = other.change_time;
-select
-  * from layout.location_track_version version
-  left join layout.location_track_version other on version.id = other.id and version.layout_context_id = other.layout_context_id and version.version < other.version
-    where version.change_time = other.change_time;
-
-select
-  t.id,
-  t.layout_context_id,
-  t.version,
-  t.change_time,
-  start_sv.name,
-  new_start_sv.name,
-  end_sv.name,
-  new_end_sv.name
-  from layout.location_track_version t
-    left join publication.location_track pt
-              on t.id = pt.location_track_id
-                and t.layout_context_id = pt.layout_context_id
-                and t.version = pt.location_track_version
-                and pt.direct_change
-    left join publication.publication on pt.publication_id = publication.id
---     left join layout.location_track_version next
---               on t.id = next.id
---                 and t.layout_context_id = next.layout_context_id
---                 and t.version = next.version - 1
-    left join layout.switch_at(t.change_time) start_sv on t.start_switch_id = start_sv.id and start_sv.layout_context_id = 'main_official'
-    left join layout.switch_at(coalesce(publication.publication_time, t.change_time)) new_start_sv on t.start_switch_id = new_start_sv.id and new_start_sv.layout_context_id = 'main_official'
-    left join layout.switch_at(t.change_time) end_sv on t.end_switch_id = end_sv.id and end_sv.layout_context_id = 'main_official'
-    left join layout.switch_at(coalesce(publication.publication_time, t.change_time)) new_end_sv on t.end_switch_id = new_end_sv.id and new_end_sv.layout_context_id = 'main_official'
---     left join layout.switch new_start_sv on t.start_switch_id = new_start_sv.id and new_start_sv.layout_context_id = 'main_official'
---     left join layout.switch new_end_sv on t.end_switch_id = new_end_sv.id and new_end_sv.layout_context_id = 'main_official'
-  where t.layout_context_id = 'main_official'
-    and (start_sv.name is distinct from new_start_sv.name or end_sv.name is distinct from new_end_sv.name)
-;
-
-with
-  version_switch_names as (
+-- Note: we only handle main-branch here, as there are no designs yet to worry about
+update layout.location_track_version
+set
+  description =
+    case
+      when description_suffix = 'NONE' then
+        description_base
+      when description_suffix = 'SWITCH_TO_BUFFER' then
+        description_base || ' ' || coalesce(t.start_switch_name, t.end_switch_name, '???') || ' - Puskin'
+      when description_suffix = 'SWITCH_TO_OWNERSHIP_BOUNDARY' then
+        description_base || ' ' || coalesce(t.start_switch_name, t.end_switch_name, '???') || ' - Omistusraja'
+      when description_suffix = 'SWITCH_TO_SWITCH' then
+        description_base || ' ' || coalesce(t.start_switch_name, '???') || ' - ' || coalesce(t.end_switch_name, '???')
+    end
+  from (
     select
       track.id,
       track.layout_context_id,
       track.version,
-      track.change_time,
-      -- For current draft tracks, we pick the current draft switch names, as those would be sent to ratko after publish. Also, it makes sense to current data for in-progress drafts.
-      -- For historical draft track versions, it matters little, but we pick the draft->official switch name from the time of the track version.
-      --  * This is "best effort" but may result in the published version using a different name than the draft that was published.
-      -- For published tracks, we use the switch names at the time of the track version.
-      --  * The version timestamp is the publication timestamp and that moment also determines the data sent to ratko -> corresponds correctly with the version history.
-      -- None of this logic properly handles designs (only main-branch switch names), but they should not exist yet in production anyhow.
       track.start_switch_id,
-      case
-        when track.draft and current_track.id is not null then current_draft_start_sv.name
-        when track.draft then coalesce(draft_start_switch.name, official_start_switch.name)
-        else official_start_switch.name
-      end as start_switch_name,
+      coalesce(draft_start_sv.name, start_sv.name) as start_switch_name,
       track.end_switch_id,
-      case
-        when track.draft and current_track.id is not null then current_draft_end_sv.name
-        when track.draft then coalesce(draft_end_switch.name, official_end_switch.name)
-        else official_end_switch.name
-      end as end_switch_name
+      coalesce(draft_end_sv.name, end_sv.name) as end_switch_name
       from layout.location_track_version track
-        left join layout.location_track current_track on track.id = current_track.id and track.layout_context_id = current_track.layout_context_id and track.version = current_track.version
-        left join lateral (
-        select id, name
-          from layout.switch_version switch
-          where track.draft and switch.draft and switch.id = track.start_switch_id
-          order by switch.change_time desc
-          limit 1
-        ) draft_start_switch on (true)
-        left join layout.switch_at(track.change_time) official_start_switch on track.start_switch_id = official_start_switch.id and official_start_switch.layout_context_id = 'main_official'
-        left join layout.switch_at(track.change_time) official_end_switch on track.end_switch_id = official_end_switch.id and official_end_switch.layout_context_id = 'main_official'
-        left join layout.switch_at(track.change_time) draft_start_switch on track.start_switch_id = draft_start_switch.id and draft_start_switch.layout_context_id = 'main_draft'
-        left join layout.switch_at(track.change_time) draft_end_switch on track.end_switch_id = draft_end_switch.id and draft_end_switch.layout_context_id = 'main_draft'
-        left join layout.switch_in_layout_context('DRAFT', null) current_draft_start_sv on track.start_switch_id = current_draft_start_sv.id
-        left join layout.switch_in_layout_context('DRAFT', null) current_draft_end_sv on track.end_switch_id = current_draft_end_sv.id
-  )
-select *
-  from version_switch_names
-  where (start_switch_id is not null and start_switch_name is null) or (end_switch_id is not null and end_switch_name is null)
-
-;
-
-
-with
-  version_switch_names as (
-    select
-      track.id,
-      track.layout_context_id,
-      track.version,
-      track.change_time,
-      -- For current draft tracks, we pick the current draft switch names, as those would be sent to ratko after publish. Also, it makes sense to current data for in-progress drafts.
-      -- For historical draft track versions, it matters little, but we pick the draft->official switch name from the time of the track version.
-      --  * This is "best effort" but may result in the published version using a different name than the draft that was published.
-      -- For published tracks, we use the switch names at the time of the track version.
-      --  * The version timestamp is the publication timestamp and that moment also determines the data sent to ratko -> corresponds correctly with the version history.
-      -- None of this logic properly handles designs (only main-branch switch names), but they should not exist yet in production anyhow.
-      track.start_switch_id,
-      case
-        when track.draft and current_track.id is not null then current_draft_start_sv.name
-        when track.draft then coalesce(draft_start_switch.name, official_start_switch.name)
-        else official_start_switch.name
-      end as start_switch_name,
-      track.end_switch_id,
-      case
-        when track.draft and current_track.id is not null then current_draft_end_sv.name
-        when track.draft then coalesce(draft_end_switch.name, official_end_switch.name)
-        else official_end_switch.name
-      end as end_switch_name
-      from layout.location_track_version track
-        left join layout.location_track current_track on track.id = current_track.id and track.layout_context_id = current_track.layout_context_id and track.version = current_track.version
-        left join layout.switch_at(track.change_time) official_start_switch on track.start_switch_id = official_start_switch.id and official_start_switch.layout_context_id = 'main_official'
-        left join layout.switch_at(track.change_time) official_end_switch on track.end_switch_id = official_end_switch.id and official_end_switch.layout_context_id = 'main_official'
-        left join layout.switch_at(track.change_time) draft_start_switch on track.start_switch_id = draft_start_switch.id and draft_start_switch.layout_context_id = 'main_draft'
-        left join layout.switch_at(track.change_time) draft_end_switch on track.end_switch_id = draft_end_switch.id and draft_end_switch.layout_context_id = 'main_draft'
-        left join layout.switch_in_layout_context('DRAFT', null) current_draft_start_sv on track.start_switch_id = current_draft_start_sv.id
-        left join layout.switch_in_layout_context('DRAFT', null) current_draft_end_sv on track.end_switch_id = current_draft_end_sv.id
-  )
-select *
-  from version_switch_names
-  where (start_switch_id is not null and start_switch_name is null) or (end_switch_id is not null and end_switch_name is null)
-
-
-;
-
-  t.id,
-  t.layout_context_id,
-  t.version,
-  start_s.name,
-  end_s.name
-    from layout.location_track_version t
-left join layout.switch_at()
--- TODO: GVT-3080
-update layout.location_track_version set description = ...;
+        left join layout.switch_at(track.change_time) start_sv
+                  on track.start_switch_id = start_sv.id and start_sv.layout_context_id = 'main_official'
+        left join layout.switch_at(track.change_time) end_sv
+                  on track.end_switch_id = end_sv.id and end_sv.layout_context_id = 'main_official'
+        -- The draft names are joined only if the track itself is draft.
+        -- Otherwise, these will be null and the coalesce will pick the official names.
+        left join layout.switch_at(track.change_time) draft_start_sv
+                  on track.draft and track.start_switch_id = draft_start_sv.id and
+                     draft_start_sv.layout_context_id = 'main_draft'
+        left join layout.switch_at(track.change_time) draft_end_sv
+                  on track.draft and track.end_switch_id = draft_end_sv.id and
+                     draft_end_sv.layout_context_id = 'main_draft'
+  ) as t;
 
 update layout.location_track t
 set description = v.description

@@ -26,6 +26,8 @@ import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
+import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
+import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
@@ -235,7 +237,7 @@ class LocationTrackDao(
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
             name = rs.getString("name").let(::AlignmentName),
-            naming =
+            nameStructure =
                 TrackNameStructure.of(
                     namingScheme = rs.getEnum("naming_scheme"),
                     nameFreeText = rs.getString("name_free_text")?.let(::AlignmentName),
@@ -345,9 +347,9 @@ class LocationTrackDao(
                 "id" to id.intValue,
                 "track_number_id" to item.trackNumberId.intValue,
                 "name" to item.name,
-                "naming_scheme" to item.naming.namingScheme.name,
-                "name_free_text" to item.naming.nameFreeText,
-                "name_specifier" to item.naming.nameSpecifier?.name,
+                "naming_scheme" to item.nameStructure.namingScheme.name,
+                "name_free_text" to item.nameStructure.nameFreeText,
+                "name_specifier" to item.nameStructure.nameSpecifier?.name,
                 "description" to item.description,
                 "description_base" to item.descriptionStructure.descriptionBase,
                 "description_suffix" to item.descriptionStructure.descriptionSuffix.name,
@@ -600,19 +602,127 @@ class LocationTrackDao(
     }
 
     fun fetchDependencyVersions(
+        context: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
         startSwitchId: IntId<LayoutSwitch>?,
         endSwitchId: IntId<LayoutSwitch>?,
     ): LocationTrackDependencyVersions {
-        TODO()
+        // language=PostgreSQL
+        val sql =
+            """
+            select
+              tn.id as track_number_id,
+              tn.layout_context_id as track_number_layout_context_id,
+              tn.version as track_number_version,
+              start_sw.id as start_switch_id,
+              start_sw.layout_context_id as start_switch_layout_context_id,
+              start_sw.version as start_switch_version,
+              end_sw.id as end_switch_id,
+              end_sw.layout_context_id as end_switch_layout_context_id,
+              end_sw.version as end_switch_version
+            from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id::int) tn
+            left join lateral (
+              select id, layout_context_id, version
+              from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id::int)
+              where id = :start_switch_id::int
+            ) start_sw on true
+            left join lateral (
+              select id, layout_context_id, version
+              from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id::int)
+              where id = :end_switch_id::int
+            ) end_sw on true
+            where tn.id = :track_number_id::int
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+                "track_number_id" to trackNumberId.intValue,
+                "start_switch_id" to startSwitchId?.intValue,
+                "end_switch_id" to endSwitchId?.intValue,
+            )
+        return jdbcTemplate.queryOne(sql, params) { rs, _ ->
+            LocationTrackDependencyVersions(
+                trackNumberVersion =
+                    rs.getLayoutRowVersion("track_number_id", "track_number_layout_context_id", "track_number_version"),
+                startSwitchVersion =
+                    rs.getLayoutRowVersionOrNull(
+                        "start_switch_id",
+                        "start_switch_layout_context_id",
+                        "start_switch_version",
+                    ),
+                endSwitchVersion =
+                    rs.getLayoutRowVersionOrNull("end_switch_id", "end_switch_layout_context_id", "end_switch_version"),
+            )
+        }
     }
 
     fun fetchDependencyVersions(
-        branch: LayoutBranch,
+        context: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         switchId: IntId<LayoutSwitch>? = null,
     ): Map<LayoutRowVersion<LocationTrack>, LocationTrackDependencyVersions> {
         if (trackNumberId == null && switchId == null) return emptyMap()
-        TODO()
+        val sql =
+            """
+            select
+              t.id as track_id,
+              t.layout_context_id as track_layout_context_id,
+              t.version as track_version,
+              tn.id as track_number_id,
+              tn.layout_context_id as track_number_layout_context_id,
+              tn.version as track_number_version,
+              start_sw.id as start_switch_id,
+              start_sw.layout_context_id as start_switch_layout_context_id,
+              start_sw.version as start_switch_version,
+              end_sw.id as end_switch_id,
+              end_sw.layout_context_id as end_switch_layout_context_id,
+              end_sw.version as end_switch_version
+              from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id::int) t
+                inner join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id::int) tn
+                          on t.track_number_id = tn.id
+                left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id::int) start_sw
+                          on t.start_switch_id = start_sw.id
+                left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id::int) end_sw
+                          on t.end_switch_id = end_sw.id
+              where (:track_number_id::int is not null and t.track_number_id = :track_number_id::int)
+                 or (:switch_id::int is not null and (t.start_switch_id = :switch_id::int or t.end_switch_id = :switch_id::int))
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+                "track_number_id" to trackNumberId?.intValue,
+                "switch_id" to switchId?.intValue,
+            )
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                val trackVersion =
+                    rs.getLayoutRowVersion<LocationTrack>("track_id", "track_layout_context_id", "track_version")
+                trackVersion to
+                    LocationTrackDependencyVersions(
+                        trackNumberVersion =
+                            rs.getLayoutRowVersion(
+                                "track_number_id",
+                                "track_number_layout_context_id",
+                                "track_number_version",
+                            ),
+                        startSwitchVersion =
+                            rs.getLayoutRowVersionOrNull(
+                                "start_switch_id",
+                                "start_switch_layout_context_id",
+                                "start_switch_version",
+                            ),
+                        endSwitchVersion =
+                            rs.getLayoutRowVersionOrNull(
+                                "end_switch_id",
+                                "end_switch_layout_context_id",
+                                "end_switch_version",
+                            ),
+                    )
+            }
+            .associate { it }
     }
 }

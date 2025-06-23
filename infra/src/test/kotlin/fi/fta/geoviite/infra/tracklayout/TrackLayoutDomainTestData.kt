@@ -52,6 +52,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
+import fi.fta.geoviite.infra.util.FreeText
 import java.time.LocalDate
 import kotlin.math.ceil
 import kotlin.random.Random
@@ -149,7 +150,7 @@ fun switchAndMatchingAlignments(
                     val point =
                         jointLocations.computeIfAbsent(jointNumber) { number ->
                             val joint = structure.joints.find { structureJoint -> structureJoint.number == number }
-                            joint?.location ?: throw IllegalStateException("No such joint in structure")
+                            requireNotNull(joint?.location) { "No such joint in structure" }
                         }
                     jointNumber to point
                 }
@@ -419,27 +420,45 @@ fun locationTrack(
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
     name: String = "T001 ${locationTrackNameCounter++}",
+    nameStructure: TrackNameStructure = trackNameStructure(name, LocationTrackNamingScheme.FREE_TEXT, null),
     description: String = "test-alignment 001",
+    descriptionStructure: TrackDescriptionStructure = trackDescriptionStructure(description),
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
     contextData: LayoutContextData<LocationTrack> = createMainContext(id, draft),
-    descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
 ) =
     locationTrack(
         trackNumberId = trackNumberId,
         geometry = geometry,
         contextData = contextData,
         name = name,
+        nameStructure = nameStructure,
         description = description,
+        descriptionStructure = descriptionStructure,
         type = type,
         state = state,
         topologicalConnectivity = topologicalConnectivity,
         duplicateOf = duplicateOf,
         ownerId = ownerId,
-        descriptionSuffix = descriptionSuffix,
+    )
+
+fun trackDescriptionStructure(
+    descriptionBase: String = "Test track description",
+    descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
+) = TrackDescriptionStructure(LocationTrackDescriptionBase(descriptionBase), descriptionSuffix)
+
+fun trackNameStructure(
+    nameFreeText: String = "T001 ${locationTrackNameCounter++}",
+    namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT,
+    nameSpecifier: LocationTrackNameSpecifier? = null,
+): TrackNameStructure =
+    TrackNameStructure.of(
+        namingScheme = namingScheme,
+        nameFreeText = AlignmentName(nameFreeText),
+        nameSpecifier = nameSpecifier,
     )
 
 fun locationTrack(
@@ -447,18 +466,20 @@ fun locationTrack(
     geometry: LocationTrackGeometry = TmpLocationTrackGeometry.empty,
     contextData: LayoutContextData<LocationTrack>,
     name: String = "T001 ${locationTrackNameCounter++}",
+    nameStructure: TrackNameStructure = trackNameStructure(name),
     description: String = "test-alignment 001",
+    descriptionStructure: TrackDescriptionStructure = trackDescriptionStructure(description),
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
-    descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
 ) =
     LocationTrack(
         name = AlignmentName(name),
-        descriptionBase = LocationTrackDescriptionBase(description),
-        descriptionSuffix = descriptionSuffix,
+        nameStructure = nameStructure,
+        description = FreeText(description),
+        descriptionStructure = descriptionStructure,
         type = type,
         state = state,
         trackNumberId = trackNumberId,
@@ -568,7 +589,7 @@ fun mapAlignment(segments: List<PlanLayoutSegment>) =
                 state = LayoutState.IN_USE,
                 segmentCount = segments.size,
                 trackNumberId = IntId(1),
-                length = segments.map(PlanLayoutSegment::length).sum(),
+                length = segments.sumOf(PlanLayoutSegment::length),
                 boundingBox = boundingBoxCombining(segments.mapNotNull(PlanLayoutSegment::boundingBox)),
             ),
         staStart = 0.0,

@@ -93,7 +93,8 @@ constructor(
             }
 
         val trackNumberInfo = getTrackNumberInfoForLocationTrackHits(closestTracks, layoutContext)
-        val trackOids = getLocationTrackOids(params, closestTracks.mapNotNull { it?.track })
+        val trackOids =
+            produceIf(params.featureDetails) { getLocationTrackOids(closestTracks.mapNotNull { it?.track }) }
 
         return closestTracks
             .mapIndexed { index, trackHit ->
@@ -233,7 +234,10 @@ constructor(
                         trackNumberId = trackNumberId,
                         includeDeleted = false,
                     )
-                val trackOids = getLocationTrackOids(params, tracksAndGeometries.map { (track) -> track })
+                val trackOids =
+                    produceIf(params.featureDetails) {
+                        getLocationTrackOids(tracksAndGeometries.map { (track) -> track })
+                    }
                 TrackNumberRequests(trackNumberDetails, tracksAndGeometries, trackOids, trackNumberRequests)
             }
             .parallelStream()
@@ -526,12 +530,14 @@ constructor(
             createSimpleFeatureMatchOrNull(params, closestTrack.closestPoint, closestTrack.distance)
 
         val conversionDetails =
-            createDetailedFeatureMatchOrNull(
-                closestTrack.track,
-                trackNumberDetails,
-                geocodedAddress.address,
-                locationTrackOid,
-            )
+            produceIf(params.featureDetails) {
+                createDetailedFeatureMatch(
+                    closestTrack.track,
+                    trackNumberDetails,
+                    geocodedAddress.address,
+                    locationTrackOid,
+                )
+            }
 
         return listOf(
             CoordinateToTrackAddressResponseV1(
@@ -564,7 +570,9 @@ constructor(
             )
 
         val conversionDetails =
-            createDetailedFeatureMatchOrNull(locationTrack, trackNumberDetails, addressPoint.address, locationTrackOid)
+            produceIf(params.featureDetails) {
+                createDetailedFeatureMatch(locationTrack, trackNumberDetails, addressPoint.address, locationTrackOid)
+            }
 
         return TrackAddressToCoordinateResponseV1(
             geometry = featureGeometry,
@@ -577,7 +585,7 @@ constructor(
         )
     }
 
-    private fun createDetailedFeatureMatchOrNull(
+    private fun createDetailedFeatureMatch(
         locationTrack: LocationTrack,
         trackNumberDetails: TrackNumberDetails,
         trackMeter: TrackMeter,
@@ -620,18 +628,16 @@ constructor(
     )
 
     private fun getLocationTrackOids(
-        params: FrameConverterQueryParamsV1,
-        locationTracks: List<LocationTrack>,
+        locationTracks: List<LocationTrack>
     ): Map<DomainId<LocationTrack>, Oid<LocationTrack>>? =
-        if (params.featureDetails)
-            locationTracks
-                .distinctBy { it.id }
-                .let { distinctTracks ->
-                    locationTrackDao
-                        .fetchExternalIds(LayoutBranch.main, distinctTracks.map { it.id as IntId })
-                        .mapValues { (_, v) -> v.oid }
+        locationTracks
+            .distinctBy { it.id }
+            .let { distinctTracks ->
+                locationTrackDao.fetchExternalIds(LayoutBranch.main, distinctTracks.map { it.id as IntId }).mapValues {
+                    (_, v) ->
+                    v.oid
                 }
-        else null
+            }
 }
 
 private fun createFeatureGeometry(params: FrameConverterQueryParamsV1, point: IPoint): GeoJsonGeometryPoint {

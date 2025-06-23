@@ -639,8 +639,8 @@ private fun updateSplitTargetForOverwriteDuplicate(
     val newTrack =
         duplicateTrack.copy(
             // Actual name/description will be automatically recalculated upon saving
-            naming = request.getNaming(),
-            descriptionStructure = request.getDescription(),
+            nameStructure = request.getNameStructure(),
+            descriptionStructure = request.getDescriptionStructure(),
 
             // After split, the track is no longer duplicate
             duplicateOf = null,
@@ -668,8 +668,8 @@ private fun createSplitTarget(
     val newGeometry = TmpLocationTrackGeometry.of(edges, null)
     val newTrack =
         LocationTrack(
-            naming = request.getNaming(),
-            descriptionStructure = request.getDescription(),
+            nameStructure = request.getNameStructure(),
+            descriptionStructure = request.getDescriptionStructure(),
 
             // These will be automatically recalculated upon saving
             name = AlignmentName("?"),

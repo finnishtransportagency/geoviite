@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.DesignLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
@@ -49,13 +48,14 @@ constructor(
     @Test
     fun locationTrackSaveAndLoadWorks() {
         val locationTrack =
-            locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false)
-                .copy(
-                    name = AlignmentName("ORIG"),
-                    descriptionBase = LocationTrackDescriptionBase("Oridinal location track"),
-                    type = MAIN,
-                    state = LocationTrackState.IN_USE,
-                )
+            locationTrack(
+                trackNumberId = mainOfficialContext.createLayoutTrackNumber().id,
+                nameStructure = trackNameStructure("ORIG"),
+                descriptionStructure = trackDescriptionStructure("Oridinal location track"),
+                type = MAIN,
+                state = LocationTrackState.IN_USE,
+                draft = false,
+            )
 
         val inserted = locationTrackDao.save(locationTrack, TmpLocationTrackGeometry.empty)
         assertEquals(inserted, locationTrackDao.fetchVersion(MainLayoutContext.official, inserted.id))
@@ -66,8 +66,8 @@ constructor(
 
         val updatedTrack =
             fromDb.copy(
-                name = AlignmentName("UPD"),
-                descriptionBase = LocationTrackDescriptionBase("Updated location track"),
+                nameStructure = trackNameStructure("UPD"),
+                descriptionStructure = trackDescriptionStructure("Updated location track"),
                 type = SIDE,
                 state = LocationTrackState.NOT_IN_USE,
                 topologicalConnectivity = TopologicalConnectivityType.END,

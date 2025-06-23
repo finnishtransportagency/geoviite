@@ -191,7 +191,7 @@ data class TrackDescriptionStructure(
 }
 
 data class LocationTrack(
-    val naming: TrackNameStructure,
+    val nameStructure: TrackNameStructure,
     /**
      * Reified name from the structured fields, using dependencies (end switches & track numbers). Should not be edited
      * directly, only via the method [TrackNameStructure.reify]
