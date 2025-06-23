@@ -37,7 +37,7 @@ select common.add_version_expiry_times('publication', 'split_updated_duplicate')
 -- Integrations
 select common.add_version_expiry_times('integrations', 'ratko_push_content');
 
--- Projetkivelho
+-- Projektivelho
 select common.add_version_expiry_times('projektivelho', 'search');
 select common.add_version_expiry_times('projektivelho', 'project_group');
 select common.add_version_expiry_times('projektivelho', 'project');

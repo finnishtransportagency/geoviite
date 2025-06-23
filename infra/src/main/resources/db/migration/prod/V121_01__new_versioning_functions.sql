@@ -152,6 +152,7 @@ $$ language plpgsql volatile;
 -- New function for altering version tables from deprecated format to the new one:
 -- * Add version expiry column
 -- * Set existing expiry times based on next version's change time
+-- * Current deleted-flag is retained and deleted rows are not removed (they get expiry_time as any other row)
 create or replace function common.add_version_expiry_times(main_schema_name varchar, main_table_name varchar)
   returns void as
 $$
