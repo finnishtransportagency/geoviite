@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
-import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -364,7 +363,7 @@ class LocationTrackDao(
                 "length" to geometry.length,
                 "edge_count" to geometry.edges.size,
                 "segment_count" to geometry.segments.size,
-                "polygon_string" to geometry.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
+                "polygon_string" to geometry.boundingBox?.let(BoundingBox::polygonFromCorners)?.toWkt(),
             )
 
         jdbcTemplate.setUser()

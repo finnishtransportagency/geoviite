@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
 import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
@@ -201,20 +202,18 @@ class LayoutTrackNumberService(
         startKm: KmNumber?,
         endKm: KmNumber?,
         bufferSize: Double = ALIGNMENT_POLYGON_BUFFER,
-    ): List<IPoint> {
+    ): Polygon? {
         val alignment = referenceLineService.getByTrackNumberWithAlignment(layoutContext, trackNumberId)?.second
         val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
 
         return if (
-            alignment == null ||
-                geocodingContext == null ||
-                !cropIsWithinReferenceLine(startKm, endKm, geocodingContext)
+            alignment != null && geocodingContext != null && cropIsWithinReferenceLine(startKm, endKm, geocodingContext)
         ) {
-            emptyList()
+            getCropMRange(geocodingContext, Range(0.0, alignment.length), startKm, endKm)
+                ?.let { cropRange -> cropAlignment(alignment.segmentsWithM, cropRange) }
+                ?.let { a -> toPolygon(a, bufferSize) }
         } else {
-            getCropMRange(geocodingContext, Range(0.0, alignment.length), startKm, endKm)?.let { cropRange ->
-                toPolygon(cropAlignment(alignment.segmentsWithM, cropRange))
-            } ?: emptyList()
+            null
         }
     }
 

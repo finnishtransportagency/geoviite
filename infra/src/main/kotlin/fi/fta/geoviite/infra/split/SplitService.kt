@@ -698,21 +698,12 @@ private fun calculateTopologicalConnectivity(
     sourceTrack: LocationTrack,
     sourceEdges: Int,
     edgeIndices: ClosedRange<Int>,
-): TopologicalConnectivityType {
-    val startConnected =
-        if (0 == edgeIndices.start) {
-            sourceTrack.topologicalConnectivity.isStartConnected()
-        } else {
-            true
-        }
-    val endConnected =
-        if (sourceEdges == edgeIndices.endInclusive + 1) {
-            sourceTrack.topologicalConnectivity.isEndConnected()
-        } else {
-            true
-        }
-    return topologicalConnectivityTypeOf(startConnected, endConnected)
-}
+): TopologicalConnectivityType =
+    topologicalConnectivityTypeOf(
+        startConnected = edgeIndices.start != 0 || sourceTrack.topologicalConnectivity.isStartConnected(),
+        endConnected =
+            edgeIndices.endInclusive + 1 != sourceEdges || sourceTrack.topologicalConnectivity.isEndConnected(),
+    )
 
 private fun findSplitEdgeIndices(
     geometry: LocationTrackGeometry,

@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.geography
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.DaoBase
@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 @Component
 class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    fun fetchTriangles(boundingPolygon: List<Point>): List<HeightTriangle> {
+    fun fetchTriangles(boundingPolygon: Polygon): List<HeightTriangle> {
         val sql =
             """
             select tn.coord1_id, 
@@ -43,7 +43,7 @@ class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBas
             )  
         """
                 .trimIndent()
-        val params = mapOf("bounding_polygon" to create2DPolygonString(boundingPolygon), "srid" to LAYOUT_SRID.code)
+        val params = mapOf("bounding_polygon" to boundingPolygon.toWkt(), "srid" to LAYOUT_SRID.code)
 
         val triangles =
             jdbcTemplate.query(sql, params) { rs, _ ->

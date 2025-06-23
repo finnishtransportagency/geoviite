@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -80,7 +79,7 @@ class LayoutKmPostDao(
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
                 "include_deleted" to includeDeleted,
-                "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
+                "polygon_wkt" to bbox?.let(BoundingBox::polygonFromCorners)?.toWkt(),
                 "map_srid" to LAYOUT_SRID.code,
             ),
         ) { rs, _ ->

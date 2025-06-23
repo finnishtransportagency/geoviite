@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
+import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
@@ -51,6 +52,7 @@ class LocationTrackController(
     private val searchService: LayoutSearchService,
     private val publicationValidationService: PublicationValidationService,
     private val switchLinkingService: SwitchLinkingService,
+    private val geometryService: GeometryService,
 ) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -237,13 +239,9 @@ class LocationTrackController(
         @RequestParam("endKm") endKmNumber: KmNumber? = null,
     ): List<GeometryPlanHeader> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.getOverlappingPlanHeaders(
-            context,
-            id,
-            ALIGNMENT_POLYGON_BUFFER,
-            startKmNumber,
-            endKmNumber,
-        )
+        return locationTrackService
+            .getTrackPolygon(context, id, startKmNumber, endKmNumber, ALIGNMENT_POLYGON_BUFFER)
+            ?.let(geometryService::getOverlappingPlanHeaders) ?: emptyList()
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

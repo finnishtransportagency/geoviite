@@ -7,7 +7,8 @@ import fi.fta.geoviite.infra.geography.bufferedPolygonForLineStringPoints
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.MIN_POLYGON_POINTS
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -20,6 +21,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.util.produceIf
 import kotlin.math.roundToInt
 
 enum class MapAlignmentSource {
@@ -136,7 +138,7 @@ fun <T> toAlignmentPolyLine(
 const val ALIGNMENT_POLYGON_BUFFER = 10.0
 const val ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION = 100
 
-fun toPolygon(alignment: IAlignment, polygonBufferSize: Double = ALIGNMENT_POLYGON_BUFFER): List<IPoint> {
+fun toPolygon(alignment: IAlignment, polygonBufferSize: Double = ALIGNMENT_POLYGON_BUFFER): Polygon? {
     val simplifiedAlignment =
         simplify(
             alignment = alignment,
@@ -144,7 +146,8 @@ fun toPolygon(alignment: IAlignment, polygonBufferSize: Double = ALIGNMENT_POLYG
             bbox = null,
             includeSegmentEndPoints = true,
         )
-    return bufferedPolygonForLineStringPoints(simplifiedAlignment, polygonBufferSize, LAYOUT_SRID)
+    val points = bufferedPolygonForLineStringPoints(simplifiedAlignment, polygonBufferSize, LAYOUT_SRID)
+    return produceIf(points.size >= MIN_POLYGON_POINTS) { Polygon(points) }
 }
 
 fun simplify(

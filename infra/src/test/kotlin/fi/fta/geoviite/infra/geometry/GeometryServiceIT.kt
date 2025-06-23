@@ -7,10 +7,11 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -26,11 +27,14 @@ import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -46,17 +50,21 @@ constructor(
     private val kmPostService: LayoutKmPostService,
     private val geometryDao: GeometryDao,
     private val geometryService: GeometryService,
+    private val coordinateTransformationService: CoordinateTransformationService,
 ) : DBTestBase() {
+
+    @BeforeEach
+    fun setup() {
+        testDBService.clearGeometryTables()
+    }
 
     @Test
     fun `Hiding GeometryPlans works`() {
-        deletePlans()
-
         val file = testFile()
         val plan = plan(testDBService.getUnusedTrackNumber(), fileName = file.name)
         val polygon = someBoundingPolygon()
         val planId = geometryDao.insertPlan(plan, file, polygon).id
-        val searchBbox = boundingBoxAroundPoints(polygon)
+        val searchBbox = polygon.boundingBox
 
         assertEquals(planId, geometryService.fetchDuplicateGeometryPlanHeader(file.hash, plan.source)?.id)
         assertEquals(listOf(planId), geometryService.getGeometryPlanAreas(searchBbox).map(GeometryPlanArea::id))
@@ -355,7 +363,77 @@ constructor(
                 ),
         )
 
-    private fun deletePlans() {
-        jdbc.update("truncate geometry.plan cascade;", mapOf<String, Any>())
+    @Test
+    fun `Overlapping plan search finds plans that are withing 10 of alignment`() {
+        val tn = TrackNumber("001")
+        val a1 = geometryAlignment(line(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val a2 = geometryAlignment(line(Point(20.0, 0.0), Point(30.0, 0.0)))
+        val a3 = geometryAlignment(line(Point(40.0, 0.0), Point(50.0, 0.0)))
+        val a4 = geometryAlignment(line(Point(60.0, 0.0), Point(70.0, 0.0)))
+        val a5 = geometryAlignment(line(Point(80.0, 0.0), Point(90.0, 0.0)))
+        val a6 = geometryAlignment(line(Point(40.0, 20.0), Point(50.0, 20.0)))
+        val a7 = geometryAlignment(line(Point(40.0, -10.0), Point(50.0, -10.0)))
+
+        val searchPolygon = toPolygon(alignment(segment(Point(32.0, 0.0), Point(50.0, 0.0))), 10.0)!!
+
+        val tf = coordinateTransformationService.getLayoutTransformation(LAYOUT_SRID)
+
+        // Ends before alignment start -> not found
+        geometryDao.insertPlan(
+            plan(tn, LAYOUT_SRID, a1),
+            testFile(),
+            getBoundingPolygonPointsFromAlignments(listOf(a1), tf),
+        )
+        val plan2EndsWithinAlignmentBuffer =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a2),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a2), tf),
+            )
+        val plan3CompletelyWithin =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a3),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a3), tf),
+            )
+        val plan4TouchesEndOfAlignmentBuffer =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a4),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a4), tf),
+            )
+        // Start after alignment -> not found
+        geometryDao.insertPlan(
+            plan(tn, LAYOUT_SRID, a5),
+            testFile(),
+            getBoundingPolygonPointsFromAlignments(listOf(a5), tf),
+        )
+        // Plan that is too far to the side -> not found
+        geometryDao.insertPlan(
+            plan(tn, LAYOUT_SRID, a6),
+            testFile(),
+            getBoundingPolygonPointsFromAlignments(listOf(a6), tf),
+        )
+        val plan7TouchesBufferFromSide =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a7),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a7), tf),
+            )
+        val plan8Hidden =
+            geometryDao.insertPlan(
+                plan(tn, LAYOUT_SRID, a4),
+                testFile(),
+                getBoundingPolygonPointsFromAlignments(listOf(a4), tf),
+            )
+        geometryDao.setPlanHidden(plan8Hidden.id, true)
+
+        val overlapping = geometryService.getOverlappingPlanHeaders(searchPolygon).map { it.id }
+
+        Assertions.assertEquals(4, overlapping.size)
+        assertContains(overlapping, plan2EndsWithinAlignmentBuffer.id)
+        assertContains(overlapping, plan3CompletelyWithin.id)
+        assertContains(overlapping, plan4TouchesEndOfAlignmentBuffer.id)
+        assertContains(overlapping, plan7TouchesBufferFromSide.id)
     }
 }

@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -84,7 +85,7 @@ constructor(
         return geometryDao.insertPlan(geometryPlan, file, getBoundingPolygon(geometryPlan))
     }
 
-    fun getBoundingPolygon(geometryPlan: GeometryPlan) =
+    fun getBoundingPolygon(geometryPlan: GeometryPlan): Polygon? =
         geometryPlan.units.coordinateSystemSrid
             ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
             ?.let { transformation -> getBoundingPolygonFromPlan(geometryPlan, transformation) }
