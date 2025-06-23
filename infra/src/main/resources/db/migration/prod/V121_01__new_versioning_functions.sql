@@ -128,7 +128,7 @@ declare
   -- we don't need to sort/distinct to deduplicate versions even when multiple have the same change_time.
   select_sql          varchar :=
     'select * from ' || version_table ||
-    ' where $1 >= change_time and $1 < expiry_time and deleted = false;';
+    ' where $1 >= change_time and (expiry_time is null or $1 < expiry_time) and deleted = false;';
   create_function_sql varchar :=
     'create or replace function ' || function_name || '(timestamptz) ' ||
     'returns setof ' || version_table ||
