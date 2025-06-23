@@ -115,16 +115,20 @@ $$ language plpgsql;
 
 -- Updated timed fetch function that uses the new expiry_time column instead of window functions
 -- Note: we don't automatically create indexes for all version tables as all needs are different,
--- so if this feels slow, add an index on [change_time, expiry_time, deleted, ...] to the version table.
+-- so if this feels slow, you can try adding an index with [change_time, expiry_time, deleted] to the version table.
 create or replace function common.create_timed_fetch_function(main_schema_name varchar, main_table_name varchar)
   returns void as
 $$
 declare
   version_table       varchar := format('%I.%I_version', main_schema_name, main_table_name);
   function_name       varchar := format('%I.%I_at', main_schema_name, main_table_name);
+  -- End time is exclusive, to get distinct results
+  -- Note: if there is a second version with the same change_time, then the first version's expiry_time will be equal to
+  -- the change time. That means that the end-exclusive search will skip that row and return only the newer one. Hence,
+  -- we don't need to sort/distinct to deduplicate versions even when multiple have the same change_time.
   select_sql          varchar :=
     'select * from ' || version_table ||
-    ' where $1 between change_time and expiry_time and deleted = false;';
+    ' where $1 >= change_time and $1 < expiry_time and deleted = false;';
   create_function_sql varchar :=
     'create or replace function ' || function_name || '(timestamptz) ' ||
     'returns setof ' || version_table ||
