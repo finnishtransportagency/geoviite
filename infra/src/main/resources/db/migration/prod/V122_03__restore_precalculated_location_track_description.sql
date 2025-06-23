@@ -8,27 +8,62 @@ alter table layout.location_track_version
 alter table layout.location_track
   add column description varchar(256) not null default '';
 
+
 select
   t.id,
   t.layout_context_id,
   t.version,
   t.change_time,
-  start_sv.name,
-  new_start_sv.name,
-  end_sv.name,
-  new_end_sv.name
+  t.expiry_time,
+  case
+    when t.draft then coalesce(draft_start_sv.name, start_sv.name)
+    else start_sv.name
+  end as start_switch_name,
+  case
+    when t.draft then coalesce(draft_end_sv.name, end_sv.name)
+    else end_sv.name
+  end as end_switch_name,
+  start_sv.id,
+  start_sv.layout_context_id,
+  start_sv.version,
+  start_sv.change_time,
+  start_sv.expiry_time,
+  end_sv.id,
+  end_sv.layout_context_id,
+  end_sv.version,
+  end_sv.change_time,
+  end_sv.expiry_time,
+  draft_start_sv.id,
+  draft_start_sv.layout_context_id,
+  draft_start_sv.version,
+  draft_start_sv.change_time,
+  draft_start_sv.expiry_time,
+  draft_end_sv.id,
+  draft_end_sv.layout_context_id,
+  draft_end_sv.version,
+  draft_end_sv.change_time,
+  draft_end_sv.expiry_time
   from layout.location_track_version t
-    left join layout.location_track_version next
-              on t.id = next.id
-                and t.layout_context_id = next.layout_context_id
-                and t.version = next.version - 1
     left join layout.switch_at(t.change_time) start_sv on t.start_switch_id = start_sv.id and start_sv.layout_context_id = 'main_official'
     left join layout.switch_at(t.change_time) end_sv on t.end_switch_id = end_sv.id and end_sv.layout_context_id = 'main_official'
-    left join layout.switch new_start_sv on t.start_switch_id = new_start_sv.id and new_start_sv.layout_context_id = 'main_official'
-    left join layout.switch new_end_sv on t.end_switch_id = new_end_sv.id and new_end_sv.layout_context_id = 'main_official'
-  where t.layout_context_id = 'main_official'
-    and ((start_sv.name is distinct from new_start_sv.name and next.change_time < new_start_sv.change_time) or (end_sv.name is distinct from new_end_sv.name and next.change_time < new_end_sv.change_time))
+    left join layout.switch_at(t.change_time) draft_start_sv on t.start_switch_id = draft_start_sv.id and draft_start_sv.layout_context_id = 'main_draft'
+    left join layout.switch_at(t.change_time) draft_end_sv on t.end_switch_id = draft_end_sv.id and draft_end_sv.layout_context_id = 'main_draft'
+where t.id = 4104
 ;
+
+drop index layout.layout_switch_version_change_time_idx;
+create index layout_switch_version_change_time_idx
+  on layout.switch_version (change_time, expiry_time, deleted);
+select common.refresh_versioning_functions('layout', 'switch');
+select * from layout.switch_at('2023-10-24 10:21:51.232818') where id = 5615 and layout_context_id = 'main_official';
+select
+  * from layout.switch_version version
+  left join layout.switch_version other on version.id = other.id and version.layout_context_id = other.layout_context_id and version.version <> other.version
+where version.change_time = other.change_time;
+select
+  * from layout.location_track_version version
+  left join layout.location_track_version other on version.id = other.id and version.layout_context_id = other.layout_context_id and version.version < other.version
+    where version.change_time = other.change_time;
 
 select
   t.id,
