@@ -955,30 +955,23 @@ data class PolyLineEdge(
 
 fun getSplitTargetTrackStartAndEndAddresses(
     geocodingContext: GeocodingContext,
-    sourceTrackAlignment: LocationTrackGeometry,
+    sourceGeometry: LocationTrackGeometry,
     splitTarget: SplitTarget,
-    splitTargetAlignment: LocationTrackGeometry,
+    splitTargetGeometry: LocationTrackGeometry,
 ): Pair<TrackMeter?, TrackMeter?> {
-    val startBySegments =
-        sourceTrackAlignment.segments[splitTarget.segmentIndices.first]
-            .segmentStart
-            .let { point -> geocodingContext.getAddress(point)?.first }
-            .let(::requireNotNull)
+    val (sourceStart, sourceEnd) = sourceGeometry.getEdgeStartAndEnd(splitTarget.edgeIndices)
 
-    val endBySegments =
-        sourceTrackAlignment.segments[splitTarget.segmentIndices.last]
-            .segmentEnd
-            .let { point -> geocodingContext.getAddress(point)?.first }
-            .let(::requireNotNull)
+    val startBySegments = requireNotNull(geocodingContext.getAddress(sourceStart)).first
+    val endBySegments = requireNotNull(geocodingContext.getAddress(sourceEnd)).first
 
-    val startByTargetAlignment =
-        splitTargetAlignment.start?.let { point -> geocodingContext.getAddress(point)?.first }.let(::requireNotNull)
+    val startByTarget =
+        requireNotNull(splitTargetGeometry.start?.let { point -> geocodingContext.getAddress(point)?.first })
 
-    val endByTargetAlignment =
-        splitTargetAlignment.end?.let { point -> geocodingContext.getAddress(point)?.first }.let(::requireNotNull)
+    val endByTarget =
+        requireNotNull(splitTargetGeometry.end?.let { point -> geocodingContext.getAddress(point)?.first })
 
-    val startAddress = listOf(startBySegments, startByTargetAlignment).maxOrNull()
-    val endAddress = listOf(endBySegments, endByTargetAlignment).minOrNull()
+    val startAddress = listOf(startBySegments, startByTarget).maxOrNull()
+    val endAddress = listOf(endBySegments, endByTarget).minOrNull()
 
     return startAddress to endAddress
 }

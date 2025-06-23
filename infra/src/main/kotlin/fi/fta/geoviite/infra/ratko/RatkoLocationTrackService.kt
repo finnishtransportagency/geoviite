@@ -77,8 +77,8 @@ constructor(
             splits.map { (split, existingRatkoLocationTrack) ->
 
                 // TODO Doesn't seem like the correct place
-                val (sourceTrack, sourceTrackAlignment) =
-                    locationTrackService.getWithAlignment(split.sourceLocationTrackVersion)
+                val (sourceTrack, sourceTrackGeometry) =
+                    locationTrackService.getWithGeometry(split.sourceLocationTrackVersion)
 
                 val sourceTrackGeocodingContext =
                     geocodingService.getGeocodingContext(layoutContext, sourceTrack.trackNumberId).let(::requireNotNull)
@@ -102,9 +102,9 @@ constructor(
                     // known here
                     val existingRatkoLocationTrack = ratkoClient.getLocationTrack(RatkoOid(externalLocationTrackId.oid))
 
-                    val (_, splitTargetAlignment) =
+                    val (_, splitTargetGeometry) =
                         locationTrackService
-                            .getWithAlignment(layoutContext, splitTarget.locationTrackId)
+                            .getWithGeometry(layoutContext, splitTarget.locationTrackId)
                             .let(::requireNotNull)
 
                     when (splitTarget.operation) {
@@ -115,9 +115,9 @@ constructor(
                             val startAndEnd =
                                 getSplitTargetTrackStartAndEndAddresses(
                                         sourceTrackGeocodingContext,
-                                        sourceTrackAlignment,
+                                        sourceTrackGeometry,
                                         splitTarget,
-                                        splitTargetAlignment,
+                                        splitTargetGeometry,
                                     )
                                     .let { (start, end) -> requireNotNull(start) to requireNotNull(end) }
 
