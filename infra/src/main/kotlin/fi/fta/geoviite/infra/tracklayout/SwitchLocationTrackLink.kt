@@ -191,7 +191,8 @@ fun collectSplitPoints(geometry: LocationTrackGeometry): List<SplitPoint> {
                 }
             val endSplitPoints: List<SplitPoint> =
                 if (index == geometry.edges.lastIndex) {
-                    val edgeEnd = edge.lastSegmentEnd.toAlignmentPoint(m.min)
+                    val (lastSegment, segmentM) = edge.segmentsWithM.last()
+                    val edgeEnd = lastSegment.segmentEnd.toAlignmentPoint(m.min + segmentM.min)
                     // The main switch link might be a topology link or an in-track-switch link
                     val mainLink = geometry.endSwitchLink
                     // Inner links need to be included always, unless it's already the main link

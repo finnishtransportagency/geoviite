@@ -11,7 +11,10 @@ import {
 } from 'track-layout/track-layout-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS } from 'tool-panel/location-track/split-store';
+import {
+    PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS,
+    PARTIAL_DUPLICATE_MINIMUM_VALIDATED_DIFFERENCE_METERS,
+} from 'tool-panel/location-track/split-store';
 
 type LocationTrackInfoboxDuplicateTrackEntryProps = {
     duplicate: LocationTrackDuplicate;
@@ -170,6 +173,7 @@ function validateHasShortNonOverlappingLength(
         (overLappingLength !== undefined && duplicate.length - overLappingLength) || undefined;
     const shortNonOverlappingLength =
         nonOverlappingLength !== undefined &&
+        nonOverlappingLength >= PARTIAL_DUPLICATE_MINIMUM_VALIDATED_DIFFERENCE_METERS &&
         nonOverlappingLength <
             PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS;
     if (shortNonOverlappingLength && nonOverlappingLength !== undefined) {
