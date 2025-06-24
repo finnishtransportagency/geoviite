@@ -14,10 +14,7 @@ import {
     PropEdit,
 } from 'utils/validation-utils';
 import { LocationTrackOwner, LocationTrackOwnerId } from 'common/common-model';
-import {
-    validateLocationTrackDescriptionBase,
-    //validateLocationTrackName,
-} from 'tool-panel/location-track/dialog/location-track-validation';
+import { validateLocationTrackDescriptionBase } from 'tool-panel/location-track/dialog/location-track-validation';
 
 export type LocationTrackEditState = {
     isNewLocationTrack: boolean;
@@ -107,6 +104,7 @@ function validateLinkingLocationTrack(
 
 const VAYLAVIRASTO_LOCATION_TRACK_OWNER_NAME = 'Väylävirasto';
 
+// TODO: GVT-3080 what a silly function. Replace with a getter + ifDefined call for setting and whatnot
 export function setVaylavirastoOwnerIdFrom(
     owners: LocationTrackOwner[] | undefined,
     set: (vaylaId: LocationTrackOwnerId) => void,
@@ -152,10 +150,23 @@ const locationTrackEditSlice = createSlice({
         ): void => {
             state.existingLocationTrack = existingLocationTrack;
             state.locationTrack = {
-                ...existingLocationTrack,
-                type: existingLocationTrack.type || 'MAIN',
+                namingScheme: existingLocationTrack.nameStructure.namingScheme,
+                descriptionBase: existingLocationTrack.descriptionStructure.descriptionBase,
+                descriptionSuffix: existingLocationTrack.descriptionStructure.descriptionSuffix,
+                type: existingLocationTrack.type,
+                state: existingLocationTrack.state,
+                trackNumberId: existingLocationTrack.trackNumberId,
                 duplicateOf: existingLocationTrack.duplicateOf,
+                topologicalConnectivity: existingLocationTrack.topologicalConnectivity,
+                ownerId: existingLocationTrack.ownerId,
             };
+            if ('nameFreeText' in existingLocationTrack.nameStructure) {
+                state.locationTrack.nameFreeText = existingLocationTrack.nameStructure.nameFreeText;
+            }
+            if ('nameSpecifier' in existingLocationTrack.nameStructure) {
+                state.locationTrack.nameSpecifier =
+                    existingLocationTrack.nameStructure.nameSpecifier;
+            }
             state.validationIssues = validateLinkingLocationTrack(state.locationTrack);
             state.loading.locationTrack = false;
         },

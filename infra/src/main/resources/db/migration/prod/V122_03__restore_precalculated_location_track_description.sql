@@ -1,6 +1,5 @@
 alter table layout.location_track
-  disable trigger version_update_trigger;
-alter table layout.location_track
+  disable trigger version_update_trigger,
   disable trigger version_row_trigger;
 
 alter table layout.location_track_version
@@ -9,7 +8,7 @@ alter table layout.location_track
   add column description varchar(256) not null default '';
 
 -- Note: we only handle main-branch here, as there are no designs yet to worry about
-update layout.location_track_version
+update layout.location_track_version lt
 set
   description =
     case
@@ -44,7 +43,10 @@ set
         left join layout.switch_at(track.change_time) draft_end_sv
                   on track.draft and track.end_switch_id = draft_end_sv.id and
                      draft_end_sv.layout_context_id = 'main_draft'
-  ) as t;
+  ) as t
+  where t.id = lt.id
+    and t.layout_context_id = lt.layout_context_id
+    and t.version = lt.version;
 
 update layout.location_track t
 set description = v.description
@@ -54,6 +56,5 @@ set description = v.description
     and v.version = t.version;
 
 alter table layout.location_track
-  enable trigger version_update_trigger;
-alter table layout.location_track
+  enable trigger version_update_trigger,
   enable trigger version_row_trigger;

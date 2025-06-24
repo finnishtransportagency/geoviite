@@ -62,14 +62,14 @@ const splitToRequestTarget = (
     const duplicateTrack: SplitRequestTargetDuplicate | undefined =
         split.duplicateTrackId && split.operation !== 'CREATE'
             ? {
-                  id: split.duplicateTrackId,
-                  operation: split.operation,
-              }
+                id: split.duplicateTrackId,
+                operation: split.operation,
+            }
             : undefined;
     return {
         name: duplicate ? duplicate.name : split.name,
-        descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
-        descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
+        descriptionBase: (duplicate ? duplicate.descriptionStructure.descriptionBase : split.descriptionBase) ?? '',
+        descriptionSuffix: (duplicate ? duplicate.descriptionStructure.descriptionSuffix : split.suffixMode) ?? 'NONE',
         duplicateTrack: duplicateTrack,
         startAtSwitchId:
             split.splitPoint.type === 'SWITCH_SPLIT_POINT' ? split.splitPoint.switchId : undefined,

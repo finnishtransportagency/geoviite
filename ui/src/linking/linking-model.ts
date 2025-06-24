@@ -48,7 +48,7 @@ export type LocationTrackSaveRequest = {
     type?: LocationTrackType;
     state?: LocationTrackState;
     trackNumberId?: LayoutTrackNumberId;
-    duplicateOf?: string;
+    duplicateOf?: LocationTrackId;
     topologicalConnectivity?: TopologicalConnectivityType;
     ownerId?: LocationTrackOwnerId;
 };

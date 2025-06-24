@@ -118,11 +118,6 @@ export type TopologyLocationTrackSwitch = {
     joint: JointNumber;
 };
 
-export type LocationTrackDescription = {
-    id: LocationTrackId;
-    description: string;
-};
-
 export enum LocationTrackNamingScheme {
     FREE_TEXT = 'FREE_TEXT',
     WITHIN_OPERATING_POINT = 'WITHIN_OPERATING_POINT',
@@ -149,11 +144,51 @@ export enum LocationTrackSpecifier {
     LANHR = 'LANHR',
 }
 
-export type LayoutLocationTrack = {
-    name: string;
+export type FreeTextTrackNameStructure = {
+    namingScheme: LocationTrackNamingScheme.FREE_TEXT;
+    nameFreeText: string;
+};
+export type WithinOperatingPointTrackNameStructure = {
+    namingScheme: LocationTrackNamingScheme.WITHIN_OPERATING_POINT;
+    nameFreeText: string;
+};
+export type TrackNumberTrackNameStructure = {
+    namingScheme: LocationTrackNamingScheme.TRACK_NUMBER_TRACK;
+    nameFreeText: string;
+    nameSpecifier: LocationTrackSpecifier;
+};
+export type BetweenOperatingPointsTrackNameStructure = {
+    namingScheme: LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS;
+    nameSpecifier: LocationTrackSpecifier;
+};
+export type ChordTrackNameStructure = {
+    namingScheme: LocationTrackNamingScheme.CHORD;
+};
+export type TrackNameStructureWithFreeText =
+    | FreeTextTrackNameStructure
+    | WithinOperatingPointTrackNameStructure
+    | TrackNumberTrackNameStructure;
+export type TrackNameStructureWithSpecifier =
+    | TrackNumberTrackNameStructure
+    | BetweenOperatingPointsTrackNameStructure;
+export type TrackNameStructure =
+    | FreeTextTrackNameStructure
+    | WithinOperatingPointTrackNameStructure
+    | TrackNumberTrackNameStructure
+    | BetweenOperatingPointsTrackNameStructure
+    | ChordTrackNameStructure;
+
+export type TrackDescriptionStructure = {
     descriptionBase?: string;
     descriptionSuffix?: LocationTrackDescriptionSuffixMode;
-    type?: LocationTrackType;
+};
+
+export type LayoutLocationTrack = {
+    nameStructure: TrackNameStructure;
+    name: string;
+    descriptionStructure: TrackDescriptionStructure;
+    description: string;
+    type: LocationTrackType;
     state: LocationTrackState;
     trackNumberId: LayoutTrackNumberId;
     sourceId?: GeometryAlignmentId;
@@ -163,8 +198,6 @@ export type LayoutLocationTrack = {
     segmentCount: number;
     duplicateOf?: LocationTrackId;
     topologicalConnectivity: TopologicalConnectivityType;
-    topologyStartSwitch?: TopologyLocationTrackSwitch;
-    topologyEndSwitch?: TopologyLocationTrackSwitch;
     ownerId: LocationTrackOwnerId;
 } & LayoutAssetFields;
 

@@ -5,6 +5,7 @@ import {
     LayoutLocationTrack,
     LayoutState,
     LayoutSwitch,
+    LocationTrackNamingScheme,
 } from 'track-layout/track-layout-model';
 import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
@@ -23,19 +24,25 @@ const layoutAssetFields: LayoutAssetFields = {
 const layoutLocationTrack: LayoutLocationTrack = {
     ...layoutAssetFields,
     id: brand(''),
+    nameStructure: {
+        namingScheme: LocationTrackNamingScheme.FREE_TEXT,
+        nameFreeText: 'name',
+    },
     name: 'name',
-    descriptionBase: 'description',
+    descriptionStructure: {
+        descriptionBase: 'description',
+        descriptionSuffix: 'NONE',
+    },
+    description: 'description',
     state: 'IN_USE' as LayoutState,
     length: 123,
     segmentCount: 0,
     boundingBox: { x: { min: 0, max: 0 }, y: { min: 0, max: 0 } },
     trackNumberId: brand(''),
     sourceId: brand(''),
-    type: undefined,
+    type: 'MAIN',
     duplicateOf: undefined,
     topologicalConnectivity: 'NONE',
-    topologyStartSwitch: undefined,
-    topologyEndSwitch: undefined,
     ownerId: '',
 };
 const kmPost: LayoutKmPost = {

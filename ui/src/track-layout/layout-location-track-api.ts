@@ -4,7 +4,6 @@ import {
     DuplicateStatus,
     LayoutLocationTrack,
     LayoutTrackNumberId,
-    LocationTrackDescription,
     LocationTrackId,
     LocationTrackInfoboxExtras,
 } from 'track-layout/track-layout-model';
@@ -153,16 +152,6 @@ export async function getLocationTracksBySearchTerm(
     });
     return await getNonNull<LayoutLocationTrack[]>(
         `${layoutUri('location-tracks', layoutContext)}${params}`,
-    );
-}
-
-export function getLocationTrackDescriptions(
-    locationTrackIds: LocationTrackId[],
-    layoutContext: LayoutContext,
-): Promise<LocationTrackDescription[] | undefined> {
-    const params = queryParams({ ids: locationTrackIds.join(','), lang: i18next.language });
-    return getNullable<LocationTrackDescription[]>(
-        `${layoutUri('location-tracks', layoutContext)}/description${params}`,
     );
 }
 

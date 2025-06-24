@@ -30,6 +30,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
+import fi.fta.geoviite.infra.tracklayout.TrackDescriptionStructure
+import fi.fta.geoviite.infra.tracklayout.TrackNameStructure
 
 enum class LocationTrackPointUpdateType {
     START_POINT,
@@ -65,11 +67,9 @@ data class LocationTrackSaveRequest(
     val topologicalConnectivity: TopologicalConnectivityType,
     val ownerId: IntId<LocationTrackOwner>,
 ) {
-    init {
-        require(descriptionBase.length in 4..256) {
-            "LocationTrack description length ${descriptionBase.length} not in range 4-256"
-        }
-    }
+    // Initialize these at construction time to ensure they are always valid
+    val nameStructure = TrackNameStructure.of(namingScheme, nameFreeText, nameSpecifier)
+    val descriptionStructure = TrackDescriptionStructure(descriptionBase, descriptionSuffix)
 }
 
 enum class TrackEnd {

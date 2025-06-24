@@ -1,7 +1,6 @@
 import React from 'react';
 import {
     LayoutLocationTrack,
-    LocationTrackDescription,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
@@ -13,7 +12,6 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
 import {
     getLocationTrack,
-    getLocationTrackDescriptions,
     getLocationTracksBySearchTerm,
     insertLocationTrack,
     updateLocationTrack,
@@ -780,14 +778,12 @@ type LocationTrackItemValue = {
 function createDuplicateTrackOptions(
     trackId: LocationTrackId | undefined,
     locationTracks: LayoutLocationTrack[],
-    descriptions: LocationTrackDescription[],
 ): Item<LocationTrackItemValue>[] {
     return locationTracks
         .filter((lt) => lt.id !== trackId && lt.duplicateOf === undefined)
         .map((lt) => {
-            const description = descriptions.find((d) => d.id === lt.id)?.description;
             return {
-                name: description ? `${lt.name}, ${description}` : lt.name,
+                name: lt.description ? `${lt.name}, ${lt.description}` : lt.name,
                 value: {
                     type: 'locationTrackSearchItem',
                     locationTrack: lt,
@@ -803,7 +799,5 @@ async function findDuplicateTrackOptions(
     searchTerm: string,
 ): Promise<Item<LocationTrackItemValue>[]> {
     const locationTracks = await debouncedSearchTracks(searchTerm, layoutContextDraft, 10);
-    const trackIds = locationTracks.map((lt) => lt.id);
-    const descriptions = await getLocationTrackDescriptions(trackIds, layoutContextDraft);
-    return createDuplicateTrackOptions(trackId, locationTracks, descriptions || []);
+    return createDuplicateTrackOptions(trackId, locationTracks);
 }

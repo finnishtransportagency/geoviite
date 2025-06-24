@@ -27,9 +27,7 @@ import { createDelegates } from 'store/store-utils';
 import { OnSelectOptions } from 'selection/selection-model';
 import { BoundingBox } from 'model/geometry';
 import { useCommonDataAppSelector } from 'store/hooks';
-import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 import { useLocationTrackInfoboxExtras } from 'track-layout/track-layout-react-utils';
-import { first } from 'utils/array-utils';
 import { LocationTrackState } from 'geoviite-design-lib/location-track-state/location-track-state';
 import { LocationTrackOid } from 'track-layout/oid';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
@@ -111,18 +109,6 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
         }
     }
 
-    const description = useLoader(
-        () =>
-            getLocationTrackDescriptions([locationTrack.id], layoutContext).then(
-                (value) => (value && first(value)?.description) ?? undefined,
-            ),
-        [
-            locationTrack?.id,
-            layoutContext.branch,
-            layoutContext.publicationState,
-            changeTimes.layoutLocationTrack,
-        ],
-    );
     const [extraInfo, extraInfoLoadingStatus] = useLocationTrackInfoboxExtras(
         locationTrack?.id,
         layoutContext,
@@ -171,7 +157,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                 <InfoboxField
                     qaId="location-track-description"
                     label={t('tool-panel.location-track.description')}
-                    value={description}
+                    value={locationTrack.description}
                 />
                 <InfoboxField
                     qaId="location-track-track-number"
