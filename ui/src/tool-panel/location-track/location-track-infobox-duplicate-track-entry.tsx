@@ -173,7 +173,7 @@ function validateHasShortNonOverlappingLength(
         (overLappingLength !== undefined && duplicate.length - overLappingLength) || undefined;
     const shortNonOverlappingLength =
         nonOverlappingLength !== undefined &&
-        nonOverlappingLength >= PARTIAL_DUPLICATE_MINIMUM_VALIDATED_DIFFERENCE_METERS &&
+        Math.abs(nonOverlappingLength) >= PARTIAL_DUPLICATE_MINIMUM_VALIDATED_DIFFERENCE_METERS &&
         nonOverlappingLength <
             PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS;
     if (shortNonOverlappingLength && nonOverlappingLength !== undefined) {
