@@ -21,6 +21,7 @@ import { expectDefined } from 'utils/type-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { inferLayoutContextMode } from 'linking/linking-store';
 
+export const PARTIAL_DUPLICATE_MINIMUM_VALIDATED_DIFFERENCE_METERS = 0.05;
 export const PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS = 10;
 
 export type SplitTargetDuplicateOperation = 'TRANSFER' | 'OVERWRITE';
