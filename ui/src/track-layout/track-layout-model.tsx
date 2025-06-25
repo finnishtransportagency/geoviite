@@ -159,13 +159,7 @@ export type BetweenOperatingPointsTrackNameStructure = {
 export type ChordTrackNameStructure = {
     namingScheme: LocationTrackNamingScheme.CHORD;
 };
-export type TrackNameStructureWithFreeText =
-    | FreeTextTrackNameStructure
-    | WithinOperatingPointTrackNameStructure
-    | TrackNumberTrackNameStructure;
-export type TrackNameStructureWithSpecifier =
-    | TrackNumberTrackNameStructure
-    | BetweenOperatingPointsTrackNameStructure;
+
 export type TrackNameStructure =
     | FreeTextTrackNameStructure
     | WithinOperatingPointTrackNameStructure
@@ -268,11 +262,6 @@ export type LocationTrackDuplicate = {
     end: AlignmentPoint | undefined;
     duplicateStatus: DuplicateStatus;
     length: number;
-};
-export type LayoutSwitchIdAndName = {
-    id: LayoutSwitchId;
-    name: string;
-    shortName?: string;
 };
 
 export type LocationTrackInfoboxExtras = {
@@ -541,11 +530,11 @@ export function formatTrackName(
         case LocationTrackNamingScheme.CHORD: {
             if (
                 startSwitch?.parsedName !== undefined &&
-                startSwitch?.parsedName === endSwitch?.parsedName
+                startSwitch?.parsedName?.prefix === endSwitch?.parsedName?.prefix
             ) {
-                return `${startSwitch.parsedName.prefix} ${getShortNumber(startSwitch)} - ${getShortNumber(endSwitch)}`;
+                return `${startSwitch.parsedName.prefix} ${getShortNumber(startSwitch)}-${getShortNumber(endSwitch)}`;
             } else {
-                return `${getShortName(startSwitch)} - ${getShortName(endSwitch)}`;
+                return `${getShortName(startSwitch)}-${getShortName(endSwitch)}`;
             }
         }
         default:
