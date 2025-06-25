@@ -3,6 +3,7 @@ import {
     LayoutLocationTrack,
     LayoutSwitch,
     LocationTrackId,
+    LocationTrackNamingScheme,
     SplitPoint,
     splitPointsAreSame,
 } from 'track-layout/track-layout-model';
@@ -64,7 +65,15 @@ const splitToRequestTarget = (
               }
             : undefined;
     return {
-        name: duplicate ? duplicate.name : split.name,
+        namingScheme: duplicate?.nameStructure?.namingScheme ?? LocationTrackNamingScheme.FREE_TEXT,
+        nameFreeText:
+            duplicate?.nameStructure && 'nameFreeText' in duplicate.nameStructure
+                ? duplicate?.nameStructure?.nameFreeText
+                : '',
+        nameSpecifier:
+            duplicate?.nameStructure && 'nameSpecifier' in duplicate.nameStructure
+                ? duplicate?.nameStructure?.nameSpecifier
+                : undefined,
         descriptionBase:
             (duplicate ? duplicate.descriptionStructure.descriptionBase : split.descriptionBase) ??
             '',

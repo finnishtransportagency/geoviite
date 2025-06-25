@@ -7,17 +7,30 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { createClassName } from 'vayla-design-lib/utils';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
-import { AlignmentEndPoint, LayoutLocationTrack, LocationTrackId, SplitPoint } from 'track-layout/track-layout-model';
+import {
+    AlignmentEndPoint,
+    LayoutLocationTrack,
+    LocationTrackId,
+    LocationTrackNamingScheme,
+    SplitPoint,
+} from 'track-layout/track-layout-model';
 import {
     FirstSplitTargetCandidate,
     PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS,
     SplitTargetCandidate,
     SplitTargetOperation,
 } from 'tool-panel/location-track/split-store';
-import { calculateBoundingBoxToShowAroundLocation, MAP_POINT_NEAR_BBOX_OFFSET } from 'map/map-utils';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_NEAR_BBOX_OFFSET,
+} from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { isEqualIgnoreCase } from 'utils/string-utils';
-import { END_SPLIT_POINT_NOT_MATCHING_ERROR, getOperation, START_SPLIT_POINT_NOT_MATCHING_ERROR } from './split-utils';
+import {
+    END_SPLIT_POINT_NOT_MATCHING_ERROR,
+    getOperation,
+    START_SPLIT_POINT_NOT_MATCHING_ERROR,
+} from './split-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { BoundingBox, Point } from 'model/geometry';
 import { SplitDuplicateTrack } from 'track-layout/layout-location-track-api';
@@ -81,7 +94,7 @@ export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
                     className={createClassName(
                         styles['location-track-infobox__split-item-ball'],
                         editingDisabled &&
-                        styles['location-track-infobox__split-item-ball--disabled'],
+                            styles['location-track-infobox__split-item-ball--disabled'],
                     )}
                     onClick={onSplitPointClick}
                 />
@@ -136,7 +149,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     onHighlightSplitPoint,
     onReleaseSwitchHighlight,
 }) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const [nameCommitted, setNameCommitted] = React.useState(split.name !== '');
     const [descriptionCommitted, setDescriptionCommitted] = React.useState(
         split.descriptionBase !== '',
@@ -177,7 +190,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         isPartialDuplicate &&
         nonOverlappingDuplicateLength !== undefined &&
         nonOverlappingDuplicateLength <
-        PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS;
+            PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS;
 
     function getOperationTooltip(
         operation: SplitTargetOperation,
@@ -195,9 +208,9 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
             );
             const tooShortNonOverlappingLengthWarning = isShortNonOverlappingDuplicateLength
                 ? t('tool-panel.location-track.splitting.short-duplicate-non-overlap-warning', {
-                    overlappingLength: overlappingDuplicateLength?.toFixed(1),
-                    nonOverlappingLength: nonOverlappingDuplicateLength?.toFixed(1),
-                })
+                      overlappingLength: overlappingDuplicateLength?.toFixed(1),
+                      nonOverlappingLength: nonOverlappingDuplicateLength?.toFixed(1),
+                  })
                 : undefined;
             return [isPartialTooltip, tooShortNonOverlappingLengthWarning]
                 .filter(filterNotEmpty)
@@ -244,7 +257,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                     className={createClassName(
                         styles['location-track-infobox__split-item-line'],
                         !underlyingAssetExists &&
-                        styles['location-track-infobox__split-item-line--disabled'],
+                            styles['location-track-infobox__split-item-line--disabled'],
                     )}
                 />
             </div>
@@ -255,7 +268,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                     className={createClassName(
                         styles['location-track-infobox__split-item-ball'],
                         !underlyingAssetExists &&
-                        styles['location-track-infobox__split-item-ball--disabled'],
+                            styles['location-track-infobox__split-item-ball--disabled'],
                     )}
                 />
             </div>
@@ -291,7 +304,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 setShowRemovalConfirmationMenu(!showRemovalConfirmationMenu);
                             }}>
                             {onRemove && (
-                                <Icons.Clear size={IconSize.SMALL} color={IconColor.INHERIT}/>
+                                <Icons.Clear size={IconSize.SMALL} color={IconColor.INHERIT} />
                             )}
                         </div>
                         {showRemovalConfirmationMenu && onRemove && (
@@ -309,7 +322,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 styles['location-track-infobox__split-switch-error-msg'],
                                 styles['location-track-infobox__split-switch-error-msg--start'],
                                 startSwitchMatchingError.type === FieldValidationIssueType.ERROR &&
-                                styles['location-track-infobox__split-switch-error-msg--error'],
+                                    styles['location-track-infobox__split-switch-error-msg--error'],
                             )}>
                             {t(
                                 `tool-panel.location-track.splitting.validation.${startSwitchMatchingError.reason}`,
@@ -337,6 +350,11 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
 
                                 updateSplit({
                                     ...split,
+                                    // TODO: GVT-3080 split UI doesn't support other name schemes yet
+                                    namingScheme: LocationTrackNamingScheme.FREE_TEXT,
+                                    nameFreeText: e.target.value,
+                                    nameSpecifier: undefined,
+                                    // TODO: GVT-3080 use formatTrackName when other schemes are possible
                                     name: e.target.value,
                                     duplicateTrackId: duplicate?.id,
                                     duplicateStatus: duplicate?.status,
@@ -364,8 +382,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                     className={createClassName(
                                         styles['location-track-infobox__split-operation'],
                                         isShortNonOverlappingDuplicateLength &&
-                                        styles[
-                                            'location-track-infobox__split-operation--warning'
+                                            styles[
+                                                'location-track-infobox__split-operation--warning'
                                             ],
                                     )}
                                     title={operationTooltip}>
@@ -378,10 +396,10 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                             className={createClassName(
                                                 styles[
                                                     'location-track-infobox__split-operation-icon'
-                                                    ],
+                                                ],
                                                 isShortNonOverlappingDuplicateLength &&
-                                                styles[
-                                                    'location-track-infobox__split-operation-icon--warning'
+                                                    styles[
+                                                        'location-track-infobox__split-operation-icon--warning'
                                                     ],
                                             )}>
                                             {isShortNonOverlappingDuplicateLength ? (
@@ -401,7 +419,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             )}
                             {nameErrorsVisible &&
                                 nameIssues.map((error, i) => (
-                                    <SplitErrorMessage key={i.toString()} error={error}/>
+                                    <SplitErrorMessage key={i.toString()} error={error} />
                                 ))}
                         </InfoboxField>
                     )}
@@ -461,7 +479,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                     : split.suffixMode
                             }
                             onChange={(mode) => {
-                                updateSplit({...split, suffixMode: mode});
+                                updateSplit({ ...split, suffixMode: mode });
                             }}
                             onBlur={onBlur}
                             disabled={editingDisabled || !!duplicateTrackId}
@@ -474,7 +492,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 styles['location-track-infobox__split-switch-error-msg'],
                                 styles['location-track-infobox__split-switch-error-msg--end'],
                                 endSwitchMatchingError.type === FieldValidationIssueType.ERROR &&
-                                styles['location-track-infobox__split-switch-error-msg--error'],
+                                    styles['location-track-infobox__split-switch-error-msg--error'],
                             )}>
                             {t(
                                 `tool-panel.location-track.splitting.validation.${endSwitchMatchingError.reason}`,
@@ -491,8 +509,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
 type SplitErrorMessageProps = {
     error: FieldValidationIssue<SplitTargetCandidate>;
 };
-const SplitErrorMessage: React.FC<SplitErrorMessageProps> = ({error}) => {
-    const {t} = useTranslation();
+const SplitErrorMessage: React.FC<SplitErrorMessageProps> = ({ error }) => {
+    const { t } = useTranslation();
     const style =
         error.type === FieldValidationIssueType.ERROR
             ? 'location-track-infobox__split-error'

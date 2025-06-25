@@ -514,9 +514,9 @@ export function formatTrackName(
     namingScheme: LocationTrackNamingScheme,
     nameFreeText: string | undefined,
     nameSpecifier: LocationTrackSpecifier | undefined,
-    trackNumber: LayoutTrackNumber | undefined,
-    startSwitch: LayoutSwitch | undefined,
-    endSwitch: LayoutSwitch | undefined,
+    trackNumber: TrackNumber | undefined,
+    startSwitch: SwitchParsedName | undefined,
+    endSwitch: SwitchParsedName | undefined,
 ): string {
     switch (namingScheme) {
         case LocationTrackNamingScheme.FREE_TEXT:
@@ -524,15 +524,12 @@ export function formatTrackName(
         case LocationTrackNamingScheme.WITHIN_OPERATING_POINT:
             return nameFreeText ?? '';
         case LocationTrackNamingScheme.TRACK_NUMBER_TRACK:
-            return `${withPlaceholder(trackNumber?.number)} ${toProperForm(nameSpecifier)} ${nameFreeText ?? ''}`.trim();
+            return `${withPlaceholder(trackNumber)} ${toProperForm(nameSpecifier)} ${nameFreeText ?? ''}`.trim();
         case LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS:
             return `${toProperForm(nameSpecifier)} ${getShortName(startSwitch)}-${getShortName(endSwitch)}`;
         case LocationTrackNamingScheme.CHORD: {
-            if (
-                startSwitch?.parsedName !== undefined &&
-                startSwitch?.parsedName?.prefix === endSwitch?.parsedName?.prefix
-            ) {
-                return `${startSwitch.parsedName.prefix} ${getShortNumber(startSwitch)}-${getShortNumber(endSwitch)}`;
+            if (startSwitch !== undefined && startSwitch?.prefix === endSwitch?.prefix) {
+                return `${startSwitch.prefix} ${getShortNumber(startSwitch)}-${getShortNumber(endSwitch)}`;
             } else {
                 return `${getShortName(startSwitch)}-${getShortName(endSwitch)}`;
             }
@@ -549,8 +546,8 @@ export function formatTrackName(
 export function formatTrackDescription(
     descriptionBase: string,
     descriptionSuffix: LocationTrackDescriptionSuffixMode,
-    startSwitch: LayoutSwitch | undefined,
-    endSwitch: LayoutSwitch | undefined,
+    startSwitch: SwitchParsedName | undefined,
+    endSwitch: SwitchParsedName | undefined,
     t: (key: string, params?: Record<string, unknown>) => string,
 ): string {
     switch (descriptionSuffix) {
@@ -571,16 +568,13 @@ function withPlaceholder(value: string | undefined): string {
     return value ?? '???';
 }
 
-function getShortNumber(layoutSwitch: LayoutSwitch | undefined): string {
-    return withPlaceholder(layoutSwitch?.parsedName?.shortNumberPart);
+function getShortNumber(layoutSwitch: SwitchParsedName | undefined): string {
+    return withPlaceholder(layoutSwitch?.shortNumberPart);
 }
 
-function getShortName(layoutSwitch: LayoutSwitch | undefined): string {
+function getShortName(layoutSwitch: SwitchParsedName | undefined): string {
     return withPlaceholder(
-        ifDefined(
-            layoutSwitch?.parsedName,
-            (parsed) => `${parsed.prefix} ${parsed.shortNumberPart}`,
-        ),
+        ifDefined(layoutSwitch, (parsed) => `${parsed.prefix} ${parsed.shortNumberPart}`),
     );
 }
 

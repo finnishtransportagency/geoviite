@@ -2,12 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Range
-
-data class EndPointSwitchInfo(val switchId: IntId<LayoutSwitch>, val jointNumber: JointNumber)
-
-data class EndPointSwitchInfos(val start: EndPointSwitchInfo?, val end: EndPointSwitchInfo?)
 
 fun getDuplicateTrackParentStatus(
     parentTrack: LocationTrack,
@@ -21,13 +16,14 @@ fun getDuplicateTrackParentStatus(
         getDuplicateMatches(parentTrackSplitPoints, childTrackSplitPoints, parentTrack.id, childTrack.duplicateOf)
             .first() // There has to at least one found, since we know the duplicateOf is set
     return LocationTrackDuplicate(
-        parentTrack.id as IntId,
-        parentTrack.trackNumberId,
-        parentTrack.name,
+        id = parentTrack.id as IntId,
+        trackNumberId = parentTrack.trackNumberId,
+        nameStructure = parentTrack.nameStructure,
+        name = parentTrack.name,
         start = childGeometry.start,
         end = childGeometry.end,
         length = childGeometry.length,
-        status,
+        duplicateStatus = status,
     )
 }
 
@@ -64,13 +60,14 @@ private fun getLocationTrackDuplicatesBySplitPoints(
     return statuses.map { (jointIndex, status) ->
         jointIndex to
             LocationTrackDuplicate(
-                duplicateTrack.id as IntId,
-                duplicateTrack.trackNumberId,
-                duplicateTrack.name,
+                id = duplicateTrack.id as IntId,
+                trackNumberId = duplicateTrack.trackNumberId,
+                nameStructure = duplicateTrack.nameStructure,
+                name = duplicateTrack.name,
                 start = duplicateGeometry.start,
                 end = duplicateGeometry.end,
                 length = duplicateGeometry.length,
-                status,
+                duplicateStatus = status,
             )
     }
 }
@@ -115,9 +112,6 @@ fun getDuplicateMatches(
         }
     }
 }
-
-private fun <T> findOrderedMatches(list1: List<T>, list2: List<T>): List<Pair<Int, Int>> =
-    findOrderedMatches(list1, list2) { item1, item2 -> item1 == item2 }
 
 /**
  * Finds matching items between two lists, continuing the search from the previous match to never seek backwards. This

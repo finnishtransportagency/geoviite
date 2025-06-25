@@ -201,16 +201,16 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         state.locationTrack.namingScheme ?? LocationTrackNamingScheme.FREE_TEXT,
         state.locationTrack.nameFreeText,
         state.locationTrack.nameSpecifier,
-        trackNumber,
-        startSwitch,
-        endSwitch,
+        trackNumber?.number,
+        startSwitch?.parsedName,
+        endSwitch?.parsedName,
     );
 
     const trackDescription = formatTrackDescription(
         state.locationTrack.descriptionBase ?? '',
         state.locationTrack.descriptionSuffix ?? 'NONE',
-        startSwitch,
-        endSwitch,
+        startSwitch?.parsedName,
+        endSwitch?.parsedName,
         t,
     );
 
@@ -430,8 +430,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         </Heading>
                         <LocationTrackEditDialogNameSection
                             state={state}
-                            existingLocationTrack={props.locationTrack}
-                            layoutContext={props.layoutContext}
                             updateProp={updateProp}
                             onCommitField={stateActions.onCommitField}
                             getVisibleErrorsByProp={getVisibleErrorsByProp}

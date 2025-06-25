@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.ParsedSwitchName
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -277,6 +278,7 @@ data class LocationTrackInfoboxExtras(
 data class LocationTrackDuplicate(
     val id: IntId<LocationTrack>,
     val trackNumberId: IntId<LayoutTrackNumber>,
+    val nameStructure: TrackNameStructure,
     val name: AlignmentName,
     val start: AlignmentPoint?,
     val end: AlignmentPoint?,
@@ -291,6 +293,7 @@ fun topologicalConnectivityTypeOf(startConnected: Boolean, endConnected: Boolean
 
 data class SwitchOnLocationTrack(
     val switchId: IntId<LayoutSwitch>,
+    val parsedName: ParsedSwitchName?,
     val name: SwitchName,
     val address: TrackMeter?,
     val location: Point?,

@@ -16,7 +16,6 @@ import {
     LocationTrackNamingScheme,
     LocationTrackSpecifier,
 } from 'track-layout/track-layout-model';
-import { LayoutContext } from 'common/common-model';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type LocationTrackNameFreeTextProps = {
@@ -194,8 +193,6 @@ export const LocationTrackNameParts: React.FC<{
 
 type LocationTrackEditDialogNameSectionProps = {
     state: LocationTrackEditState;
-    existingLocationTrack: LayoutLocationTrack | undefined;
-    layoutContext: LayoutContext;
     updateProp: <TKey extends keyof LocationTrackSaveRequest>(
         key: TKey,
         value: LocationTrackSaveRequest[TKey],
