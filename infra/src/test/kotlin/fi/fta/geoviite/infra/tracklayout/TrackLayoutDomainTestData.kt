@@ -10,9 +10,11 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.ParsedSwitchName
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.SwitchNamePrefix
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
@@ -487,6 +489,8 @@ fun locationTrack(
         boundingBox = geometry.boundingBox,
         segmentCount = geometry.segments.size,
         length = geometry.length,
+        startSwitchId = null,
+        endSwitchId = null,
         duplicateOf = duplicateOf,
         topologicalConnectivity = topologicalConnectivity,
         ownerId = ownerId,
@@ -845,6 +849,9 @@ fun switch(
         contextData = contextData,
         draftOid = draftOid,
     )
+
+fun parsedSwitchName(prefix: String, shortNumberPart: String) =
+    ParsedSwitchName(SwitchNamePrefix(prefix), SwitchName(shortNumberPart))
 
 fun <T : LayoutAsset<T>> createMainContext(id: IntId<T>?, draft: Boolean): LayoutContextData<T> =
     if (draft) {

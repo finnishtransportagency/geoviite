@@ -30,7 +30,11 @@ import {
     TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
-import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
+import {
+    getChangeTimes,
+    updateLocationTrackChangeTime,
+    updateSwitchChangeTime,
+} from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { LayoutSwitchSaveRequest } from 'linking/linking-model';
@@ -131,9 +135,7 @@ export async function insertSwitch(
         layoutUri('switches', draftLayoutContext(layoutContext)),
         newSwitch,
     );
-
     await updateSwitchChangeTime();
-
     return result;
 }
 
@@ -146,9 +148,8 @@ export async function updateSwitch(
         layoutUri('switches', draftLayoutContext(layoutContext), id),
         updatedSwitch,
     );
-
-    await updateSwitchChangeTime();
-
+    // Switch changes can also affect location track names
+    await Promise.all([updateSwitchChangeTime(), updateLocationTrackChangeTime()]);
     return result;
 }
 
@@ -156,9 +157,12 @@ export async function deleteDraftSwitch(
     layoutContext: LayoutContext,
     switchId: LayoutSwitchId,
 ): Promise<LayoutSwitchId | undefined> {
-    return await deleteNonNull<LayoutSwitchId>(
+    const result = await deleteNonNull<LayoutSwitchId>(
         layoutUri('switches', draftLayoutContext(layoutContext), switchId),
-    ).then((r) => updateSwitchChangeTime().then((_) => r));
+    );
+    // Switch changes can also affect location track names
+    await Promise.all([updateSwitchChangeTime(), updateLocationTrackChangeTime()]);
+    return result;
 }
 
 export const getSwitchValidation = async (
@@ -210,7 +214,13 @@ export const getSwitchChangeTimes = (
 };
 
 export async function cancelSwitch(design: DesignBranch, id: LayoutSwitchId): Promise<void> {
-    return postNonNull(`${layoutUriByBranch('switches', design)}/${id}/cancel`, '');
+    const result: Promise<void> = postNonNull(
+        `${layoutUriByBranch('switches', design)}/${id}/cancel`,
+        '',
+    );
+    // Switch changes can also affect location track names
+    await Promise.all([updateSwitchChangeTime(), updateLocationTrackChangeTime()]);
+    return result;
 }
 
 export async function getSwitchOids(

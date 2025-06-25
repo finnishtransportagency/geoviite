@@ -1,8 +1,11 @@
 import React from 'react';
 import {
+    formatTrackDescription,
+    formatTrackName,
     LayoutLocationTrack,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
+    LocationTrackNamingScheme,
 } from 'track-layout/track-layout-model';
 import { Dialog, DialogVariant, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -42,6 +45,8 @@ import {
     useLocationTrack,
     useLocationTrackInfoboxExtras,
     useLocationTrackStartAndEnd,
+    useSwitch,
+    useTrackNumber,
 } from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
@@ -50,12 +55,11 @@ import { debounceAsync } from 'utils/async-utils';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
+import { ifDefined, isNil } from 'utils/type-utils';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import { getLocationTrackOwners } from 'common/common-api';
 import { useLoader } from 'utils/react-utils';
 import { ChangeTimes } from 'common/common-slice';
-import { getChangeTimes } from 'common/change-time-api';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { first } from 'utils/array-utils';
 import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
@@ -88,7 +92,7 @@ export const LocationTrackEditDialogContainer: React.FC<LocationTrackDialogConta
             locationTrack={locationTrack}
             onClose={props.onClose}
             onSave={props.onSave}
-            changeTimes={getChangeTimes()}
+            changeTimes={changeTimes}
             onEditTrack={(id) => setEditTrackId(id)}
         />
     );
@@ -104,6 +108,12 @@ type LocationTrackDialogProps = {
 };
 
 const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm, 250);
+
+const NAME_FIELDS = [
+    'namingScheme' as keyof LocationTrackSaveRequest,
+    'nameFreeText' as keyof LocationTrackSaveRequest,
+    'nameSpecifier' as keyof LocationTrackSaveRequest,
+];
 
 export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     props: LocationTrackDialogProps,
@@ -171,12 +181,46 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         if (duplicate && !selectedDuplicateTrack) setSelectedDuplicateTrack(duplicate);
     }, [duplicate]);
 
-    const validTrackName = !state.validationIssues.some((e) => e.field === 'nameFreeText')
-        ? (state.locationTrack.nameFreeText ?? '') // TODO: GVT-3080
-        : '';
+    const trackNumber = useTrackNumber(
+        state.locationTrack.trackNumberId,
+        layoutContextDraft,
+        props.changeTimes.layoutTrackNumber,
+    );
+    const startSwitch = useSwitch(
+        state.existingLocationTrack?.startSwitchId,
+        layoutContextDraft,
+        props.changeTimes.layoutSwitch,
+    );
+    const endSwitch = useSwitch(
+        state.existingLocationTrack?.endSwitchId,
+        layoutContextDraft,
+        props.changeTimes.layoutSwitch,
+    );
 
-    // TODO: GVT-3080 this will probably need to be used somewhere else
-    const _trackWithSameName = ifDefined(
+    const trackName = formatTrackName(
+        state.locationTrack.namingScheme ?? LocationTrackNamingScheme.FREE_TEXT,
+        state.locationTrack.nameFreeText,
+        state.locationTrack.nameSpecifier,
+        trackNumber,
+        startSwitch,
+        endSwitch,
+    );
+
+    const trackDescription = formatTrackDescription(
+        state.locationTrack.descriptionBase ?? '',
+        state.locationTrack.descriptionSuffix ?? 'NONE',
+        startSwitch,
+        endSwitch,
+        t,
+    );
+
+    const nameIsValid =
+        !state.validationIssues.some((e) => NAME_FIELDS.includes(e.field)) &&
+        !isNil(trackNumber) &&
+        state.locationTrack.namingScheme !== undefined;
+    const validTrackName = nameIsValid ? trackName : '';
+
+    const trackWithSameName = ifDefined(
         useConflictingTracks(
             state.locationTrack.trackNumberId,
             [validTrackName],
@@ -313,42 +357,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         setSelectedDuplicateTrack(duplicateTrack?.locationTrack);
     }
 
-    const switchToSwitchDescriptionSuffix = () =>
-        `${extraInfo?.switchAtStart?.shortName ?? '???'} - ${
-            extraInfo?.switchAtEnd?.shortName ?? '???'
-        }`;
-
-    const switchToBufferDescriptionSuffix = () =>
-        `${
-            extraInfo?.switchAtStart?.shortName ?? extraInfo?.switchAtEnd?.shortName ?? '???'
-        } - ${t('location-track-dialog.buffer')}`;
-
-    const switchToOwnershipBoundaryDescriptionSuffix = () =>
-        `${
-            extraInfo?.switchAtStart?.shortName ?? extraInfo?.switchAtEnd?.shortName ?? '???'
-        } - ${t('location-track-dialog.ownership-boundary')}`;
-
-    const descriptionSuffix = (mode: LocationTrackDescriptionSuffixMode) => {
-        switch (mode) {
-            case 'NONE':
-                return undefined;
-            case 'SWITCH_TO_SWITCH':
-                return switchToSwitchDescriptionSuffix();
-            case 'SWITCH_TO_BUFFER':
-                return switchToBufferDescriptionSuffix();
-            case 'SWITCH_TO_OWNERSHIP_BOUNDARY':
-                return switchToOwnershipBoundaryDescriptionSuffix();
-            default:
-                return exhaustiveMatchingGuard(mode);
-        }
-    };
-
-    const fullDescription = () => {
-        const base = state.locationTrack?.descriptionBase ?? '';
-        const suffix = descriptionSuffix(locationTrackDescriptionSuffixMode ?? 'NONE');
-        return suffix ? `${base} ${suffix}` : base;
-    };
-
     const trackNumberOptions = state.trackNumbers
         .filter(
             (tn) => tn.id === state.existingLocationTrack?.trackNumberId || tn.state !== 'DELETED',
@@ -357,13 +365,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             const note = tn.state === 'DELETED' ? ` (${t('enum.LocationTrackState.DELETED')})` : '';
             return { name: tn.number + note, value: tn.id, qaId: `track-number-${tn.id}` };
         });
-
-    // TODO: GVT-3080 This will probably need to be used somewhere else
-    const _moveToEditLinkText = (track: LayoutLocationTrack) => {
-        return track.state === 'DELETED'
-            ? t('location-track-dialog.move-to-edit-deleted')
-            : t('location-track-dialog.move-to-edit', { name: track.name });
-    };
 
     const manuallySetDuplicates =
         extraInfo?.duplicates?.filter(
@@ -435,40 +436,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             onCommitField={stateActions.onCommitField}
                             getVisibleErrorsByProp={getVisibleErrorsByProp}
                             onEditTrack={props.onEditTrack}
+                            fullName={trackName}
+                            trackWithSameName={trackWithSameName}
                         />
-                        {/*<FieldLayout
-                            label={`${t('location-track-dialog.track-logo')} *`}
-                            value={
-                                // TODO: GVT-3080 yoink proper name components from original branch and use them instead
-                                <TextField
-                                    qa-id="location-track-name"
-                                    value={state.locationTrack?.nameFreeText}
-                                    onChange={(e) => updateProp('nameFreeText', e.target.value)}
-                                    onBlur={() => stateActions.onCommitField('nameFreeText')}
-                                    hasError={hasErrors('nameFreeText')}
-                                    ref={firstInputRef}
-                                    wide
-                                />
-                            }
-                            errors={getVisibleErrorsByProp('nameFreeText')}>
-                            {trackWithSameName && (
-                                <>
-                                    <div
-                                        className={
-                                            styles['location-track-edit-dialog__alert-color']
-                                        }>
-                                        {trackWithSameName.state === 'DELETED'
-                                            ? t('location-track-dialog.name-in-use-deleted')
-                                            : t('location-track-dialog.name-in-use')}
-                                    </div>
-                                    <AnchorLink
-                                        className={styles['location-track-edit-dialog__alert']}
-                                        onClick={() => props.onEditTrack(trackWithSameName.id)}>
-                                        {moveToEditLinkText(trackWithSameName)}
-                                    </AnchorLink>
-                                </>
-                            )}
-                        </FieldLayout>*/}
                         <FieldLayout
                             label={`${t('location-track-dialog.track-number')} *`}
                             value={
@@ -558,7 +528,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     />
                                     <FieldLayout
                                         label={`${t('location-track-dialog.full-description')}`}
-                                        value={state.locationTrack && fullDescription()}
+                                        value={state.locationTrack && trackDescription}
                                     />
                                 </div>
                             }
@@ -697,7 +667,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     className={
                                         styles['location-track-edit-dialog__readonly-value']
                                     }>
-                                    {extraInfo?.switchAtStart?.name ??
+                                    {startSwitch?.name ??
                                         t('location-track-dialog.no-start-or-end-switch')}
                                 </span>
                             }
@@ -709,7 +679,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     className={
                                         styles['location-track-edit-dialog__readonly-value']
                                     }>
-                                    {extraInfo?.switchAtEnd?.name ??
+                                    {endSwitch?.name ??
                                         t('location-track-dialog.no-start-or-end-switch')}
                                 </span>
                             }

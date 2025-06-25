@@ -41,9 +41,9 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -688,6 +688,8 @@ private fun createSplitTarget(
             segmentCount = newGeometry.segments.size,
             length = newGeometry.length,
             boundingBox = newGeometry.boundingBox,
+            startSwitchId = newGeometry.startSwitchLink?.id,
+            endSwitchId = newGeometry.endSwitchLink?.id,
             // TODO: GVT-2399 Split in design branches
             contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
         )

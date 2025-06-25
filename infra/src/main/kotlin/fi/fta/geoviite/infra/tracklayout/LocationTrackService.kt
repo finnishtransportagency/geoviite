@@ -72,23 +72,17 @@ class LocationTrackService(
 
     @Transactional
     fun insert(branch: LayoutBranch, request: LocationTrackSaveRequest): LayoutRowVersion<LocationTrack> {
-        val nameStructure =
-            TrackNameStructure.of(
-                namingScheme = request.namingScheme,
-                nameFreeText = request.nameFreeText,
-                nameSpecifier = request.nameSpecifier,
-            )
-        val descriptionStructure =
-            TrackDescriptionStructure(
-                descriptionBase = request.descriptionBase,
-                descriptionSuffix = request.descriptionSuffix,
-            )
         val locationTrack =
             LocationTrack(
-                nameStructure = nameStructure,
-                name = nameStructure.reify(trackNumberDao.getOrThrow(branch.draft, request.trackNumberId), null, null),
-                descriptionStructure = descriptionStructure,
-                description = descriptionStructure.reify(descriptionTranslation, null, null),
+                nameStructure = request.nameStructure,
+                name =
+                    request.nameStructure.reify(
+                        trackNumberDao.getOrThrow(branch.draft, request.trackNumberId),
+                        null,
+                        null,
+                    ),
+                descriptionStructure = request.descriptionStructure,
+                description = request.descriptionStructure.reify(descriptionTranslation, null, null),
                 type = request.type,
                 state = request.state,
                 trackNumberId = request.trackNumberId,
@@ -97,6 +91,8 @@ class LocationTrackService(
                 segmentCount = 0,
                 boundingBox = null,
                 duplicateOf = request.duplicateOf,
+                startSwitchId = null,
+                endSwitchId = null,
                 topologicalConnectivity = request.topologicalConnectivity,
                 ownerId = request.ownerId,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
@@ -133,17 +129,8 @@ class LocationTrackService(
         val (originalTrack: LocationTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
         val locationTrack =
             originalTrack.copy(
-                nameStructure =
-                    TrackNameStructure.of(
-                        namingScheme = request.namingScheme,
-                        nameFreeText = request.nameFreeText,
-                        nameSpecifier = request.nameSpecifier,
-                    ),
-                descriptionStructure =
-                    TrackDescriptionStructure(
-                        descriptionBase = request.descriptionBase,
-                        descriptionSuffix = request.descriptionSuffix,
-                    ),
+                nameStructure = request.nameStructure,
+                descriptionStructure = request.descriptionStructure,
                 type = request.type,
                 state = request.state,
                 trackNumberId = request.trackNumberId,
@@ -519,21 +506,10 @@ class LocationTrackService(
             val startSplitPoint = createSplitPoint(start, startSwitchLink?.id, START, geocodingContext)
             val endSplitPoint = createSplitPoint(end, endSwitchLink?.id, END, geocodingContext)
 
-            val startSwitch = startSwitchLink?.id?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
-            val endSwitch = endSwitchLink?.id?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
-
             val partOfUnfinishedSplit =
                 splitDao.locationTracksPartOfAnyUnfinishedSplit(layoutContext.branch, listOf(id)).isNotEmpty()
 
-            LocationTrackInfoboxExtras(
-                duplicateOf,
-                duplicates,
-                startSwitch,
-                endSwitch,
-                partOfUnfinishedSplit,
-                startSplitPoint,
-                endSplitPoint,
-            )
+            LocationTrackInfoboxExtras(duplicateOf, duplicates, partOfUnfinishedSplit, startSplitPoint, endSplitPoint)
         }
     }
 
@@ -591,9 +567,6 @@ class LocationTrackService(
                 getDuplicateTrackParentStatus(parentTrack, parentGeometry, childTrack, childGeometry)
             }
         }
-
-    private fun fetchSwitchAtEndById(layoutContext: LayoutContext, id: IntId<LayoutSwitch>): LayoutSwitchIdAndName? =
-        switchDao.get(layoutContext, id)?.let { switch -> LayoutSwitchIdAndName(id, switch.name, switch.shortName) }
 
     @Transactional
     fun recalculateTopology(

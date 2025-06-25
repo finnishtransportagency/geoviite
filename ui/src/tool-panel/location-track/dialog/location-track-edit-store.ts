@@ -14,7 +14,10 @@ import {
     PropEdit,
 } from 'utils/validation-utils';
 import { LocationTrackOwner, LocationTrackOwnerId } from 'common/common-model';
-import { validateLocationTrackDescriptionBase } from 'tool-panel/location-track/dialog/location-track-validation';
+import {
+    validateLocationTrackDescriptionBase,
+    validateLocationTrackNameStructure,
+} from 'tool-panel/location-track/dialog/location-track-validation';
 
 export type LocationTrackEditState = {
     isNewLocationTrack: boolean;
@@ -96,7 +99,7 @@ function validateLinkingLocationTrack(
                     : undefined,
             )
             .filter(filterNotEmpty),
-        //...validateLocationTrackName(saveRequest.nameFreeText) TODO: GVT-3080
+        ...validateLocationTrackNameStructure(saveRequest),
     ];
 
     return [...errors, ...validateLocationTrackDescriptionBase(saveRequest.descriptionBase)];

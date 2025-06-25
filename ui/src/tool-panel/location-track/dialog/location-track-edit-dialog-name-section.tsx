@@ -12,68 +12,44 @@ import {
 } from 'utils/enum-localization-utils';
 import {
     LayoutLocationTrack,
-    LayoutTrackNumberId,
     LocationTrackId,
     LocationTrackNamingScheme,
     LocationTrackSpecifier,
 } from 'track-layout/track-layout-model';
-import {
-    useLocationTrackInfoboxExtras,
-    useTrackNumber,
-} from 'track-layout/track-layout-react-utils';
 import { LayoutContext } from 'common/common-model';
-import { getChangeTimes } from 'common/change-time-api';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type LocationTrackNameFreeTextProps = {
     request: LocationTrackSaveRequest;
     updateFreeText: (freeText: string) => void;
     onCommitFreeText: () => void;
-    getNameErrors: () => string[];
+    getFreeTextErrors: () => string[];
 };
 
 type LocationTrackNameTrackNumberProps = {
     request: LocationTrackSaveRequest;
-    trackNumberId: LayoutTrackNumberId | undefined;
-    layoutContext: LayoutContext;
     updateFreeText: (freeText: string) => void;
-    onCommitFreeText: () => void;
     updateSpecifier: (specifier: LocationTrackSpecifier | undefined) => void;
+    onCommitFreeText: () => void;
     onCommitSpecifier: () => void;
-    getNameErrors: () => string[];
+    getFreeTextErrors: () => string[];
+    getSpecifierErrors: () => string[];
 };
 
 type LocationTrackNameBetweenOperatingPointsProps = {
     request: LocationTrackSaveRequest;
-    locationTrack: LayoutLocationTrack | undefined;
-    layoutContext: LayoutContext;
     updateSpecifier: (specifier: LocationTrackSpecifier | undefined) => void;
     onCommitSpecifier: () => void;
-    getNameErrors: () => string[];
-};
-
-type LocationTrackNameChordProps = {
-    locationTrack: LayoutLocationTrack | undefined;
-    layoutContext: LayoutContext;
-};
-
-export const splitSwitchName = (switchName: string | undefined) => {
-    if (!switchName) return ['', ''];
-
-    const firstSpaceIndex = switchName.indexOf(' ');
-    const firstPart = firstSpaceIndex !== -1 ? switchName.slice(0, firstSpaceIndex) : switchName;
-    const secondPart = firstSpaceIndex !== -1 ? switchName.slice(firstSpaceIndex + 1) : '';
-
-    return [firstPart, secondPart];
+    getSpecifierErrors: () => string[];
 };
 
 const LocationTrackNameFreeText: React.FC<LocationTrackNameFreeTextProps> = ({
     request,
     updateFreeText,
     onCommitFreeText,
-    getNameErrors,
+    getFreeTextErrors,
 }) => {
     const { t } = useTranslation();
-
     return (
         <FieldLayout
             label={`${t('location-track-dialog.name-free-text')} *`}
@@ -86,25 +62,21 @@ const LocationTrackNameFreeText: React.FC<LocationTrackNameFreeTextProps> = ({
                     wide
                 />
             }
-            errors={getNameErrors()}
+            errors={getFreeTextErrors()}
         />
     );
 };
 
 const LocationTrackNameTrackNumber: React.FC<LocationTrackNameTrackNumberProps> = ({
     request,
-    trackNumberId,
-    layoutContext,
     updateFreeText,
     onCommitFreeText,
     updateSpecifier,
     onCommitSpecifier,
-    getNameErrors,
+    getFreeTextErrors,
+    getSpecifierErrors,
 }) => {
     const { t } = useTranslation();
-
-    const trackNumber = useTrackNumber(trackNumberId, layoutContext);
-
     return (
         <React.Fragment>
             <FieldLayout
@@ -120,7 +92,7 @@ const LocationTrackNameTrackNumber: React.FC<LocationTrackNameTrackNumberProps> 
                         wide
                     />
                 }
-                errors={getNameErrors()}
+                errors={getSpecifierErrors()}
             />
             <FieldLayout
                 label={`${t('location-track-dialog.operating-point-range')} *`}
@@ -133,11 +105,7 @@ const LocationTrackNameTrackNumber: React.FC<LocationTrackNameTrackNumberProps> 
                         wide
                     />
                 }
-                errors={getNameErrors()}
-            />
-            <FieldLayout
-                label={`${t('location-track-dialog.full-name')}`}
-                value={`${trackNumber?.number ?? '???'} ${request.nameSpecifier ? t(`location-track-dialog.name-specifiers.${request.nameSpecifier}`) : '???'} ${request.nameFreeText}`}
+                errors={getFreeTextErrors()}
             />
         </React.Fragment>
     );
@@ -145,142 +113,80 @@ const LocationTrackNameTrackNumber: React.FC<LocationTrackNameTrackNumberProps> 
 
 const LocationTrackNameBetweenOperatingPoints: React.FC<
     LocationTrackNameBetweenOperatingPointsProps
-> = ({
-    request,
-    locationTrack,
-    layoutContext,
-    updateSpecifier,
-    onCommitSpecifier,
-    getNameErrors,
-}) => {
+> = ({ request, updateSpecifier, onCommitSpecifier, getSpecifierErrors }) => {
     const { t } = useTranslation();
-    const [extraInfo] = useLocationTrackInfoboxExtras(
-        locationTrack?.id,
-        layoutContext,
-        getChangeTimes(),
-    );
-
     return (
-        <React.Fragment>
-            <FieldLayout
-                label={`${t('location-track-dialog.name-specifier')} *`}
-                value={
-                    <Dropdown
-                        qa-id="location-track-name-specifier"
-                        value={request.nameSpecifier}
-                        options={locationTrackNameSpecifiers}
-                        canUnselect={true}
-                        onChange={(e) => updateSpecifier && updateSpecifier(e)}
-                        onBlur={() => onCommitSpecifier && onCommitSpecifier()}
-                        wide
-                    />
-                }
-                errors={getNameErrors()}
-            />
-            <FieldLayout
-                label={`${t('location-track-dialog.full-name')}`}
-                value={`${t(`location-track-dialog.name-specifiers.${request.nameSpecifier}`) ?? '???'} ${extraInfo?.switchAtStart?.shortName ?? '???'}-${extraInfo?.switchAtEnd?.shortName ?? '???'}`}
-            />
-        </React.Fragment>
+        <FieldLayout
+            label={`${t('location-track-dialog.name-specifier')} *`}
+            value={
+                <Dropdown
+                    qa-id="location-track-name-specifier"
+                    value={request.nameSpecifier}
+                    options={locationTrackNameSpecifiers}
+                    canUnselect={true}
+                    onChange={(e) => updateSpecifier && updateSpecifier(e)}
+                    onBlur={() => onCommitSpecifier && onCommitSpecifier()}
+                    wide
+                />
+            }
+            errors={getSpecifierErrors()}
+        />
     );
-};
-
-const LocationTrackNameChord: React.FC<LocationTrackNameChordProps> = ({
-    locationTrack,
-    layoutContext,
-}) => {
-    const { t } = useTranslation();
-    const [extraInfo] = useLocationTrackInfoboxExtras(
-        locationTrack?.id,
-        layoutContext,
-        getChangeTimes(),
-    );
-
-    const [startOperatingPoint] = splitSwitchName(extraInfo?.switchAtStart?.name);
-    const [endOperatingPoint] = splitSwitchName(extraInfo?.switchAtEnd?.name);
-
-    const name =
-        startOperatingPoint === endOperatingPoint
-            ? `${startOperatingPoint} ${extraInfo?.switchAtStart?.shortName ?? '???'}-${extraInfo?.switchAtEnd?.shortName ?? '???'}`
-            : `${extraInfo?.switchAtStart?.shortName ?? '???'}-${extraInfo?.switchAtEnd?.shortName ?? '???'}`;
-
-    return <FieldLayout label={`${t('location-track-dialog.full-name')}`} value={name} />;
 };
 
 export const LocationTrackNameParts: React.FC<{
     state: LocationTrackEditState;
-    locationTrack: LayoutLocationTrack | undefined;
-    layoutContext: LayoutContext;
     updateProp: <TKey extends keyof LocationTrackSaveRequest>(
         key: TKey,
         value: LocationTrackSaveRequest[TKey],
     ) => void;
     onCommitField: (prop: keyof LocationTrackSaveRequest) => void;
     getVisibleErrorsByProp: (prop: keyof LocationTrackSaveRequest) => string[];
-}> = ({
-    state,
-    locationTrack,
-    layoutContext,
-    updateProp,
-    onCommitField,
-    getVisibleErrorsByProp,
-}) => {
+}> = ({ state, updateProp, onCommitField, getVisibleErrorsByProp }) => {
     switch (state.locationTrack.namingScheme) {
         case LocationTrackNamingScheme.FREE_TEXT:
             return (
-                <LocationTrackNameFreeText
-                    request={state.locationTrack}
-                    updateFreeText={(value) => {
-                        updateProp('nameFreeText', value);
-                    }}
-                    onCommitFreeText={() => onCommitField('nameFreeText')}
-                    getNameErrors={() => getVisibleErrorsByProp('nameFreeText')}
-                />
+                <React.Fragment>
+                    <LocationTrackNameFreeText
+                        request={state.locationTrack}
+                        updateFreeText={(value) => updateProp('nameFreeText', value)}
+                        onCommitFreeText={() => onCommitField('nameFreeText')}
+                        getFreeTextErrors={() => getVisibleErrorsByProp('nameFreeText')}
+                    />
+                </React.Fragment>
             );
         case LocationTrackNamingScheme.TRACK_NUMBER_TRACK:
             return (
                 <LocationTrackNameTrackNumber
                     request={state.locationTrack}
-                    trackNumberId={locationTrack?.trackNumberId}
-                    layoutContext={layoutContext}
-                    updateFreeText={(value) => {
-                        updateProp('nameFreeText', value);
-                    }}
-                    onCommitFreeText={() => onCommitField('namingScheme')}
+                    updateFreeText={(value) => updateProp('nameFreeText', value)}
                     updateSpecifier={(value) => updateProp('nameSpecifier', value)}
-                    onCommitSpecifier={() => onCommitField('namingScheme')}
-                    getNameErrors={() => getVisibleErrorsByProp('namingScheme')}
+                    onCommitFreeText={() => onCommitField('nameFreeText')}
+                    onCommitSpecifier={() => onCommitField('nameSpecifier')}
+                    getFreeTextErrors={() => getVisibleErrorsByProp('nameFreeText')}
+                    getSpecifierErrors={() => getVisibleErrorsByProp('nameSpecifier')}
                 />
             );
         case LocationTrackNamingScheme.WITHIN_OPERATING_POINT:
             return (
                 <LocationTrackNameFreeText
                     request={state.locationTrack}
-                    updateFreeText={(value) => {
-                        updateProp('nameFreeText', value);
-                    }}
-                    onCommitFreeText={() => onCommitField('namingScheme')}
-                    getNameErrors={() => getVisibleErrorsByProp('namingScheme')}
+                    updateFreeText={(value) => updateProp('nameFreeText', value)}
+                    onCommitFreeText={() => onCommitField('nameFreeText')}
+                    getFreeTextErrors={() => getVisibleErrorsByProp('nameFreeText')}
                 />
             );
         case LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS:
             return (
                 <LocationTrackNameBetweenOperatingPoints
                     request={state.locationTrack}
-                    locationTrack={locationTrack}
-                    layoutContext={layoutContext}
                     updateSpecifier={(value) => updateProp('nameSpecifier', value)}
-                    onCommitSpecifier={() => onCommitField('namingScheme')}
-                    getNameErrors={() => getVisibleErrorsByProp('namingScheme')}
+                    onCommitSpecifier={() => onCommitField('nameSpecifier')}
+                    getSpecifierErrors={() => getVisibleErrorsByProp('nameSpecifier')}
                 />
             );
         case LocationTrackNamingScheme.CHORD:
-            return (
-                <LocationTrackNameChord
-                    locationTrack={locationTrack}
-                    layoutContext={layoutContext}
-                />
-            );
+            return <React.Fragment />;
         default:
             return <React.Fragment />;
     }
@@ -297,39 +203,27 @@ type LocationTrackEditDialogNameSectionProps = {
     onCommitField: (prop: keyof LocationTrackSaveRequest) => void;
     getVisibleErrorsByProp: (prop: keyof LocationTrackSaveRequest) => string[];
     onEditTrack: (id: LocationTrackId) => void;
+    fullName: string;
+    trackWithSameName: LayoutLocationTrack | undefined;
 };
 
 export const LocationTrackEditDialogNameSection: React.FC<
     LocationTrackEditDialogNameSectionProps
 > = ({
     state,
-    existingLocationTrack,
-    layoutContext,
     updateProp,
     onCommitField,
     getVisibleErrorsByProp,
-    onEditTrack: _onEditTrack,
+    onEditTrack,
+    fullName,
+    trackWithSameName,
 }) => {
     const { t } = useTranslation();
-
-    /*const validTrackName = !state.validationIssues.some((e) => e.field === 'namingScheme')
-    ? state.locationTrack.namingScheme
-    : undefined;
-const trackWithSameName = ifDefined(
-    useConflictingTracks(
-        state.locationTrack.trackNumberId,
-        [validTrackName],
-        props.locationTrack?.id ? [props.locationTrack.id] : [],
-        layoutContextDraft,
-    ),
-    first,
-);*/
-
-    /*const moveToEditLinkText = (track: LayoutLocationTrack) => {
+    const moveToEditLinkText = (track: LayoutLocationTrack) => {
         return track.state === 'DELETED'
             ? t('location-track-dialog.move-to-edit-deleted')
             : t('location-track-dialog.move-to-edit', { name: track.name });
-    };*/
+    };
 
     return (
         <React.Fragment>
@@ -353,30 +247,31 @@ const trackWithSameName = ifDefined(
                         />
                         <LocationTrackNameParts
                             state={state}
-                            locationTrack={existingLocationTrack}
-                            layoutContext={layoutContext}
                             updateProp={updateProp}
                             onCommitField={onCommitField}
                             getVisibleErrorsByProp={getVisibleErrorsByProp}
                         />
+                        <FieldLayout
+                            label={`${t('location-track-dialog.full-name')}`}
+                            value={fullName}
+                        />
+                        {trackWithSameName && (
+                            <>
+                                <div className={styles['location-track-edit-dialog__alert-color']}>
+                                    {trackWithSameName.state === 'DELETED'
+                                        ? t('location-track-dialog.name-in-use-deleted')
+                                        : t('location-track-dialog.name-in-use')}
+                                </div>
+                                <AnchorLink
+                                    className={styles['location-track-edit-dialog__alert']}
+                                    onClick={() => onEditTrack(trackWithSameName.id)}>
+                                    {moveToEditLinkText(trackWithSameName)}
+                                </AnchorLink>
+                            </>
+                        )}
                     </div>
                 }
-                errors={getVisibleErrorsByProp('namingScheme')}
             />
-            {/*trackWithSameName && (
-                <>
-                    <div className={styles['location-track-edit-dialog__alert-color']}>
-                        {trackWithSameName.state === 'DELETED'
-                            ? t('location-track-dialog.name-in-use-deleted')
-                            : t('location-track-dialog.name-in-use')}
-                    </div>
-                    <AnchorLink
-                        className={styles['location-track-edit-dialog__alert']}
-                        onClick={() => onEditTrack(trackWithSameName.id)}>
-                        {moveToEditLinkText(trackWithSameName)}
-                    </AnchorLink>
-                </>
-            )*/}
         </React.Fragment>
     );
 };

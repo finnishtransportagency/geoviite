@@ -10,14 +10,7 @@ import {
     Oid,
     TimeStamp,
 } from 'common/common-model';
-import {
-    deleteNonNull,
-    getNonNull,
-    getNullable,
-    postNonNull,
-    putNonNull,
-    queryParams,
-} from 'api/api-fetch';
+import { getNonNull, getNullable, postNonNull, putNonNull, queryParams } from 'api/api-fetch';
 import {
     changeInfoUri,
     layoutUri,
@@ -27,6 +20,7 @@ import {
 import { TrackNumberSaveRequest } from 'tool-panel/track-number/dialog/track-number-edit-store';
 import {
     getChangeTimes,
+    updateLocationTrackChangeTime,
     updateReferenceLineChangeTime,
     updateTrackNumberChangeTime,
 } from 'common/change-time-api';
@@ -71,9 +65,14 @@ export async function updateTrackNumber(
     request: TrackNumberSaveRequest,
 ): Promise<LayoutTrackNumberId | undefined> {
     const path = layoutUri('track-numbers', draftLayoutContext(layoutContext), trackNumberId);
-    return await putNonNull<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then((rs) =>
-        updateTrackNumberChangeTime().then((_) => rs),
-    );
+    const result = await putNonNull<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request);
+    await Promise.all([
+        updateTrackNumberChangeTime(),
+        updateReferenceLineChangeTime(),
+        // Track number changes can also affect location track names
+        updateLocationTrackChangeTime(),
+    ]);
+    return result;
 }
 
 export async function createTrackNumber(
@@ -84,19 +83,6 @@ export async function createTrackNumber(
     return await postNonNull<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
         (rs) => updateTrackNumberChangeTime().then((_) => rs),
     );
-}
-
-export async function deleteTrackNumber(
-    layoutContext: LayoutContext,
-    trackNumberId: LayoutTrackNumberId,
-): Promise<LayoutTrackNumberId> {
-    const path = layoutUri('track-numbers', draftLayoutContext(layoutContext), trackNumberId);
-    const result = await deleteNonNull<LayoutTrackNumberId>(path);
-
-    await updateTrackNumberChangeTime();
-    await updateReferenceLineChangeTime();
-
-    return result;
 }
 
 export async function getTrackNumberValidation(
@@ -142,7 +128,17 @@ export async function cancelTrackNumber(
     design: DesignBranch,
     id: LayoutTrackNumberId,
 ): Promise<void> {
-    return postNonNull(`${layoutUriByBranch('track-numbers', design)}/${id}/cancel`, '');
+    const result = postNonNull<string, void>(
+        `${layoutUriByBranch('track-numbers', design)}/${id}/cancel`,
+        '',
+    );
+    await Promise.all([
+        updateTrackNumberChangeTime(),
+        updateReferenceLineChangeTime(),
+        // Track number changes can also affect location track names
+        updateLocationTrackChangeTime(),
+    ]);
+    return result;
 }
 
 export async function getTrackNumberOids(

@@ -16,10 +16,7 @@ import {
 } from 'tool-panel/location-track/split-store';
 import { findById } from 'utils/array-utils';
 import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
-import {
-    validateLocationTrackDescriptionBase,
-    validateLocationTrackName,
-} from 'tool-panel/location-track/dialog/location-track-validation';
+import { validateLocationTrackDescriptionBase } from 'tool-panel/location-track/dialog/location-track-validation';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
 
@@ -62,14 +59,18 @@ const splitToRequestTarget = (
     const duplicateTrack: SplitRequestTargetDuplicate | undefined =
         split.duplicateTrackId && split.operation !== 'CREATE'
             ? {
-                id: split.duplicateTrackId,
-                operation: split.operation,
-            }
+                  id: split.duplicateTrackId,
+                  operation: split.operation,
+              }
             : undefined;
     return {
         name: duplicate ? duplicate.name : split.name,
-        descriptionBase: (duplicate ? duplicate.descriptionStructure.descriptionBase : split.descriptionBase) ?? '',
-        descriptionSuffix: (duplicate ? duplicate.descriptionStructure.descriptionSuffix : split.suffixMode) ?? 'NONE',
+        descriptionBase:
+            (duplicate ? duplicate.descriptionStructure.descriptionBase : split.descriptionBase) ??
+            '',
+        descriptionSuffix:
+            (duplicate ? duplicate.descriptionStructure.descriptionSuffix : split.suffixMode) ??
+            'NONE',
         duplicateTrack: duplicateTrack,
         startAtSwitchId:
             split.splitPoint.type === 'SWITCH_SPLIT_POINT' ? split.splitPoint.switchId : undefined,
@@ -100,8 +101,9 @@ const validateSplitName = (
     allSplitNames: string[],
     conflictingTrackNames: string[],
 ) => {
-    const errors: FieldValidationIssue<SplitTargetCandidate>[] =
-        validateLocationTrackName(splitName);
+    // TODO: GVT-3080
+    const errors: FieldValidationIssue<SplitTargetCandidate>[] = [];
+    // validateLocationTrackName(splitName);
 
     if (allSplitNames.filter((s) => s !== '' && isEqualIgnoreCase(s, splitName)).length > 1)
         errors.push({
