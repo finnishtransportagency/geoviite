@@ -708,16 +708,23 @@ export const TOOL_PANEL_ASSET_ORDER: ToolPanelAssetType[] = [
 
 export const getFirstOfTypeInSelection = (
     selection: Selection,
+    linkingState: LinkingState | undefined,
     type: ToolPanelAssetType,
 ): ToolPanelAsset | undefined => {
     const { selectedItems } = selection;
+
+    const switchLinkingActive =
+        linkingState?.type === LinkingType.LinkingLayoutSwitch ||
+        linkingState?.type === LinkingType.LinkingGeometrySwitch;
+
     const assetGetters: Record<ToolPanelAssetType, () => string | undefined> = {
         GEOMETRY_PLAN: () => first(selectedItems.geometryPlans),
         TRACK_NUMBER: () => first(selectedItems.trackNumbers),
         KM_POST: () => first(selectedItems.kmPosts),
         GEOMETRY_KM_POST: () => first(selectedItems.geometryKmPostIds)?.geometryId,
         SWITCH: () => first(selectedItems.switches),
-        SUGGESTED_SWITCH: () => SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID,
+        SUGGESTED_SWITCH: () =>
+            switchLinkingActive ? SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID : undefined,
         GEOMETRY_SWITCH: () => first(selectedItems.switches),
         LOCATION_TRACK: () => first(selectedItems.locationTracks),
         GEOMETRY_ALIGNMENT: () => first(selectedItems.geometryAlignmentIds)?.geometryId,
@@ -726,11 +733,17 @@ export const getFirstOfTypeInSelection = (
     return id ? { id, type } : undefined;
 };
 
-export const getFirstToolPanelAsset = (selection: Selection): ToolPanelAsset | undefined => {
+export const getFirstToolPanelAsset = (
+    selection: Selection,
+    linkingState: LinkingState | undefined,
+): ToolPanelAsset | undefined => {
     const firstAssetType = TOOL_PANEL_ASSET_ORDER.find(
-        (type) => getFirstOfTypeInSelection(selection, type) !== undefined,
+        (type) => getFirstOfTypeInSelection(selection, linkingState, type) !== undefined,
     );
-    return firstAssetType ? getFirstOfTypeInSelection(selection, firstAssetType) : undefined;
+
+    return firstAssetType
+        ? getFirstOfTypeInSelection(selection, linkingState, firstAssetType)
+        : undefined;
 };
 
 const updateSelectedToolPanelTab = (
@@ -742,7 +755,7 @@ const updateSelectedToolPanelTab = (
         !currentlySelectedTab ||
         !toolPanelAssetExists(selection, linkingState, currentlySelectedTab)
     ) {
-        return getFirstToolPanelAsset(selection);
+        return getFirstToolPanelAsset(selection, linkingState);
     }
 
     return currentlySelectedTab;
