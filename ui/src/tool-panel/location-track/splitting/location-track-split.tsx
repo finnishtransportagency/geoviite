@@ -350,11 +350,11 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
 
                                 updateSplit({
                                     ...split,
-                                    // TODO: GVT-3080 split UI doesn't support other name schemes yet
+                                    // TODO: GVT-3083 split UI doesn't support other name schemes yet
                                     namingScheme: LocationTrackNamingScheme.FREE_TEXT,
                                     nameFreeText: e.target.value,
                                     nameSpecifier: undefined,
-                                    // TODO: GVT-3080 use formatTrackName when other schemes are possible
+                                    // TODO: GVT-3083 use formatTrackName when other schemes are possible
                                     name: e.target.value,
                                     duplicateTrackId: duplicate?.id,
                                     duplicateStatus: duplicate?.status,

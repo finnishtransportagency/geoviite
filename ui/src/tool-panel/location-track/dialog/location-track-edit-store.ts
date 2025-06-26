@@ -107,7 +107,6 @@ function validateLinkingLocationTrack(
 
 const VAYLAVIRASTO_LOCATION_TRACK_OWNER_NAME = 'Väylävirasto';
 
-// TODO: GVT-3080 what a silly function. Replace with a getter + ifDefined call for setting and whatnot
 export function setVaylavirastoOwnerIdFrom(
     owners: LocationTrackOwner[] | undefined,
     set: (vaylaId: LocationTrackOwnerId) => void,

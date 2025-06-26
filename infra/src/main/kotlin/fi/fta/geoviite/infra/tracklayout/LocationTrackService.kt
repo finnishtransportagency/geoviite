@@ -44,11 +44,11 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -109,7 +109,6 @@ class LocationTrackService(
             return requireNotNull(transactionTemplate.execute { updateLocationTrackTransaction(branch, id, request) })
         } catch (dataIntegrityException: DataIntegrityViolationException) {
             throw if (isSplitSourceReferenceError(dataIntegrityException)) {
-                // TODO: GVT-3080 This seems to be a workaround that's now redundant. Check where it came from.
                 SplitSourceLocationTrackUpdateException(
                     AlignmentName(request.nameFreeText?.toString() ?: ""),
                     dataIntegrityException,

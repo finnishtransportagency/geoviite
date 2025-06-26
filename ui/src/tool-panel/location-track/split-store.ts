@@ -517,10 +517,10 @@ function getNameForTarget(
     name: string;
     descriptionBase: string;
 } {
-    // TODO: GVT-3080 when supporting other naming schemes, this should perhaps be BETWEEN_OPERATING_POINTS
+    // TODO: GVT-3083 when supporting other naming schemes, this should perhaps be BETWEEN_OPERATING_POINTS
     //  as within operating points the tracks mostly have duplicates to pick the name from.
     const namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT;
-    // TODO: GVT-3080 when supporting other naming schemes, it would likely make sense to pick this from the main track
+    // TODO: GVT-3083 when supporting other naming schemes, it would likely make sense to pick this from the main track
     //  (the split source) as it will logically be on the same side as the split ones
     const nameSpecifier: LocationTrackSpecifier | undefined = undefined;
     const nameFreeText =
