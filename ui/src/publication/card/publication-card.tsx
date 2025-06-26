@@ -174,6 +174,17 @@ const PublicationCard: React.FC<PublishListProps> = ({
         navigate('publication-search');
     };
 
+    const latestPublicationsTitle =
+        branchType === 'MAIN' ? t('publication-card.latest') : t('publication-card.designs-latest');
+
+    const noPublicationsMessage =
+        branchType === 'MAIN'
+            ? t('publication-card.no-publications')
+            : t('publication-card.designs-no-publications');
+
+    // All design publications immediately succeed for now as they are not transferred anywhere.
+    const successfulPublicationsToDisplay = branchType === 'MAIN' ? successes : allPublications;
+
     return (
         <Card
             className={styles['publication-card']}
@@ -194,7 +205,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                 {parseRatkoOfflineStatus(ratkoStatus?.ratkoStatusCode)}
                             </p>
                         )}
-                        {nonSuccesses.length > 0 && (
+                        {branchType === 'MAIN' && nonSuccesses.length > 0 && (
                             <section>
                                 <h3 className={styles['publication-card__subsection-title']}>
                                     {t('publication-card.waiting')}
@@ -228,18 +239,18 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                 )}
                             </section>
                         )}
-                        {(successes.length > 0 || reachedLastPublication) && (
+                        {(successfulPublicationsToDisplay.length > 0 || reachedLastPublication) && (
                             <section>
                                 <h3 className={styles['publication-card__subsection-title']}>
-                                    {t('publication-card.latest')}
+                                    {latestPublicationsTitle}
                                 </h3>
-                                <PublicationList publications={successes} />
+                                <PublicationList publications={successfulPublicationsToDisplay} />
                             </section>
                         )}
-                        {successes.length === 0 &&
+                        {successfulPublicationsToDisplay.length === 0 &&
                             (nonSuccesses.length === 0 || reachedLastPublication) && (
                                 <div className={styles['publication-card__no-publications']}>
-                                    {t('publication-card.no-publications')}
+                                    {noPublicationsMessage}
                                 </div>
                             )}
                         {!reachedLastPublication && (
