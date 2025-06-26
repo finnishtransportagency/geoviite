@@ -3,9 +3,9 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.DesignLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.ParsedSwitchName
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.SwitchNameParts
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
@@ -97,14 +97,17 @@ class TrackLayoutTest {
 
     @Test
     fun `SwitchName structure parsing works`() {
-        assertEquals(parsedSwitchName("ABC", "V123"), ParsedSwitchName.tryParse(SwitchName("ABC V0123")))
-        assertEquals(parsedSwitchName("ABC", "V123"), ParsedSwitchName.tryParse(SwitchName("ABC   V0123")))
-        assertEquals(parsedSwitchName("ABC", "V123/V124"), ParsedSwitchName.tryParse(SwitchName("ABC V0123/V0124")))
-        assertEquals(parsedSwitchName("ABC", "V123"), ParsedSwitchName.tryParse(SwitchName("ABC__V0123")))
-        assertEquals(parsedSwitchName("ABC", "V003"), ParsedSwitchName.tryParse(SwitchName("ABC  V00003")))
-        assertNull(ParsedSwitchName.tryParse(SwitchName("ABC--V0123/V0124")))
-        assertNull(ParsedSwitchName.tryParse(SwitchName("ABC V0123/V0124/V0125")))
-        assertNull(ParsedSwitchName.tryParse(SwitchName("ABC VASDF")))
+        assertEquals(parsedSwitchName("ABC", "V123"), SwitchNameParts.tryParse(SwitchName("ABC V0123")))
+        assertEquals(parsedSwitchName("ABC", "V123"), SwitchNameParts.tryParse(SwitchName("ABC   V0123")))
+        assertEquals(parsedSwitchName("ABC", "V123/124"), SwitchNameParts.tryParse(SwitchName("ABC V0123/V0124")))
+        assertEquals(parsedSwitchName("ABC", "V123/124"), SwitchNameParts.tryParse(SwitchName("ABC V0123/0124")))
+        assertEquals(parsedSwitchName("ABC", "V001/002"), SwitchNameParts.tryParse(SwitchName("ABC V000001/02")))
+        assertEquals(parsedSwitchName("ABC", "V123"), SwitchNameParts.tryParse(SwitchName("ABC__V0123")))
+        assertEquals(parsedSwitchName("ABC", "V003"), SwitchNameParts.tryParse(SwitchName("ABC  V00003")))
+        assertNull(SwitchNameParts.tryParse(SwitchName("ABC--V0123")))
+        assertNull(SwitchNameParts.tryParse(SwitchName("ABC V0123/V0124/V0125")))
+        assertNull(SwitchNameParts.tryParse(SwitchName("ABC V0123/0124/0125")))
+        assertNull(SwitchNameParts.tryParse(SwitchName("ABC VASDF")))
     }
 
     private fun <T : LayoutAsset<T>> assertRoundTrip(version: LayoutRowVersion<T>) {

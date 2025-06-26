@@ -430,7 +430,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                         <TextField
                             value={
                                 duplicateLocationTrack
-                                    ? duplicateLocationTrack.descriptionStructure.descriptionBase
+                                    ? duplicateLocationTrack.descriptionStructure.base
                                     : split.descriptionBase
                             }
                             hasError={descriptionErrorsVisible}
@@ -475,7 +475,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                         <DescriptionSuffixDropdown
                             suffixMode={
                                 duplicateLocationTrack
-                                    ? duplicateLocationTrack.descriptionStructure.descriptionSuffix
+                                    ? duplicateLocationTrack.descriptionStructure.suffix
                                     : split.suffixMode
                             }
                             onChange={(mode) => {

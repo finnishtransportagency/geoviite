@@ -108,7 +108,7 @@ class LayoutTrackNumberController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): IntId<LayoutTrackNumber> {
-        return trackNumberService.deleteDraftAndReferenceLine(branch, id)
+        return trackNumberService.deleteDraft(branch, id).id
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

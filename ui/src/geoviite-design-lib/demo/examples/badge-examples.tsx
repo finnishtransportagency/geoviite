@@ -25,13 +25,13 @@ const layoutLocationTrack: LayoutLocationTrack = {
     ...layoutAssetFields,
     id: brand(''),
     nameStructure: {
-        namingScheme: LocationTrackNamingScheme.FREE_TEXT,
-        nameFreeText: 'name',
+        scheme: LocationTrackNamingScheme.FREE_TEXT,
+        freeText: 'name',
     },
     name: 'name',
     descriptionStructure: {
-        descriptionBase: 'description',
-        descriptionSuffix: 'NONE',
+        base: 'description',
+        suffix: 'NONE',
     },
     description: 'description',
     state: 'IN_USE' as LayoutState,

@@ -80,15 +80,6 @@ constructor(
     }
 
     @Transactional
-    override fun deleteDraft(branch: LayoutBranch, id: IntId<LayoutSwitch>): LayoutRowVersion<LayoutSwitch> {
-        // If removal also breaks references, clear them out first
-        if (dao.fetchVersion(branch.official, id) == null) {
-            clearSwitchInformationFromTracks(branch, id)
-        }
-        return super.deleteDraft(branch, id)
-    }
-
-    @Transactional
     fun clearSwitchInformationFromTracks(branch: LayoutBranch, layoutSwitchId: IntId<LayoutSwitch>) {
         getLocationTracksLinkedToSwitch(branch.draft, layoutSwitchId).forEach { (track, geometry) ->
             locationTrackService.saveDraft(branch, track, geometry.withoutSwitch(layoutSwitchId))
@@ -170,8 +161,27 @@ constructor(
         mapNonNullValues(dao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
 
     @Transactional
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<LayoutSwitch>): LayoutRowVersion<LayoutSwitch> {
+        // If removal also breaks references, clear them out first
+        if (dao.fetchVersion(branch.official, id) == null) {
+            clearSwitchInformationFromTracks(branch, id)
+        }
+        return super.deleteDraft(branch, id).also { v ->
+            locationTrackService.updateDependencies(branch, switchId = v.id)
+        }
+    }
+
+    @Transactional
     fun saveDraft(branch: LayoutBranch, draftAsset: LayoutSwitch): LayoutRowVersion<LayoutSwitch> =
-        saveDraftInternal(branch, draftAsset, NoParams.instance).also { v ->
+        saveDraftInternal(branch, draftAsset, NoParams.instance)
+
+    @Transactional
+    override fun saveDraftInternal(
+        branch: LayoutBranch,
+        draftAsset: LayoutSwitch,
+        params: NoParams,
+    ): LayoutRowVersion<LayoutSwitch> =
+        super.saveDraftInternal(branch, draftAsset, params).also { v ->
             locationTrackService.updateDependencies(branch, switchId = v.id)
         }
 }

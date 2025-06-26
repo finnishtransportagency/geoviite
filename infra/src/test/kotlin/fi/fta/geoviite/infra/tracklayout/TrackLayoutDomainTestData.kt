@@ -10,10 +10,10 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.ParsedSwitchName
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.SwitchNameParts
 import fi.fta.geoviite.infra.common.SwitchNamePrefix
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -422,9 +422,9 @@ fun locationTrack(
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
     name: String = "T001 ${locationTrackNameCounter++}",
-    nameStructure: TrackNameStructure = trackNameStructure(name, LocationTrackNamingScheme.FREE_TEXT, null),
+    nameStructure: LocationTrackNameStructure = trackNameStructure(name, LocationTrackNamingScheme.FREE_TEXT, null),
     description: String = "test-alignment 001",
-    descriptionStructure: TrackDescriptionStructure = trackDescriptionStructure(description),
+    descriptionStructure: LocationTrackDescriptionStructure = trackDescriptionStructure(description),
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
@@ -450,27 +450,23 @@ fun locationTrack(
 fun trackDescriptionStructure(
     descriptionBase: String = "Test track description",
     descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
-) = TrackDescriptionStructure(LocationTrackDescriptionBase(descriptionBase), descriptionSuffix)
+) = LocationTrackDescriptionStructure(LocationTrackDescriptionBase(descriptionBase), descriptionSuffix)
 
 fun trackNameStructure(
-    nameFreeText: String = "T001 ${locationTrackNameCounter++}",
-    namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT,
-    nameSpecifier: LocationTrackNameSpecifier? = null,
-): TrackNameStructure =
-    TrackNameStructure.of(
-        namingScheme = namingScheme,
-        nameFreeText = AlignmentName(nameFreeText),
-        nameSpecifier = nameSpecifier,
-    )
+    freeText: String = "T001 ${locationTrackNameCounter++}",
+    scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT,
+    specifier: LocationTrackNameSpecifier? = null,
+): LocationTrackNameStructure =
+    LocationTrackNameStructure.of(scheme = scheme, freeText = AlignmentName(freeText), specifier = specifier)
 
 fun locationTrack(
     trackNumberId: IntId<LayoutTrackNumber>,
     geometry: LocationTrackGeometry = TmpLocationTrackGeometry.empty,
     contextData: LayoutContextData<LocationTrack>,
     name: String = "T001 ${locationTrackNameCounter++}",
-    nameStructure: TrackNameStructure = trackNameStructure(name),
+    nameStructure: LocationTrackNameStructure = trackNameStructure(name),
     description: String = "test-alignment 001",
-    descriptionStructure: TrackDescriptionStructure = trackDescriptionStructure(description),
+    descriptionStructure: LocationTrackDescriptionStructure = trackDescriptionStructure(description),
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
@@ -851,7 +847,7 @@ fun switch(
     )
 
 fun parsedSwitchName(prefix: String, shortNumberPart: String) =
-    ParsedSwitchName(SwitchNamePrefix(prefix), SwitchName(shortNumberPart))
+    SwitchNameParts(SwitchNamePrefix(prefix), SwitchName(shortNumberPart))
 
 fun <T : LayoutAsset<T>> createMainContext(id: IntId<T>?, draft: Boolean): LayoutContextData<T> =
     if (draft) {

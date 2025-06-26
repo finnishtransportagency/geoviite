@@ -258,14 +258,14 @@ constructor(
         assertEquals(request.targetTracks.size, split.targetLocationTracks.size)
         request.targetTracks.forEachIndexed { index, targetRequest ->
             val targetResult = split.targetLocationTracks[index]
-            assertEquals(targetRequest.getOperation(), targetResult.operation)
+            assertEquals(targetRequest.operation, targetResult.operation)
             targetRequest.duplicateTrack?.let { d -> assertEquals(d.id, targetResult.locationTrackId) }
         }
     }
 
     private fun assertTransferTargetTrack(request: SplitRequestTarget, response: SplitTarget) {
         // This assert is for TRANSFER only: use assertTargetTrack for other operations
-        assertEquals(SplitTargetOperation.TRANSFER, request.getOperation())
+        assertEquals(SplitTargetOperation.TRANSFER, request.operation)
 
         val (track, geometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
@@ -289,17 +289,17 @@ constructor(
         response: SplitTarget,
     ) {
         // This assert is not for TRANSFER operation: use assertTransferTargetTrack for that
-        assertNotEquals(SplitTargetOperation.TRANSFER, request.getOperation())
+        assertNotEquals(SplitTargetOperation.TRANSFER, request.operation)
 
         val (_, source) = locationTrackService.getWithGeometry(sourceResponse)
         val (track, geometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
 
-        assertEquals(request.namingScheme, track.nameStructure.namingScheme)
-        assertEquals(request.nameFreeText, track.nameStructure.nameFreeText)
-        assertEquals(request.nameSpecifier, track.nameStructure.nameSpecifier)
-        assertEquals(request.descriptionBase, track.descriptionStructure.descriptionBase)
-        assertEquals(request.descriptionSuffix, track.descriptionStructure.descriptionSuffix)
+        assertEquals(request.namingScheme, track.nameStructure.scheme)
+        assertEquals(request.nameFreeText, track.nameStructure.freeText)
+        assertEquals(request.nameSpecifier, track.nameStructure.specifier)
+        assertEquals(request.descriptionBase, track.descriptionStructure.base)
+        assertEquals(request.descriptionSuffix, track.descriptionStructure.suffix)
         assertNull(track.duplicateOf)
         request.startAtSwitchId?.let { startSwitchId -> assertEquals(startSwitchId, track.switchIds.first()) }
 

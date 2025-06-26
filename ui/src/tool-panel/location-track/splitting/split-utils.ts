@@ -1,5 +1,7 @@
 import {
     DuplicateStatus,
+    getNameFreeText,
+    getNameSpecifier,
     LayoutLocationTrack,
     LayoutSwitch,
     LocationTrackId,
@@ -68,21 +70,13 @@ const splitToRequestTarget = (
               }
             : undefined;
     return {
-        namingScheme: duplicate?.nameStructure?.namingScheme ?? LocationTrackNamingScheme.FREE_TEXT,
-        nameFreeText:
-            duplicate?.nameStructure && 'nameFreeText' in duplicate.nameStructure
-                ? duplicate?.nameStructure?.nameFreeText
-                : '',
-        nameSpecifier:
-            duplicate?.nameStructure && 'nameSpecifier' in duplicate.nameStructure
-                ? duplicate?.nameStructure?.nameSpecifier
-                : undefined,
+        namingScheme: duplicate?.nameStructure?.scheme ?? LocationTrackNamingScheme.FREE_TEXT,
+        nameFreeText: getNameFreeText(duplicate?.nameStructure) ?? '',
+        nameSpecifier: getNameSpecifier(duplicate?.nameStructure),
         descriptionBase:
-            (duplicate ? duplicate.descriptionStructure.descriptionBase : split.descriptionBase) ??
-            '',
+            (duplicate ? duplicate.descriptionStructure.base : split.descriptionBase) ?? '',
         descriptionSuffix:
-            (duplicate ? duplicate.descriptionStructure.descriptionSuffix : split.suffixMode) ??
-            'NONE',
+            (duplicate ? duplicate.descriptionStructure.suffix : split.suffixMode) ?? 'NONE',
         duplicateTrack: duplicateTrack,
         startAtSwitchId:
             split.splitPoint.type === 'SWITCH_SPLIT_POINT' ? split.splitPoint.switchId : undefined,

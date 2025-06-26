@@ -6,7 +6,7 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     LocationTrackInfoboxExtras,
-    TrackNameStructure,
+    LocationTrackNameStructure,
 } from 'track-layout/track-layout-model';
 import {
     DesignBranch,
@@ -77,7 +77,7 @@ export type AlignmentPlanSection = {
 
 export type SplitDuplicateTrack = {
     id: LocationTrackId;
-    nameStructure: TrackNameStructure;
+    nameStructure: LocationTrackNameStructure;
     name: string;
     length: number;
     status: DuplicateStatus;

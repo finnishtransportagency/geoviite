@@ -51,31 +51,30 @@ data class SwitchNamePrefix @JsonCreator(mode = DELEGATING) constructor(private 
     @JsonValue override fun toString(): String = value
 }
 
-data class ParsedSwitchName(val prefix: SwitchNamePrefix, val shortNumberPart: SwitchName) {
+data class SwitchNameParts(val prefix: SwitchNamePrefix, val shortNumberPart: SwitchName) {
     companion object {
         private const val SHORT_NUMBER_LENGTH = 3
 
-        fun tryParse(switchName: SwitchName): ParsedSwitchName? =
+        fun tryParse(switchName: SwitchName): SwitchNameParts? =
             switchName
                 .split(Regex("[\\s_]+"))
                 .takeIf { it.size == 2 }
                 ?.let { parts -> SwitchNamePrefix.tryParse(parts.first())?.let { it to parts.last() } }
                 ?.let { (prefix: SwitchNamePrefix, rest: String) ->
                     val parts = rest.split("/").takeIf { it.size in 1..2 }
-                    val shortenedPars = parts?.mapNotNull(::shortenNumber)?.takeIf { it.size == parts.size }
-                    shortenedPars?.let { prefix to it }
+                    val shortenedParts = parts?.mapNotNull(::shortenNumber)?.takeIf { it.size == parts.size }
+                    shortenedParts?.let { prefix to it }
                 }
                 ?.let { (prefix: SwitchNamePrefix, numbers: List<String>) ->
-                    ParsedSwitchName(prefix, SwitchName(numbers.joinToString("/")))
+                    SwitchNameParts(prefix, SwitchName("V${numbers.joinToString("/")}"))
                 }
 
         private fun shortenNumber(number: String): String? =
             number
-                .takeIf { num -> num.startsWith("V") }
-                ?.drop(1)
+                .let { numStr -> if (numStr.startsWith("V")) numStr.drop(1) else numStr }
+                .takeIf { it.all(Char::isDigit) }
                 ?.toIntOrNull()
-                ?.let { num -> "V${num.toString().padStart(SHORT_NUMBER_LENGTH, '0')}" }
+                ?.toString()
+                ?.padStart(SHORT_NUMBER_LENGTH, '0')
     }
-
-    fun toShortName(): SwitchName = SwitchName("$prefix $shortNumberPart")
 }

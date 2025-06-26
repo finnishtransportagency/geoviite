@@ -668,7 +668,7 @@ class LocationTrackService(
                         val mAlongAlignment = geometry.getClosestPointM(location)?.first
                         SwitchOnLocationTrack(
                             switch.id as IntId,
-                            switch.parsedName,
+                            switch.nameParts,
                             switch.name,
                             address?.address,
                             location,

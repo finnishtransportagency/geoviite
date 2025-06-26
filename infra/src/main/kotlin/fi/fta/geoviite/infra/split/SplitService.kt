@@ -41,9 +41,9 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -639,8 +639,8 @@ private fun updateSplitTargetForOverwriteDuplicate(
     val newTrack =
         duplicateTrack.copy(
             // Actual name/description will be automatically recalculated upon saving
-            nameStructure = request.getNameStructure(),
-            descriptionStructure = request.getDescriptionStructure(),
+            nameStructure = request.nameStructure,
+            descriptionStructure = request.descriptionStructure,
 
             // After split, the track is no longer duplicate
             duplicateOf = null,
@@ -668,8 +668,8 @@ private fun createSplitTarget(
     val newGeometry = TmpLocationTrackGeometry.of(edges, null)
     val newTrack =
         LocationTrack(
-            nameStructure = request.getNameStructure(),
-            descriptionStructure = request.getDescriptionStructure(),
+            nameStructure = request.nameStructure,
+            descriptionStructure = request.descriptionStructure,
 
             // These will be automatically recalculated upon saving
             name = AlignmentName("?"),

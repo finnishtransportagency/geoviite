@@ -461,8 +461,8 @@ constructor(
             }
         assertEquals(1, diff.size)
         assertEquals("description-base", diff[0].propKey.key.toString())
-        assertEquals(locationTrack.descriptionStructure.descriptionBase, diff[0].value.oldValue)
-        assertEquals(updatedLocationTrack.descriptionStructure.descriptionBase, diff[0].value.newValue)
+        assertEquals(locationTrack.descriptionStructure.base, diff[0].value.oldValue)
+        assertEquals(updatedLocationTrack.descriptionStructure.base, diff[0].value.newValue)
     }
 
     @Test

@@ -1,5 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
+    getNameFreeText,
+    getNameSpecifier,
     LayoutLocationTrack,
     LayoutTrackNumber,
     LocationTrackNamingScheme,
@@ -152,9 +154,11 @@ const locationTrackEditSlice = createSlice({
         ): void => {
             state.existingLocationTrack = existingLocationTrack;
             state.locationTrack = {
-                namingScheme: existingLocationTrack.nameStructure.namingScheme,
-                descriptionBase: existingLocationTrack.descriptionStructure.descriptionBase,
-                descriptionSuffix: existingLocationTrack.descriptionStructure.descriptionSuffix,
+                namingScheme: existingLocationTrack.nameStructure.scheme,
+                nameFreeText: getNameFreeText(existingLocationTrack.nameStructure),
+                nameSpecifier: getNameSpecifier(existingLocationTrack.nameStructure),
+                descriptionBase: existingLocationTrack.descriptionStructure.base,
+                descriptionSuffix: existingLocationTrack.descriptionStructure.suffix,
                 type: existingLocationTrack.type,
                 state: existingLocationTrack.state,
                 trackNumberId: existingLocationTrack.trackNumberId,
@@ -162,13 +166,6 @@ const locationTrackEditSlice = createSlice({
                 topologicalConnectivity: existingLocationTrack.topologicalConnectivity,
                 ownerId: existingLocationTrack.ownerId,
             };
-            if ('nameFreeText' in existingLocationTrack.nameStructure) {
-                state.locationTrack.nameFreeText = existingLocationTrack.nameStructure.nameFreeText;
-            }
-            if ('nameSpecifier' in existingLocationTrack.nameStructure) {
-                state.locationTrack.nameSpecifier =
-                    existingLocationTrack.nameStructure.nameSpecifier;
-            }
             state.validationIssues = validateLinkingLocationTrack(state.locationTrack);
             state.loading.locationTrack = false;
         },

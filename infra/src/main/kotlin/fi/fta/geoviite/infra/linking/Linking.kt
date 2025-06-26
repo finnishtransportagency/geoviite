@@ -23,15 +23,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
-import fi.fta.geoviite.infra.tracklayout.TrackDescriptionStructure
-import fi.fta.geoviite.infra.tracklayout.TrackNameStructure
 
 enum class LocationTrackPointUpdateType {
     START_POINT,
@@ -68,8 +68,8 @@ data class LocationTrackSaveRequest(
     val ownerId: IntId<LocationTrackOwner>,
 ) {
     // Initialize these at construction time to ensure they are always valid
-    val nameStructure = TrackNameStructure.of(namingScheme, nameFreeText, nameSpecifier)
-    val descriptionStructure = TrackDescriptionStructure(descriptionBase, descriptionSuffix)
+    val nameStructure = LocationTrackNameStructure.of(namingScheme, nameFreeText, nameSpecifier)
+    val descriptionStructure = LocationTrackDescriptionStructure(descriptionBase, descriptionSuffix)
 }
 
 enum class TrackEnd {

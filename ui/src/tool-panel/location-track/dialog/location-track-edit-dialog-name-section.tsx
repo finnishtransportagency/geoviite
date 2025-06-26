@@ -13,8 +13,8 @@ import {
 import {
     LayoutLocationTrack,
     LocationTrackId,
+    LocationTrackNameSpecifier,
     LocationTrackNamingScheme,
-    LocationTrackSpecifier,
 } from 'track-layout/track-layout-model';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
@@ -28,7 +28,7 @@ type LocationTrackNameFreeTextProps = {
 type LocationTrackNameTrackNumberProps = {
     request: LocationTrackSaveRequest;
     updateFreeText: (freeText: string) => void;
-    updateSpecifier: (specifier: LocationTrackSpecifier | undefined) => void;
+    updateSpecifier: (specifier: LocationTrackNameSpecifier | undefined) => void;
     onCommitFreeText: () => void;
     onCommitSpecifier: () => void;
     getFreeTextErrors: () => string[];
@@ -37,7 +37,7 @@ type LocationTrackNameTrackNumberProps = {
 
 type LocationTrackNameBetweenOperatingPointsProps = {
     request: LocationTrackSaveRequest;
-    updateSpecifier: (specifier: LocationTrackSpecifier | undefined) => void;
+    updateSpecifier: (specifier: LocationTrackNameSpecifier | undefined) => void;
     onCommitSpecifier: () => void;
     getSpecifierErrors: () => string[];
 };

@@ -121,7 +121,7 @@ export enum LocationTrackNamingScheme {
     CHORD = 'CHORD',
 }
 
-export enum LocationTrackSpecifier {
+export enum LocationTrackNameSpecifier {
     PR = 'PR',
     ER = 'ER',
     IR = 'IR',
@@ -139,43 +139,55 @@ export enum LocationTrackSpecifier {
     LANHR = 'LANHR',
 }
 
-export type FreeTextTrackNameStructure = {
-    namingScheme: LocationTrackNamingScheme.FREE_TEXT;
-    nameFreeText: string;
+export type LocationTrackNameFreeText = {
+    scheme: LocationTrackNamingScheme.FREE_TEXT;
+    freeText: string;
 };
-export type WithinOperatingPointTrackNameStructure = {
-    namingScheme: LocationTrackNamingScheme.WITHIN_OPERATING_POINT;
-    nameFreeText: string;
+export type LocationTrackNameWithinOperatingPoint = {
+    scheme: LocationTrackNamingScheme.WITHIN_OPERATING_POINT;
+    freeText: string;
 };
-export type TrackNumberTrackNameStructure = {
-    namingScheme: LocationTrackNamingScheme.TRACK_NUMBER_TRACK;
-    nameFreeText: string;
-    nameSpecifier: LocationTrackSpecifier;
+export type LocationTrackNameByTrackNumber = {
+    scheme: LocationTrackNamingScheme.TRACK_NUMBER_TRACK;
+    freeText: string;
+    specifier: LocationTrackNameSpecifier;
 };
-export type BetweenOperatingPointsTrackNameStructure = {
-    namingScheme: LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS;
-    nameSpecifier: LocationTrackSpecifier;
+export type LocationTrackNameBetweenOperatingPoints = {
+    scheme: LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS;
+    specifier: LocationTrackNameSpecifier;
 };
-export type ChordTrackNameStructure = {
-    namingScheme: LocationTrackNamingScheme.CHORD;
+export type LocationTrackNameChord = {
+    scheme: LocationTrackNamingScheme.CHORD;
 };
 
-export type TrackNameStructure =
-    | FreeTextTrackNameStructure
-    | WithinOperatingPointTrackNameStructure
-    | TrackNumberTrackNameStructure
-    | BetweenOperatingPointsTrackNameStructure
-    | ChordTrackNameStructure;
+export type LocationTrackNameStructure =
+    | LocationTrackNameFreeText
+    | LocationTrackNameWithinOperatingPoint
+    | LocationTrackNameByTrackNumber
+    | LocationTrackNameBetweenOperatingPoints
+    | LocationTrackNameChord;
 
-export type TrackDescriptionStructure = {
-    descriptionBase?: string;
-    descriptionSuffix?: LocationTrackDescriptionSuffixMode;
+export function getNameFreeText(
+    nameStructure: LocationTrackNameStructure | undefined,
+): string | undefined {
+    return nameStructure && 'freeText' in nameStructure ? nameStructure.freeText : undefined;
+}
+
+export function getNameSpecifier(
+    nameStructure: LocationTrackNameStructure | undefined,
+): LocationTrackNameSpecifier | undefined {
+    return nameStructure && 'specifier' in nameStructure ? nameStructure.specifier : undefined;
+}
+
+export type LocationTrackDescriptionStructure = {
+    base?: string;
+    suffix?: LocationTrackDescriptionSuffixMode;
 };
 
 export type LayoutLocationTrack = {
-    nameStructure: TrackNameStructure;
+    nameStructure: LocationTrackNameStructure;
     name: string;
-    descriptionStructure: TrackDescriptionStructure;
+    descriptionStructure: LocationTrackDescriptionStructure;
     description: string;
     type: LocationTrackType;
     state: LocationTrackState;
@@ -308,7 +320,7 @@ export function trapPointToBoolean(trapPoint: TrapPoint): boolean | undefined {
 
 export type LayoutSwitchId = Brand<string, 'LayoutSwitchId'>;
 
-export type SwitchParsedName = {
+export type SwitchNameParts = {
     prefix: string;
     shortNumberPart: string;
 };
@@ -316,7 +328,7 @@ export type SwitchParsedName = {
 export type LayoutSwitch = {
     id: LayoutSwitchId;
     name: string;
-    parsedName?: SwitchParsedName;
+    nameParts?: SwitchNameParts;
     switchStructureId: SwitchStructureId;
     stateCategory: LayoutStateCategory;
     joints: LayoutSwitchJoint[];
@@ -513,10 +525,10 @@ export type LayoutGraph = {
 export function formatTrackName(
     namingScheme: LocationTrackNamingScheme,
     nameFreeText: string | undefined,
-    nameSpecifier: LocationTrackSpecifier | undefined,
+    nameSpecifier: LocationTrackNameSpecifier | undefined,
     trackNumber: TrackNumber | undefined,
-    startSwitch: SwitchParsedName | undefined,
-    endSwitch: SwitchParsedName | undefined,
+    startSwitch: SwitchNameParts | undefined,
+    endSwitch: SwitchNameParts | undefined,
 ): string {
     switch (namingScheme) {
         case LocationTrackNamingScheme.FREE_TEXT:
@@ -546,8 +558,8 @@ export function formatTrackName(
 export function formatTrackDescription(
     descriptionBase: string,
     descriptionSuffix: LocationTrackDescriptionSuffixMode,
-    startSwitch: SwitchParsedName | undefined,
-    endSwitch: SwitchParsedName | undefined,
+    startSwitch: SwitchNameParts | undefined,
+    endSwitch: SwitchNameParts | undefined,
     t: (key: string, params?: Record<string, unknown>) => string,
 ): string {
     switch (descriptionSuffix) {
@@ -568,43 +580,51 @@ function withPlaceholder(value: string | undefined): string {
     return value ?? '???';
 }
 
-function getShortNumber(layoutSwitch: SwitchParsedName | undefined): string {
+function getShortNumber(layoutSwitch: SwitchNameParts | undefined): string {
     return withPlaceholder(layoutSwitch?.shortNumberPart);
 }
 
-function getShortName(layoutSwitch: SwitchParsedName | undefined): string {
+function getShortName(layoutSwitch: SwitchNameParts | undefined): string {
     return withPlaceholder(
         ifDefined(layoutSwitch, (parsed) => `${parsed.prefix} ${parsed.shortNumberPart}`),
     );
 }
 
-// TODO: Use localization for this? If here, then also in the backend?
-// t(`location-track-dialog.name-specifiers.${nameSpecifier}`)
-function toProperForm(specifier: LocationTrackSpecifier | undefined): string {
+// TODO: GVT-3169 Use localization for this? If here, then also in the backend?
+//  Note, that this also affects split name formatting which happens in store, so translations are not easily available.
+// function toProperForm(
+//     specifier: LocationTrackSpecifier | undefined,
+//     t: (key: string, params?: Record<string, unknown>) => string,
+// ): string {
+//     return specifier
+//         ? t(`location-track-dialog.name-specifiers.${specifier}`)
+//         : withPlaceholder(undefined);
+// }
+function toProperForm(specifier: LocationTrackNameSpecifier | undefined): string {
     switch (specifier) {
         case undefined:
             return withPlaceholder(undefined);
-        case LocationTrackSpecifier.PSR:
+        case LocationTrackNameSpecifier.PSR:
             return 'PsR';
-        case LocationTrackSpecifier.ESR:
+        case LocationTrackNameSpecifier.ESR:
             return 'EsR';
-        case LocationTrackSpecifier.ISR:
+        case LocationTrackNameSpecifier.ISR:
             return 'IsR';
-        case LocationTrackSpecifier.LSR:
+        case LocationTrackNameSpecifier.LSR:
             return 'LsR';
-        case LocationTrackSpecifier.PKR:
+        case LocationTrackNameSpecifier.PKR:
             return 'PKR';
-        case LocationTrackSpecifier.EKR:
+        case LocationTrackNameSpecifier.EKR:
             return 'EKR';
-        case LocationTrackSpecifier.IKR:
+        case LocationTrackNameSpecifier.IKR:
             return 'IKR';
-        case LocationTrackSpecifier.LKR:
+        case LocationTrackNameSpecifier.LKR:
             return 'LKR';
-        case LocationTrackSpecifier.ITHR:
+        case LocationTrackNameSpecifier.ITHR:
             return 'ItHR';
-        case LocationTrackSpecifier.LANHR:
+        case LocationTrackNameSpecifier.LANHR:
             return 'LänHR';
         default:
-            return LocationTrackSpecifier[specifier];
+            return LocationTrackNameSpecifier[specifier];
     }
 }

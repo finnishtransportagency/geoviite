@@ -202,15 +202,15 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         state.locationTrack.nameFreeText,
         state.locationTrack.nameSpecifier,
         trackNumber?.number,
-        startSwitch?.parsedName,
-        endSwitch?.parsedName,
+        startSwitch?.nameParts,
+        endSwitch?.nameParts,
     );
 
     const trackDescription = formatTrackDescription(
         state.locationTrack.descriptionBase ?? '',
         state.locationTrack.descriptionSuffix ?? 'NONE',
-        startSwitch?.parsedName,
-        endSwitch?.parsedName,
+        startSwitch?.nameParts,
+        endSwitch?.nameParts,
         t,
     );
 

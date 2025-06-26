@@ -613,8 +613,7 @@ constructor(
                     orig.copy(
                         descriptionStructure =
                             orig.descriptionStructure.copy(
-                                descriptionBase =
-                                    LocationTrackDescriptionBase("${orig.descriptionStructure.descriptionBase}_edit")
+                                base = LocationTrackDescriptionBase("${orig.descriptionStructure.base}_edit")
                             )
                     )
                 )

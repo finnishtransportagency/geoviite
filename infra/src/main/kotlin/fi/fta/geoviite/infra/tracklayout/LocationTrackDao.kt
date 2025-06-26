@@ -242,15 +242,15 @@ class LocationTrackDao(
             trackNumberId = rs.getIntId("track_number_id"),
             name = rs.getString("name").let(::AlignmentName),
             nameStructure =
-                TrackNameStructure.of(
-                    namingScheme = rs.getEnum("naming_scheme"),
-                    nameFreeText = rs.getString("name_free_text")?.let(::AlignmentName),
-                    nameSpecifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
+                LocationTrackNameStructure.of(
+                    scheme = rs.getEnum("naming_scheme"),
+                    freeText = rs.getString("name_free_text")?.let(::AlignmentName),
+                    specifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
                 ),
             descriptionStructure =
-                TrackDescriptionStructure(
-                    descriptionBase = rs.getString("description_base").let(::LocationTrackDescriptionBase),
-                    descriptionSuffix = rs.getEnum<LocationTrackDescriptionSuffix>("description_suffix"),
+                LocationTrackDescriptionStructure(
+                    base = rs.getString("description_base").let(::LocationTrackDescriptionBase),
+                    suffix = rs.getEnum("description_suffix"),
                 ),
             description = rs.getFreeText("description"),
             type = rs.getEnum("type"),
@@ -359,12 +359,12 @@ class LocationTrackDao(
                 "id" to id.intValue,
                 "track_number_id" to item.trackNumberId.intValue,
                 "name" to item.name,
-                "naming_scheme" to item.nameStructure.namingScheme.name,
-                "name_free_text" to item.nameStructure.nameFreeText,
-                "name_specifier" to item.nameStructure.nameSpecifier?.name,
+                "naming_scheme" to item.nameStructure.scheme.name,
+                "name_free_text" to item.nameStructure.freeText,
+                "name_specifier" to item.nameStructure.specifier?.name,
                 "description" to item.description,
-                "description_base" to item.descriptionStructure.descriptionBase,
-                "description_suffix" to item.descriptionStructure.descriptionSuffix.name,
+                "description_base" to item.descriptionStructure.base,
+                "description_suffix" to item.descriptionStructure.suffix.name,
                 "type" to item.type.name,
                 "state" to item.state.name,
                 "draft" to item.isDraft,
