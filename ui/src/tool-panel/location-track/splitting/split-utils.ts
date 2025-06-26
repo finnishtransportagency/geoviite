@@ -17,7 +17,10 @@ import {
 } from 'tool-panel/location-track/split-store';
 import { findById } from 'utils/array-utils';
 import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
-import { validateLocationTrackDescriptionBase } from 'tool-panel/location-track/dialog/location-track-validation';
+import {
+    validateLocationTrackDescriptionBase,
+    validateLocationTrackName,
+} from 'tool-panel/location-track/dialog/location-track-validation';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
 
@@ -110,9 +113,9 @@ const validateSplitName = (
     allSplitNames: string[],
     conflictingTrackNames: string[],
 ) => {
-    // TODO: GVT-3080
-    const errors: FieldValidationIssue<SplitTargetCandidate>[] = [];
-    // validateLocationTrackName(splitName);
+    // TODO: GVT-3083 This needs to validate the structural name with options other than free text
+    const errors: FieldValidationIssue<SplitTargetCandidate>[] =
+        validateLocationTrackName(splitName);
 
     if (allSplitNames.filter((s) => s !== '' && isEqualIgnoreCase(s, splitName)).length > 1)
         errors.push({
