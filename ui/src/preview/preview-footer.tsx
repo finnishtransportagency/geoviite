@@ -94,10 +94,13 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
 
     const [isPublishing, setPublishing] = React.useState(false);
 
-    const publishWith = (publicationPromise: Promise<PublicationResultSummary>) =>
+    const publishWith = (
+        successLocalizationKey: string,
+        publicationPromise: Promise<PublicationResultSummary>,
+    ) =>
         publicationPromise
             .then((r) => {
-                Snackbar.success('publish.publish-success', describeResult(r));
+                Snackbar.success(successLocalizationKey, describeResult(r));
                 updateChangeTimes(r);
                 props.onPublish();
             })
@@ -109,6 +112,9 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
     const publish = (message: string) => {
         setPublishing(true);
         publishWith(
+            props.layoutContext.branch === 'MAIN'
+                ? 'publish.publish-success'
+                : 'publish.design-publish-success',
             publishPublicationCandidates(
                 props.layoutContext.branch,
                 props.stagedPublicationCandidates,
@@ -121,7 +127,10 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         const branch = props.layoutContext.branch;
         if (branch === 'MAIN') return;
         setPublishing(true);
-        publishWith(mergeCandidatesToMain(branch, props.stagedPublicationCandidates));
+        publishWith(
+            'publish.merge-to-main-success',
+            mergeCandidatesToMain(branch, props.stagedPublicationCandidates),
+        );
     };
 
     const candidateCount = props.stagedPublicationCandidates.length;
