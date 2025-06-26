@@ -1,13 +1,14 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.ui.pagemodel.common.DIALOG_BY
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextInput
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.dateFormat
-import java.time.LocalDate
 import org.openqa.selenium.By
+import java.time.LocalDate
 
 class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     enum class State {
@@ -36,7 +37,9 @@ class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy)
         SWITCH_TO_BUFFER,
     }
 
-    private val nameInput: E2ETextInput by lazy { childTextInput(byQaId("location-track-name")) }
+    private val namingSchemeInput: E2EDropdown by lazy { childDropdown(byQaId("location-track-naming-scheme")) }
+
+    private val nameFreeTextInput: E2ETextInput by lazy { childTextInput(byQaId("location-track-name-free-text")) }
 
     private val trackNumberDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-track-number")) }
 
@@ -57,9 +60,12 @@ class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy)
     }
 
     fun setName(name: String): E2ELocationTrackEditDialog = apply {
-        logger.info("Set name $name")
+        logger.info("Set name (as free-text): $name")
 
-        nameInput.replaceValue(name)
+        namingSchemeInput.selectByQaId(
+            "${LocationTrackNamingScheme::class.simpleName}-${LocationTrackNamingScheme.FREE_TEXT.name}"
+        )
+        nameFreeTextInput.replaceValue(name)
     }
 
     fun selectTrackNumber(trackNumber: String): E2ELocationTrackEditDialog = apply {

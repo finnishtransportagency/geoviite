@@ -232,7 +232,7 @@ export const LocationTrackEditDialogNameSection: React.FC<
                             label={`${t('location-track-dialog.naming-scheme')} *`}
                             value={
                                 <Dropdown
-                                    qa-id="location-track-naming-scheme"
+                                    qaId="location-track-naming-scheme"
                                     value={state.locationTrack?.namingScheme}
                                     options={locationTrackNamingSchemes}
                                     onChange={(e) => e && updateProp('namingScheme', e)}
