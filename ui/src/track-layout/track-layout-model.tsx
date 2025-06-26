@@ -25,7 +25,7 @@ import {
 import { deduplicateById } from 'utils/array-utils';
 import { AlignmentPolyLine, GeometryAlignmentHeader } from './layout-map-api';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
-import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
 import { Brand } from 'common/brand';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
@@ -84,6 +84,7 @@ export type LocationTrackDescriptionSuffixMode =
     | 'SWITCH_TO_SWITCH'
     | 'SWITCH_TO_BUFFER'
     | 'SWITCH_TO_OWNERSHIP_BOUNDARY';
+
 export enum MapAlignmentType {
     LocationTrack = 'LOCATION_TRACK',
     ReferenceLine = 'REFERENCE_LINE',
@@ -112,21 +113,83 @@ export type LayoutReferenceLine = {
     segmentCount: number;
 } & LayoutAssetFields;
 
-export type TopologyLocationTrackSwitch = {
-    switchId: LayoutSwitchId;
-    joint: JointNumber;
+export enum LocationTrackNamingScheme {
+    FREE_TEXT = 'FREE_TEXT',
+    WITHIN_OPERATING_POINT = 'WITHIN_OPERATING_POINT',
+    BETWEEN_OPERATING_POINTS = 'BETWEEN_OPERATING_POINTS',
+    TRACK_NUMBER_TRACK = 'TRACK_NUMBER_TRACK',
+    CHORD = 'CHORD',
+}
+
+export enum LocationTrackNameSpecifier {
+    PR = 'PR',
+    ER = 'ER',
+    IR = 'IR',
+    KR = 'KR',
+    LR = 'LR',
+    PSR = 'PSR',
+    ESR = 'ESR',
+    ISR = 'ISR',
+    LSR = 'LSR',
+    PKR = 'PKR',
+    EKR = 'EKR',
+    IKR = 'IKR',
+    LKR = 'LKR',
+    ITHR = 'ITHR',
+    LANHR = 'LANHR',
+}
+
+export type LocationTrackNameFreeText = {
+    scheme: LocationTrackNamingScheme.FREE_TEXT;
+    freeText: string;
+};
+export type LocationTrackNameWithinOperatingPoint = {
+    scheme: LocationTrackNamingScheme.WITHIN_OPERATING_POINT;
+    freeText: string;
+};
+export type LocationTrackNameByTrackNumber = {
+    scheme: LocationTrackNamingScheme.TRACK_NUMBER_TRACK;
+    freeText: string;
+    specifier: LocationTrackNameSpecifier;
+};
+export type LocationTrackNameBetweenOperatingPoints = {
+    scheme: LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS;
+    specifier: LocationTrackNameSpecifier;
+};
+export type LocationTrackNameChord = {
+    scheme: LocationTrackNamingScheme.CHORD;
 };
 
-export type LocationTrackDescription = {
-    id: LocationTrackId;
-    description: string;
+export type LocationTrackNameStructure =
+    | LocationTrackNameFreeText
+    | LocationTrackNameWithinOperatingPoint
+    | LocationTrackNameByTrackNumber
+    | LocationTrackNameBetweenOperatingPoints
+    | LocationTrackNameChord;
+
+export function getNameFreeText(
+    nameStructure: LocationTrackNameStructure | undefined,
+): string | undefined {
+    return nameStructure && 'freeText' in nameStructure ? nameStructure.freeText : undefined;
+}
+
+export function getNameSpecifier(
+    nameStructure: LocationTrackNameStructure | undefined,
+): LocationTrackNameSpecifier | undefined {
+    return nameStructure && 'specifier' in nameStructure ? nameStructure.specifier : undefined;
+}
+
+export type LocationTrackDescriptionStructure = {
+    base?: string;
+    suffix?: LocationTrackDescriptionSuffixMode;
 };
 
 export type LayoutLocationTrack = {
+    nameStructure: LocationTrackNameStructure;
     name: string;
-    descriptionBase?: string;
-    descriptionSuffix?: LocationTrackDescriptionSuffixMode;
-    type?: LocationTrackType;
+    descriptionStructure: LocationTrackDescriptionStructure;
+    description: string;
+    type: LocationTrackType;
     state: LocationTrackState;
     trackNumberId: LayoutTrackNumberId;
     sourceId?: GeometryAlignmentId;
@@ -134,10 +197,10 @@ export type LayoutLocationTrack = {
     boundingBox?: BoundingBox;
     length: number;
     segmentCount: number;
+    startSwitchId?: LayoutSwitchId;
+    endSwitchId?: LayoutSwitchId;
     duplicateOf?: LocationTrackId;
     topologicalConnectivity: TopologicalConnectivityType;
-    topologyStartSwitch?: TopologyLocationTrackSwitch;
-    topologyEndSwitch?: TopologyLocationTrackSwitch;
     ownerId: LocationTrackOwnerId;
 } & LayoutAssetFields;
 
@@ -212,18 +275,12 @@ export type LocationTrackDuplicate = {
     duplicateStatus: DuplicateStatus;
     length: number;
 };
-export type LayoutSwitchIdAndName = {
-    id: LayoutSwitchId;
-    name: string;
-};
 
 export type LocationTrackInfoboxExtras = {
     duplicateOf?: LocationTrackDuplicate;
     duplicates: LocationTrackDuplicate[];
     startSplitPoint?: SplitPoint;
     endSplitPoint?: SplitPoint;
-    switchAtStart?: LayoutSwitchIdAndName;
-    switchAtEnd?: LayoutSwitchIdAndName;
     partOfUnfinishedSplit?: boolean;
 };
 
@@ -263,9 +320,15 @@ export function trapPointToBoolean(trapPoint: TrapPoint): boolean | undefined {
 
 export type LayoutSwitchId = Brand<string, 'LayoutSwitchId'>;
 
+export type SwitchNameParts = {
+    prefix: string;
+    shortNumberPart: string;
+};
+
 export type LayoutSwitch = {
     id: LayoutSwitchId;
     name: string;
+    nameParts?: SwitchNameParts;
     switchStructureId: SwitchStructureId;
     stateCategory: LayoutStateCategory;
     joints: LayoutSwitchJoint[];
@@ -454,3 +517,114 @@ export type LayoutGraph = {
     context: LayoutContext;
     detailLevel: LayoutGraphLevel;
 };
+
+/**
+ * This function duplicates the backend logic in LocationTrack.kt for front-end formatting
+ * so that UI-side validation and display logic can act independently.
+ */
+export function formatTrackName(
+    namingScheme: LocationTrackNamingScheme,
+    nameFreeText: string | undefined,
+    nameSpecifier: LocationTrackNameSpecifier | undefined,
+    trackNumber: TrackNumber | undefined,
+    startSwitch: SwitchNameParts | undefined,
+    endSwitch: SwitchNameParts | undefined,
+): string {
+    switch (namingScheme) {
+        case LocationTrackNamingScheme.FREE_TEXT:
+            return nameFreeText ?? '';
+        case LocationTrackNamingScheme.WITHIN_OPERATING_POINT:
+            return nameFreeText ?? '';
+        case LocationTrackNamingScheme.TRACK_NUMBER_TRACK:
+            return `${withPlaceholder(trackNumber)} ${toProperForm(nameSpecifier)} ${nameFreeText ?? ''}`.trim();
+        case LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS:
+            return `${toProperForm(nameSpecifier)} ${getShortName(startSwitch)}-${getShortName(endSwitch)}`;
+        case LocationTrackNamingScheme.CHORD: {
+            if (startSwitch !== undefined && startSwitch?.prefix === endSwitch?.prefix) {
+                return `${startSwitch.prefix} ${getShortNumber(startSwitch)}-${getShortNumber(endSwitch)}`;
+            } else {
+                return `${getShortName(startSwitch)}-${getShortName(endSwitch)}`;
+            }
+        }
+        default:
+            return exhaustiveMatchingGuard(namingScheme);
+    }
+}
+
+/**
+ * This function duplicates the backend logic in LocationTrack.kt for front-end formatting
+ * so that UI-side validation and display logic can act independently.
+ */
+export function formatTrackDescription(
+    descriptionBase: string,
+    descriptionSuffix: LocationTrackDescriptionSuffixMode,
+    startSwitch: SwitchNameParts | undefined,
+    endSwitch: SwitchNameParts | undefined,
+    t: (key: string, params?: Record<string, unknown>) => string,
+): string {
+    switch (descriptionSuffix) {
+        case 'NONE':
+            return descriptionBase;
+        case 'SWITCH_TO_BUFFER':
+            return `${getShortName(startSwitch ?? endSwitch)} - ${t('location-track-dialog.buffer')}`;
+        case 'SWITCH_TO_OWNERSHIP_BOUNDARY':
+            return `${getShortName(startSwitch ?? endSwitch)} - ${t('location-track-dialog.ownership-boundary')}`;
+        case 'SWITCH_TO_SWITCH':
+            return `${getShortName(startSwitch)} - ${getShortName(endSwitch)}`;
+        default:
+            return exhaustiveMatchingGuard(descriptionSuffix);
+    }
+}
+
+function withPlaceholder(value: string | undefined): string {
+    return value ?? '???';
+}
+
+function getShortNumber(layoutSwitch: SwitchNameParts | undefined): string {
+    return withPlaceholder(layoutSwitch?.shortNumberPart);
+}
+
+function getShortName(layoutSwitch: SwitchNameParts | undefined): string {
+    return withPlaceholder(
+        ifDefined(layoutSwitch, (parsed) => `${parsed.prefix} ${parsed.shortNumberPart}`),
+    );
+}
+
+// TODO: GVT-3169 Use localization for this? If here, then also in the backend?
+//  Note, that this also affects split name formatting which happens in store, so translations are not easily available.
+// function toProperForm(
+//     specifier: LocationTrackSpecifier | undefined,
+//     t: (key: string, params?: Record<string, unknown>) => string,
+// ): string {
+//     return specifier
+//         ? t(`location-track-dialog.name-specifiers.${specifier}`)
+//         : withPlaceholder(undefined);
+// }
+function toProperForm(specifier: LocationTrackNameSpecifier | undefined): string {
+    switch (specifier) {
+        case undefined:
+            return withPlaceholder(undefined);
+        case LocationTrackNameSpecifier.PSR:
+            return 'PsR';
+        case LocationTrackNameSpecifier.ESR:
+            return 'EsR';
+        case LocationTrackNameSpecifier.ISR:
+            return 'IsR';
+        case LocationTrackNameSpecifier.LSR:
+            return 'LsR';
+        case LocationTrackNameSpecifier.PKR:
+            return 'PKR';
+        case LocationTrackNameSpecifier.EKR:
+            return 'EKR';
+        case LocationTrackNameSpecifier.IKR:
+            return 'IKR';
+        case LocationTrackNameSpecifier.LKR:
+            return 'LKR';
+        case LocationTrackNameSpecifier.ITHR:
+            return 'ItHR';
+        case LocationTrackNameSpecifier.LANHR:
+            return 'LänHR';
+        default:
+            return LocationTrackNameSpecifier[specifier];
+    }
+}

@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -38,6 +39,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
@@ -636,9 +638,9 @@ private fun updateSplitTargetForOverwriteDuplicate(
     val newGeometry = TmpLocationTrackGeometry.of(edges, duplicateTrack.id as? IntId)
     val newTrack =
         duplicateTrack.copy(
-            name = request.name,
-            descriptionBase = request.descriptionBase,
-            descriptionSuffix = request.descriptionSuffix,
+            // Actual name/description will be automatically recalculated upon saving
+            nameStructure = request.nameStructure,
+            descriptionStructure = request.descriptionStructure,
 
             // After split, the track is no longer duplicate
             duplicateOf = null,
@@ -666,9 +668,12 @@ private fun createSplitTarget(
     val newGeometry = TmpLocationTrackGeometry.of(edges, null)
     val newTrack =
         LocationTrack(
-            name = request.name,
-            descriptionBase = request.descriptionBase,
-            descriptionSuffix = request.descriptionSuffix,
+            nameStructure = request.nameStructure,
+            descriptionStructure = request.descriptionStructure,
+
+            // These will be automatically recalculated upon saving
+            name = AlignmentName("?"),
+            description = FreeText("?"),
 
             // After split, tracks are not duplicates
             duplicateOf = null,
@@ -683,6 +688,8 @@ private fun createSplitTarget(
             segmentCount = newGeometry.segments.size,
             length = newGeometry.length,
             boundingBox = newGeometry.boundingBox,
+            startSwitchId = newGeometry.startSwitchLink?.id,
+            endSwitchId = newGeometry.endSwitchLink?.id,
             // TODO: GVT-2399 Split in design branches
             contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
         )

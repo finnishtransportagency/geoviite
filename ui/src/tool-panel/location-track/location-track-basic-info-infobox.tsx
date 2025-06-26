@@ -13,7 +13,7 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import Infobox from 'tool-panel/infobox/infobox';
 import {
     LayoutLocationTrack,
-    LayoutSwitchIdAndName,
+    LayoutSwitch,
     LayoutTrackNumber,
 } from 'track-layout/track-layout-model';
 import { ChangeTimes } from 'common/common-slice';
@@ -27,9 +27,7 @@ import { createDelegates } from 'store/store-utils';
 import { OnSelectOptions } from 'selection/selection-model';
 import { BoundingBox } from 'model/geometry';
 import { useCommonDataAppSelector } from 'store/hooks';
-import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
-import { useLocationTrackInfoboxExtras } from 'track-layout/track-layout-react-utils';
-import { first } from 'utils/array-utils';
+import { useLocationTrackInfoboxExtras, useSwitch } from 'track-layout/track-layout-react-utils';
 import { LocationTrackState } from 'geoviite-design-lib/location-track-state/location-track-state';
 import { LocationTrackOid } from 'track-layout/oid';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
@@ -92,7 +90,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
         return name ?? '-';
     }
 
-    function getSwitchLink(sw?: LayoutSwitchIdAndName) {
+    function getSwitchLink(sw?: LayoutSwitch) {
         if (sw) {
             const switchId = sw.id;
             return (
@@ -111,18 +109,13 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
         }
     }
 
-    const description = useLoader(
-        () =>
-            getLocationTrackDescriptions([locationTrack.id], layoutContext).then(
-                (value) => (value && first(value)?.description) ?? undefined,
-            ),
-        [
-            locationTrack?.id,
-            layoutContext.branch,
-            layoutContext.publicationState,
-            changeTimes.layoutLocationTrack,
-        ],
+    const startSwitch = useSwitch(
+        locationTrack.startSwitchId,
+        layoutContext,
+        changeTimes.layoutSwitch,
     );
+    const endSwitch = useSwitch(locationTrack.endSwitchId, layoutContext, changeTimes.layoutSwitch);
+
     const [extraInfo, extraInfoLoadingStatus] = useLocationTrackInfoboxExtras(
         locationTrack?.id,
         layoutContext,
@@ -171,7 +164,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                 <InfoboxField
                     qaId="location-track-description"
                     label={t('tool-panel.location-track.description')}
-                    value={description}
+                    value={locationTrack.description}
                 />
                 <InfoboxField
                     qaId="location-track-track-number"
@@ -212,11 +205,11 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                 />
                 <InfoboxField
                     label={t('tool-panel.location-track.start-switch')}
-                    value={extraInfo && getSwitchLink(extraInfo.switchAtStart)}
+                    value={extraInfo && getSwitchLink(startSwitch)}
                 />
                 <InfoboxField
                     label={t('tool-panel.location-track.end-switch')}
-                    value={extraInfo && getSwitchLink(extraInfo.switchAtEnd)}
+                    value={extraInfo && getSwitchLink(endSwitch)}
                 />
                 <InfoboxButtons>
                     <Button

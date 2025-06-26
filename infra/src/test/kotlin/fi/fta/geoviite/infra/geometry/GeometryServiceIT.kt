@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
@@ -27,7 +28,9 @@ import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,9 +38,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -72,7 +72,10 @@ constructor(
         geometryService.setPlanHidden(planId, true)
         assertFalse(geometryService.getPlanHeaders().any { p -> p.id == planId })
         assertEquals(null, geometryService.fetchDuplicateGeometryPlanHeader(file.hash, plan.source)?.id)
-        assertEquals(listOf(), geometryService.getGeometryPlanAreas(searchBbox).map(GeometryPlanArea::id))
+        assertEquals(
+            listOf<DomainId<GeometryPlan>>(),
+            geometryService.getGeometryPlanAreas(searchBbox).map(GeometryPlanArea::id),
+        )
 
         geometryService.setPlanHidden(planId, false)
         assertTrue(geometryService.getPlanHeaders().any { p -> p.id == planId })
@@ -364,7 +367,7 @@ constructor(
         )
 
     @Test
-    fun `Overlapping plan search finds plans that are withing 10 of alignment`() {
+    fun `Overlapping plan search finds plans that are within 10m of alignment`() {
         val tn = TrackNumber("001")
         val a1 = geometryAlignment(line(Point(0.0, 0.0), Point(10.0, 0.0)))
         val a2 = geometryAlignment(line(Point(20.0, 0.0), Point(30.0, 0.0)))
@@ -430,7 +433,7 @@ constructor(
 
         val overlapping = geometryService.getOverlappingPlanHeaders(searchPolygon).map { it.id }
 
-        Assertions.assertEquals(4, overlapping.size)
+        assertEquals(4, overlapping.size)
         assertContains(overlapping, plan2EndsWithinAlignmentBuffer.id)
         assertContains(overlapping, plan3CompletelyWithin.id)
         assertContains(overlapping, plan4TouchesEndOfAlignmentBuffer.id)

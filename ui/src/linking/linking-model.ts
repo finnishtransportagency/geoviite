@@ -10,6 +10,8 @@ import {
     LayoutTrackNumberId,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
+    LocationTrackNameSpecifier,
+    LocationTrackNamingScheme,
     LocationTrackState,
     LocationTrackType,
     MapAlignmentType,
@@ -38,13 +40,15 @@ import {
 import { LayoutValidationIssue } from 'publication/publication-model';
 
 export type LocationTrackSaveRequest = {
-    name: string;
+    namingScheme?: LocationTrackNamingScheme;
+    nameFreeText?: string;
+    nameSpecifier?: LocationTrackNameSpecifier | undefined;
     descriptionBase?: string;
     descriptionSuffix?: LocationTrackDescriptionSuffixMode;
     type?: LocationTrackType;
     state?: LocationTrackState;
     trackNumberId?: LayoutTrackNumberId;
-    duplicateOf?: string;
+    duplicateOf?: LocationTrackId;
     topologicalConnectivity?: TopologicalConnectivityType;
     ownerId?: LocationTrackOwnerId;
 };

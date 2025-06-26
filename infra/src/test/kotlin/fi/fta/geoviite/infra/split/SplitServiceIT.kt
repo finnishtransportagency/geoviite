@@ -31,7 +31,6 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -40,6 +39,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -258,14 +258,14 @@ constructor(
         assertEquals(request.targetTracks.size, split.targetLocationTracks.size)
         request.targetTracks.forEachIndexed { index, targetRequest ->
             val targetResult = split.targetLocationTracks[index]
-            assertEquals(targetRequest.getOperation(), targetResult.operation)
+            assertEquals(targetRequest.operation, targetResult.operation)
             targetRequest.duplicateTrack?.let { d -> assertEquals(d.id, targetResult.locationTrackId) }
         }
     }
 
     private fun assertTransferTargetTrack(request: SplitRequestTarget, response: SplitTarget) {
         // This assert is for TRANSFER only: use assertTargetTrack for other operations
-        assertEquals(SplitTargetOperation.TRANSFER, request.getOperation())
+        assertEquals(SplitTargetOperation.TRANSFER, request.operation)
 
         val (track, geometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
@@ -274,8 +274,9 @@ constructor(
 
         // TRANSFER operation should not change the duplicate track geometry or fields
         assertEquals(originalTrack.name, track.name)
-        assertEquals(originalTrack.descriptionBase, track.descriptionBase)
-        assertEquals(originalTrack.descriptionSuffix, track.descriptionSuffix)
+        assertEquals(originalTrack.nameStructure, track.nameStructure)
+        assertEquals(originalTrack.description, track.description)
+        assertEquals(originalTrack.descriptionStructure, track.descriptionStructure)
         assertNull(track.duplicateOf)
         request.startAtSwitchId?.let { startSwitchId -> assertEquals(startSwitchId, track.switchIds.first()) }
 
@@ -288,15 +289,17 @@ constructor(
         response: SplitTarget,
     ) {
         // This assert is not for TRANSFER operation: use assertTransferTargetTrack for that
-        assertNotEquals(SplitTargetOperation.TRANSFER, request.getOperation())
+        assertNotEquals(SplitTargetOperation.TRANSFER, request.operation)
 
         val (_, source) = locationTrackService.getWithGeometry(sourceResponse)
         val (track, geometry) =
             locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
 
-        assertEquals(request.name, track.name)
-        assertEquals(request.descriptionBase, track.descriptionBase)
-        assertEquals(request.descriptionSuffix, track.descriptionSuffix)
+        assertEquals(request.namingScheme, track.nameStructure.scheme)
+        assertEquals(request.nameFreeText, track.nameStructure.freeText)
+        assertEquals(request.nameSpecifier, track.nameStructure.specifier)
+        assertEquals(request.descriptionBase, track.descriptionStructure.base)
+        assertEquals(request.descriptionSuffix, track.descriptionStructure.suffix)
         assertNull(track.duplicateOf)
         request.startAtSwitchId?.let { startSwitchId -> assertEquals(startSwitchId, track.switchIds.first()) }
 

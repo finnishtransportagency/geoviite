@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.SwitchNameParts
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.ISwitchStructure
@@ -48,16 +49,7 @@ data class LayoutSwitch(
     @JsonIgnore override val contextData: LayoutContextData<LayoutSwitch>,
 ) : LayoutAsset<LayoutSwitch>(contextData) {
     @JsonIgnore val exists = !stateCategory.isRemoved()
-    val shortName =
-        name.split(" ").lastOrNull()?.let { last ->
-            if (last.startsWith("V")) {
-                last.substring(1).toIntOrNull(10)?.toString()?.padStart(3, '0')?.let { switchNumber ->
-                    "V$switchNumber"
-                }
-            } else {
-                null
-            }
-        }
+    val nameParts: SwitchNameParts? by lazy { name.let(SwitchNameParts::tryParse) }
 
     fun getJoint(location: AlignmentPoint, delta: Double): LayoutSwitchJoint? =
         getJoint(Point(location.x, location.y), delta)

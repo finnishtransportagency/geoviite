@@ -3,7 +3,7 @@ import { isNilOrBlank } from 'utils/string-utils';
 import { getGeometryPlanHeadersBySearchTerms } from 'geometry/geometry-api';
 import { debounceAsync } from 'utils/async-utils';
 import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
-import { LayoutLocationTrack, LocationTrackDescription } from 'track-layout/track-layout-model';
+import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 import { CoordinateSystem, Srid } from 'common/common-model';
 
 export const searchGeometryPlanHeaders = async (
@@ -47,15 +47,12 @@ export const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm
 
 export const getLocationTrackOptions = (
     tracks: LayoutLocationTrack[],
-    descriptions: LocationTrackDescription[],
     selectedTrack: LayoutLocationTrack | undefined,
 ) =>
     tracks
         .filter((lt) => !selectedTrack || lt.id !== selectedTrack.id)
         .map((lt) => ({
-            name: `${lt.name}, ${
-                descriptions.find((desc) => desc.id === lt.id)?.description ?? '-'
-            }`,
+            name: `${lt.name}, ${lt.description}`,
             value: lt,
             qaId: `location-track-${lt.id}`,
         }));

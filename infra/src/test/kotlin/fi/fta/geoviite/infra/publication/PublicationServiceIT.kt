@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
@@ -68,16 +67,15 @@ import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import java.math.BigDecimal
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -87,6 +85,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import java.math.BigDecimal
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -201,7 +201,7 @@ constructor(
         responses.forEach { response ->
             val candidate = candidates.find { c -> c.id == response.id }
             assertNotNull(candidate)
-            assertEquals(response, candidate.rowVersion)
+            assertEquals(response, candidate!!.rowVersion)
         }
     }
 
@@ -385,7 +385,7 @@ constructor(
         val officialId =
             mainOfficialContext
                 .save(
-                    locationTrack(trackNumberId = trackNumberId, name = "test 01"),
+                    locationTrack(trackNumberId = trackNumberId, nameStructure = trackNameStructure("test 01")),
                     trackGeometryOfSegments(segment(Point(1.0, 1.0), Point(2.0, 2.0))),
                 )
                 .id
@@ -393,7 +393,7 @@ constructor(
         val (tmpTrack, _) = locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, officialId)
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            tmpTrack.copy(name = AlignmentName("DRAFT test 01")),
+            tmpTrack.copy(nameStructure = trackNameStructure("DRAFT test 01")),
             trackGeometryOfSegments(
                 segment(Point(1.0, 1.0), Point(2.0, 2.0)),
                 segment(Point(2.0, 2.0), Point(3.0, 3.0)),
@@ -609,7 +609,14 @@ constructor(
             locationTrackService,
             { locationTrack(tnId, draft = true) },
             { orig ->
-                asMainDraft(orig.copy(descriptionBase = LocationTrackDescriptionBase("${orig.descriptionBase}_edit")))
+                asMainDraft(
+                    orig.copy(
+                        descriptionStructure =
+                            orig.descriptionStructure.copy(
+                                base = LocationTrackDescriptionBase("${orig.descriptionStructure.base}_edit")
+                            )
+                    )
+                )
             },
         )
     }
@@ -1225,7 +1232,7 @@ constructor(
 
         val splitInPublication = publicationLogService.getSplitInPublication(publicationId!!)
         assertNotNull(splitInPublication)
-        assertEquals(splitSetup.sourceTrack.id, splitInPublication.locationTrack.id)
+        assertEquals(splitSetup.sourceTrack.id, splitInPublication!!.locationTrack.id)
         assertEquals(splitSetup.targetTracks.size, splitInPublication.targetLocationTracks.size)
         splitSetup.targetTracks.forEachIndexed { index, (daoResponse, _) ->
             val splitTarget = splitInPublication.targetLocationTracks[index]
@@ -1323,7 +1330,7 @@ constructor(
 
         splitDao.get(splitId).let { split ->
             assertNotNull(split)
-            assertEquals(null, split.publicationId)
+            assertEquals(null, split!!.publicationId)
         }
 
         val publicationId =
@@ -1341,7 +1348,7 @@ constructor(
 
         splitDao.get(splitId).let { split ->
             assertNotNull(split)
-            assertEquals(publicationId, split.publicationId)
+            assertEquals(publicationId, split!!.publicationId)
         }
 
         val (targetTrackToModify, targetAlignment) =
@@ -1395,7 +1402,7 @@ constructor(
 
         switchService.get(MainLayoutContext.draft, someSwitch.id).let { publishedSwitch ->
             assertNotNull(publishedSwitch)
-            assertEquals(true, publishedSwitch.isOfficial)
+            assertEquals(true, publishedSwitch!!.isOfficial)
 
             switchService.saveDraft(
                 LayoutBranch.main,
@@ -1541,7 +1548,7 @@ constructor(
     @Test
     fun `cancelled items are not merge-to-main candidates`() {
         val designBranch = testDBService.createDesignBranch()
-        val designOfficialContext = testDBService.testContext(designBranch, PublicationState.OFFICIAL)
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
 
         val trackNumber = designOfficialContext.save(trackNumber()).id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0)))
@@ -1847,9 +1854,9 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T, *>> publishAndCheck(
     service: LayoutAssetService<T, *, S>,
 ): Pair<LayoutRowVersion<T>, T> {
     val draft = dao.fetch(rowVersion)
-    val id = draft.id
+    assertTrue(draft.id is IntId)
+    val id = (draft.id as? IntId)!!
 
-    assertTrue(id is IntId)
     assertNotEquals(rowVersion, dao.fetchVersion(MainLayoutContext.official, id))
     assertEquals(rowVersion, dao.fetchVersion(MainLayoutContext.draft, id))
     assertTrue(draft.isDraft)

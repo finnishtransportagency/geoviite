@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointDistanceToLine
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -243,14 +242,7 @@ constructor(
                 "valimatka" to yDifferenceToTargetLocation,
                 "ratanumero" to geocodableTrack.trackNumber.number.toString(),
                 "sijaintiraide" to geocodableTrack.locationTrack.name.toString(),
-                "sijaintiraide_kuvaus" to
-                    locationTrackService
-                        .getFullDescription(
-                            layoutContext = geocodableTrack.layoutContext,
-                            locationTrack = geocodableTrack.locationTrack,
-                            lang = LocalizationLanguage.FI,
-                        )
-                        .toString(),
+                "sijaintiraide_kuvaus" to geocodableTrack.locationTrack.description.toString(),
                 "sijaintiraide_tyyppi" to "pääraide",
                 "ratakilometri" to 0,
                 "ratametri" to 10,
@@ -447,15 +439,6 @@ constructor(
                 locationTrackType = LocationTrackType.CHORD,
             )
 
-        val trackDescription =
-            locationTrackService
-                .getFullDescription(
-                    layoutContext = geocodableTrack.layoutContext,
-                    locationTrack = geocodableTrack.locationTrack,
-                    lang = LocalizationLanguage.FI,
-                )
-                .toString()
-
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 1.0)
 
         // This is the thing being tested.
@@ -478,7 +461,7 @@ constructor(
 
         assertEquals(geocodableTrack.trackNumber.number.toString(), properties["ratanumero"])
         assertEquals(geocodableTrack.locationTrack.name.toString(), properties["sijaintiraide"])
-        assertEquals(trackDescription, properties["sijaintiraide_kuvaus"])
+        assertEquals(geocodableTrack.locationTrack.description.toString(), properties["sijaintiraide_kuvaus"])
         assertEquals("kujaraide", properties["sijaintiraide_tyyppi"])
         assertEquals(0, properties["ratakilometri"])
         assertEquals(10, properties["ratametri"] as Int)
@@ -495,15 +478,6 @@ constructor(
                 segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
                 locationTrackType = LocationTrackType.TRAP,
             )
-
-        val trackDescription =
-            locationTrackService
-                .getFullDescription(
-                    layoutContext = geocodableTrack.layoutContext,
-                    locationTrack = geocodableTrack.locationTrack,
-                    lang = LocalizationLanguage.FI,
-                )
-                .toString()
 
         val xPositionOnTrack = 3.0
         val yPositionOnTrack = 0.0
@@ -539,7 +513,7 @@ constructor(
 
         assertEquals(geocodableTrack.trackNumber.number.toString(), properties["ratanumero"])
         assertEquals(geocodableTrack.locationTrack.name.toString(), properties["sijaintiraide"])
-        assertEquals(trackDescription, properties["sijaintiraide_kuvaus"])
+        assertEquals(geocodableTrack.locationTrack.description.toString(), properties["sijaintiraide_kuvaus"])
         assertEquals("turvaraide", properties["sijaintiraide_tyyppi"])
         assertEquals(0, properties["ratakilometri"])
         assertEquals(xPositionOnTrack.toInt(), properties["ratametri"] as? Int)

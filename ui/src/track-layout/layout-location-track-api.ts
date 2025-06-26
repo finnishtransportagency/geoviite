@@ -4,9 +4,9 @@ import {
     DuplicateStatus,
     LayoutLocationTrack,
     LayoutTrackNumberId,
-    LocationTrackDescription,
     LocationTrackId,
     LocationTrackInfoboxExtras,
+    LocationTrackNameStructure,
 } from 'track-layout/track-layout-model';
 import {
     DesignBranch,
@@ -77,6 +77,7 @@ export type AlignmentPlanSection = {
 
 export type SplitDuplicateTrack = {
     id: LocationTrackId;
+    nameStructure: LocationTrackNameStructure;
     name: string;
     length: number;
     status: DuplicateStatus;
@@ -153,16 +154,6 @@ export async function getLocationTracksBySearchTerm(
     });
     return await getNonNull<LayoutLocationTrack[]>(
         `${layoutUri('location-tracks', layoutContext)}${params}`,
-    );
-}
-
-export function getLocationTrackDescriptions(
-    locationTrackIds: LocationTrackId[],
-    layoutContext: LayoutContext,
-): Promise<LocationTrackDescription[] | undefined> {
-    const params = queryParams({ ids: locationTrackIds.join(','), lang: i18next.language });
-    return getNullable<LocationTrackDescription[]>(
-        `${layoutUri('location-tracks', layoutContext)}/description${params}`,
     );
 }
 

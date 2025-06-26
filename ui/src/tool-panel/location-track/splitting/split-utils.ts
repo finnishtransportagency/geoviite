@@ -1,8 +1,11 @@
 import {
     DuplicateStatus,
+    getNameFreeText,
+    getNameSpecifier,
     LayoutLocationTrack,
     LayoutSwitch,
     LocationTrackId,
+    LocationTrackNamingScheme,
     SplitPoint,
     splitPointsAreSame,
 } from 'track-layout/track-layout-model';
@@ -67,9 +70,13 @@ const splitToRequestTarget = (
               }
             : undefined;
     return {
-        name: duplicate ? duplicate.name : split.name,
-        descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
-        descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
+        namingScheme: duplicate?.nameStructure?.scheme ?? LocationTrackNamingScheme.FREE_TEXT,
+        nameFreeText: getNameFreeText(duplicate?.nameStructure) ?? '',
+        nameSpecifier: getNameSpecifier(duplicate?.nameStructure),
+        descriptionBase:
+            (duplicate ? duplicate.descriptionStructure.base : split.descriptionBase) ?? '',
+        descriptionSuffix:
+            (duplicate ? duplicate.descriptionStructure.suffix : split.suffixMode) ?? 'NONE',
         duplicateTrack: duplicateTrack,
         startAtSwitchId:
             split.splitPoint.type === 'SWITCH_SPLIT_POINT' ? split.splitPoint.switchId : undefined,
@@ -100,6 +107,7 @@ const validateSplitName = (
     allSplitNames: string[],
     conflictingTrackNames: string[],
 ) => {
+    // TODO: GVT-3083 This needs to validate the structural name with options other than free text
     const errors: FieldValidationIssue<SplitTargetCandidate>[] =
         validateLocationTrackName(splitName);
 

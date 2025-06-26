@@ -20,7 +20,6 @@ import {
     LocationTrackVerticalGeometrySearchState,
     validTrackMeterOrUndefined,
 } from 'data-products/data-products-slice';
-import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 import { officialMainLayoutContext } from 'common/common-model';
@@ -47,16 +46,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
         (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, officialMainLayoutContext(), 10).then(
                 (locationTracks) =>
-                    getLocationTrackDescriptions(
-                        locationTracks.map((lt) => lt.id),
-                        officialMainLayoutContext(),
-                    ).then((descriptions) =>
-                        getLocationTrackOptions(
-                            locationTracks,
-                            descriptions ?? [],
-                            state.searchParameters.locationTrack,
-                        ),
-                    ),
+                    getLocationTrackOptions(locationTracks, state.searchParameters.locationTrack),
             ),
         [state.searchParameters.locationTrack],
     );

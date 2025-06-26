@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
-import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -20,7 +19,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
@@ -35,20 +33,19 @@ constructor(
 ) : DBTestBase() {
 
     @Test
-    fun creatingAndDeletingUnpublishedReferenceLineWithAlignmentWorks() {
+    fun `Creating and deleting unpublished track number with reference line works`() {
         val trackNumberId = createTrackNumber() // automatically creates first version of reference line
         val (savedLine, savedAlignment) =
             requireNotNull(referenceLineService.getByTrackNumberWithAlignment(MainLayoutContext.draft, trackNumberId)) {
                 "Reference line was not automatically created"
             }
         assertTrue(alignmentExists(savedLine.alignmentVersion!!.id))
-        assertEquals(savedLine.alignmentVersion?.id, savedAlignment.id as IntId)
-        assertThrows<DataIntegrityViolationException> {
-            trackNumberService.deleteDraft(LayoutBranch.main, trackNumberId)
-        }
-        referenceLineService.deleteDraft(LayoutBranch.main, savedLine.id as IntId)
-        assertFalse(alignmentExists(savedLine.alignmentVersion!!.id))
-        assertDoesNotThrow { trackNumberService.deleteDraft(LayoutBranch.main, trackNumberId) }
+        assertEquals(savedLine.alignmentVersion.id, savedAlignment.id as IntId)
+
+        trackNumberService.deleteDraft(LayoutBranch.main, trackNumberId)
+        assertNull(referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId))
+        assertNull(referenceLineDao.get(MainLayoutContext.draft, savedLine.id as IntId))
+        assertFalse(alignmentExists(savedLine.alignmentVersion.id))
     }
 
     @Test

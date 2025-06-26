@@ -19,11 +19,15 @@ import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getEnumOrNull
+import fi.fta.geoviite.infra.util.getFreeText
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
+import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
+import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
@@ -35,6 +39,12 @@ import java.sql.Timestamp
 import java.time.Instant
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
+
+data class LocationTrackDependencyVersions(
+    val trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
+    val startSwitchVersion: LayoutRowVersion<LayoutSwitch>?,
+    val endSwitchVersion: LayoutRowVersion<LayoutSwitch>?,
+)
 
 @Component
 class LocationTrackDao(
@@ -129,13 +139,19 @@ class LocationTrackDao(
               ltv.design_asset_state,
               ltv.track_number_id, 
               ltv.name, 
+              ltv.naming_scheme,
+              ltv.name_free_text,
+              ltv.name_specifier,
+              ltv.description,
               ltv.description_base,
               ltv.description_suffix,
               ltv.type, 
               ltv.state, 
               postgis.st_astext(ltv.bounding_box) as bounding_box,
               ltv.length,
-              ltv.segment_count,            
+              ltv.segment_count,
+              ltv.start_switch_id,
+              ltv.end_switch_id,
               ltv.duplicate_of_location_track_id,
               ltv.topological_connectivity,
               ltv.owner_id,
@@ -179,13 +195,19 @@ class LocationTrackDao(
               lt.design_asset_state,
               lt.track_number_id, 
               lt.name, 
+              lt.naming_scheme,
+              lt.name_free_text,
+              lt.name_specifier,
+              lt.description,
               lt.description_base,
               lt.description_suffix,
               lt.type, 
               lt.state, 
               postgis.st_astext(lt.bounding_box) as bounding_box,
               lt.length,
-              lt.segment_count,            
+              lt.segment_count,
+              lt.start_switch_id,
+              lt.end_switch_id,
               lt.duplicate_of_location_track_id,
               lt.topological_connectivity,
               lt.owner_id,
@@ -219,13 +241,25 @@ class LocationTrackDao(
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
             name = rs.getString("name").let(::AlignmentName),
-            descriptionBase = rs.getString("description_base").let(::LocationTrackDescriptionBase),
-            descriptionSuffix = rs.getEnum<LocationTrackDescriptionSuffix>("description_suffix"),
+            nameStructure =
+                LocationTrackNameStructure.of(
+                    scheme = rs.getEnum("naming_scheme"),
+                    freeText = rs.getString("name_free_text")?.let(::AlignmentName),
+                    specifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
+                ),
+            descriptionStructure =
+                LocationTrackDescriptionStructure(
+                    base = rs.getString("description_base").let(::LocationTrackDescriptionBase),
+                    suffix = rs.getEnum("description_suffix"),
+                ),
+            description = rs.getFreeText("description"),
             type = rs.getEnum("type"),
             state = rs.getEnum("state"),
             boundingBox = rs.getBboxOrNull("bounding_box"),
             length = rs.getDouble("length"),
             segmentCount = rs.getInt("segment_count"),
+            startSwitchId = rs.getIntIdOrNull("start_switch_id"),
+            endSwitchId = rs.getIntIdOrNull("end_switch_id"),
             duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
             topologicalConnectivity = rs.getEnum("topological_connectivity"),
             ownerId = rs.getIntId("owner_id"),
@@ -246,6 +280,10 @@ class LocationTrackDao(
               id,
               track_number_id,
               name,
+              naming_scheme,
+              name_free_text,
+              name_specifier,
+              description,
               description_base,
               description_suffix,
               type,
@@ -257,6 +295,8 @@ class LocationTrackDao(
               topological_connectivity,
               owner_id,
               origin_design_id,
+              start_switch_id,
+              end_switch_id,
               length,
               edge_count,
               segment_count,
@@ -267,6 +307,10 @@ class LocationTrackDao(
               :id,
               :track_number_id,
               :name,
+              :naming_scheme::layout.location_track_naming_scheme,
+              :name_free_text,
+              :name_specifier::layout.location_track_specifier,
+              :description,
               :description_base,
               :description_suffix::layout.location_track_description_suffix,
               :type::layout.track_type,
@@ -278,6 +322,8 @@ class LocationTrackDao(
               :topological_connectivity::layout.track_topological_connectivity_type,
               :owner_id,
               :origin_design_id,
+              :start_switch_id,
+              :end_switch_id,
               :length,
               :edge_count,
               :segment_count,
@@ -285,6 +331,10 @@ class LocationTrackDao(
             ) on conflict (id, layout_context_id) do update set
               track_number_id = excluded.track_number_id,
               name = excluded.name,
+              naming_scheme = excluded.naming_scheme,
+              name_free_text = excluded.name_free_text,
+              name_specifier = excluded.name_specifier,
+              description = excluded.description,
               description_base = excluded.description_base,
               description_suffix = excluded.description_suffix,
               type = excluded.type,
@@ -294,6 +344,8 @@ class LocationTrackDao(
               topological_connectivity = excluded.topological_connectivity,
               owner_id = excluded.owner_id,
               origin_design_id = excluded.origin_design_id,
+              start_switch_id = excluded.start_switch_id,
+              end_switch_id = excluded.end_switch_id,
               length = excluded.length,
               edge_count = excluded.edge_count,
               segment_count = excluded.segment_count,
@@ -307,8 +359,12 @@ class LocationTrackDao(
                 "id" to id.intValue,
                 "track_number_id" to item.trackNumberId.intValue,
                 "name" to item.name,
-                "description_base" to item.descriptionBase,
-                "description_suffix" to item.descriptionSuffix.name,
+                "naming_scheme" to item.nameStructure.scheme.name,
+                "name_free_text" to item.nameStructure.freeText,
+                "name_specifier" to item.nameStructure.specifier?.name,
+                "description" to item.description,
+                "description_base" to item.descriptionStructure.base,
+                "description_suffix" to item.descriptionStructure.suffix.name,
                 "type" to item.type.name,
                 "state" to item.state.name,
                 "draft" to item.isDraft,
@@ -318,6 +374,8 @@ class LocationTrackDao(
                 "topological_connectivity" to item.topologicalConnectivity.name,
                 "owner_id" to item.ownerId.intValue,
                 "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
+                "start_switch_id" to geometry.startSwitchLink?.id?.intValue,
+                "end_switch_id" to geometry.endSwitchLink?.id?.intValue,
                 "length" to geometry.length,
                 "edge_count" to geometry.edges.size,
                 "segment_count" to geometry.segments.size,
@@ -555,5 +613,130 @@ class LocationTrackDao(
     fun insertExternalId(id: IntId<LocationTrack>, branch: LayoutBranch, oid: Oid<LocationTrack>) {
         jdbcTemplate.setUser()
         insertExternalIdInExistingTransaction(branch, id, oid)
+    }
+
+    fun fetchDependencyVersions(
+        context: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>,
+        startSwitchId: IntId<LayoutSwitch>?,
+        endSwitchId: IntId<LayoutSwitch>?,
+    ): LocationTrackDependencyVersions {
+        // language=PostgreSQL
+        val sql =
+            """
+            select
+              tn.id as track_number_id,
+              tn.layout_context_id as track_number_layout_context_id,
+              tn.version as track_number_version,
+              start_sw.id as start_switch_id,
+              start_sw.layout_context_id as start_switch_layout_context_id,
+              start_sw.version as start_switch_version,
+              end_sw.id as end_switch_id,
+              end_sw.layout_context_id as end_switch_layout_context_id,
+              end_sw.version as end_switch_version
+            from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id::int) tn
+            left join lateral (
+              select id, layout_context_id, version
+              from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id::int)
+              where id = :start_switch_id::int
+            ) start_sw on true
+            left join lateral (
+              select id, layout_context_id, version
+              from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id::int)
+              where id = :end_switch_id::int
+            ) end_sw on true
+            where tn.id = :track_number_id::int
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+                "track_number_id" to trackNumberId.intValue,
+                "start_switch_id" to startSwitchId?.intValue,
+                "end_switch_id" to endSwitchId?.intValue,
+            )
+        return jdbcTemplate.queryOne(sql, params) { rs, _ ->
+            LocationTrackDependencyVersions(
+                trackNumberVersion =
+                    rs.getLayoutRowVersion("track_number_id", "track_number_layout_context_id", "track_number_version"),
+                startSwitchVersion =
+                    rs.getLayoutRowVersionOrNull(
+                        "start_switch_id",
+                        "start_switch_layout_context_id",
+                        "start_switch_version",
+                    ),
+                endSwitchVersion =
+                    rs.getLayoutRowVersionOrNull("end_switch_id", "end_switch_layout_context_id", "end_switch_version"),
+            )
+        }
+    }
+
+    fun fetchDependencyVersions(
+        context: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
+        switchId: IntId<LayoutSwitch>? = null,
+    ): Map<LayoutRowVersion<LocationTrack>, LocationTrackDependencyVersions> {
+        if (trackNumberId == null && switchId == null) return emptyMap()
+        val sql =
+            """
+            select
+              t.id as track_id,
+              t.layout_context_id as track_layout_context_id,
+              t.version as track_version,
+              tn.id as track_number_id,
+              tn.layout_context_id as track_number_layout_context_id,
+              tn.version as track_number_version,
+              start_sw.id as start_switch_id,
+              start_sw.layout_context_id as start_switch_layout_context_id,
+              start_sw.version as start_switch_version,
+              end_sw.id as end_switch_id,
+              end_sw.layout_context_id as end_switch_layout_context_id,
+              end_sw.version as end_switch_version
+              from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id::int) t
+                inner join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id::int) tn
+                          on t.track_number_id = tn.id
+                left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id::int) start_sw
+                          on t.start_switch_id = start_sw.id
+                left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id::int) end_sw
+                          on t.end_switch_id = end_sw.id
+              where (:track_number_id::int is not null and t.track_number_id = :track_number_id::int)
+                 or (:switch_id::int is not null and (t.start_switch_id = :switch_id::int or t.end_switch_id = :switch_id::int))
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+                "track_number_id" to trackNumberId?.intValue,
+                "switch_id" to switchId?.intValue,
+            )
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                val trackVersion =
+                    rs.getLayoutRowVersion<LocationTrack>("track_id", "track_layout_context_id", "track_version")
+                trackVersion to
+                    LocationTrackDependencyVersions(
+                        trackNumberVersion =
+                            rs.getLayoutRowVersion(
+                                "track_number_id",
+                                "track_number_layout_context_id",
+                                "track_number_version",
+                            ),
+                        startSwitchVersion =
+                            rs.getLayoutRowVersionOrNull(
+                                "start_switch_id",
+                                "start_switch_layout_context_id",
+                                "start_switch_version",
+                            ),
+                        endSwitchVersion =
+                            rs.getLayoutRowVersionOrNull(
+                                "end_switch_id",
+                                "end_switch_layout_context_id",
+                                "end_switch_version",
+                            ),
+                    )
+            }
+            .associate { it }
     }
 }

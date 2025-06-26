@@ -9,19 +9,20 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.geography.contains
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
+import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -49,8 +50,8 @@ constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val splitService: SplitService,
     private val splitTestDataService: SplitTestDataService,
+    private val layoutTrackNumberService: LayoutTrackNumberService,
 ) : DBTestBase() {
-
     @BeforeEach
     fun setup() {
         splitTestDataService.clearSplits()
@@ -138,7 +139,7 @@ constructor(
         val editedVersion =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                published.copy(name = AlignmentName("EDITED1")),
+                published.copy(nameStructure = trackNameStructure("EDITED1")),
                 TmpLocationTrackGeometry.empty,
             )
         assertEquals(publicationResponse.id, editedVersion.id)
@@ -150,7 +151,7 @@ constructor(
         val editedVersion2 =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
-                editedDraft.copy(name = AlignmentName("EDITED2")),
+                editedDraft.copy(nameStructure = trackNameStructure("EDITED2")),
                 TmpLocationTrackGeometry.empty,
             )
         assertEquals(publicationResponse.id, editedVersion2.id)
@@ -672,12 +673,18 @@ constructor(
             )
         publish(duplicateInOfficial.id as IntId<LocationTrack>)
 
-        val newTrackName = AlignmentName(duplicateInOfficial.name.toString() + " NEW NAME FOR DRAFT")
+        val newTrackName = trackNameStructure(duplicateInOfficial.name.toString() + " NEW NAME FOR DRAFT")
         val duplicateInDraftVersion =
             locationTrackService.update(
                 LayoutBranch.main,
                 duplicateInOfficial.id,
-                saveRequest(trackNumberId, 1).copy(name = newTrackName, duplicateOf = originalLocationTrackId),
+                saveRequest(trackNumberId, 1)
+                    .copy(
+                        namingScheme = newTrackName.scheme,
+                        nameFreeText = newTrackName.freeText,
+                        nameSpecifier = newTrackName.specifier,
+                        duplicateOf = originalLocationTrackId,
+                    ),
             )
         val duplicateInDraft = locationTrackService.get(MainLayoutContext.draft, duplicateInDraftVersion.id)!!
 
@@ -760,9 +767,11 @@ constructor(
                 LayoutBranch.main,
                 split.sourceLocationTrackId,
                 LocationTrackSaveRequest(
-                    name = AlignmentName("Some other name"),
-                    descriptionBase = sourceLocationTrack.descriptionBase,
-                    descriptionSuffix = sourceLocationTrack.descriptionSuffix,
+                    nameFreeText = AlignmentName("Some other name"),
+                    namingScheme = LocationTrackNamingScheme.FREE_TEXT,
+                    nameSpecifier = null,
+                    descriptionBase = sourceLocationTrack.descriptionStructure.base,
+                    descriptionSuffix = sourceLocationTrack.descriptionStructure.suffix,
                     type = sourceLocationTrack.type,
                     state = sourceLocationTrack.state,
                     trackNumberId = sourceLocationTrack.trackNumberId,
@@ -772,56 +781,6 @@ constructor(
                 ),
             )
         }
-    }
-
-    @Test
-    fun `getFullDescriptions() works in happy case`() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val switch1 = mainDraftContext.save(switch(name = "ABC V123"))
-        val switch2 = mainDraftContext.save(switch(name = "QUX V456"))
-        val track1 =
-            mainDraftContext
-                .save(
-                    locationTrack(
-                        trackNumberId,
-                        description = "track 1",
-                        descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
-                    ),
-                    trackGeometry(
-                        TmpLayoutEdge(
-                            startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switch1.id, 1)),
-                            endNode = NodeConnection.switch(inner = switchLinkYV(switch2.id, 1), outer = null),
-                            segments = listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0))),
-                        )
-                    ),
-                )
-                .id
-        val track2 =
-            mainDraftContext
-                .save(
-                    locationTrack(
-                        trackNumberId,
-                        description = "track 2",
-                        descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
-                    ),
-                    trackGeometry(
-                        TmpLayoutEdge(
-                            startNode = NodeConnection.switch(inner = switchLinkYV(switch2.id, 1), outer = null),
-                            endNode = PlaceHolderNodeConnection,
-                            segments = listOf(segment(Point(2.0, 2.0), Point(3.0, 3.0))),
-                        )
-                    ),
-                )
-                .id
-        val descriptions =
-            locationTrackService
-                .getFullDescriptions(
-                    MainLayoutContext.draft,
-                    listOf(track1, track2).map { mainDraftContext.fetch(it)!! },
-                    LocalizationLanguage.FI,
-                )
-                .map { it.toString() }
-        assertEquals(listOf("track 1 V123 - V456", "track 2 V456 - Puskin"), descriptions)
     }
 
     @Test
@@ -1014,6 +973,184 @@ constructor(
         assertNull(getPolygon(KmNumber(4), null))
     }
 
+    @Test
+    fun `name and description autogeneration works`() {
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId = mainOfficialContext.save(trackNumber(trackNumber)).id
+        mainOfficialContext.save(referenceLine(trackNumberId), someAlignment()).id
+        val switch1Id = mainOfficialContext.save(switch(name = "ABC V0001", draft = false)).id
+        val switch2Id = mainOfficialContext.save(switch(name = "ABC V0002", draft = false)).id
+        val switch3Id = mainOfficialContext.save(switch(name = "ABC V0003", draft = false)).id
+
+        val unlinkedGeometry = trackGeometryOfSegments(someSegment())
+        val linkedGeometry =
+            trackGeometry(
+                edge(
+                    startOuterSwitch = switchLinkYV(switch1Id, 1),
+                    endOuterSwitch = switchLinkYV(switch2Id, 1),
+                    segments = listOf(someSegment()),
+                )
+            )
+
+        val trackOfficialVersion =
+            mainOfficialContext.save(
+                locationTrack(
+                    trackNumberId = trackNumberId,
+                    name = "TST-TRACK-INIT",
+                    description = "Initial description",
+                ),
+                unlinkedGeometry,
+            )
+        val trackId = trackOfficialVersion.id
+        assertEquals(AlignmentName("TST-TRACK-INIT"), getDraftNameAndStructure(trackId).first)
+        assertEquals(FreeText("Initial description"), getDraftDescriptionAndStructure(trackId).first)
+
+        // Linking the track to switches should not change the name or description since we're still set as free-text
+        updateDraft(trackId) { t, g -> t to linkedGeometry }
+        getDraftNameAndStructure(trackId).let { (name, structure) ->
+            assertEquals(LocationTrackNamingScheme.FREE_TEXT, structure.scheme)
+            assertEquals(AlignmentName("TST-TRACK-INIT"), name)
+        }
+        assertEquals(FreeText("Initial description"), getDraftDescriptionAndStructure(trackId).first)
+
+        // Operating point name is basically just a different free text
+        updateDraft(trackId) { t, g ->
+            t.copy(nameStructure = LocationTrackNameWithinOperatingPoint(AlignmentName("within operating point"))) to g
+        }
+        getDraftNameAndStructure(trackId).let { (name, structure) ->
+            assertEquals(LocationTrackNamingScheme.WITHIN_OPERATING_POINT, structure.scheme)
+            assertEquals(AlignmentName("within operating point"), name)
+        }
+
+        // Track number name gets the name from track number + specifier
+        updateDraft(trackId) { t, g ->
+            t.copy(
+                nameStructure =
+                    LocationTrackNameByTrackNumber(AlignmentName("tn-track"), LocationTrackNameSpecifier.LANHR)
+            ) to g
+        }
+        getDraftNameAndStructure(trackId).let { (name, structure) ->
+            assertEquals(LocationTrackNamingScheme.TRACK_NUMBER_TRACK, structure.scheme)
+            assertEquals(LocationTrackNameSpecifier.LANHR, structure.specifier)
+            assertEquals(AlignmentName("$trackNumber ${LocationTrackNameSpecifier.LANHR.properForm} tn-track"), name)
+        }
+
+        // Changing the track number should update the name
+        val newTrackNumber = testDBService.getUnusedTrackNumber()
+        layoutTrackNumberService.saveDraft(
+            LayoutBranch.main,
+            mainDraftContext.fetch(trackNumberId)!!.copy(number = newTrackNumber),
+        )
+        getDraftNameAndStructure(trackId).let { (name, structure) ->
+            assertEquals(LocationTrackNamingScheme.TRACK_NUMBER_TRACK, structure.scheme)
+            assertEquals(LocationTrackNameSpecifier.LANHR, structure.specifier)
+            assertEquals(AlignmentName("$newTrackNumber ${LocationTrackNameSpecifier.LANHR.properForm} tn-track"), name)
+        }
+        // Make sure that track number draft revert also reverts the track name
+        layoutTrackNumberService.deleteDraft(LayoutBranch.main, trackNumberId)
+        getDraftNameAndStructure(trackId).let { (name, structure) ->
+            assertEquals(LocationTrackNamingScheme.TRACK_NUMBER_TRACK, structure.scheme)
+            assertEquals(LocationTrackNameSpecifier.LANHR, structure.specifier)
+            assertEquals(AlignmentName("$trackNumber ${LocationTrackNameSpecifier.LANHR.properForm} tn-track"), name)
+        }
+
+        // Between operating points the name combines specifier and switches
+        // Since switches can also affect the description, we also check that
+        updateDraft(trackId) { t, g ->
+            t.copy(
+                nameStructure = LocationTrackNameBetweenOperatingPoints(LocationTrackNameSpecifier.EKR),
+                descriptionStructure =
+                    LocationTrackDescriptionStructure(
+                        LocationTrackDescriptionBase("New description"),
+                        LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
+                    ),
+            ) to g
+        }
+        getDraftNameAndStructure(trackId).let { (name, structure) ->
+            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
+            assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
+            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V002"), name)
+        }
+        getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
+            assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
+            assertEquals(FreeText("New description ABC V001 - ABC V002"), description)
+        }
+
+        // Changing the switch linkings should update the name and description
+        updateDraft(trackId) { t, g ->
+            t to
+                trackGeometry(
+                    edge(
+                        startOuterSwitch = switchLinkYV(switch1Id, 1),
+                        endOuterSwitch = switchLinkYV(switch3Id, 1),
+                        segments = listOf(someSegment()),
+                    )
+                )
+        }
+        getDraftNameAndStructure(trackId).let { (name, structure) ->
+            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
+            assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
+            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V003"), name)
+        }
+        getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
+            assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
+            assertEquals(FreeText("New description ABC V001 - ABC V003"), description)
+        }
+
+        // Changing the switch names should update the name and description
+        switchService.saveDraft(
+            LayoutBranch.main,
+            mainDraftContext.fetch(switch1Id)!!.copy(name = SwitchName("ABC V0999")),
+        )
+        getDraftNameAndStructure(trackId).let { (name, structure) ->
+            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
+            assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
+            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V999-ABC V003"), name)
+        }
+        getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
+            assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
+            assertEquals(FreeText("New description ABC V999 - ABC V003"), description)
+        }
+        // Make sure that switch draft revert also reverts the track name
+        switchService.deleteDraft(LayoutBranch.main, switch1Id)
+        getDraftNameAndStructure(trackId).let { (name, structure) ->
+            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
+            assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
+            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V003"), name)
+        }
+        getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
+            assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
+            assertEquals(FreeText("New description ABC V001 - ABC V003"), description)
+        }
+
+        // Finally, verify that chord-style naming also works
+        updateDraft(trackId) { t, g -> t.copy(nameStructure = LocationTrackNameChord) to g }
+        getDraftNameAndStructure(trackId).let { (name, structure) ->
+            assertEquals(LocationTrackNamingScheme.CHORD, structure.scheme)
+            assertEquals(AlignmentName("ABC V001-V003"), name)
+        }
+    }
+
+    private fun updateDraft(
+        id: IntId<LocationTrack>,
+        op: (LocationTrack, LocationTrackGeometry) -> Pair<LocationTrack, LocationTrackGeometry>,
+    ) =
+        locationTrackService.getWithGeometry(MainLayoutContext.draft, id)!!.let { (t, g) ->
+            op(t, g).let { (newT, newG) -> locationTrackService.saveDraft(LayoutBranch.main, newT, newG) }
+        }
+
+    private fun getDraftNameAndStructure(trackId: IntId<LocationTrack>) =
+        locationTrackDao.get(MainLayoutContext.draft, trackId).let { track ->
+            assertNotNull(track, "Draft track with ID $trackId should exist")
+            track!!.name to track.nameStructure
+        }
+
+    private fun getDraftDescriptionAndStructure(trackId: IntId<LocationTrack>) =
+        locationTrackDao.get(MainLayoutContext.draft, trackId).let { track ->
+            assertNotNull(track, "Draft track with ID $trackId should exist")
+            track!!.description to track.descriptionStructure
+        }
+
     private fun insertAndFetchDraft(switch: LayoutSwitch): LayoutSwitch =
         switchDao.fetch(switchService.saveDraft(LayoutBranch.main, switch))
 
@@ -1079,8 +1216,11 @@ constructor(
 
     private fun assertMatches(saveRequest: LocationTrackSaveRequest, locationTrack: LocationTrack) {
         assertEquals(saveRequest.trackNumberId, locationTrack.trackNumberId)
-        assertEquals(saveRequest.name, locationTrack.name)
-        assertEquals(saveRequest.descriptionBase, locationTrack.descriptionBase)
+        assertEquals(saveRequest.namingScheme, locationTrack.nameStructure.scheme)
+        assertEquals(saveRequest.nameFreeText, locationTrack.nameStructure.freeText)
+        assertEquals(saveRequest.nameSpecifier, locationTrack.nameStructure.specifier)
+        assertEquals(saveRequest.descriptionBase, locationTrack.descriptionStructure.base)
+        assertEquals(saveRequest.descriptionSuffix, locationTrack.descriptionStructure.suffix)
         assertEquals(saveRequest.state, locationTrack.state)
         assertEquals(saveRequest.type, locationTrack.type)
         assertEquals(saveRequest.topologicalConnectivity, locationTrack.topologicalConnectivity)
@@ -1089,7 +1229,9 @@ constructor(
 
     private fun saveRequest(trackNumberId: IntId<LayoutTrackNumber>, seed: Int) =
         LocationTrackSaveRequest(
-            name = AlignmentName("TST-TRACK$seed"),
+            namingScheme = LocationTrackNamingScheme.FREE_TEXT,
+            nameFreeText = AlignmentName("TST-TRACK$seed"),
+            nameSpecifier = null,
             descriptionBase = LocationTrackDescriptionBase("Description - $seed"),
             descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
             type = getSomeValue(seed),

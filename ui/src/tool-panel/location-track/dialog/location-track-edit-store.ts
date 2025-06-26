@@ -1,18 +1,24 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { LayoutLocationTrack, LayoutTrackNumber } from 'track-layout/track-layout-model';
+import {
+    getNameFreeText,
+    getNameSpecifier,
+    LayoutLocationTrack,
+    LayoutTrackNumber,
+    LocationTrackNamingScheme,
+} from 'track-layout/track-layout-model';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
-    isPropEditFieldCommitted,
-    PropEdit,
     FieldValidationIssue,
     FieldValidationIssueType,
+    isPropEditFieldCommitted,
+    PropEdit,
 } from 'utils/validation-utils';
 import { LocationTrackOwner, LocationTrackOwnerId } from 'common/common-model';
 import {
     validateLocationTrackDescriptionBase,
-    validateLocationTrackName,
+    validateLocationTrackNameStructure,
 } from 'tool-panel/location-track/dialog/location-track-validation';
 
 export type LocationTrackEditState = {
@@ -40,7 +46,9 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
     isSaving: false,
     trackNumbers: [],
     locationTrack: {
-        name: '',
+        namingScheme: LocationTrackNamingScheme.FREE_TEXT,
+        nameFreeText: '',
+        nameSpecifier: undefined,
         trackNumberId: undefined,
         state: undefined,
         type: undefined,
@@ -57,7 +65,9 @@ export type LoadingProp = keyof LocationTrackEditState['loading'];
 
 function newLinkingLocationTrack(): LocationTrackSaveRequest {
     return {
-        name: '',
+        namingScheme: LocationTrackNamingScheme.FREE_TEXT,
+        nameFreeText: '',
+        nameSpecifier: undefined,
         descriptionBase: '',
         type: undefined,
         state: undefined,
@@ -91,13 +101,14 @@ function validateLinkingLocationTrack(
                     : undefined,
             )
             .filter(filterNotEmpty),
-        ...validateLocationTrackName(saveRequest.name),
+        ...validateLocationTrackNameStructure(saveRequest),
     ];
 
     return [...errors, ...validateLocationTrackDescriptionBase(saveRequest.descriptionBase)];
 }
 
 const VAYLAVIRASTO_LOCATION_TRACK_OWNER_NAME = 'Väylävirasto';
+
 export function setVaylavirastoOwnerIdFrom(
     owners: LocationTrackOwner[] | undefined,
     set: (vaylaId: LocationTrackOwnerId) => void,
@@ -143,9 +154,17 @@ const locationTrackEditSlice = createSlice({
         ): void => {
             state.existingLocationTrack = existingLocationTrack;
             state.locationTrack = {
-                ...existingLocationTrack,
-                type: existingLocationTrack.type || 'MAIN',
+                namingScheme: existingLocationTrack.nameStructure.scheme,
+                nameFreeText: getNameFreeText(existingLocationTrack.nameStructure),
+                nameSpecifier: getNameSpecifier(existingLocationTrack.nameStructure),
+                descriptionBase: existingLocationTrack.descriptionStructure.base,
+                descriptionSuffix: existingLocationTrack.descriptionStructure.suffix,
+                type: existingLocationTrack.type,
+                state: existingLocationTrack.state,
+                trackNumberId: existingLocationTrack.trackNumberId,
                 duplicateOf: existingLocationTrack.duplicateOf,
+                topologicalConnectivity: existingLocationTrack.topologicalConnectivity,
+                ownerId: existingLocationTrack.ownerId,
             };
             state.validationIssues = validateLinkingLocationTrack(state.locationTrack);
             state.loading.locationTrack = false;

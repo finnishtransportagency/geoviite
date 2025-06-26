@@ -23,7 +23,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -51,7 +55,9 @@ data class EmptyAlignmentLinkingParameters<T>(
 )
 
 data class LocationTrackSaveRequest(
-    val name: AlignmentName,
+    val namingScheme: LocationTrackNamingScheme,
+    val nameFreeText: AlignmentName?,
+    val nameSpecifier: LocationTrackNameSpecifier?,
     val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: LocationTrackDescriptionSuffix,
     val type: LocationTrackType,
@@ -61,11 +67,9 @@ data class LocationTrackSaveRequest(
     val topologicalConnectivity: TopologicalConnectivityType,
     val ownerId: IntId<LocationTrackOwner>,
 ) {
-    init {
-        require(descriptionBase.length in 4..256) {
-            "LocationTrack description length ${descriptionBase.length} not in range 4-256"
-        }
-    }
+    // Initialize these at construction time to ensure they are always valid
+    val nameStructure = LocationTrackNameStructure.of(namingScheme, nameFreeText, nameSpecifier)
+    val descriptionStructure = LocationTrackDescriptionStructure(descriptionBase, descriptionSuffix)
 }
 
 enum class TrackEnd {

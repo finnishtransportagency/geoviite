@@ -576,6 +576,8 @@ constructor(
             locationTrack.copy(
                 // These fields are read from DB geometry and aren't set on track itself before saving
                 switchIds = geometry.switchIds,
+                startSwitchId = geometry.startSwitchLink?.id,
+                endSwitchId = geometry.endSwitchLink?.id,
                 segmentCount = geometry.segments.size,
                 length = geometry.length,
                 boundingBox = geometry.boundingBox,

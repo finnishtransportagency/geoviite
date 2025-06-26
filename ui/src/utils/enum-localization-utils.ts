@@ -8,6 +8,8 @@ import {
     LayoutState,
     LayoutStateCategory,
     LocationTrackDescriptionSuffixMode,
+    LocationTrackNameSpecifier,
+    LocationTrackNamingScheme,
     LocationTrackState,
     LocationTrackType,
     TopologicalConnectivityType,
@@ -165,6 +167,38 @@ export const switchTrapPoints: LocalizedEnum<TrapPoint>[] = [
         qaId: `trap-point-unknown`,
     },
 ];
+
+export const locationTrackNamingSchemes: LocalizedEnum<LocationTrackNamingScheme>[] = values(
+    'LocationTrackNamingScheme',
+    [
+        LocationTrackNamingScheme.FREE_TEXT,
+        LocationTrackNamingScheme.WITHIN_OPERATING_POINT,
+        LocationTrackNamingScheme.TRACK_NUMBER_TRACK,
+        LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS,
+        LocationTrackNamingScheme.CHORD,
+    ],
+);
+
+export const locationTrackNameSpecifiers: LocalizedEnum<LocationTrackNameSpecifier>[] = values(
+    'LocationTrackNameSpecifier',
+    [
+        LocationTrackNameSpecifier.PR,
+        LocationTrackNameSpecifier.ER,
+        LocationTrackNameSpecifier.IR,
+        LocationTrackNameSpecifier.KR,
+        LocationTrackNameSpecifier.LR,
+        LocationTrackNameSpecifier.PSR,
+        LocationTrackNameSpecifier.ESR,
+        LocationTrackNameSpecifier.ISR,
+        LocationTrackNameSpecifier.LSR,
+        LocationTrackNameSpecifier.PKR,
+        LocationTrackNameSpecifier.EKR,
+        LocationTrackNameSpecifier.IKR,
+        LocationTrackNameSpecifier.LKR,
+        LocationTrackNameSpecifier.ITHR,
+        LocationTrackNameSpecifier.LANHR,
+    ],
+);
 
 export const translateSwitchTrapPoint = (trapPoint: TrapPoint) =>
     switchTrapPoints.find((option) => option.value === trapPoint)?.name;

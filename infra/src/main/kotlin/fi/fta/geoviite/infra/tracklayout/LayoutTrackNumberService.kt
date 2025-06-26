@@ -49,6 +49,7 @@ class LayoutTrackNumberService(
     private val alignmentService: LayoutAlignmentService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
+    private val locationTrackService: LocationTrackService,
 ) : LayoutAssetService<LayoutTrackNumber, NoParams, LayoutTrackNumberDao>(dao) {
 
     @Transactional
@@ -90,12 +91,6 @@ class LayoutTrackNumberService(
     @Transactional
     fun insertExternalId(branch: LayoutBranch, id: IntId<LayoutTrackNumber>, oid: Oid<LayoutTrackNumber>) =
         dao.insertExternalId(id, branch, oid)
-
-    @Transactional
-    fun deleteDraftAndReferenceLine(branch: LayoutBranch, id: IntId<LayoutTrackNumber>): IntId<LayoutTrackNumber> {
-        referenceLineService.deleteDraftByTrackNumberId(branch, id)
-        return deleteDraft(branch, id).id
-    }
 
     fun idMatches(
         layoutContext: LayoutContext,
@@ -223,8 +218,26 @@ class LayoutTrackNumberService(
         mapNonNullValues(dao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
 
     @Transactional
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<LayoutTrackNumber>): LayoutRowVersion<LayoutTrackNumber> {
+        referenceLineService.deleteDraftByTrackNumberId(branch, id)
+        return super.deleteDraft(branch, id).also { v ->
+            locationTrackService.updateDependencies(branch, trackNumberId = v.id)
+        }
+    }
+
+    @Transactional
     fun saveDraft(branch: LayoutBranch, draftAsset: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> =
         saveDraftInternal(branch, draftAsset, NoParams.instance)
+
+    @Transactional
+    override fun saveDraftInternal(
+        branch: LayoutBranch,
+        draftAsset: LayoutTrackNumber,
+        params: NoParams,
+    ): LayoutRowVersion<LayoutTrackNumber> =
+        super.saveDraftInternal(branch, draftAsset, NoParams.instance).also { v ->
+            locationTrackService.updateDependencies(branch, trackNumberId = v.id)
+        }
 }
 
 private fun asCsvFile(

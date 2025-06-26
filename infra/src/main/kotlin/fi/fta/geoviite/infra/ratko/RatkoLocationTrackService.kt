@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.ratko.model.PushableLayoutBranch
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
@@ -158,9 +157,6 @@ constructor(
                     trackNumberOid = trackNumberOid,
                     nodeCollection = ratkoNodes,
                     duplicateOfOid = duplicateOfOidLocationTrack,
-                    descriptionGetter = { track ->
-                        locationTrackService.getFullDescription(branch.official, track, LocalizationLanguage.FI)
-                    },
                     owner = owner,
                 )
             checkNotNull(ratkoClient.newLocationTrack(ratkoLocationTrack)) {
@@ -419,9 +415,6 @@ constructor(
                 trackNumberOid = trackNumberOid,
                 nodeCollection = changedNodeCollection,
                 duplicateOfOid = duplicateOfOidLocationTrack,
-                descriptionGetter = { track ->
-                    locationTrackService.getFullDescription(branch.official, track, LocalizationLanguage.FI)
-                },
                 owner = owner,
             )
 

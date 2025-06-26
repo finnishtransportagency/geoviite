@@ -11,6 +11,7 @@ import {
     AlignmentEndPoint,
     LayoutLocationTrack,
     LocationTrackId,
+    LocationTrackNamingScheme,
     SplitPoint,
 } from 'track-layout/track-layout-model';
 import {
@@ -349,6 +350,11 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
 
                                 updateSplit({
                                     ...split,
+                                    // TODO: GVT-3083 split UI doesn't support other name schemes yet
+                                    namingScheme: LocationTrackNamingScheme.FREE_TEXT,
+                                    nameFreeText: e.target.value,
+                                    nameSpecifier: undefined,
+                                    // TODO: GVT-3083 use formatTrackName when other schemes are possible
                                     name: e.target.value,
                                     duplicateTrackId: duplicate?.id,
                                     duplicateStatus: duplicate?.status,
@@ -424,7 +430,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                         <TextField
                             value={
                                 duplicateLocationTrack
-                                    ? duplicateLocationTrack.descriptionBase
+                                    ? duplicateLocationTrack.descriptionStructure.base
                                     : split.descriptionBase
                             }
                             hasError={descriptionErrorsVisible}
@@ -469,7 +475,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                         <DescriptionSuffixDropdown
                             suffixMode={
                                 duplicateLocationTrack
-                                    ? duplicateLocationTrack.descriptionSuffix
+                                    ? duplicateLocationTrack.descriptionStructure.suffix
                                     : split.suffixMode
                             }
                             onChange={(mode) => {

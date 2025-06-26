@@ -13,7 +13,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.SwitchOnLocationTrack
 import java.time.Instant
@@ -129,12 +133,19 @@ data class SplitRequestTargetDuplicate(val id: IntId<LocationTrack>, val operati
 data class SplitRequestTarget(
     val duplicateTrack: SplitRequestTargetDuplicate?,
     val startAtSwitchId: IntId<LayoutSwitch>?,
-    val name: AlignmentName,
+    val namingScheme: LocationTrackNamingScheme,
+    val nameFreeText: AlignmentName?,
+    val nameSpecifier: LocationTrackNameSpecifier?,
     val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: LocationTrackDescriptionSuffix,
 ) {
-    fun getOperation(): SplitTargetOperation =
+    // Resolve structural forms as vals to get any errors on creation
+    val operation: SplitTargetOperation =
         duplicateTrack?.operation?.toSplitTargetOperation() ?: SplitTargetOperation.CREATE
+    val nameStructure =
+        LocationTrackNameStructure.of(scheme = namingScheme, freeText = nameFreeText, specifier = nameSpecifier)
+    val descriptionStructure: LocationTrackDescriptionStructure =
+        LocationTrackDescriptionStructure(base = descriptionBase, suffix = descriptionSuffix)
 }
 
 data class SplitRequest(val sourceTrackId: IntId<LocationTrack>, val targetTracks: List<SplitRequestTarget>)
@@ -147,6 +158,7 @@ data class SplittingInitializationParameters(
 
 data class SplitDuplicateTrack(
     val id: IntId<LocationTrack>,
+    val nameStructure: LocationTrackNameStructure,
     val name: AlignmentName,
     val length: Double,
     val status: DuplicateStatus,

@@ -13,6 +13,8 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.SwitchNameParts
+import fi.fta.geoviite.infra.common.SwitchNamePrefix
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
@@ -52,6 +54,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
+import fi.fta.geoviite.infra.util.FreeText
 import java.time.LocalDate
 import kotlin.math.ceil
 import kotlin.random.Random
@@ -149,7 +152,7 @@ fun switchAndMatchingAlignments(
                     val point =
                         jointLocations.computeIfAbsent(jointNumber) { number ->
                             val joint = structure.joints.find { structureJoint -> structureJoint.number == number }
-                            joint?.location ?: throw IllegalStateException("No such joint in structure")
+                            requireNotNull(joint?.location) { "No such joint in structure" }
                         }
                     jointNumber to point
                 }
@@ -419,46 +422,62 @@ fun locationTrack(
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
     name: String = "T001 ${locationTrackNameCounter++}",
+    nameStructure: LocationTrackNameStructure = trackNameStructure(name, LocationTrackNamingScheme.FREE_TEXT, null),
     description: String = "test-alignment 001",
+    descriptionStructure: LocationTrackDescriptionStructure = trackDescriptionStructure(description),
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
     contextData: LayoutContextData<LocationTrack> = createMainContext(id, draft),
-    descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
 ) =
     locationTrack(
         trackNumberId = trackNumberId,
         geometry = geometry,
         contextData = contextData,
         name = name,
+        nameStructure = nameStructure,
         description = description,
+        descriptionStructure = descriptionStructure,
         type = type,
         state = state,
         topologicalConnectivity = topologicalConnectivity,
         duplicateOf = duplicateOf,
         ownerId = ownerId,
-        descriptionSuffix = descriptionSuffix,
     )
+
+fun trackDescriptionStructure(
+    descriptionBase: String = "Test track description",
+    descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
+) = LocationTrackDescriptionStructure(LocationTrackDescriptionBase(descriptionBase), descriptionSuffix)
+
+fun trackNameStructure(
+    freeText: String = "T001 ${locationTrackNameCounter++}",
+    scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT,
+    specifier: LocationTrackNameSpecifier? = null,
+): LocationTrackNameStructure =
+    LocationTrackNameStructure.of(scheme = scheme, freeText = AlignmentName(freeText), specifier = specifier)
 
 fun locationTrack(
     trackNumberId: IntId<LayoutTrackNumber>,
     geometry: LocationTrackGeometry = TmpLocationTrackGeometry.empty,
     contextData: LayoutContextData<LocationTrack>,
     name: String = "T001 ${locationTrackNameCounter++}",
+    nameStructure: LocationTrackNameStructure = trackNameStructure(name),
     description: String = "test-alignment 001",
+    descriptionStructure: LocationTrackDescriptionStructure = trackDescriptionStructure(description),
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
-    descriptionSuffix: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
 ) =
     LocationTrack(
         name = AlignmentName(name),
-        descriptionBase = LocationTrackDescriptionBase(description),
-        descriptionSuffix = descriptionSuffix,
+        nameStructure = nameStructure,
+        description = FreeText(description),
+        descriptionStructure = descriptionStructure,
         type = type,
         state = state,
         trackNumberId = trackNumberId,
@@ -466,6 +485,8 @@ fun locationTrack(
         boundingBox = geometry.boundingBox,
         segmentCount = geometry.segments.size,
         length = geometry.length,
+        startSwitchId = null,
+        endSwitchId = null,
         duplicateOf = duplicateOf,
         topologicalConnectivity = topologicalConnectivity,
         ownerId = ownerId,
@@ -568,7 +589,7 @@ fun mapAlignment(segments: List<PlanLayoutSegment>) =
                 state = LayoutState.IN_USE,
                 segmentCount = segments.size,
                 trackNumberId = IntId(1),
-                length = segments.map(PlanLayoutSegment::length).sum(),
+                length = segments.sumOf(PlanLayoutSegment::length),
                 boundingBox = boundingBoxCombining(segments.mapNotNull(PlanLayoutSegment::boundingBox)),
             ),
         staStart = 0.0,
@@ -824,6 +845,9 @@ fun switch(
         contextData = contextData,
         draftOid = draftOid,
     )
+
+fun parsedSwitchName(prefix: String, shortNumberPart: String) =
+    SwitchNameParts(SwitchNamePrefix(prefix), SwitchName(shortNumberPart))
 
 fun <T : LayoutAsset<T>> createMainContext(id: IntId<T>?, draft: Boolean): LayoutContextData<T> =
     if (draft) {

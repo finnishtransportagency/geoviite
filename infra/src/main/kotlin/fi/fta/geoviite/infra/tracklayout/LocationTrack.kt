@@ -6,8 +6,11 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.SwitchNameParts
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
@@ -21,6 +24,32 @@ enum class LocationTrackType {
     // etäälle siitä raiteesta, jota turvaraide suojaa.
     // https://fi.wikipedia.org/wiki/Turvavaihde
     CHORD, // Kujaraide: Kujaraide on raide, joka ei ole sivu-, eikä pääraide.
+}
+
+enum class LocationTrackNamingScheme {
+    FREE_TEXT,
+    WITHIN_OPERATING_POINT,
+    BETWEEN_OPERATING_POINTS,
+    TRACK_NUMBER_TRACK,
+    CHORD,
+}
+
+enum class LocationTrackNameSpecifier(val properForm: String) {
+    PR("PR"),
+    ER("ER"),
+    IR("IR"),
+    KR("KR"),
+    LR("LR"),
+    PSR("PsR"),
+    ESR("EsR"),
+    ISR("IsR"),
+    LSR("LsR"),
+    PKR("PKR"),
+    EKR("EKR"),
+    IKR("IKR"),
+    LKR("LKR"),
+    ITHR("ItHR"),
+    LANHR("LänHR"),
 }
 
 val locationTrackDescriptionLength = 4..256
@@ -54,17 +83,158 @@ enum class LocationTrackState(val category: LayoutStateCategory) {
     fun isRemoved() = this == DELETED
 }
 
+private const val MISSING_PART_PLACEHOLDER = "???"
+
+private fun getShortNumber(switch: LayoutSwitch?): String =
+    switch?.nameParts?.shortNumberPart?.toString() ?: MISSING_PART_PLACEHOLDER
+
+private fun getShortName(switch: LayoutSwitch?): String =
+    switch?.nameParts?.let { "${it.prefix} ${it.shortNumberPart}" } ?: MISSING_PART_PLACEHOLDER
+
+sealed class LocationTrackNameStructure {
+    abstract val scheme: LocationTrackNamingScheme
+    open val freeText: AlignmentName? = null
+    open val specifier: LocationTrackNameSpecifier? = null
+
+    companion object {
+        fun of(
+            scheme: LocationTrackNamingScheme,
+            freeText: AlignmentName? = null,
+            specifier: LocationTrackNameSpecifier? = null,
+        ): LocationTrackNameStructure =
+            when (scheme) {
+                LocationTrackNamingScheme.FREE_TEXT ->
+                    LocationTrackNameFreeText(
+                        requireNotNull(freeText) { "Naming scheme of type $scheme must have a free text part" }
+                    )
+                LocationTrackNamingScheme.WITHIN_OPERATING_POINT ->
+                    LocationTrackNameWithinOperatingPoint(
+                        requireNotNull(freeText) { "Naming scheme of type $scheme must have a free text part" }
+                    )
+                LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS ->
+                    LocationTrackNameBetweenOperatingPoints(
+                        requireNotNull(specifier) { "Naming scheme of type $scheme must have a name specifier part" }
+                    )
+                LocationTrackNamingScheme.TRACK_NUMBER_TRACK ->
+                    LocationTrackNameByTrackNumber(
+                        requireNotNull(freeText) { "Naming scheme of type $scheme must have a free text part" },
+                        requireNotNull(specifier) { "Naming scheme of type $scheme must have a name specifier part" },
+                    )
+                LocationTrackNamingScheme.CHORD -> LocationTrackNameChord
+            }
+    }
+
+    /** This logic is duplicated in frontend track-layout-model.tsx#formatTrackName */
+    fun reify(trackNumber: LayoutTrackNumber, startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName =
+        when (this) {
+            is LocationTrackNameFreeText -> freeText
+            is LocationTrackNameWithinOperatingPoint -> freeText
+            is LocationTrackNameBetweenOperatingPoints -> format(startSwitch, endSwitch)
+            is LocationTrackNameByTrackNumber -> format(trackNumber.number)
+            is LocationTrackNameChord -> format(startSwitch, endSwitch)
+        }
+}
+
+data class LocationTrackNameFreeText(override val freeText: AlignmentName) : LocationTrackNameStructure() {
+    override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT
+}
+
+data class LocationTrackNameWithinOperatingPoint(override val freeText: AlignmentName) : LocationTrackNameStructure() {
+    override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.WITHIN_OPERATING_POINT
+}
+
+data class LocationTrackNameByTrackNumber(
+    override val freeText: AlignmentName,
+    override val specifier: LocationTrackNameSpecifier,
+) : LocationTrackNameStructure() {
+    override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.TRACK_NUMBER_TRACK
+
+    fun format(trackNumber: TrackNumber): AlignmentName =
+        AlignmentName("$trackNumber ${specifier.properForm} $freeText".trim())
+}
+
+data class LocationTrackNameBetweenOperatingPoints(override val specifier: LocationTrackNameSpecifier) :
+    LocationTrackNameStructure() {
+    override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS
+
+    fun format(startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName =
+        AlignmentName("${specifier.properForm} ${getShortName(startSwitch)}-${getShortName(endSwitch)}")
+}
+
+data object LocationTrackNameChord : LocationTrackNameStructure() {
+    override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.CHORD
+
+    fun format(startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName {
+        val sharedPrefix = startSwitch?.nameParts?.prefix?.takeIf { it == endSwitch?.nameParts?.prefix }
+        val formatted =
+            sharedPrefix?.let { "$sharedPrefix ${getShortNumber(startSwitch)}-${getShortNumber(endSwitch)}" }
+                ?: "${getShortName(startSwitch)}-${getShortName(endSwitch)}"
+        return AlignmentName(formatted)
+    }
+}
+
+data class LocationTrackDescriptionStructure(
+    val base: LocationTrackDescriptionBase,
+    val suffix: LocationTrackDescriptionSuffix,
+) {
+    companion object {
+        const val BUFFER_LOCALIZATION_KEY = "location-track-dialog.buffer"
+        const val OWNERSHIP_BOUNDARY_LOCALIZATION_KEY = "location-track-dialog.ownership-boundary"
+    }
+
+    init {
+        require(base.length in locationTrackDescriptionLength) {
+            "LocationTrack description base length invalid: expected=${locationTrackDescriptionLength} actual=${base.length}" +
+                "length=${base.length} " +
+                "allowed=$locationTrackDescriptionLength"
+        }
+    }
+
+    /** This logic is duplicated in frontend track-layout-model.tsx#formatTrackDescription */
+    fun reify(translation: Translation, startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): FreeText =
+        FreeText(
+            when (suffix) {
+                LocationTrackDescriptionSuffix.NONE -> base.toString()
+
+                LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER ->
+                    "$base ${getShortName(startSwitch ?: endSwitch)} - ${translation.t(BUFFER_LOCALIZATION_KEY)}"
+
+                LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ->
+                    "$base ${getShortName(startSwitch ?: endSwitch)} - ${translation.t(OWNERSHIP_BOUNDARY_LOCALIZATION_KEY)}"
+
+                LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ->
+                    "$base ${getShortName(startSwitch)} - ${getShortName(endSwitch)}"
+            }
+        )
+}
+
 data class LocationTrack(
+    val nameStructure: LocationTrackNameStructure,
+    /**
+     * Reified name from the structured fields, using dependencies (end switches & track numbers). Should not be edited
+     * directly, only via the method [LocationTrackNameStructure.reify]
+     */
     val name: AlignmentName,
-    val descriptionBase: LocationTrackDescriptionBase,
-    val descriptionSuffix: LocationTrackDescriptionSuffix,
+    val descriptionStructure: LocationTrackDescriptionStructure,
+    /**
+     * Reified description from the structured fields, using dependencies (end switches). Should not be edited directly,
+     * only, only via the method [LocationTrackDescriptionStructure.reify]
+     */
+    val description: FreeText,
     val type: LocationTrackType,
     val state: LocationTrackState,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val sourceId: IntId<GeometryAlignment>?,
+    /** Comes as calculated from LocationTrackGeometry. Anything set here will be overridden on save. */
     val boundingBox: BoundingBox?,
+    /** Comes as calculated from LocationTrackGeometry. Anything set here will be overridden on save. */
     val length: Double,
+    /** Comes as calculated from LocationTrackGeometry. Anything set here will be overridden on save. */
     val segmentCount: Int,
+    /** Comes as calculated from LocationTrackGeometry. Anything set here will be overridden on save. */
+    val startSwitchId: IntId<LayoutSwitch>?,
+    /** Comes as calculated from LocationTrackGeometry. Anything set here will be overridden on save. */
+    val endSwitchId: IntId<LayoutSwitch>?,
     val duplicateOf: IntId<LocationTrack>?,
     val topologicalConnectivity: TopologicalConnectivityType,
     val ownerId: IntId<LocationTrackOwner>,
@@ -73,15 +243,6 @@ data class LocationTrack(
 ) : PolyLineLayoutAsset<LocationTrack>(contextData) {
 
     @JsonIgnore val exists = !state.isRemoved()
-
-    init {
-        require(descriptionBase.length in locationTrackDescriptionLength) {
-            "LocationTrack descriptionBase length invalid  not in range 4-256: " +
-                "id=$id " +
-                "length=${descriptionBase.length} " +
-                "allowed=$locationTrackDescriptionLength"
-        }
-    }
 
     override fun toLog(): String =
         logFormat(
@@ -96,13 +257,9 @@ data class LocationTrack(
         copy(contextData = contextData)
 }
 
-data class LocationTrackDescription(val id: IntId<LocationTrack>, val description: FreeText)
-
 data class LocationTrackInfoboxExtras(
     val duplicateOf: LocationTrackDuplicate?,
     val duplicates: List<LocationTrackDuplicate>,
-    val switchAtStart: LayoutSwitchIdAndName?,
-    val switchAtEnd: LayoutSwitchIdAndName?,
     val partOfUnfinishedSplit: Boolean?,
     val startSplitPoint: SplitPoint?,
     val endSplitPoint: SplitPoint?,
@@ -111,6 +268,7 @@ data class LocationTrackInfoboxExtras(
 data class LocationTrackDuplicate(
     val id: IntId<LocationTrack>,
     val trackNumberId: IntId<LayoutTrackNumber>,
+    val nameStructure: LocationTrackNameStructure,
     val name: AlignmentName,
     val start: AlignmentPoint?,
     val end: AlignmentPoint?,
@@ -123,18 +281,15 @@ fun topologicalConnectivityTypeOf(startConnected: Boolean, endConnected: Boolean
     else if (startConnected) TopologicalConnectivityType.START
     else if (endConnected) TopologicalConnectivityType.END else TopologicalConnectivityType.NONE
 
-data class TopologyLocationTrackSwitch(val switchId: IntId<LayoutSwitch>, val jointNumber: JointNumber)
-
 data class SwitchOnLocationTrack(
     val switchId: IntId<LayoutSwitch>,
+    val nameParts: SwitchNameParts?,
     val name: SwitchName,
     val address: TrackMeter?,
     val location: Point?,
     val distance: Double?,
     val nearestOperatingPoint: RatkoOperatingPoint?,
 )
-
-data class LayoutSwitchIdAndName(val id: IntId<LayoutSwitch>, val name: SwitchName)
 
 enum class DuplicateEndPointType {
     START,

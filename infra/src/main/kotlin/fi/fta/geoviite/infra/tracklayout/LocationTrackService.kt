@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
-import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
@@ -25,6 +24,7 @@ import fi.fta.geoviite.infra.linking.resolveNodeCombinations
 import fi.fta.geoviite.infra.linking.switches.cropAlignment
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
@@ -43,7 +43,6 @@ import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
@@ -67,15 +66,23 @@ class LocationTrackService(
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
     private val localizationService: LocalizationService,
     private val transactionTemplate: TransactionTemplate,
+    private val trackNumberDao: LayoutTrackNumberDao,
 ) : LayoutAssetService<LocationTrack, LocationTrackGeometry, LocationTrackDao>(locationTrackDao) {
+    val descriptionTranslation = localizationService.getLocalization(LocalizationLanguage.FI)
 
     @Transactional
     fun insert(branch: LayoutBranch, request: LocationTrackSaveRequest): LayoutRowVersion<LocationTrack> {
         val locationTrack =
             LocationTrack(
-                name = request.name,
-                descriptionBase = request.descriptionBase,
-                descriptionSuffix = request.descriptionSuffix,
+                nameStructure = request.nameStructure,
+                name =
+                    request.nameStructure.reify(
+                        trackNumberDao.getOrThrow(branch.draft, request.trackNumberId),
+                        null,
+                        null,
+                    ),
+                descriptionStructure = request.descriptionStructure,
+                description = request.descriptionStructure.reify(descriptionTranslation, null, null),
                 type = request.type,
                 state = request.state,
                 trackNumberId = request.trackNumberId,
@@ -84,6 +91,8 @@ class LocationTrackService(
                 segmentCount = 0,
                 boundingBox = null,
                 duplicateOf = request.duplicateOf,
+                startSwitchId = null,
+                endSwitchId = null,
                 topologicalConnectivity = request.topologicalConnectivity,
                 ownerId = request.ownerId,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
@@ -100,24 +109,27 @@ class LocationTrackService(
             return requireNotNull(transactionTemplate.execute { updateLocationTrackTransaction(branch, id, request) })
         } catch (dataIntegrityException: DataIntegrityViolationException) {
             throw if (isSplitSourceReferenceError(dataIntegrityException)) {
-                SplitSourceLocationTrackUpdateException(request.name, dataIntegrityException)
+                SplitSourceLocationTrackUpdateException(
+                    AlignmentName(request.nameFreeText?.toString() ?: ""),
+                    dataIntegrityException,
+                )
             } else {
                 dataIntegrityException
             }
         }
     }
 
+    @Suppress("SpringTransactionalMethodCallsInspection")
     private fun updateLocationTrackTransaction(
         branch: LayoutBranch,
         id: IntId<LocationTrack>,
         request: LocationTrackSaveRequest,
     ): LayoutRowVersion<LocationTrack> {
-        val (originalTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
+        val (originalTrack: LocationTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
         val locationTrack =
             originalTrack.copy(
-                name = request.name,
-                descriptionBase = request.descriptionBase,
-                descriptionSuffix = request.descriptionSuffix,
+                nameStructure = request.nameStructure,
+                descriptionStructure = request.descriptionStructure,
                 type = request.type,
                 state = request.state,
                 trackNumberId = request.trackNumberId,
@@ -176,7 +188,16 @@ class LocationTrackService(
         branch: LayoutBranch,
         track: LocationTrack,
         params: LocationTrackGeometry,
-    ): LayoutRowVersion<LocationTrack> = saveDraftInternal(branch, asDraft(branch, track), params)
+    ): LayoutRowVersion<LocationTrack> {
+        val versions =
+            dao.fetchDependencyVersions(
+                context = branch.draft,
+                trackNumberId = track.trackNumberId,
+                startSwitchId = params.startSwitchLink?.id,
+                endSwitchId = params.endSwitchLink?.id,
+            )
+        return saveDraftInternal(branch, asDraft(branch, recalculateDependencies(track, versions)), params)
+    }
 
     @Transactional
     fun insertExternalId(branch: LayoutBranch, id: IntId<LocationTrack>, oid: Oid<LocationTrack>) =
@@ -234,7 +255,7 @@ class LocationTrackService(
         }
 
     override fun contentMatches(term: String, item: LocationTrack) =
-        item.exists && (item.name.contains(term, true) || item.descriptionBase.contains(term, true))
+        item.exists && (item.name.contains(term, true) || item.description.contains(term, true))
 
     fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<LocationTrack> {
         return dao.listNear(layoutContext, bbox).filter(LocationTrack::exists)
@@ -416,90 +437,6 @@ class LocationTrackService(
         return if (rangeStart < rangeEnd) Range(rangeStart, rangeEnd) else null
     }
 
-    @Transactional(readOnly = true)
-    fun getFullDescriptions(
-        layoutContext: LayoutContext,
-        locationTracks: List<LocationTrack>,
-        lang: LocalizationLanguage,
-    ): List<FreeText> {
-        val startAndEndSwitchIds =
-            locationTracks.map { locationTrack ->
-                alignmentDao.fetch(locationTrack.getVersionOrThrow()).let { geom ->
-                    geom.startSwitchLink?.id to geom.endSwitchLink?.id
-                }
-            }
-
-        val switches =
-            switchDao
-                .getMany(layoutContext, startAndEndSwitchIds.flatMap { listOfNotNull(it.first, it.second) })
-                .associateBy { switch -> switch.id }
-
-        return formatLocationTrackDescriptions(lang, locationTracks, startAndEndSwitchIds, switches)
-    }
-
-    @Transactional(readOnly = true)
-    fun getFullDescriptionsAtMoment(
-        layoutContext: LayoutContext,
-        locationTracks: List<LocationTrack>,
-        lang: LocalizationLanguage,
-        moment: Instant,
-    ): List<FreeText> {
-        val startAndEndSwitchIds =
-            locationTracks.map { locationTrack ->
-                locationTrack.version?.let { alignmentVersion ->
-                    val alignment = alignmentDao.fetch(alignmentVersion)
-                    alignment.startSwitchLink?.id to alignment.endSwitchLink?.id
-                } ?: (null to null)
-            }
-
-        val switchIds = startAndEndSwitchIds.flatMap { listOfNotNull(it.first, it.second) }.distinct()
-        val switches =
-            switchDao.getManyOfficialAtMoment(layoutContext.branch, switchIds, moment).associateBy { switch ->
-                switch.id
-            }
-
-        return formatLocationTrackDescriptions(lang, locationTracks, startAndEndSwitchIds, switches)
-    }
-
-    private fun formatLocationTrackDescriptions(
-        lang: LocalizationLanguage,
-        locationTracks: List<LocationTrack>,
-        startAndEndSwitchIds: List<Pair<IntId<LayoutSwitch>?, IntId<LayoutSwitch>?>>,
-        switches: Map<DomainId<LayoutSwitch>, LayoutSwitch?>,
-    ): List<FreeText> {
-        fun getSwitchShortName(switchId: IntId<LayoutSwitch>) = switches[switchId]?.shortName
-        val translation = localizationService.getLocalization(lang)
-
-        return locationTracks.zip(startAndEndSwitchIds) { locationTrack, startAndEndSwitch ->
-            val startSwitchName = startAndEndSwitch.first?.let(::getSwitchShortName)
-            val endSwitchName = startAndEndSwitch.second?.let(::getSwitchShortName)
-            val descriptionBase = locationTrack.descriptionBase.toString()
-
-            when (locationTrack.descriptionSuffix) {
-                LocationTrackDescriptionSuffix.NONE -> FreeText(descriptionBase)
-
-                LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER ->
-                    FreeText(
-                        "${descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
-                    )
-
-                LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ->
-                    FreeText("${descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
-
-                LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ->
-                    FreeText(
-                        "${descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
-                    )
-            }
-        }
-    }
-
-    fun getFullDescription(
-        layoutContext: LayoutContext,
-        locationTrack: LocationTrack,
-        lang: LocalizationLanguage,
-    ): FreeText = getFullDescriptions(layoutContext, listOf(locationTrack), lang).first()
-
     private fun getWithGeometryInternalOrThrow(
         layoutContext: LayoutContext,
         id: IntId<LocationTrack>,
@@ -568,21 +505,10 @@ class LocationTrackService(
             val startSplitPoint = createSplitPoint(start, startSwitchLink?.id, START, geocodingContext)
             val endSplitPoint = createSplitPoint(end, endSwitchLink?.id, END, geocodingContext)
 
-            val startSwitch = startSwitchLink?.id?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
-            val endSwitch = endSwitchLink?.id?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
-
             val partOfUnfinishedSplit =
                 splitDao.locationTracksPartOfAnyUnfinishedSplit(layoutContext.branch, listOf(id)).isNotEmpty()
 
-            LocationTrackInfoboxExtras(
-                duplicateOf,
-                duplicates,
-                startSwitch,
-                endSwitch,
-                partOfUnfinishedSplit,
-                startSplitPoint,
-                endSplitPoint,
-            )
+            LocationTrackInfoboxExtras(duplicateOf, duplicates, partOfUnfinishedSplit, startSplitPoint, endSplitPoint)
         }
     }
 
@@ -640,9 +566,6 @@ class LocationTrackService(
                 getDuplicateTrackParentStatus(parentTrack, parentGeometry, childTrack, childGeometry)
             }
         }
-
-    private fun fetchSwitchAtEndById(layoutContext: LayoutContext, id: IntId<LayoutSwitch>): LayoutSwitchIdAndName? =
-        switchDao.get(layoutContext, id)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
 
     @Transactional
     fun recalculateTopology(
@@ -745,6 +668,7 @@ class LocationTrackService(
                         val mAlongAlignment = geometry.getClosestPointM(location)?.first
                         SwitchOnLocationTrack(
                             switch.id as IntId,
+                            switch.nameParts,
                             switch.name,
                             address?.address,
                             location,
@@ -755,7 +679,13 @@ class LocationTrackService(
 
             val duplicateTracks =
                 getLocationTrackDuplicates(layoutContext, locationTrack, geometry).map { duplicate ->
-                    SplitDuplicateTrack(duplicate.id, duplicate.name, duplicate.length, duplicate.duplicateStatus)
+                    SplitDuplicateTrack(
+                        duplicate.id,
+                        duplicate.nameStructure,
+                        duplicate.name,
+                        duplicate.length,
+                        duplicate.duplicateStatus,
+                    )
                 }
 
             SplittingInitializationParameters(trackId, switches, duplicateTracks)
@@ -809,12 +739,44 @@ class LocationTrackService(
             }
             ?.let(locationTrackDao::fetch)
     }
+
+    @Transactional
+    fun updateDependencies(
+        branch: LayoutBranch,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
+        switchId: IntId<LayoutSwitch>? = null,
+    ): List<LayoutRowVersion<LocationTrack>> =
+        dao.fetchDependencyVersions(branch.draft, trackNumberId, switchId).mapNotNull {
+            (trackVersion, dependencyVersions) ->
+            val (track, trackGeometry) = getWithGeometryInternal(trackVersion)
+            recalculateDependencies(track, dependencyVersions)
+                .takeIf { updatedTrack -> updatedTrack != track }
+                ?.let { updatedTrack -> saveDraftInternal(branch, updatedTrack, trackGeometry) }
+        }
+
+    private fun recalculateDependencies(
+        track: LocationTrack,
+        versions: LocationTrackDependencyVersions,
+    ): LocationTrack {
+        val startSwitch = versions.startSwitchVersion?.let(switchDao::fetch)
+        val endSwitch = versions.endSwitchVersion?.let(switchDao::fetch)
+        val trackNumber = trackNumberDao.fetch(versions.trackNumberVersion)
+        return recalculateDependencies(descriptionTranslation, track, trackNumber, startSwitch, endSwitch)
+    }
 }
 
-data class NearbyTracks(
-    val aroundStart: List<Pair<LocationTrack, LayoutAlignment>>,
-    val aroundEnd: List<Pair<LocationTrack, LayoutAlignment>>,
-)
+fun recalculateDependencies(
+    translation: Translation,
+    track: LocationTrack,
+    trackNumber: LayoutTrackNumber,
+    startSwitch: LayoutSwitch?,
+    endSwitch: LayoutSwitch?,
+): LocationTrack {
+    val newName = track.nameStructure.reify(trackNumber, startSwitch, endSwitch)
+    val newDescription = track.descriptionStructure.reify(translation, startSwitch, endSwitch)
+    return track.takeIf { t -> newName == t.name && newDescription == t.description }
+        ?: track.copy(name = newName, description = newDescription)
+}
 
 fun locationTrackWithGeometry(
     locationTrackDao: LocationTrackDao,

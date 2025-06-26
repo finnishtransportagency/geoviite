@@ -74,7 +74,7 @@ constructor(
         assertEquals(referenceLine.alignmentVersion?.id, alignment.id as IntId)
         val trackNumberId = trackNumber.id as IntId
 
-        assertDoesNotThrow { trackNumberService.deleteDraftAndReferenceLine(LayoutBranch.main, trackNumberId) }
+        assertDoesNotThrow { trackNumberService.deleteDraft(LayoutBranch.main, trackNumberId) }
         assertThrows<NoSuchEntityException> {
             referenceLineService.getOrThrow(MainLayoutContext.draft, referenceLine.id as IntId)
         }
