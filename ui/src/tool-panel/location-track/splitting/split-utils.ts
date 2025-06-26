@@ -71,8 +71,10 @@ const splitToRequestTarget = (
             : undefined;
     return {
         namingScheme: duplicate?.nameStructure?.scheme ?? LocationTrackNamingScheme.FREE_TEXT,
-        nameFreeText: getNameFreeText(duplicate?.nameStructure) ?? '',
-        nameSpecifier: getNameSpecifier(duplicate?.nameStructure),
+        nameFreeText: duplicate
+            ? (getNameFreeText(duplicate?.nameStructure) ?? '')
+            : split.nameFreeText,
+        nameSpecifier: duplicate ? getNameSpecifier(duplicate?.nameStructure) : split.nameSpecifier,
         descriptionBase:
             (duplicate ? duplicate.descriptionStructure.base : split.descriptionBase) ?? '',
         descriptionSuffix:
