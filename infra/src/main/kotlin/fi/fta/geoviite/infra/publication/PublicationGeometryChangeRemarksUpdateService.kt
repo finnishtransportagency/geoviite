@@ -8,19 +8,16 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.math.lineLength
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
-import fi.fta.geoviite.infra.util.findCommonSubsequenceInCompactLists
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import fi.fta.geoviite.infra.util.findCommonSubsequenceInCompactLists
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
 import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import kotlin.math.hypot
 
 private const val GEOMETRY_CHANGE_BATCH_SIZE = 10
 
@@ -83,7 +80,7 @@ class PublicationGeometryChangeRemarksUpdateService(
 }
 
 fun summarizeAlignmentChanges(
-    geocodingContext: GeocodingContext,
+    geocodingContext: GeocodingContext<ReferenceLineM>,
     oldGeometry: LocationTrackGeometry,
     newGeometry: LocationTrackGeometry,
     changeThreshold: Double = 1.0,
@@ -98,10 +95,10 @@ private fun geometriesEqual(old: LocationTrackGeometry, new: LocationTrackGeomet
     old.segments.map { it.geometry.id } == new.segments.map { it.geometry.id }
 
 private fun getCommonAddressRange(
-    geocodingContext: GeocodingContext,
+    geocodingContext: GeocodingContext<ReferenceLineM>,
     oldGeometry: LocationTrackGeometry,
     newGeometry: LocationTrackGeometry,
-): Pair<List<AddressPoint>, List<AddressPoint>>? {
+): Pair<List<AddressPoint<LocationTrackM>>, List<AddressPoint<LocationTrackM>>>? {
     val oldAddressPoints = geocodingContext.getAddressPoints(oldGeometry)
     val newAddressPoints = geocodingContext.getAddressPoints(newGeometry)
     if (oldAddressPoints == null || newAddressPoints == null) return null
@@ -114,16 +111,16 @@ private fun getCommonAddressRange(
 }
 
 private fun getOldAndNewAddressPoints(
-    oldAddressPoints: AlignmentAddresses,
-    newAddressPoints: AlignmentAddresses,
-): Pair<List<AddressPoint>, List<AddressPoint>> {
+    oldAddressPoints: AlignmentAddresses<LocationTrackM>,
+    newAddressPoints: AlignmentAddresses<LocationTrackM>,
+): Pair<List<AddressPoint<LocationTrackM>>, List<AddressPoint<LocationTrackM>>> {
     val takeStart = oldAddressPoints.startPoint.address == newAddressPoints.startPoint.address
     val takeEnd = oldAddressPoints.endPoint.address == newAddressPoints.endPoint.address
 
     return withEnds(oldAddressPoints, takeStart, takeEnd) to withEnds(newAddressPoints, takeStart, takeEnd)
 }
 
-private fun withEnds(addressPoints: AlignmentAddresses, takeStart: Boolean, takeEnd: Boolean) =
+private fun withEnds(addressPoints: AlignmentAddresses<LocationTrackM>, takeStart: Boolean, takeEnd: Boolean) =
     listOf(
             if (takeStart) listOf(addressPoints.startPoint) else listOf(),
             addressPoints.midPoints,
@@ -132,9 +129,9 @@ private fun withEnds(addressPoints: AlignmentAddresses, takeStart: Boolean, take
         .flatten()
 
 private fun summarizeCommonAddressRange(
-    geocodingContext: GeocodingContext,
-    oldPoints: List<AddressPoint>,
-    newPoints: List<AddressPoint>,
+    geocodingContext: GeocodingContext<ReferenceLineM>,
+    oldPoints: List<AddressPoint<LocationTrackM>>,
+    newPoints: List<AddressPoint<LocationTrackM>>,
     changeThreshold: Double,
 ): List<GeometryChangeSummary> =
     rangesOfConsecutiveIndicesOf(
@@ -144,14 +141,15 @@ private fun summarizeCommonAddressRange(
         .map { range -> summarizeChangedRange(geocodingContext, oldPoints.slice(range), newPoints.slice(range)) }
 
 private fun summarizeChangedRange(
-    geocodingContext: GeocodingContext,
-    oldPoints: List<AddressPoint>,
-    newPoints: List<AddressPoint>,
+    geocodingContext: GeocodingContext<ReferenceLineM>,
+    oldPoints: List<AddressPoint<LocationTrackM>>,
+    newPoints: List<AddressPoint<LocationTrackM>>,
 ): GeometryChangeSummary {
     val rangeStartAddress = oldPoints.first().address
     val rangeEndAddress = oldPoints.last().address
-    val rangeStartMOnReferenceLine = requireNotNull(geocodingContext.getProjectionLine(rangeStartAddress)).distance
-    val rangeEndMOnReferenceLine = requireNotNull(geocodingContext.getProjectionLine(rangeEndAddress)).distance
+    val rangeStartMOnReferenceLine =
+        requireNotNull(geocodingContext.getProjectionLine(rangeStartAddress)).distance.distance
+    val rangeEndMOnReferenceLine = requireNotNull(geocodingContext.getProjectionLine(rangeEndAddress)).distance.distance
     val changeLengthM = rangeEndMOnReferenceLine - rangeStartMOnReferenceLine
 
     val maxDistance =

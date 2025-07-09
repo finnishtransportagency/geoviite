@@ -24,7 +24,11 @@ enum class TrackSwitchLinkType {
     OUTER,
 }
 
-data class TrackSwitchLink(val link: SwitchLink, val location: AlignmentPoint, val type: TrackSwitchLinkType) {
+data class TrackSwitchLink(
+    val link: SwitchLink,
+    val location: AlignmentPoint<LocationTrackM>,
+    val type: TrackSwitchLinkType,
+) {
     val switchId: IntId<LayoutSwitch>
         get() = link.id
 
@@ -35,16 +39,16 @@ data class TrackSwitchLink(val link: SwitchLink, val location: AlignmentPoint, v
         get() = link.jointRole
 }
 
-sealed class LocationTrackGeometry : IAlignment {
+sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
     abstract val trackId: IntId<LocationTrack>?
     @get:JsonIgnore abstract val edges: List<LayoutEdge>
-    @get:JsonIgnore val edgeMs: List<Range<Double>> by lazy { calculateEdgeMValues(edges) }
+    @get:JsonIgnore val edgeMs: List<Range<LineM<LocationTrackM>>> by lazy { calculateEdgeMValues(edges) }
     @get:JsonIgnore override val segments: List<LayoutSegment> by lazy { edges.flatMap(LayoutEdge::segments) }
-    override val segmentMValues: List<Range<Double>> by lazy { calculateSegmentMValues(segments) }
+    override val segmentMValues: List<Range<LineM<LocationTrackM>>> by lazy { calculateSegmentMValues(segments) }
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(edges.mapNotNull(LayoutEdge::boundingBox)) }
 
     @get:JsonIgnore
-    override val segmentsWithM: List<Pair<LayoutSegment, Range<Double>>>
+    override val segmentsWithM: List<Pair<LayoutSegment, Range<LineM<LocationTrackM>>>>
         get() = segments.zip(segmentMValues)
 
     fun getSegmentWithM(index: Int) = segments[index] to segmentMValues[index]
@@ -59,7 +63,7 @@ sealed class LocationTrackGeometry : IAlignment {
         get() = edges.isNotEmpty()
 
     @get:JsonIgnore
-    open val edgesWithM: List<Pair<LayoutEdge, Range<Double>>>
+    open val edgesWithM: List<Pair<LayoutEdge, Range<LineM<LocationTrackM>>>>
         get() = edges.zip(edgeMs)
 
     @get:JsonIgnore
@@ -71,13 +75,13 @@ sealed class LocationTrackGeometry : IAlignment {
     }
 
     @get:JsonIgnore
-    open val nodesWithLocation: List<Pair<LayoutNode, AlignmentPoint>> by lazy {
+    open val nodesWithLocation: List<Pair<LayoutNode, AlignmentPoint<LocationTrackM>>> by lazy {
         edgesWithM.flatMapIndexed { i, (e, m) ->
             // Init-block ensures that edges are connected: previous edge end is the next edge start
             if (i == edges.lastIndex) {
                 listOf(
                     e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min),
-                    e.endNode.node to e.lastSegmentEnd.toAlignmentPoint(m.min + e.segmentMValues.last().min),
+                    e.endNode.node to e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min)),
                 )
             } else {
                 listOf(e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min))
@@ -105,7 +109,7 @@ sealed class LocationTrackGeometry : IAlignment {
                 )
             val endSwitches: List<TrackSwitchLink> =
                 if (i == edges.lastIndex) {
-                    val end = e.lastSegmentEnd.toAlignmentPoint(m.min + e.segmentMValues.last().min)
+                    val end = e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min))
                     listOfNotNull(
                         e.endNode.switchIn?.let { TrackSwitchLink(it, end, INNER) },
                         e.endNode.switchOut?.let { TrackSwitchLink(it, end, OUTER) },
@@ -177,7 +181,9 @@ sealed class LocationTrackGeometry : IAlignment {
             else -> TmpLocationTrackGeometry.of(edges.map { it.withLocationTrackId(id) }, id)
         }
 
-    fun getEdgeStartAndEnd(edgeIndices: IntRange): Pair<AlignmentPoint, AlignmentPoint> {
+    fun getEdgeStartAndEnd(
+        edgeIndices: IntRange
+    ): Pair<AlignmentPoint<LocationTrackM>, AlignmentPoint<LocationTrackM>> {
         require(edgeIndices.first >= 0 && edgeIndices.last <= edges.lastIndex) {
             "Edge indices out of bounds: first=${edgeIndices.first} last=${edgeIndices.last} edges=${edges.size}"
         }
@@ -186,7 +192,7 @@ sealed class LocationTrackGeometry : IAlignment {
         val end =
             edgesWithM[edgeIndices.last].let { (edge, edgeM) ->
                 val (segment, segmentM) = edge.segmentsWithM.last()
-                segment.segmentEnd.toAlignmentPoint(edgeM.min + segmentM.min)
+                segment.segmentEnd.toAlignmentPoint(segmentM.min.toAlignmentM(edgeM.min))
             }
         return start to end
     }
@@ -201,11 +207,14 @@ sealed class LocationTrackGeometry : IAlignment {
         this.takeIf { nodes.none { nodeSwaps.containsKey(it.contentHash) } }
             ?: TmpLocationTrackGeometry.of(processNodeReplacements(nodeSwaps, edges), trackId)
 
-    fun getEdgeAtMOrThrow(m: Double): Pair<LayoutEdge, Range<Double>> {
+    fun getEdgeAtMOrThrow(m: LineM<LocationTrackM>): Pair<LayoutEdge, Range<LineM<LocationTrackM>>> {
         return requireNotNull(getEdgeAtM(m)) { "Geometry does not contain edge at m $m" }
     }
 
-    fun getEdgeAtM(m: Double, delta: Double = 0.000001): Pair<LayoutEdge, Range<Double>>? =
+    fun getEdgeAtM(
+        m: LineM<LocationTrackM>,
+        delta: Double = 0.000001,
+    ): Pair<LayoutEdge, Range<LineM<LocationTrackM>>>? =
         edgeMs
             .binarySearch { mRange ->
                 when {
@@ -218,9 +227,11 @@ sealed class LocationTrackGeometry : IAlignment {
             ?.let(edgesWithM::getOrNull)
 }
 
-fun calculateEdgeMValues(edges: List<LayoutEdge>): List<Range<Double>> {
-    var previousEnd = 0.0
-    return edges.map { edge -> Range(previousEnd, previousEnd + edge.length).also { previousEnd += edge.length } }
+fun calculateEdgeMValues(edges: List<LayoutEdge>): List<Range<LineM<LocationTrackM>>> {
+    var previousEnd = LineM<LocationTrackM>(0.0)
+    return edges.map { edge ->
+        Range(previousEnd, previousEnd + edge.length.distance).also { previousEnd += edge.length.distance }
+    }
 }
 
 fun verifyTrackGeometry(trackId: IntId<LocationTrack>?, edges: List<LayoutEdge>) {
@@ -297,16 +308,16 @@ data class DbLocationTrackGeometry(
     }
 
     @Suppress("UNCHECKED_CAST")
-    override val edgesWithM: List<Pair<DbLayoutEdge, Range<Double>>>
-        get() = super.edgesWithM as List<Pair<DbLayoutEdge, Range<Double>>>
+    override val edgesWithM: List<Pair<DbLayoutEdge, Range<LineM<LocationTrackM>>>>
+        get() = super.edgesWithM as List<Pair<DbLayoutEdge, Range<LineM<LocationTrackM>>>>
 
     @Suppress("UNCHECKED_CAST")
     override val nodes: List<DbLayoutNode>
         get() = super.nodes as List<DbLayoutNode>
 
     @Suppress("UNCHECKED_CAST")
-    override val nodesWithLocation: List<Pair<DbLayoutNode, AlignmentPoint>>
-        get() = super.nodesWithLocation as List<Pair<DbLayoutNode, AlignmentPoint>>
+    override val nodesWithLocation: List<Pair<DbLayoutNode, AlignmentPoint<LocationTrackM>>>
+        get() = super.nodesWithLocation as List<Pair<DbLayoutNode, AlignmentPoint<LocationTrackM>>>
 
     override val startNode: DbNodeConnection?
         get() = edges.firstOrNull()?.startNode
@@ -333,13 +344,13 @@ data class EdgeHash private constructor(val value: Int) {
     }
 }
 
-sealed class LayoutEdge : IAlignment {
+sealed class LayoutEdge : IAlignment<EdgeM> {
     abstract val startNode: NodeConnection
     abstract val endNode: NodeConnection
-    override val segmentMValues: List<Range<Double>> by lazy { calculateSegmentMValues(segments) }
+    override val segmentMValues: List<Range<LineM<EdgeM>>> by lazy { calculateSegmentMValues(segments) }
 
     @get:JsonIgnore
-    override val segmentsWithM: List<Pair<LayoutSegment, Range<Double>>>
+    override val segmentsWithM: List<Pair<LayoutSegment, Range<LineM<EdgeM>>>>
         get() = segments.zip(segmentMValues)
 
     @get:JsonIgnore
@@ -351,11 +362,11 @@ sealed class LayoutEdge : IAlignment {
         get() = segments.last().segmentEnd
 
     @get:JsonIgnore
-    override val start: AlignmentPoint
-        get() = firstSegmentStart.toAlignmentPoint(0.0) // alignmentStart
+    override val start: AlignmentPoint<EdgeM>
+        get() = firstSegmentStart.toAlignmentPoint(LineM(0.0)) // alignmentStart
 
     @get:JsonIgnore
-    override val end: AlignmentPoint
+    override val end: AlignmentPoint<EdgeM>
         get() = lastSegmentEnd.toAlignmentPoint(segmentMValues.last().min)
 
     abstract override val segments: List<LayoutSegment>
@@ -751,11 +762,11 @@ private fun verifyEdgeContent(edge: LayoutEdge) {
     }
     require(edge.segments.isNotEmpty()) { "LayoutEdge must have at least one segment" }
     edge.segmentMValues.forEach { range ->
-        require(range.min.isFinite() && range.min >= 0.0) { "Invalid start m: ${range.min}" }
+        require(range.min.isFinite() && range.min.distance >= 0.0) { "Invalid start m: ${range.min}" }
         require(range.max.isFinite() && range.max >= range.min) { "Invalid end m: ${range.max}" }
     }
     edge.segmentMValues.zipWithNext().mapIndexed { i, (prev, next) ->
-        require(abs(prev.max - next.min) < 0.001) {
+        require(abs(prev.max.distance - next.min.distance) < 0.001) {
             "Edge segment m-values should be continuous: index=$i prev=$prev next=$next"
         }
     }

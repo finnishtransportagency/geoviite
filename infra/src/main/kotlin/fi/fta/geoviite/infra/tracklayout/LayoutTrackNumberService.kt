@@ -30,9 +30,9 @@ import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.printCsv
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.stream.Collectors
+import org.springframework.transaction.annotation.Transactional
 
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
 
@@ -171,7 +171,7 @@ class LayoutTrackNumberService(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
         boundingBox: BoundingBox?,
-    ): List<AlignmentPlanSection> {
+    ): List<AlignmentPlanSection<ReferenceLineM>> {
         return get(layoutContext, trackNumberId)?.let { trackNumber ->
             val referenceLine = referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId)
             val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
@@ -203,7 +203,7 @@ class LayoutTrackNumberService(
         return if (
             alignment != null && geocodingContext != null && cropIsWithinReferenceLine(startKm, endKm, geocodingContext)
         ) {
-            getCropMRange(geocodingContext, Range(0.0, alignment.length), startKm, endKm)
+            getCropMRange(geocodingContext, Range(LineM(0), alignment.length), startKm, endKm)
                 ?.let { cropRange -> cropAlignment(alignment.segmentsWithM, cropRange) }
                 ?.let { a -> toPolygon(a, bufferSize) }
         } else {
@@ -344,9 +344,9 @@ private fun getLocationByPrecision(kmPost: LayoutKmLengthDetails, precision: KmL
     }
 
 private fun extractTrackKmLengths(
-    context: GeocodingContext,
-    contextResult: GeocodingContextCreateResult,
-    startPoint: AddressPoint,
+    context: GeocodingContext<ReferenceLineM>,
+    contextResult: GeocodingContextCreateResult<ReferenceLineM>,
+    startPoint: AddressPoint<*>,
 ): List<LayoutKmLengthDetails> {
     val distances = getKmPostDistances(context, contextResult.validKmPosts)
     val referenceLineLength = context.referenceLineGeometry.length
@@ -382,9 +382,9 @@ private fun extractTrackKmLengths(
 }
 
 private fun getKmPostDistances(
-    context: GeocodingContext,
+    context: GeocodingContext<ReferenceLineM>,
     kmPosts: List<LayoutKmPost>,
-): List<Pair<LayoutKmPost, Double>> =
+): List<Pair<LayoutKmPost, LineM<ReferenceLineM>>> =
     kmPosts.map { kmPost ->
         val distance = kmPost.layoutLocation?.let { loc -> context.getM(loc)?.first }
         checkNotNull(distance) {
@@ -394,11 +394,11 @@ private fun getKmPostDistances(
     }
 
 private fun getCropMRange(
-    context: GeocodingContext,
-    origRange: Range<Double>,
+    context: GeocodingContext<ReferenceLineM>,
+    origRange: Range<LineM<ReferenceLineM>>,
     startKm: KmNumber?,
     endKm: KmNumber?,
-): Range<Double>? {
+): Range<LineM<ReferenceLineM>>? {
     val start = startKm?.let { context.referencePoints.find { it.kmNumber >= startKm } }?.distance
     val end = endKm?.let { context.referencePoints.find { it.kmNumber > endKm } }?.distance
     return if (start != null && start >= origRange.max || end != null && end <= origRange.min) {

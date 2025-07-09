@@ -11,6 +11,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import java.util.*
 import org.springframework.transaction.annotation.Transactional
 
@@ -23,7 +25,7 @@ data class AddressPointCacheKey(
 data class AddressPointCalculationData(
     val key: AddressPointCacheKey,
     val geometry: DbLocationTrackGeometry,
-    val geocodingContext: GeocodingContext,
+    val geocodingContext: GeocodingContext<ReferenceLineM>,
 )
 
 const val ADDRESS_POINT_CACHE_SIZE = 2000L
@@ -35,7 +37,7 @@ class AddressPointsCache(
     val geocodingDao: GeocodingDao,
     val geocodingCacheService: GeocodingCacheService,
 ) {
-    private val cache: Cache<AddressPointCacheKey, Optional<AlignmentAddresses>> =
+    private val cache: Cache<AddressPointCacheKey, Optional<AlignmentAddresses<LocationTrackM>>> =
         Caffeine.newBuilder().maximumSize(ADDRESS_POINT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
     @Transactional(readOnly = true)
@@ -56,7 +58,7 @@ class AddressPointsCache(
      * This is for caching address points. Please don't call this directly if possible, please prefer GeocodingService's
      * getAddressPoints method instead
      */
-    fun getAddressPoints(cacheKey: AddressPointCacheKey): AlignmentAddresses? =
+    fun getAddressPoints(cacheKey: AddressPointCacheKey): AlignmentAddresses<LocationTrackM>? =
         cache
             .get(cacheKey) {
                 Optional.ofNullable(
@@ -68,7 +70,8 @@ class AddressPointsCache(
             .orElse(null)
 
     fun getAddressPointCalculationData(cacheKey: AddressPointCacheKey): AddressPointCalculationData? =
-        geocodingCacheService.getGeocodingContext(cacheKey.geocodingContextCacheKey)?.let { geocodingContext ->
+        geocodingCacheService.getGeocodingContext<ReferenceLineM>(cacheKey.geocodingContextCacheKey)?.let {
+            geocodingContext ->
             AddressPointCalculationData(cacheKey, alignmentDao.fetch(cacheKey.locationTrackVersion), geocodingContext)
         }
 }

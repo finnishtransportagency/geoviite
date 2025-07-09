@@ -34,6 +34,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.switchLibrary.calculateSwitchLocationDelta
 import fi.fta.geoviite.infra.switchLibrary.transformSwitchPoint
+import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -42,14 +43,17 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
+import fi.fta.geoviite.infra.tracklayout.toSegmentM
+import kotlin.math.max
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import kotlin.math.max
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
 const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
@@ -174,8 +178,8 @@ private fun calculateLayoutSwitchJoints(
 private data class PossibleSegment(
     val segment: ISegment,
     val segmentIndex: Int,
-    val mRangeOnTrack: Range<Double>,
-    val closestPointMOnTrack: Double,
+    val mRangeOnTrack: Range<LineM<LocationTrackM>>,
+    val closestPointMOnTrack: LineM<LocationTrackM>,
     val closestSegmentPointIndex: Int,
     val jointDistanceToSegment: Double,
 )
@@ -482,7 +486,10 @@ private fun mapMeasurementMethodToLocationAccuracy(mm: MeasurementMethod): Locat
 const val MAX_LINE_INTERSECTION_DISTANCE = 0.5
 const val MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES = 1
 
-private fun findIntersections(alignment1: IAlignment, alignment2: IAlignment): List<TrackIntersection> {
+private fun findIntersections(
+    alignment1: IAlignment<LocationTrackM>,
+    alignment2: IAlignment<LocationTrackM>,
+): List<TrackIntersection> {
     // Ignore parallel alignments. Points of alignments are filtered so
     // that alignments are about 0 - 200 meters long, and therefore we can compare
     // angles from start to end.
@@ -500,7 +507,7 @@ private fun findIntersections(alignment1: IAlignment, alignment2: IAlignment): L
         .toList()
 }
 
-private fun toChunkedLinesWithBoxes(alignment: IAlignment) =
+private fun toChunkedLinesWithBoxes(alignment: IAlignment<LocationTrackM>) =
     alignment.allSegmentPoints
         .zipWithNext { a, b -> Line(a, b) }
         .chunked(10)
@@ -511,8 +518,8 @@ private fun toChunkedLinesWithBoxes(alignment: IAlignment) =
 private fun findIntersectionsBetweenLineLists(
     lines1: List<Line>,
     lines2: List<Line>,
-    alignment1: IAlignment,
-    alignment2: IAlignment,
+    alignment1: IAlignment<LocationTrackM>,
+    alignment2: IAlignment<LocationTrackM>,
 ) =
     lines1.flatMap { line1 ->
         lines2.mapNotNull { line2 ->
@@ -533,8 +540,8 @@ private fun findIntersectionsBetweenLineLists(
 private fun tryFindingNearIntersection(
     line1: Line,
     line2: Line,
-    alignment1: IAlignment,
-    alignment2: IAlignment,
+    alignment1: IAlignment<LocationTrackM>,
+    alignment2: IAlignment<LocationTrackM>,
 ): TrackIntersection? {
     val linePointDistanceCheckPairs =
         listOf(line1 to line2.start, line1 to line2.end, line2 to line1.start, line2 to line1.end)
@@ -552,7 +559,10 @@ private fun tryFindingNearIntersection(
     } else null
 }
 
-private fun alignmentStartEndDirectionDiff(alignment1: IAlignment, alignment2: IAlignment): Double? {
+private fun alignmentStartEndDirectionDiff(
+    alignment1: IAlignment<LocationTrackM>,
+    alignment2: IAlignment<LocationTrackM>,
+): Double? {
     val track1Direction = alignmentStartEndDirection(alignment1)
     val track2Direction = alignmentStartEndDirection(alignment2)
     return if (track1Direction != null && track2Direction != null) {
@@ -560,15 +570,15 @@ private fun alignmentStartEndDirectionDiff(alignment1: IAlignment, alignment2: I
     } else null
 }
 
-private fun alignmentStartEndDirection(alignment: IAlignment): Double? {
+private fun alignmentStartEndDirection(alignment: IAlignment<LocationTrackM>): Double? {
     val start = alignment.firstSegmentStart
     val end = alignment.lastSegmentEnd
     return if (start != null && end != null) directionBetweenPoints(start, end) else null
 }
 
 private fun getClosestPointAsIntersection(
-    track1: IAlignment,
-    track2: IAlignment,
+    track1: IAlignment<LocationTrackM>,
+    track2: IAlignment<LocationTrackM>,
     desiredLocation: IPoint,
 ): TrackIntersection? {
     return listOf(track1, track2)
@@ -583,7 +593,7 @@ private fun <T> pairsOf(things: List<T>): List<Pair<T, T>> =
     things.flatMapIndexed { index, t1 -> things.drop(index + 1).map { t2 -> t1 to t2 } }
 
 private fun findTrackIntersectionsForGridPoints(
-    trackAlignments: List<IAlignment>,
+    trackAlignments: List<IAlignment<LocationTrackM>>,
     grid: SamplingGridPoints,
 ): PointAssociation<TrackIntersection> {
     val trackPairs = pairsOf(trackAlignments)
@@ -634,12 +644,16 @@ private fun findFarthestJoint(
 }
 
 private data class SwitchPointSeekResult(
-    val fixPoint: AlignmentPoint,
-    val pointBackwards: AlignmentPoint?,
-    val pointForwards: AlignmentPoint?,
+    val fixPoint: AlignmentPoint<LocationTrackM>,
+    val pointBackwards: AlignmentPoint<LocationTrackM>?,
+    val pointForwards: AlignmentPoint<LocationTrackM>?,
 )
 
-private fun findPointsOnTrack(from: IPoint, distance: Double, alignment: IAlignment): SwitchPointSeekResult? {
+private fun findPointsOnTrack(
+    from: IPoint,
+    distance: Double,
+    alignment: IAlignment<LocationTrackM>,
+): SwitchPointSeekResult? {
     val snapDistance = 0.1
     return alignment
         .getClosestPointM(from)
@@ -658,7 +672,7 @@ private fun findPointsOnTrack(from: IPoint, distance: Double, alignment: IAlignm
 
 private fun findTransformations(
     point: IPoint,
-    alignment: IAlignment,
+    alignment: IAlignment<LocationTrackM>,
     switchAlignment: SwitchStructureAlignment,
     joint: SwitchStructureJoint,
     switchStructure: SwitchStructure,
@@ -678,8 +692,8 @@ private fun findTransformations(
 
 private fun findTransformations(
     point: IPoint,
-    alignment1: IAlignment,
-    alignment2: IAlignment,
+    alignment1: IAlignment<LocationTrackM>,
+    alignment2: IAlignment<LocationTrackM>,
     switchAlignment1: SwitchStructureAlignment,
     switchAlignment2: SwitchStructureAlignment,
     joint: SwitchStructureJoint,
@@ -887,8 +901,8 @@ private fun getOriginallyLinkedTrackJoints(
 private data class TrackIntersection(
     val point: IPoint,
     val distance: Double,
-    val alignment1: IAlignment,
-    val alignment2: IAlignment,
+    val alignment1: IAlignment<LocationTrackM>,
+    val alignment2: IAlignment<LocationTrackM>,
 )
 
 /** Returns a copy of the alignment filtering out points that do not locate in the given bounding box. */
@@ -930,20 +944,20 @@ fun cropPoints(
 data class CroppedTrackGeometry(
     val cropStartSegmentIndex: Int,
     override val segments: List<LayoutSegment>,
-    override val segmentMValues: List<Range<Double>>,
+    override val segmentMValues: List<Range<LineM<LocationTrackM>>>,
     val id: IntId<LocationTrack>,
-) : IAlignment {
+) : IAlignment<LocationTrackM> {
 
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.mapNotNull(ISegment::boundingBox)) }
 
     override fun toLog(): String = logFormat("id" to id, "segments" to segmentMValues)
 }
 
-data class CroppedAlignment(
+data class CroppedAlignment<M : AlignmentM<M>>(
     val cropStartSegmentIndex: Int,
     override val segments: List<LayoutSegment>,
-    override val segmentMValues: List<Range<Double>>,
-) : IAlignment {
+    override val segmentMValues: List<Range<LineM<M>>>,
+) : IAlignment<M> {
     companion object {
         val empty = CroppedAlignment(0, emptyList(), emptyList())
     }
@@ -958,8 +972,11 @@ fun cropNothing(geometry: DbLocationTrackGeometry) = cropNothing(geometry.trackR
 fun cropNothing(trackId: IntId<LocationTrack>, geometry: LocationTrackGeometry) =
     CroppedTrackGeometry(0, geometry.segments, geometry.segmentMValues, trackId)
 
-fun cropAlignment(segmentsWithM: List<Pair<LayoutSegment, Range<Double>>>, cropRange: Range<Double>): CroppedAlignment {
-    if (segmentsWithM.isEmpty()) return CroppedAlignment.empty
+fun <M : AlignmentM<M>> cropAlignment(
+    segmentsWithM: List<Pair<LayoutSegment, Range<LineM<M>>>>,
+    cropRange: Range<LineM<M>>,
+): CroppedAlignment<M> {
+    if (segmentsWithM.isEmpty()) return CroppedAlignment.empty as CroppedAlignment<M>
     val origRange = Range(segmentsWithM.first().second.min, segmentsWithM.last().second.max)
     val newSegments =
         when {
@@ -971,7 +988,7 @@ fun cropAlignment(segmentsWithM: List<Pair<LayoutSegment, Range<Double>>>, cropR
                         cropRange.contains(m) -> s to m
                         cropRange.overlaps(m) -> {
                             val newRange = Range(maxOf(m.min, cropRange.min), minOf(m.max, cropRange.max))
-                            s.slice(Range(newRange.min - m.min, newRange.max - m.min), CROP_SLICE_SNAPPING_TOLERANCE) to
+                            s.slice(newRange.map { d -> d.toSegmentM(m.min) }, CROP_SLICE_SNAPPING_TOLERANCE) to
                                 newRange
                         }
 

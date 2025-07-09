@@ -25,7 +25,7 @@ data class LinkedElement(
 
 fun collectLinkedElements(
     geometry: LocationTrackGeometry,
-    context: GeocodingContext?,
+    context: GeocodingContext<*>?,
     startAddress: TrackMeter?,
     endAddress: TrackMeter?,
 ): List<LinkedElement> =
@@ -38,7 +38,7 @@ fun collectLinkedElements(
 
 private fun overlapsAddressInterval(
     segment: ISegment,
-    context: GeocodingContext?,
+    context: GeocodingContext<*>?,
     start: TrackMeter?,
     end: TrackMeter?,
 ): Boolean =

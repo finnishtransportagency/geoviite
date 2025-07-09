@@ -43,14 +43,17 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.assertEquals
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
@@ -1457,11 +1460,11 @@ constructor(
         val fittedSwitch =
             fittedSwitch(
                 switchStructure,
-                fittedJointMatch(trackA, 1, 0.0),
-                fittedJointMatch(trackA, 5, 16.0),
-                fittedJointMatch(trackA, 2, 30.0),
-                fittedJointMatch(trackB, 1, 0.0),
-                fittedJointMatch(trackB, 3, 32.567),
+                fittedJointMatch(trackA, 1, LineM(0.0)),
+                fittedJointMatch(trackA, 5, LineM(16.0)),
+                fittedJointMatch(trackA, 2, LineM(30.0)),
+                fittedJointMatch(trackB, 1, LineM(0.0)),
+                fittedJointMatch(trackB, 3, LineM(32.567)),
             )
 
         val linkedTracks = linkFittedSwitch(context.context, switchId, fittedSwitch)
@@ -1472,9 +1475,9 @@ constructor(
             trackA.locationTrackId,
             switchId = switchId,
             listOf( //
-                1 to 0.0,
-                5 to 16.0,
-                2 to 30.0,
+                1 to LineM(0.0),
+                5 to LineM(16.0),
+                2 to LineM(30.0),
             ),
         )
         assertInnerSwitchNodeExists(
@@ -1482,8 +1485,8 @@ constructor(
             trackB.locationTrackId,
             switchId = switchId,
             listOf( //
-                1 to 0.0,
-                3 to 32.567,
+                1 to LineM(0.0),
+                3 to LineM(32.567),
             ),
         )
         assertTopologicalConnectionAtEnd(linkedTracks, trackC.locationTrackId, switchId = switchId, 1)
@@ -1568,14 +1571,14 @@ constructor(
         assertEquals(topologyStartSwitchId, geometry.outerStartSwitch?.id)
         assertEquals(topologyEndSwitchId, geometry.outerEndSwitch?.id)
         assertEquals(
-            innerSwitchesByMRange.last().first.endInclusive,
+            LineM(innerSwitchesByMRange.last().first.endInclusive),
             geometry.end!!.m,
             0.1,
             "expected given inner switches m-range to cover whole track",
         )
         innerSwitchesByMRange.forEachIndexed { rangeIndex, (range, switchId) ->
-            val edge = geometry.getEdgeAtMOrThrow(range.start)
-            val endEdge = geometry.getEdgeAtMOrThrow(range.endInclusive)
+            val edge = geometry.getEdgeAtMOrThrow(LineM(range.start))
+            val endEdge = geometry.getEdgeAtMOrThrow(LineM(range.endInclusive))
             val edgeIndexRange = geometry.edges.indexOf(edge.first)..geometry.edges.indexOf(endEdge.first)
             val edgeMRange = edgeIndexRange.joinToString { i -> "${geometry.edgeMs[i].min..geometry.edgeMs[i].max}" }
             assertEquals(
@@ -1583,8 +1586,8 @@ constructor(
                 endEdge,
                 "expected switch m range $rangeIndex ($range) to cover only one edge, but it covers $edgeIndexRange ($edgeMRange)",
             )
-            assertEquals(range.start, edge.second.min, 0.1, "edge range starts at given m-value")
-            assertEquals(range.endInclusive, edge.second.max, 0.1, "edge range ends at given m-value")
+            assertEquals(LineM(range.start), edge.second.min, 0.1, "edge range starts at given m-value")
+            assertEquals(LineM(range.endInclusive), edge.second.max, 0.1, "edge range ends at given m-value")
 
             val edgeIndex = geometry.edges.indexOf(edge.first)
 
@@ -1758,7 +1761,7 @@ constructor(
 fun suggestedSwitchJointMatch(
     locationTrackId: IntId<LocationTrack>,
     segmentIndex: Int,
-    m: Double,
+    m: LineM<LocationTrackM>,
     jointNumber: Int,
     matchDirection: RelativeDirection = RelativeDirection.Along,
 ): FittedSwitchJointMatch =

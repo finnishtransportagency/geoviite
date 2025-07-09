@@ -27,6 +27,9 @@ import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.util.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.toResponse
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -36,9 +39,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @GeoviiteController("/track-layout/track-numbers")
 class LayoutTrackNumberController(
@@ -125,7 +125,7 @@ class LayoutTrackNumberController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
-    ): List<AlignmentPlanSection> {
+    ): List<AlignmentPlanSection<*>> {
         val context = LayoutContext.of(branch, publicationState)
         return trackNumberService.getMetadataSections(context, id, boundingBox)
     }

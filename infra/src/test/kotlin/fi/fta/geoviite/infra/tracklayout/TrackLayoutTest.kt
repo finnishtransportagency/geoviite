@@ -32,42 +32,53 @@ class TrackLayoutTest {
     fun slicingSegmentWorks() {
         val original = segment(10, -10.0, 10.0, -10.0, 10.0)
 
-        val originalSegmentStart = 123.111
+        val originalSegmentStart = locationTrackM(123.111)
         val (startSlice, startSliceM) = original.slice(originalSegmentStart, 0, 2)!!
         assertEquals(3, startSlice.segmentPoints.size)
         assertApproximatelyEquals(original.segmentPoints[0], startSlice.segmentPoints[0])
         assertApproximatelyEquals(original.segmentPoints[2], startSlice.segmentPoints.last())
-        assertEquals(original.segmentPoints[2].m, startSlice.length, 0.0001)
-        assertEquals(Range(originalSegmentStart, originalSegmentStart + original.segmentPoints[2].m), startSliceM)
+        assertEquals(original.segmentPoints[2].m.distance, startSlice.length, 0.0001)
+        assertEquals(
+            Range(originalSegmentStart, originalSegmentStart + original.segmentPoints[2].m.distance),
+            startSliceM
+        )
 
         val (endSlice, endSliceM) = original.slice(originalSegmentStart, 8, 9)!!
         assertEquals(2, endSlice.segmentPoints.size)
-        assertApproximatelyEquals(original.segmentPoints[8].copy(m = 0.0), endSlice.segmentPoints[0])
+        assertApproximatelyEquals(original.segmentPoints[8].copy(m = LineM(0.0)), endSlice.segmentPoints[0])
         assertApproximatelyEquals(
-            original.segmentPoints[9].copy(m = original.length - original.segmentPoints[8].m),
+            original.segmentPoints[9].copy(m = LineM(original.length - original.segmentPoints[8].m.distance)),
             endSlice.segmentPoints.last(),
         )
-        assertEquals(original.segmentPoints[9].m - original.segmentPoints[8].m, endSlice.length, 0.0001)
+        assertEquals(
+            original.segmentPoints[9].m.distance - original.segmentPoints[8].m.distance,
+            endSlice.length,
+            0.0001
+        )
         assertEquals(
             Range(
-                originalSegmentStart + original.segmentPoints[8].m,
-                originalSegmentStart + original.segmentPoints[9].m,
+                originalSegmentStart + original.segmentPoints[8].m.distance,
+                originalSegmentStart + original.segmentPoints[9].m.distance,
             ),
             endSliceM,
         )
 
         val (midSlice, midSliceM) = original.slice(originalSegmentStart, 1, 8)!!
         assertEquals(8, midSlice.segmentPoints.size)
-        assertApproximatelyEquals(original.segmentPoints[1].copy(m = 0.0), midSlice.segmentPoints[0])
+        assertApproximatelyEquals(original.segmentPoints[1].copy(m = LineM(0.0)), midSlice.segmentPoints[0])
         assertApproximatelyEquals(
             original.segmentPoints[8].copy(m = original.segmentPoints[8].m - original.segmentPoints[1].m),
             midSlice.segmentPoints.last(),
         )
-        assertEquals(original.segmentPoints[8].m - original.segmentPoints[1].m, midSlice.length, 0.0001)
+        assertEquals(
+            original.segmentPoints[8].m.distance - original.segmentPoints[1].m.distance,
+            midSlice.length,
+            0.0001
+        )
         assertEquals(
             Range(
-                originalSegmentStart + original.segmentPoints[1].m,
-                originalSegmentStart + original.segmentPoints[8].m,
+                original.segmentPoints[1].m.segmentToAlignmentM(originalSegmentStart),
+                original.segmentPoints[8].m.segmentToAlignmentM(originalSegmentStart),
             ),
             midSliceM,
         )

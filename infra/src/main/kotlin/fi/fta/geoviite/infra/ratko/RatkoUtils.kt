@@ -78,7 +78,7 @@ private fun <T : LayoutAsset<T>> managePlanItem(
 }
 
 fun getEndPointNodeCollection(
-    alignmentAddresses: AlignmentAddresses,
+    alignmentAddresses: AlignmentAddresses<*>,
     changedKmNumbers: Collection<KmNumber>,
     existingStartNode: RatkoNode? = null,
     existingEndNode: RatkoNode? = null,
@@ -144,7 +144,7 @@ fun sortByNullDuplicateOfFirst(duplicateOf: IntId<LocationTrack>?) = if (duplica
 fun sortByDeletedStateFirst(layoutStateCategory: LayoutStateCategory) =
     if (layoutStateCategory == LayoutStateCategory.NOT_EXISTING) 0 else 1
 
-fun toRatkoPointsGroupedByKm(addressPoints: Collection<AddressPoint>) =
+fun toRatkoPointsGroupedByKm(addressPoints: Collection<AddressPoint<*>>) =
     addressPoints
         .groupBy { point -> point.address.kmNumber }
         .map { (_, addressPointsForKm) ->

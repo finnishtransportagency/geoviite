@@ -65,7 +65,7 @@ constructor(
         val referenceLine = referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId)
         assertNotNull(referenceLine)
         assertTrue(referenceLine?.isDraft ?: false)
-        assertEquals(0.0, referenceLine?.length)
+        assertEquals(LineM(0.0), referenceLine?.length)
         assertEquals(trackNumberId, referenceLine?.trackNumberId)
         val changeTimeAfterInsert = referenceLineService.getChangeTime()
         val referenceLineId = referenceLine?.id as IntId

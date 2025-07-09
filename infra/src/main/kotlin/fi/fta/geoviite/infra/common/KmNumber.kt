@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DISABLED
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.util.StringSanitizer
 import fi.fta.geoviite.infra.util.formatForException
 import java.math.BigDecimal
@@ -119,6 +120,8 @@ constructor(override val kmNumber: KmNumber, override val meters: BigDecimal) : 
         fun isMetersValid(v: BigDecimal): Boolean {
             return -maxMeter <= v && v < maxMeter
         }
+
+        fun isMetersValid(v: LineM<*>) = isMetersValid(v.distance)
 
         fun isMetersValid(v: Double) = isMetersValid(BigDecimal.valueOf(v))
 

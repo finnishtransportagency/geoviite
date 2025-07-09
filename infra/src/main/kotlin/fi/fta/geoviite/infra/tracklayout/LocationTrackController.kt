@@ -238,7 +238,7 @@ class LocationTrackController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
-    ): List<AlignmentPlanSection> {
+    ): List<AlignmentPlanSection<LocationTrackM>> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return locationTrackService.getMetadataSections(context, id, boundingBox)
     }

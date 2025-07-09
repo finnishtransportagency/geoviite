@@ -21,7 +21,7 @@ fun moveKmPostLocation(kmPost: LayoutKmPost, layoutLocation: Point, kmPostServic
 fun moveLocationTrackGeometryPointsAndUpdate(
     locationTrack: LocationTrack,
     geometry: LocationTrackGeometry,
-    moveFunc: (point: AlignmentPoint) -> Point,
+    moveFunc: (point: AlignmentPoint<*>) -> Point,
     locationTrackService: LocationTrackService,
 ) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, moveLocationTrackPoints(geometry, moveFunc))
 
@@ -111,14 +111,14 @@ private fun replaceStartWithTopoSwitch(
 fun moveReferenceLineGeometryPointsAndUpdate(
     referenceLine: ReferenceLine,
     alignment: LayoutAlignment,
-    moveFunc: (point: IPoint3DM) -> Point?,
+    moveFunc: (point: IPoint3DM<*>) -> Point?,
     referenceLineService: ReferenceLineService,
 ): LayoutRowVersion<ReferenceLine> =
     referenceLineService.saveDraft(LayoutBranch.main, referenceLine, moveAlignmentPoints(alignment, moveFunc))
 
 fun moveLocationTrackPoints(
     geometry: LocationTrackGeometry,
-    moveFunc: (point: AlignmentPoint) -> Point?,
+    moveFunc: (point: AlignmentPoint<*>) -> Point?,
 ): LocationTrackGeometry {
     return TmpLocationTrackGeometry.of(
         geometry.edgesWithM.map { (edge, edgeM) ->
@@ -128,7 +128,7 @@ fun moveLocationTrackPoints(
                         toSegmentPoints(
                             to3DMPoints(
                                 segment.segmentPoints.mapNotNull { point ->
-                                    moveFunc(point.toAlignmentPoint(edgeM.min + segmentM.min))
+                                    moveFunc(point.toAlignmentPoint(segmentM.min.toLocationTrackM(edgeM.min)))
                                 }
                             )
                         )
@@ -140,28 +140,34 @@ fun moveLocationTrackPoints(
     )
 }
 
-fun moveAlignmentPoints(alignment: LayoutAlignment, moveFunc: (point: AlignmentPoint) -> Point?): LayoutAlignment {
+fun moveAlignmentPoints(
+    alignment: LayoutAlignment,
+    moveFunc: (point: AlignmentPoint<ReferenceLineM>) -> Point?,
+): LayoutAlignment {
     return alignment
         .copy(
             segments =
                 alignment.segmentsWithM.map { (segment, m) ->
-                    var prevPoint: IPoint3DM? = null
+                    var prevPoint: IPoint3DM<*>? = null
                     val newPoints =
                         segment.segmentPoints.mapNotNull { point ->
                             moveFunc(point.toAlignmentPoint(m.min))?.let { newPoint ->
-                                val segmentM = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: 0.0
-                                point.copy(x = newPoint.x, y = newPoint.y, m = segmentM).also { p -> prevPoint = p }
+                                val segmentM =
+                                    prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: LineM<SegmentM>(0.0)
+                                point
+                                    .copy(x = newPoint.x, y = newPoint.y, m = segmentM.castToDifferentM())
+                                    .also { p -> prevPoint = p }
                             }
                         }
                     segment.withPoints(points = newPoints, newSourceStart = null).also {
-                        assertEquals(0.0, it.segmentPoints.first().m)
+                        assertEquals(LineM(0.0), it.segmentPoints.first().m)
                     }
                 }
         )
         .also {
-            assertEquals(0.0, it.segmentMValues.first().min)
-            assertEquals(it.segments.sumOf { s -> s.length }, it.segmentMValues.last().max)
-            assertEquals(it.segments.sumOf { s -> s.length }, it.length)
+            assertEquals(LineM(0.0), it.segmentMValues.first().min)
+            assertEquals(LineM(it.segments.sumOf { s -> s.length }), it.segmentMValues.last().max)
+            assertEquals(LineM(it.segments.sumOf { s -> s.length }), it.length)
         }
 }
 

@@ -46,6 +46,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
@@ -420,7 +421,7 @@ class CalculatedChangesService(
     private fun getAllSwitchJointChanges(
         locationTrack: LocationTrack,
         fetchSwitchById: (id: IntId<LayoutSwitch>) -> LayoutSwitch?,
-        getGeocodingContext: (id: IntId<LayoutTrackNumber>) -> GeocodingContext?,
+        getGeocodingContext: (id: IntId<LayoutTrackNumber>) -> GeocodingContext<ReferenceLineM>?,
     ): List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>> {
         val geometry = alignmentDao.fetch(locationTrack.getVersionOrThrow())
         val trackNumberId = locationTrack.trackNumberId
@@ -434,7 +435,7 @@ class CalculatedChangesService(
     fun getSwitchChangesFromChangedLocationTrackKms(
         fetchLocationTrackById: (id: IntId<LocationTrack>) -> LocationTrack?,
         fetchSwitchById: (id: IntId<LayoutSwitch>) -> LayoutSwitch?,
-        getGeocodingContext: (id: IntId<LayoutTrackNumber>) -> GeocodingContext?,
+        getGeocodingContext: (id: IntId<LayoutTrackNumber>) -> GeocodingContext<ReferenceLineM>?,
         locationTrackId: IntId<LocationTrack>,
         filterKmNumbers: Collection<KmNumber>,
         extIds: AllOids,
@@ -484,9 +485,9 @@ class CalculatedChangesService(
             getObjectFromValidationVersions(validationVersions.switches, switchDao, validationVersions.target, id)
         }
         val getGeocodingContext = { id: IntId<LayoutTrackNumber> ->
-            geocodingService
-                .getGeocodingContextCacheKey(id, validationVersions)
-                ?.let(geocodingService::getGeocodingContext)
+            geocodingService.getGeocodingContextCacheKey(id, validationVersions)?.let { key ->
+                geocodingService.getGeocodingContext(key) as GeocodingContext<ReferenceLineM>
+            }
         }
         val changes =
             getSwitchChangesFromChangedLocationTrackKms(
@@ -752,7 +753,7 @@ private fun asDirectSwitchChanges(switchIds: Collection<IntId<LayoutSwitch>>) =
 
 private fun getSwitchJointChanges(
     geometry: LocationTrackGeometry,
-    geocodingContext: GeocodingContext,
+    geocodingContext: GeocodingContext<*>,
     fetchSwitch: (switchId: IntId<LayoutSwitch>) -> LayoutSwitch?,
 ): List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>> {
     val switchChanges =
@@ -812,7 +813,7 @@ private fun mergeTrackNumberChanges(vararg changeLists: Collection<TrackNumberCh
         }
 
 private fun geometryContainsKilometer(
-    geocodingContext: GeocodingContext,
+    geocodingContext: GeocodingContext<*>,
     geometry: DbLocationTrackGeometry,
     kilometers: Set<KmNumber>,
 ): Boolean {
@@ -824,7 +825,7 @@ private fun geometryContainsKilometer(
 }
 
 private fun calculateOverlappingLocationTracks(
-    geocodingContext: GeocodingContext,
+    geocodingContext: GeocodingContext<*>,
     kilometers: Set<KmNumber>,
     locationTracksAndGeometries: Collection<Pair<LocationTrack, DbLocationTrackGeometry>>,
 ) =

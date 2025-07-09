@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.CombinedComparator
 import fi.fta.geoviite.infra.util.FreeText
@@ -315,9 +316,14 @@ constructor(private val geometryService: GeometryService, private val planLayout
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
-    ): List<KmHeights> {
-        return geometryService.getPlanAlignmentHeights(planId, planAlignmentId, startDistance, endDistance, tickLength)
-            ?: emptyList()
+    ): List<KmHeights<*>> {
+        return geometryService.getPlanAlignmentHeights(
+            planId,
+            planAlignmentId,
+            LineM(startDistance),
+            LineM(endDistance),
+            tickLength,
+        ) ?: emptyList()
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -326,7 +332,7 @@ constructor(private val geometryService: GeometryService, private val planLayout
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
-    ): List<PlanLinkingSummaryItem>? {
+    ): List<PlanLinkingSummaryItem<*>>? {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return geometryService.getLocationTrackGeometryLinkingSummary(layoutContext, id)
     }
@@ -340,13 +346,13 @@ constructor(private val geometryService: GeometryService, private val planLayout
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
-    ): List<KmHeights>? {
+    ): List<KmHeights<*>>? {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return geometryService.getLocationTrackHeights(
             layoutContext = layoutContext,
             locationTrackId = id,
-            startDistance = startDistance,
-            endDistance = endDistance,
+            startDistance = LineM(startDistance),
+            endDistance = LineM(endDistance),
             tickLength = tickLength,
         )
     }

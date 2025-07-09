@@ -30,20 +30,23 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -331,7 +334,7 @@ class SplitService(
         sourceTrack: LocationTrack,
         target: SplitTarget,
         context: ValidationContext,
-    ): Pair<List<AddressPoint>?, List<AddressPoint>?> {
+    ): Pair<List<AddressPoint<LocationTrackM>>?, List<AddressPoint<LocationTrackM>>?> {
         val sourceGeometry = alignmentDao.fetch(sourceTrack.getVersionOrThrow())
         val (sourceStartPoint, sourceEndPoint) = sourceGeometry.getEdgeStartAndEnd(target.edgeIndices)
         val sourceAddressPointRange =
@@ -340,7 +343,7 @@ class SplitService(
                 val end = geocodingContext.toAddressPoint(sourceEndPoint)?.first
                 if (start != null && end != null) start to end else null
             }
-        val sourceAddresses: List<AddressPoint>? =
+        val sourceAddresses: List<AddressPoint<LocationTrackM>>? =
             sourceAddressPointRange?.let { (start, end) ->
                 context
                     .getAddressPoints(sourceTrack)
@@ -474,7 +477,7 @@ class SplitService(
 
     private fun updateUnusedDuplicateReferencesToSplitTargetTracks(
         branch: LayoutBranch,
-        geocodingContext: GeocodingContext,
+        geocodingContext: GeocodingContext<ReferenceLineM>,
         splitRequest: SplitRequest,
         splitTargetResults: List<SplitTargetResult>,
     ) {
@@ -765,7 +768,7 @@ private data class GeocodedLocationTrack(
 )
 
 private fun getGeocoded(
-    context: GeocodingContext,
+    context: GeocodingContext<ReferenceLineM>,
     track: LocationTrack,
     geometry: LocationTrackGeometry,
 ): GeocodedLocationTrack? =
@@ -774,7 +777,7 @@ private fun getGeocoded(
     }
 
 private fun findNewLocationTracksForUnusedDuplicates(
-    geocodingContext: GeocodingContext,
+    geocodingContext: GeocodingContext<ReferenceLineM>,
     unusedDuplicates: List<Pair<LocationTrack, LocationTrackGeometry>>,
     splitTargetLocationTracks: List<SplitTargetResult>,
 ): List<Pair<LocationTrack, LocationTrackGeometry>> {
@@ -815,20 +818,20 @@ private fun calculateDuplicateLocationTrackOverlap(
     splitTargetStartEnd: AlignmentStartAndEndMeters,
     duplicateStartAndEnd: AlignmentStartAndEndMeters,
 ): LocationTrackOverlapReference {
-    val overlapStart = maxOf(duplicateStartAndEnd.start, splitTargetStartEnd.start)
-    val overlapEnd = minOf(duplicateStartAndEnd.end, splitTargetStartEnd.end)
+    val overlapStart = maxOf(duplicateStartAndEnd.start, splitTargetStartEnd.start).distance
+    val overlapEnd = minOf(duplicateStartAndEnd.end, splitTargetStartEnd.end).distance
 
     val overlap = maxOf(0.0, overlapEnd - overlapStart)
-    val intervalLength = duplicateStartAndEnd.end - duplicateStartAndEnd.start
+    val intervalLength = duplicateStartAndEnd.end.distance - duplicateStartAndEnd.start.distance
 
-    return LocationTrackOverlapReference(locationTrack = splitTarget, percentage = overlap / intervalLength * 100)
+    return LocationTrackOverlapReference(locationTrack = splitTarget, percentage = overlap / intervalLength * 100.0)
 }
 
-private data class AlignmentStartAndEndMeters(val start: Double, val end: Double)
+private data class AlignmentStartAndEndMeters(val start: LineM<ReferenceLineM>, val end: LineM<ReferenceLineM>)
 
 private fun getAlignmentStartAndEndM(
-    geocodingContext: GeocodingContext,
-    alignment: IAlignment,
+    geocodingContext: GeocodingContext<ReferenceLineM>,
+    alignment: IAlignment<LocationTrackM>,
 ): AlignmentStartAndEndMeters? {
     val startMeters = alignment.start?.let(geocodingContext::getM)?.first
     val endMeters = alignment.end?.let(geocodingContext::getM)?.first

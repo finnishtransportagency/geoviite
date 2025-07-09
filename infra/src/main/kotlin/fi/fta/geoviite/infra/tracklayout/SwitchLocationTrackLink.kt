@@ -107,7 +107,7 @@ fun getDuplicateMatches(
                     duplicateOfId = duplicateOf,
                     startSplitPoint = start,
                     endSplitPoint = end,
-                    overlappingLength = end.location.m - start.location.m,
+                    overlappingLength = end.location.m.distance - start.location.m.distance,
                 )
         }
     }
@@ -165,7 +165,7 @@ fun collectSplitPoints(geometry: LocationTrackGeometry): List<SplitPoint> {
     // Currently the logic takes the topology link only if the inner link doesn't override it as "main link"
 
     val allSplitPoints: List<SplitPoint> =
-        geometry.edgesWithM.flatMapIndexed { index: Int, (edge: LayoutEdge, m: Range<Double>) ->
+        geometry.edgesWithM.flatMapIndexed { index: Int, (edge: LayoutEdge, m: Range<LineM<LocationTrackM>>) ->
             val edgeStart = edge.firstSegmentStart.toAlignmentPoint(m.min)
             val startSplitPoints: List<SplitPoint> =
                 if (index == 0) {
@@ -186,7 +186,7 @@ fun collectSplitPoints(geometry: LocationTrackGeometry): List<SplitPoint> {
             val endSplitPoints: List<SplitPoint> =
                 if (index == geometry.edges.lastIndex) {
                     val (lastSegment, segmentM) = edge.segmentsWithM.last()
-                    val edgeEnd = lastSegment.segmentEnd.toAlignmentPoint(m.min + segmentM.min)
+                    val edgeEnd = lastSegment.segmentEnd.toAlignmentPoint(segmentM.min.toAlignmentM(m.min))
                     // The main switch link might be a topology link or an in-track-switch link
                     val mainLink = geometry.endSwitchLink
                     // Inner links need to be included always, unless it's already the main link
