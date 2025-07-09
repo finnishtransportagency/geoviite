@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import java.util.concurrent.ConcurrentHashMap
@@ -214,10 +215,10 @@ class ValidationContext(
             geocodingService.getGeocodingContextCacheKey(tnId, publicationSet)
         }
 
-    fun getAddressPoints(trackId: IntId<LocationTrack>): AlignmentAddresses? =
+    fun getAddressPoints(trackId: IntId<LocationTrack>): AlignmentAddresses<LocationTrackM>? =
         getLocationTrack(trackId)?.let(::getAddressPoints)
 
-    fun getAddressPoints(track: LocationTrack): AlignmentAddresses? =
+    fun getAddressPoints(track: LocationTrack): AlignmentAddresses<LocationTrackM>? =
         getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
             geocodingService.getAddressPoints(key, track.getVersionOrThrow())
         }

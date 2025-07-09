@@ -51,7 +51,7 @@ data class LayoutSwitch(
     @JsonIgnore val exists = !stateCategory.isRemoved()
     val nameParts: SwitchNameParts? by lazy { name.let(SwitchNameParts::tryParse) }
 
-    fun getJoint(location: AlignmentPoint, delta: Double): LayoutSwitchJoint? =
+    fun getJoint(location: AlignmentPoint<LocationTrackM>, delta: Double): LayoutSwitchJoint? =
         getJoint(Point(location.x, location.y), delta)
 
     fun getJoint(location: Point, delta: Double): LayoutSwitchJoint? =

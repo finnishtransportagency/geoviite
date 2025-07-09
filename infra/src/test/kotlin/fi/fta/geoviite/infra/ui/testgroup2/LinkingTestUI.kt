@@ -759,7 +759,7 @@ constructor(
     private fun getGeometrySwitchFromPlan(switchName: String, geometryPlan: GeometryPlan) =
         geometryPlan.switches.find { switch -> switch.name.toString() == switchName }!!
 
-    private fun hasSegmentBetweenPoints(start: Point, end: Point, layoutAlignment: IAlignment): Boolean {
+    private fun hasSegmentBetweenPoints(start: Point, end: Point, layoutAlignment: IAlignment<*>): Boolean {
         return layoutAlignment.segments.any { segment -> segment.includes(start) && segment.includes(end) }
     }
 }

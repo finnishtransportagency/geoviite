@@ -40,8 +40,8 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
         alignmentVersion: RowVersion<LayoutAlignment>,
         externalId: Oid<*>?,
         boundingBox: BoundingBox?,
-        context: GeocodingContext,
-    ): List<AlignmentPlanSection> {
+        context: GeocodingContext<ReferenceLineM>,
+    ): List<AlignmentPlanSection<ReferenceLineM>> {
         val sections = dao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, externalId, boundingBox)
         val alignment = dao.fetch(alignmentVersion)
         return toPlanSections(sections, alignment, context)
@@ -51,18 +51,18 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
         trackVersion: LayoutRowVersion<LocationTrack>,
         externalId: Oid<*>?,
         boundingBox: BoundingBox?,
-        context: GeocodingContext,
-    ): List<AlignmentPlanSection> {
+        context: GeocodingContext<ReferenceLineM>,
+    ): List<AlignmentPlanSection<LocationTrackM>> {
         val sections = dao.fetchSegmentGeometriesAndPlanMetadata(trackVersion, externalId, boundingBox)
         val alignment = dao.fetch(trackVersion)
         return toPlanSections(sections, alignment, context)
     }
 
-    private fun toPlanSections(
-        sections: List<SegmentGeometryAndMetadata>,
-        alignment: IAlignment,
-        context: GeocodingContext,
-    ): List<AlignmentPlanSection> {
+    private fun <M : AlignmentM<M>> toPlanSections(
+        sections: List<SegmentGeometryAndMetadata<M>>,
+        alignment: IAlignment<M>,
+        context: GeocodingContext<ReferenceLineM>,
+    ): List<AlignmentPlanSection<M>> {
         return sections.mapNotNull { section ->
             val start = section.startPoint?.let { p -> toPlanSectionPoint(p, alignment, context) }
             val end = section.endPoint?.let { p -> toPlanSectionPoint(p, alignment, context) }
@@ -85,7 +85,11 @@ class LayoutAlignmentService(private val dao: LayoutAlignmentDao) {
     }
 }
 
-private fun toPlanSectionPoint(point: IPoint, alignment: IAlignment, context: GeocodingContext) =
+private fun <M : AlignmentM<M>> toPlanSectionPoint(
+    point: IPoint,
+    alignment: IAlignment<M>,
+    context: GeocodingContext<ReferenceLineM>,
+) =
     context.getAddress(point)?.let { (address, _) ->
         PlanSectionPoint(
             address = address,
@@ -102,7 +106,7 @@ private fun asNew(alignment: LayoutAlignment): LayoutAlignment =
 fun cropIsWithinReferenceLine(
     startKmNumber: KmNumber?,
     endKmNumber: KmNumber?,
-    geocodingContext: GeocodingContext,
+    geocodingContext: GeocodingContext<ReferenceLineM>,
 ): Boolean =
     geocodingContext.kmRange?.let { contextRange ->
         when {

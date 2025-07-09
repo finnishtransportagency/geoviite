@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
@@ -46,7 +47,7 @@ class GeocodingController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("locationTrackId") locationTrackId: IntId<LocationTrack>,
         @RequestParam("address") address: TrackMeter,
-    ): ResponseEntity<AddressPoint> {
+    ): ResponseEntity<AddressPoint<LocationTrackM>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return toResponse(locationTrackService.getTrackPoint(layoutContext, locationTrackId, address))
     }
@@ -57,7 +58,7 @@ class GeocodingController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("alignmentId") locationTrackId: IntId<LocationTrack>,
-    ): ResponseEntity<AlignmentAddresses> {
+    ): ResponseEntity<AlignmentAddresses<LocationTrackM>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return toResponse(geocodingService.getAddressPoints(layoutContext, locationTrackId))
     }

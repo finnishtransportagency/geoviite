@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
+import java.util.function.Supplier
 
 private const val COORDINATE_DELTA: Double = 0.000000001
 private const val LENGTH_DELTA: Double = 0.00001
@@ -110,7 +111,7 @@ fun assertMatches(expected: LayoutSegment, actual: LayoutSegment, idMatch: Boole
     expected.segmentPoints.forEachIndexed { index, point -> assertMatches(point, actual.segmentPoints[index]) }
 }
 
-fun assertMatches(expected: LayoutPoint, actual: LayoutPoint) {
+fun <M: AnyM<M>> assertMatches(expected: LayoutPoint<M>, actual: LayoutPoint<M>) {
     assertEquals(expected.x, actual.x, COORDINATE_DELTA)
     assertEquals(expected.y, actual.y, COORDINATE_DELTA)
     assertEquals(expected.m, actual.m, COORDINATE_DELTA)
@@ -146,3 +147,9 @@ fun assertMatches(expected: LayoutSwitchJoint, actual: LayoutSwitchJoint) {
     assertEquals(expected, actual.copy(location = expected.location))
     assertApproximatelyEquals(expected.location, actual.location, COORDINATE_DELTA)
 }
+
+fun <M : AnyM<M>> assertEquals(a: LineM<M>, b: LineM<M>, absoluteTolerance: Double, message: String? = null) =
+    kotlin.test.assertEquals(a.distance, b.distance, absoluteTolerance, message)
+
+fun <M : AnyM<M>> assertEquals(a: LineM<M>, b: LineM<M>, absoluteTolerance: Double, messageSupplier: Supplier<String>) =
+    assertEquals(a.distance, b.distance, absoluteTolerance, messageSupplier)

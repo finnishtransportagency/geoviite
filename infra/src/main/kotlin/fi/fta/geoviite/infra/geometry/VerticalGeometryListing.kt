@@ -24,8 +24,11 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.math.roundTo6Decimals
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
@@ -105,9 +108,9 @@ data class VerticalGeometryListing(
     val coordinateSystemSrid: Srid?,
     val coordinateSystemName: CoordinateSystemName?,
     val creationTime: Instant?,
-    val layoutStartStation: Double? = null,
-    val layoutPointStation: Double? = null,
-    val layoutEndStation: Double? = null,
+    val layoutStartStation: LineM<LocationTrackM>? = null,
+    val layoutPointStation: LineM<LocationTrackM>? = null,
+    val layoutEndStation: LineM<LocationTrackM>? = null,
     val trackNumber: TrackNumber? = null,
 )
 
@@ -115,7 +118,7 @@ fun toVerticalGeometryListing(
     planAlignments: List<GeometryAlignment>,
     getTransformation: (srid: Srid) -> Transformation,
     planHeader: GeometryPlanHeader,
-    geocodingContext: GeocodingContext?,
+    geocodingContext: GeocodingContext<*>?,
 ): List<VerticalGeometryListing> {
     return planAlignments
         .filter { it.profile != null }
@@ -153,7 +156,7 @@ fun toVerticalGeometryListing(
     geometry: LocationTrackGeometry,
     startAddress: TrackMeter?,
     endAddress: TrackMeter?,
-    geocodingContext: GeocodingContext?,
+    geocodingContext: GeocodingContext<ReferenceLineM>?,
     getTransformation: (srid: Srid) -> Transformation,
     getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
 ): List<VerticalGeometryListing> {
@@ -223,9 +226,9 @@ fun toVerticalGeometryListing(
 
 private fun getEntryLayoutStations(
     listing: List<VerticalGeometryListing>,
-    geocodingContext: GeocodingContext,
+    geocodingContext: GeocodingContext<ReferenceLineM>,
     geometry: LocationTrackGeometry,
-): List<List<Double?>> =
+): List<List<LineM<LocationTrackM>?>> =
     processFlattened(listing.map { entry -> listOf(entry.start.address, entry.point.address, entry.end.address) }) {
         addresses ->
         processNonNulls(addresses) { nonNullAddresses ->
@@ -237,7 +240,7 @@ private fun getEntryLayoutStations(
 private fun toVerticalGeometry(
     planHeader: GeometryPlanHeader,
     getTransformation: (srid: Srid) -> Transformation,
-    geocodingContext: GeocodingContext?,
+    geocodingContext: GeocodingContext<*>?,
     geometryAlignment: GeometryAlignment,
     segment: CurvedProfileSegment,
     endAddress: TrackMeter?,
@@ -279,7 +282,7 @@ fun toVerticalGeometryListing(
     locationTrackName: AlignmentName?,
     coordinateTransform: Transformation?,
     planHeader: GeometryPlanHeader,
-    geocodingContext: GeocodingContext?,
+    geocodingContext: GeocodingContext<*>?,
     curvedSegments: List<CurvedProfileSegment>,
     linearSegments: List<LinearProfileSegment>,
     segmentStartAddress: TrackMeter?,
@@ -505,7 +508,7 @@ private fun separateCurvedAndLinearProfileSegments(segments: List<ProfileSegment
         }
 
 fun getTrackAddressAtStation(
-    geocodingContext: GeocodingContext,
+    geocodingContext: GeocodingContext<*>,
     coordinateTransform: Transformation,
     geometryAlignment: GeometryAlignment,
     station: Double,

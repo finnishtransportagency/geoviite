@@ -34,15 +34,16 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.Either
 import fi.fta.geoviite.infra.util.Left
 import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.all
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.produceIf
-import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
 import java.math.RoundingMode
+import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class FrameConverterServiceV1
@@ -295,7 +296,7 @@ constructor(
         requests: List<ValidTrackAddressToCoordinateRequestV1>,
         locationTrack: LocationTrack,
         geometry: DbLocationTrackGeometry,
-        geocodingContext: GeocodingContext,
+        geocodingContext: GeocodingContext<ReferenceLineM>,
         params: FrameConverterQueryParamsV1,
         locationTrackOids: Map<DomainId<LocationTrack>, Oid<LocationTrack>>?,
         trackNumberDetails: TrackNumberDetails,
@@ -556,7 +557,7 @@ constructor(
         request: ValidTrackAddressToCoordinateRequestV1,
         params: FrameConverterQueryParamsV1,
         locationTrack: LocationTrack,
-        addressPoint: AddressPoint,
+        addressPoint: AddressPoint<*>,
         locationTrackOid: Oid<LocationTrack>?,
         trackNumberDetails: TrackNumberDetails,
     ): TrackAddressToCoordinateResponseV1 {
@@ -623,7 +624,7 @@ constructor(
 
     private data class TrackNumberDetails(
         val trackNumber: LayoutTrackNumber,
-        val geocodingContext: GeocodingContext?,
+        val geocodingContext: GeocodingContext<ReferenceLineM>?,
         val oid: Oid<LayoutTrackNumber>?,
     )
 
@@ -652,7 +653,7 @@ private fun createFeatureGeometry(params: FrameConverterQueryParamsV1, point: IP
 
 private fun createSimpleFeatureMatchOrNull(
     params: FrameConverterQueryParamsV1,
-    point: AlignmentPoint,
+    point: AlignmentPoint<*>,
     distanceToClosestPoint: Double,
 ): FeatureMatchBasicV1? {
     return if (params.featureBasic) {

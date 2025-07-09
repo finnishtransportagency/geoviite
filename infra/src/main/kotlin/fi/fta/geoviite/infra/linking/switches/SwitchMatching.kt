@@ -10,10 +10,13 @@ import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TOPOLOGY_CALC_DISTANCE
+import fi.fta.geoviite.infra.tracklayout.toEdgeM
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import kotlin.math.absoluteValue
 
@@ -70,10 +73,10 @@ private fun findTopologyLinksToUnmatchedNearbyTracks(
 
 private fun findTopologyLinksToTrackEnd(
     fittedSwitch: FittedSwitch,
-    trackEndPoint: AlignmentPoint,
+    trackEndPoint: AlignmentPoint<LocationTrackM>,
     trackId: IntId<LocationTrack>,
     trackEndEdgeIndex: Int,
-    trackEndEdgeStartM: Double,
+    trackEndEdgeStartM: LineM<LocationTrackM>,
 ): List<Pair<EdgeId, JointOnEdge>> =
     fittedSwitch.joints.mapNotNull { fittedSwitchJoint ->
         if (lineLength(fittedSwitchJoint.location, trackEndPoint) > TOPOLOGY_CALC_DISTANCE) null
@@ -87,13 +90,13 @@ private fun findTopologyLinksToTrackEnd(
 private fun asTopologyJointOnEdge(
     fittedSwitchJoint: FittedSwitchJoint,
     fittedSwitch: FittedSwitch,
-    trackEndPoint: AlignmentPoint,
-    trackEndEdgeStartM: Double,
+    trackEndPoint: AlignmentPoint<LocationTrackM>,
+    trackEndEdgeStartM: LineM<LocationTrackM>,
 ): JointOnEdge =
     JointOnEdge(
         fittedSwitchJoint.number,
         SwitchJointRole.of(fittedSwitch.switchStructure, fittedSwitchJoint.number),
-        trackEndPoint.m - trackEndEdgeStartM,
+        trackEndPoint.m.toEdgeM(trackEndEdgeStartM),
         RelativeDirection.Along,
         trackEndPoint.toPoint(),
     )
@@ -143,7 +146,7 @@ private fun mapFittedSwitchJointMatchToEdge(
         JointOnEdge(
             jointNumber = match.switchJoint.number,
             jointRole = SwitchJointRole.of(fittedSwitch.switchStructure, joint.number),
-            mOnEdge = match.mOnTrack - edgeMRange.min,
+            mOnEdge = match.mOnTrack.toEdgeM(edgeMRange.min),
             direction = match.direction,
             location = match.location,
         )
@@ -207,13 +210,13 @@ private fun jointSequenceAsValidTopologyLink(
         if (
             point != null &&
                 switchJoint != null &&
-                (singleJoint.mOnEdge < TOPOLOGY_CALC_DISTANCE ||
-                    edge.end.m - singleJoint.mOnEdge < TOPOLOGY_CALC_DISTANCE) &&
+                (singleJoint.mOnEdge.distance < TOPOLOGY_CALC_DISTANCE ||
+                    (edge.end.m.distance - singleJoint.mOnEdge.distance) < TOPOLOGY_CALC_DISTANCE) &&
                 lineLength(point, switchJoint.location) < TOPOLOGY_CALC_DISTANCE
         ) {
-            val isStart = singleJoint.mOnEdge < TOPOLOGY_CALC_DISTANCE
+            val isStart = singleJoint.mOnEdge.distance < TOPOLOGY_CALC_DISTANCE
             singleJoint.copy(
-                mOnEdge = if (isStart) 0.0 else edge.end.m,
+                mOnEdge = if (isStart) LineM(0.0) else edge.end.m,
                 location = if (isStart) edge.start.toPoint() else edge.end.toPoint(),
             )
         } else null
@@ -249,8 +252,9 @@ private fun jointSequenceFitsPossibleSplitAlignment(
     else {
         val innerJointM = joints.find { it.jointNumber == innerJoint }?.mOnEdge
         innerJointM == null ||
-            innerJointM < MAX_INNER_JOINT_CHECK_SNAP_DISTANCE ||
-            (innerJointM - getEdge(edgeId, nearbyTracks).end.m).absoluteValue < MAX_INNER_JOINT_CHECK_SNAP_DISTANCE
+            innerJointM.distance < MAX_INNER_JOINT_CHECK_SNAP_DISTANCE ||
+            (innerJointM - getEdge(edgeId, nearbyTracks).end.m).distance.absoluteValue <
+                MAX_INNER_JOINT_CHECK_SNAP_DISTANCE
     }
 }
 

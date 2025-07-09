@@ -177,6 +177,6 @@ private fun assertSplitResultFields(track: LocationTrack, request: SplitRequestT
         boundingBoxCombining(result.geometry.edges.map { edge -> edge.boundingBox }),
         result.locationTrack.boundingBox,
     )
-    assertEquals(result.geometry.segments.sumOf { s -> s.length }, result.locationTrack.length)
+    assertEquals(result.geometry.segments.sumOf { s -> s.length }, result.locationTrack.length.distance)
     assertEquals(result.geometry.segments.size, result.locationTrack.segmentCount)
 }

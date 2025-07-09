@@ -266,11 +266,11 @@ fun points(
                 x = valueOnRange(x, i, count),
                 y = valueOnRange(y, i, count),
                 z = z?.let { zRange -> valueOnRange(zRange, i, count) },
-                m = 0.0,
+                m = LineM<SegmentM>(0.0),
                 cant = cant?.let { cantRange -> valueOnRange(cantRange, i, count) },
             )
         }
-    var cumulativeM = 0.0
+    var cumulativeM = LineM<SegmentM>(0.0)
     return points.mapIndexed { index, point ->
         if (index > 0) cumulativeM += lineLength(points[index - 1], point)
         point.copy(m = cumulativeM)
@@ -343,7 +343,7 @@ fun referenceLine(
         sourceId = null,
         boundingBox = alignment?.boundingBox,
         segmentCount = alignment?.segments?.size ?: 0,
-        length = alignment?.length ?: 0.0,
+        length = alignment?.length ?: LineM<ReferenceLineM>(0.0),
         alignmentVersion = alignmentVersion,
         contextData = contextData,
     )
@@ -589,7 +589,7 @@ fun mapAlignment(segments: List<PlanLayoutSegment>) =
                 state = LayoutState.IN_USE,
                 segmentCount = segments.size,
                 trackNumberId = IntId(1),
-                length = segments.sumOf(PlanLayoutSegment::length),
+                length = LineM(segments.sumOf(PlanLayoutSegment::length)),
                 boundingBox = boundingBoxCombining(segments.mapNotNull(PlanLayoutSegment::boundingBox)),
             ),
         staStart = 0.0,
@@ -648,7 +648,7 @@ fun segment(
     )
 
 fun mapSegment(
-    vararg points: Point3DM,
+    vararg points: Point3DM<SegmentM>,
     sourceId: DomainId<GeometryElement>? = null,
     sourceStartM: Double? = null,
     source: GeometrySource = PLAN,
@@ -693,9 +693,9 @@ fun toSegmentPoints(vararg points: IPoint) = toSegmentPoints(to3DMPoints(points.
 
 fun toSegmentPoints(vararg points: Point3DZ) = toSegmentPoints(to3DMPoints(points.asList()))
 
-fun toSegmentPoints(vararg points: IPoint3DM) = toSegmentPoints(points.asList())
+fun toSegmentPoints(vararg points: IPoint3DM<SegmentM>) = toSegmentPoints(points.asList())
 
-fun toSegmentPoints(points: List<IPoint3DM>) =
+fun toSegmentPoints(points: List<IPoint3DM<SegmentM>>) =
     points.map { point ->
         SegmentPoint(
             x = point.x,
@@ -711,13 +711,13 @@ fun toSegmentPoints(points: List<IPoint3DM>) =
         )
     }
 
-fun toAlignmentPoints(vararg points: IPoint) = toAlignmentPoints(to3DMPoints(points.asList()))
+fun <M: AlignmentM<M>> toAlignmentPoints(vararg points: IPoint) = toAlignmentPoints(to3DMPoints<M>(points.asList()))
 
-fun toAlignmentPoints(vararg points: Point3DZ) = toAlignmentPoints(to3DMPoints(points.asList()))
+fun <M: AlignmentM<M>>  toAlignmentPoints(vararg points: Point3DZ) = toAlignmentPoints(to3DMPoints<M>(points.asList()))
 
-fun toAlignmentPoints(vararg points: IPoint3DM) = toAlignmentPoints(points.asList())
+fun <M: AlignmentM<M>> toAlignmentPoints(vararg points: IPoint3DM<M>) = toAlignmentPoints(points.asList())
 
-fun toAlignmentPoints(points: List<IPoint3DM>) =
+fun <M: AlignmentM<M>> toAlignmentPoints(points: List<IPoint3DM<M>>) =
     points.map { point ->
         AlignmentPoint(
             point.x,
@@ -732,7 +732,7 @@ fun toAlignmentPoints(points: List<IPoint3DM>) =
         )
     }
 
-fun to3DMPoints(points: List<IPoint>, start: Double = 0.0): List<IPoint3DM> {
+fun  <M: AnyM<M>> to3DMPoints(points: List<IPoint>, start: Double = 0.0): List<IPoint3DM<M>> {
     val pointsWithDistance =
         points.mapIndexed { index, point ->
             val distance = points.getOrNull(index - 1)?.let { prev -> lineLength(prev, point) } ?: 0.0
@@ -741,15 +741,15 @@ fun to3DMPoints(points: List<IPoint>, start: Double = 0.0): List<IPoint3DM> {
     return pointsWithDistance.mapIndexed { index, (point, _) ->
         val m = pointsWithDistance.subList(0, index + 1).foldRight(start) { (_, distance), acc -> acc + distance }
         when (point) {
-            is AlignmentPoint -> AlignmentPoint(point.x, point.y, point.z, m, point.cant)
-            is Point3DZ -> Point4DZM(point.x, point.y, point.z, m)
+            is AlignmentPoint<*> -> AlignmentPoint(point.x, point.y, point.z, LineM(m), point.cant)
+            is Point3DZ -> Point4DZM(point.x, point.y, point.z, LineM(m))
             else -> Point3DM(point.x, point.y, m)
         }
     }
 }
 
 fun fixMValues(points: List<SegmentPoint>): List<SegmentPoint> {
-    var m = 0.0
+    var m = LineM<SegmentM>(0.0)
     return points.mapIndexed { i, p ->
         val previous = points.getOrNull(i - 1)
         if (previous != null) m += lineLength(previous, p)
@@ -908,9 +908,11 @@ fun kmPost(
     )
 }
 
-fun segmentPoint(x: Double, y: Double, m: Double = 1.0) = SegmentPoint(x, y, null, m, null)
+fun segmentPoint(x: Double, y: Double, m: Double = 1.0) = SegmentPoint(x, y, null, LineM(m), null)
 
-fun alignmentPoint(x: Double, y: Double, m: Double = 1.0) = AlignmentPoint(x, y, null, m, null)
+fun <M: AlignmentM<M>> alignmentPoint(x: Double, y: Double, m: Double = 1.0) = AlignmentPoint(x, y, null, LineM<M>(m), null)
+
+fun locationTrackPoint(x: Double, y: Double, m: Double) = AlignmentPoint(x, y, null, LineM<LocationTrackM>(m), null)
 
 fun rawPoints(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
     toSegmentPoints(
@@ -921,9 +923,9 @@ fun rawPoints(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double
         )
     )
 
-fun points(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
+fun <M: AlignmentM<M>> points(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
     toAlignmentPoints(
-        to3DMPoints(
+        to3DMPoints<M>(
             (1..count).map { pointNumber ->
                 point2d(minX, maxX, minY, maxY, (pointNumber - 1).toDouble() / (count - 1))
             }
@@ -983,7 +985,7 @@ fun switchLinkingAtStart(
 
 fun switchLinkingAtStart(
     locationTrackId: DomainId<LocationTrack>,
-    segmentMs: List<Range<Double>>,
+    segmentMs: List<Range<LineM<LocationTrackM>>>,
     segmentIndex: Int,
     jointNumber: Int,
 ) = switchLinkingAt(locationTrackId, segmentIndex, segmentMs[segmentIndex].min, jointNumber)
@@ -997,7 +999,7 @@ fun switchLinkingAtEnd(
 
 fun switchLinkingAtEnd(
     locationTrackId: DomainId<LocationTrack>,
-    segmentMs: List<Range<Double>>,
+    segmentMs: List<Range<LineM<LocationTrackM>>>,
     segmentIndex: Int,
     jointNumber: Int,
 ) = switchLinkingAt(locationTrackId, segmentIndex, segmentMs[segmentIndex].max, jointNumber)
@@ -1011,7 +1013,7 @@ fun switchLinkingAtHalf(
 
 fun switchLinkingAtHalf(
     locationTrackId: DomainId<LocationTrack>,
-    segmentMs: List<Range<Double>>,
+    segmentMs: List<Range<LineM<LocationTrackM>>>,
     segmentIndex: Int,
     jointNumber: Int,
 ) =
@@ -1022,7 +1024,7 @@ fun switchLinkingAtHalf(
         jointNumber,
     )
 
-fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int, m: Double, jointNumber: Int) =
+fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int, m: LineM<LocationTrackM>, jointNumber: Int) =
     FittedSwitchJointMatch(
         locationTrackId = locationTrackId as IntId<LocationTrack>,
         segmentIndex = segmentIndex,

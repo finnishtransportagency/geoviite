@@ -221,14 +221,14 @@ fun convertToRatkoRouteNumber(
         planItemIds = asPlanItemIdsList(trackNumberExternalId),
     )
 
-fun convertToRatkoPoint(point: AddressPoint, state: RatkoPointStates = RatkoPointStates.VALID) =
+fun convertToRatkoPoint(point: AddressPoint<*>, state: RatkoPointStates = RatkoPointStates.VALID) =
     RatkoPoint(
         state = RatkoPointState(state),
         kmM = RatkoTrackMeter(point.address),
         geometry = RatkoGeometry(point.point),
     )
 
-fun convertToRatkoNodeCollection(addresses: AlignmentAddresses) =
+fun convertToRatkoNodeCollection(addresses: AlignmentAddresses<*>) =
     convertToRatkoNodeCollection(
         listOf(
             convertToRatkoNode(addresses.startPoint, RatkoNodeType.START_POINT),
@@ -239,7 +239,7 @@ fun convertToRatkoNodeCollection(addresses: AlignmentAddresses) =
 fun convertToRatkoNodeCollection(nodes: Collection<RatkoNode>) = RatkoNodes(nodes, RatkoNodesType.START_AND_END)
 
 fun convertToRatkoNode(
-    addressPoint: AddressPoint,
+    addressPoint: AddressPoint<*>,
     nodeType: RatkoNodeType,
     state: RatkoPointStates = RatkoPointStates.VALID,
 ) = RatkoNode(nodeType, convertToRatkoPoint(addressPoint, state))

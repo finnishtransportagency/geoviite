@@ -141,7 +141,7 @@ private fun currentSwitchLocationsAsSwitchPlacingRequests(
 
 private fun validateChangeFromSwitchRelinking(
     track: LocationTrack,
-    geocodingContext: GeocodingContext,
+    geocodingContext: GeocodingContext<*>,
     switchId: IntId<LayoutSwitch>,
     suggestedSwitchWithOriginallyLinkedTracks: SuggestedSwitchWithOriginallyLinkedTracks?,
     originalSwitch: LayoutSwitch,

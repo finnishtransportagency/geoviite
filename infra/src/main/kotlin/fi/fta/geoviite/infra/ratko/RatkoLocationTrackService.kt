@@ -29,11 +29,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import java.time.Instant
 
 @GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -190,7 +191,7 @@ constructor(
 
     private fun createLocationTrackPoints(
         locationTrackOid: RatkoOid<RatkoLocationTrack>,
-        addressPoints: Collection<AddressPoint>,
+        addressPoints: Collection<AddressPoint<LocationTrackM>>,
     ) =
         toRatkoPointsGroupedByKm(addressPoints).forEach { points ->
             ratkoClient.createLocationTrackPoints(locationTrackOid, points)
@@ -200,7 +201,7 @@ constructor(
         branch: LayoutBranch,
         locationTrack: LocationTrack,
         locationTrackExternalId: FullRatkoExternalId<LocationTrack>,
-        alignmentPoints: List<AddressPoint>,
+        alignmentPoints: List<AddressPoint<LocationTrackM>>,
         trackNumberOid: Oid<LayoutTrackNumber>,
         moment: Instant,
         changedKmNumbers: Set<KmNumber>? = null,
@@ -282,10 +283,10 @@ constructor(
     }
 
     private fun findAddressPoint(
-        points: List<AddressPoint>,
+        points: List<AddressPoint<LocationTrackM>>,
         seek: TrackMeter,
         rounding: AddressRounding,
-    ): AddressPoint =
+    ): AddressPoint<LocationTrackM> =
         when (rounding) {
             AddressRounding.UP -> points.find { p -> p.address >= seek }
             AddressRounding.DOWN -> points.findLast { p -> p.address <= seek }
@@ -391,7 +392,7 @@ constructor(
 
     private fun updateLocationTrackGeometry(
         locationTrackOid: RatkoOid<RatkoLocationTrack>,
-        newPoints: Collection<AddressPoint>,
+        newPoints: Collection<AddressPoint<LocationTrackM>>,
     ) =
         toRatkoPointsGroupedByKm(newPoints).forEach { points ->
             ratkoClient.updateLocationTrackPoints(locationTrackOid, points)
@@ -425,7 +426,7 @@ constructor(
         branch: LayoutBranch,
         locationTrack: LocationTrack,
         moment: Instant,
-    ): Pair<AlignmentAddresses, List<AddressPoint>> {
+    ): Pair<AlignmentAddresses<LocationTrackM>, List<AddressPoint<LocationTrackM>>> {
         val geocodingContext =
             geocodingService
                 .getGeocodingContextCacheKey(branch, locationTrack.trackNumberId, moment)

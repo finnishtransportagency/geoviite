@@ -39,7 +39,7 @@ private fun convertAlignmentEndPointCoordinateSystem(
     return alignmentEndPoint.copy(point = alignmentEndPoint.point.copy(x = convertedPoint.x, y = convertedPoint.y))
 }
 
-fun toExtAddressPoint(addressPoint: AddressPoint, targetCoordinateSystem: Srid): ExtAddressPointV1 {
+fun toExtAddressPoint(addressPoint: AddressPoint<*>, targetCoordinateSystem: Srid): ExtAddressPointV1 {
     val point =
         when (targetCoordinateSystem) {
             LAYOUT_SRID -> addressPoint.point

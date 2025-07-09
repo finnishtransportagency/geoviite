@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.math
 
+import fi.fta.geoviite.infra.tracklayout.AnyM
+import fi.fta.geoviite.infra.tracklayout.LineM
 import java.math.BigDecimal
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -148,11 +150,13 @@ fun dotProduct(v1: IPoint, v2: IPoint): Double {
     return v1.x * v2.x + v1.y * v2.y
 }
 
-interface IPoint3DM : IPoint {
-    val m: Double
+interface IPoint3DM<M : AnyM<M>> : IPoint {
+    val m: LineM<M>
 }
 
-data class Point3DM(override val x: Double, override val y: Double, override val m: Double) : IPoint3DM {
+data class Point3DM<M : AnyM<M>>(override val x: Double, override val y: Double, override val m: LineM<M>) :
+    IPoint3DM<M> {
+    constructor(x: Double, y: Double, m: Double) : this(x, y, LineM(m))
     init {
         require(x.isFinite() && y.isFinite() && m.isFinite()) { "Cannot create point of: x=$x y=$y m=$m" }
     }
@@ -168,10 +172,14 @@ data class Point3DZ(override val x: Double, override val y: Double, override val
     }
 }
 
-interface IPoint4DZM : IPoint, IPoint3DZ, IPoint3DM
+interface IPoint4DZM<M : AnyM<M>> : IPoint, IPoint3DZ, IPoint3DM<M>
 
-data class Point4DZM(override val x: Double, override val y: Double, override val z: Double, override val m: Double) :
-    IPoint4DZM {
+data class Point4DZM<M : AnyM<M>>(
+    override val x: Double,
+    override val y: Double,
+    override val z: Double,
+    override val m: LineM<M>,
+) : IPoint4DZM<M> {
     init {
         require(x.isFinite() && y.isFinite() && z.isFinite() && m.isFinite()) {
             "Cannot create point of: x=$x y=$y z=$z m=$m"

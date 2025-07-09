@@ -20,6 +20,8 @@ data class Range<T : Comparable<T>>(val min: T, val max: T) {
         val maximum = if (max > other.max) other.max else max
         return if (minimum <= maximum) Range(minimum, maximum) else null
     }
+
+    fun <R : Comparable<R>> map(f: (value: T) -> R): Range<R> = Range(f(min), f(max))
 }
 
 fun <T : Comparable<T>> combineContinuous(ranges: List<Range<T>>): List<Range<T>> {
