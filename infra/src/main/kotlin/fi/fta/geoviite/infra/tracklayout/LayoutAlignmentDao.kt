@@ -55,22 +55,26 @@ import fi.fta.geoviite.infra.util.produceIf
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
 import fi.fta.geoviite.infra.util.setUser
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.sql.ResultSet
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import kotlin.math.abs
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
 const val ALIGNMENT_CACHE_SIZE = 10000L
 const val GEOMETRY_CACHE_SIZE = 500000L
 
-data class MapSegmentProfileInfo<T>(val id: IntId<T>, val mRange: Range<Double>, val hasProfile: Boolean)
+data class MapSegmentProfileInfo<T, M : AlignmentM<M>>(
+    val id: IntId<T>,
+    val mRange: Range<LineM<M>>,
+    val hasProfile: Boolean,
+)
 
 @Component
 class LayoutAlignmentDao(
@@ -345,7 +349,7 @@ class LayoutAlignmentDao(
                 "end_node_port" to content.endNode.portConnection.name,
                 "geometry_alignment_ids" to content.segments.map { s -> s.sourceId?.parentId }.toTypedArray(),
                 "geometry_element_indices" to content.segments.map { s -> s.sourceId?.index }.toTypedArray(),
-                "start_m_values" to content.segmentMValues.map { m -> roundTo6Decimals(m.min) }.toTypedArray(),
+                "start_m_values" to content.segmentMValues.map { m -> roundTo6Decimals(m.min.distance) }.toTypedArray(),
                 "source_start_m_values" to content.segments.map { s -> s.sourceStartM }.toTypedArray(),
                 "sources" to content.segments.map { s -> s.source.name }.toTypedArray(),
                 "geometry_ids" to content.segments.map { s -> (s.geometry.id as IntId).intValue }.toTypedArray(),
@@ -455,7 +459,7 @@ class LayoutAlignmentDao(
             ps.setInt(3, trackVersion.version)
             ps.setInt(4, requireNotNull(edges[edge.contentHash]).intValue)
             ps.setInt(5, index)
-            ps.setBigDecimal(6, roundTo6Decimals(m.min))
+            ps.setBigDecimal(6, roundTo6Decimals(m.min.distance))
         }
         logger.daoAccess(AccessType.INSERT, LocationTrackGeometry::class, trackVersion)
     }
@@ -739,7 +743,7 @@ class LayoutAlignmentDao(
         trackVersion: LayoutRowVersion<LocationTrack>,
         metadataExternalId: Oid<*>?,
         boundingBox: BoundingBox?,
-    ): List<SegmentGeometryAndMetadata> {
+    ): List<SegmentGeometryAndMetadata<LocationTrackM>> {
         val sql =
             """
           with
@@ -884,7 +888,7 @@ class LayoutAlignmentDao(
         val result =
             jdbcTemplate.query(sql, params) { rs, _ ->
                 val rangeId = rs.getString("range_id")
-                SegmentGeometryAndMetadata(
+                SegmentGeometryAndMetadata<LocationTrackM>(
                     planId = rs.getIntIdOrNull("plan_id"),
                     fileName = rs.getFileNameOrNull("file_name"),
                     alignmentId = rs.getIntIdOrNull("geom_alignment_id"),
@@ -903,7 +907,7 @@ class LayoutAlignmentDao(
         alignmentVersion: RowVersion<LayoutAlignment>,
         metadataExternalId: Oid<*>?,
         boundingBox: BoundingBox?,
-    ): List<SegmentGeometryAndMetadata> {
+    ): List<SegmentGeometryAndMetadata<ReferenceLineM>> {
         // language=SQL
         val sql =
             """
@@ -1046,7 +1050,7 @@ class LayoutAlignmentDao(
             jdbcTemplate.query(sql, params) { rs, _ ->
                 val fromSegment = rs.getInt("from_segment")
                 val toSegment = rs.getInt("to_segment")
-                SegmentGeometryAndMetadata(
+                SegmentGeometryAndMetadata<ReferenceLineM>(
                     planId = rs.getIntIdOrNull("plan_id"),
                     fileName = rs.getFileNameOrNull("file_name"),
                     alignmentId = rs.getIntIdOrNull("geom_alignment_id"),
@@ -1113,7 +1117,7 @@ class LayoutAlignmentDao(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
         hasProfileInfo: Boolean? = null,
-    ): List<MapSegmentProfileInfo<LocationTrack>> {
+    ): List<MapSegmentProfileInfo<LocationTrack, LocationTrackM>> {
         // language=SQL
         val sql =
             """
@@ -1176,7 +1180,7 @@ class LayoutAlignmentDao(
             val mRange = rs.getDouble("start_m").let { start -> Range(start, start + rs.getDouble("length")) }
             MapSegmentProfileInfo(
                 id = rs.getIntId("id"),
-                mRange = mRange,
+                mRange = mRange.map(::LineM),
                 hasProfile = rs.getBoolean("has_profile_info"),
             )
         }
@@ -1184,7 +1188,7 @@ class LayoutAlignmentDao(
 
     private fun upsertSegments(
         alignmentId: RowVersion<LayoutAlignment>,
-        segments: List<Pair<LayoutSegment, Range<Double>>>,
+        segments: List<Pair<LayoutSegment, Range<out LineM<*>>>>,
     ) {
         if (segments.isNotEmpty()) {
             val newGeometryIds =
@@ -1215,7 +1219,7 @@ class LayoutAlignmentDao(
                 ps.setInt(1, alignmentId.id.intValue)
                 ps.setInt(2, alignmentId.version)
                 ps.setInt(3, index)
-                ps.setDouble(4, m.min)
+                ps.setDouble(4, m.min.distance)
                 ps.setNullableInt(5) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
                 ps.setNullableInt(6) { if (s.sourceId is IndexedId) s.sourceId.index else null }
                 ps.setNullableBigDecimal(7, s.sourceStartM)
@@ -1236,14 +1240,14 @@ class LayoutAlignmentDao(
     private fun insertSegmentGeometries(
         geometries: List<SegmentGeometry>
     ): Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>> {
-        require(geometries.all { geom -> geom.segmentStart.m == 0.0 }) {
+        require(geometries.all { geom -> geom.segmentStart.m.distance == 0.0 }) {
             "Geometries in DB must be set to startM=0.0, so they remain valid if an earlier segment changes"
         }
         require(
             geometries.all { geom ->
                 val calculatedLength = calculateDistance(geom.segmentPoints, LAYOUT_SRID)
                 val maxDelta = calculatedLength * 0.01
-                abs(calculatedLength - geom.segmentEnd.m) <= maxDelta
+                abs(calculatedLength - geom.segmentEnd.m.distance) <= maxDelta
             }
         ) {
             "Geometries in DB should have (approximately) endM=length"

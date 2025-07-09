@@ -6,15 +6,17 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 
-fun addressPointsAreEqual(point1: AddressPoint?, point2: AddressPoint?): Boolean =
+fun <M : AlignmentM<M>> addressPointsAreEqual(point1: AddressPoint<M>?, point2: AddressPoint<M>?): Boolean =
     if (point1 == null && point2 == null) true
     else if (point1 == null || point2 == null) false else point1.isSame(point2)
 
-fun resolveChangedGeometryKilometers(
-    originalAddresses: AlignmentAddresses?,
-    newAddresses: AlignmentAddresses?,
+fun <M : AlignmentM<M>> resolveChangedGeometryKilometers(
+    originalAddresses: AlignmentAddresses<M>?,
+    newAddresses: AlignmentAddresses<M>?,
 ): Set<KmNumber> {
     val oldPoints = originalAddresses?.allPoints ?: listOf()
     val newPoints = newAddresses?.allPoints ?: listOf()
@@ -24,7 +26,10 @@ fun resolveChangedGeometryKilometers(
     return (addedAddresses + removedAddresses).toSet()
 }
 
-private fun findDiffAddresses(points1: List<AddressPoint>, points2: List<AddressPoint>): MutableList<KmNumber> {
+private fun <M : AlignmentM<M>> findDiffAddresses(
+    points1: List<AddressPoint<M>>,
+    points2: List<AddressPoint<M>>,
+): MutableList<KmNumber> {
     val differences = mutableListOf<KmNumber>()
 
     var points1Index = 0
@@ -49,10 +54,10 @@ private fun findDiffAddresses(points1: List<AddressPoint>, points2: List<Address
     return differences
 }
 
-private fun findFirstIndexAfterKm(list: List<AddressPoint>, kmNumber: KmNumber) =
+private fun findFirstIndexAfterKm(list: List<AddressPoint<*>>, kmNumber: KmNumber) =
     list.indexOfFirst { point -> point.address.kmNumber > kmNumber }
 
-private fun findFirstIndexForKm(list: List<AddressPoint>, kmNumber: KmNumber?) =
+private fun findFirstIndexForKm(list: List<AddressPoint<*>>, kmNumber: KmNumber?) =
     kmNumber?.let { km -> list.indexOfFirst { point -> point.address.kmNumber == km } }
 
 data class AddressChanges(
@@ -82,12 +87,15 @@ class AddressChangesService(val geocodingService: GeocodingService) {
             getAddressChanges(getAddresses(beforeTrack, beforeContextKey), getAddresses(afterTrack, afterContextKey))
         }
 
-    private fun getAddresses(track: LocationTrack?, contextKey: GeocodingContextCacheKey?): AlignmentAddresses? =
+    private fun getAddresses(
+        track: LocationTrack?,
+        contextKey: GeocodingContextCacheKey?,
+    ): AlignmentAddresses<LocationTrackM>? =
         if (track == null || contextKey == null || !track.exists) null
         else geocodingService.getAddressPoints(contextKey, track.getVersionOrThrow())
 }
 
-fun getAddressChanges(oldAddresses: AlignmentAddresses?, newAddresses: AlignmentAddresses?) =
+fun <M : AlignmentM<M>> getAddressChanges(oldAddresses: AlignmentAddresses<M>?, newAddresses: AlignmentAddresses<M>?) =
     AddressChanges(
         changedKmNumbers = resolveChangedGeometryKilometers(oldAddresses, newAddresses),
         startPointChanged = !addressPointsAreEqual(oldAddresses?.startPoint, newAddresses?.startPoint),

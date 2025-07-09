@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.geometry
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.tracklayout.LineM
+import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import java.math.BigDecimal
 import kotlin.math.*
 import org.slf4j.Logger
@@ -31,21 +33,21 @@ data class VICircularCurve(
 data class GeometryProfile(val name: PlanElementName, val elements: List<VerticalIntersection>) {
     @get:JsonIgnore val segments: List<ProfileSegment> by lazy { createSegments(elements) }
 
-    fun getHeightAt(distance: Double): Double? {
+    fun getHeightAt(distance: LineM<PlanLayoutAlignmentM>): Double? {
         return when {
             segments.isEmpty() -> null
-            distance <= elements.first().point.x -> elements.first().point.y
-            distance >= elements.last().point.x -> elements.last().point.y
+            distance.distance <= elements.first().point.x -> elements.first().point.y
+            distance.distance >= elements.last().point.x -> elements.last().point.y
             else -> {
                 val segment =
-                    segments.find { s -> s.contains(distance) }
+                    segments.find { s -> s.contains(distance.distance) }
                         ?: throw IllegalArgumentException(
                             "Requested point outside profile segments: " +
                                 "$distance <> " +
                                 "[${elements.first().point.x} to ${elements.last().point.x}] => " +
                                 "${segments.map { s -> "${s.start.x}-${s.end.x}" }}"
                         )
-                segment.getYValueAt(distance)
+                segment.getYValueAt(distance.distance)
             }
         }
     }

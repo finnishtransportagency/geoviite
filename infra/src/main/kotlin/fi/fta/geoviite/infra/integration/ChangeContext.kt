@@ -2,6 +2,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -12,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import java.time.Instant
 import kotlin.reflect.KClass
 
@@ -34,10 +36,14 @@ class ChangeContext(
 ) {
 
     fun getGeocodingContextBefore(id: IntId<LayoutTrackNumber>) =
-        geocodingKeysBefore[id]?.let(geocodingService::getGeocodingContext)
+        geocodingKeysBefore[id]?.let { key ->
+            geocodingService.getGeocodingContext(key) as GeocodingContext<ReferenceLineM>
+        }
 
     fun getGeocodingContextAfter(id: IntId<LayoutTrackNumber>) =
-        geocodingKeysAfter[id]?.let(geocodingService::getGeocodingContext)
+        geocodingKeysAfter[id]?.let { key ->
+            geocodingService.getGeocodingContext(key) as GeocodingContext<ReferenceLineM>
+        }
 }
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(

@@ -44,11 +44,11 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.mapNonNullValues
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -87,7 +87,7 @@ class LocationTrackService(
                 state = request.state,
                 trackNumberId = request.trackNumberId,
                 sourceId = null,
-                length = 0.0,
+                length = LineM(0.0),
                 segmentCount = 0,
                 boundingBox = null,
                 duplicateOf = request.duplicateOf,
@@ -314,7 +314,7 @@ class LocationTrackService(
         layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
         address: TrackMeter,
-    ): AddressPoint? {
+    ): AddressPoint<LocationTrackM>? {
         val locationTrackAndGeometry = getWithGeometry(layoutContext, locationTrackId)
         return locationTrackAndGeometry?.let { (locationTrack, geometry) ->
             geocodingService.getTrackLocation(layoutContext, locationTrack, geometry, address)
@@ -361,7 +361,7 @@ class LocationTrackService(
         layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
         boundingBox: BoundingBox?,
-    ): List<AlignmentPlanSection> {
+    ): List<AlignmentPlanSection<LocationTrackM>> {
         val locationTrack = get(layoutContext, locationTrackId)
         val geocodingContext =
             locationTrack?.let { geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId) }
@@ -407,12 +407,12 @@ class LocationTrackService(
 
     fun getMRange(
         geometry: LocationTrackGeometry,
-        geocodingContext: GeocodingContext,
+        geocodingContext: GeocodingContext<*>,
         trackStart: TrackMeter,
         trackEnd: TrackMeter,
         cropStartKm: KmNumber?,
         cropEndKm: KmNumber?,
-    ): Range<Double>? =
+    ): Range<LineM<LocationTrackM>>? =
         getAddressRange(geocodingContext, trackStart, trackEnd, cropStartKm, cropEndKm)?.let { range ->
             val start = geocodingContext.getTrackLocation(geometry, range.min)?.point?.m
             val end = geocodingContext.getTrackLocation(geometry, range.max)?.point?.m
@@ -420,7 +420,7 @@ class LocationTrackService(
         }
 
     fun getAddressRange(
-        geocodingContext: GeocodingContext,
+        geocodingContext: GeocodingContext<*>,
         trackStart: TrackMeter,
         trackEnd: TrackMeter,
         startKm: KmNumber?,
@@ -457,7 +457,7 @@ class LocationTrackService(
         return lines.map { line -> line to alignments.getValue(line.getVersionOrThrow()) }
     }
 
-    fun fillTrackAddress(splitPoint: SplitPoint, geocodingContext: GeocodingContext): SplitPoint {
+    fun fillTrackAddress(splitPoint: SplitPoint, geocodingContext: GeocodingContext<*>): SplitPoint {
         val address = geocodingContext.getAddress(splitPoint.location)?.first
         return when (splitPoint) {
             is SwitchSplitPoint -> splitPoint.copy(address = address)
@@ -467,7 +467,7 @@ class LocationTrackService(
 
     fun fillTrackAddresses(
         duplicates: List<LocationTrackDuplicate>,
-        geocodingContext: GeocodingContext,
+        geocodingContext: GeocodingContext<*>,
     ): List<LocationTrackDuplicate> {
         return duplicates.map { duplicate ->
             duplicate.copy(
@@ -513,10 +513,10 @@ class LocationTrackService(
     }
 
     private fun createSplitPoint(
-        point: AlignmentPoint?,
+        point: AlignmentPoint<LocationTrackM>?,
         switchId: IntId<LayoutSwitch>?,
         endPointType: DuplicateEndPointType,
-        geocodingContext: GeocodingContext?,
+        geocodingContext: GeocodingContext<*>?,
     ): SplitPoint? {
         val address = point?.let { p -> geocodingContext?.getAddress(p)?.first }
         return when {
@@ -627,7 +627,7 @@ class LocationTrackService(
 
     private fun fetchNearbyLocationTracksWithGeometries(
         layoutContext: LayoutContext,
-        targetPoint: LayoutPoint,
+        targetPoint: LayoutPoint<LocationTrackM>,
     ): List<Pair<LocationTrack, LocationTrackGeometry>> {
         return dao.fetchVersionsNear(layoutContext, boundingBoxAroundPoint(targetPoint, 1.0))
             .map { version -> getWithGeometryInternal(version) }

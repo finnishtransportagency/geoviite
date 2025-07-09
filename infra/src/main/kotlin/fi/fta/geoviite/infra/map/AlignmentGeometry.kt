@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.MIN_POLYGON_POINTS
 import fi.fta.geoviite.infra.math.Polygon
+import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -17,10 +18,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import fi.fta.geoviite.infra.tracklayout.toAlignmentM
 import fi.fta.geoviite.infra.util.produceIf
 import kotlin.math.roundToInt
 
@@ -41,7 +47,7 @@ sealed class AlignmentHeader<AlignmentType, StateType> {
     abstract val state: StateType
     abstract val alignmentSource: MapAlignmentSource
     abstract val alignmentType: MapAlignmentType
-    abstract val length: Double
+    abstract val length: LineM<*>
     abstract val boundingBox: BoundingBox?
     abstract val segmentCount: Int
 }
@@ -52,7 +58,7 @@ data class GeometryAlignmentHeader(
     override val name: AlignmentName,
     override val state: LayoutState,
     override val alignmentType: MapAlignmentType,
-    override val length: Double,
+    override val length: LineM<PlanLayoutAlignmentM>,
     override val boundingBox: BoundingBox?,
     override val segmentCount: Int,
 ) : AlignmentHeader<GeometryAlignment, LayoutState>() {
@@ -65,7 +71,7 @@ data class ReferenceLineHeader(
     override val trackNumberId: IntId<LayoutTrackNumber>,
     override val name: AlignmentName,
     override val state: LayoutState,
-    override val length: Double,
+    override val length: LineM<ReferenceLineM>,
     override val boundingBox: BoundingBox?,
     override val segmentCount: Int,
 ) : AlignmentHeader<ReferenceLine, LayoutState>() {
@@ -81,7 +87,7 @@ data class LocationTrackHeader(
     override val name: AlignmentName,
     override val state: LocationTrackState,
     val trackType: LocationTrackType,
-    override val length: Double,
+    override val length: LineM<LocationTrackM>,
     override val boundingBox: BoundingBox?,
     override val segmentCount: Int,
 ) : AlignmentHeader<LocationTrack, LocationTrackState>() {
@@ -89,10 +95,10 @@ data class LocationTrackHeader(
     override val alignmentType = MapAlignmentType.LOCATION_TRACK
 }
 
-data class AlignmentPolyLine<T>(
+data class AlignmentPolyLine<T, M : AlignmentM<M>>(
     val id: DomainId<T>,
     val alignmentType: MapAlignmentType,
-    val points: List<AlignmentPoint>,
+    val points: List<AlignmentPoint<M>>,
 ) : Loggable {
     override fun toLog(): String = logFormat("id" to id, "type" to alignmentType, "points" to points.size)
 }
@@ -104,7 +110,7 @@ fun toAlignmentHeader(trackNumber: LayoutTrackNumber, referenceLine: ReferenceLi
         trackNumberId = referenceLine.trackNumberId,
         name = AlignmentName(trackNumber.number.toString()),
         state = trackNumber.state,
-        length = alignment?.length ?: 0.0,
+        length = alignment?.length ?: LineM(0.0),
         segmentCount = referenceLine.segmentCount,
         boundingBox = alignment?.boundingBox,
     )
@@ -123,13 +129,13 @@ fun toAlignmentHeader(locationTrack: LocationTrack, geometry: DbLocationTrackGeo
         boundingBox = geometry.boundingBox,
     )
 
-fun getSegmentBorderMValues(alignment: IAlignment): List<Double> =
+fun <M : AlignmentM<M>> getSegmentBorderMValues(alignment: IAlignment<M>): List<LineM<M>> =
     alignment.segmentMValues.map { s -> s.min } + alignment.length
 
-fun <T> toAlignmentPolyLine(
+fun <T, M : AlignmentM<M>> toAlignmentPolyLine(
     id: DomainId<T>,
     type: MapAlignmentType,
-    alignment: IAlignment,
+    alignment: IAlignment<M>,
     resolution: Int? = null,
     bbox: BoundingBox? = null,
     includeSegmentEndPoints: Boolean,
@@ -138,7 +144,10 @@ fun <T> toAlignmentPolyLine(
 const val ALIGNMENT_POLYGON_BUFFER = 10.0
 const val ALIGNMENT_POLYGON_SIMPLIFICATION_RESOLUTION = 100
 
-fun toPolygon(alignment: IAlignment, polygonBufferSize: Double = ALIGNMENT_POLYGON_BUFFER): Polygon? {
+fun <M : AlignmentM<M>> toPolygon(
+    alignment: IAlignment<M>,
+    polygonBufferSize: Double = ALIGNMENT_POLYGON_BUFFER,
+): Polygon? {
     val simplifiedAlignment =
         simplify(
             alignment = alignment,
@@ -150,15 +159,17 @@ fun toPolygon(alignment: IAlignment, polygonBufferSize: Double = ALIGNMENT_POLYG
     return produceIf(points.size >= MIN_POLYGON_POINTS) { Polygon(points) }
 }
 
-fun simplify(
-    alignment: IAlignment,
+fun <M : AlignmentM<M>> simplify(
+    alignment: IAlignment<M>,
     resolution: Int? = null,
     bbox: BoundingBox? = null,
     includeSegmentEndPoints: Boolean,
-): List<AlignmentPoint> {
+): List<AlignmentPoint<M>> {
     val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segmentsWithM
-    var previousM = Double.NEGATIVE_INFINITY
-    val isOverResolution = { mValue: Double -> resolution?.let { r -> (mValue - previousM).roundToInt() >= r } ?: true }
+    var previousM = LineM<M>(Double.NEGATIVE_INFINITY)
+    val isOverResolution = { mValue: LineM<M> ->
+        resolution?.let { r -> (mValue - previousM).distance.roundToInt() >= r } ?: true
+    }
     return segments
         .flatMapIndexed { sIndex, (s, m) ->
             if (sIndex == 0 || sIndex == segments.lastIndex || isOverResolution(m.max)) {
@@ -175,11 +186,11 @@ fun simplify(
                 }
 
                 s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-                    if (isPointIncluded(pIndex, p.m + m.min, isEndPoint, isOverResolution, bboxContains)) {
+                    if (isPointIncluded(pIndex, p.m.toAlignmentM(m.min), isEndPoint, isOverResolution, bboxContains)) {
                         if (!isSegmentEndPoint(pIndex)) {
                             // segment end points should be additional points,
                             // so increase m-counter only when handling middle points
-                            previousM = m.min + p.m
+                            previousM = p.m.toAlignmentM(m.min)
                         }
                         p.toAlignmentPoint(m.min)
                     } else null
@@ -196,11 +207,11 @@ fun simplify(
         .let { points -> if (points.size >= 2) points else listOf() }
 }
 
-private fun isPointIncluded(
+private fun <M : AlignmentM<M>> isPointIncluded(
     index: Int,
-    m: Double,
+    m: LineM<M>,
     isEndPoint: (index: Int) -> Boolean,
-    isOverResolution: (m: Double) -> Boolean,
+    isOverResolution: (m: LineM<M>) -> Boolean,
     bboxContains: (index: Int) -> Boolean,
 ): Boolean {
     val isInsideBbox = bboxContains(index)

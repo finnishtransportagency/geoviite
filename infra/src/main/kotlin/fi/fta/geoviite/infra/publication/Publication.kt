@@ -433,7 +433,7 @@ data class ReferenceLinePublicationCandidate(
     override val publicationGroup: PublicationGroup? = null,
     override val designAssetState: DesignAssetState?,
     val boundingBox: BoundingBox?,
-    val geometryChanges: GeometryChangeRanges?,
+    val geometryChanges: GeometryChangeRanges<ReferenceLineM>?,
 ) : PublicationCandidate<ReferenceLine> {
     override val type = DraftChangeType.REFERENCE_LINE
 }
@@ -450,7 +450,7 @@ data class LocationTrackPublicationCandidate(
     override val publicationGroup: PublicationGroup? = null,
     override val designAssetState: DesignAssetState?,
     val boundingBox: BoundingBox?,
-    val geometryChanges: GeometryChangeRanges?,
+    val geometryChanges: GeometryChangeRanges<LocationTrackM>?,
 ) : PublicationCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
 }

@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -585,9 +586,10 @@ constructor(
         localizationKey: String,
         trackNumber: TrackNumber,
     ) =
-        cacheKey?.let(geocodingCacheService::getGeocodingContextWithReasons)?.let { context ->
-            validateGeocodingContext(context, trackNumber)
-        } ?: listOf(noGeocodingContext(localizationKey))
+        cacheKey
+            ?.let { key -> geocodingCacheService.getGeocodingContextWithReasons<ReferenceLineM>(key) }
+            ?.let { context -> validateGeocodingContext(context, trackNumber) }
+            ?: listOf(noGeocodingContext(localizationKey))
 
     private fun validateAddressPoints(
         trackNumber: LayoutTrackNumber,

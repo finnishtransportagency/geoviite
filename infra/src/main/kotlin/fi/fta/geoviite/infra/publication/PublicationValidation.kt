@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.GeocodingAlignmentM
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
@@ -34,7 +35,9 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
@@ -736,7 +739,7 @@ fun noGeocodingContext(validationTargetLocalizationPrefix: String) =
     LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.no-context")
 
 fun validateGeocodingContext(
-    contextCreateResult: GeocodingContextCreateResult,
+    contextCreateResult: GeocodingContextCreateResult<ReferenceLineM>,
     trackNumber: TrackNumber,
 ): List<LayoutValidationIssue> {
     val context = contextCreateResult.geocodingContext
@@ -818,14 +821,16 @@ fun validateGeocodingContext(
     return kmPostsRejected + listOfNotNull(kmPostsFarFromLine, kmPostsInWrongOrder, badStartPoint)
 }
 
-private fun isOrderOk(previous: GeocodingReferencePoint?, next: GeocodingReferencePoint?) =
-    if (previous == null || next == null) true else previous.distance < next.distance
+private fun <M : GeocodingAlignmentM<M>> isOrderOk(
+    previous: GeocodingReferencePoint<M>?,
+    next: GeocodingReferencePoint<M>?,
+) = if (previous == null || next == null) true else previous.distance < next.distance
 
 fun validateAddressPoints(
     trackNumber: LayoutTrackNumber,
     locationTrack: LocationTrack,
     validationTargetLocalizationPrefix: String,
-    geocode: () -> AlignmentAddresses?,
+    geocode: () -> AlignmentAddresses<LocationTrackM>?,
 ): List<LayoutValidationIssue> =
     try {
         geocode()?.let { addresses -> validateAddressPoints(trackNumber, locationTrack, addresses) }
@@ -837,11 +842,11 @@ fun validateAddressPoints(
 fun validateAddressPoints(
     trackNumber: LayoutTrackNumber,
     locationTrack: LocationTrack,
-    addresses: AlignmentAddresses,
+    addresses: AlignmentAddresses<LocationTrackM>,
 ): List<LayoutValidationIssue> {
     val allPoints = listOf(addresses.startPoint) + addresses.midPoints + listOf(addresses.endPoint)
-    val allCoordinates = allPoints.map(AddressPoint::point)
-    val allAddresses = allPoints.map(AddressPoint::address)
+    val allCoordinates = allPoints.map(AddressPoint<LocationTrackM>::point)
+    val allAddresses = allPoints.map(AddressPoint<LocationTrackM>::address)
     val maxRanges = 5
     fun describeAsAddressRanges(indices: List<ClosedRange<Int>>): String =
         indices
@@ -904,7 +909,7 @@ fun validateReferenceLineGeometry(alignment: LayoutAlignment) = validateGeometry
 fun validateLocationTrackGeometry(geometry: LocationTrackGeometry) =
     validateGeometry(VALIDATION_LOCATION_TRACK, geometry)
 
-private fun validateGeometry(errorParent: String, alignment: IAlignment) =
+private fun validateGeometry(errorParent: String, alignment: IAlignment<*>) =
     listOfNotNull(
         validate(alignment.segments.isNotEmpty()) { "$errorParent.empty-segments" },
         validate(getMaxDirectionDeltaRads(alignment) <= MAX_LAYOUT_POINT_ANGLE_CHANGE) {
@@ -912,7 +917,7 @@ private fun validateGeometry(errorParent: String, alignment: IAlignment) =
         },
     )
 
-fun getMaxDirectionDeltaRads(alignment: IAlignment): Double =
+fun getMaxDirectionDeltaRads(alignment: IAlignment<*>): Double =
     alignment.allSegmentPoints.zipWithNext(::directionBetweenPoints).zipWithNext(::angleDiffRads).maxOrNull() ?: 0.0
 
 private fun nodeAndJointLocationsAgree(switch: LayoutSwitch, trackLinks: List<TrackSwitchLink>): Boolean =
@@ -960,10 +965,10 @@ private fun collectJoints(structure: SwitchStructure) =
 private fun areLinksContinuous(links: List<Pair<Int, TrackSwitchLink>>): Boolean =
     links.zipWithNext().all { (prev, next) -> prev.first + 1 == next.first }
 
-private fun discontinuousDirectionRangeIndices(points: List<AlignmentPoint>) =
+private fun discontinuousDirectionRangeIndices(points: List<AlignmentPoint<*>>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::directionBetweenPoints).zipWithNext(::isAngleDiffOk), 2)
 
-private fun stretchedMeterRangeIndices(points: List<AlignmentPoint>) =
+private fun stretchedMeterRangeIndices(points: List<AlignmentPoint<*>>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::lineLength).map { it <= MAX_LAYOUT_METER_LENGTH }, 1)
 
 private fun discontinuousAddressRangeIndices(addresses: List<TrackMeter>): List<ClosedRange<Int>> =

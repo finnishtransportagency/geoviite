@@ -189,7 +189,7 @@ fun toAlignmentHeader(
         state = getLayoutStateOrDefault(alignment.state),
         trackNumberId = trackNumberId,
         boundingBox = boundingBoxInLayoutSpace,
-        length = alignment.elements.sumOf(GeometryElement::calculatedLength),
+        length = LineM(alignment.elements.sumOf(GeometryElement::calculatedLength)),
         segmentCount = alignment.elements.size,
     )
 
@@ -219,7 +219,7 @@ private fun toMapSegments(
                 toPointList(element, pointListStepLength).map { p ->
                     toSegmentGeometryPoint(
                         point = planToLayoutTransformation.transform(p),
-                        mValue = p.m,
+                        mValue = p.m.distance,
                         profile = alignment.profile,
                         cant = alignment.cant,
                         alignmentStartStation = alignmentStationStart,
@@ -272,14 +272,14 @@ fun toSegmentGeometryPoint(
         verticalCoordinateSystem?.let { vcs ->
             if (vcs == VerticalCoordinateSystem.N43) null
             else
-                profile?.getHeightAt(alignmentStartStation + segmentStart + mValue)?.let { value ->
+                profile?.getHeightAt(LineM(alignmentStartStation + segmentStart + mValue))?.let { value ->
                     transformHeightValue(value, point, heightTriangles, vcs)
                 }
         }
     // Cant station values are alignment m-values, calculated from 0 (ignoring alignment
     // station-start)
     val cantValue = cant?.getCantValue(segmentStart + mValue)
-    return SegmentPoint(x = point.x, y = point.y, z = heightValue, m = mValue, cant = cantValue)
+    return SegmentPoint(x = point.x, y = point.y, z = heightValue, m = LineM(mValue), cant = cantValue)
 }
 
 /**
@@ -291,13 +291,13 @@ fun toSegmentGeometryPoint(
  *     - Inaccuracy in parameters could cause the point to be in any direction -> could create a short zig-zag with the
  *       actual end-point
  */
-fun toPointList(element: GeometryElement, stepLength: Int): List<Point3DM> {
+fun toPointList(element: GeometryElement, stepLength: Int): List<Point3DM<PlanLayoutAlignmentM>> {
     return lengthPoints(element.calculatedLength, stepLength).map { length ->
         val point =
             if (length <= 0.0) element.start
             else if (length > element.calculatedLength - MIN_POINT_DISTANCE) element.end
             else element.getCoordinateAt(length)
-        Point3DM(point.x, point.y, length)
+        Point3DM(point.x, point.y, LineM(length))
     }
 }
 

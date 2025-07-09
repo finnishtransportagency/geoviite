@@ -2,25 +2,31 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LineM
+import fi.fta.geoviite.infra.tracklayout.toAlignmentM
 import kotlin.math.max
 import kotlin.math.min
 
-data class GeometryChangeRanges(val added: List<Range<Double>>, val removed: List<Range<Double>>)
+data class GeometryChangeRanges<M : AlignmentM<M>>(
+    val added: List<Range<LineM<M>>>,
+    val removed: List<Range<LineM<M>>>,
+)
 
-fun getChangedGeometryRanges(
-    newSegments: List<Pair<LayoutSegment, Range<Double>>>,
-    oldSegments: List<Pair<LayoutSegment, Range<Double>>>,
+fun <M : AlignmentM<M>> getChangedGeometryRanges(
+    newSegments: List<Pair<LayoutSegment, Range<LineM<M>>>>,
+    oldSegments: List<Pair<LayoutSegment, Range<LineM<M>>>>,
 ) =
     GeometryChangeRanges(
         added = getAddedSegmentMRanges(newSegments, oldSegments),
         removed = getAddedSegmentMRanges(oldSegments, newSegments),
     )
 
-fun getAddedSegmentMRanges(
-    newSegments: List<Pair<LayoutSegment, Range<Double>>>,
-    oldSegments: List<Pair<LayoutSegment, Range<Double>>>,
-): List<Range<Double>> {
+fun <M : AlignmentM<M>> getAddedSegmentMRanges(
+    newSegments: List<Pair<LayoutSegment, Range<LineM<M>>>>,
+    oldSegments: List<Pair<LayoutSegment, Range<LineM<M>>>>,
+): List<Range<LineM<M>>> {
     val addedSegmentIndices = getAddedIndexRangesExclusive(newSegments, oldSegments) { (s, _) -> s.geometry.id }
     return addedSegmentIndices.flatMap { (newRange, oldRange) ->
         val newPoints = getPointsWithMExclusive(newSegments, newRange)
@@ -36,10 +42,10 @@ fun getAddedSegmentMRanges(
     }
 }
 
-fun getPointsWithMExclusive(
-    segments: List<Pair<LayoutSegment, Range<Double>>>,
+fun <M : AlignmentM<M>> getPointsWithMExclusive(
+    segments: List<Pair<LayoutSegment, Range<LineM<M>>>>,
     indexRange: Range<Int>,
-): List<Pair<Point, Double>> =
+): List<Pair<Point, LineM<M>>> =
     indexRange
         .takeIf { r -> r.max - r.min >= 2 }
         ?.let { exclusive -> Range(exclusive.min + 1, exclusive.max - 1) }
@@ -48,7 +54,7 @@ fun getPointsWithMExclusive(
                 segments.getOrNull(i)?.let { (segment, m) ->
                     segment.segmentPoints
                         .let { if (i == inclusive.min) it else it.subList(0, it.lastIndex) }
-                        .map { p -> p.toPoint() to (p.m + m.min) }
+                        .map { p -> p.toPoint() to p.m.toAlignmentM(m.min) }
                 } ?: emptyList()
             }
         } ?: emptyList()

@@ -29,14 +29,14 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -256,7 +256,7 @@ class LocationTrackDao(
             type = rs.getEnum("type"),
             state = rs.getEnum("state"),
             boundingBox = rs.getBboxOrNull("bounding_box"),
-            length = rs.getDouble("length"),
+            length = LineM(rs.getDouble("length")),
             segmentCount = rs.getInt("segment_count"),
             startSwitchId = rs.getIntIdOrNull("start_switch_id"),
             endSwitchId = rs.getIntIdOrNull("end_switch_id"),

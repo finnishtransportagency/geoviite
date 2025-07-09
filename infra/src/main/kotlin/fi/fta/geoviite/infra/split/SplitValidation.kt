@@ -11,14 +11,15 @@ import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.util.produceIf
 import kotlin.math.min
 
 const val VALIDATION_SPLIT = "$VALIDATION.split"
 
 internal fun validateSourceGeometry(
-    draftAddresses: AlignmentAddresses?,
-    officialAddressPoint: AlignmentAddresses?,
+    draftAddresses: AlignmentAddresses<LocationTrackM>?,
+    officialAddressPoint: AlignmentAddresses<LocationTrackM>?,
 ): LayoutValidationIssue? {
     return if (draftAddresses == null || officialAddressPoint == null) {
         LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.no-geometry")
@@ -74,8 +75,8 @@ const val MAX_SPLIT_POINT_OFFSET = 1.0
 
 internal fun validateTargetGeometry(
     operation: SplitTargetOperation,
-    targetPoints: List<AddressPoint>?,
-    sourcePoints: List<AddressPoint>?,
+    targetPoints: List<AddressPoint<LocationTrackM>>?,
+    sourcePoints: List<AddressPoint<LocationTrackM>>?,
 ): LayoutValidationIssue? {
     return if (targetPoints == null || sourcePoints == null) {
         LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.no-geometry")

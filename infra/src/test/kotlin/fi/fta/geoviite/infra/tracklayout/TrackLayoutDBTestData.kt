@@ -21,7 +21,7 @@ fun moveKmPostLocation(kmPost: LayoutKmPost, layoutLocation: Point, kmPostServic
 fun moveLocationTrackGeometryPointsAndUpdate(
     locationTrack: LocationTrack,
     geometry: LocationTrackGeometry,
-    moveFunc: (point: AlignmentPoint) -> Point,
+    moveFunc: (point: AlignmentPoint<*>) -> Point,
     locationTrackService: LocationTrackService,
 ) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, moveLocationTrackPoints(geometry, moveFunc))
 
@@ -118,7 +118,7 @@ fun moveReferenceLineGeometryPointsAndUpdate(
 
 fun moveLocationTrackPoints(
     geometry: LocationTrackGeometry,
-    moveFunc: (point: AlignmentPoint) -> Point?,
+    moveFunc: (point: AlignmentPoint<*>) -> Point?,
 ): LocationTrackGeometry {
     return TmpLocationTrackGeometry.of(
         geometry.edgesWithM.map { (edge, edgeM) ->
@@ -128,7 +128,7 @@ fun moveLocationTrackPoints(
                         toSegmentPoints(
                             to3DMPoints(
                                 segment.segmentPoints.mapNotNull { point ->
-                                    moveFunc(point.toAlignmentPoint(edgeM.min + segmentM.min))
+                                    moveFunc(point.toAlignmentPoint(segmentM.min.toLocationTrackM(edgeM.min)))
                                 }
                             )
                         )
@@ -140,16 +140,19 @@ fun moveLocationTrackPoints(
     )
 }
 
-fun moveAlignmentPoints(alignment: LayoutAlignment, moveFunc: (point: AlignmentPoint) -> Point?): LayoutAlignment {
+fun moveAlignmentPoints(
+    alignment: LayoutAlignment,
+    moveFunc: (point: AlignmentPoint<ReferenceLineM>) -> Point?,
+): LayoutAlignment {
     return alignment
         .copy(
             segments =
                 alignment.segmentsWithM.map { (segment, m) ->
-                    var prevPoint: IPoint3DM? = null
+                    var prevPoint: AlignmentPoint<ReferenceLineM>? = null
                     val newPoints =
                         segment.segmentPoints.mapNotNull { point ->
                             moveFunc(point.toAlignmentPoint(m.min))?.let { newPoint ->
-                                val segmentM = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: 0.0
+                                val segmentM = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: LineM(0.0)
                                 point.copy(x = newPoint.x, y = newPoint.y, m = segmentM).also { p -> prevPoint = p }
                             }
                         }
