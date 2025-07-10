@@ -17,8 +17,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.NodePortType
 import fi.fta.geoviite.infra.tracklayout.StoredAssetId
@@ -29,6 +31,7 @@ import fi.fta.geoviite.infra.tracklayout.TmpTrackBoundaryNode
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.toEdgeM
 
 fun asJointNumbers(vararg joints: Int): List<JointNumber> {
     return joints.map { joint -> JointNumber(joint) }
@@ -115,10 +118,10 @@ fun createPrependingTrack(track: TrackForSwitchFitting, length: Double, trackNam
 fun expandTrackFromStart(
     locationTrack: LocationTrack,
     geometry: LocationTrackGeometry,
-    length: Double,
+    length: LineM<LocationTrackM>,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val firstSegment = geometry.segments.first()
-    val newStartPoint = firstSegment.segmentPoints.let { points -> points[0] - points[1] } * length
+    val newStartPoint = firstSegment.segmentPoints.let { points -> points[0] - points[1] } * length.distance
     val newStartSegment = segment(newStartPoint, firstSegment.segmentPoints.first())
     val newSegments = listOf(newStartSegment) + geometry.segments
     val firstEdge = geometry.edges.first()
@@ -138,7 +141,7 @@ fun expandTrackFromStart(
 fun cutFromStart(
     locationTrack: LocationTrack,
     geometry: LocationTrackGeometry,
-    length: Double,
+    length: LineM<LocationTrackM>,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val cutPosition = length
     val newEdges =
@@ -151,7 +154,8 @@ fun cutFromStart(
             null
             else {
                 // is partly included
-                val newSegments = slice(edge.segmentsWithM, Range(cutPosition, edge.length))
+                // TODO GVT-3172 This is an actual M-type confusion
+                val newSegments = slice(edge.segmentsWithM, Range(cutPosition.toEdgeM(LineM(0.0)), edge.length))
                 edge.withSegments(newSegments)
             }
         }
@@ -170,7 +174,7 @@ fun cutFromStart(
 fun cutFromEnd(
     locationTrack: LocationTrack,
     geometry: LocationTrackGeometry,
-    length: Double,
+    length: LineM<LocationTrackM>,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val cutPosition = geometry.length - length
     val newEdges =
@@ -183,7 +187,7 @@ fun cutFromEnd(
             null
             else {
                 // is partly included
-                val newSegments = splitSegments(edge.segmentsWithM, cutPosition).first
+                val newSegments = splitSegments(edge.segmentsWithM, cutPosition.castToDifferentM()).first
                 edge.withSegments(newSegments)
             }
         }
@@ -202,13 +206,13 @@ fun cutFromEnd(
 fun expandTrackFromEnd(
     locationTrack: LocationTrack,
     geometry: LocationTrackGeometry,
-    length: Double,
+    length: LineM<LocationTrackM>,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val lastSegment = geometry.segments.last()
     val newEndPoint =
         lastSegment.segmentPoints.let { points ->
             val direction = (points[points.lastIndex] - points[points.lastIndex - 1]).normalized()
-            points.last() + direction * length
+            points.last() + direction * length.distance
         }
     val newLastSegment = segment(lastSegment.segmentPoints.last(), newEndPoint)
     val newSegments = geometry.segments + newLastSegment
@@ -282,7 +286,7 @@ fun fittedSwitch(
     return FittedSwitch(asSwitchStructure(switchStructure), fittedJoints)
 }
 
-fun fittedJointMatch(track: TrackForSwitchFitting, joint: Int, m: Double): FittedSwitchJointMatch {
+fun fittedJointMatch(track: TrackForSwitchFitting, joint: Int, m: LineM<LocationTrackM>): FittedSwitchJointMatch {
     val coordinates = Point(track.geometry.getPointAtM(m)!!)
     return FittedSwitchJointMatch(
         locationTrackId = track.locationTrackId,

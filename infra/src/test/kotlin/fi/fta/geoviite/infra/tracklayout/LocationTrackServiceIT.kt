@@ -753,7 +753,7 @@ constructor(
         assertEquals(1, splittingParams?.duplicates?.size)
         assertContains(splittingParams?.switches?.map { it.switchId } ?: emptyList(), switch)
         assertContains(splittingParams?.duplicates?.map { it.id } ?: emptyList(), duplicateLocationTrack.id)
-        assertEquals(50.0, splittingParams?.switches?.first()?.distance ?: 0.0, 0.01)
+        assertEquals(locationTrackM(50.0), splittingParams?.switches?.first()?.distance ?: LineM(0.0), 0.01)
     }
 
     @Test

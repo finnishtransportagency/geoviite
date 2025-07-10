@@ -72,7 +72,7 @@ class FittedSwitchTest {
                 ?: throw Exception("Switch structure does not contain joint ${jointNumber.intValue}")
         if (
             !joint.matches.any { match ->
-                match.locationTrackId == alignmentId && (m - match.mOnTrack).absoluteValue < 0.01
+                match.locationTrackId == alignmentId && (m - match.mOnTrack.distance).absoluteValue < 0.01
             }
         ) {
             fail("Didn't found a match from joint ${jointNumber.intValue}: alignmentId $alignmentId, m $m, $endPoint")

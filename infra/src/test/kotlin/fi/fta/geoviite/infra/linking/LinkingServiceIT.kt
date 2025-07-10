@@ -57,6 +57,7 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
 import fi.fta.geoviite.infra.tracklayout.someKmNumber
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
@@ -64,7 +65,6 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -74,6 +74,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -149,7 +150,7 @@ constructor(
         val geometryInterval =
             GeometryInterval(
                 alignmentId = geometryLayoutAlignment.id as IntId,
-                mRange = Range(geometryStartSegment.second.min, geometryEndSegment.second.max),
+                mRange = Range(geometryStartSegment.second.min, geometryEndSegment.second.max).map { it.distance },
             )
 
         // Pick layout interval to cut after first 2 point, skipping to 5th point of second interval
@@ -159,8 +160,8 @@ constructor(
                 mRange =
                     Range(
                         officialGeometry.segmentMValues[0].min,
-                        officialGeometry.segmentsWithM[1].let { (s, m) -> m.min + s.segmentPoints[4].m },
-                    ),
+                        officialGeometry.segmentsWithM[1].let { (s, m) -> s.segmentPoints[4].m.segmentToAlignmentM(m.min) },
+                    ).map { it.distance },
             )
 
         linkingService.saveLocationTrackLinking(
@@ -332,7 +333,7 @@ constructor(
         val geometryInterval =
             GeometryInterval(
                 alignmentId = geometryLayoutAlignment.id as IntId,
-                mRange = Range(geometryStartSegment.second.min, geometryEndSegment.second.max),
+                mRange = Range(geometryStartSegment.second.min, geometryEndSegment.second.max).map { it.distance },
             )
 
         val layoutInterval =
@@ -342,7 +343,7 @@ constructor(
                     Range(
                         officialAlignment.segments[0].segmentPoints.first().m,
                         officialAlignment.segments[0].segmentPoints[4].m,
-                    ),
+                    ).map { it.distance },
             )
 
         val split =

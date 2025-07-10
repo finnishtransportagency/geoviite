@@ -26,7 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import fi.fta.geoviite.infra.tracklayout.toAlignmentM
+import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
 import fi.fta.geoviite.infra.util.produceIf
 import kotlin.math.roundToInt
 
@@ -186,11 +186,11 @@ fun <M : AlignmentM<M>> simplify(
                 }
 
                 s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-                    if (isPointIncluded(pIndex, p.m.toAlignmentM(m.min), isEndPoint, isOverResolution, bboxContains)) {
+                    if (isPointIncluded(pIndex, p.m.segmentToAlignmentM(m.min), isEndPoint, isOverResolution, bboxContains)) {
                         if (!isSegmentEndPoint(pIndex)) {
                             // segment end points should be additional points,
                             // so increase m-counter only when handling middle points
-                            previousM = p.m.toAlignmentM(m.min)
+                            previousM = p.m.segmentToAlignmentM(m.min)
                         }
                         p.toAlignmentPoint(m.min)
                     } else null

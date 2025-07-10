@@ -173,7 +173,7 @@ fun getEdgeSwitchName(edge: LayoutEdge, getSwitchName: (IntId<LayoutSwitch>) -> 
     (edge.startNode.switchIn ?: edge.endNode.switchIn)?.let { link -> getSwitchName(link.id) }
 
 fun toElementListing(
-    context: GeocodingContext<PlanLayoutAlignmentM>?,
+    context: GeocodingContext<*>?,
     getTransformation: (srid: Srid) -> Transformation,
     plan: GeometryPlan,
     elementTypes: List<GeometryElementType>,
@@ -240,7 +240,7 @@ private fun toElementListing(
     )
 
 private fun toElementListing(
-    context: GeocodingContext<PlanLayoutAlignmentM>?,
+    context: GeocodingContext<*>?,
     getTransformation: (srid: Srid) -> Transformation,
     plan: GeometryPlan,
     alignment: GeometryAlignment,

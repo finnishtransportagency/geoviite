@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.geometry
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
+import fi.fta.geoviite.infra.tracklayout.LineM
 import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -155,22 +156,22 @@ class GeometryProfileTest {
         val profile = GeometryProfile(PlanElementName("test profile 2"), listOfVerticalIntersectionPoints2)
 
         // Exact PVI points
-        assertEquals(19.09, profile.getHeightAt(1.82))
-        assertEquals(17.92, profile.getHeightAt(505.318))
+        assertEquals(19.09, profile.getHeightAt(LineM(1.82)))
+        assertEquals(17.92, profile.getHeightAt(LineM(505.318)))
 
         // Descending line
-        assertEquals(17.99, profile.getHeightAt(492.19)!!, 0.1)
+        assertEquals(17.99, profile.getHeightAt(LineM(492.19))!!, 0.1)
         // Ascending line
-        assertEquals(19.22, profile.getHeightAt(15.81)!!, 0.1)
+        assertEquals(19.22, profile.getHeightAt(LineM(15.81))!!, 0.1)
 
         // Negative descending curve
-        assertEquals(18.11, profile.getHeightAt(301.19)!!, 0.1)
+        assertEquals(18.11, profile.getHeightAt(LineM(301.19))!!, 0.1)
         // Negative ascending curve
-        assertEquals(18.12, profile.getHeightAt(316.19)!!, 0.1)
+        assertEquals(18.12, profile.getHeightAt(LineM(316.19))!!, 0.1)
         // Positivie ascending curve
-        assertEquals(19.54, profile.getHeightAt(58.75)!!, 0.1)
+        assertEquals(19.54, profile.getHeightAt(LineM(58.75))!!, 0.1)
         // Positive descending curve
-        assertEquals(19.53, profile.getHeightAt(76.75)!!, 0.1)
+        assertEquals(19.53, profile.getHeightAt(LineM(76.75))!!, 0.1)
     }
 
     @Test
@@ -275,7 +276,7 @@ class GeometryProfileTest {
 
         for (i in 2..distance step 10) {
             val x = i.toDouble()
-            val y = profile.getHeightAt(x)
+            val y = profile.getHeightAt(LineM(x))
             println("$x; $y;")
         }
     }

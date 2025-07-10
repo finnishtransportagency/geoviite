@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LineM
-import fi.fta.geoviite.infra.tracklayout.toAlignmentM
+import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
 import kotlin.math.max
 import kotlin.math.min
 
@@ -54,7 +54,7 @@ fun <M : AlignmentM<M>> getPointsWithMExclusive(
                 segments.getOrNull(i)?.let { (segment, m) ->
                     segment.segmentPoints
                         .let { if (i == inclusive.min) it else it.subList(0, it.lastIndex) }
-                        .map { p -> p.toPoint() to p.m.toAlignmentM(m.min) }
+                        .map { p -> p.toPoint() to p.m.segmentToAlignmentM(m.min) }
                 } ?: emptyList()
             }
         } ?: emptyList()

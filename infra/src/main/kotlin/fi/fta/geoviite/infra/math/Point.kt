@@ -156,6 +156,7 @@ interface IPoint3DM<M : AnyM<M>> : IPoint {
 
 data class Point3DM<M : AnyM<M>>(override val x: Double, override val y: Double, override val m: LineM<M>) :
     IPoint3DM<M> {
+    constructor(x: Double, y: Double, m: Double) : this(x, y, LineM(m))
     init {
         require(x.isFinite() && y.isFinite() && m.isFinite()) { "Cannot create point of: x=$x y=$y m=$m" }
     }

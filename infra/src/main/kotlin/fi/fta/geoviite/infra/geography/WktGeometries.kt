@@ -55,7 +55,7 @@ fun create2DMultiPoint(points: List<IPoint>): String {
 private fun point2DToString(coordinate: IPoint): String = "${coordinate.x}$COORDINATE_SEPARATOR${coordinate.y}"
 
 private fun point3DMToString(coordinate: IPoint3DM<*>): String =
-    "${coordinate.x}$COORDINATE_SEPARATOR${coordinate.y}$COORDINATE_SEPARATOR${coordinate.m}"
+    "${coordinate.x}$COORDINATE_SEPARATOR${coordinate.y}$COORDINATE_SEPARATOR${coordinate.m.distance}"
 
 fun split2DPointValues(valuesString: String): List<Point> {
     return valuesString.split(POINT_SEPARATOR).map { s -> parse2DPointValues(s) }

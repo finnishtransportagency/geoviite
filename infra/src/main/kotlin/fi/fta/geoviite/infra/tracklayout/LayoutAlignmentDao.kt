@@ -576,7 +576,7 @@ class LayoutAlignmentDao(
             mapOf(
                 "polygon_string" to alignment.boundingBox?.let { bbox -> bbox.polygonFromCorners.toWkt() },
                 "segment_count" to alignment.segments.size,
-                "length" to alignment.length,
+                "length" to alignment.length.distance,
             )
         jdbcTemplate.setUser()
         val id: RowVersion<LayoutAlignment> =
@@ -608,7 +608,7 @@ class LayoutAlignmentDao(
                 "id" to alignmentId.intValue,
                 "polygon_string" to alignment.boundingBox?.let(BoundingBox::polygonFromCorners)?.toWkt(),
                 "segment_count" to alignment.segments.size,
-                "length" to alignment.length,
+                "length" to alignment.length.distance,
             )
         jdbcTemplate.setUser()
         val result: RowVersion<LayoutAlignment> =

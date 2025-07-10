@@ -3,6 +3,9 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.tracklayout.LineM
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.assertEquals
 import fi.fta.geoviite.infra.tracklayout.calculateSegmentMValues
 import fi.fta.geoviite.infra.tracklayout.segment
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -67,7 +70,7 @@ class GeometryChangeCalculationTest {
                     segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0)),
                     segment(Point(2.0, 0.0), Point(3.0, 0.0), Point(4.0, 0.0)),
                 )
-                .let { it.zip(calculateSegmentMValues(it)) }
+                .let { it.zip(calculateSegmentMValues<LocationTrackM>(it)) }
         val changes = getChangedGeometryRanges(segments, segments)
 
         assertEquals(0, changes.added.size)
@@ -83,7 +86,7 @@ class GeometryChangeCalculationTest {
         val oldDivergingSegment = segment(Point(30.0, 0.0), Point(40.0, 0.0), Point(50.0, 1.0))
         val oldSegments =
             listOf(oldFirstSegment, oldConvergingSegment, commonSegment, oldDivergingSegment).let {
-                it.zip(calculateSegmentMValues(it))
+                it.zip(calculateSegmentMValues<LocationTrackM>(it))
             }
 
         val newFirstSegment = segment(Point(0.0, 0.0), Point(10.0, 0.0))
@@ -91,46 +94,53 @@ class GeometryChangeCalculationTest {
         val newDivergingSegment = segment(Point(30.0, 0.0), Point(40.0, 0.0), Point(50.0, 0.0))
         val newSegments =
             listOf(newFirstSegment, newConvergingSegment, commonSegment, newDivergingSegment).let {
-                it.zip(calculateSegmentMValues(it))
+                it.zip(calculateSegmentMValues<LocationTrackM>(it))
             }
 
         val result = getChangedGeometryRanges(newSegments, oldSegments)
         assertEquals(2, result.added.size)
-        assertDoubleRange(Range(0.0, 15.0), result.added[0])
-        assertDoubleRange(Range(40.0, 50.0), result.added[1])
+        assertDoubleRange(Range(0.0, 15.0).map(::LineM), result.added[0])
+        assertDoubleRange(Range(40.0, 50.0).map(::LineM), result.added[1])
 
         assertEquals(2, result.removed.size)
-        assertDoubleRange(Range(0.0, 10.0 + lineLength(Point(10.0, 1.0), Point(15.0, 0.0))), result.removed[0])
+        assertDoubleRange(
+            Range(0.0, 10.0 + lineLength(Point(10.0, 1.0), Point(15.0, 0.0))).map(::LineM),
+            result.removed[0]
+        )
         assertDoubleRange(Range(oldSegments[3].second.min + 10.0, oldSegments[3].second.max), result.removed[1])
     }
 
     @Test
     fun `getChangedGeometryRanges() finds added ranges`() {
         val commonSegment = segment(Point(0.0, 0.0), Point(1.0, 0.0))
-        val oldSegments = listOf(commonSegment).let { it.zip(calculateSegmentMValues(it)) }
-        val newSegments =
-            listOf(commonSegment, segment(Point(1.0, 0.0), Point(2.0, 0.0))).let { it.zip(calculateSegmentMValues(it)) }
+        val oldSegments = listOf(commonSegment).let { it.zip(calculateSegmentMValues<LocationTrackM>(it)) }
+        val newSegments = listOf(
+            commonSegment,
+            segment(Point(1.0, 0.0), Point(2.0, 0.0))
+        ).let { it.zip(calculateSegmentMValues<LocationTrackM>(it)) }
 
         val result = getChangedGeometryRanges(newSegments, oldSegments)
         assertEquals(1, result.added.size)
-        assertDoubleRange(Range(1.0, 2.0), result.added[0])
+        assertDoubleRange(Range(1.0, 2.0).map(::LineM), result.added[0])
         assertEquals(0, result.removed.size)
     }
 
     @Test
     fun `getChangedGeometryRanges() finds removed ranges`() {
         val commonSegment = segment(Point(0.0, 0.0), Point(1.0, 0.0))
-        val oldSegments = listOf(commonSegment).let { it.zip(calculateSegmentMValues(it)) }
-        val newSegments =
-            listOf(commonSegment, segment(Point(1.0, 0.0), Point(2.0, 0.0))).let { it.zip(calculateSegmentMValues(it)) }
+        val oldSegments = listOf(commonSegment).let { it.zip(calculateSegmentMValues<LocationTrackM>(it)) }
+        val newSegments = listOf(
+            commonSegment,
+            segment(Point(1.0, 0.0), Point(2.0, 0.0))
+        ).let { it.zip(calculateSegmentMValues<LocationTrackM>(it)) }
 
         val result = getChangedGeometryRanges(oldSegments, newSegments)
         assertEquals(0, result.added.size)
         assertEquals(1, result.removed.size)
-        assertDoubleRange(Range(1.0, 2.0), result.removed[0])
+        assertDoubleRange(Range(1.0, 2.0).map(::LineM), result.removed[0])
     }
 
-    private fun assertDoubleRange(expected: Range<Double>, actual: Range<Double>, delta: Double = 0.001) {
+    private fun assertDoubleRange(expected: Range<LineM<LocationTrackM>>, actual: Range<LineM<LocationTrackM>>, delta: Double = 0.001) {
         assertEquals(expected.min, actual.min, delta) {
             "Double range mismatch (min different): expected=${expected} actual=${actual.min}"
         }

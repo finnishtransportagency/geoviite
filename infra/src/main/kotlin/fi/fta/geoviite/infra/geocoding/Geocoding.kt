@@ -42,7 +42,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.abs
-import fi.fta.geoviite.infra.tracklayout.toAlignmentM
+import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
 import fi.fta.geoviite.infra.util.Either
 import fi.fta.geoviite.infra.util.Left
 import fi.fta.geoviite.infra.util.Right
@@ -980,10 +980,10 @@ data class PolyLineEdge<M : AlignmentM<M>>(
         get() = PI / 2 + referenceDirection
 
     val startM: LineM<M>
-        get() = start.m.toAlignmentM(segmentStart)
+        get() = start.m.segmentToAlignmentM(segmentStart)
 
     val endM: LineM<M>
-        get() = end.m.toAlignmentM(segmentStart)
+        get() = end.m.segmentToAlignmentM(segmentStart)
 
     val length: Double
         get() = end.m.distance - start.m.distance

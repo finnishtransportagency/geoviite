@@ -112,7 +112,7 @@ class ReferenceLineDao(
             trackNumberId = rs.getIntId("track_number_id"),
             startAddress = rs.getTrackMeter("start_address"),
             boundingBox = rs.getBboxOrNull("bounding_box"),
-            length = rs.getDouble("length"),
+            length = LineM(rs.getDouble("length")),
             segmentCount = rs.getInt("segment_count"),
             contextData =
                 rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),

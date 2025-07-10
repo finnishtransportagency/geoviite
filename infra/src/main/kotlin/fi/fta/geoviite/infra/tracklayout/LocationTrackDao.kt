@@ -376,7 +376,7 @@ class LocationTrackDao(
                 "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
                 "start_switch_id" to geometry.startSwitchLink?.id?.intValue,
                 "end_switch_id" to geometry.endSwitchLink?.id?.intValue,
-                "length" to geometry.length,
+                "length" to geometry.length.distance,
                 "edge_count" to geometry.edges.size,
                 "segment_count" to geometry.segments.size,
                 "polygon_string" to geometry.boundingBox?.let(BoundingBox::polygonFromCorners)?.toWkt(),

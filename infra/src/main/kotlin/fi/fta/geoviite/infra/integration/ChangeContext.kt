@@ -37,12 +37,12 @@ class ChangeContext(
 
     fun getGeocodingContextBefore(id: IntId<LayoutTrackNumber>) =
         geocodingKeysBefore[id]?.let { key ->
-            geocodingService.getGeocodingContext(key) as GeocodingContext<ReferenceLineM>
+            geocodingService.getGeocodingContext(key) as? GeocodingContext<ReferenceLineM>
         }
 
     fun getGeocodingContextAfter(id: IntId<LayoutTrackNumber>) =
         geocodingKeysAfter[id]?.let { key ->
-            geocodingService.getGeocodingContext(key) as GeocodingContext<ReferenceLineM>
+            geocodingService.getGeocodingContext(key) as? GeocodingContext<ReferenceLineM>
         }
 }
 

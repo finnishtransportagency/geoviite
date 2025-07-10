@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.ClientException
-import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
@@ -15,6 +14,7 @@ import fi.fta.geoviite.infra.geocoding.KmPostRejectedReason
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
@@ -26,7 +26,6 @@ import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
-import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.GeocodingAlignmentM
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -830,7 +829,7 @@ fun validateAddressPoints(
     trackNumber: LayoutTrackNumber,
     locationTrack: LocationTrack,
     validationTargetLocalizationPrefix: String,
-    geocode: () -> AlignmentAddresses<LocationTrackM>?,
+    geocode: () -> AlignmentAddresses<*>?,
 ): List<LayoutValidationIssue> =
     try {
         geocode()?.let { addresses -> validateAddressPoints(trackNumber, locationTrack, addresses) }
@@ -842,11 +841,11 @@ fun validateAddressPoints(
 fun validateAddressPoints(
     trackNumber: LayoutTrackNumber,
     locationTrack: LocationTrack,
-    addresses: AlignmentAddresses<LocationTrackM>,
+    addresses: AlignmentAddresses<*>,
 ): List<LayoutValidationIssue> {
     val allPoints = listOf(addresses.startPoint) + addresses.midPoints + listOf(addresses.endPoint)
-    val allCoordinates = allPoints.map(AddressPoint<LocationTrackM>::point)
-    val allAddresses = allPoints.map(AddressPoint<LocationTrackM>::address)
+    val allCoordinates = allPoints.map { it.point }
+    val allAddresses = allPoints.map { it.address }
     val maxRanges = 5
     fun describeAsAddressRanges(indices: List<ClosedRange<Int>>): String =
         indices
@@ -965,10 +964,10 @@ private fun collectJoints(structure: SwitchStructure) =
 private fun areLinksContinuous(links: List<Pair<Int, TrackSwitchLink>>): Boolean =
     links.zipWithNext().all { (prev, next) -> prev.first + 1 == next.first }
 
-private fun discontinuousDirectionRangeIndices(points: List<AlignmentPoint<*>>) =
+private fun discontinuousDirectionRangeIndices(points: List<IPoint>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::directionBetweenPoints).zipWithNext(::isAngleDiffOk), 2)
 
-private fun stretchedMeterRangeIndices(points: List<AlignmentPoint<*>>) =
+private fun stretchedMeterRangeIndices(points: List<IPoint>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::lineLength).map { it <= MAX_LAYOUT_METER_LENGTH }, 1)
 
 private fun discontinuousAddressRangeIndices(addresses: List<TrackMeter>): List<ClosedRange<Int>> =

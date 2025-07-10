@@ -166,7 +166,7 @@ interface IAlignment<M : AlignmentM<M>> : Loggable {
                 else if (interpolatedInternalM > segment.length + POINT_SEEK_TOLERANCE) segmentM.max to AFTER
                 else if (interpolatedInternalM < 0.0) segmentM.min to WITHIN
                 else if (interpolatedInternalM > segment.length) segmentM.max to WITHIN
-                else LineM<SegmentM>(interpolatedInternalM).toAlignmentM(segmentM.min) to WITHIN
+                else LineM<SegmentM>(interpolatedInternalM).segmentToAlignmentM(segmentM.min) to WITHIN
             } else {
                 segment.getClosestPointM(segmentM.min, target)
             }
@@ -457,7 +457,7 @@ interface ISegment : ISegmentGeometry, ISegmentFields {
 
     fun <M : AlignmentM<M>> getClosestPointM(segmentStartM: LineM<M>, target: IPoint): Pair<LineM<M>, IntersectType> =
         findClosestSegmentPointM(0..segmentPoints.lastIndex, target).let { (segmentM, intersect) ->
-            (segmentM.toAlignmentM(segmentStartM)) to intersect
+            (segmentM.segmentToAlignmentM(segmentStartM)) to intersect
         }
 
     private fun findClosestSegmentPointM(range: IntRange, target: IPoint): Pair<LineM<SegmentM>, IntersectType> {
@@ -553,7 +553,7 @@ data class LayoutSegment(
                         points = fixSegmentGeometryMValues(newPoints),
                         newSourceStart = addedSourceStart(offset.distance),
                     )
-                newSegment to Range(offset, offset + newSegment.length).map { it.toAlignmentM(segmentStartM) }
+                newSegment to Range(offset, offset + newSegment.length).map { it.segmentToAlignmentM(segmentStartM) }
             }
         }
     }
@@ -625,12 +625,15 @@ data class SegmentPoint(
     override val m: LineM<SegmentM>,
     override val cant: Double?,
 ) : LayoutPoint<SegmentM> {
+
+    constructor(x: Double, y: Double, z: Double?, m: Double, cant: Double?) : this(x, y, z, LineM(m), cant)
+
     init {
         verifyPointValues(x, y, m.distance, z, cant)
     }
 
     fun <M : AlignmentM<M>> toAlignmentPoint(segmentStartM: LineM<M>) =
-        AlignmentPoint(x = x, y = y, z = z, m = m.toAlignmentM(segmentStartM), cant = cant)
+        AlignmentPoint(x = x, y = y, z = z, m = m.segmentToAlignmentM(segmentStartM), cant = cant)
 }
 
 data class AlignmentPoint<M : AnyM<M>>(
