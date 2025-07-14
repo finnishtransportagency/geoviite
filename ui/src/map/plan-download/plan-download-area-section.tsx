@@ -3,9 +3,8 @@ import { useTranslation } from 'react-i18next';
 import {
     LocationTrackItemValue,
     SearchDropdown,
-    SearchItemType,
     SearchItemValue,
-    SearchType,
+    SearchItemType,
     TrackNumberItemValue,
 } from 'tool-bar/search-dropdown';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
@@ -36,7 +35,7 @@ import { getKmPostsOnTrackNumber } from 'track-layout/layout-km-post-api';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 
 type AreaSelectionType = 'TRACK_METERS' | 'MAINTENANCE_AREA' | 'MAP_AREA';
-const ASSET_SEARCH_TYPES = [SearchType.TRACK_NUMBER, SearchType.LOCATION_TRACK];
+const ASSET_SEARCH_TYPES = [SearchItemType.TRACK_NUMBER, SearchItemType.LOCATION_TRACK];
 
 const inferDropdownItemValue = (
     downloadAsset: PlanDownloadAsset | undefined,
@@ -95,7 +94,7 @@ export const PlanDownloadAreaSection: React.FC<{
                 : [];
             const startKm = selectedAsset?.startAndEnd?.start?.address?.kmNumber;
             const endKm = selectedAsset?.startAndEnd?.end?.address?.kmNumber;
-            
+
             return startKm && endKm
                 ? kmPosts.filter((kmPost) => kmPost.kmNumber >= startKm && kmPost.kmNumber <= endKm)
                 : kmPosts;
@@ -116,7 +115,7 @@ export const PlanDownloadAreaSection: React.FC<{
         });
     };
 
-    const onItemSelected = (item: SearchItemValue) => {
+    const onItemSelected = (item: SearchItemValue<SearchItemType>) => {
         switch (item.type) {
             case SearchItemType.TRACK_NUMBER:
                 return updateProp('asset', {
@@ -149,7 +148,7 @@ export const PlanDownloadAreaSection: React.FC<{
 
     const selectedDropdownValue = inferDropdownItemValue(selectedAsset);
 
-    const getName = (item: SearchItemValue) => {
+    const getName = (item: SearchItemValue<SearchItemType>) => {
         switch (item.type) {
             case SearchItemType.TRACK_NUMBER:
                 return item.trackNumber.number;

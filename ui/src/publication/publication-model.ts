@@ -25,6 +25,8 @@ import { BoundingBox, Point } from 'model/geometry';
 import { LocalizationParams } from 'i18n/config';
 import { SplitTargetOperation } from 'tool-panel/location-track/split-store';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { SearchItemValue } from 'tool-bar/search-dropdown';
+import { SearchablePublicationLogItem } from 'publication/log/publication-log';
 
 export type LayoutValidationIssue = {
     type: LayoutValidationIssueType;
@@ -382,6 +384,7 @@ export type PublicationTableItem = {
 export type PublicationSearch = {
     startDate: TimeStamp | undefined;
     endDate: TimeStamp | undefined;
+    specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined;
 };
 
 export type SplitInPublication = {

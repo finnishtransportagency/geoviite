@@ -147,7 +147,8 @@ constructor(
         assertTrue(lastPush < publicationMoment)
 
         val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, lastPush, null)
-        val (publishedLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(publications[1].id)
+        val (publishedLocationTracks, _) =
+            publicationDao.fetchPublishedLocationTracks(setOf(publications[1].id)).getValue(publications[1].id)
 
         assertEquals(publicationId, publications[1].id)
         assertEquals(locationTrackId, publishedLocationTracks[0].id)
@@ -172,7 +173,8 @@ constructor(
         val latestPushedPublish = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
         assertTrue(latestPushedPublish < publicationMoment)
         val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushedPublish, null)
-        val (publishedLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(publications[1].id)
+        val (publishedLocationTracks, _) =
+            publicationDao.fetchPublishedLocationTracks(setOf(publications[1].id)).getValue(publications[1].id)
 
         assertEquals(2, publications.size)
         assertEquals(publicationId, publications[1].id)
@@ -194,8 +196,10 @@ constructor(
         assertNotNull(fetchedLayoutPublish)
         assertNotNull(fetchedLayoutPublish2)
 
-        val (publishLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(fetchedLayoutPublish.id)
-        val (publish2LocationTracks, _) = publicationDao.fetchPublishedLocationTracks(fetchedLayoutPublish2.id)
+        val (publishLocationTracks, _) =
+            publicationDao.fetchPublishedLocationTracks(setOf(fetchedLayoutPublish.id)).getValue(fetchedLayoutPublish.id)
+        val (publish2LocationTracks, _) =
+            publicationDao.fetchPublishedLocationTracks(setOf(fetchedLayoutPublish2.id)).getValue(fetchedLayoutPublish2.id)
 
         assertEquals(1, publishLocationTracks.size)
         assertEquals(1, publish2LocationTracks.size)

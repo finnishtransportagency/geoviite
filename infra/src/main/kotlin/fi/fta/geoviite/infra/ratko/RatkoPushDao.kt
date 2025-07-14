@@ -284,10 +284,11 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             .also { logger.daoAccess(AccessType.FETCH, "${RatkoPush::class.simpleName}.changeTime") }
     }
 
-    fun getRatkoStatus(publicationId: IntId<Publication>): List<RatkoPush> {
+    fun getRatkoStatuses(publicationIds: Set<IntId<Publication>>): Map<IntId<Publication>, List<RatkoPush>> {
         val sql =
             """
             select
+              ratko_push_content.publication_id,
               ratko_push.id,
               ratko_push.start_time,
               ratko_push.end_time,
@@ -295,19 +296,21 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             from integrations.ratko_push
             inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
             inner join publication.publication on publication.id = ratko_push_content.publication_id
-            where publication.id = :publication_id
+            where publication.id = any(array[:publication_ids]::int[])
         """
                 .trimIndent()
 
         return jdbcTemplate
-            .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-                RatkoPush(
-                    id = rs.getIntId("id"),
-                    startTime = rs.getInstant("start_time"),
-                    endTime = rs.getInstantOrNull("end_time"),
-                    status = rs.getEnum("status"),
-                )
+            .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
+                rs.getIntId<Publication>("publication_id") to
+                    RatkoPush(
+                        id = rs.getIntId("id"),
+                        startTime = rs.getInstant("start_time"),
+                        endTime = rs.getInstantOrNull("end_time"),
+                        status = rs.getEnum("status"),
+                    )
             }
-            .onEach { push -> logger.daoAccess(AccessType.FETCH, RatkoPush::class, push.id) }
+            .groupBy({ it.first }, { it.second })
+            .onEach { (_, pushes) -> logger.daoAccess(AccessType.FETCH, RatkoPush::class, pushes.map { it.id }) }
     }
 }

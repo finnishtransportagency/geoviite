@@ -170,7 +170,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 }
             />
             <LocationTrackChangeInfoInfobox
-                locationTrackId={locationTrack.id}
+                locationTrack={locationTrack}
                 layoutContext={layoutContext}
                 visibilities={visibilities}
                 visibilityChange={visibilityChange}

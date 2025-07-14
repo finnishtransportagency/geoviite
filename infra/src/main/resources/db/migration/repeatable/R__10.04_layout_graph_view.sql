@@ -1,33 +1,79 @@
 drop view if exists layout.location_track_version_switch_view;
 create view layout.location_track_version_switch_view as
-select distinct
-  ltve.location_track_id,
-  ltve.location_track_layout_context_id,
-  ltve.location_track_version,
-  np.switch_id,
-  np.switch_joint_number,
-  np.switch_joint_role,
-  -- Generate a sortable ordering for the links, based on how they connect to the edge
-  -- Note: the following edge will likely have share a node (and hence 2 links) so the distinct above is required
-  -- However, it does not matter which edge's version of the ordering number gets picked, it's still in the same place
+select
+  location_track_id,
+  location_track_layout_context_id,
+  location_track_version,
+  switch_id,
+  switch_joint_number,
+  switch_joint_role,
+  -- Generate a sortable ordering for the links, based on how they connect to the edge. Each node port for a given
+  -- track version only appears once.
   case
-    when np.node_id = edge.start_node_id and np.port <> edge.start_node_port then 4 * ltve.edge_index
-    when np.node_id = edge.start_node_id and np.port = edge.start_node_port then 4 * ltve.edge_index + 1
-    when np.node_id = edge.end_node_id and np.port = edge.end_node_port then 4 * ltve.edge_index + 2
-    when np.node_id = edge.end_node_id and np.port <> edge.end_node_port then 4 * ltve.edge_index + 3
+    when node_id = start_node_id and port <> start_node_port then 4 * edge_index
+    when node_id = start_node_id and port = start_node_port then 4 * edge_index + 1
+    when node_id = end_node_id and port = end_node_port then 4 * edge_index + 2
+    when node_id = end_node_id and port <> end_node_port then 4 * edge_index + 3
   end as switch_sort,
-  (ltve.edge_index = 0 and np.node_id = edge.start_node_id and np.port <> edge.start_node_port)
-    or (ltve.edge_index = (ltv.edge_count - 1) and np.node_id = edge.end_node_id and np.port <> edge.end_node_port
+  (edge_index = 0 and node_id = start_node_id and port <> start_node_port)
+    or (edge_index = (edge_count - 1) and node_id = end_node_id and port <> end_node_port
     ) as is_outer_link
-  from layout.node_port np
-    inner join layout.edge edge on np.node_id in (edge.start_node_id, edge.end_node_id)
-    inner join layout.location_track_version_edge ltve on ltve.edge_id = edge.id
-    inner join layout.location_track_version ltv
-               on ltve.location_track_id = ltv.id
-                 and ltve.location_track_layout_context_id = ltv.layout_context_id
-                 and ltve.location_track_version = ltv.version
-  where np.switch_id is not null
-    and (np.node_id = edge.end_node_id or ltve.edge_index = 0);
+  from (
+    -- PostgreSQL is extremely finicky about optimization here. Have to separate the query for the track's start node
+    -- (edge_index = 0 and np.node_id = edge.start_node_id) from the rest (np.node_id = edge.end_node_id) entirely
+    -- and only union them together at the end, for all use cases to go fast.
+    (
+      select
+        ltv.edge_count,
+        ltve.location_track_id,
+        ltve.location_track_version,
+        ltve.location_track_layout_context_id,
+        ltve.edge_index,
+        np.switch_id,
+        np.switch_joint_number,
+        np.switch_joint_role,
+        np.node_id,
+        edge.start_node_id,
+        edge.start_node_port,
+        edge.end_node_id,
+        edge.end_node_port,
+        np.port
+        from layout.node_port np
+          inner join layout.edge edge on np.node_id = edge.start_node_id
+          inner join layout.location_track_version_edge ltve on ltve.edge_id = edge.id
+          inner join layout.location_track_version ltv
+                     on ltve.location_track_id = ltv.id
+                       and ltve.location_track_layout_context_id = ltv.layout_context_id
+                       and ltve.location_track_version = ltv.version
+        where np.switch_id is not null and ltve.edge_index = 0
+    )
+    union all
+    (
+      select
+        ltv.edge_count,
+        ltve.location_track_id,
+        ltve.location_track_version,
+        ltve.location_track_layout_context_id,
+        ltve.edge_index,
+        np.switch_id,
+        np.switch_joint_number,
+        np.switch_joint_role,
+        np.node_id,
+        edge.start_node_id,
+        edge.start_node_port,
+        edge.end_node_id,
+        edge.end_node_port,
+        np.port
+        from layout.node_port as np
+          inner join layout.edge edge on np.node_id = edge.end_node_id
+          inner join layout.location_track_version_edge ltve on ltve.edge_id = edge.id
+          inner join layout.location_track_version ltv
+                     on ltve.location_track_id = ltv.id
+                       and ltve.location_track_layout_context_id = ltv.layout_context_id
+                       and ltve.location_track_version = ltv.version
+        where np.switch_id is not null
+    )
+  ) ns;
 
 drop view if exists layout.edge_ends_view;
 create view layout.edge_ends_view as

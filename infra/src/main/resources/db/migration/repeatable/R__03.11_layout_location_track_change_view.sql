@@ -12,8 +12,16 @@ select
   location_track_version.state,
   location_track_version.change_user,
   location_track_version.version,
-  lag(location_track_version.state)
-      over (partition by location_track_version.id, design_id order by location_track_version.version) old_state
+  old.state as old_state
   from layout.location_track_version
+    left join lateral (
+      select state
+      from layout.location_track_version old
+      where old.id = location_track_version.id
+        and old.layout_context_id = location_track_version.layout_context_id
+        and old.version < location_track_version.version
+      order by old.version desc
+      limit 1
+      ) old on (true)
   where not draft
 );

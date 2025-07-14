@@ -11,8 +11,16 @@ select
   km_post_version.state,
   km_post_version.version,
   km_number,
-  lag(km_post_version.state)
-      over (partition by km_post_version.id, design_id order by km_post_version.version) as old_state
+  old.state as old_state
   from layout.km_post_version
+    left join lateral (
+    select state
+      from layout.km_post_version old
+      where old.id = km_post_version.id
+        and old.layout_context_id = km_post_version.layout_context_id
+        and old.version < km_post_version.version
+      order by old.version desc
+      limit 1
+    ) old on (true)
   where not draft
 );

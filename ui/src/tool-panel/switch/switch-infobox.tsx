@@ -44,16 +44,13 @@ import { getSwitch, getSwitchJointConnections } from 'track-layout/layout-switch
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { ChangeTimes } from 'common/common-slice';
 import { SwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { formatDateShort } from 'utils/date-utils';
-import {
-    refreshSwitchSelection,
-    useSwitchChangeTimes,
-} from 'track-layout/track-layout-react-utils';
+import { refreshSwitchSelection } from 'track-layout/track-layout-react-utils';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { SwitchOid } from 'track-layout/oid';
+import { SwitchChangeInfoInfobox } from 'tool-panel/switch/switch-change-info-infobox';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -162,7 +159,6 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         () => getSwitchJointConnections(layoutContext, switchId),
         [layoutContext.branch, layoutContext.publicationState, layoutSwitch],
     );
-    const switchChangeTimes = useSwitchChangeTimes(layoutSwitch?.id, layoutContext);
 
     const switchJointTrackMeters = useLoader(() => {
         return switchJointConnections
@@ -396,38 +392,22 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 </InfoboxContent>
             </Infobox>
             {layoutSwitch && (
-                <AssetValidationInfoboxContainer
-                    contentVisible={visibilities.validation}
-                    onContentVisibilityChange={() => visibilityChange('validation')}
-                    idAndType={{ id: layoutSwitch.id, type: 'SWITCH' }}
-                    layoutContext={layoutContext}
-                    changeTime={changeTimes.layoutSwitch}
-                />
+                <React.Fragment>
+                    <AssetValidationInfoboxContainer
+                        contentVisible={visibilities.validation}
+                        onContentVisibilityChange={() => visibilityChange('validation')}
+                        idAndType={{ id: layoutSwitch.id, type: 'SWITCH' }}
+                        layoutContext={layoutContext}
+                        changeTime={changeTimes.layoutSwitch}
+                    />
+                    <SwitchChangeInfoInfobox
+                        layoutSwitch={layoutSwitch}
+                        layoutContext={layoutContext}
+                        visible={visibilities.log}
+                        visibilityChange={() => visibilityChange('log')}
+                    />
+                </React.Fragment>
             )}
-            <Infobox
-                contentVisible={visibilities.log}
-                onContentVisibilityChange={() => visibilityChange('log')}
-                title={t('tool-panel.switch.layout.change-info-heading')}
-                qa-id="switch-heading-infobox">
-                <InfoboxContent>
-                    {switchChangeTimes && (
-                        <React.Fragment>
-                            <InfoboxField
-                                label={t('tool-panel.created')}
-                                value={formatDateShort(switchChangeTimes.created)}
-                            />
-                            <InfoboxField
-                                label={t('tool-panel.changed')}
-                                value={
-                                    switchChangeTimes.changed &&
-                                    formatDateShort(switchChangeTimes.changed)
-                                }
-                            />
-                        </React.Fragment>
-                    )}
-                </InfoboxContent>
-            </Infobox>
-
             {showEditDialog && (
                 <SwitchEditDialogContainer
                     switchId={layoutSwitch?.id}

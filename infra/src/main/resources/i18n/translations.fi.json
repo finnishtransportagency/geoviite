@@ -925,7 +925,8 @@
         "oid": {
             "copy-success": "OID {{oid}} kopioitu leikepöydälle",
             "copy-failed": "OID:n kopiointi leikepöydälle epäonnistui"
-        }
+        },
+        "show-in-publication-log": "Avaa julkaisuloki"
     },
     "data-products": {
         "search": {
@@ -1814,6 +1815,8 @@
         "breadcrumbs-text": "Julkaisuloki",
         "start-date": "Alkupvm.",
         "end-date": "Loppupvm.",
+        "specific-object": "Muutoskohde",
+        "search-specific-object": "Hae...",
         "export-csv": "Lataa CSV",
         "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää",
         "search-range-too-long": "Hakuaikaväli on liian pitkä. Lyhennä hakuaikaväliä alle {{maxDays}} päivän mittaiseksi."
