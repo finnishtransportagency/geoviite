@@ -92,7 +92,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
 
         assertEquals(BulkTransferState.FAILED, updatedSplit.bulkTransferState)
         assertEquals(publicationId, updatedSplit.publicationId)
-        assertEquals(split.id, splitDao.fetchSplitIdByPublication(publicationId))
+        assertEquals(split.id, splitDao.fetchSplitIdsByPublication(setOf(publicationId)).getValue(publicationId))
     }
 
     @Test

@@ -10,8 +10,16 @@ select
   track_number_version.change_user,
   track_number_version.state,
   track_number_version.version,
-  lag(track_number_version.state)
-      over (partition by track_number_version.id, design_id order by track_number_version.version) old_state
+  old.state as old_state
   from layout.track_number_version
+    left join lateral (
+      select state
+      from layout.track_number_version old
+      where old.id = track_number_version.id
+        and old.layout_context_id = track_number_version.layout_context_id
+        and old.version < track_number_version.version
+      order by old.version desc
+      limit 1
+    ) old on (true)
   where not draft
 );
