@@ -203,7 +203,11 @@ class SplitService(
     }
 
     fun getSplitIdByPublicationId(publicationId: IntId<Publication>): IntId<Split>? {
-        return splitDao.fetchSplitIdByPublication(publicationId)
+        return splitDao.fetchSplitIdsByPublication(setOf(publicationId))[publicationId]
+    }
+
+    fun getSplitIdsByPublication(publicationIds: Set<IntId<Publication>>): Map<IntId<Publication>, IntId<Split>> {
+        return splitDao.fetchSplitIdsByPublication(publicationIds)
     }
 
     fun get(splitId: IntId<Split>): Split? {

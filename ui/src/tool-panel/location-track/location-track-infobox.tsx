@@ -165,7 +165,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 editingDisabled={editingDisabled}
             />
             <LocationTrackChangeInfoInfobox
-                locationTrackId={locationTrack.id}
+                locationTrack={locationTrack}
                 layoutContext={layoutContext}
                 visibilities={visibilities}
                 visibilityChange={visibilityChange}

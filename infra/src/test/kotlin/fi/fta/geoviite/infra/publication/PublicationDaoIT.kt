@@ -260,9 +260,12 @@ constructor(
             ),
         )
 
-        val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(publicationId)
-        val publishedLocationTracks = publicationDao.fetchPublishedLocationTracks(publicationId)
-        val publishedSwitches = publicationDao.fetchPublishedSwitches(publicationId)
+        val publishedTrackNumbers =
+            publicationDao.fetchPublishedTrackNumbers(setOf(publicationId)).getValue(publicationId)
+        val publishedLocationTracks =
+            publicationDao.fetchPublishedLocationTracks(setOf(publicationId)).getValue(publicationId)
+        val publishedSwitches =
+            publicationDao.fetchPublishedSwitches(setOf(publicationId)).getValue(publicationId)
         assertTrue(publishedTrackNumbers.directChanges.all { it.id == trackNumberId })
         assertEquals(
             changes.directChanges.trackNumberChanges.flatMap { it.changedKmNumbers }.sorted(),

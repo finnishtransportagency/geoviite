@@ -175,6 +175,7 @@ $dropdown-border-error: 2px;
 
 .dropdown--wide-list {
     .dropdown__list-container {
+        width: 100%;
         max-width: none;
     }
 }

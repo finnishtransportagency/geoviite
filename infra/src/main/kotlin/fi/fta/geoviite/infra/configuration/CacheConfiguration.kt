@@ -66,7 +66,7 @@ constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boole
             manager.registerCustomCache(CACHE_RATKO_HEALTH_STATUS, ephemeralCache(1, healthCheckLifetime))
 
             manager.registerCustomCache(CACHE_PUBLISHED_LOCATION_TRACKS, cache(500, staticDataCacheDuration))
-            manager.registerCustomCache(CACHE_PUBLISHED_SWITCHES, cache(500, staticDataCacheDuration))
+            manager.registerCustomCache(CACHE_PUBLISHED_SWITCHES, cache(50000, staticDataCacheDuration))
 
             manager
         } else {

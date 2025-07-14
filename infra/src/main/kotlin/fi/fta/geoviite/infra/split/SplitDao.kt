@@ -350,14 +350,14 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
 
     fun fetchChangeTime() = fetchLatestChangeTime(DbTable.PUBLICATION_SPLIT)
 
-    fun fetchSplitIdByPublication(publicationId: IntId<Publication>): IntId<Split>? {
-        val sql = "select id from publication.split where publication_id = :publication_id"
-        val params = mapOf("publication_id" to publicationId.intValue)
+    fun fetchSplitIdsByPublication(publicationIds: Set<IntId<Publication>>): Map<IntId<Publication>, IntId<Split>> {
+        val sql = "select publication_id, id from publication.split where publication_id = any(array[:publication_ids]::int[])"
+        val params = mapOf("publication_ids" to publicationIds.map { it.intValue })
 
-        return getOptional(publicationId, jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<Split>("id") }).also {
-            _ ->
-            logger.daoAccess(AccessType.FETCH, Split::class, "publicationId" to publicationId)
-        }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ -> rs.getIntId<Publication>("publication_id") to rs.getIntId<Split>("id") }
+            .associate { it }
+            .also { _ -> logger.daoAccess(AccessType.FETCH, Split::class, "publicationIds" to publicationIds) }
     }
 
     fun locationTracksPartOfAnyUnfinishedSplit(

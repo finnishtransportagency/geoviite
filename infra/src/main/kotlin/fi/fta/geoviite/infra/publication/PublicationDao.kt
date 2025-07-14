@@ -1,9 +1,11 @@
 package fi.fta.geoviite.infra.publication
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_LOCATION_TRACKS
 import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_SWITCHES
+import fi.fta.geoviite.infra.configuration.staticDataCacheDuration
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.logging.AccessType.*
@@ -13,12 +15,12 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -501,7 +503,10 @@ class PublicationDao(
             .also { logger.daoAccess(FETCH, "Duplicate track versions", ids) }
     }
 
-    fun getPublication(publicationId: IntId<Publication>): Publication {
+    fun getPublication(publicationId: IntId<Publication>) =
+        getPublications(setOf(publicationId)).getValue(publicationId)
+
+    fun getPublications(publicationIds: Set<IntId<Publication>>): Map<IntId<Publication>, Publication> {
         val sql =
             """
             select
@@ -515,15 +520,16 @@ class PublicationDao(
               cause,
               parent_publication_id
             from publication.publication
-            where publication.id = :id
+            where publication.id = any(array[:ids]::int[])
         """
                 .trimIndent()
 
-        return getOne(
-                publicationId,
-                jdbcTemplate.query(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
+        return jdbcTemplate
+            .query(sql, mapOf("ids" to publicationIds.map { it.intValue })) { rs, _ ->
+                val id = rs.getIntId<Publication>("id")
+                id to
                     Publication(
-                        id = rs.getIntId("id"),
+                        id = id,
                         uuid = rs.getUuid<Publication>("publication_uuid"),
                         publicationUser = rs.getString("publication_user").let(UserName::of),
                         publicationTime = rs.getInstant("publication_time"),
@@ -532,9 +538,9 @@ class PublicationDao(
                             rs.getPublicationPublishedIn("design_id", "design_version", "parent_publication_id"),
                         cause = rs.getEnum("cause"),
                     )
-                },
-            )
-            .also { logger.daoAccess(FETCH, Publication::class, publicationId) }
+            }
+            .associate { it }
+            .also { logger.daoAccess(FETCH, Publication::class, publicationIds) }
     }
 
     @Transactional
@@ -786,13 +792,14 @@ class PublicationDao(
     fun fetchPublicationLocationTrackSwitchLinkChanges(
         publicationId: IntId<Publication>
     ): Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges> =
-        fetchPublicationLocationTrackSwitchLinkChanges(publicationId, null, null, null)[publicationId] ?: mapOf()
+        fetchPublicationLocationTrackSwitchLinkChanges(publicationId, null, null, null, null)[publicationId] ?: mapOf()
 
     fun fetchPublicationLocationTrackSwitchLinkChanges(
         publicationId: IntId<Publication>?,
         layoutBranch: LayoutBranch?,
         from: Instant?,
         to: Instant?,
+        specificObjectId: PublishableObjectIdAndType?,
     ): Map<IntId<Publication>, Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>> {
         require((layoutBranch != null) != (publicationId != null)) {
             """"Must provide exactly one of layoutBranch or publicationId, but provided:
@@ -801,8 +808,8 @@ class PublicationDao(
         }
         require(layoutBranch == null || layoutBranch == LayoutBranch.main) { """Only main branch supported""" }
 
-        val sql =
-            """
+        //language="sql"
+        val sql = """
             select
               change_side,
               plt.publication_id,
@@ -813,33 +820,33 @@ class PublicationDao(
               from publication.publication
                 join publication.location_track plt on publication.id = plt.publication_id
                 join lateral (
-                  select 'new' as change_side, ltv.id, ltv.layout_context_id, ltv.version
-                    from layout.location_track_version ltv
-                    where plt.location_track_id = ltv.id
-                      and plt.layout_context_id = ltv.layout_context_id
-                      and plt.location_track_version = ltv.version
-                  union all
-                  select 'old' as change_side, ltv.id, ltv.layout_context_id, ltv.version
-                    from layout.location_track_version ltv
-                    where plt.location_track_id = ltv.id
-                      and plt.layout_context_id = ltv.layout_context_id
-                      and plt.location_track_version = ltv.version + 1
-                      and not ltv.draft
+                select 'new' as change_side, ltv.id, ltv.layout_context_id, ltv.version
+                  from layout.location_track_version ltv
+                  where plt.location_track_id = ltv.id
+                    and plt.layout_context_id = ltv.layout_context_id
+                    and plt.location_track_version = ltv.version
+                union all
+                select 'old' as change_side, ltv.id, ltv.layout_context_id, ltv.version
+                  from layout.location_track_version ltv
+                  where plt.location_track_id = ltv.id
+                    and plt.layout_context_id = ltv.layout_context_id
+                    and plt.location_track_version = ltv.version + 1
+                    and not ltv.draft
                 ) ltv on (true)
                 join lateral (
-                  select distinct switch_id from layout.location_track_version_switch_view ltvs
-                    where ltvs.location_track_id = ltv.id
-                      and ltvs.location_track_layout_context_id = ltv.layout_context_id
-                      and ltvs.location_track_version = ltv.version
+                select distinct switch_id from layout.location_track_version_switch_view ltvs
+                                          where ltvs.location_track_id = ltv.id
+                                            and ltvs.location_track_layout_context_id = ltv.layout_context_id
+                                            and ltvs.location_track_version = ltv.version
                 ) switch_ids on (true)
                 join layout.switch_version on switch_ids.switch_id = switch_version.id and not switch_version.draft
-                  and switch_version.design_id is null
+                and switch_version.design_id is null
                 left join layout.switch_external_id
-                  on switch_version.id = switch_external_id.id
-                    and switch_version.layout_context_id = switch_external_id.layout_context_id
+                          on switch_version.id = switch_external_id.id
+                            and switch_version.layout_context_id = switch_external_id.layout_context_id
               where direct_change
                 and not exists(
-                  select *
+                select *
                   from publication.switch psw
                     join publication.publication psw_publication on psw.publication_id = psw_publication.id
                   where psw.switch_id = switch_version.id
@@ -847,14 +854,15 @@ class PublicationDao(
                     and psw_publication.design_id is not distinct from publication.design_id
                     and direct_change
                     and (psw.switch_version = switch_version.version and psw.publication_id > plt.publication_id
-                      or psw.switch_version > switch_version.version and psw.publication_id <= plt.publication_id))
+                    or psw.switch_version > switch_version.version and psw.publication_id <= plt.publication_id))
                 and case when :publicationId::integer is not null
-                      then :publicationId = publication.id
-                      else :design_id is not distinct from publication.design_id end
+                           then :publicationId = publication.id
+                         else :design_id is not distinct from publication.design_id end
                 and (:from::timestamptz is null or :from <= publication_time)
                 and (:to::timestamptz is null or :to >= publication_time)
-        """
-                .trimIndent()
+                and (:specific_location_track_id::int is null or :specific_location_track_id = location_track_id)
+              order by change_side, switch_id;
+        """.trimIndent()
 
         data class ResultRow(
             val changeSide: String,
@@ -873,6 +881,7 @@ class PublicationDao(
                     "from" to from?.let { Timestamp.from(it) },
                     "to" to to?.let { Timestamp.from(it) },
                     "design_id" to layoutBranch?.designId?.intValue,
+                    "specific_location_track_id" to (specificObjectId as? LocationTrackIdAndType)?.id?.intValue,
                 ),
             ) { rs, _ ->
                 ResultRow(
@@ -899,7 +908,7 @@ class PublicationDao(
     }
 
     fun fetchPublicationLocationTrackChanges(
-        publicationId: IntId<Publication>
+        publicationId: IntId<Publication>,
     ): Map<IntId<LocationTrack>, LocationTrackChanges> {
         val sql =
             """
@@ -1824,11 +1833,21 @@ class PublicationDao(
         )
     }
 
-    @Cacheable(CACHE_PUBLISHED_LOCATION_TRACKS, sync = true)
-    fun fetchPublishedLocationTracks(publicationId: IntId<Publication>): PublishedItemListing<PublishedLocationTrack> {
+    private val publishedLocationTracksCache: Cache<IntId<Publication>, PublishedItemListing<PublishedLocationTrack>> =
+        Caffeine.newBuilder().maximumSize(500).expireAfterAccess(staticDataCacheDuration).build()
+
+    fun fetchPublishedLocationTracks(
+        publicationIds: Set<IntId<Publication>>
+    ): Map<IntId<Publication>, PublishedItemListing<PublishedLocationTrack>> =
+        publishedLocationTracksCache.getAll(publicationIds, ::fetchPublishedLocationTracksInternal)
+
+    fun fetchPublishedLocationTracksInternal(
+        publicationIds: Set<IntId<Publication>>
+    ): Map<IntId<Publication>, PublishedItemListing<PublishedLocationTrack>> {
         val sql =
             """
             select
+              plt.publication_id,
               ltv.id,
               ltv.design_id,
               ltv.draft,
@@ -1848,13 +1867,13 @@ class PublicationDao(
                 from publication.location_track_km pltk
                 where pltk.location_track_id = plt.location_track_id and pltk.publication_id = plt.publication_id
               ) pltk on (true)
-            where plt.publication_id = :publication_id
+            where plt.publication_id = any(array[:publication_ids]::int[])
         """
                 .trimIndent()
 
         return jdbcTemplate
-            .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-                rs.getBoolean("direct_change") to
+            .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
+                (rs.getIntId<Publication>("publication_id") to rs.getBoolean("direct_change")) to
                     PublishedLocationTrack(
                         version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
                         name = AlignmentName(rs.getString("name")),
@@ -1865,20 +1884,17 @@ class PublicationDao(
             }
             .let { locationTrackRows ->
                 logger.daoAccess(FETCH, PublishedLocationTrack::class, locationTrackRows.map { it.second.version })
-                partitionDirectIndirectChanges(locationTrackRows)
+                partitionByPublicationIdAndDirectOrIndirect(locationTrackRows)
             }
     }
 
-    fun fetchPublishedReferenceLines(publicationId: IntId<Publication>): List<PublishedReferenceLine> {
+    fun fetchPublishedReferenceLines(
+        publicationIds: Set<IntId<Publication>>
+    ): Map<IntId<Publication>, List<PublishedReferenceLine>> {
         val sql =
             """
-            with prev_pub 
-              as (select max(publication_time) as prev_publication_time 
-              from publication.publication
-              where id < :publication_id
-                and design_id is not distinct from (select design_id from publication.publication where id = :publication_id)
-            )
             select
+              prl.publication_id,
               rl.id,
               rl.design_id,
               rl.draft,
@@ -1894,7 +1910,6 @@ class PublicationDao(
               from publication.reference_line prl
                 inner join layout.reference_line_version rl
                           on rl.id = prl.reference_line_id and rl.layout_context_id = prl.layout_context_id and rl.version = prl.reference_line_version
-                left join prev_pub on true
                 left join publication.publication p
                           on p.id = prl.publication_id
                 left join publication.track_number ptn
@@ -1905,27 +1920,30 @@ class PublicationDao(
                           on tn_old.id = ptn.track_number_id
                             and tn_old.layout_context_id = 'main_official'
                             and tn_old.version = tn.version - case when ptn.direct_change then 1 else 0 end
-              where prl.publication_id = :publication_id
+              where prl.publication_id = any(array[:publication_ids]::int[])
         """
                 .trimIndent()
         return jdbcTemplate
-            .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-                PublishedReferenceLine(
-                    version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
-                    trackNumberId = rs.getIntId("track_number_id"),
-                    operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY,
-                    changedKmNumbers = rs.getStringArray("changed_km").map(::KmNumber).toSet(),
-                )
+            .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
+                rs.getIntId<Publication>("publication_id") to
+                    PublishedReferenceLine(
+                        version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+                        trackNumberId = rs.getIntId("track_number_id"),
+                        operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY,
+                        changedKmNumbers = rs.getStringArray("changed_km").map(::KmNumber).toSet(),
+                    )
             }
             .also { referenceLines ->
-                logger.daoAccess(FETCH, PublishedReferenceLine::class, referenceLines.map { it.version })
+                logger.daoAccess(FETCH, PublishedReferenceLine::class, referenceLines.map { it.second.version })
             }
+            .groupBy({ it.first }, { it.second })
     }
 
-    fun fetchPublishedKmPosts(publicationId: IntId<Publication>): List<PublishedKmPost> {
+    fun fetchPublishedKmPosts(publicationIds: Set<IntId<Publication>>): Map<IntId<Publication>, List<PublishedKmPost>> {
         val sql =
             """
             select
+              pkp.publication_id,
               kmp.id,
               kmp.design_id,
               kmp.draft,
@@ -1938,28 +1956,33 @@ class PublicationDao(
                 on pkp.km_post_id = kmp.id and pkp.layout_context_id = kmp.layout_context_id and pkp.km_post_version = kmp.version
               inner join layout.km_post_change_view kpc
                 on kpc.id = pkp.km_post_id and kpc.layout_context_id = pkp.layout_context_id and kpc.version = pkp.km_post_version
-            where publication_id = :publication_id
+            where publication_id = any(array[:publication_ids]::int[])
         """
                 .trimIndent()
 
         return jdbcTemplate
-            .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-                PublishedKmPost(
-                    version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
-                    trackNumberId = rs.getIntId("track_number_id"),
-                    kmNumber = rs.getKmNumber("km_number"),
-                    operation = rs.getEnum("operation"),
-                )
+            .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
+                rs.getIntId<Publication>("publication_id") to
+                    PublishedKmPost(
+                        version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+                        trackNumberId = rs.getIntId("track_number_id"),
+                        kmNumber = rs.getKmNumber("km_number"),
+                        operation = rs.getEnum("operation"),
+                    )
             }
-            .also { kmPosts -> logger.daoAccess(FETCH, PublishedKmPost::class, kmPosts.map { it.version }) }
+            .also { kmPosts -> logger.daoAccess(FETCH, PublishedKmPost::class, kmPosts.map { it.second.version }) }
+            .groupBy({ it.first }, { it.second })
     }
 
     @Transactional(readOnly = true)
     @Cacheable(CACHE_PUBLISHED_SWITCHES, sync = true)
-    fun fetchPublishedSwitches(publicationId: IntId<Publication>): PublishedItemListing<PublishedSwitch> {
+    fun fetchPublishedSwitches(
+        publicationIds: Set<IntId<Publication>>
+    ): Map<IntId<Publication>, PublishedItemListing<PublishedSwitch>> {
         val sql =
             """
             select
+              ps.publication_id,
               sv.id,
               sv.design_id,
               sv.draft,
@@ -1979,38 +2002,41 @@ class PublicationDao(
                 on ps.switch_id = sv.id and ps.layout_context_id = sv.layout_context_id and ps.switch_version = sv.version
               inner join layout.switch_change_view sc
                 on sc.id = ps.switch_id and sc.layout_context_id = ps.layout_context_id and sc.version = ps.switch_version
-            where ps.publication_id = :publication_id
+            where ps.publication_id = any(array[:publication_ids]::int[])
         """
                 .trimIndent()
 
-        val publishedSwitchJoints = publishedSwitchJoints(publicationId)
+        val publishedSwitchJoints = publishedSwitchJoints(publicationIds)
 
         return jdbcTemplate
-            .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-                rs.getBoolean("direct_change") to
+            .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
+                val publicationId = rs.getIntId<Publication>("publication_id")
+                val switchVersion = rs.getLayoutRowVersion<LayoutSwitch>("id", "design_id", "draft", "version")
+                (publicationId to rs.getBoolean("direct_change")) to
                     PublishedSwitch(
-                        version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+                        version = switchVersion,
                         name = SwitchName(rs.getString("name")),
                         trackNumberIds = rs.getIntIdArray<LayoutTrackNumber>("track_number_ids").toSet(),
                         operation = rs.getEnum("operation"),
                         changedJoints =
                             publishedSwitchJoints
-                                .filter { it.first == rs.getIntId<LayoutSwitch>("id") }
-                                .flatMap { it.second },
+                                .getOrDefault(publicationId, mapOf())
+                                .getOrDefault(switchVersion.id, listOf()),
                     )
             }
             .let { switchRows ->
                 logger.daoAccess(FETCH, PublishedSwitch::class, switchRows.map { it.second.version })
-                partitionDirectIndirectChanges(switchRows)
+                partitionByPublicationIdAndDirectOrIndirect(switchRows)
             }
     }
 
     private fun publishedSwitchJoints(
-        publicationId: IntId<Publication>
-    ): List<Pair<IntId<LayoutSwitch>, List<SwitchJointChange>>> {
+        publicationIds: Set<IntId<Publication>>
+    ): Map<IntId<Publication>, Map<IntId<LayoutSwitch>, List<SwitchJointChange>>> {
         val sql =
             """
             select
+              publication_id,
               switch_id as id,
               joint_number,
               removed,
@@ -2022,13 +2048,13 @@ class PublicationDao(
               track_number_id,
               track_number_external_id
             from publication.switch_joint
-            where publication_id = :publication_id
+            where publication_id = any(array[:publication_ids]::int[])
         """
                 .trimIndent()
 
         return jdbcTemplate
-            .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-                rs.getIntId<LayoutSwitch>("id") to
+            .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
+                (rs.getIntId<Publication>("publication_id") to rs.getIntId<LayoutSwitch>("id")) to
                     SwitchJointChange(
                         number = rs.getJointNumber("joint_number"),
                         isRemoved = rs.getBoolean("removed"),
@@ -2040,14 +2066,19 @@ class PublicationDao(
                         trackNumberExternalId = rs.getOidOrNull("track_number_external_id"),
                     )
             }
-            .groupBy { it.first }
-            .map { (switchId, switchJoints) -> switchId to switchJoints.map { it.second } }
+            .groupBy({ it.first.first }, { it.first.second to it.second })
+            .mapValues { (_, idsAndJoints) ->
+                idsAndJoints.groupBy({ it.first }).mapValues { (_, js) -> js.map { it.second } }
+            }
     }
 
-    fun fetchPublishedTrackNumbers(publicationId: IntId<Publication>): PublishedItemListing<PublishedTrackNumber> {
+    fun fetchPublishedTrackNumbers(
+        publicationIds: Set<IntId<Publication>>
+    ): Map<IntId<Publication>, PublishedItemListing<PublishedTrackNumber>> {
         val sql =
             """
           select
+            publication.id as publication_id,
             ptn.track_number_id as id,
             publication.design_id,
             track_number_version as version,
@@ -2066,13 +2097,13 @@ class PublicationDao(
               on tn.id = ptn.track_number_id and tn.layout_context_id = ptn.layout_context_id and tn.version = ptn.track_number_version
             join publication.publication
               on ptn.publication_id = publication.id
-          where ptn.publication_id = :publication_id
+          where ptn.publication_id = any(array[:publication_ids]::int[])
         """
                 .trimIndent()
 
         return jdbcTemplate
-            .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-                rs.getBoolean("direct_change") to
+            .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
+                (rs.getIntId<Publication>("publication_id") to rs.getBoolean("direct_change")) to
                     PublishedTrackNumber(
                         version =
                             LayoutRowVersion(
@@ -2087,7 +2118,7 @@ class PublicationDao(
             }
             .let { trackNumberRows ->
                 logger.daoAccess(FETCH, PublishedTrackNumber::class, trackNumberRows.map { it.second.version })
-                partitionDirectIndirectChanges(trackNumberRows)
+                partitionByPublicationIdAndDirectOrIndirect(trackNumberRows)
             }
     }
 
@@ -2151,6 +2182,13 @@ class PublicationDao(
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("location_track_id") }
     }
 }
+
+private fun <T> partitionByPublicationIdAndDirectOrIndirect(
+    rows: List<Pair<Pair<IntId<Publication>, Boolean>, T>>
+): Map<IntId<Publication>, PublishedItemListing<T>> =
+    rows.groupBy({ it.first.first }, { it.first.second to it.second }).mapValues { (_, publicationRows) ->
+        partitionDirectIndirectChanges(publicationRows)
+    }
 
 private fun <T> partitionDirectIndirectChanges(rows: List<Pair<Boolean, T>>) =
     rows

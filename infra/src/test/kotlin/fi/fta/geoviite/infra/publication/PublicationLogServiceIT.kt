@@ -70,6 +70,12 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
 import fi.fta.geoviite.infra.util.SortOrder
+import java.sql.Timestamp
+import java.time.Instant
+import kotlin.math.absoluteValue
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -78,12 +84,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
-import java.sql.Timestamp
-import java.time.Instant
-import kotlin.math.absoluteValue
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -784,10 +784,11 @@ constructor(
 
         val fullInterval =
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
-                null,
-                LayoutBranch.main,
-                Instant.parse("2024-01-02T00:00:00Z"),
-                Instant.parse("2024-01-04T00:00:00Z"),
+                publicationId = null,
+                specificObjectId = null,
+                layoutBranch = LayoutBranch.main,
+                from = Instant.parse("2024-01-02T00:00:00Z"),
+                to = Instant.parse("2024-01-04T00:00:00Z"),
             )
         val expect = expectLocationTrackSwitchLinkChanges(locationTrackId)
         val switchChangeIds = switch to SwitchChangeIds("sw", Oid("1.1.1.1.2"))
@@ -843,17 +844,19 @@ constructor(
 
         val firstInterval =
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
-                null,
-                LayoutBranch.main,
-                Instant.parse("2024-01-01T00:00:00Z"),
-                Instant.parse("2024-01-02T00:00:00Z"),
+                publicationId = null,
+                specificObjectId = null,
+                layoutBranch = LayoutBranch.main,
+                from = Instant.parse("2024-01-01T00:00:00Z"),
+                to = Instant.parse("2024-01-02T00:00:00Z"),
             )
         val fullInterval =
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
-                null,
-                LayoutBranch.main,
-                Instant.parse("2024-01-02T00:00:00Z"),
-                Instant.parse("2024-01-04T00:00:00Z"),
+                publicationId = null,
+                specificObjectId = null,
+                layoutBranch = LayoutBranch.main,
+                from = Instant.parse("2024-01-02T00:00:00Z"),
+                to = Instant.parse("2024-01-04T00:00:00Z"),
             )
         val expect = expectLocationTrackSwitchLinkChanges(locationTrackId)
         val expectedFirstPublicationInMain =
@@ -1435,7 +1438,8 @@ constructor(
             setPublicationTime(it.publicationId!!, Instant.parse("2024-01-02T00:00:00Z"))
         }
 
-        publicationDao.fetchPublishedTrackNumbers(originalPublication).let { (directChanges, indirectChanges) ->
+        publicationDao.fetchPublishedTrackNumbers(setOf(originalPublication)).getValue(originalPublication).let {
+            (directChanges, indirectChanges) ->
             assertEquals(
                 listOf(trackNumberDao.fetchVersion(MainLayoutContext.official, trackNumber.id)),
                 directChanges.map { it.version },
@@ -1456,7 +1460,9 @@ constructor(
             }
         assertEquals(
             listOf(referenceLineDao.fetchVersion(MainLayoutContext.official, referenceLine.id)),
-            publicationDao.fetchPublishedReferenceLines(originalPublication).map { it.version },
+            publicationDao.fetchPublishedReferenceLines(setOf(originalPublication)).getValue(originalPublication).map {
+                it.version
+            },
         )
         publicationDao.fetchPublicationReferenceLineChanges(originalPublication).let { changes ->
             assertEquals(1, changes.size)
@@ -1464,8 +1470,11 @@ constructor(
             assertEquals(null, change.startPoint.old)
             assertEquals(Point(0.0, 0.0), change.startPoint.new)
         }
-        publicationDao.fetchPublishedLocationTracks(originalPublication).let { (directChanges, indirectChanges) ->
-            assertEquals(
+        publicationDao
+            .fetchPublishedLocationTracks(setOf(originalPublication))
+            .getValue(originalPublication)
+            .let { (directChanges, indirectChanges) ->
+                assertEquals(
                 listOf(locationTrackDao.fetchVersion(MainLayoutContext.official, locationTrack.id)),
                 directChanges.map { it.version },
             )
@@ -1476,7 +1485,10 @@ constructor(
             val change = changes[locationTrack.id]!!
             assertEquals("original", change.name.new.toString())
         }
-        publicationDao.fetchPublishedSwitches(originalPublication).let { (directChanges, indirectChanges) ->
+        publicationDao
+            .fetchPublishedSwitches(setOf(originalPublication))
+            .getValue(originalPublication)
+            .let { (directChanges, indirectChanges) ->
             assertEquals(
                 listOf(switchDao.fetchVersion(MainLayoutContext.official, switch.id)),
                 directChanges.map { it.version },
@@ -1488,7 +1500,10 @@ constructor(
             val change = changes[switch.id]!!
             assertEquals("original", change.name.new.toString())
         }
-        publicationDao.fetchPublishedKmPosts(originalPublication).let { published ->
+        publicationDao
+            .fetchPublishedKmPosts(setOf(originalPublication))
+            .getValue(originalPublication)
+            .let { published ->
             assertEquals(1, published.size)
             assertEquals(KmNumber(124), published[0].kmNumber)
         }
