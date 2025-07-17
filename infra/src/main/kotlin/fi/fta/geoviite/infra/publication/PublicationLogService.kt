@@ -24,13 +24,16 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.TrackNumberAndChangeTime
 import fi.fta.geoviite.infra.util.CsvEntry
@@ -61,7 +64,11 @@ constructor(
     private val splitService: SplitService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
+    private val referenceLineDao: ReferenceLineDao,
+    private val layoutSwitchDao: LayoutSwitchDao,
+    private val layoutKmPostDao: LayoutKmPostDao,
 ) {
+
     @Transactional(readOnly = true)
     fun fetchPublications(layoutBranch: LayoutBranch, from: Instant? = null, to: Instant? = null): List<Publication> {
         return publicationDao.fetchPublicationsBetween(layoutBranch, from, to)
@@ -835,6 +842,7 @@ constructor(
                 .map { tn ->
                     mapToPublicationTableItem(
                         name = "${translation.t("publication-table.track-number-long")} ${tn.number}",
+                        asset = PublishedAssetTrackNumber(trackNumberDao.fetch(tn.version)),
                         trackNumbers = setOf(tn.number),
                         changedKmNumbers = tn.changedKmNumbers,
                         operation = tn.operation,
@@ -863,6 +871,7 @@ constructor(
 
                     mapToPublicationTableItem(
                         name = "${translation.t("publication-table.reference-line")} $tn",
+                        asset = PublishedAssetReferenceLine(referenceLineDao.fetch(rl.version)),
                         trackNumbers = setOfNotNull(tn),
                         changedKmNumbers = rl.changedKmNumbers,
                         operation = rl.operation,
@@ -891,6 +900,7 @@ constructor(
                             ?.number
                     mapToPublicationTableItem(
                         name = "${translation.t("publication-table.location-track")} ${lt.name}",
+                        asset = PublishedAssetLocationTrack(locationTrackDao.fetch(lt.version)),
                         trackNumbers = setOfNotNull(trackNumber),
                         changedKmNumbers = lt.changedKmNumbers,
                         operation = lt.operation,
@@ -924,6 +934,7 @@ constructor(
                         )
                     mapToPublicationTableItem(
                         name = "${translation.t("publication-table.switch")} ${s.name}",
+                        asset = PublishedAssetSwitch(layoutSwitchDao.fetch(s.version)),
                         trackNumbers = tns,
                         operation = s.operation,
                         publication = publication,
@@ -952,6 +963,7 @@ constructor(
                             ?.number
                     mapToPublicationTableItem(
                         name = "${translation.t("publication-table.km-post")} ${kp.kmNumber}",
+                        asset = PublishedAssetKmPost(layoutKmPostDao.fetch(kp.version)),
                         trackNumbers = setOfNotNull(tn),
                         operation = kp.operation,
                         publication = publication,
@@ -980,6 +992,7 @@ constructor(
                             ?.number
                     mapToPublicationTableItem(
                         name = "${translation.t("publication-table.location-track")} ${lt.name}",
+                        asset = PublishedAssetLocationTrack(locationTrackDao.fetch(lt.version)),
                         trackNumbers = setOfNotNull(tn),
                         changedKmNumbers = lt.changedKmNumbers,
                         operation = Operation.CALCULATED,
@@ -1013,6 +1026,7 @@ constructor(
                         )
                     mapToPublicationTableItem(
                         name = "${translation.t("publication-table.switch")} ${s.name}",
+                        asset = PublishedAssetSwitch(layoutSwitchDao.fetch(s.version)),
                         trackNumbers = tns,
                         operation = Operation.CALCULATED,
                         publication = publication,
@@ -1048,6 +1062,7 @@ constructor(
 
     private fun mapToPublicationTableItem(
         name: String,
+        asset: PublishedAsset,
         trackNumbers: Set<TrackNumber>,
         operation: Operation,
         publication: PublicationDetails,
@@ -1056,6 +1071,8 @@ constructor(
     ) =
         PublicationTableItem(
             name = FreeText(name),
+            asset = asset,
+            publicationId = publication.id,
             trackNumbers = trackNumbers.sorted(),
             changedKmNumbers =
                 changedKmNumbers?.let { groupChangedKmNumbers(changedKmNumbers.toList()) } ?: emptyList(),

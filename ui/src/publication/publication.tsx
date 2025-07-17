@@ -19,6 +19,10 @@ import {
     PublicationDetailsTableSortInformation,
 } from 'publication/table/publication-table-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import { createDelegates } from 'store/store-utils';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
+import { SearchItemValue } from 'tool-bar/search-dropdown';
+import { SearchablePublicationLogItem } from 'publication/log/publication-log';
 
 export type PublicationDetailsViewProps = {
     publication: PublicationDetails;
@@ -39,6 +43,10 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     const [isLoading, setIsLoading] = React.useState(true);
     const [sortInfo, setSortInfo] =
         React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
+    const trackLayoutActionDelegates = React.useMemo(
+        () => createDelegates(trackLayoutActionCreators),
+        [],
+    );
 
     React.useEffect(() => {
         setIsLoading(true);
@@ -49,6 +57,13 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
             setIsLoading(false);
         });
     }, [publication.id, changeTime]);
+
+    const displaySingleItemHistory = (
+        item: SearchItemValue<SearchablePublicationLogItem> | undefined,
+    ) => {
+        trackLayoutActionDelegates.setSelectedPublicationSearchSearchableItem(item);
+        navigate('publication-search');
+    };
 
     return (
         <div className={styles['publication-details']}>
@@ -85,6 +100,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                     items={publicationItems}
                     sortInfo={sortInfo}
                     onSortChange={setSortInfo}
+                    displaySingleItemHistory={displaySingleItemHistory}
                 />
             </div>
             {(ratkoPushFailed(publication.ratkoPushStatus) || unpublishedToRatko) && (
