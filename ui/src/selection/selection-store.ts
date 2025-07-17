@@ -315,7 +315,7 @@ export const selectionReducers = {
         { payload: newStartDate }: PayloadAction<TimeStamp | undefined>,
     ) => {
         if (!state.publicationSearch) {
-            state.publicationSearch = defaultPublicationSearch;
+            state.publicationSearch = { ...defaultPublicationSearch };
         }
         state.publicationSearch.startDate = newStartDate;
     },
@@ -324,7 +324,7 @@ export const selectionReducers = {
         { payload: newEndDate }: PayloadAction<TimeStamp | undefined>,
     ) => {
         if (!state.publicationSearch) {
-            state.publicationSearch = defaultPublicationSearch;
+            state.publicationSearch = { ...defaultPublicationSearch };
         }
         state.publicationSearch.endDate = newEndDate;
     },
@@ -335,7 +335,7 @@ export const selectionReducers = {
         }: PayloadAction<SearchItemValue<SearchablePublicationLogItem> | undefined>,
     ) => {
         if (!state.publicationSearch) {
-            state.publicationSearch = defaultPublicationSearch;
+            state.publicationSearch = { ...defaultPublicationSearch };
         }
         state.publicationSearch.specificItem = newSearchItem;
     },

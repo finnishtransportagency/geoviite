@@ -409,6 +409,7 @@ const PublicationLog: React.FC = () => {
                     items={pagedPublications?.items || []}
                     sortInfo={sortInfo}
                     onSortChange={updateTableSorting}
+                    displaySingleItemHistory={setSpecificItem}
                 />
             </div>
         </div>
