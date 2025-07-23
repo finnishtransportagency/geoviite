@@ -20,15 +20,15 @@ spring:
       minimum-idle: 20
       auto-commit: true
       maximum-pool-size: 20
-      connection-timeout: 10000
-      leak-detection-threshold: 60000
-      validation-timeout: 5000
+#      connection-timeout: 10000
+#      leak-detection-threshold: 60000
+#      validation-timeout: 5000
       connection-init-sql: "set jit=off;"
-  jdbc:
-    template:
-      query-timeout: 15
-  transaction:
-    default-timeout: 60
+#  jdbc:
+#    template:
+#      query-timeout: 15
+#  transaction:
+#    default-timeout: 60
   flyway:
     clean-disabled: true
     locations: classpath:db/migration/**/*.sql,classpath:fi/fta/geoviite/infra/dataImport,classpath:fi/fta/geoviite/infra/migration

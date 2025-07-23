@@ -22,7 +22,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.TopologyRecalculationRequest
 import fi.fta.geoviite.infra.tracklayout.asDraft
+import fi.fta.geoviite.infra.tracklayout.getTopologicallyLinkableJointLocations
+import fi.fta.geoviite.infra.util.processNonNulls
+import kotlin.Pair
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 
@@ -99,21 +103,39 @@ constructor(
         switchSuggestions: List<SuggestedSwitchWithOriginallyLinkedTracks?>,
         switchPlacingRequests: List<SwitchPlacingRequest>,
         switchStructures: List<SwitchStructure>,
-    ): List<List<Pair<LocationTrack, LocationTrackGeometry>>> =
+    ): List<List<Pair<LocationTrack, LocationTrackGeometry>>?> =
         lookupTracksForSuggestedSwitchValidation(branch, switchSuggestions.map { it?.suggestedSwitch })
             .mapIndexed { index, tracks -> index to tracks }
             .parallelStream()
             .map { (index, originalTracks) ->
-                switchSuggestions[index]?.let { suggestion ->
-                    withChangesFromLinkingSwitch(
-                        suggestion.suggestedSwitch,
-                        switchStructures[index],
-                        switchPlacingRequests[index].layoutSwitchId,
-                        clearSwitchFromTracks(switchPlacingRequests[index].layoutSwitchId, originalTracks),
+                val r =
+                    switchSuggestions[index]?.let { suggestion ->
+                        index to
+                            withChangesFromLinkingSwitch(
+                                suggestion.suggestedSwitch,
+                                switchStructures[index],
+                                switchPlacingRequests[index].layoutSwitchId,
+                                clearSwitchFromTracks(switchPlacingRequests[index].layoutSwitchId, originalTracks),
+                            )
+                    }
+                r
+            }
+            .toList()
+            .let { changedTracksByRequestIndex ->
+                processNonNulls(changedTracksByRequestIndex) { changed ->
+                    locationTrackService.recalculateTopologies(
+                        branch.draft,
+                        changed.map { (index, changedTracks) ->
+                            val switchId = switchPlacingRequests[index].layoutSwitchId
+                            TopologyRecalculationRequest(
+                                changedTracks,
+                                getTopologicallyLinkableJointLocations(changedTracks, switchId),
+                                switchId,
+                            )
+                        },
                     )
                 }
             }
-            .toList()
 
     private fun lookupTracksForSuggestedSwitchValidation(
         branch: LayoutBranch,
@@ -146,7 +168,7 @@ private fun validateChangeFromSwitchRelinking(
     suggestedSwitchWithOriginallyLinkedTracks: SuggestedSwitchWithOriginallyLinkedTracks?,
     originalSwitch: LayoutSwitch,
     switchStructure: SwitchStructure,
-    changedTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    changedTracks: List<Pair<LocationTrack, LocationTrackGeometry>>?,
 ): SwitchRelinkingValidationResult {
     return if (suggestedSwitchWithOriginallyLinkedTracks == null) failRelinkingValidationFor(switchId, originalSwitch)
     else {
@@ -157,7 +179,7 @@ private fun validateChangeFromSwitchRelinking(
                 originalSwitch,
                 switchStructure,
                 track,
-                changedTracks,
+                requireNotNull(changedTracks) { "missing changed tracks for existing suggestion for switch $switchId" },
                 suggestedSwitchWithOriginallyLinkedTracks.originallyLinkedTracks.toList(),
             )
         val presentationJointLocation = getSuggestedLocation(switchId, suggestedSwitch, switchStructure)
@@ -211,7 +233,9 @@ private fun validateRelinkingRetainsLocationTrackConnections(
     switchName: SwitchName,
     currentConnections: List<IntId<LocationTrack>>,
 ): List<LayoutValidationIssue> {
-    val suggestedConnections = suggestedSwitch.trackLinks.filter { link -> link.value.isLinked() }.keys
+    val suggestedConnections =
+        suggestedSwitch.trackLinks.filter { link -> link.value.isLinked() }.keys +
+            suggestedSwitch.topologicallyLinkedTracks
 
     return listOfNotNull(
         validateWithParams(suggestedConnections.containsAll(currentConnections), LayoutValidationIssueType.ERROR) {
