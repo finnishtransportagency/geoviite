@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutNode
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.SWITCH
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_BOUNDARY
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.NodeHash
@@ -37,9 +38,9 @@ data class NodeReplacementTarget(val node: LayoutNode, val tracks: List<Pair<Loc
     fun contains(trackId: DomainId<LocationTrack>): Boolean = tracks.any { (track, _) -> track.id == trackId }
 }
 
-data class NodeTrackConnections(val node: DbLayoutNode, val trackVersions: List<LayoutRowVersion<LocationTrack>>) {
+data class NodeTrackConnections(val node: DbLayoutNode, val trackVersions: Set<LayoutRowVersion<LocationTrack>>) {
     fun filterOut(trackIds: Set<IntId<LocationTrack>>): NodeTrackConnections? {
-        val newTrackVersions = trackVersions.filter { (trackId, _) -> !trackIds.contains(trackId.id) }
+        val newTrackVersions = trackVersions.filter { (trackId, _) -> !trackIds.contains(trackId.id) }.toSet()
         return when {
             newTrackVersions.isEmpty() -> null
             newTrackVersions.size == trackVersions.size -> this
@@ -58,8 +59,11 @@ fun mergeNodeConnections(connections: List<NodeReplacementTarget>): List<NodeRep
             )
         }
 
-fun resolveNodeCombinations(connections: List<NodeReplacementTarget>): NodeCombinations {
-    val replacements = combineEligibleNodes(connections.map { c -> c.node })
+fun resolveNodeCombinations(
+    connections: List<NodeReplacementTarget>,
+    onlySwitchId: IntId<LayoutSwitch>?,
+): NodeCombinations {
+    val replacements = combineEligibleNodes(connections.map { c -> c.node }, onlySwitchId)
     val replaced = connections.mapNotNull { c -> replacements[c.node]?.let { replacement -> c to replacement } }
     return NodeCombinations(
         replaced.associate { (connection, replacement) -> connection.node.contentHash to replacement },
@@ -102,7 +106,7 @@ private fun comparePorts(port1: NodePort?, port2: NodePort?): Int =
         else -> 0
     }
 
-fun combineEligibleNodes(nodes: List<LayoutNode>): Map<LayoutNode, LayoutNode> {
+fun combineEligibleNodes(nodes: List<LayoutNode>, onlySwitchId: IntId<LayoutSwitch>?): Map<LayoutNode, LayoutNode> {
     // Match targets in priority order for deterministic results in case multiple combinations are possible
     val targets = nodes.toSortedSet(nodeCombinationPriority)
     return nodes
@@ -114,7 +118,7 @@ fun combineEligibleNodes(nodes: List<LayoutNode>): Map<LayoutNode, LayoutNode> {
         .mapNotNull { node ->
             targets
                 // Since we're combining a single-port node -> there can only be port A
-                .firstNotNullOfOrNull { other -> tryToCombinePortToNode(node.portA, other) }
+                .firstNotNullOfOrNull { other -> tryToCombinePortToNode(node.portA, other, onlySwitchId) }
                 // If the best match is a combination-switch node, there's multiple switches to connect to
                 // For a track boundary, we couldn't know which one to use -> don't connect at all
                 ?.takeIf { newNode -> node.type != TRACK_BOUNDARY || newNode.type != SWITCH || newNode.portB == null }
@@ -124,15 +128,19 @@ fun combineEligibleNodes(nodes: List<LayoutNode>): Map<LayoutNode, LayoutNode> {
         .associate { it }
 }
 
-private fun tryToCombinePortToNode(ownPort: NodePort, otherNode: LayoutNode): LayoutNode? =
+private fun tryToCombinePortToNode(
+    ownPort: NodePort,
+    otherNode: LayoutNode,
+    onlySwitchId: IntId<LayoutSwitch>?,
+): LayoutNode? =
     when (ownPort) {
         // Switch link can be connected to any other switch link that is either:
         // * A single-switch node with a link to a different switch
         // * A double-switch node where one of the links is this one (switch & joint)
         // Note: this might create multiple tmp-nodes for the same link-combination, but they will be joined upon saving
         is SwitchLink -> {
-            val otherA = otherNode.portA as? SwitchLink
-            val otherB = otherNode.portB as? SwitchLink
+            val otherA = (otherNode.portA as? SwitchLink)?.takeIf { onlySwitchId == null || it.id == onlySwitchId }
+            val otherB = (otherNode.portB as? SwitchLink)?.takeIf { onlySwitchId == null || it.id == onlySwitchId }
             when {
                 otherA == null -> null
                 otherB == null -> otherA.takeIf { it.id != ownPort.id }?.let { LayoutNode.of(ownPort, it) }

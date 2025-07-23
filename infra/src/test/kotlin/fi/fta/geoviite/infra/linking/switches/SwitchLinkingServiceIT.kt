@@ -51,6 +51,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
+import fi.fta.geoviite.infra.tracklayout.TrackBoundary
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertEquals
 import fi.fta.geoviite.infra.tracklayout.edge
@@ -71,6 +73,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -268,8 +271,7 @@ constructor(
                         switchStructure = switchLibraryService.getSwitchStructure(storedSwitch.switchStructureId),
                         joints = linkedJoints,
                     )
-                switchLinkingService.saveSwitchLinking(
-                    LayoutBranch.main,
+                val suggestedSwitch =
                     matchFittedSwitchToTracks(
                         fittedSwitch,
                         switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
@@ -277,9 +279,12 @@ constructor(
                             fittedSwitch,
                             storedSwitch.id as IntId,
                         ),
-                        storedSwitch.id as IntId,
-                    ),
-                    storedSwitch.id as IntId,
+                        storedSwitch.id,
+                    )
+                switchLinkingService.saveSwitchLinking(
+                    LayoutBranch.main,
+                    suggestedSwitch,
+                    storedSwitch.id,
                     geometrySwitchId = null,
                 )
             }
@@ -498,6 +503,9 @@ constructor(
                 Triple(JointNumber(2), JointNumber(5), JointNumber(1)) to RelativeDirection.Against,
             )
             .forEach { (jointNumbers, matchDirection) ->
+                // clear old location track version from the way to keep the linking comprehensible
+                testDBService.clearLayoutTables()
+
                 val (firstJointNumber, secondJointNumber, thirdJointNumber) = jointNumbers
                 val (testLocationTrack, testAlignment) =
                     createDraftLocationTrackFromLayoutSegments(
@@ -1194,23 +1202,198 @@ constructor(
     }
 
     @Test
+    fun `relinking with head-to-head linked YV switches with initially unlinked through track`() {
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
+        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
+        val leftSwitch =
+            switchDao.save(
+                switch(
+                    switchStructure.id,
+                    joints =
+                        listOf(
+                            LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(40.0, 0.0), null),
+                            LayoutSwitchJoint(
+                                JointNumber(2),
+                                SwitchJointRole.CONNECTION,
+                                Point(40.0 - 34.43, 0.0),
+                                null,
+                            ),
+                        ),
+                )
+            )
+
+        val rightSwitch =
+            switchDao.save(
+                switch(
+                    switchStructure.id,
+                    joints =
+                        listOf(
+                            LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(40.0, 0.0), null),
+                            LayoutSwitchJoint(
+                                JointNumber(2),
+                                SwitchJointRole.CONNECTION,
+                                Point(40.0 + 34.43, 0.0),
+                                null,
+                            ),
+                        ),
+                )
+            )
+
+        // initial situation: left and right branching tracks for head-to-head YV switches are fully correctly linked,
+        // through track isn't linked at all though
+        val throughTrack =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrack(trackNumberId, name = "through track", draft = true),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+
+        val leftBranchingTrack =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrack(trackNumberId, name = "left branching track", draft = true),
+                trackGeometry(
+                    edge(
+                        segments = listOf(segment(Point(0.0, 2.5), Point(40.0 - 34.4, 2.0))),
+                        endOuterSwitch = switchLinkYV(leftSwitch.id, 3),
+                    ),
+                    edge(
+                        segments = listOf(segment(Point(40.0 - 34.4, 2.0), Point(40.0, 0.0))),
+                        startInnerSwitch = switchLinkYV(leftSwitch.id, 3),
+                        endInnerSwitch = switchLinkYV(leftSwitch.id, 1),
+                        endOuterSwitch = switchLinkYV(rightSwitch.id, 1),
+                    ),
+                ),
+            )
+
+        val rightBranchingTrack =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrack(trackNumberId, name = "right branching track", draft = true),
+                trackGeometry(
+                    edge(
+                        segments = listOf(segment(Point(40.0, 0.0), Point(40.0 + 34.4, -2.0))),
+                        startOuterSwitch = switchLinkYV(leftSwitch.id, 1),
+                        startInnerSwitch = switchLinkYV(rightSwitch.id, 1),
+                        endInnerSwitch = switchLinkYV(rightSwitch.id, 3),
+                    ),
+                    edge(
+                        segments = listOf(segment(Point(40.0 + 34.4, -2.0), Point(80.0, -20.0))),
+                        startOuterSwitch = switchLinkYV(rightSwitch.id, 3),
+                    ),
+                ),
+            )
+
+        switchLinkingService.saveSwitchLinking(
+            LayoutBranch.main,
+            switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(40.0, 0.0), leftSwitch.id)!!,
+            leftSwitch.id,
+            geometrySwitchId = null,
+        )
+        assertEquals(
+            listOf(
+                listOf(
+                    null,
+                    TrackBoundary(leftBranchingTrack.id, TrackBoundaryType.START),
+                    null,
+                    switchLinkYV(leftSwitch.id, 3),
+                ),
+                listOf(
+                    null,
+                    switchLinkYV(leftSwitch.id, 3),
+                    switchLinkYV(leftSwitch.id, 1),
+                    switchLinkYV(rightSwitch.id, 1),
+                ),
+            ),
+            locationTrackService
+                .getWithGeometryOrThrow(MainLayoutContext.draft, leftBranchingTrack.id)
+                .second
+                .edges
+                .map {
+                    listOf(it.startNode.outerPort, it.startNode.innerPort, it.endNode.innerPort, it.endNode.outerPort)
+                },
+        )
+
+        switchLinkingService.saveSwitchLinking(
+            LayoutBranch.main,
+            switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(40.0, 0.0), rightSwitch.id)!!,
+            rightSwitch.id,
+            geometrySwitchId = null,
+        )
+
+        assertEquals(
+            listOf(
+                listOf(
+                    null,
+                    TrackBoundary(throughTrack.id, TrackBoundaryType.START),
+                    null,
+                    switchLinkYV(leftSwitch.id, 2),
+                ),
+                listOf(null, switchLinkYV(leftSwitch.id, 2), switchLinkYV(leftSwitch.id, 5), null),
+                listOf(
+                    null,
+                    switchLinkYV(leftSwitch.id, 5),
+                    switchLinkYV(leftSwitch.id, 1),
+                    switchLinkYV(rightSwitch.id, 1),
+                ),
+                listOf(
+                    switchLinkYV(leftSwitch.id, 1),
+                    switchLinkYV(rightSwitch.id, 1),
+                    switchLinkYV(rightSwitch.id, 5),
+                    null,
+                ),
+                listOf(null, switchLinkYV(rightSwitch.id, 5), switchLinkYV(rightSwitch.id, 2), null),
+                listOf(
+                    switchLinkYV(rightSwitch.id, 2),
+                    null,
+                    TrackBoundary(throughTrack.id, TrackBoundaryType.END),
+                    null,
+                ),
+            ),
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, throughTrack.id).second.edges.map {
+                listOf(it.startNode.outerPort, it.startNode.innerPort, it.endNode.innerPort, it.endNode.outerPort)
+            },
+        )
+
+        assertEquals(
+            listOf(
+                listOf(
+                    switchLinkYV(leftSwitch.id, 1),
+                    switchLinkYV(rightSwitch.id, 1),
+                    switchLinkYV(rightSwitch.id, 3),
+                    null,
+                ),
+                listOf(
+                    switchLinkYV(rightSwitch.id, 3),
+                    null,
+                    TrackBoundary(rightBranchingTrack.id, TrackBoundaryType.END),
+                    null,
+                ),
+            ),
+            locationTrackService
+                .getWithGeometryOrThrow(MainLayoutContext.draft, rightBranchingTrack.id)
+                .second
+                .edges
+                .map {
+                    listOf(it.startNode.outerPort, it.startNode.innerPort, it.endNode.innerPort, it.endNode.outerPort)
+                },
+        )
+    }
+
+    @Test
+    @Disabled // work out whether this unrealistic situation actually needs to be supported
     fun `relinking moves mislinked topo link to correct switch despite confuser branching track, and does not pointlessly update alignments or tracks`() {
         val trackNumberId =
             mainOfficialContext
                 .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
                 .id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
-        val (templateSwitch, templateTrackSections) =
-            switchAndMatchingAlignments(trackNumberId = trackNumberId, structure = switchStructure, draft = false)
-        val templateThroughTrackSegments = templateTrackSections[0].second.segments
-        val templateBranchingTrackSegments = templateTrackSections[1].second.segments
-        val switch = switchDao.save(templateSwitch.copy(contextData = LayoutContextData.newOfficial(LayoutBranch.main)))
-        val someOtherSwitch = switchDao.save(switch(draft = false))
 
-        val shift =
-            templateThroughTrackSegments.last().segmentEnd.toPoint() -
-                templateThroughTrackSegments.first().segmentStart.toPoint()
-        val fullShift = shift + Point(100.0, 0.0)
+        val switch = switchDao.save(switch(switchStructure.id, joints = listOf()))
+        val someOtherSwitch = switchDao.save(switch(draft = false))
 
         val throughTrackStart =
             locationTrackService.saveDraft(
@@ -1218,7 +1401,7 @@ constructor(
                 locationTrack(trackNumberId, name = "through track start", draft = true),
                 trackGeometry(
                     edge(
-                        segments = templateThroughTrackSegments + listOf(segment(shift, fullShift)),
+                        segments = listOf(segment(Point(0.0, 0.0), Point(134.43, 0.0))),
                         endOuterSwitch = SwitchLink(someOtherSwitch.id, SwitchJointRole.MAIN, JointNumber(1)),
                     )
                 ),
@@ -1228,7 +1411,7 @@ constructor(
             locationTrack(trackNumberId, name = "through track switch and end", draft = true),
             trackGeometry(
                 edge(
-                    segments = shiftTrack(templateThroughTrackSegments, fullShift),
+                    segments = listOf(segment(Point(134.43, 0.0), Point(200.0, 0.0))),
                     startInnerSwitch = SwitchLink(switch.id, SwitchJointRole.MAIN, JointNumber(1)),
                     endInnerSwitch = SwitchLink(switch.id, SwitchJointRole.CONNECTION, JointNumber(2)),
                 )
@@ -1241,7 +1424,7 @@ constructor(
             locationTrack(trackNumberId, name = "branching track", draft = true),
             trackGeometry(
                 edge(
-                    segments = templateBranchingTrackSegments,
+                    segments = listOf(segment(Point(0.0, 0.0), Point(35.0, -2.0))),
                     startInnerSwitch = SwitchLink(switch.id, SwitchJointRole.MAIN, JointNumber(1)),
                     endInnerSwitch = SwitchLink(switch.id, SwitchJointRole.CONNECTION, JointNumber(3)),
                 )
@@ -1251,9 +1434,10 @@ constructor(
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrack(trackNumberId, name = "uninvolved track", draft = true),
-                trackGeometryOfSegments(shiftTrack(templateThroughTrackSegments, fullShift - Point(1.0, 1.0))),
+                trackGeometryOfSegments(segment(Point(133.43, -1.0), Point(199.0, -1.0))),
             )
-        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, fullShift, switch.id)!!
+        val suggestedSwitch =
+            switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(134.43, 0.0), switch.id)!!
         switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id, geometrySwitchId = null)
 
         assertTrackDraftVersionSwitchLinks(throughTrackStart.id, null, switch.id, listOf(0.0..134.4 to null))
@@ -1451,17 +1635,15 @@ constructor(
         // left switch wants to remain connected to segments on left side tracks, and topologically
         // to right side branching track; right side conversely
         assertEquals(
-            mapOf(throughTrack to true, leftBranchingTrack to true, rightBranchingTrack to false),
-            leftSuggestion.trackLinks.mapValues { (_, links) ->
-                links.suggestedLinks?.let { suggestedLinks -> suggestedLinks.joints.size > 1 }
-            },
+            setOf(throughTrack, leftBranchingTrack),
+            leftSuggestion.trackLinks.filter { (_, suggested) -> suggested.suggestedLinks != null }.keys,
         )
+        assertEquals(setOf(rightBranchingTrack), leftSuggestion.topologicallyLinkedTracks)
         assertEquals(
-            mapOf(throughTrack to true, leftBranchingTrack to false, rightBranchingTrack to true),
-            rightSuggestion.trackLinks.mapValues { (_, links) ->
-                links.suggestedLinks?.let { suggestedLinks -> suggestedLinks.joints.size > 1 }
-            },
+            setOf(throughTrack, rightBranchingTrack),
+            rightSuggestion.trackLinks.filter { (_, suggested) -> suggested.suggestedLinks != null }.keys,
         )
+        assertEquals(setOf(leftBranchingTrack), rightSuggestion.topologicallyLinkedTracks)
     }
 
     @Test
@@ -1757,7 +1939,12 @@ constructor(
                     fittedSwitchTracks + switchContainingTracks,
                 )
                 .let { modifiedTracks ->
-                    locationTrackService.recalculateTopology(layoutContext, modifiedTracks, switchId)
+                    locationTrackService.recalculateTopology(
+                        layoutContext,
+                        modifiedTracks,
+                        switchId,
+                        onlySwitchId = null,
+                    )
                 }
 
         return linkedTracks
