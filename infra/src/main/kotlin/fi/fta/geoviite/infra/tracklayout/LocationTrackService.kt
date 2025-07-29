@@ -743,15 +743,19 @@ class LocationTrackService(
     @Transactional
     fun updateDependencies(
         branch: LayoutBranch,
+        noUpdateLocationTracks: Set<IntId<LocationTrack>>,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         switchId: IntId<LayoutSwitch>? = null,
     ): List<LayoutRowVersion<LocationTrack>> =
         dao.fetchDependencyVersions(branch.draft, trackNumberId, switchId).mapNotNull {
             (trackVersion, dependencyVersions) ->
-            val (track, trackGeometry) = getWithGeometryInternal(trackVersion)
-            recalculateDependencies(track, dependencyVersions)
-                .takeIf { updatedTrack -> updatedTrack != track }
-                ?.let { updatedTrack -> saveDraftInternal(branch, updatedTrack, trackGeometry) }
+            if (noUpdateLocationTracks.contains(trackVersion.id)) null
+            else {
+                val (track, trackGeometry) = getWithGeometryInternal(trackVersion)
+                recalculateDependencies(track, dependencyVersions)
+                    .takeIf { updatedTrack -> updatedTrack != track }
+                    ?.let { updatedTrack -> saveDraftInternal(branch, updatedTrack, trackGeometry) }
+            }
         }
 
     private fun recalculateDependencies(
