@@ -916,7 +916,11 @@
             "warnings": "Varoitukset"
         },
         "created": "Luotu",
-        "changed": "Muokattu"
+        "changed": "Muokattu",
+        "oid": {
+            "copy-success": "OID {{oid}} kopioitu leikepöydälle",
+            "copy-failed": "OID:n kopiointi leikepöydälle epäonnistui"
+        }
     },
     "data-products": {
         "search": {
