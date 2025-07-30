@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.MeasurementMethod
-import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -69,7 +68,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -762,59 +760,101 @@ constructor(
     private fun shiftTrack(template: List<LayoutSegment>, shiftVector: Point) =
         template.map { segment -> shiftSegmentGeometry(segment, shiftVector) }
 
-    @Disabled
     @Test
     fun `validateRelinkingTrack relinks okay cases and gives validation errors about bad ones`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(150.0, 0.0))))
                 .id
 
-        // slightly silly way to make a through track with several switches on a track: Start with a
-        // template and
-        // paste it over several times
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
-        val (templateSwitch, templateTrackSections) =
-            switchAndMatchingAlignments(trackNumberId = trackNumberId, structure = switchStructure, draft = false)
-        val templateThroughTrackSegments = templateTrackSections[0].second.segments
-        val templateBranchingTrackSegments = templateTrackSections[1].second.segments
-        val shift0 = Point(0.0, 0.0)
-        val shift1 =
-            templateThroughTrackSegments.last().segmentPoints.last().let { p -> Point(p.x, p.y) } + Point(10.0, 0.0)
-        val shift2 = shift1 + shift1
 
-        // through track has three switches; first one is linked OK, second one is linkable but will
-        // cause a validation
-        // error as the only branching track is a duplicate, third one can't be linked as there is
-        // no branching track
-        val okSwitch = switchDao.save(shiftSwitch(templateSwitch, "ok", shift0))
-        val okButValidationErrorSwitch = switchDao.save(shiftSwitch(templateSwitch, "ok but val", shift1))
-        val unsaveableSwitch = switchDao.save(shiftSwitch(templateSwitch, "unsaveable", shift2))
+        // through track has three switches; first one is linkable OK, second one is linkable but will cause a
+        // validation error as the only branching track is a duplicate, third one can't be linked as there is no
+        // branching track
+        val okSwitch =
+            switchDao.save(
+                switch(
+                    switchStructure.id,
+                    listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
+                    "ok",
+                )
+            )
+        val okButValidationErrorSwitch =
+            switchDao.save(
+                switch(
+                    switchStructure.id,
+                    listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(60.0, 0.0), null)),
+                    "ok but val",
+                )
+            )
+        val unsaveableSwitch =
+            switchDao.save(
+                switch(
+                    switchStructure.id,
+                    listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(110.0, 0.0), null)),
+                    "unsaveable",
+                )
+            )
 
         val throughTrack =
             locationTrackService.saveDraft(
                 LayoutBranch.main,
                 locationTrack(trackNumberId, name = "through track", draft = true),
-                trackGeometryOfSegments(
-                    pasteTrackSegmentsWithSpacers(
-                            listOf(listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0))), templateThroughTrackSegments),
-                            Point(10.0, 0.0),
-                            Point(-11.0, 0.0),
-                        )
-                        .flatten()
+                // switches placed with joint 1s at x-values 10, 60 and 110, joint 2s at 50, 100, and 150
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                        endOuterSwitch = SwitchLink(okSwitch.id, JointNumber(1), switchStructure),
+                    ),
+                    edge(
+                        listOf(segment(Point(10.0, 0.0), Point(50.0, 0.0))),
+                        startInnerSwitch = SwitchLink(okSwitch.id, JointNumber(1), switchStructure),
+                        endInnerSwitch = SwitchLink(okSwitch.id, JointNumber(2), switchStructure),
+                    ),
+                    edge(
+                        listOf(segment(Point(50.0, 0.0), Point(60.0, 0.0))),
+                        startOuterSwitch = SwitchLink(okSwitch.id, JointNumber(2), switchStructure),
+                        endOuterSwitch = SwitchLink(okButValidationErrorSwitch.id, JointNumber(1), switchStructure),
+                    ),
+                    edge(
+                        listOf(segment(Point(60.0, 0.0), Point(100.0, 0.0))),
+                        startInnerSwitch = SwitchLink(okButValidationErrorSwitch.id, JointNumber(1), switchStructure),
+                        endInnerSwitch = SwitchLink(okButValidationErrorSwitch.id, JointNumber(2), switchStructure),
+                    ),
+                    edge(
+                        listOf(segment(Point(100.0, 0.0), Point(110.0, 0.0))),
+                        startOuterSwitch = SwitchLink(okButValidationErrorSwitch.id, JointNumber(2), switchStructure),
+                        endOuterSwitch = SwitchLink(unsaveableSwitch.id, JointNumber(1), switchStructure),
+                    ),
+                    edge(
+                        listOf(segment(Point(110.0, 0.0), Point(150.0, 0.0))),
+                        startInnerSwitch = SwitchLink(unsaveableSwitch.id, JointNumber(1), switchStructure),
+                        endInnerSwitch = SwitchLink(unsaveableSwitch.id, JointNumber(2), switchStructure),
+                    ),
                 ),
             )
 
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrack(trackNumberId, name = "ok branching track", draft = true),
-            trackGeometryOfSegments(shiftTrack(templateBranchingTrackSegments, shift0)),
+            trackGeometry(
+                edge(
+                    listOf(segment(Point(10.0, 0.0), Point(10.0, 0.0) + Point(34.321, -1.967))),
+                    startOuterSwitch = SwitchLink(okSwitch.id, JointNumber(1), switchStructure),
+                )
+            ),
         )
         // linkable, but will cause a validation error due to being wrongly marked as a duplicate
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrack(trackNumberId, name = "bad branching track", duplicateOf = throughTrack.id, draft = true),
-            trackGeometryOfSegments(shiftTrack(templateBranchingTrackSegments, shift1)),
+            trackGeometry(
+                edge(
+                    listOf(segment(Point(60.0, 0.0), Point(60.0, 0.0) + Point(34.321, -1.967))),
+                    startOuterSwitch = SwitchLink(okButValidationErrorSwitch.id, JointNumber(1), switchStructure),
+                )
+            ),
         )
         val validationResult =
             switchTrackRelinkingValidationService.validateRelinkingTrack(LayoutBranch.main, throughTrack.id)
@@ -822,12 +862,12 @@ constructor(
             listOf(
                 SwitchRelinkingValidationResult(
                     id = okSwitch.id,
-                    successfulSuggestion = SwitchRelinkingSuggestion(Point(0.0, 0.0), TrackMeter("0000+0000.000")),
+                    successfulSuggestion = SwitchRelinkingSuggestion(Point(10.0, 0.0), TrackMeter("0000+0010.000")),
                     validationIssues = listOf(),
                 ),
                 SwitchRelinkingValidationResult(
                     id = okButValidationErrorSwitch.id,
-                    successfulSuggestion = SwitchRelinkingSuggestion(shift1, TrackMeter("0000+0044.430")),
+                    successfulSuggestion = SwitchRelinkingSuggestion(Point(60.0, 0.0), TrackMeter("0000+0060.000")),
                     validationIssues =
                         listOf(
                             LayoutValidationIssue(
@@ -1603,40 +1643,6 @@ constructor(
                 }, edge m-range ${edge.second.min}..${edge.second.max}",
             )
         }
-    }
-
-    private fun pasteTrackSegmentsWithSpacers(
-        segmentss: List<List<LayoutSegment>>,
-        spacerVector: Point,
-        alignmentShift: Point = Point(0.0, 0.0),
-    ): List<List<LayoutSegment>> {
-        val acc = mutableListOf<List<LayoutSegment>>()
-        var shift = alignmentShift
-        segmentss.forEach { segments ->
-            acc +=
-                segments.map { segment ->
-                    val segmentStart = Point(0.0, 0.0) - segment.segmentStart.toPoint()
-                    val s =
-                        segment.copy(
-                            geometry =
-                                segment.geometry.copy(
-                                    segmentPoints =
-                                        segment.geometry.segmentPoints.map { point ->
-                                            point.copy(
-                                                x = point.x + shift.x + segmentStart.x,
-                                                y = point.y + shift.y + segmentStart.y,
-                                            )
-                                        }
-                                )
-                        )
-                    shift += s.segmentEnd.toPoint() - s.segmentStart.toPoint()
-                    s
-                }
-
-            acc += listOf(segment(shift, shift + spacerVector))
-            shift += spacerVector
-        }
-        return acc.map { ss -> ss.map { s -> s.copy(geometry = s.geometry.copy(id = StringId())) } }
     }
 
     private fun createDraftLocationTrackFromLayoutSegments(
