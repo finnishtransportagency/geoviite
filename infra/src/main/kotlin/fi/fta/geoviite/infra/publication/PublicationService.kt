@@ -171,12 +171,19 @@ constructor(
             splitService.deleteSplit(split.id)
         }
 
+        val locationTrackIds = toDelete.locationTracks.toSet()
         val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.deleteDraft(branch, id) }.size
         val referenceLineCount = toDelete.referenceLines.map { id -> referenceLineService.deleteDraft(branch, id) }.size
         alignmentDao.deleteOrphanedAlignments()
-        val switchCount = toDelete.switches.map { id -> switchService.deleteDraft(branch, id) }.size
+        val switchCount =
+            toDelete.switches
+                .map { id -> switchService.deleteDraft(branch, id, noUpdateLocationTracks = locationTrackIds) }
+                .size
         val kmPostCount = toDelete.kmPosts.map { id -> kmPostService.deleteDraft(branch, id) }.size
-        val trackNumberCount = toDelete.trackNumbers.map { id -> trackNumberService.deleteDraft(branch, id) }.size
+        val trackNumberCount =
+            toDelete.trackNumbers
+                .map { id -> trackNumberService.deleteDraft(branch, id, noUpdateLocationTracks = locationTrackIds) }
+                .size
 
         return PublicationResultSummary(
             publicationId = null,

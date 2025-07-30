@@ -218,10 +218,17 @@ class LayoutTrackNumberService(
         mapNonNullValues(dao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
 
     @Transactional
-    override fun deleteDraft(branch: LayoutBranch, id: IntId<LayoutTrackNumber>): LayoutRowVersion<LayoutTrackNumber> {
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<LayoutTrackNumber>): LayoutRowVersion<LayoutTrackNumber> =
+        deleteDraft(branch, id, noUpdateLocationTracks = setOf())
+
+    fun deleteDraft(
+        branch: LayoutBranch,
+        id: IntId<LayoutTrackNumber>,
+        noUpdateLocationTracks: Set<IntId<LocationTrack>>,
+    ): LayoutRowVersion<LayoutTrackNumber> {
         referenceLineService.deleteDraftByTrackNumberId(branch, id)
         return super.deleteDraft(branch, id).also { v ->
-            locationTrackService.updateDependencies(branch, trackNumberId = v.id)
+            locationTrackService.updateDependencies(branch, noUpdateLocationTracks, trackNumberId = v.id)
         }
     }
 
@@ -236,7 +243,7 @@ class LayoutTrackNumberService(
         params: NoParams,
     ): LayoutRowVersion<LayoutTrackNumber> =
         super.saveDraftInternal(branch, draftAsset, NoParams.instance).also { v ->
-            locationTrackService.updateDependencies(branch, trackNumberId = v.id)
+            locationTrackService.updateDependencies(branch, trackNumberId = v.id, noUpdateLocationTracks = setOf())
         }
 }
 

@@ -44,6 +44,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -1730,6 +1732,33 @@ constructor(
         ) { rs, _ ->
             assertEquals(0, rs.getInt("count_in_design"), "design objects are fully cleaned up from live table")
         }
+    }
+
+    @Test
+    fun `deleting a location track and switch draft with dependencies does delete the drafts`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val switch = switchDao.save(switch())
+        val locationTrack =
+            locationTrackDao.save(
+                locationTrack(
+                    trackNumber,
+                    nameStructure = LocationTrackNameStructure.of(LocationTrackNamingScheme.CHORD),
+                ),
+                trackGeometry(
+                    edge(
+                        segments = listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0))),
+                        endInnerSwitch = switchLinkYV(switch.id, 1),
+                    )
+                ),
+            )
+        mainDraftContext.copyFrom(switch)
+        mainDraftContext.copyFrom(locationTrack)
+        publicationService.revertPublicationCandidates(
+            LayoutBranch.main,
+            publicationRequestIds(switches = listOf(switch.id), locationTracks = listOf(locationTrack.id)),
+        )
+        assertEquals(mainOfficialContext.context, mainDraftContext.fetch(switch.id)!!.layoutContext)
+        assertEquals(mainOfficialContext.context, mainDraftContext.fetch(locationTrack.id)!!.layoutContext)
     }
 
     private fun publishManualPublication(
