@@ -17,7 +17,8 @@ type LocationTrackValidationInfoboxProps = {
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
     showLinkedSwitchesRelinkingDialog: () => void;
-    editingDisabled: boolean;
+    switchRelinkingDisabled: boolean;
+    switchRelinkingDisabledMessageKey?: string;
 };
 
 export const LocationTrackValidationInfoboxContainer: React.FC<
@@ -28,7 +29,8 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
     contentVisible,
     onContentVisibilityChange,
     showLinkedSwitchesRelinkingDialog,
-    editingDisabled,
+    switchRelinkingDisabled,
+    switchRelinkingDisabledMessageKey,
 }) => {
     const { t } = useTranslation();
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
@@ -55,7 +57,11 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
                         <Button
                             size={ButtonSize.SMALL}
                             variant={ButtonVariant.SECONDARY}
-                            disabled={editingDisabled}
+                            disabled={switchRelinkingDisabled}
+                            title={
+                                switchRelinkingDisabledMessageKey &&
+                                t(switchRelinkingDisabledMessageKey)
+                            }
                             onClick={showLinkedSwitchesRelinkingDialog}>
                             {t('tool-panel.location-track.open-switch-relinking-dialog')}
                         </Button>

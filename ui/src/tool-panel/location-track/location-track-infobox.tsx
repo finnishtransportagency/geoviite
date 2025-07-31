@@ -162,7 +162,12 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 id={locationTrack.id}
                 layoutContext={layoutContext}
                 showLinkedSwitchesRelinkingDialog={() => setConfirmingSwitchRelinking(true)}
-                editingDisabled={editingDisabled}
+                switchRelinkingDisabled={editingDisabled || locationTrack.state === 'DELETED'}
+                switchRelinkingDisabledMessageKey={
+                    locationTrack.state === 'DELETED'
+                        ? 'tool-panel.location-track.switches-for-deleted-track-cannot-be-relinked'
+                        : undefined
+                }
             />
             <LocationTrackChangeInfoInfobox
                 locationTrackId={locationTrack.id}

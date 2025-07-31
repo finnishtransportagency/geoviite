@@ -793,6 +793,7 @@
             "ratko-info-heading": "Ratko",
             "push-to-ratko": "Vie Ratkoon...",
             "open-switch-relinking-dialog": "Linkitä raiteen vaihteet...",
+            "switches-for-deleted-track-cannot-be-relinked": "Poistetun raiteen vaihteita ei voi linkittää",
             "ratko-push-dialog": {
                 "title": "Vie sijaintiraiteen tiedot ratkoon",
                 "title-done": "Sijaintiraiteen tiedot viety ratkoon",
