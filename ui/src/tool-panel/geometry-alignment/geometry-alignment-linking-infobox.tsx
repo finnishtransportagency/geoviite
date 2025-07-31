@@ -7,7 +7,9 @@ import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox
 import {
     LayoutLocationTrack,
     LayoutReferenceLine,
+    LocationTrackId,
     MapAlignmentType,
+    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
     getLinkedAlignmentIdsInPlan,
@@ -18,7 +20,7 @@ import {
     linkGeometryWithReferenceLine,
 } from 'linking/linking-api';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutBranch, LayoutContext } from 'common/common-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
@@ -61,6 +63,7 @@ import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { LinkingStatusLabel } from 'geoviite-design-lib/linking-status/linking-status-label';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { LocalizationKey } from 'infra-model/infra-model-slice';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -128,6 +131,44 @@ type GeometryAlignmentLinkingInfoboxProps = {
 };
 
 const isNotPreliminary = (state: LinkingPhase) => state !== 'preliminary';
+
+const geometryLinkingSuccessMessageKeys: Record<
+    LinkingType.LinkingGeometryWithAlignment | LinkingType.LinkingGeometryWithEmptyAlignment,
+    Record<MapAlignmentType, LocalizationKey>
+> = {
+    [LinkingType.LinkingGeometryWithAlignment]: {
+        [MapAlignmentType.ReferenceLine]:
+            'tool-panel.alignment.geometry.reference-line-linking-succeeded-and-previous-unlinked',
+        [MapAlignmentType.LocationTrack]:
+            'tool-panel.alignment.geometry.linking-succeeded-and-previous-unlinked',
+    },
+    [LinkingType.LinkingGeometryWithEmptyAlignment]: {
+        [MapAlignmentType.ReferenceLine]:
+            'tool-panel.alignment.geometry.reference-line-linking-succeeded',
+        [MapAlignmentType.LocationTrack]: 'tool-panel.alignment.geometry.linking-succeeded',
+    },
+};
+
+type GeometryLinkingFunction = (
+    layoutBranch: LayoutBranch,
+    parameters:
+        | LinkingGeometryWithAlignmentParameters
+        | LinkingGeometryWithEmptyAlignmentParameters,
+) => Promise<LocationTrackId | ReferenceLineId>;
+
+const geometryLinkingFunctions: Record<
+    LinkingType.LinkingGeometryWithAlignment | LinkingType.LinkingGeometryWithEmptyAlignment,
+    Record<MapAlignmentType, GeometryLinkingFunction>
+> = {
+    [LinkingType.LinkingGeometryWithAlignment]: {
+        [MapAlignmentType.ReferenceLine]: linkGeometryWithReferenceLine,
+        [MapAlignmentType.LocationTrack]: linkGeometryWithLocationTrack,
+    },
+    [LinkingType.LinkingGeometryWithEmptyAlignment]: {
+        [MapAlignmentType.ReferenceLine]: linkGeometryWithEmptyReferenceLine,
+        [MapAlignmentType.LocationTrack]: linkGeometryWithEmptyLocationTrack,
+    },
+};
 
 const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxProps> = ({
     onSelect,
@@ -268,29 +309,23 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
 
         setLinkingCallInProgress(true);
         try {
-            if (linkingState?.type === LinkingType.LinkingGeometryWithAlignment) {
-                const linkingParameters =
-                    createLinkingGeometryWithAlignmentParameters(linkingState);
+            const linkingFunction =
+                geometryLinkingFunctions[linkingState.type][linkingState.layoutAlignment.type];
 
-                await (linkingState.layoutAlignment.type === 'LOCATION_TRACK'
-                    ? linkGeometryWithLocationTrack(layoutContext.branch, linkingParameters)
-                    : linkGeometryWithReferenceLine(layoutContext.branch, linkingParameters));
+            const linkingParameters =
+                linkingState.type === LinkingType.LinkingGeometryWithAlignment
+                    ? createLinkingGeometryWithAlignmentParameters(linkingState)
+                    : createLinkingGeometryWithEmptyAlignmentParameters(linkingState);
 
-                Snackbar.success(
-                    'tool-panel.alignment.geometry.linking-succeeded-and-previous-unlinked',
-                );
+            await linkingFunction(layoutContext.branch, linkingParameters);
 
-                onStopLinking();
-            } else if (linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
-                const linkingParameters =
-                    createLinkingGeometryWithEmptyAlignmentParameters(linkingState);
-                await (linkingState.layoutAlignment.type === 'LOCATION_TRACK'
-                    ? linkGeometryWithEmptyLocationTrack(layoutContext.branch, linkingParameters)
-                    : linkGeometryWithEmptyReferenceLine(layoutContext.branch, linkingParameters));
+            Snackbar.success(
+                geometryLinkingSuccessMessageKeys[linkingState.type][
+                    linkingState.layoutAlignment.type
+                ],
+            );
 
-                Snackbar.success('tool-panel.alignment.geometry.linking-succeeded');
-                onStopLinking();
-            }
+            onStopLinking();
         } finally {
             setLinkingCallInProgress(false);
         }
