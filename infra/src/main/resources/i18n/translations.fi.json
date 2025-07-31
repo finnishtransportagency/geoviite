@@ -715,6 +715,8 @@
                 "zoom-closer": "Zoomaa lähemmäksi valitaksesi yhdistymispisteet.",
                 "linking-succeeded-and-previous-unlinked": "Raide linkitetty ja vanhentuneen geometrian linkitys purettu.",
                 "linking-succeeded": "Raide linkitetty",
+                "reference-line-linking-succeeded-and-previous-unlinked": "Pituusmittauslinja linkitetty ja vanhentuneen geometrian linkitys purettu.",
+                "reference-line-linking-succeeded": "Pituusmittauslinja linkitetty",
                 "add-linking": "Lisää linkitys",
                 "show-on-map": "Kohdista kartalla",
                 "no-linkable-location-tracks": "Sopivia sijaintiraiteita ei löytynyt linkitettäväksi.",
