@@ -15,10 +15,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import io.swagger.v3.oas.annotations.media.Schema
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @Schema(name = "Vastaus: Sijaintiraidekokoelma")
 data class ExtLocationTrackCollectionResponseV1(
@@ -63,13 +63,12 @@ constructor(
                 else -> {
                     trackLayoutVersion
                         .let { uuid -> publicationDao.fetchPublicationByUuid(uuid) }
-                        .let(::requireNotNull)
-                        .let { specifiedPublication ->
+                        ?.let { specifiedPublication ->
                             specifiedPublication to
                                 locationTrackDao.listPublishedLocationTracksAtMoment(
                                     specifiedPublication.publicationTime
                                 )
-                        }
+                        } ?: throw ExtTrackLayoutVersionNotFound("trackLayoutVersion=${trackLayoutVersion}")
                 }
             }
 
