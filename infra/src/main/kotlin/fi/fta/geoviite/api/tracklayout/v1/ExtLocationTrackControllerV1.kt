@@ -41,11 +41,11 @@ class ExtLocationTrackControllerV1(
     @GetMapping("/sijaintiraiteet")
     @Tag(name = EXT_LOCATION_TRACK_COLLECTION_TAG_V1)
     fun extGetLocationTrackCollection(
-        @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>?,
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>?,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
     ): ExtLocationTrackCollectionResponseV1 {
         return extLocationTrackCollectionService.createLocationTrackCollectionResponse(
-            trackNetworkVersion = trackNetworkVersion,
+            trackLayoutVersion = trackLayoutVersion,
             coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
         )
     }
@@ -54,13 +54,13 @@ class ExtLocationTrackControllerV1(
     @Tag(name = EXT_LOCATION_TRACK_COLLECTION_TAG_V1)
     fun extGetLocationTrackCollectionModifications(
         @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
-        @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>?,
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>?,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackCollectionResponseV1> {
         return extLocationTrackCollectionService
             .createLocationTrackCollectionModificationResponse(
                 modificationsFromVersion = modificationsFromVersion,
-                trackNetworkVersion = trackNetworkVersion,
+                trackLayoutVersion = trackLayoutVersion,
                 coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
             )
             ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
@@ -72,12 +72,12 @@ class ExtLocationTrackControllerV1(
         @Parameter(description = LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: Oid<LocationTrack>,
-        @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>?,
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>?,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
     ): ExtLocationTrackResponseV1 {
         return extLocationTrackService.createLocationTrackResponse(
             oid,
-            trackNetworkVersion,
+            trackLayoutVersion,
             coordinateSystem ?: LAYOUT_SRID,
         )
     }
@@ -87,14 +87,14 @@ class ExtLocationTrackControllerV1(
     fun extGetLocationTrackModifications(
         @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
         @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
-        @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>?,
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>?,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackResponseV1> {
         return extLocationTrackService
             .createLocationTrackModificationResponse(
                 locationTrackOid,
                 modificationsFromVersion,
-                trackNetworkVersion,
+                trackLayoutVersion,
                 coordinateSystem ?: LAYOUT_SRID,
             )
             ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
@@ -104,7 +104,7 @@ class ExtLocationTrackControllerV1(
     @Tag(name = EXT_LOCATION_TRACK_TAG_V1)
     fun extGetLocationTrackGeometry(
         @PathVariable(LOCATION_TRACK_OID_PARAM) oid: Oid<LocationTrack>,
-        @RequestParam(TRACK_NETWORK_VERSION, required = false) trackNetworkVersion: Uuid<Publication>? = null,
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>? = null,
         @RequestParam(ADDRESS_POINT_RESOLUTION, required = false) extResolution: ExtResolutionV1? = null,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid? = null,
         @RequestParam(TRACK_KILOMETER_START_PARAM, required = false) trackKmStart: KmNumber? = null,
@@ -112,7 +112,7 @@ class ExtLocationTrackControllerV1(
     ): ExtLocationTrackGeometryResponseV1 {
         return extLocationTrackGeometryService.createGeometryResponse(
             oid,
-            trackNetworkVersion,
+            trackLayoutVersion,
             extResolution?.toResolution() ?: Resolution.ONE_METER,
             coordinateSystem ?: LAYOUT_SRID,
             ExtTrackKilometerIntervalV1(trackKmStart, trackKmEnd),
