@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
@@ -166,7 +167,7 @@ constructor(
 
     private fun updateRouteNumberGeometry(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
-        newPoints: Collection<AddressPoint>,
+        newPoints: Collection<AddressPoint<ReferenceLineM>>,
     ) =
         toRatkoPointsGroupedByKm(newPoints).forEach { points ->
             ratkoClient.updateRouteNumberPoints(routeNumberOid, points)
@@ -201,7 +202,7 @@ constructor(
 
     private fun createRouteNumberPoints(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
-        newPoints: Collection<AddressPoint>,
+        newPoints: Collection<AddressPoint<ReferenceLineM>>,
     ) =
         toRatkoPointsGroupedByKm(newPoints).forEach { points ->
             ratkoClient.createRouteNumberPoints(routeNumberOid, points)

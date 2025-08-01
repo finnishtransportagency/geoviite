@@ -13,7 +13,7 @@ data class ReferenceLine(
     val startAddress: TrackMeter,
     val sourceId: IntId<GeometryAlignment>?,
     val boundingBox: BoundingBox? = null,
-    val length: Double = 0.0,
+    val length: LineM<ReferenceLineM> = LineM(0.0),
     val segmentCount: Int = 0,
     @JsonIgnore override val contextData: LayoutContextData<ReferenceLine>,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,

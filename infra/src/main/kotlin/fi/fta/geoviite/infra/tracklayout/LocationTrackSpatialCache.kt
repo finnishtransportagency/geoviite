@@ -9,9 +9,9 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.lineLength
+import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class LocationTrackSpatialCache
@@ -71,7 +71,7 @@ data class SpatialCacheEntry(
 data class LocationTrackCacheHit(
     val track: LocationTrack,
     val geometry: LocationTrackGeometry,
-    val closestPoint: AlignmentPoint,
+    val closestPoint: AlignmentPoint<LocationTrackM>,
     val distance: Double,
 )
 

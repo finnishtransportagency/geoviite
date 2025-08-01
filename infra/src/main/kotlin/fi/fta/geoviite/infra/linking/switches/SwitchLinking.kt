@@ -14,10 +14,13 @@ import fi.fta.geoviite.infra.switchLibrary.ISwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.tracklayout.EdgeM
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 
 enum class SuggestedSwitchJointMatchType {
@@ -36,7 +39,7 @@ data class EdgeId(val locationTrackId: IntId<LocationTrack>, val edgeIndex: Int)
 data class JointOnEdge(
     val jointNumber: JointNumber,
     val jointRole: SwitchJointRole,
-    val mOnEdge: Double,
+    val mOnEdge: LineM<EdgeM>,
     val direction: RelativeDirection,
     val location: Point,
 )
@@ -53,7 +56,7 @@ data class LayoutSwitchSaveRequest(
 data class FittedSwitchJointMatch(
     val locationTrackId: IntId<LocationTrack>,
     val segmentIndex: Int,
-    val mOnTrack: Double,
+    val mOnTrack: LineM<LocationTrackM>,
     val switchJoint: SwitchStructureJoint,
     val matchType: SuggestedSwitchJointMatchType,
     val distance: Double,
@@ -92,7 +95,7 @@ data class SuggestedLinks(val edgeIndex: Int, val joints: List<SwitchLinkingJoin
     }
 }
 
-data class SwitchLinkingJoint(val mvalueOnEdge: Double, val jointNumber: JointNumber, val location: Point)
+data class SwitchLinkingJoint(val mvalueOnEdge: LineM<EdgeM>, val jointNumber: JointNumber, val location: Point)
 
 data class SwitchRelinkingValidationResult(
     val id: IntId<LayoutSwitch>,

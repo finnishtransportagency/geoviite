@@ -44,7 +44,6 @@ import java.math.BigDecimal
 import java.time.Instant
 import kotlin.math.abs
 import kotlin.math.cos
-import kotlin.math.max
 import kotlin.math.min
 
 const val POINT_SEEK_TOLERANCE = 1.0
@@ -57,48 +56,48 @@ enum class GeometrySource {
 
 fun emptyAlignment() = LayoutAlignment(segments = listOf())
 
-data class SegmentGeometryAndMetadata(
+data class SegmentGeometryAndMetadata<M : AlignmentM<M>>(
     val planId: IntId<GeometryPlan>?,
     val fileName: FileName?,
     val alignmentId: IntId<GeometryAlignment>?,
     val alignmentName: AlignmentName?,
-    val startPoint: Point3DM?,
-    val endPoint: Point3DM?,
+    val startPoint: Point3DM<M>?,
+    val endPoint: Point3DM<M>?,
     val isLinked: Boolean,
-    val id: StringId<SegmentGeometryAndMetadata>,
+    val id: StringId<SegmentGeometryAndMetadata<M>>,
 )
 
-data class PlanSectionPoint(val address: TrackMeter, val location: IPoint, val m: Double)
+data class PlanSectionPoint<M : AlignmentM<M>>(val address: TrackMeter, val location: IPoint, val m: LineM<M>)
 
-data class AlignmentPlanSection(
+data class AlignmentPlanSection<M : AlignmentM<M>>(
     val planId: IntId<GeometryPlan>?,
     val planName: FileName?,
     val alignmentId: IntId<GeometryAlignment>?,
     val alignmentName: AlignmentName?,
     val isLinked: Boolean,
-    val start: PlanSectionPoint,
-    val end: PlanSectionPoint,
-    val id: StringId<SegmentGeometryAndMetadata>,
+    val start: PlanSectionPoint<M>,
+    val end: PlanSectionPoint<M>,
+    val id: StringId<SegmentGeometryAndMetadata<M>>,
 )
 
-fun calculateSegmentMValues(segments: List<ISegment>): List<Range<Double>> {
-    var previousEnd = 0.0
+fun <M : AnyM<M>> calculateSegmentMValues(segments: List<ISegment>): List<Range<LineM<M>>> {
+    var previousEnd = LineM<M>(0.0)
     return segments.map { segment ->
         Range(previousEnd, previousEnd + segment.length).also { previousEnd += segment.length }
     }
 }
 
-interface IAlignment : Loggable {
+interface IAlignment<M : AlignmentM<M>> : Loggable {
     @get:JsonIgnore val segments: List<ISegment>
-    val segmentMValues: List<Range<Double>>
+    val segmentMValues: List<Range<LineM<M>>>
     val boundingBox: BoundingBox?
 
     @get:JsonIgnore
-    val segmentsWithM: List<Pair<ISegment, Range<Double>>>
+    val segmentsWithM: List<Pair<ISegment, Range<LineM<M>>>>
         get() = segments.zip(segmentMValues)
 
-    val length: Double
-        get() = segmentMValues.lastOrNull()?.max ?: 0.0
+    val length: LineM<M>
+        get() = segmentMValues.lastOrNull()?.max ?: LineM(0.0)
 
     @get:JsonIgnore
     val firstSegmentStart: SegmentPoint?
@@ -108,13 +107,13 @@ interface IAlignment : Loggable {
     val lastSegmentEnd: SegmentPoint?
         get() = segments.lastOrNull()?.segmentEnd
 
-    val start: AlignmentPoint?
-        get() = segments.firstOrNull()?.segmentStart?.toAlignmentPoint(0.0)
+    val start: AlignmentPoint<M>?
+        get() = segments.firstOrNull()?.segmentStart?.toAlignmentPoint(LineM(0.0))
 
-    val end: AlignmentPoint?
+    val end: AlignmentPoint<M>?
         get() = segments.lastOrNull()?.segmentEnd?.toAlignmentPoint(segmentMValues.last().min)
 
-    private fun getAlignmentPoints(downward: Boolean): Sequence<AlignmentPoint> =
+    private fun getAlignmentPoints(downward: Boolean): Sequence<AlignmentPoint<M>> =
         (if (downward) segmentsWithM.asReversed() else segmentsWithM).asSequence().flatMapIndexed {
             index,
             (segment, segmentM) ->
@@ -136,14 +135,14 @@ interface IAlignment : Loggable {
             }
 
     @get:JsonIgnore
-    val allAlignmentPoints: Sequence<AlignmentPoint>
+    val allAlignmentPoints: Sequence<AlignmentPoint<M>>
         get() = getAlignmentPoints(false)
 
     @get:JsonIgnore
-    val allAlignmentPointsDownward: Sequence<AlignmentPoint>
+    val allAlignmentPointsDownward: Sequence<AlignmentPoint<M>>
         get() = getAlignmentPoints(true)
 
-    fun filterSegmentsByBbox(bbox: BoundingBox): List<Pair<ISegment, Range<Double>>> {
+    fun filterSegmentsByBbox(bbox: BoundingBox): List<Pair<ISegment, Range<LineM<M>>>> {
         return if (!bbox.intersects(boundingBox)) {
             listOf() // Shortcut: if it doesn't hit the alignment, it won't hit segments either
         } else if (boundingBox != null && bbox.contains(boundingBox!!)) {
@@ -153,10 +152,10 @@ interface IAlignment : Loggable {
         }
     }
 
-    fun getClosestPoint(target: IPoint, snapDistance: Double = 0.0): Pair<AlignmentPoint, IntersectType>? =
+    fun getClosestPoint(target: IPoint, snapDistance: Double = 0.0): Pair<AlignmentPoint<M>, IntersectType>? =
         getClosestPointM(target)?.let { (m, type) -> getPointAtM(m, snapDistance)?.let { p -> p to type } }
 
-    fun getClosestPointM(target: IPoint): Pair<Double, IntersectType>? =
+    fun getClosestPointM(target: IPoint): Pair<LineM<M>, IntersectType>? =
         findClosestSegmentIndex(target)?.let { segmentIndex ->
             val segment = segments[segmentIndex]
             val segmentM = segmentMValues[segmentIndex]
@@ -167,32 +166,32 @@ interface IAlignment : Loggable {
                 else if (interpolatedInternalM > segment.length + POINT_SEEK_TOLERANCE) segmentM.max to AFTER
                 else if (interpolatedInternalM < 0.0) segmentM.min to WITHIN
                 else if (interpolatedInternalM > segment.length) segmentM.max to WITHIN
-                else segmentM.min + interpolatedInternalM to WITHIN
+                else LineM<SegmentM>(interpolatedInternalM).segmentToAlignmentM(segmentM.min) to WITHIN
             } else {
                 segment.getClosestPointM(segmentM.min, target)
             }
         }
 
-    fun takeFirst(count: Int): List<AlignmentPoint> = allAlignmentPoints.take(count).toList()
+    fun takeFirst(count: Int): List<AlignmentPoint<M>> = allAlignmentPoints.take(count).toList()
 
-    fun takeLast(count: Int): List<AlignmentPoint> = allAlignmentPointsDownward.take(count).toList().asReversed()
+    fun takeLast(count: Int): List<AlignmentPoint<M>> = allAlignmentPointsDownward.take(count).toList().asReversed()
 
-    fun getPointAtM(m: Double, snapDistance: Double = 0.0): AlignmentPoint? =
+    fun getPointAtM(m: LineM<M>, snapDistance: Double = 0.0): AlignmentPoint<M>? =
         when {
-            m <= 0.0 -> start
+            m <= LineM(0.0) -> start
             m >= length -> end
             else -> getSegmentAtM(m)?.let { (s, segmentM) -> s.seekPointAtM(segmentM.min, m, snapDistance).point }
         }
 
-    fun getSegmentIndexAtM(m: Double) =
-        if (m < 0 || m > length + LAYOUT_M_DELTA)
+    fun getSegmentIndexAtM(m: LineM<M>) =
+        if (m < LineM(0) || m > length + LAYOUT_M_DELTA)
             throw IllegalArgumentException("m of $m out of range 0..${length + LAYOUT_M_DELTA}")
         else
             m.coerceAtMost(length).let { clampedM ->
                 segmentMValues.binarySearch { s -> if (clampedM < s.min) 1 else if (clampedM > s.max) -1 else 0 }
             }
 
-    fun getSegmentAtM(m: Double): Pair<ISegment, Range<Double>>? =
+    fun getSegmentAtM(m: LineM<M>): Pair<ISegment, Range<LineM<M>>>? =
         getSegmentIndexAtM(m).takeIf { i -> i >= 0 }?.let { i -> segments[i] to segmentMValues[i] }
 
     fun findClosestSegmentIndex(target: IPoint): Int? {
@@ -271,20 +270,22 @@ data class LayoutAlignment(
     override val segments: List<LayoutSegment>,
     val id: DomainId<LayoutAlignment> = StringId(),
     val dataType: DataType = DataType.TEMP,
-) : IAlignment {
+) : IAlignment<ReferenceLineM> {
     override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.map { s -> s.boundingBox }) }
-    override val segmentMValues: List<Range<Double>> = calculateSegmentMValues(segments)
+    override val segmentMValues: List<Range<LineM<ReferenceLineM>>> = calculateSegmentMValues(segments)
     @get:JsonIgnore
-    override val segmentsWithM: List<Pair<LayoutSegment, Range<Double>>>
+    override val segmentsWithM: List<Pair<LayoutSegment, Range<LineM<ReferenceLineM>>>>
         get() = segments.zip(segmentMValues)
 
     init {
         segments.forEachIndexed { index, segment ->
             val m = segmentMValues[index]
-            require(abs(segment.length - (m.max - m.min)) < LAYOUT_M_DELTA)
+            require(abs(segment.length - (m.max.distance - m.min.distance)) < LAYOUT_M_DELTA)
 
             if (index == 0) {
-                require(m.min == 0.0) { "First segment should start at 0.0: alignment=$id firstStart=${m.min}" }
+                require(m.min.distance == 0.0) {
+                    "First segment should start at 0.0: alignment=$id firstStart=${m.min.distance}"
+                }
             } else {
                 val previous = segments[index - 1]
                 val previousM = segmentMValues[index - 1]
@@ -293,7 +294,7 @@ data class LayoutAlignment(
                         "alignment=$id segment=$index length=${segment.length} prevLength=${previous.length} " +
                         "diff=${lineLength(previous.segmentEnd, segment.segmentStart)}"
                 }
-                require(isSame(previousM.max, m.min, LAYOUT_M_DELTA)) {
+                require(isSame(previousM.max.distance, m.min.distance, LAYOUT_M_DELTA)) {
                     "Alignment segment m-calculation should be continuous: " +
                         "alignment=$id segment=$index prev=$previousM next=$m"
                 }
@@ -348,7 +349,7 @@ interface ISegmentGeometry {
         get() = segmentPoints.last()
 
     val length: Double
-        get() = segmentPoints.last().m
+        get() = segmentPoints.last().m.distance
 
     fun includes(searchPoint: IPoint): Boolean {
         return segmentPoints.any { point -> point.isSame(searchPoint, LAYOUT_COORDINATE_DELTA) }
@@ -358,23 +359,27 @@ interface ISegmentGeometry {
      * Finds a point on the line at given in-segment m-value Snaps to actual segment points at snapDistance, if provided
      * and greater than zero.
      */
-    fun seekPointAtSegmentM(segmentM: Double, snapDistance: Double = 0.0): PointSeekResult<SegmentPoint> {
-        return if (segmentM <= 0.0) {
+    fun seekPointAtSegmentM(
+        segmentM: LineM<SegmentM>,
+        snapDistance: Double = 0.0,
+    ): PointSeekResult<SegmentM, SegmentPoint> {
+        return if (segmentM <= LineM(0.0)) {
             PointSeekResult(segmentStart, 0, true)
-        } else if (segmentM >= length) {
+        } else if (segmentM.distance >= length) {
             PointSeekResult(segmentEnd, segmentPoints.lastIndex, true)
         } else {
             val indexAfter = segmentPoints.indexOfFirst { p -> p.m >= segmentM }
             val pointAfter = segmentPoints[indexAfter]
             segmentPoints.getOrNull(indexAfter - 1)?.let { pointBefore ->
-                val distanceToLast = abs(pointBefore.m - segmentM)
-                val distanceToNext = abs(pointAfter.m - segmentM)
+                val distanceToLast = abs(pointBefore.m.distance - segmentM.distance)
+                val distanceToNext = abs(pointAfter.m.distance - segmentM.distance)
                 if (distanceToLast <= min(snapDistance, distanceToNext)) {
                     PointSeekResult(pointBefore, indexAfter - 1, true)
                 } else if (distanceToNext <= min(snapDistance, distanceToLast)) {
                     PointSeekResult(pointAfter, indexAfter, true)
                 } else {
-                    val portion = (segmentM - pointBefore.m) / (pointAfter.m - pointBefore.m)
+                    val portion =
+                        (segmentM.distance - pointBefore.m.distance) / (pointAfter.m.distance - pointBefore.m.distance)
                     PointSeekResult(interpolateToSegmentPoint(pointBefore, pointAfter, portion), indexAfter, false)
                 }
             } ?: PointSeekResult(pointAfter, indexAfter, true)
@@ -401,7 +406,7 @@ data class SegmentGeometry(
             "Segment geometry must have at least 2 points: points=${segmentPoints.size}"
         }
         require(length.isFinite() && length >= 0.0) { "Invalid length: $length" }
-        require(segmentPoints.first().m == 0.0) { "Segment geometry m-values should start at 0.0" }
+        require(segmentPoints.first().m == LineM<SegmentM>(0.0)) { "Segment geometry m-values should start at 0.0" }
         segmentPoints.forEachIndexed { index, point ->
             require(index == 0 || point.x != segmentPoints[index - 1].x || point.y != segmentPoints[index - 1].y) {
                 "There should be no duplicate points in segment geometry:" +
@@ -417,8 +422,8 @@ data class SegmentGeometry(
     fun withPoints(segmentPoints: List<SegmentPoint>): SegmentGeometry =
         copy(segmentPoints = fixSegmentGeometryMValues(segmentPoints), id = StringId())
 
-    fun splitAtSegmentM(segmentM: Double, snapDistance: Double): Pair<SegmentGeometry, SegmentGeometry?> =
-        if (segmentM !in 0.0..length) this to null
+    fun splitAtSegmentM(segmentM: LineM<SegmentM>, snapDistance: Double): Pair<SegmentGeometry, SegmentGeometry?> =
+        if (segmentM.distance !in 0.0..length) this to null
         else {
             val pointAtM = seekPointAtSegmentM(segmentM, snapDistance)
             if (pointAtM.isSnapped && (pointAtM.index <= 0 || pointAtM.index >= segmentPoints.lastIndex)) {
@@ -438,8 +443,8 @@ data class SegmentGeometry(
 }
 
 private fun fixSegmentGeometryMValues(points: List<SegmentPoint>): List<SegmentPoint> =
-    if (points.first().m == 0.0) points
-    else points.first().m.let { mOffset -> points.map { p -> p.copy(m = max(0.0, p.m - mOffset)) } }
+    if (points.first().m == LineM<SegmentM>(0.0)) points
+    else points.first().m.let { mOffset -> points.map { p -> p.copy(m = maxM(LineM(0.0), p.m - mOffset)) } }
 
 interface ISegmentFields {
     val sourceId: DomainId<GeometryElement>?
@@ -450,12 +455,12 @@ interface ISegmentFields {
 interface ISegment : ISegmentGeometry, ISegmentFields {
     @get:JsonIgnore val geometry: SegmentGeometry
 
-    fun getClosestPointM(segmentStartM: Double, target: IPoint): Pair<Double, IntersectType> =
+    fun <M : AlignmentM<M>> getClosestPointM(segmentStartM: LineM<M>, target: IPoint): Pair<LineM<M>, IntersectType> =
         findClosestSegmentPointM(0..segmentPoints.lastIndex, target).let { (segmentM, intersect) ->
-            (segmentM + segmentStartM) to intersect
+            (segmentM.segmentToAlignmentM(segmentStartM)) to intersect
         }
 
-    private fun findClosestSegmentPointM(range: IntRange, target: IPoint): Pair<Double, IntersectType> {
+    private fun findClosestSegmentPointM(range: IntRange, target: IPoint): Pair<LineM<SegmentM>, IntersectType> {
         if (range.first == range.last) {
             return segmentPoints[range.first].m to WITHIN
         } else {
@@ -500,16 +505,20 @@ interface ISegment : ISegmentGeometry, ISegmentFields {
      * Finds a point on the line at given alignment m-value (segment start + in-segment m). Snaps to actual segment
      * points at snapDistance, if provided and greater than zero.
      */
-    fun seekPointAtM(segmentStartM: Double, m: Double, snapDistance: Double = 0.0): PointSeekResult<AlignmentPoint> =
-        seekPointAtSegmentM(m - segmentStartM, snapDistance).let { r ->
-            PointSeekResult(toAlignmentPoint(segmentStartM, r.point), r.index, r.isSnapped)
+    fun <M : AlignmentM<M>> seekPointAtM(
+        segmentStartM: LineM<M>,
+        m: LineM<M>,
+        snapDistance: Double = 0.0,
+    ): PointSeekResult<M, AlignmentPoint<M>> =
+        seekPointAtSegmentM(m.toSegmentM(segmentStartM), snapDistance).let { r ->
+            PointSeekResult(r.point.toAlignmentPoint(segmentStartM), r.index, r.isSnapped)
         }
 
-    fun toAlignmentPoint(segmentStartM: Double, segmentPoint: SegmentPoint) =
+    fun <M : AlignmentM<M>> toAlignmentPoint(segmentStartM: LineM<M>, segmentPoint: SegmentPoint) =
         segmentPoint.toAlignmentPoint(segmentStartM)
 }
 
-data class PointSeekResult<T : IPoint3DM>(val point: T, val index: Int, val isSnapped: Boolean)
+data class PointSeekResult<M : AnyM<M>, T : IPoint3DM<M>>(val point: T, val index: Int, val isSnapped: Boolean)
 
 data class LayoutSegment(
     @JsonIgnore override val geometry: SegmentGeometry,
@@ -529,24 +538,31 @@ data class LayoutSegment(
         require(source != GENERATED || segmentPoints.size == 2) { "Generated segment can't have more than 2 points" }
     }
 
-    fun slice(segmentStartM: Double, fromIndex: Int, toIndex: Int): Pair<LayoutSegment, Range<Double>>? {
+    fun <M : AlignmentM<M>> slice(
+        segmentStartM: LineM<M>,
+        fromIndex: Int,
+        toIndex: Int,
+    ): Pair<LayoutSegment, Range<LineM<M>>>? {
         return if (fromIndex >= toIndex) {
             null
         } else {
             segmentPoints.slice(fromIndex..toIndex).let { newPoints ->
                 val offset = newPoints.first().m
                 val newSegment =
-                    withPoints(points = fixSegmentGeometryMValues(newPoints), newSourceStart = addedSourceStart(offset))
-                newSegment to Range(segmentStartM + offset, segmentStartM + offset + newSegment.length)
+                    withPoints(
+                        points = fixSegmentGeometryMValues(newPoints),
+                        newSourceStart = addedSourceStart(offset.distance),
+                    )
+                newSegment to Range(offset, offset + newSegment.length).map { it.segmentToAlignmentM(segmentStartM) }
             }
         }
     }
 
-    fun slice(segmentMRange: Range<Double>, snapDistance: Double = 0.0): LayoutSegment {
+    fun slice(segmentMRange: Range<LineM<SegmentM>>, snapDistance: Double = 0.0): LayoutSegment {
         require(segmentMRange.min + snapDistance < segmentMRange.max) {
             "Slice m-range must be at least as long as snap distance: range=$segmentMRange snapDistance=$snapDistance"
         }
-        require(segmentMRange.min + snapDistance >= 0.0 && segmentMRange.max - snapDistance <= length) {
+        require(segmentMRange.min + snapDistance >= LineM(0.0) && segmentMRange.max - snapDistance <= LineM(length)) {
             "Slice m-range ends must be within segment (with snapDistance tolerance):" +
                 " range=$segmentMRange snapDistance=$snapDistance segment=${0.0..length}"
         }
@@ -557,7 +573,7 @@ data class LayoutSegment(
         val interpolatedStart = listOfNotNull(if (start.isSnapped) null else start.point)
         val interpolatedEnd = listOfNotNull(if (end.isSnapped) null else end.point)
         val newPoints = interpolatedStart + currentSegmentPoints + interpolatedEnd
-        return withPoints(newPoints, addedSourceStart(newPoints.first().m))
+        return withPoints(newPoints, addedSourceStart(newPoints.first().m.distance))
     }
 
     fun addedSourceStart(distance: Double): BigDecimal? = sourceStartM?.let { old -> old + sourceStartM(distance) }
@@ -568,7 +584,7 @@ data class LayoutSegment(
     private fun withGeometry(geometry: SegmentGeometry, newSourceStart: BigDecimal?): LayoutSegment =
         copy(geometry = geometry, sourceStartM = newSourceStart)
 
-    fun splitAtM(segmentM: Double, snapDistance: Double): Pair<LayoutSegment, LayoutSegment?> {
+    fun splitAtM(segmentM: LineM<SegmentM>, snapDistance: Double): Pair<LayoutSegment, LayoutSegment?> {
         val (startGeom, endGeom) = geometry.splitAtSegmentM(segmentM, snapDistance)
         return if (endGeom == null) {
             this to null
@@ -588,11 +604,11 @@ const val LAYOUT_HEIGHT_DELTA = 0.001
 const val LAYOUT_CANT_DELTA = 0.00001
 const val LAYOUT_M_DELTA = 0.001
 
-interface LayoutPoint : IPoint3DM {
+interface LayoutPoint<M : AnyM<M>> : IPoint3DM<M> {
     val z: Double?
     val cant: Double?
 
-    fun isSame(other: LayoutPoint) =
+    fun isSame(other: LayoutPoint<M>) =
         this::class == other::class &&
             super.isSame(other, LAYOUT_COORDINATE_DELTA) &&
             isSame(z, other.z, LAYOUT_HEIGHT_DELTA) &&
@@ -606,27 +622,30 @@ data class SegmentPoint(
     override val y: Double,
     override val z: Double?,
     /** Length (in meters) along the segment, from start to this point. */
-    override val m: Double,
+    override val m: LineM<SegmentM>,
     override val cant: Double?,
-) : LayoutPoint {
+) : LayoutPoint<SegmentM> {
+
+    constructor(x: Double, y: Double, z: Double?, m: Double, cant: Double?) : this(x, y, z, LineM(m), cant)
+
     init {
-        verifyPointValues(x, y, m, z, cant)
+        verifyPointValues(x, y, m.distance, z, cant)
     }
 
-    fun toAlignmentPoint(segmentStartM: Double) =
-        AlignmentPoint(x = x, y = y, z = z, m = m + segmentStartM, cant = cant)
+    fun <M : AlignmentM<M>> toAlignmentPoint(segmentStartM: LineM<M>) =
+        AlignmentPoint(x = x, y = y, z = z, m = m.segmentToAlignmentM(segmentStartM), cant = cant)
 }
 
-data class AlignmentPoint(
+data class AlignmentPoint<M : AnyM<M>>(
     override val x: Double,
     override val y: Double,
     override val z: Double?,
     /** Length (in meters) along the alignment, from start to this point. */
-    override val m: Double,
+    override val m: LineM<M>,
     override val cant: Double?,
-) : LayoutPoint {
+) : LayoutPoint<M> {
     init {
-        verifyPointValues(x, y, m, z, cant)
+        verifyPointValues(x, y, m.distance, z, cant)
     }
 }
 

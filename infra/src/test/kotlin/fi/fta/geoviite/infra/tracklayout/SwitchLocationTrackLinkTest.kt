@@ -280,14 +280,14 @@ class SwitchLocationTrackLinkTest {
     }
 }
 
-fun emptyPoint() = AlignmentPoint(0.0, 0.0, 0.0, 0.0, 0.0)
+fun emptyPoint() = AlignmentPoint(0.0, 0.0, 0.0, LineM<LocationTrackM>(0.0), 0.0)
 
 fun partialMatch(
     startSwitch: Pair<Int, Int>,
     endSwitch: Pair<Int, Int>,
     from: Int = 0,
-    startPoint: AlignmentPoint = emptyPoint(),
-    endPoint: AlignmentPoint = emptyPoint(),
+    startPoint: AlignmentPoint<LocationTrackM> = emptyPoint(),
+    endPoint: AlignmentPoint<LocationTrackM> = emptyPoint(),
 ) =
     from to
         DuplicateStatus(
@@ -303,8 +303,8 @@ fun fullMatch(
     startSwitch: Pair<Int, Int>,
     endSwitch: Pair<Int, Int>,
     from: Int = 0,
-    startPoint: AlignmentPoint = emptyPoint(),
-    endPoint: AlignmentPoint = emptyPoint(),
+    startPoint: AlignmentPoint<LocationTrackM> = emptyPoint(),
+    endPoint: AlignmentPoint<LocationTrackM> = emptyPoint(),
 ) =
     from to
         DuplicateStatus(
@@ -318,7 +318,7 @@ fun fullMatch(
 
 fun startPoint(point: IPoint): EndpointSplitPoint {
     return EndpointSplitPoint(
-        location = AlignmentPoint(point.x, point.y, null, 0.0, null),
+        location = AlignmentPoint(point.x, point.y, null, LineM(0.0), null),
         address = null,
         DuplicateEndPointType.START,
     )
@@ -326,7 +326,7 @@ fun startPoint(point: IPoint): EndpointSplitPoint {
 
 fun endPoint(point: IPoint): EndpointSplitPoint {
     return EndpointSplitPoint(
-        location = AlignmentPoint(point.x, point.y, null, 0.0, null),
+        location = AlignmentPoint(point.x, point.y, null, LineM(0.0), null),
         address = null,
         DuplicateEndPointType.END,
     )

@@ -30,9 +30,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import java.time.Instant
@@ -87,7 +89,7 @@ constructor(
     fun fetchChangedLocationTrackGeometryRanges(
         id: IntId<LocationTrack>,
         transition: LayoutContextTransition,
-    ): GeometryChangeRanges {
+    ): GeometryChangeRanges<LocationTrackM> {
         val trackWithGeometry1 = locationTrackService.getWithGeometry(transition.candidateContext, id)
         val trackWithGeometry2 = locationTrackService.getWithGeometry(transition.baseContext, id)
         return getChangedGeometryRanges(
@@ -99,7 +101,7 @@ constructor(
     fun fetchChangedReferenceLineGeometryRanges(
         id: IntId<ReferenceLine>,
         transition: LayoutContextTransition,
-    ): GeometryChangeRanges {
+    ): GeometryChangeRanges<ReferenceLineM> {
         val lineWithAlignment1 = referenceLineService.getWithAlignment(transition.candidateContext, id)
         val lineWithAlignment2 = referenceLineService.getWithAlignment(transition.baseContext, id)
         return getChangedGeometryRanges(

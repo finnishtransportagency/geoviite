@@ -36,7 +36,7 @@ data class DbEdgeData(val edge: DbLayoutEdge, override val tracks: Set<IntId<Loc
         get() = edge.endNode
 
     override val length: Double
-        get() = edge.length
+        get() = edge.length.distance
 
     override val start: Point by lazy { edge.start.toPoint() }
     override val end: Point by lazy { edge.end.toPoint() }

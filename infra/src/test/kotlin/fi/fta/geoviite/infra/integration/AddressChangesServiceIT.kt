@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -24,9 +25,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -326,7 +329,7 @@ constructor(
         //      -------------
         // 0    1     2     3    4
         val origAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
                 Point(3000.0, 0.0) to TrackMeter(3, 0),
@@ -336,7 +339,7 @@ constructor(
         // -----------------------
         // 0    1     2     3    4
         val newAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(0.0, 0.0) to TrackMeter(0, 0),
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
@@ -355,7 +358,7 @@ constructor(
         // -----------------------
         // 0    1     2     3    4
         val origAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(0.0, 0.0) to TrackMeter(0, 0),
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
@@ -367,7 +370,7 @@ constructor(
         //      -------------
         // 0    1     2     3    4
         val newAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
                 Point(3000.0, 0.0) to TrackMeter(3, 0),
@@ -384,7 +387,7 @@ constructor(
         // ------------
         // 0    1     2     3    4
         val origAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(0.0, 0.0) to TrackMeter(0, 0),
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
@@ -394,7 +397,7 @@ constructor(
         //            ------------
         // 0    1     2     3    4
         val newAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
                 Point(3000.0, 0.0) to TrackMeter(3, 0),
                 Point(4000.0, 0.0) to TrackMeter(4, 0),
@@ -415,7 +418,7 @@ constructor(
         //            ------------
         // 0    1     2     3    4
         val origAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
                 Point(3000.0, 0.0) to TrackMeter(3, 0),
                 Point(4000.0, 0.0) to TrackMeter(4, 0),
@@ -425,7 +428,7 @@ constructor(
         // ------------
         // 0    1     2     3    4
         val newAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(0.0, 0.0) to TrackMeter(0, 0),
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
@@ -446,7 +449,7 @@ constructor(
         // -----------------------
         // 0    1     2     3    4
         val origAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(0.0, 0.0) to TrackMeter(0, 0),
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
@@ -458,7 +461,7 @@ constructor(
         // -------/       \-------
         // 0    1     2     3    4
         val newAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(0.0, 0.0) to TrackMeter(0, 0),
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(1200.0, 0.0) to TrackMeter(1, 200),
@@ -481,7 +484,7 @@ constructor(
         // -------/       \-------
         // 0    1     2     3    4
         val origAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(0.0, 0.0) to TrackMeter(0, 0),
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(1200.0, 0.0) to TrackMeter(1, 200),
@@ -497,7 +500,7 @@ constructor(
         // -----------------------
         // 0    1           3    4
         val newAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(0.0, 0.0) to TrackMeter(0, 0),
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(3000.0, 0.0) to TrackMeter(3, 0),
@@ -515,7 +518,7 @@ constructor(
         //      ------------------
         //      1     2     3    4
         val origAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
                 Point(3000.0, 0.0) to TrackMeter(3, 0),
@@ -526,7 +529,7 @@ constructor(
         // -----------------------
         // 0          2     3    4
         val newAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(1000.0, 0.0) to TrackMeter(0, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
                 Point(3000.0, 0.0) to TrackMeter(3, 0),
@@ -544,7 +547,7 @@ constructor(
         // -------------------------------
         // 0    1         2     3        4
         val origAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(0.0, 0.0) to TrackMeter(0, 0),
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
@@ -556,7 +559,7 @@ constructor(
         // -------/    \----------/    \--
         // 0    1         2     3        4
         val newAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(0.0, 0.0) to TrackMeter(0, 0),
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(1300.0, 100.0) to TrackMeter(1, 300),
@@ -579,7 +582,7 @@ constructor(
         //      -------------
         // 0    1     2     3    4
         val origAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
                 Point(3000.0, 0.0) to TrackMeter(3, 0),
@@ -589,7 +592,7 @@ constructor(
         //      -------------
         // 0    1     2     3    4
         val newAddresses =
-            createAddresses(
+            createAddresses<LocationTrackM>(
                 Point(1000.0, 0.0) to TrackMeter(1, 0),
                 Point(2000.0, 0.0) to TrackMeter(2, 0),
                 Point(3000.0, 0.0) to TrackMeter(3, 0),
@@ -753,12 +756,18 @@ constructor(
             .distinct()
     }
 
-    fun createEmptyAddresses(start: Pair<Point, TrackMeter>, end: Pair<Point, TrackMeter>): AlignmentAddresses =
+    fun <M : AlignmentM<M>> createEmptyAddresses(
+        start: Pair<Point, TrackMeter>,
+        end: Pair<Point, TrackMeter>,
+    ): AlignmentAddresses<M> =
         AlignmentAddresses(
-            startPoint = AddressPoint(AlignmentPoint(start.first.x, start.first.y, null, 0.0, null), start.second),
+            startPoint = AddressPoint(
+                AlignmentPoint(start.first.x, start.first.y, null, LineM<M>(0.0), null),
+                start.second
+            ),
             endPoint =
                 AddressPoint(
-                    AlignmentPoint(end.first.x, end.first.y, null, lineLength(start.first, end.first), null),
+                    AlignmentPoint(end.first.x, end.first.y, null, LineM<M>(lineLength(start.first, end.first)), null),
                     start.second,
                 ),
             startIntersect = IntersectType.WITHIN,
@@ -767,7 +776,7 @@ constructor(
             alignmentWalkFinished = true,
         )
 
-    fun createAddresses(vararg transitionPoints: Pair<Point, TrackMeter>): AlignmentAddresses {
+    fun <M : AlignmentM<M>> createAddresses(vararg transitionPoints: Pair<Point, TrackMeter>): AlignmentAddresses<M> {
         val addressPoints =
             transitionPoints.flatMapIndexed { index, transitionPoint ->
                 val from = transitionPoint.first
@@ -776,10 +785,10 @@ constructor(
                 if (nextTransitionPoint != null) {
                     val to = nextTransitionPoint.first
                     val points = createLineString(from, to)
-                    val alignmentPoints = toAlignmentPoints(points = points.toTypedArray())
+                    val alignmentPoints = toAlignmentPoints<M>(points = points.toTypedArray())
                     val addressPoints =
-                        alignmentPoints.map { alignmentPoint: AlignmentPoint ->
-                            AddressPoint(point = alignmentPoint, address = fromAddress + alignmentPoint.m)
+                        alignmentPoints.map { alignmentPoint ->
+                            AddressPoint(point = alignmentPoint, address = fromAddress + alignmentPoint.m.distance)
                         }
                     addressPoints
                 } else {
@@ -796,7 +805,8 @@ constructor(
         )
     }
 
-    fun someAddressPoint() = AddressPoint(AlignmentPoint(0.0, 0.0, null, 0.0, null), TrackMeter(0, 0))
+    fun <M : AlignmentM<M>> someAddressPoint() =
+        AddressPoint(AlignmentPoint(0.0, 0.0, null, LineM<M>(0.0), null), TrackMeter(0, 0))
 
     fun getAllKms(geocodingContextCacheKey: GeocodingContextCacheKey, start: IPoint, end: IPoint): Set<KmNumber> {
         val context = geocodingService.getGeocodingContext(geocodingContextCacheKey)!!

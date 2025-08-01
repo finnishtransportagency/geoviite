@@ -228,7 +228,7 @@ data class LocationTrack(
     /** Comes as calculated from LocationTrackGeometry. Anything set here will be overridden on save. */
     val boundingBox: BoundingBox?,
     /** Comes as calculated from LocationTrackGeometry. Anything set here will be overridden on save. */
-    val length: Double,
+    val length: LineM<LocationTrackM>,
     /** Comes as calculated from LocationTrackGeometry. Anything set here will be overridden on save. */
     val segmentCount: Int,
     /** Comes as calculated from LocationTrackGeometry. Anything set here will be overridden on save. */
@@ -270,9 +270,9 @@ data class LocationTrackDuplicate(
     val trackNumberId: IntId<LayoutTrackNumber>,
     val nameStructure: LocationTrackNameStructure,
     val name: AlignmentName,
-    val start: AlignmentPoint?,
-    val end: AlignmentPoint?,
-    val length: Double,
+    val start: AlignmentPoint<LocationTrackM>?,
+    val end: AlignmentPoint<LocationTrackM>?,
+    val length: LineM<LocationTrackM>,
     val duplicateStatus: DuplicateStatus,
 )
 
@@ -287,7 +287,7 @@ data class SwitchOnLocationTrack(
     val name: SwitchName,
     val address: TrackMeter?,
     val location: Point?,
-    val distance: Double?,
+    val distance: LineM<LocationTrackM>?,
     val nearestOperatingPoint: RatkoOperatingPoint?,
 )
 
@@ -311,14 +311,14 @@ data class DuplicateStatus(
 )
 
 sealed class SplitPoint {
-    abstract val location: AlignmentPoint
+    abstract val location: AlignmentPoint<LocationTrackM>
     abstract val address: TrackMeter?
 
     abstract fun isSame(other: SplitPoint): Boolean
 }
 
 data class SwitchSplitPoint(
-    override val location: AlignmentPoint,
+    override val location: AlignmentPoint<LocationTrackM>,
     override val address: TrackMeter?,
     val switchId: IntId<LayoutSwitch>,
     val jointNumber: JointNumber,
@@ -331,7 +331,7 @@ data class SwitchSplitPoint(
 }
 
 data class EndpointSplitPoint(
-    override val location: AlignmentPoint,
+    override val location: AlignmentPoint<LocationTrackM>,
     override val address: TrackMeter?,
     val endPointType: DuplicateEndPointType,
 ) : SplitPoint() {

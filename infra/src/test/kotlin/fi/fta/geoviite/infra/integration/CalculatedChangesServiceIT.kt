@@ -67,6 +67,11 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
@@ -76,11 +81,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -506,7 +506,7 @@ constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
-            { point -> if (point.m < 200) point + 2.0 else point.toPoint() },
+            { point -> if (point.m.distance <200) point + 2.0 else point.toPoint() },
             locationTrackService = locationTrackService,
         )
 
@@ -537,7 +537,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             referenceLineAlignment,
-            { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
+            { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
 
@@ -581,9 +581,9 @@ constructor(
             referenceLine,
             referenceLineAlignment,
             { point ->
-                if (point.m > 1000 && point.m < 2900) {
+                if (point.m.distance > 1000 && point.m.distance < 2900) {
                     // make reference line wavy
-                    point + Point(0.0, cos((point.m - 1000) / (2900 - 1000) * PI) * 5)
+                    point + Point(0.0, cos((point.m.distance - 1000) / (2900 - 1000) * PI) * 5)
                 } else {
                     point.toPoint()
                 }
@@ -697,7 +697,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
+            moveFunc = { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
 
@@ -816,7 +816,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
+            moveFunc = { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
 
@@ -835,7 +835,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
+            moveFunc = { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
 
@@ -927,7 +927,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             alignment,
-            { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
+            { point -> if (point.m.distance < 900.0) point - 2.0 else point.toPoint() },
             referenceLineService,
         )
 
@@ -967,7 +967,7 @@ constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = referenceLineAlignment,
-            moveFunc = { point -> if (point.m < 900) point - 2.0 else point.toPoint() },
+            moveFunc = { point -> if (point.m.distance < 900.0) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
 

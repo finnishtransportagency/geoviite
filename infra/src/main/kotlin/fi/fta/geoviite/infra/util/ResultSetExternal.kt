@@ -37,6 +37,7 @@ import fi.fta.geoviite.infra.publication.PublishedInBranch
 import fi.fta.geoviite.infra.publication.PublishedInDesign
 import fi.fta.geoviite.infra.publication.PublishedInMain
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
+import fi.fta.geoviite.infra.tracklayout.AnyM
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
@@ -45,6 +46,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.StoredAssetId
@@ -165,11 +167,11 @@ fun ResultSet.getGeometryPointOrNull(nameX: String, nameY: String, nameSrid: Str
         getSridOrNull(nameSrid)?.let { srid -> GeometryPoint(point.x, point.y, srid) }
     }
 
-fun ResultSet.getPoint3DMOrNull(nameX: String, nameY: String, nameM: String): Point3DM? {
+fun <M : AnyM<M>> ResultSet.getPoint3DMOrNull(nameX: String, nameY: String, nameM: String): Point3DM<M>? {
     val x = getDoubleOrNull(nameX)
     val y = getDoubleOrNull(nameY)
     val m = getDoubleOrNull(nameM)
-    return if (x == null || y == null || m == null) null else Point3DM(x, y, m)
+    return if (x == null || y == null || m == null) null else Point3DM(x, y, LineM(m))
 }
 
 fun ResultSet.getPointOrNull(nameX: String, nameY: String): Point? {

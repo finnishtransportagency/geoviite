@@ -33,6 +33,7 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ElementListingFile
 import fi.fta.geoviite.infra.tracklayout.ElementListingFileDao
@@ -42,9 +43,13 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.toAlignmentHeader
 import fi.fta.geoviite.infra.tracklayout.toLayoutSwitch
 import fi.fta.geoviite.infra.util.FileName
@@ -52,14 +57,14 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.processFlattened
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
-import withUser
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import withUser
 
 val unknownSwitchName = SwitchName("-")
 
@@ -269,7 +274,7 @@ constructor(
         locationTrack: LocationTrack,
         geometry: DbLocationTrackGeometry,
         trackNumber: TrackNumber?,
-        geocodingContext: GeocodingContext?,
+        geocodingContext: GeocodingContext<ReferenceLineM>?,
     ): List<ElementListing> {
         return toElementListing(
             geocodingContext,
@@ -553,7 +558,7 @@ constructor(
     fun getLocationTrackGeometryLinkingSummary(
         layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
-    ): List<PlanLinkingSummaryItem>? {
+    ): List<PlanLinkingSummaryItem<LocationTrackM>>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
         val geometry = layoutAlignmentDao.fetch(locationTrack.getVersionOrThrow())
         val segmentSources = collectSegmentSources(geometry.segments)
@@ -582,10 +587,10 @@ constructor(
     fun getLocationTrackHeights(
         layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
-        startDistance: Double,
-        endDistance: Double,
+        startDistance: LineM<LocationTrackM>,
+        endDistance: LineM<LocationTrackM>,
         tickLength: Int,
-    ): List<KmHeights>? {
+    ): List<KmHeights<LocationTrackM>>? {
         val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
         val geometry = layoutAlignmentDao.fetch(locationTrack.getVersionOrThrow())
         val geocodingContext =
@@ -647,10 +652,10 @@ constructor(
     fun getPlanAlignmentHeights(
         planId: IntId<GeometryPlan>,
         planAlignmentId: IntId<GeometryAlignment>,
-        startDistance: Double,
-        endDistance: Double,
+        startDistance: LineM<PlanLayoutAlignmentM>,
+        endDistance: LineM<PlanLayoutAlignmentM>,
         tickLength: Int,
-    ): List<KmHeights>? {
+    ): List<KmHeights<PlanLayoutAlignmentM>>? {
         val planVersion = geometryDao.fetchPlanVersion(planId)
         val plan = geometryDao.fetchPlan(planVersion)
         val geocodingContext =
@@ -696,13 +701,15 @@ constructor(
         return geometryDao.getPlanLinking(planId)
     }
 
-    private fun getLayoutGeocodingContextForPlanTrackNumber(trackNumber: TrackNumber?): GeocodingContext? =
+    private fun getLayoutGeocodingContextForPlanTrackNumber(
+        trackNumber: TrackNumber?
+    ): GeocodingContext<ReferenceLineM>? =
         trackNumber
             ?.let { number -> trackNumberService.find(MainLayoutContext.official, number).firstOrNull()?.id }
             ?.let { trackNumberId -> geocodingService.getGeocodingContext(MainLayoutContext.official, trackNumberId) }
 }
 
-private fun combineKmTicksWithHeights(kmHeights: List<Double?>, kmTick: KmTicks): KmHeights =
+private fun <M : AlignmentM<M>> combineKmTicksWithHeights(kmHeights: List<Double?>, kmTick: KmTicks<M>): KmHeights<M> =
     KmHeights(
         kmTick.kmNumber,
         kmHeights
@@ -769,18 +776,18 @@ private fun getHeightAtTickInLayoutAlignment(
     geometry: LocationTrackGeometry,
     segmentSources: List<SegmentSource>,
     heightTriangles: List<HeightTriangle>,
-    tick: TrackMeterTick,
+    tick: TrackMeterTick<LocationTrackM>,
 ): Double? {
     val point = tick.addressPoint.point
     val segmentIndex = tick.segmentIndex ?: geometry.getSegmentIndexAtM(point.m)
     val (segment, segmentM) = geometry.getSegmentWithM(segmentIndex)
     val source = segmentSources[segmentIndex]
 
-    val distanceInSegment = point.m - segmentM.min
+    val distanceInSegment = point.m.distance - segmentM.min.distance
     val distanceInElement = distanceInSegment + (segment.sourceStartM?.toDouble() ?: 0.0)
     val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
 
-    val profileHeight = source.profile?.getHeightAt(distanceInGeometryAlignment)
+    val profileHeight = source.profile?.getHeightAt(LineM(distanceInGeometryAlignment))
     return profileHeight?.let { height ->
         source.plan?.units?.verticalCoordinateSystem?.let { verticalCoordinateSystem ->
             transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)

@@ -88,7 +88,7 @@ class CachePreloadService(
                 geocodingDao
                     .listLayoutGeocodingContextCacheKeys(MainLayoutContext.official)
                     .mapNotNull(geocodingCacheService::getGeocodingContext)
-            contexts.parallelStream().forEach(GeocodingContext::preload)
+            contexts.parallelStream().forEach(GeocodingContext<*>::preload)
             contexts.size
         }
     }

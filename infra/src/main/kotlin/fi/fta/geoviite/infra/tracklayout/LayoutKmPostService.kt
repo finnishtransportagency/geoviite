@@ -102,7 +102,7 @@ class LayoutKmPostService(
                 (_, alignment) ->
                 val kmPostM = alignment.getClosestPointM(kmPost.location)?.first
                 val kmEndM = getKmEndM(layoutContext, kmPost.trackNumberId, kmPost.kmNumber, alignment)
-                if (kmPostM == null || kmEndM == null) null else kmEndM - kmPostM
+                if (kmPostM == null || kmEndM == null) null else (kmEndM - kmPostM).distance
             }
         }
     }
@@ -112,7 +112,7 @@ class LayoutKmPostService(
         trackNumberId: IntId<LayoutTrackNumber>,
         kmNumber: KmNumber,
         referenceLineAlignment: LayoutAlignment,
-    ): Double? {
+    ): LineM<ReferenceLineM>? {
         val nextKmPost =
             dao.fetchNextWithLocationAfter(layoutContext, trackNumberId, kmNumber, LayoutState.IN_USE)
                 ?.let(dao::fetch)

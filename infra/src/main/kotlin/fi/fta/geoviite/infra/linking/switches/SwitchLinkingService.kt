@@ -24,12 +24,14 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.ContextCache
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.EdgeM
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
@@ -41,9 +43,9 @@ import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.replaceEdges
+import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import java.util.stream.Collectors
 
 @GeoviiteService
 class SwitchLinkingService
@@ -547,7 +549,7 @@ fun linkJointsToEdge(
     val edges = mutableListOf(edge)
     joints.forEachIndexed { index, joint ->
         val lastEdge = edges.removeLast()
-        val edgeStartM = edges.sumOf { it.end.m }
+        val edgeStartM = edges.sumOf { it.end.m.distance }
         val role = SwitchJointRole.of(switchStructure, joint.jointNumber)
         val first = index == 0
         val last = index == joints.lastIndex
@@ -569,15 +571,15 @@ private fun linkJointToEdge(
     edge: LayoutEdge,
     jointNumber: JointNumber,
     jointRole: SwitchJointRole,
-    mValue: Double,
+    mValue: LineM<EdgeM>,
     isFirstJointInSequence: Boolean,
     isLastJointInSequence: Boolean,
 ): List<LayoutEdge> {
     val switchLink = SwitchLink(switchId, jointRole, jointNumber)
 
-    return if (isSame(edge.start.m, mValue, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
+    return if (isSame(edge.start.m.distance, mValue.distance, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
         linkJointToEdgeStart(edge, isLastJointInSequence, switchLink)
-    } else if (isSame(edge.end.m, mValue, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
+    } else if (isSame(edge.end.m.distance, mValue.distance, SWITCH_JOINT_NODE_SNAPPING_TOLERANCE)) {
         linkJointToEdgeEnd(edge, isFirstJointInSequence, switchLink)
     } else {
         linkJointToEdgeMiddle(
@@ -616,7 +618,7 @@ private fun linkJointToEdgeEnd(
 
 private fun linkJointToEdgeMiddle(
     edge: LayoutEdge,
-    mValue: Double,
+    mValue: LineM<EdgeM>,
     switchLink: SwitchLink,
     isFirstJointInSequence: Boolean,
     isLastJointInSequence: Boolean,
@@ -625,7 +627,7 @@ private fun linkJointToEdgeMiddle(
     val middleOuterNodeConnection = NodeConnection.switch(inner = null, outer = switchLink)
     val middleInnerNodeConnection = NodeConnection.switch(inner = switchLink, outer = null)
     return listOf(
-        slice(edge, Range(0.0, mValue))
+        slice(edge, Range(LineM(0.0), mValue))
             .withEndNode(if (isFirstJointInSequence) middleOuterNodeConnection else middleInnerNodeConnection),
         slice(edge, Range(mValue, edge.end.m))
             .withStartNode(if (isLastJointInSequence) middleOuterNodeConnection else middleInnerNodeConnection),

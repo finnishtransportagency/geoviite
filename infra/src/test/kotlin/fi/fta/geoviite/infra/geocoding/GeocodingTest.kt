@@ -13,13 +13,17 @@ import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.linePointAtDistance
 import fi.fta.geoviite.infra.math.pointInDirection
+import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LineM
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.alignmentFromPoints
+import fi.fta.geoviite.infra.tracklayout.assertEquals
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -27,15 +31,15 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 import kotlin.math.PI
 import kotlin.math.sqrt
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 
 const val DELTA = 0.000001
 
@@ -90,16 +94,16 @@ val alignment = alignment(segment1, segment2, segment3)
 val startAddress = TrackMeter(KmNumber(2), 150)
 val addressPoints =
     listOf(
-        GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN),
+        GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, LineM(0.0), 0.0, WITHIN),
         GeocodingReferencePoint(KmNumber(3), BigDecimal.ZERO, alignment.length / 5, 0.0, WITHIN),
-        GeocodingReferencePoint(KmNumber(4), BigDecimal.ZERO, 2 * alignment.length / 5, 0.0, WITHIN),
-        GeocodingReferencePoint(KmNumber(5, "A"), BigDecimal.ZERO, 3 * alignment.length / 5, 0.0, WITHIN),
-        GeocodingReferencePoint(KmNumber(5, "B"), BigDecimal.ZERO, 4 * alignment.length / 5, 0.0, WITHIN),
+        GeocodingReferencePoint(KmNumber(4), BigDecimal.ZERO, alignment.length * 2 / 5, 0.0, WITHIN),
+        GeocodingReferencePoint(KmNumber(5, "A"), BigDecimal.ZERO, alignment.length * 3 / 5, 0.0, WITHIN),
+        GeocodingReferencePoint(KmNumber(5, "B"), BigDecimal.ZERO, alignment.length * 4 / 5, 0.0, WITHIN),
     )
 val trackNumber: TrackNumber = TrackNumber("T001")
 val kmPostLocations =
     (0..5).map { i ->
-        val alignmentPoint = alignment.getPointAtM(i * alignment.length / 5)
+        val alignmentPoint = alignment.getPointAtM(alignment.length * i / 5)
         checkNotNull(alignmentPoint?.toPoint())
     }
 
@@ -197,12 +201,12 @@ class GeocodingTest {
 
     @Test
     fun contextFindsAddressForDistance() {
-        assertEquals(startAddress, context.getAddress(0.0, startAddress.decimalCount()))
+        assertEquals(startAddress, context.getAddress(LineM(0.0), startAddress.decimalCount()))
 
         val lastPoint = addressPoints.last()
-        val endLength: Double = alignment.length
+        val endLength = alignment.length
         assertEquals(
-            TrackMeter(lastPoint.kmNumber, endLength - lastPoint.distance, 3),
+            TrackMeter(lastPoint.kmNumber, endLength.distance - lastPoint.distance.distance, 3),
             context.getAddress(endLength, 3),
         )
 
@@ -321,7 +325,7 @@ class GeocodingTest {
                     PolyLineEdge(
                         start = points[index - 1],
                         end = point,
-                        segmentStart = if (index <= points1.lastIndex) 0.0 else points1.last().m,
+                        segmentStart = if (index <= points1.lastIndex) LineM<ReferenceLineM>(0.0) else points1.last().m.castToDifferentM(),
                         referenceDirection = directionBetweenPoints(points[index - 1], point),
                     )
             }
@@ -365,8 +369,8 @@ class GeocodingTest {
                 referenceLineGeometry = alignment,
                 referencePoints =
                     listOf(
-                        GeocodingReferencePoint(KmNumber(2), BigDecimal("100.0"), 0.0, 0.0, WITHIN),
-                        GeocodingReferencePoint(KmNumber(3), BigDecimal("0.0"), 3.0, 0.0, WITHIN),
+                        GeocodingReferencePoint(KmNumber(2), BigDecimal("100.0"), LineM(0.0), 0.0, WITHIN),
+                        GeocodingReferencePoint(KmNumber(3), BigDecimal("0.0"), LineM(3.0), 0.0, WITHIN),
                     ),
             )
         // As lines go straight up, projections should go 100m to the left from there
@@ -495,7 +499,7 @@ class GeocodingTest {
         assertApproximatelyEquals(Point(x = 8.0, y = 1.1), points.midPoints[6].point)
     }
 
-    private fun assertAddressPoint(point: AddressPoint?, address: TrackMeter, location: IPoint) {
+    private fun assertAddressPoint(point: AddressPoint<*>?, address: TrackMeter, location: IPoint) {
         assertNotNull(point, "Expected point at: address=$address location=$location")
         assertEquals(address, point.address)
         assertApproximatelyEquals(location, point.point, DELTA)
@@ -505,13 +509,13 @@ class GeocodingTest {
         geometryPoints: List<Point>,
         startAddress: TrackMeter,
         referencePoints: List<Pair<TrackMeter, Double>>,
-    ): GeocodingContext {
+    ): GeocodingContext<ReferenceLineM> {
         val alignment = alignment(segment(*geometryPoints.toTypedArray()))
         val startRefPoint =
             GeocodingReferencePoint(
                 kmNumber = startAddress.kmNumber,
                 meters = startAddress.meters,
-                distance = 0.0,
+                distance = LineM<ReferenceLineM>(0.0),
                 kmPostOffset = 0.0,
                 intersectType = WITHIN,
             )
@@ -521,7 +525,7 @@ class GeocodingTest {
                     GeocodingReferencePoint(
                         kmNumber = address.kmNumber,
                         meters = address.meters,
-                        distance = distance,
+                        distance = LineM<ReferenceLineM>(distance),
                         kmPostOffset = 0.0,
                         intersectType = WITHIN,
                     )
@@ -549,7 +553,7 @@ class GeocodingTest {
                     GeocodingReferencePoint(
                         kmNumber = startAddress.kmNumber,
                         meters = startAddress.meters,
-                        distance = 0.0,
+                        distance = LineM<ReferenceLineM>(0.0),
                         kmPostOffset = 0.0,
                         intersectType = WITHIN,
                     )
@@ -558,8 +562,8 @@ class GeocodingTest {
         val diagonalLine = alignmentFromPoints(start + Point(-52.5, 2.5), start + Point(-47.5, 7.5))
 
         val diagonalCenter = start + Point(-50.0, 5.0)
-        assertEquals(5.0, verticalContext.getM(diagonalCenter)!!.first, 0.000001)
-        assertEquals(startAddress + 5.0, verticalContext.getAddress(5.0, startAddress.decimalCount()))
+        assertEquals(LineM(5.0), verticalContext.getM(diagonalCenter)!!.first, 0.000001)
+        assertEquals(startAddress + 5.0, verticalContext.getAddress(LineM(5.0), startAddress.decimalCount()))
 
         val projectionLine = verticalContext.getProjectionLine(startAddress + 5.0)
         assertEquals(startAddress + 5.0, projectionLine!!.address)
@@ -844,7 +848,7 @@ class GeocodingTest {
 
     @Test
     fun `AddressPoint withIntegerPrecision works`() {
-        val point = AlignmentPoint(0.0, 0.0, 0.0, 0.0, null)
+        val point = AlignmentPoint(0.0, 0.0, 0.0, LineM(0.0), null)
         assertEquals(
             AddressPoint(point, TrackMeter("1234+1234")),
             AddressPoint(point, TrackMeter("1234+1234")).withIntegerPrecision(),
@@ -888,13 +892,13 @@ class GeocodingTest {
         val terribleZigzagAlignment =
             alignment(
                 terribleZigzag.zipWithNext { start, end ->
-                    segment(Point(start.toDouble(), 0.0), Point(end.toDouble(), 0.0))
+                    segment(Point(start, 0.0), Point(end, 0.0))
                 }
             )
         val risingZigzagAlignment =
             alignment(
                 terribleZigzag.zip(terribleZigzag.indices).zipWithNext { (start, i), (end, _) ->
-                    segment(Point(start.toDouble(), i * 1.0), Point(end.toDouble(), (i + 1) * 1.0))
+                    segment(Point(start, i * 1.0), Point(end, (i + 1) * 1.0))
                 }
             )
 
@@ -996,7 +1000,7 @@ class GeocodingTest {
                 )
                 .geocodingContext
         assertEquals(
-            0.1,
+            LineM(0.1),
             context.getTrackLocation(locationTrackAlignment, TrackMeter(KmNumber(0), BigDecimal("0.2")))?.point?.m,
         )
     }
@@ -1022,18 +1026,18 @@ class GeocodingTest {
         assertEqualsRounded(
             listOf(
                 // first midpoint hits right at the point where the zigzag starts
-                AddressPoint(AlignmentPoint(1.0, 6.0, null, m = 1.0, null), TrackMeter("0000+0006")),
+                AddressPoint(AlignmentPoint(1.0, 6.0, null, m = LineM(1.0), null), TrackMeter("0000+0006")),
                 // m-value: zigzag's diagonal is 1 meter tall and 2 meters wide, hence sqrt(1 + 4); plus 1 meter before
                 // the turn, and 3 meters after
-                AddressPoint(AlignmentPoint(0.0, 7.0, null, m = 4.0 + sqrt(5.0), null), TrackMeter("0000+0007")),
+                AddressPoint(AlignmentPoint(0.0, 7.0, null, m = LineM<ReferenceLineM>(4.0 + sqrt(5.0)), null), TrackMeter("0000+0007")),
             ),
             result.midPoints,
         )
     }
 
-    private fun assertEqualsRounded(
-        expectedAddressPoints: List<AddressPoint>,
-        actualAddressPoints: List<AddressPoint>,
+    private fun <M: AlignmentM<M>> assertEqualsRounded(
+        expectedAddressPoints: List<AddressPoint<M>>,
+        actualAddressPoints: List<AddressPoint<M>>,
     ) {
         assertEquals(expectedAddressPoints.size, actualAddressPoints.size)
         expectedAddressPoints.mapIndexed { i, expected ->
@@ -1043,7 +1047,7 @@ class GeocodingTest {
         }
     }
 
-    private fun assertProjectionLinesMatch(result: List<ProjectionLine>, vararg expected: Pair<TrackMeter, Line>) {
+    private fun assertProjectionLinesMatch(result: List<ProjectionLine<*>>, vararg expected: Pair<TrackMeter, Line>) {
         assertEquals(
             expected.size,
             result.size,
@@ -1054,7 +1058,7 @@ class GeocodingTest {
         }
     }
 
-    private fun assertProjectionLineMatches(projectionLine: ProjectionLine, address: TrackMeter, line: Line) {
+    private fun assertProjectionLineMatches(projectionLine: ProjectionLine<*>, address: TrackMeter, line: Line) {
         assertEquals(address, projectionLine.address)
         assertEquals(line.start.x, projectionLine.projection.start.x, 2 * DELTA)
         assertEquals(line.start.y, projectionLine.projection.start.y, 2 * DELTA)

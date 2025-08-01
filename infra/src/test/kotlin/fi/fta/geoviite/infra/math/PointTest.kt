@@ -95,8 +95,8 @@ class PointTest {
 fun assertApproximatelyEquals(p1: IPoint, p2: IPoint, accuracy: Double = 0.0001) {
     assertEquals(p1.x, p2.x, accuracy, "The points should be near-equal: p1=$p1 p2=$p2 accuracy=$accuracy")
     assertEquals(p1.y, p2.y, accuracy, "The points should be near-equal: p1=$p1 p2=$p2 accuracy=$accuracy")
-    if (p1 is IPoint3DM && p2 is IPoint3DM) {
-        assertEquals(p1.m, p2.m, accuracy, "The points should be near-equal: p1=$p1 p2=$p2 accuracy=$accuracy")
+    if (p1 is IPoint3DM<*> && p2 is IPoint3DM<*>) {
+        assertEquals(p1.m.distance, p2.m.distance, accuracy, "The points should be near-equal: p1=$p1 p2=$p2 accuracy=$accuracy")
     }
     if (p1 is IPoint3DZ && p2 is IPoint3DZ) {
         assertEquals(p1.z, p2.z, accuracy, "The points should be near-equal: p1=$p1 p2=$p2 accuracy=$accuracy")

@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
+import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutState
@@ -21,10 +22,14 @@ import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.NOT_EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import fi.fta.geoviite.infra.tracklayout.SegmentM
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
@@ -387,7 +392,7 @@ class PublicationValidationTest {
         val referenceLinePoints = simpleSphereArc(10.0, PI, 20)
         val context = simpleGeocodingContext(toSegmentPoints(to3DMPoints(referenceLinePoints)))
 
-        val sharpAngleTrack = to3DMPoints(listOf(Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 0.0)))
+        val sharpAngleTrack = to3DMPoints<SegmentM>(listOf(Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 0.0)))
 
         val geocode = {
             context.getAddressPoints(alignment(segment(toSegmentPoints(sharpAngleTrack))).copy(id = IntId(2)))
@@ -903,7 +908,8 @@ class PublicationValidationTest {
             TrackSwitchLinkType.INNER,
         )
 
-    private fun toAlignmentPoint(point: Point, m: Double = 0.0) = AlignmentPoint(point.x, point.y, null, m, null)
+    private fun toAlignmentPoint(point: Point, m: Double = 0.0) =
+        AlignmentPoint<LocationTrackM>(point.x, point.y, null, LineM(m), null)
 
     private fun assertLocationTrackFieldError(hasError: Boolean, geometry: LocationTrackGeometry, error: String) =
         assertContainsError(hasError, validateLocationTrackGeometry(geometry), error)
@@ -989,7 +995,7 @@ class PublicationValidationTest {
         tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     ): List<LayoutValidationIssue> = validateSwitchLocationTrackLinkStructure(switch, structure, tracks)
 
-    private fun assertAddressPointError(hasError: Boolean, geocode: () -> AlignmentAddresses?, error: String) {
+    private fun <M: AlignmentM<M>> assertAddressPointError(hasError: Boolean, geocode: () -> AlignmentAddresses<M>?, error: String) {
         assertContainsError(
             hasError,
             validateAddressPoints(
@@ -1003,7 +1009,7 @@ class PublicationValidationTest {
     }
 
     private fun assertSingleAddressPointErrorRangeDescription(
-        geocode: () -> AlignmentAddresses?,
+        geocode: () -> AlignmentAddresses<ReferenceLineM>?,
         errorRangeDescription: String,
     ) {
         val errors =
@@ -1016,13 +1022,13 @@ class PublicationValidationTest {
         assertEquals(contains, errors.any { e -> e.localizationKey == LocalizationKey(error) }, message)
     }
 
-    private fun simpleGeocodingContext(referenceLinePoints: List<SegmentPoint>): GeocodingContext =
+    private fun simpleGeocodingContext(referenceLinePoints: List<SegmentPoint>): GeocodingContext<ReferenceLineM> =
         geocodingContext(referenceLinePoints, listOf()).geocodingContext
 
     private fun geocodingContext(
         referenceLinePoints: List<SegmentPoint>,
         kmPosts: List<LayoutKmPost>,
-    ): GeocodingContextCreateResult {
+    ): GeocodingContextCreateResult<ReferenceLineM> {
         val (referenceLine, alignment) =
             referenceLineAndAlignment(
                 trackNumberId = IntId(1),

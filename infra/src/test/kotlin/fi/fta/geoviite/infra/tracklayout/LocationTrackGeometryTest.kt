@@ -558,7 +558,7 @@ class LocationTrackGeometryTest {
         assertEquals(
             listOf(
                 PlaceholderNode to alignmentPoint(0.0, 0.0, m = 0.0),
-                TmpSwitchNode(switchLinkYV(IntId(1), 1), null) to alignmentPoint(2.0, 0.0, m = 2.0),
+                TmpSwitchNode(switchLinkYV(IntId(1), 1), null) to locationTrackPoint(2.0, 0.0, m = 2.0),
                 TmpSwitchNode(switchLinkYV(IntId(2), 1), switchLinkYV(IntId(3), 1)) to
                     alignmentPoint(4.0, 0.0, m = 4.0),
                 TmpSwitchNode(switchLinkYV(IntId(4), 1), null) to alignmentPoint(6.0, 0.0, m = 6.0),
@@ -585,7 +585,7 @@ class LocationTrackGeometryTest {
     @Test
     fun `Segment m calculation works`() {
         assertEquals(
-            listOf(Range(0.0, 2.0), Range(2.0, 5.0), Range(5.0, 9.0)),
+            listOf(Range(0.0, 2.0), Range(2.0, 5.0), Range(5.0, 9.0)).map { it.map(::LineM) },
             calculateSegmentMValues(
                 listOf(
                     segment(Point(0.0, 0.0), Point(2.0, 0.0)),
@@ -599,7 +599,7 @@ class LocationTrackGeometryTest {
     @Test
     fun `Edge m calculation works`() {
         assertEquals(
-            listOf(Range(0.0, 2.0), Range(2.0, 5.0), Range(5.0, 9.0)),
+            listOf(Range(0.0, 2.0), Range(2.0, 5.0), Range(5.0, 9.0)).map { it.map(::LineM) },
             calculateEdgeMValues(
                 listOf(
                     edge(listOf(segment(Point(0.0, 0.0), Point(2.0, 0.0)))),

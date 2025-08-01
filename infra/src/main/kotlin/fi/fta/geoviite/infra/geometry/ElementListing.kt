@@ -27,6 +27,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
@@ -98,7 +100,7 @@ enum class TrackGeometryElementType {
 }
 
 fun toElementListing(
-    context: GeocodingContext?,
+    context: GeocodingContext<ReferenceLineM>?,
     getTransformation: (srid: Srid) -> Transformation,
     track: LocationTrack,
     geometry: LocationTrackGeometry,
@@ -171,7 +173,7 @@ fun getEdgeSwitchName(edge: LayoutEdge, getSwitchName: (IntId<LayoutSwitch>) -> 
     (edge.startNode.switchIn ?: edge.endNode.switchIn)?.let { link -> getSwitchName(link.id) }
 
 fun toElementListing(
-    context: GeocodingContext?,
+    context: GeocodingContext<*>?,
     getTransformation: (srid: Srid) -> Transformation,
     plan: GeometryPlan,
     elementTypes: List<GeometryElementType>,
@@ -183,7 +185,7 @@ fun toElementListing(
     }
 
 private fun toMissingElementListing(
-    context: GeocodingContext?,
+    context: GeocodingContext<ReferenceLineM>?,
     trackNumber: TrackNumber?,
     identifier: String,
     segment: ISegment,
@@ -212,7 +214,7 @@ private fun toMissingElementListing(
     )
 
 private fun toElementListing(
-    context: GeocodingContext?,
+    context: GeocodingContext<*>?,
     getTransformation: (srid: Srid) -> Transformation,
     locationTrack: LocationTrack,
     planHeader: GeometryPlanHeader,
@@ -238,7 +240,7 @@ private fun toElementListing(
     )
 
 private fun toElementListing(
-    context: GeocodingContext?,
+    context: GeocodingContext<*>?,
     getTransformation: (srid: Srid) -> Transformation,
     plan: GeometryPlan,
     alignment: GeometryAlignment,
@@ -325,7 +327,7 @@ private fun remarks(elementListing: ElementListing, translation: Translation) =
         .joinToString(separator = ", ")
 
 private fun elementListing(
-    context: GeocodingContext?,
+    context: GeocodingContext<*>?,
     getTransformation: (srid: Srid) -> Transformation,
     planId: DomainId<GeometryPlan>,
     planSource: PlanSource?,
@@ -365,7 +367,7 @@ private fun elementListing(
         )
     }
 
-private fun getLocation(context: GeocodingContext?, point: SegmentPoint, directionRads: Double) =
+private fun getLocation(context: GeocodingContext<*>?, point: SegmentPoint, directionRads: Double) =
     ElementLocation(
         coordinate = point.round(COORDINATE_DECIMALS),
         address = context?.getAddress(point)?.first,
@@ -375,7 +377,7 @@ private fun getLocation(context: GeocodingContext?, point: SegmentPoint, directi
     )
 
 private fun getStartLocation(
-    context: GeocodingContext?,
+    context: GeocodingContext<*>?,
     transformation: Transformation?,
     alignment: GeometryAlignment,
     element: GeometryElement,
@@ -389,7 +391,7 @@ private fun getStartLocation(
     )
 
 private fun getEndLocation(
-    context: GeocodingContext?,
+    context: GeocodingContext<*>?,
     transformation: Transformation?,
     alignment: GeometryAlignment,
     element: GeometryElement,
@@ -402,7 +404,7 @@ private fun getEndLocation(
         cant = getEndCant(alignment, element),
     )
 
-private fun getAddress(context: GeocodingContext?, transformation: Transformation?, coordinate: Point) =
+private fun getAddress(context: GeocodingContext<*>?, transformation: Transformation?, coordinate: Point) =
     if (context == null || transformation == null) null
     else context.getAddress(transformation.transform(coordinate), ADDRESS_DECIMALS)?.first
 
