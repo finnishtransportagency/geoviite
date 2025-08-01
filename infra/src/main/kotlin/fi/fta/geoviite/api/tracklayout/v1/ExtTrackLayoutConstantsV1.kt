@@ -11,3 +11,5 @@ const val COORDINATE_SYSTEM_PARAM = "koordinaatisto"
 const val ADDRESS_POINT_RESOLUTION = "osoitepistevali"
 
 const val LOCATION_TRACK_OID_DESCRIPTION = "Sijaintiraiteen OID-tunnus"
+
+const val EXT_OPENAPI_INVALID_ARGUMENTS = "Yhden tai useamman hakuargumentin muoto oli virheellinen."

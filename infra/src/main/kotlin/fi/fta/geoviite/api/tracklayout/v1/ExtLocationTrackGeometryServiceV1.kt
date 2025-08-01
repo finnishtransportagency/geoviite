@@ -18,7 +18,7 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import io.swagger.v3.oas.annotations.media.Schema
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -69,7 +69,7 @@ class ExtLocationTrackGeometryServiceV1
 constructor(
     private val geocodingService: GeocodingService,
     private val geocodingDao: GeocodingDao,
-    private val locationTrackService: LocationTrackService,
+    private val locationTrackDao: LocationTrackDao,
     private val publicationDao: PublicationDao,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -80,38 +80,43 @@ constructor(
         resolution: Resolution,
         coordinateSystem: Srid,
         trackIntervalFilter: ExtTrackKilometerIntervalV1,
-    ): ExtLocationTrackGeometryResponseV1 {
+    ): ExtLocationTrackGeometryResponseV1? {
         val layoutContext = MainLayoutContext.official
 
         val publication =
             trackLayoutVersion?.let { uuid ->
                 publicationDao.fetchPublicationByUuid(uuid)
-                    ?: throw ExtTrackLayoutVersionNotFound("fetch failed, uuid=$uuid")
+                    ?: throw ExtTrackLayoutVersionNotFound("trackLayoutVersion=${trackLayoutVersion}")
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
-        val locationTrack =
-            locationTrackService.getLocationTrackByOidAtMoment(oid, layoutContext, publication.publicationTime)
-                ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
+        val locationTrackId =
+            locationTrackDao.lookupByExternalId(oid)?.id
+                ?: throw ExtOidNotFoundExceptionV1("location track lookup failed for oid=$oid")
 
-        val geocodingContextCacheKey =
-            geocodingDao.getLayoutGeocodingContextCacheKey(
-                layoutContext.branch,
-                locationTrack.trackNumberId,
-                publication.publicationTime,
-            ) ?: throw ExtGeocodingFailedV1("could not get geocoding context cache key")
+        return locationTrackDao
+            .fetchOfficialVersionAtMoment(layoutContext.branch, locationTrackId, publication.publicationTime)
+            ?.let(locationTrackDao::fetch)
+            ?.let { locationTrack ->
+                val geocodingContextCacheKey =
+                    geocodingDao.getLayoutGeocodingContextCacheKey(
+                        layoutContext.branch,
+                        locationTrack.trackNumberId,
+                        publication.publicationTime,
+                    ) ?: throw ExtGeocodingFailedV1("could not get geocoding context cache key")
 
-        return ExtLocationTrackGeometryResponseV1(
-            trackLayoutVersion = publication.uuid,
-            locationTrackOid = oid,
-            trackIntervals =
-                getExtLocationTrackGeometry(
-                    locationTrack.getVersionOrThrow(),
-                    geocodingContextCacheKey,
-                    trackIntervalFilter,
-                    resolution,
-                    coordinateSystem,
-                ),
-        )
+                ExtLocationTrackGeometryResponseV1(
+                    trackLayoutVersion = publication.uuid,
+                    locationTrackOid = oid,
+                    trackIntervals =
+                        getExtLocationTrackGeometry(
+                            locationTrack.getVersionOrThrow(),
+                            geocodingContextCacheKey,
+                            trackIntervalFilter,
+                            resolution,
+                            coordinateSystem,
+                        ),
+                )
+            }
     }
 
     private fun getExtLocationTrackGeometry(
