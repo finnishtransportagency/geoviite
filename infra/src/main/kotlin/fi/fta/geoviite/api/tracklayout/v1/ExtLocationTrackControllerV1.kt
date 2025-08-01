@@ -99,6 +99,11 @@ class ExtLocationTrackControllerV1(
                         "Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
                     content = [Content(schema = Schema(hidden = true))],
                 ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
             ]
     )
     fun extGetLocationTrack(
@@ -157,6 +162,11 @@ class ExtLocationTrackControllerV1(
                     responseCode = "404",
                     description =
                         "Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
             ]
