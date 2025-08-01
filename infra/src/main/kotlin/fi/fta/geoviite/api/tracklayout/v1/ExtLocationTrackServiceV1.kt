@@ -70,25 +70,36 @@ constructor(
         oid: Oid<LocationTrack>,
         trackLayoutVersion: Uuid<Publication>?,
         coordinateSystem: Srid,
-    ): ExtLocationTrackResponseV1 {
+    ): ExtLocationTrackResponseV1? {
         val layoutContext = MainLayoutContext.official
 
         val publication =
-            trackLayoutVersion?.let { uuid -> publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull) }
-                ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+            trackLayoutVersion?.let { uuid ->
+                publicationDao.fetchPublicationByUuid(uuid)
+                    ?: throw ExtTrackLayoutVersionNotFound("trackLayoutVersion=${trackLayoutVersion}")
+            } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
-        val locationTrack =
-            locationTrackService.getLocationTrackByOidAtMoment(oid, layoutContext, publication.publicationTime)
-                ?: throw ExtOidNotFoundExceptionV1(
-                    "location track lookup failed for oid=$oid, layoutContext=$layoutContext, publicationId=${publication.id}"
+        val locationTrackId =
+            locationTrackDao.lookupByExternalId(oid)?.id
+                ?: throw ExtOidNotFoundExceptionV1("location track lookup failed for oid=$oid")
+
+        return locationTrackDao
+            .fetchOfficialVersionAtMoment(layoutContext.branch, locationTrackId, publication.publicationTime)
+            ?.let(locationTrackDao::fetch)
+            ?.let { locationTrack ->
+                ExtLocationTrackResponseV1(
+                    trackLayoutVersion = publication.uuid,
+                    coordinateSystem = coordinateSystem,
+                    locationTrack =
+                        getExtLocationTrack(
+                            oid,
+                            locationTrack,
+                            layoutContext,
+                            publication.publicationTime,
+                            coordinateSystem,
+                        ),
                 )
-
-        return ExtLocationTrackResponseV1(
-            trackLayoutVersion = publication.uuid,
-            coordinateSystem = coordinateSystem,
-            locationTrack =
-                getExtLocationTrack(oid, locationTrack, layoutContext, publication.publicationTime, coordinateSystem),
-        )
+            }
     }
 
     fun createLocationTrackModificationResponse(

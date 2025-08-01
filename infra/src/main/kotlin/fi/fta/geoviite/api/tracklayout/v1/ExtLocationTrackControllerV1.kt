@@ -11,7 +11,13 @@ import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.util.toResponse
+import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -68,18 +74,48 @@ class ExtLocationTrackControllerV1(
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
     @Tag(name = EXT_LOCATION_TRACK_TAG_V1)
+    @Operation(summary = "Yksittäisen sijaintiraiteen haku OID-tunnuksella")
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(
+                    responseCode = "200",
+                    description = "Sijaintiraide löytyi onnistuneesti uusimmasta tai annetusta rataverkon versiosta.",
+                ),
+                ApiResponse(
+                    responseCode = "204",
+                    description =
+                        "Sijaintiraiteen OID-tunnus löytyi, muttei se ole olemassa annetussa rataverkon versiossa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description =
+                        "Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
     fun extGetLocationTrack(
         @Parameter(description = LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: Oid<LocationTrack>,
         @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>?,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
-    ): ExtLocationTrackResponseV1 {
-        return extLocationTrackService.createLocationTrackResponse(
-            oid,
-            trackLayoutVersion,
-            coordinateSystem ?: LAYOUT_SRID,
-        )
+    ): ResponseEntity<ExtLocationTrackResponseV1> {
+        return extLocationTrackService
+            .createLocationTrackResponse(oid, trackLayoutVersion, coordinateSystem ?: LAYOUT_SRID)
+            .let(::toResponse)
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset", params = [MODIFICATIONS_FROM_VERSION])
@@ -102,6 +138,39 @@ class ExtLocationTrackControllerV1(
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria")
     @Tag(name = EXT_LOCATION_TRACK_TAG_V1)
+    @Operation(summary = "Yksittäisen sijaintiraiteen geometrian haku OID-tunnuksella")
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(
+                    responseCode = "200",
+                    description =
+                        "Sijaintiraiteen geometria löytyi onnistuneesti uusimmasta tai annetusta rataverkon versiosta.",
+                ),
+                ApiResponse(
+                    responseCode = "204",
+                    description =
+                        "Sijaintiraiteen OID-tunnus löytyi, muttei sille ole olemassa geometriaa annetussa rataverkon versiossa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description =
+                        "Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
     fun extGetLocationTrackGeometry(
         @PathVariable(LOCATION_TRACK_OID_PARAM) oid: Oid<LocationTrack>,
         @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>? = null,
@@ -109,13 +178,15 @@ class ExtLocationTrackControllerV1(
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid? = null,
         @RequestParam(TRACK_KILOMETER_START_PARAM, required = false) trackKmStart: KmNumber? = null,
         @RequestParam(TRACK_KILOMETER_END_PARAM, required = false) trackKmEnd: KmNumber? = null,
-    ): ExtLocationTrackGeometryResponseV1 {
-        return extLocationTrackGeometryService.createGeometryResponse(
-            oid,
-            trackLayoutVersion,
-            extResolution?.toResolution() ?: Resolution.ONE_METER,
-            coordinateSystem ?: LAYOUT_SRID,
-            ExtTrackKilometerIntervalV1(trackKmStart, trackKmEnd),
-        )
+    ): ResponseEntity<ExtLocationTrackGeometryResponseV1> {
+        return extLocationTrackGeometryService
+            .createGeometryResponse(
+                oid,
+                trackLayoutVersion,
+                extResolution?.toResolution() ?: Resolution.ONE_METER,
+                coordinateSystem ?: LAYOUT_SRID,
+                ExtTrackKilometerIntervalV1(trackKmStart, trackKmEnd),
+            )
+            .let(::toResponse)
     }
 }
