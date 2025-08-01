@@ -26,14 +26,14 @@ import org.springframework.beans.factory.annotation.Autowired
 
 @Schema(name = "Vastaus: Sijaintiraidegeometria")
 data class ExtLocationTrackGeometryResponseV1(
-    @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
+    @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
     @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: Oid<LocationTrack>,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 
 @Schema(name = "Vastaus: Muutettu sijaintiraidegeometria")
 data class ExtLocationTrackModifiedGeometryResponseV1(
-    @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
+    @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
     @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: Oid<LocationTrack>,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
@@ -76,7 +76,7 @@ constructor(
 
     fun createGeometryResponse(
         oid: Oid<LocationTrack>,
-        trackNetworkVersion: Uuid<Publication>?,
+        trackLayoutVersion: Uuid<Publication>?,
         resolution: Resolution,
         coordinateSystem: Srid,
         trackIntervalFilter: ExtTrackKilometerIntervalV1,
@@ -84,9 +84,9 @@ constructor(
         val layoutContext = MainLayoutContext.official
 
         val publication =
-            trackNetworkVersion?.let { uuid ->
+            trackLayoutVersion?.let { uuid ->
                 publicationDao.fetchPublicationByUuid(uuid)
-                    ?: throw ExtTrackNetworkVersionNotFound("fetch failed, uuid=$uuid")
+                    ?: throw ExtTrackLayoutVersionNotFound("fetch failed, uuid=$uuid")
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrack =
@@ -101,7 +101,7 @@ constructor(
             ) ?: throw ExtGeocodingFailedV1("could not get geocoding context cache key")
 
         return ExtLocationTrackGeometryResponseV1(
-            trackNetworkVersion = publication.uuid,
+            trackLayoutVersion = publication.uuid,
             locationTrackOid = oid,
             trackIntervals =
                 getExtLocationTrackGeometry(

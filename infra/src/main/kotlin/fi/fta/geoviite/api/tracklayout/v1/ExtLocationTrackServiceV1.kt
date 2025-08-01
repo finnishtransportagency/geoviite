@@ -28,14 +28,14 @@ import java.time.Instant
 
 @Schema(name = "Vastaus: Sijaintiraide")
 data class ExtLocationTrackResponseV1(
-    @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
+    @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
     @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
     @JsonProperty(LOCATION_TRACK_PARAM) val locationTrack: ExtLocationTrackV1,
 )
 
 @Schema(name = "Vastaus: Muutettu sijaintiraide")
 data class ExtModifiedLocationTrackResponseV1(
-    @JsonProperty(TRACK_NETWORK_VERSION) val trackNetworkVersion: Uuid<Publication>,
+    @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
     @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
     @JsonProperty(LOCATION_TRACK_PARAM) val locationTrack: ExtLocationTrackV1,
@@ -68,13 +68,13 @@ constructor(
 
     fun createLocationTrackResponse(
         oid: Oid<LocationTrack>,
-        trackNetworkVersion: Uuid<Publication>?,
+        trackLayoutVersion: Uuid<Publication>?,
         coordinateSystem: Srid,
     ): ExtLocationTrackResponseV1 {
         val layoutContext = MainLayoutContext.official
 
         val publication =
-            trackNetworkVersion?.let { uuid -> publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull) }
+            trackLayoutVersion?.let { uuid -> publicationDao.fetchPublicationByUuid(uuid).let(::requireNotNull) }
                 ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrack =
@@ -84,7 +84,7 @@ constructor(
                 )
 
         return ExtLocationTrackResponseV1(
-            trackNetworkVersion = publication.uuid,
+            trackLayoutVersion = publication.uuid,
             coordinateSystem = coordinateSystem,
             locationTrack =
                 getExtLocationTrack(oid, locationTrack, layoutContext, publication.publicationTime, coordinateSystem),
@@ -94,19 +94,19 @@ constructor(
     fun createLocationTrackModificationResponse(
         oid: Oid<LocationTrack>,
         modificationsFromVersion: Uuid<Publication>,
-        trackNetworkVersion: Uuid<Publication>?,
+        trackLayoutVersion: Uuid<Publication>?,
         coordinateSystem: Srid,
     ): ExtModifiedLocationTrackResponseV1? {
         val layoutContext = MainLayoutContext.official
 
         val fromPublication =
             publicationDao.fetchPublicationByUuid(modificationsFromVersion)
-                ?: throw ExtTrackNetworkVersionNotFound("modificationsFromVersion=${modificationsFromVersion}")
+                ?: throw ExtTrackLayoutVersionNotFound("modificationsFromVersion=${modificationsFromVersion}")
 
         val toPublication =
-            trackNetworkVersion?.let { uuid ->
+            trackLayoutVersion?.let { uuid ->
                 publicationDao.fetchPublicationByUuid(uuid)
-                    ?: throw ExtTrackNetworkVersionNotFound("trackNetworkVersion=${uuid}")
+                    ?: throw ExtTrackLayoutVersionNotFound("trackLayoutVersion=${uuid}")
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         return if (fromPublication == toPublication) {
@@ -147,7 +147,7 @@ constructor(
             } else {
                 ExtModifiedLocationTrackResponseV1(
                     modificationsFromVersion = modificationsFromVersion,
-                    trackNetworkVersion = toPublication.uuid,
+                    trackLayoutVersion = toPublication.uuid,
                     coordinateSystem = coordinateSystem,
                     locationTrack =
                         getExtLocationTrack(

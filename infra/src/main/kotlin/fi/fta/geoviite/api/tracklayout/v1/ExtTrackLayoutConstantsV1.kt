@@ -1,7 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 const val MODIFICATIONS_FROM_VERSION = "muutokset_versiosta"
-const val TRACK_NETWORK_VERSION = "rataverkon_versio"
+const val TRACK_LAYOUT_VERSION = "rataverkon_versio"
 const val LOCATION_TRACK_OID_PARAM = "sijaintiraide_oid"
 const val LOCATION_TRACK_PARAM = "sijaintiraide"
 const val LOCATION_TRACK_COLLECTION = "sijaintiraiteet"
