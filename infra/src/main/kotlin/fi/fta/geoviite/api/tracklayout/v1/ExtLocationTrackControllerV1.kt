@@ -46,9 +46,39 @@ class ExtLocationTrackControllerV1(
 
     @GetMapping("/sijaintiraiteet")
     @Tag(name = EXT_LOCATION_TRACK_COLLECTION_TAG_V1)
+    @Operation(summary = "Sijaintiraidekokoelman haku")
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(
+                    responseCode = "200",
+                    description =
+                        "Sijaintiraidekokoelma löytyi onnistuneesti uusimmasta tai annetusta rataverkon versiosta.",
+                ),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "Annettua rataverkon versiota ei ole olemassa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
     fun extGetLocationTrackCollection(
-        @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>?,
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
+        trackLayoutVersion: Uuid<Publication>?,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        coordinateSystem: Srid?,
     ): ExtLocationTrackCollectionResponseV1 {
         return extLocationTrackCollectionService.createLocationTrackCollectionResponse(
             trackLayoutVersion = trackLayoutVersion,
@@ -58,10 +88,54 @@ class ExtLocationTrackControllerV1(
 
     @GetMapping("/sijaintiraiteet/muutokset", params = [MODIFICATIONS_FROM_VERSION])
     @Tag(name = EXT_LOCATION_TRACK_COLLECTION_TAG_V1)
+    @Operation(summary = "Sijaintiraidekokoelman muutosten haku")
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(
+                    responseCode = "200",
+                    description =
+                        "Sijaintiraidekokoelman muutokset haettiin onnistuneesti vertaillen uusimpaan tai annettuun rataverkon versioon.",
+                ),
+                ApiResponse(
+                    responseCode = "204",
+                    description = EXT_OPENAPI_NO_MODIFICATIONS_BETWEEN_VERSIONS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description = "Yhtä tai useampaa rataverkon versiota ei ole olemassa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
     fun extGetLocationTrackCollectionModifications(
-        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
-        @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>?,
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
+        @Parameter(
+            description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
+            schema = Schema(type = "string", format = "uuid"),
+        )
+        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true)
+        modificationsFromVersion: Uuid<Publication>,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO, schema = Schema(type = "string", format = "uuid"))
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
+        trackLayoutVersion: Uuid<Publication>?,
+        @Parameter(
+            name = COORDINATE_SYSTEM_PARAM,
+            description = EXT_OPENAPI_COORDINATE_SYSTEM,
+            schema = Schema(type = "string", format = "string"),
+        )
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackCollectionResponseV1> {
         return extLocationTrackCollectionService
             .createLocationTrackCollectionModificationResponse(
@@ -107,11 +181,15 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun extGetLocationTrack(
-        @Parameter(description = LOCATION_TRACK_OID_DESCRIPTION)
+        @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
         oid: Oid<LocationTrack>,
-        @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>?,
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
+        trackLayoutVersion: Uuid<Publication>?,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        coordinateSystem: Srid?,
     ): ResponseEntity<ExtLocationTrackResponseV1> {
         return extLocationTrackService
             .createLocationTrackResponse(oid, trackLayoutVersion, coordinateSystem ?: LAYOUT_SRID)
@@ -120,11 +198,23 @@ class ExtLocationTrackControllerV1(
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset", params = [MODIFICATIONS_FROM_VERSION])
     @Tag(name = EXT_LOCATION_TRACK_TAG_V1)
+    @Operation(summary = "Yksittäisen sijaintiraiteen muutosten haku OID-tunnuksella")
     fun extGetLocationTrackModifications(
-        @PathVariable(LOCATION_TRACK_OID_PARAM) locationTrackOid: Oid<LocationTrack>,
-        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true) modificationsFromVersion: Uuid<Publication>,
-        @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>?,
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
+        @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
+        @PathVariable(LOCATION_TRACK_OID_PARAM)
+        locationTrackOid: Oid<LocationTrack>,
+        @Parameter(
+            description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
+            schema = Schema(type = "string", format = "uuid"),
+        )
+        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true)
+        modificationsFromVersion: Uuid<Publication>,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO, schema = Schema(type = "string", format = "uuid"))
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
+        trackLayoutVersion: Uuid<Publication>?,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackResponseV1> {
         return extLocationTrackService
             .createLocationTrackModificationResponse(
@@ -172,12 +262,24 @@ class ExtLocationTrackControllerV1(
             ]
     )
     fun extGetLocationTrackGeometry(
-        @PathVariable(LOCATION_TRACK_OID_PARAM) oid: Oid<LocationTrack>,
-        @RequestParam(TRACK_LAYOUT_VERSION, required = false) trackLayoutVersion: Uuid<Publication>? = null,
-        @RequestParam(ADDRESS_POINT_RESOLUTION, required = false) extResolution: ExtResolutionV1? = null,
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid? = null,
-        @RequestParam(TRACK_KILOMETER_START_PARAM, required = false) trackKmStart: KmNumber? = null,
-        @RequestParam(TRACK_KILOMETER_END_PARAM, required = false) trackKmEnd: KmNumber? = null,
+        @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
+        @PathVariable(LOCATION_TRACK_OID_PARAM)
+        oid: Oid<LocationTrack>,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
+        trackLayoutVersion: Uuid<Publication>? = null,
+        @Parameter(description = EXT_OPENAPI_RESOLUTION)
+        @RequestParam(ADDRESS_POINT_RESOLUTION, required = false)
+        extResolution: ExtResolutionV1? = null,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        coordinateSystem: Srid? = null,
+        @Parameter(description = EXT_OPENAPI_TRACK_KILOMETER_START)
+        @RequestParam(TRACK_KILOMETER_START_PARAM, required = false)
+        trackKmStart: KmNumber? = null,
+        @Parameter(description = EXT_OPENAPI_TRACK_KILOMETER_END)
+        @RequestParam(TRACK_KILOMETER_END_PARAM, required = false)
+        trackKmEnd: KmNumber? = null,
     ): ResponseEntity<ExtLocationTrackGeometryResponseV1> {
         return extLocationTrackGeometryService
             .createGeometryResponse(
