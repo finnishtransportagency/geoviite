@@ -1441,7 +1441,7 @@ constructor(
             publicationTestSupportService
                 .publishAndVerify(designBranch, publicationRequestIds(switches = listOf(switch)))
                 .publicationId!!
-        val changes = publicationDao.fetchPublishedSwitches(publicationId)
+        val changes = publicationDao.fetchPublishedSwitches(setOf(publicationId)).getValue(publicationId)
         assertEquals(setOf(trackNumber), changes.directChanges[0].trackNumberIds)
     }
 

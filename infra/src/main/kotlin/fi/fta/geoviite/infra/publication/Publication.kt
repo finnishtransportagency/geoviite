@@ -188,12 +188,63 @@ data class PublicationDetails(
     val allPublishedSwitches = switches + indirectChanges.switches
 }
 
-enum class DraftChangeType {
+enum class PublishableObjectType {
     TRACK_NUMBER,
     LOCATION_TRACK,
     REFERENCE_LINE,
     SWITCH,
     KM_POST,
+}
+
+sealed class PublishableObjectIdAndType {
+    abstract val id: IntId<*>
+    abstract val type: PublishableObjectType
+
+    open fun isTrackNumber(other: IntId<LayoutTrackNumber>) = false
+    open fun isLocationTrack(other: IntId<LocationTrack>) = false
+    open fun isReferenceLine(other: IntId<ReferenceLine>) = false
+    open fun isSwitch(other: IntId<LayoutSwitch>) = false
+    open fun isKmPost(other: IntId<LayoutKmPost>) = false
+
+    companion object {
+        @Suppress("UNCHECKED_CAST")
+        fun byType(id: IntId<*>, type: PublishableObjectType) = when(type) {
+            PublishableObjectType.TRACK_NUMBER -> TrackNumberIdAndType(id as IntId<LayoutTrackNumber>)
+            PublishableObjectType.LOCATION_TRACK -> LocationTrackIdAndType(id as IntId<LocationTrack>)
+            PublishableObjectType.REFERENCE_LINE -> ReferenceLineIdAndType(id as IntId<ReferenceLine>)
+            PublishableObjectType.SWITCH -> SwitchIdAndType(id as IntId<LayoutSwitch>)
+            PublishableObjectType.KM_POST -> KmPostIdAndType(id as IntId<LayoutKmPost>)
+        }
+    }
+}
+data class TrackNumberIdAndType(override val id: IntId<LayoutTrackNumber>) : PublishableObjectIdAndType() {
+
+    override val type = PublishableObjectType.TRACK_NUMBER
+    override fun isTrackNumber(other: IntId<LayoutTrackNumber>) = id == other
+}
+
+data class LocationTrackIdAndType(override val id: IntId<LocationTrack>) : PublishableObjectIdAndType() {
+
+    override val type = PublishableObjectType.LOCATION_TRACK
+    override fun isLocationTrack(other: IntId<LocationTrack>) = id == other
+}
+
+data class ReferenceLineIdAndType(override val id: IntId<ReferenceLine>) : PublishableObjectIdAndType() {
+
+    override val type = PublishableObjectType.REFERENCE_LINE
+    override fun isReferenceLine(other: IntId<ReferenceLine>) = id == other
+}
+
+data class SwitchIdAndType(override val id: IntId<LayoutSwitch>) : PublishableObjectIdAndType() {
+
+    override val type = PublishableObjectType.SWITCH
+    override fun isSwitch(other: IntId<LayoutSwitch>) = id == other
+}
+
+data class KmPostIdAndType(override val id: IntId<LayoutKmPost>) : PublishableObjectIdAndType() {
+
+    override val type = PublishableObjectType.KM_POST
+    override fun isKmPost(other: IntId<LayoutKmPost>) = id == other
 }
 
 enum class Operation(val priority: Int) {
@@ -390,7 +441,7 @@ data class LayoutValidationIssue(
 }
 
 interface PublicationCandidate<T : LayoutAsset<T>> {
-    val type: DraftChangeType
+    val type: PublishableObjectType
     val rowVersion: LayoutRowVersion<T>
     val draftChangeTime: Instant
     val userName: UserName
@@ -419,7 +470,7 @@ data class TrackNumberPublicationCandidate(
     override val designAssetState: DesignAssetState?,
     val boundingBox: BoundingBox?,
 ) : PublicationCandidate<LayoutTrackNumber> {
-    override val type = DraftChangeType.TRACK_NUMBER
+    override val type = PublishableObjectType.TRACK_NUMBER
 }
 
 data class ReferenceLinePublicationCandidate(
@@ -435,7 +486,7 @@ data class ReferenceLinePublicationCandidate(
     val boundingBox: BoundingBox?,
     val geometryChanges: GeometryChangeRanges<ReferenceLineM>?,
 ) : PublicationCandidate<ReferenceLine> {
-    override val type = DraftChangeType.REFERENCE_LINE
+    override val type = PublishableObjectType.REFERENCE_LINE
 }
 
 data class LocationTrackPublicationCandidate(
@@ -452,7 +503,7 @@ data class LocationTrackPublicationCandidate(
     val boundingBox: BoundingBox?,
     val geometryChanges: GeometryChangeRanges<LocationTrackM>?,
 ) : PublicationCandidate<LocationTrack> {
-    override val type = DraftChangeType.LOCATION_TRACK
+    override val type = PublishableObjectType.LOCATION_TRACK
 }
 
 data class SwitchPublicationCandidate(
@@ -467,7 +518,7 @@ data class SwitchPublicationCandidate(
     override val designAssetState: DesignAssetState?,
     val location: Point?,
 ) : PublicationCandidate<LayoutSwitch> {
-    override val type = DraftChangeType.SWITCH
+    override val type = PublishableObjectType.SWITCH
 }
 
 data class KmPostPublicationCandidate(
@@ -482,7 +533,7 @@ data class KmPostPublicationCandidate(
     override val designAssetState: DesignAssetState?,
     val location: Point?,
 ) : PublicationCandidate<LayoutKmPost> {
-    override val type = DraftChangeType.KM_POST
+    override val type = PublishableObjectType.KM_POST
 }
 
 data class SwitchLocationTrack(

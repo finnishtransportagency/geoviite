@@ -33,6 +33,13 @@ import { SortDirection } from 'utils/table-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { createPublicationCandidateReference } from 'publication/publication-utils';
 import { DesignBranch, LayoutBranch, PublicationState } from 'common/common-model';
+import {
+    LayoutKmPostId,
+    LayoutSwitchId,
+    LayoutTrackNumberId,
+    LocationTrackId,
+    ReferenceLineId,
+} from 'track-layout/track-layout-model';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
@@ -259,6 +266,7 @@ export const MAX_RETURNED_PUBLICATION_LOG_ROWS = 500;
 export const getPublicationsAsTableItems = (
     from?: Date,
     to?: Date,
+    specificItem?: PublishableObjectIdAndType,
     sortBy?: PublicationDetailsTableSortField,
     order?: SortDirection,
 ) => {
@@ -267,6 +275,8 @@ export const getPublicationsAsTableItems = (
     const params = queryParams({
         from: from ? from.toISOString() : undefined,
         to: to ? to.toISOString() : undefined,
+        type: specificItem ? specificItem.type : undefined,
+        id: specificItem ? specificItem.id : undefined,
         sortBy: isSorted && sortBy ? sortBy : undefined,
         order: isSorted ? order : undefined,
         lang: i18next.language,
@@ -275,9 +285,23 @@ export const getPublicationsAsTableItems = (
     return getNonNull<Page<PublicationTableItem>>(`${PUBLICATION_URL}/table-rows${params}`);
 };
 
+export type PublishableObjectIdAndType =
+    | TrackNumberIdAndType
+    | ReferenceLineIdAndType
+    | LocationTrackIdAndType
+    | SwitchIdAndType
+    | KmPostIdAndType;
+
+export type TrackNumberIdAndType = { id: LayoutTrackNumberId; type: 'TRACK_NUMBER' };
+export type ReferenceLineIdAndType = { id: ReferenceLineId; type: 'REFERENCE_LINE' };
+export type LocationTrackIdAndType = { id: LocationTrackId; type: 'LOCATION_TRACK' };
+export type SwitchIdAndType = { id: LayoutSwitchId; type: 'SWITCH' };
+export type KmPostIdAndType = { id: LayoutKmPostId; type: 'KM_POST' };
+
 export const getPublicationsCsvUri = (
     fromDate?: Date,
     toDate?: Date,
+    specificObjectId?: PublishableObjectIdAndType,
     sortBy?: PublicationDetailsTableSortField,
     order?: SortDirection,
 ): string => {
@@ -286,6 +310,8 @@ export const getPublicationsCsvUri = (
     const params = queryParams({
         from: fromDate ? fromDate.toISOString() : undefined,
         to: toDate ? toDate.toISOString() : undefined,
+        id: specificObjectId ? specificObjectId.id : undefined,
+        type: specificObjectId ? specificObjectId.type : undefined,
         sortBy: isSorted && sortBy ? sortBy : undefined,
         order: isSorted ? order : undefined,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
