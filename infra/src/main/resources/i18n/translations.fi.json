@@ -42,7 +42,8 @@
                         "invalid-path": "{{metodi}} Pyynnön polku oli virheellinen",
                         "missing-parameter": "Pyynnöstä puuttui parametri: {{parametri}} ({{tyyppi}})",
                         "conversion-failed": "Pyynnön argumentin tyyppi oli virheellinen (tavoitetyyppi: '{{tavoitetyyppi}}')",
-                        "conversion-failed-detailed": "Pyynnön argumentti {{nimi}} oli virheellinen: (tavoitetyyppi: '{{tavoitetyyppi}}') (tarkenne: {{parametri}})"
+                        "conversion-failed-detailed": "Pyynnön argumentti {{nimi}} oli virheellinen: (tavoitetyyppi: '{{tavoitetyyppi}}') (tarkenne: {{parametri}})",
+                        "wrong-track-layout-version-order": "Pyynnön sisältämä rataverkon lähdeversio oli vanhempi kuin vertailtava rataverkon versio (järjestys oli väärinpäin)."
                     }
                 }
             }

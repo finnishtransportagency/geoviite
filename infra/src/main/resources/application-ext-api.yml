@@ -45,6 +45,7 @@ geoviite:
 
 springdoc:
   enable-default-api-docs: false
+  trim-kotlin-indent: true
   api-docs:
     enabled: true
     path: /geoviite/v3/api-docs

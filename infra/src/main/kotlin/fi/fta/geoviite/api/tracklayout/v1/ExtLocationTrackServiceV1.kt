@@ -63,6 +63,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
     private val publicationDao: PublicationDao,
+    private val extPublicationService: ExtPublicationServiceV1,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -110,15 +111,8 @@ constructor(
     ): ExtModifiedLocationTrackResponseV1? {
         val layoutContext = MainLayoutContext.official
 
-        val fromPublication =
-            publicationDao.fetchPublicationByUuid(modificationsFromVersion)
-                ?: throw ExtTrackLayoutVersionNotFound("modificationsFromVersion=${modificationsFromVersion}")
-
-        val toPublication =
-            trackLayoutVersion?.let { uuid ->
-                publicationDao.fetchPublicationByUuid(uuid)
-                    ?: throw ExtTrackLayoutVersionNotFound("trackLayoutVersion=${uuid}")
-            } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+        val (fromPublication, toPublication) =
+            extPublicationService.getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
 
         return if (fromPublication == toPublication) {
             logger.info(
@@ -136,9 +130,6 @@ constructor(
                     locationTrackId,
                     fromPublication.publicationTime,
                 )
-                    ?: throw ExtLocationTrackNotFoundExceptionV1(
-                        "'from' version fetch failed, moment=${fromPublication.publicationTime}, locationTrackId=$locationTrackId"
-                    )
 
             val toLocationTrackVersion =
                 locationTrackDao.fetchOfficialVersionAtMoment(
@@ -146,9 +137,6 @@ constructor(
                     locationTrackId,
                     toPublication.publicationTime,
                 )
-                    ?: throw ExtLocationTrackNotFoundExceptionV1(
-                        "'to' version fetch failed, moment=${toPublication.publicationTime}, locationTrackId=$locationTrackId"
-                    )
 
             return if (fromLocationTrackVersion == toLocationTrackVersion) {
                 logger.info(
@@ -156,6 +144,10 @@ constructor(
                 )
                 null
             } else {
+                checkNotNull(toLocationTrackVersion) {
+                    "It should not be possible for the fromLocationTrackVersion to be non-null, while the toLocationTrackVersion is null."
+                }
+
                 ExtModifiedLocationTrackResponseV1(
                     modificationsFromVersion = modificationsFromVersion,
                     trackLayoutVersion = toPublication.uuid,
