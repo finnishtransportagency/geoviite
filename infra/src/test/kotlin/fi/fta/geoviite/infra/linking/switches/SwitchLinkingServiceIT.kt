@@ -34,7 +34,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
@@ -97,7 +96,6 @@ constructor(
     private val locationTrackDao: LocationTrackDao,
 ) : DBTestBase() {
 
-    @Autowired private lateinit var layoutAlignmentDao: LayoutAlignmentDao
     lateinit var switchStructure: SwitchStructure
     lateinit var switchAlignment_1_5_2: SwitchStructureAlignment
 
@@ -1712,6 +1710,100 @@ constructor(
             ),
         )
         assertTopologicalConnectionAtEnd(linkedTracks, trackC.locationTrackId, switchId = switchId, 1)
+    }
+
+    @Test
+    fun `should clear switch from old location when linking into new location`() {
+        // Diverging tracks are somewhat irrelevant in this test and are therefore ignored.
+        //
+        //     track A      track B      track C
+        //  ├──────────┼───────────────┼─────────┤
+        //                             1    5    2   current switch position
+        //  1    5     2                             new switch position
+        //
+        // Joints 1, 5, 2 should be removed from track B and C.
+        // Joints 1, 5, 2 should be added to track A.
+        //
+        val trackNumber = mainDraftContext.createLayoutTrackNumber().id
+        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
+        val newSwitchId = switchDao.save(switch(switchStructure.id)).id
+
+        fun saveTrack(lt: TrackForSwitchFitting): TrackForSwitchFitting {
+            val version =
+                locationTrackDao.save(
+                    lt.locationTrack
+                        .copy(trackNumberId = trackNumber)
+                        .withContext(LayoutContextData.newDraft(LayoutBranch.main, id = null)),
+                    lt.geometry,
+                )
+            return lt.copy(locationTrack = locationTrackDao.fetch(version))
+        }
+
+        // in this test tracks don't need to match switch structure geometrically,
+        // but might help debugging
+        val trackA = saveTrack(createTrack(switchStructure.data, asJointNumbers(1, 5, 2), "track A"))
+        val trackB =
+            saveTrack(
+                trackA
+                    .asNew("track B")
+                    .moveForward(trackA.length.distance)
+                    .withSwitch(newSwitchId, switchStructure.data, topologicalJointAtEnd(1))
+            )
+        val trackC =
+            saveTrack(
+                createTrack(switchStructure.data, asJointNumbers(1, 5, 2), "track C")
+                    .moveForward(trackA.length.distance + trackB.length.distance)
+                    .withSwitch(
+                        newSwitchId,
+                        switchStructure.data,
+                        innerJointAtStart(1),
+                        innerJointAtM(LineM(16.0), 5),
+                        innerJointAtEnd(2),
+                    )
+            )
+
+        val nearbyTracks = listOf(trackA.trackAndGeometry, trackB.trackAndGeometry)
+        val farawayTracks = listOf(trackC.trackAndGeometry)
+
+        // manually defined fitted switch, m-values don't need to match to switch structure
+        // but are relevant for geometry checks
+        val fittedSwitch =
+            fittedSwitch(
+                switchStructure.data,
+                fittedJointMatch(trackA, 1, LineM(0.0)),
+                fittedJointMatch(trackA, 5, trackA.length / 2),
+                fittedJointMatch(trackA, 2, trackA.length),
+            )
+
+        switchLinkingService.saveSwitchLinking(
+            LayoutBranch.main,
+            matchFittedSwitchToTracks(
+                fittedSwitch,
+                clearSwitchFromTracks(newSwitchId, (nearbyTracks + farawayTracks).associateBy { it.first.id as IntId }),
+                newSwitchId,
+            ),
+            layoutSwitchId = newSwitchId,
+            geometrySwitchId = null,
+        )
+        val linkedTracks =
+            locationTrackService.getManyWithGeometries(
+                mainDraftContext.context,
+                (nearbyTracks + farawayTracks).map { it.first.id as IntId },
+            )
+
+        // validate
+
+        assertTracksExists(linkedTracks, trackA.name, trackB.name, trackC.name)
+
+        assertSwitchDoesNotExist(linkedTracks, trackC.locationTrackId, newSwitchId)
+        assertInnerSwitchNodeExists(
+            linkedTracks,
+            trackA.locationTrackId,
+            switchId = newSwitchId,
+            jointsWithM = listOf(1 to LineM(0.0), 5 to trackA.length / 2, 2 to trackA.length),
+        )
+
+        assertTopologySwitchAtStart(linkedTracks, trackB.locationTrackId, newSwitchId, 2)
     }
 
     private fun insert(context: LayoutContext, track: TrackForSwitchFitting): TrackForSwitchFitting {
