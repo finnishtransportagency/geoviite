@@ -14,11 +14,11 @@ import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getTrackMeter
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val REFERENCE_LINE_CACHE_SIZE = 1000L
 
@@ -36,7 +36,10 @@ class ReferenceLineDao(
 
     override fun getBaseSaveParams(rowVersion: LayoutRowVersion<ReferenceLine>) = NoParams.instance
 
-    override fun fetchInternal(version: LayoutRowVersion<ReferenceLine>): ReferenceLine {
+    override fun fetchManyInternal(
+        versions: Collection<LayoutRowVersion<ReferenceLine>>
+    ): Map<LayoutRowVersion<ReferenceLine>, ReferenceLine> {
+        if (versions.isEmpty()) return emptyMap()
         val sql =
             """
             select
@@ -52,24 +55,29 @@ class ReferenceLineDao(
               av.length,
               av.segment_count,
               rlv.start_address,
-              origin_design_id
+              rlv.origin_design_id
             from layout.reference_line_version rlv
               left join layout.alignment_version av on rlv.alignment_id = av.id and rlv.alignment_version = av.version
-            where rlv.id = :id
-              and rlv.layout_context_id = :layout_context_id
-              and rlv.version = :version
-              and rlv.deleted = false
+            inner join lateral
+              (
+                select
+                  unnest(:ids) id,
+                  unnest(:layout_context_ids) layout_context_id,
+                  unnest(:versions) version
+              ) args on args.id = rlv.id and args.layout_context_id = rlv.layout_context_id and args.version = rlv.version
+            where rlv.deleted = false
         """
                 .trimIndent()
         val params =
             mapOf(
-                "id" to version.id.intValue,
-                "layout_context_id" to version.context.toSqlString(),
-                "version" to version.version,
+                "ids" to versions.map { v -> v.id.intValue }.toTypedArray(),
+                "versions" to versions.map { v -> v.version }.toTypedArray(),
+                "layout_context_ids" to versions.map { v -> v.context.toSqlString() }.toTypedArray(),
             )
-        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getReferenceLine(rs) }).also { rl ->
-            logger.daoAccess(AccessType.FETCH, ReferenceLine::class, rl.id)
-        }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ -> getReferenceLine(rs) }
+            .associateBy { rl -> rl.getVersionOrThrow() }
+            .also { logger.daoAccess(AccessType.FETCH, ReferenceLine::class, versions) }
     }
 
     override fun preloadCache(): Int {

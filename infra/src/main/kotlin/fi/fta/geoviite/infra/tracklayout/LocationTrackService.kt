@@ -44,11 +44,11 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -219,14 +219,14 @@ class LocationTrackService(
     }
 
     @Transactional
-    fun fetchDuplicates(layoutContext: LayoutContext, id: IntId<LocationTrack>): List<LocationTrack> {
-        return dao.fetchDuplicateVersions(layoutContext, id).map(dao::fetch)
-    }
+    fun fetchDuplicates(layoutContext: LayoutContext, id: IntId<LocationTrack>): List<LocationTrack> =
+        dao.fetchDuplicates(layoutContext, id)
 
     @Transactional
     fun clearDuplicateReferences(branch: LayoutBranch, id: IntId<LocationTrack>) =
-        dao.fetchDuplicateVersions(branch.draft, id, includeDeleted = true)
-            .map { version -> asDraft(branch, dao.fetch(version)) to alignmentDao.fetch(version) }
+        dao.fetchDuplicates(branch.draft, id, includeDeleted = true)
+            .map { duplicate -> asDraft(branch, duplicate) }
+            .let { d -> associateWithGeometries(d) }
             .forEach { (dup, geom) -> saveDraft(branch, dup.copy(duplicateOf = null), geom) }
 
     fun listNonLinked(branch: LayoutBranch): List<LocationTrack> {
@@ -270,19 +270,14 @@ class LocationTrackService(
         minLength: Double? = null,
         locationTrackIds: Set<IntId<LocationTrack>>? = null,
     ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
-        return if (boundingBox == null) {
-                dao.list(layoutContext, includeDeleted, trackNumberId)
-            } else {
-                dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId, minLength)
-                    .map(dao::fetch)
-            }
-            .let { list ->
-                if (locationTrackIds == null) list
-                else
-                    list.filter { locationTrack -> locationTrackIds.contains(locationTrack.id as IntId<LocationTrack>) }
-            }
-            .let { list -> filterByBoundingBox(list, boundingBox) }
-            .let(::associateWithGeometries)
+        val versions =
+            if (boundingBox == null) dao.fetchVersions(layoutContext, includeDeleted, trackNumberId)
+            else dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId, minLength)
+        val filteredVersions =
+            if (locationTrackIds == null) versions
+            else versions.filter { version -> locationTrackIds.contains(version.id) }
+        val tracks = filterByBoundingBox(dao.fetchMany(filteredVersions), boundingBox)
+        return associateWithGeometries(tracks)
     }
 
     @Transactional(readOnly = true)
@@ -291,6 +286,13 @@ class LocationTrackService(
         ids: List<IntId<LocationTrack>>,
     ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
         return dao.getMany(layoutContext, ids).let(::associateWithGeometries)
+    }
+
+    @Transactional(readOnly = true)
+    fun getManyWithGeometries(
+        versions: List<LayoutRowVersion<LocationTrack>>
+    ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
+        return dao.fetchMany(versions).let(::associateWithGeometries)
     }
 
     @Transactional(readOnly = true)
@@ -449,7 +451,7 @@ class LocationTrackService(
     ): Pair<LocationTrack, DbLocationTrackGeometry> = locationTrackWithGeometry(dao, alignmentDao, version)
 
     private fun associateWithGeometries(
-        lines: List<LocationTrack>
+        lines: Collection<LocationTrack>
     ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
         // This is a little convoluted to avoid extra passes of transaction annotation handling in
         // alignmentDao.fetch
@@ -615,7 +617,7 @@ class LocationTrackService(
             alignmentDao
                 .getNodeConnectionsNear(layoutContext, target, TOPOLOGY_CALC_DISTANCE)
                 .mapNotNull { c -> c.filterOut(changedTrackIds) }
-                .map { c -> NodeReplacementTarget(c.node, c.trackVersions.map(::getWithGeometry)) }
+                .map { c -> NodeReplacementTarget(c.node, getManyWithGeometries(c.trackVersions)) }
         val changedTrackConnections =
             changedTracks.flatMap { (track, geometry) ->
                 geometry.nodesWithLocation
@@ -623,15 +625,6 @@ class LocationTrackService(
                     .map { (node, _) -> NodeReplacementTarget(node, track, geometry) }
             }
         return mergeNodeConnections(dbConnections + changedTrackConnections)
-    }
-
-    private fun fetchNearbyLocationTracksWithGeometries(
-        layoutContext: LayoutContext,
-        targetPoint: LayoutPoint<LocationTrackM>,
-    ): List<Pair<LocationTrack, LocationTrackGeometry>> {
-        return dao.fetchVersionsNear(layoutContext, boundingBoxAroundPoint(targetPoint, 1.0))
-            .map { version -> getWithGeometryInternal(version) }
-            .filter { (track, geometry) -> geometry.isNotEmpty && track.exists }
     }
 
     fun getLocationTrackOwners(): List<LocationTrackOwner> {

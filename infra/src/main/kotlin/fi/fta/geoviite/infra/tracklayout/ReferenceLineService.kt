@@ -197,7 +197,7 @@ class ReferenceLineService(
         return (if (boundingBox == null) {
                 dao.list(layoutContext, includeDeleted)
             } else {
-                dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted).map(dao::fetch)
+                dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted).let(dao::fetchMany)
             })
             .let { list -> filterByBoundingBox(list, boundingBox) }
             .let(::associateWithAlignments)
@@ -240,11 +240,11 @@ class ReferenceLineService(
     }
 
     fun listNonLinked(branch: LayoutBranch): List<ReferenceLine> {
-        return dao.fetchVersionsNonLinked(branch.draft).map(dao::fetch)
+        return dao.fetchVersionsNonLinked(branch.draft).let(dao::fetchMany)
     }
 
     fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<ReferenceLine> {
-        return dao.fetchVersionsNear(layoutContext, bbox, includeDeleted = false).map(dao::fetch)
+        return dao.fetchVersionsNear(layoutContext, bbox, includeDeleted = false).let(dao::fetchMany)
     }
 
     override fun mergeToMainBranch(

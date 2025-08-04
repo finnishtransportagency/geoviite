@@ -24,11 +24,11 @@ import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.context.annotation.Lazy
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 sealed interface GeocodingContextCacheKey
 
@@ -92,7 +92,7 @@ class GeocodingCacheService(
                 ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
         // If the track number is deleted or reference line has no geometry, we cannot geocode.
         if (!trackNumber.exists || alignment.segments.isEmpty()) return null
-        val kmPosts = key.kmPostVersions.map(kmPostDao::fetch).sortedBy { post -> post.kmNumber }
+        val kmPosts = kmPostDao.fetchMany(key.kmPostVersions).sortedBy { post -> post.kmNumber }
         return GeocodingContext.create(trackNumber.number, referenceLine.startAddress, alignment, kmPosts)
     }
 
