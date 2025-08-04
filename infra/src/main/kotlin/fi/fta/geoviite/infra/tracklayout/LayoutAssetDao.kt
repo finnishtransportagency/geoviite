@@ -128,14 +128,15 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
         }
 
     override fun fetchMany(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T> =
-        // TODO: GVT-3080 Optimize this to an actual batch fetch
         if (cacheEnabled) {
-            cache.getAll(versions) { nonCached -> nonCached.associateWith(::fetchInternal) }
+            cache.getAll(versions) { nonCached -> fetchManyInternal(nonCached) }
         } else {
-            versions.associateWith(::fetchInternal)
+            fetchManyInternal(versions)
         }
 
     protected abstract fun fetchInternal(version: LayoutRowVersion<T>): T
+
+    protected abstract fun fetchManyInternal(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T>
 
     abstract fun preloadCache(): Int
 

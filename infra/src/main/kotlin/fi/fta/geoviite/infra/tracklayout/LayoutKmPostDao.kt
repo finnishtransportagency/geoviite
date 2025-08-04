@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -156,7 +157,13 @@ class LayoutKmPostDao(
         return result.firstOrNull()
     }
 
-    override fun fetchInternal(version: LayoutRowVersion<LayoutKmPost>): LayoutKmPost {
+    override fun fetchInternal(version: LayoutRowVersion<LayoutKmPost>): LayoutKmPost =
+        fetchManyInternal(listOf(version))[version] ?: throw NoSuchEntityException(LayoutKmPost::class, version)
+
+    override fun fetchManyInternal(
+        versions: Collection<LayoutRowVersion<LayoutKmPost>>
+    ): Map<LayoutRowVersion<LayoutKmPost>, LayoutKmPost> {
+        if (versions.isEmpty()) return emptyMap()
         val sql =
             """
             select 
@@ -176,21 +183,25 @@ class LayoutKmPostDao(
               state,
               origin_design_id
             from layout.km_post_version kpv
-            where id = :id 
-              and version = :version
-              and layout_context_id = :layout_context_id
-              and deleted = false
+              inner join lateral
+                (
+                  select
+                    unnest(:ids) id,
+                    unnest(:layout_context_ids) layout_context_id,
+                    unnest(:versions) version
+                ) args on args.id = kpv.id and args.layout_context_id = kpv.layout_context_id and args.version = kpv.version
         """
                 .trimIndent()
         val params =
             mapOf(
-                "id" to version.id.intValue,
-                "version" to version.version,
-                "layout_context_id" to version.context.toSqlString(),
+                "ids" to versions.map { v -> v.id.intValue }.toTypedArray(),
+                "versions" to versions.map { v -> v.version }.toTypedArray(),
+                "layout_context_ids" to versions.map { v -> v.context.toSqlString() }.toTypedArray(),
             )
-        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutKmPost(rs) }).also {
-            logger.daoAccess(AccessType.FETCH, LayoutKmPost::class, version)
-        }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ -> getLayoutKmPost(rs) }
+            .associateBy { kmp -> kmp.getVersionOrThrow() }
+            .also { logger.daoAccess(AccessType.FETCH, LayoutKmPost::class, versions) }
     }
 
     private fun getKmPostGkLocation(rs: ResultSet): LayoutKmPostGkLocation? {

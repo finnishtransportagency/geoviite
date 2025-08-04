@@ -295,28 +295,6 @@ fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersionOrNull(
     return if (rowId != null && version != null) LayoutRowVersion(rowId, version) else null
 }
 
-// fun ResultSet.getAugLocationTrackCacheKey(
-//    trackPrefix: String,
-//    trackNumberPrefix: String,
-//    startSwitchPrefix: String,
-//    endSwitchPrefix: String,
-// ): AugLocationTrackCacheKey {
-//    fun <T : LayoutAsset<T>> getVersionOrNull(namePrefix: String): LayoutRowVersion<T> =
-//        getLayoutRowVersion(
-//            "${namePrefix}_id",
-//            "${namePrefix}_design_id",
-//            "${namePrefix}_draft",
-//            "${namePrefix}_version",
-//        )
-//    fun <T : LayoutAsset<T>> getVersion(namePrefix: String): LayoutRowVersion<T> =
-//        verifyNotNull(namePrefix, ::getVersionOrNull)
-//    val trackVersion: LayoutRowVersion<LocationTrack> = getVersion(trackPrefix)
-//    val trackNumberVersion = getVersion<LayoutTrackNumber>(trackNumberPrefix)
-//    val startSwitchVersion = getVersionOrNull<LayoutSwitch>(startSwitchPrefix)
-//    val endSwitchVersion = getVersionOrNull<LayoutSwitch>(endSwitchPrefix)
-//    return AugLocationTrackCacheKey(trackVersion, trackNumberVersion, startSwitchVersion, endSwitchVersion)
-// }
-//
 fun <T : LayoutAsset<T>> ResultSet.getLayoutRowVersion(
     idName: String,
     layoutBranchName: String,
