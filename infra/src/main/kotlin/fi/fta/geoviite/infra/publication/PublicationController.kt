@@ -208,7 +208,7 @@ constructor(
         @RequestParam("lang") lang: LocalizationLanguage,
     ): Page<PublicationTableItem> {
         require((type == null) == (id == null)) { "Must provide either both or neither of id and type"}
-        val specificId = if (type != null) PublishableObjectIdAndType.byType(requireNotNull(id), type) else null
+        val specificId = if (type != null) PublishableObjectIdAndType(requireNotNull(id), type) else null
 
         val publications =
             publicationLogService.fetchPublicationDetails(

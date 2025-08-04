@@ -196,55 +196,34 @@ enum class PublishableObjectType {
     KM_POST,
 }
 
-sealed class PublishableObjectIdAndType {
-    abstract val id: IntId<*>
-    abstract val type: PublishableObjectType
-
-    open fun isTrackNumber(other: IntId<LayoutTrackNumber>) = false
-    open fun isLocationTrack(other: IntId<LocationTrack>) = false
-    open fun isReferenceLine(other: IntId<ReferenceLine>) = false
-    open fun isSwitch(other: IntId<LayoutSwitch>) = false
-    open fun isKmPost(other: IntId<LayoutKmPost>) = false
-
+data class PublishableObjectIdAndType(val id: IntId<*>, val type: PublishableObjectType) {
     companion object {
-        @Suppress("UNCHECKED_CAST")
-        fun byType(id: IntId<*>, type: PublishableObjectType) = when(type) {
-            PublishableObjectType.TRACK_NUMBER -> TrackNumberIdAndType(id as IntId<LayoutTrackNumber>)
-            PublishableObjectType.LOCATION_TRACK -> LocationTrackIdAndType(id as IntId<LocationTrack>)
-            PublishableObjectType.REFERENCE_LINE -> ReferenceLineIdAndType(id as IntId<ReferenceLine>)
-            PublishableObjectType.SWITCH -> SwitchIdAndType(id as IntId<LayoutSwitch>)
-            PublishableObjectType.KM_POST -> KmPostIdAndType(id as IntId<LayoutKmPost>)
-        }
+        fun trackNumber(id: IntId<LayoutTrackNumber>) =
+            PublishableObjectIdAndType(id, PublishableObjectType.TRACK_NUMBER)
+
+        fun locationTrack(id: IntId<LayoutTrackNumber>) =
+            PublishableObjectIdAndType(id, PublishableObjectType.LOCATION_TRACK)
+
+        fun referenceLine(id: IntId<LayoutTrackNumber>) =
+            PublishableObjectIdAndType(id, PublishableObjectType.REFERENCE_LINE)
+
+        fun switch(id: IntId<LayoutTrackNumber>) = PublishableObjectIdAndType(id, PublishableObjectType.SWITCH)
+
+        fun kmPost(id: IntId<LayoutTrackNumber>) = PublishableObjectIdAndType(id, PublishableObjectType.KM_POST)
     }
-}
-data class TrackNumberIdAndType(override val id: IntId<LayoutTrackNumber>) : PublishableObjectIdAndType() {
 
-    override val type = PublishableObjectType.TRACK_NUMBER
-    override fun isTrackNumber(other: IntId<LayoutTrackNumber>) = id == other
-}
+    @Suppress("UNCHECKED_CAST")
+    fun locationTrackId() = if (type != PublishableObjectType.LOCATION_TRACK) null else id as IntId<LocationTrack>
 
-data class LocationTrackIdAndType(override val id: IntId<LocationTrack>) : PublishableObjectIdAndType() {
+    fun isTrackNumber(other: IntId<LayoutTrackNumber>) = type == PublishableObjectType.TRACK_NUMBER && id == other
 
-    override val type = PublishableObjectType.LOCATION_TRACK
-    override fun isLocationTrack(other: IntId<LocationTrack>) = id == other
-}
+    fun isLocationTrack(other: IntId<LocationTrack>) = type == PublishableObjectType.LOCATION_TRACK && id == other
 
-data class ReferenceLineIdAndType(override val id: IntId<ReferenceLine>) : PublishableObjectIdAndType() {
+    fun isReferenceLine(other: IntId<ReferenceLine>) = type == PublishableObjectType.REFERENCE_LINE && id == other
 
-    override val type = PublishableObjectType.REFERENCE_LINE
-    override fun isReferenceLine(other: IntId<ReferenceLine>) = id == other
-}
+    fun isSwitch(other: IntId<LayoutSwitch>) = type == PublishableObjectType.SWITCH && id == other
 
-data class SwitchIdAndType(override val id: IntId<LayoutSwitch>) : PublishableObjectIdAndType() {
-
-    override val type = PublishableObjectType.SWITCH
-    override fun isSwitch(other: IntId<LayoutSwitch>) = id == other
-}
-
-data class KmPostIdAndType(override val id: IntId<LayoutKmPost>) : PublishableObjectIdAndType() {
-
-    override val type = PublishableObjectType.KM_POST
-    override fun isKmPost(other: IntId<LayoutKmPost>) = id == other
+    fun isKmPost(other: IntId<LayoutKmPost>) = type == PublishableObjectType.KM_POST && id == other
 }
 
 enum class Operation(val priority: Int) {

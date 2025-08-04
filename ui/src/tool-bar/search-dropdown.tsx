@@ -123,11 +123,11 @@ const debouncedGetOptions = debounceAsync(getOptions, 250);
 export type SearchItemValue<SearchTypes extends SearchItemType> =
     SearchTypes extends 'LOCATION_TRACK'
         ? LocationTrackItemValue
-        : never | SearchTypes extends 'SWITCH'
+        : SearchTypes extends 'SWITCH'
           ? SwitchItemValue
-          : never | SearchTypes extends 'TRACK_NUMBER'
+          : SearchTypes extends 'TRACK_NUMBER'
             ? TrackNumberItemValue
-            : never | SearchTypes extends 'OPERATING_POINT'
+            : SearchTypes extends 'OPERATING_POINT'
               ? OperatingPointItemValue
               : never;
 

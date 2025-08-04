@@ -188,8 +188,8 @@ constructor(
         translation: Translation,
     ): List<PublicationTableItem> {
         val switchLinkChanges =
-            if (specificId != null && specificId !is LocationTrackIdAndType) mapOf() else
-            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(null, layoutBranch, from, to, specificId)
+            if (specificId != null && specificId.type != PublishableObjectType.LOCATION_TRACK) mapOf()
+            else publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(null, layoutBranch, from, to, specificId)
 
         return fetchPublicationDetailsBetweenInstants(layoutBranch, from, to)
             .sortedBy { it.publicationTime }
@@ -773,6 +773,25 @@ constructor(
             .map { it.value.last().number }
             .toSet()
 
+    private fun canSkipLoadingChanges(
+        publication: PublicationDetails,
+        specificObject: PublishableObjectIdAndType?,
+        type: PublishableObjectType,
+    ) =
+        if (specificObject == null) false
+        else
+            type != specificObject.type ||
+                when (specificObject.type) {
+                    PublishableObjectType.TRACK_NUMBER ->
+                        publication.allPublishedTrackNumbers.none { it.id == specificObject.id }
+                    PublishableObjectType.LOCATION_TRACK ->
+                        publication.allPublishedLocationTracks.none { it.id == specificObject.id }
+                    PublishableObjectType.REFERENCE_LINE ->
+                        publication.referenceLines.none { it.id == specificObject.id }
+                    PublishableObjectType.SWITCH -> publication.allPublishedSwitches.none { it.id == specificObject.id }
+                    PublishableObjectType.KM_POST -> publication.kmPosts.none { it.id == specificObject.id }
+                }
+
     private fun mapToPublicationTableItems(
         translation: Translation,
         publication: PublicationDetails,
@@ -784,19 +803,11 @@ constructor(
     ): List<PublicationTableItem> {
         publication.locationTracks
         val publicationLocationTrackChanges =
-            if (
-                specificObjectId != null &&
-                    (specificObjectId !is LocationTrackIdAndType ||
-                        publication.allPublishedLocationTracks.none { it.id == specificObjectId.id })
-            ) {
+            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.LOCATION_TRACK)) {
                 mapOf()
             } else publicationDao.fetchPublicationLocationTrackChanges(publication.id)
         val publicationTrackNumberChanges =
-            if (
-                specificObjectId != null &&
-                    (specificObjectId !is TrackNumberIdAndType ||
-                        (publication.allPublishedTrackNumbers.none { it.id == specificObjectId.id }))
-            ) {
+            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.TRACK_NUMBER)) {
                 mapOf()
             } else
                 publicationDao.fetchPublicationTrackNumberChanges(
@@ -805,27 +816,16 @@ constructor(
                     previousComparisonTime,
                 )
         val publicationKmPostChanges =
-            if (
-                specificObjectId != null &&
-                    (specificObjectId !is KmPostIdAndType || publication.kmPosts.none { it.id == specificObjectId.id })
-            )
+            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.KM_POST))
                 mapOf()
             else publicationDao.fetchPublicationKmPostChanges(publication.id)
 
         val publicationReferenceLineChanges =
-            if (
-                specificObjectId != null &&
-                    (specificObjectId !is ReferenceLineIdAndType ||
-                        publication.referenceLines.none { it.id == specificObjectId.id })
-            )
+            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.REFERENCE_LINE))
                 mapOf()
             else publicationDao.fetchPublicationReferenceLineChanges(publication.id)
         val publicationSwitchChanges =
-            if (
-                specificObjectId != null &&
-                    (specificObjectId !is SwitchIdAndType ||
-                        publication.allPublishedSwitches.none { it.id == specificObjectId.id })
-            )
+            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.SWITCH))
                 mapOf()
             else publicationDao.fetchPublicationSwitchChanges(publication.id)
 

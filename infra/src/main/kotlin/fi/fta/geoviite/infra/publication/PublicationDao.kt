@@ -954,7 +954,7 @@ class PublicationDao(
                     "from" to from?.let { Timestamp.from(it) },
                     "to" to to?.let { Timestamp.from(it) },
                     "design_id" to layoutBranch?.designId?.intValue,
-                    "specific_location_track_id" to (specificObjectId as? LocationTrackIdAndType)?.id?.intValue,
+                    "specific_location_track_id" to specificObjectId?.locationTrackId()?.intValue,
                 ),
             ) { rs, _ ->
                 ResultRow(
