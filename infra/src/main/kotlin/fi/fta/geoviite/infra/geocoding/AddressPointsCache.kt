@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import java.util.*
 import org.springframework.transaction.annotation.Transactional
+import java.util.*
 
 data class AddressPointCacheKey(
     val locationTrackVersion: LayoutRowVersion<LocationTrack>,
-    val geocodingContextCacheKey: GeocodingContextCacheKey,
+    val geocodingContextCacheKey: LayoutGeocodingContextCacheKey,
     val resolution: Resolution,
 )
 
@@ -70,8 +70,7 @@ class AddressPointsCache(
             .orElse(null)
 
     fun getAddressPointCalculationData(cacheKey: AddressPointCacheKey): AddressPointCalculationData? =
-        geocodingCacheService.getGeocodingContext<ReferenceLineM>(cacheKey.geocodingContextCacheKey)?.let {
-            geocodingContext ->
+        geocodingCacheService.getGeocodingContext(cacheKey.geocodingContextCacheKey)?.let { geocodingContext ->
             AddressPointCalculationData(cacheKey, alignmentDao.fetch(cacheKey.locationTrackVersion), geocodingContext)
         }
 }

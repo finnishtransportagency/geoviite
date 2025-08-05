@@ -7,8 +7,8 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -100,7 +100,7 @@ class ValidationContext(
     private val switchTrackLinks = ReferenceCache<LayoutSwitch, LocationTrack>()
     private val trackDuplicateLinks = ReferenceCache<LocationTrack, LocationTrack>()
 
-    private val geocodingContextKeys = NullableCache<IntId<LayoutTrackNumber>, GeocodingContextCacheKey>()
+    private val geocodingContextKeys = NullableCache<IntId<LayoutTrackNumber>, LayoutGeocodingContextCacheKey>()
     private val switchNameCache = NameCache(::fetchSwitchesByName)
     private val trackNameCache = NameCache(::fetchLocationTracksByName)
     private val trackNumberNumberCache = NameCache(::fetchTrackNumbersByNumber)

@@ -10,9 +10,9 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -121,7 +121,7 @@ constructor(
 
     private fun getExtLocationTrackGeometry(
         locationTrackVersion: LayoutRowVersion<LocationTrack>,
-        geocodingContextCacheKey: GeocodingContextCacheKey,
+        geocodingContextCacheKey: LayoutGeocodingContextCacheKey,
         trackIntervalFilter: ExtTrackKilometerIntervalV1,
         resolution: Resolution,
         coordinateSystem: Srid,

@@ -22,10 +22,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
-import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
 class GeocodingService(
@@ -44,7 +44,7 @@ class GeocodingService(
     }
 
     fun getAddressPoints(
-        contextKey: GeocodingContextCacheKey,
+        contextKey: LayoutGeocodingContextCacheKey,
         trackVersion: LayoutRowVersion<LocationTrack>,
         resolution: Resolution = Resolution.ONE_METER,
     ): AlignmentAddresses<LocationTrackM>? {
@@ -125,7 +125,7 @@ class GeocodingService(
     ): GeocodingContext<ReferenceLineM>? =
         if (trackNumberId is IntId) getGeocodingContext(layoutContext, trackNumberId) else null
 
-    fun getGeocodingContext(geocodingContextCacheKey: GeocodingContextCacheKey) =
+    fun getGeocodingContext(geocodingContextCacheKey: LayoutGeocodingContextCacheKey) =
         geocodingCacheService.getGeocodingContext(geocodingContextCacheKey)
 
     fun getGeocodingContext(
@@ -160,11 +160,11 @@ class GeocodingService(
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<LayoutTrackNumber>,
         versions: ValidationVersions,
-    ): GeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(trackNumberId, versions)
+    ): LayoutGeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(trackNumberId, versions)
 
     fun getGeocodingContextCacheKey(
         branch: LayoutBranch,
         trackNumberId: IntId<LayoutTrackNumber>,
         moment: Instant,
-    ): GeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(branch, trackNumberId, moment)
+    ): LayoutGeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(branch, trackNumberId, moment)
 }
