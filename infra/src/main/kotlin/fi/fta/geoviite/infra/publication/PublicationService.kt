@@ -37,12 +37,12 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 @GeoviiteService
 class PublicationService
@@ -132,12 +132,8 @@ constructor(
         val revertLocationTrackIds =
             requestIds.locationTracks +
                 draftOnlyTrackNumberIds
-                    .flatMap { tnId ->
-                        locationTrackDao
-                            .fetchOnlyDraftVersions(branch, includeDeleted = true, tnId)
-                            .map(locationTrackDao::fetch)
-                    }
-                    .map { track -> track.id as IntId }
+                    .flatMap { tnId -> locationTrackDao.fetchOnlyDraftVersions(branch, includeDeleted = true, tnId) }
+                    .map { v -> v.id }
 
         val revertSplits = splitService.findUnpublishedSplits(branch, revertLocationTrackIds, requestIds.switches)
         val revertSplitTracks = revertSplits.flatMap { s -> s.locationTracks }.distinct()
@@ -146,10 +142,8 @@ constructor(
         val revertKmPostIds =
             requestIds.kmPosts.toSet() +
                 draftOnlyTrackNumberIds
-                    .flatMap { tnId ->
-                        kmPostDao.fetchOnlyDraftVersions(branch, includeDeleted = true, tnId).map(kmPostDao::fetch)
-                    }
-                    .map { kmPost -> kmPost.id as IntId }
+                    .flatMap { tnId -> kmPostDao.fetchOnlyDraftVersions(branch, includeDeleted = true, tnId) }
+                    .map { v -> v.id }
 
         val referenceLines =
             requestIds.referenceLines.toSet() +

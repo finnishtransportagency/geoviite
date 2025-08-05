@@ -68,6 +68,9 @@ class LocationTrackDao(
     override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LocationTrack>): LocationTrackGeometry =
         alignmentDao.fetch(rowVersion)
 
+    fun fetchDuplicates(layoutContext: LayoutContext, id: IntId<LocationTrack>, includeDeleted: Boolean = false) =
+        fetchMany(fetchDuplicateVersions(layoutContext, id, includeDeleted))
+
     fun fetchDuplicateVersions(
         layoutContext: LayoutContext,
         id: IntId<LocationTrack>,
@@ -128,7 +131,10 @@ class LocationTrackDao(
         }
     }
 
-    override fun fetchInternal(version: LayoutRowVersion<LocationTrack>): LocationTrack {
+    override fun fetchManyInternal(
+        versions: Collection<LayoutRowVersion<LocationTrack>>
+    ): Map<LayoutRowVersion<LocationTrack>, LocationTrack> {
+        if (versions.isEmpty()) return emptyMap()
         val sql =
             """
             select 
@@ -166,22 +172,27 @@ class LocationTrackDao(
               ) as switch_ids,
               ltv.origin_design_id
             from layout.location_track_version ltv
-            where ltv.id = :id
-              and ltv.layout_context_id = :layout_context_id
-              and ltv.version = :version
-              and ltv.deleted = false
+              inner join lateral
+                (
+                  select
+                    unnest(:ids) id,
+                    unnest(:layout_context_ids) layout_context_id,
+                    unnest(:versions) version
+                ) args on args.id = ltv.id and args.layout_context_id = ltv.layout_context_id and args.version = ltv.version
+              where ltv.deleted = false
         """
                 .trimIndent()
 
         val params =
             mapOf(
-                "id" to version.id.intValue,
-                "layout_context_id" to version.context.toSqlString(),
-                "version" to version.version,
+                "ids" to versions.map { v -> v.id.intValue }.toTypedArray(),
+                "versions" to versions.map { v -> v.version }.toTypedArray(),
+                "layout_context_ids" to versions.map { v -> v.context.toSqlString() }.toTypedArray(),
             )
-        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLocationTrack(rs) }).also {
-            logger.daoAccess(AccessType.FETCH, LocationTrack::class, version)
-        }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ -> getLocationTrack(rs) }
+            .associateBy { lt -> lt.getVersionOrThrow() }
+            .also { logger.daoAccess(AccessType.FETCH, LocationTrack::class, versions) }
     }
 
     override fun preloadCache(): Int {
@@ -400,7 +411,7 @@ class LocationTrackDao(
         includeDeleted: Boolean,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
-    ) = fetchVersions(layoutContext, includeDeleted, trackNumberId, names).map(::fetch)
+    ) = fetchVersions(layoutContext, includeDeleted, trackNumberId, names).let(::fetchMany)
 
     fun fetchVersions(
         layoutContext: LayoutContext,

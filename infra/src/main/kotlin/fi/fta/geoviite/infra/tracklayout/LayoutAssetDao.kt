@@ -27,10 +27,10 @@ import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.requireOne
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 // The Kotlin thing to do would be to just use Unit, but for some reason, the overriden functions returning Unit end up
 // giving null to the caller. Not sure why, but perhaps due to reflection shenanigans done by Spring.
@@ -56,6 +56,10 @@ interface LayoutAssetWriter<T : LayoutAsset<T>, SaveParams> {
 
 interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetch(version: LayoutRowVersion<T>): T
+
+    fun fetchMany(versions: Collection<LayoutRowVersion<T>>): List<T>
+
+    fun fetchManyByVersion(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T>
 
     fun fetchChangeTime(): Instant
 
@@ -96,14 +100,14 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
     @Transactional(readOnly = true)
     fun getManyOfficialAtMoment(branch: LayoutBranch, ids: List<IntId<T>>, moment: Instant): List<T> =
-        fetchManyOfficialVersionsAtMoment(branch, ids, moment).map(::fetch)
+        fetchMany(fetchManyOfficialVersionsAtMoment(branch, ids, moment))
 
     @Transactional(readOnly = true)
-    fun getMany(context: LayoutContext, ids: List<IntId<T>>): List<T> = fetchVersions(context, ids).map(::fetch)
+    fun getMany(context: LayoutContext, ids: List<IntId<T>>): List<T> = fetchMany(fetchVersions(context, ids))
 
     @Transactional(readOnly = true)
     fun list(context: LayoutContext, includeDeleted: Boolean): List<T> =
-        fetchVersions(context, includeDeleted).map(::fetch)
+        fetchMany(fetchVersions(context, includeDeleted))
 }
 
 interface ILayoutAssetDao<T : LayoutAsset<T>, SaveParams> : LayoutAssetReader<T>, LayoutAssetWriter<T, SaveParams>
@@ -125,7 +129,21 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
             fetchInternal(version)
         }
 
-    protected abstract fun fetchInternal(version: LayoutRowVersion<T>): T
+    override fun fetchMany(versions: Collection<LayoutRowVersion<T>>): List<T> =
+        fetchManyByVersion(versions).values.toList()
+
+    override fun fetchManyByVersion(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T> =
+        if (cacheEnabled) {
+            cache.getAll(versions) { nonCached -> fetchManyInternal(nonCached) }
+        } else {
+            fetchManyInternal(versions)
+        }
+
+    fun fetchInternal(version: LayoutRowVersion<T>): T =
+        fetchManyInternal(listOf(version))[version]
+            ?: throw NoSuchEntityException(table.versionTable, version.toString())
+
+    protected abstract fun fetchManyInternal(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T>
 
     abstract fun preloadCache(): Int
 
@@ -435,9 +453,9 @@ private fun fetchContextVersionSql(table: LayoutAssetTable, fetchType: FetchType
     """
         .trimIndent()
 
-fun <T : LayoutAsset<T>> verifyObjectIsExisting(item: T) = verifyObjectIsExisting(item.contextData)
+fun <T : LayoutAsset<T>> verifyObjectExists(item: T) = verifyObjectExists(item.contextData)
 
-fun <T : LayoutAsset<T>> verifyObjectIsExisting(contextData: LayoutContextData<T>) {
+fun <T : LayoutAsset<T>> verifyObjectExists(contextData: LayoutContextData<T>) {
     require(contextData.dataType == DataType.STORED) { "Cannot update TEMP row: context=$contextData" }
     require(contextData.version != null) { "DB row should have DB ID: context=$contextData" }
 }

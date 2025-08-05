@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.logging.AccessType
+import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationTarget
@@ -156,41 +157,49 @@ class LayoutKmPostDao(
         return result.firstOrNull()
     }
 
-    override fun fetchInternal(version: LayoutRowVersion<LayoutKmPost>): LayoutKmPost {
+    override fun fetchManyInternal(
+        versions: Collection<LayoutRowVersion<LayoutKmPost>>
+    ): Map<LayoutRowVersion<LayoutKmPost>, LayoutKmPost> {
+        if (versions.isEmpty()) return emptyMap()
         val sql =
             """
             select 
-              id,
-              version,
-              design_id,
-              draft,
-              design_asset_state,
-              track_number_id,
-              geometry_km_post_id,
-              km_number,
-              postgis.st_x(layout_location) as layout_point_x, postgis.st_y(layout_location) as layout_point_y,
-              postgis.st_x(gk_location) as gk_point_x, postgis.st_y(gk_location) as gk_point_y,
-              postgis.st_srid(gk_location) as gk_srid,
-              gk_location_source,
-              gk_location_confirmed,
-              state,
-              origin_design_id
+              kpv.id,
+              kpv.version,
+              kpv.design_id,
+              kpv.draft,
+              kpv.design_asset_state,
+              kpv.track_number_id,
+              kpv.geometry_km_post_id,
+              kpv.km_number,
+              postgis.st_x(kpv.layout_location) as layout_point_x, postgis.st_y(kpv.layout_location) as layout_point_y,
+              postgis.st_x(kpv.gk_location) as gk_point_x, postgis.st_y(kpv.gk_location) as gk_point_y,
+              postgis.st_srid(kpv.gk_location) as gk_srid,
+              kpv.gk_location_source,
+              kpv.gk_location_confirmed,
+              kpv.state,
+              kpv.origin_design_id
             from layout.km_post_version kpv
-            where id = :id 
-              and version = :version
-              and layout_context_id = :layout_context_id
-              and deleted = false
+              inner join lateral
+                (
+                  select
+                    unnest(:ids) id,
+                    unnest(:layout_context_ids) layout_context_id,
+                    unnest(:versions) version
+                ) args on args.id = kpv.id and args.layout_context_id = kpv.layout_context_id and args.version = kpv.version
+              where kpv.deleted = false
         """
                 .trimIndent()
         val params =
             mapOf(
-                "id" to version.id.intValue,
-                "version" to version.version,
-                "layout_context_id" to version.context.toSqlString(),
+                "ids" to versions.map { v -> v.id.intValue }.toTypedArray(),
+                "versions" to versions.map { v -> v.version }.toTypedArray(),
+                "layout_context_ids" to versions.map { v -> v.context.toSqlString() }.toTypedArray(),
             )
-        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutKmPost(rs) }).also {
-            logger.daoAccess(AccessType.FETCH, LayoutKmPost::class, version)
-        }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ -> getLayoutKmPost(rs) }
+            .associateBy { kmp -> kmp.getVersionOrThrow() }
+            .also { logger.daoAccess(FETCH, LayoutKmPost::class, versions) }
     }
 
     private fun getKmPostGkLocation(rs: ResultSet): LayoutKmPostGkLocation? {
@@ -231,7 +240,7 @@ class LayoutKmPostDao(
                 .query(sql) { rs, _ -> getLayoutKmPost(rs) }
                 .associateBy { kmPost -> requireNotNull(kmPost.version) }
 
-        logger.daoAccess(AccessType.FETCH, LayoutKmPost::class, kmPosts.keys)
+        logger.daoAccess(FETCH, LayoutKmPost::class, kmPosts.keys)
         cache.putAll(kmPosts)
 
         return kmPosts.size
