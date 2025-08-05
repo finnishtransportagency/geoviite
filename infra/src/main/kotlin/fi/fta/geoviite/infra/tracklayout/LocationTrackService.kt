@@ -224,10 +224,9 @@ class LocationTrackService(
 
     @Transactional
     fun clearDuplicateReferences(branch: LayoutBranch, id: IntId<LocationTrack>) =
-        dao.fetchDuplicates(branch.draft, id, includeDeleted = true)
-            .map { duplicate -> asDraft(branch, duplicate) }
-            .let { d -> associateWithGeometries(d) }
-            .forEach { (dup, geom) -> saveDraft(branch, dup.copy(duplicateOf = null), geom) }
+        associateWithGeometries(dao.fetchDuplicates(branch.draft, id, includeDeleted = true)).forEach { (dup, geom) ->
+            saveDraft(branch, asDraft(branch, dup).copy(duplicateOf = null), geom)
+        }
 
     fun listNonLinked(branch: LayoutBranch): List<LocationTrack> {
         return dao.list(branch.draft, false).filter { a -> a.segmentCount == 0 }
