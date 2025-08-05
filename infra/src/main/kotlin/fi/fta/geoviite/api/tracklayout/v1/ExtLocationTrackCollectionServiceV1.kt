@@ -43,6 +43,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
     private val publicationDao: PublicationDao,
+    private val extPublicationService: ExtPublicationServiceV1,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -92,15 +93,8 @@ constructor(
     ): ExtModifiedLocationTrackCollectionResponseV1? {
         val layoutContext = MainLayoutContext.official
 
-        val fromPublication =
-            publicationDao.fetchPublicationByUuid(modificationsFromVersion)
-                ?: throw ExtTrackLayoutVersionNotFound("modificationsFromVersion=${modificationsFromVersion}")
-
-        val toPublication =
-            trackLayoutVersion?.let { uuid ->
-                publicationDao.fetchPublicationByUuid(uuid)
-                    ?: throw ExtTrackLayoutVersionNotFound("trackLayoutVersion=${trackLayoutVersion}")
-            } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+        val (fromPublication, toPublication) =
+            extPublicationService.getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
 
         return if (fromPublication == toPublication) {
             logger.info(
