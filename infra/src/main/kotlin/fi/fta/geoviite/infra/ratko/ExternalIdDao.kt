@@ -37,9 +37,9 @@ interface IExternalIdDao<T : LayoutAsset<T>> {
 
     fun fetchExternalIdsByBranch(id: IntId<T>): Map<LayoutBranch, RatkoExternalId<T>>
 
-    fun lookupByExternalId(oid: Oid<T>): LayoutRowId<T>?
+    fun lookupByExternalId(oid: String): LayoutRowId<T>?
 
-    fun lookupByExternalIds(oids: List<Oid<T>>): Map<Oid<T>, LayoutRowId<T>?>
+    fun lookupByExternalIds(oids: List<String>): Map<Oid<T>, LayoutRowId<T>?>
 }
 
 class ExternalIdDao<T : LayoutAsset<T>>(
@@ -145,11 +145,11 @@ class ExternalIdDao<T : LayoutAsset<T>>(
             .associate { it }
     }
 
-    override fun lookupByExternalId(oid: Oid<T>): LayoutRowId<T>? {
-        return lookupByExternalIds(listOf(oid))[oid]
+    override fun lookupByExternalId(oid: String): LayoutRowId<T>? {
+        return lookupByExternalIds(listOf(oid)).values.firstOrNull()
     }
 
-    override fun lookupByExternalIds(oids: List<Oid<T>>): Map<Oid<T>, LayoutRowId<T>?> {
+    override fun lookupByExternalIds(oids: List<String>): Map<Oid<T>, LayoutRowId<T>?> {
         if (oids.isEmpty()) return emptyMap()
 
         val sql =
@@ -161,16 +161,13 @@ class ExternalIdDao<T : LayoutAsset<T>>(
 
         val params = mapOf("external_ids" to oids.map { oid -> oid.toString() })
 
-        val result =
-            jdbcTemplate
-                .query(sql, params) { rs, _ ->
-                    val oid = rs.getOid<T>("external_id")
-                    val layoutRowId = rs.getLayoutRowIdOrNull<T>("id", "design_id", "draft")
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                val oid = rs.getOid<T>("external_id")
+                val layoutRowId = rs.getLayoutRowIdOrNull<T>("id", "design_id", "draft")
 
-                    oid to layoutRowId
-                }
-                .toMap()
-
-        return oids.associateWith { oid -> result[oid] }
+                oid to layoutRowId
+            }
+            .toMap()
     }
 }

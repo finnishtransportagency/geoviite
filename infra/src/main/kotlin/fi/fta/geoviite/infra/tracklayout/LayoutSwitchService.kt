@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
@@ -98,7 +99,7 @@ constructor(
         SwitchOidPresence(
             existsInRatko = checkRatkoOidPresence(oid),
             existsInGeoviiteAs =
-                dao.lookupByExternalId(oid)?.let { rowByOid ->
+                dao.lookupByExternalId(oid.toString())?.let { rowByOid ->
                     dao.get(rowByOid.context, rowByOid.id)?.let { existingSwitch ->
                         GeoviiteSwitchOidPresence(rowByOid.id, existingSwitch.stateCategory, existingSwitch.name)
                     }
@@ -118,11 +119,9 @@ constructor(
 
     fun idMatches(
         layoutContext: LayoutContext,
-        possibleIds: List<IntId<LayoutSwitch>>? = null,
-    ): ((term: String, item: LayoutSwitch) -> Boolean) =
-        dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
-            { term, item -> externalIds[item.id]?.oid?.toString() == term || item.id.toString() == term }
-        }
+        searchTerm: FreeText,
+        onlyIds: Collection<IntId<LayoutSwitch>>? = null,
+    ): ((term: String, item: LayoutSwitch) -> Boolean) = idMatches(dao, layoutContext, searchTerm, onlyIds)
 
     override fun contentMatches(term: String, item: LayoutSwitch) =
         item.exists && item.name.toString().replace("  ", " ").contains(term, true)

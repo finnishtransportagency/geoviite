@@ -28,10 +28,13 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.printCsv
 import java.time.Instant
 import java.util.stream.Collectors
+import kotlin.text.get
+import kotlin.toString
 import org.springframework.transaction.annotation.Transactional
 
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
@@ -94,11 +97,9 @@ class LayoutTrackNumberService(
 
     fun idMatches(
         layoutContext: LayoutContext,
-        possibleIds: List<IntId<LayoutTrackNumber>>? = null,
-    ): ((term: String, item: LayoutTrackNumber) -> Boolean) =
-        dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
-            { term, item -> externalIds[item.id]?.oid?.toString() == term || item.id.toString() == term }
-        }
+        searchTerm: FreeText,
+        onlyIds: Collection<IntId<LayoutTrackNumber>>? = null,
+    ): ((term: String, item: LayoutTrackNumber) -> Boolean) = idMatches(dao, layoutContext, searchTerm, onlyIds)
 
     override fun contentMatches(term: String, item: LayoutTrackNumber) =
         item.exists && item.number.toString().replace("  ", " ").contains(term, true)

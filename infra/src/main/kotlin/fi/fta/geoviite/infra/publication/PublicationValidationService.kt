@@ -434,7 +434,7 @@ constructor(
             val oidDuplicationIssues =
                 validateSwitchOidDuplication(
                     switch,
-                    switch.draftOid?.let(switchDao::lookupByExternalId)?.let { row ->
+                    switch.draftOid?.toString()?.let(switchDao::lookupByExternalId)?.let { row ->
                         switchDao.get(row.context, row.id)
                     },
                 )
