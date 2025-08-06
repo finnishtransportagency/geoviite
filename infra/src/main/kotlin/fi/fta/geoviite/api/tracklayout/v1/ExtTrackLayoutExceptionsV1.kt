@@ -24,21 +24,3 @@ class ExtTrackNumberNotFoundV1(
     cause: Throwable? = null,
     localizedMessageKey: String = "$ERROR_KEY_BASE.track-number-not-found",
 ) : ClientException(HttpStatus.BAD_REQUEST, "track number not found: $message", cause, localizedMessageKey)
-
-class ExtTrackLayoutVersionNotFound(
-    message: String,
-    cause: Throwable? = null,
-    localizedMessageKey: String = "$ERROR_KEY_BASE.track-layout-version-not-found",
-) : ClientException(HttpStatus.NOT_FOUND, "track layout version not found: $message", cause, localizedMessageKey)
-
-class ExtWrongTrackLayoutVersionOrder(
-    message: String,
-    cause: Throwable? = null,
-    localizedMessageKey: String = "$ERROR_KEY_BASE.wrong-track-layout-version-order",
-) :
-    ClientException(
-        HttpStatus.BAD_REQUEST,
-        "comparison was attempted from newer to older version (the correct order is from older to same/newer version): $message",
-        cause,
-        localizedMessageKey,
-    )

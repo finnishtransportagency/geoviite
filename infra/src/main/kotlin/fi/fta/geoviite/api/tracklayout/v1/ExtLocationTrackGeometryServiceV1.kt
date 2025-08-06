@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
 import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
@@ -86,7 +87,7 @@ constructor(
         val publication =
             trackLayoutVersion?.let { uuid ->
                 publicationDao.fetchPublicationByUuid(uuid)
-                    ?: throw ExtTrackLayoutVersionNotFound("trackLayoutVersion=${trackLayoutVersion}")
+                    ?: throw TrackLayoutVersionNotFound("trackLayoutVersion=${trackLayoutVersion}")
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrackId =

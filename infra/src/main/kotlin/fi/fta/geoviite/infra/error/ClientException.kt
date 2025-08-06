@@ -9,12 +9,12 @@ import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.util.formatForException
-import kotlin.reflect.KClass
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE
 import org.springframework.http.HttpStatus.UNAUTHORIZED
+import kotlin.reflect.KClass
 
 interface HasLocalizedMessage {
     val localizationKey: LocalizationKey
@@ -213,3 +213,21 @@ class InvalidUiVersionException(cause: Throwable? = null) :
         cause = cause,
         localizedMessageKey = "error.bad-request.invalid-version",
     )
+
+class InvalidTrackLayoutVersionOrder(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "error.bad-request.wrong-track-layout-version-order",
+) :
+    ClientException(
+        BAD_REQUEST,
+        "comparison was attempted from newer to older version (the correct order is from older to same/newer version): $message",
+        cause,
+        localizedMessageKey,
+    )
+
+class TrackLayoutVersionNotFound(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "error.bad-request.track-layout-version-not-found",
+) : ClientException(NOT_FOUND, "track layout version not found: $message", cause, localizedMessageKey)
