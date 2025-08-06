@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.localizationParams
+import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.getCsvResponseEntity
@@ -175,14 +176,19 @@ constructor(
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("timeZone") timeZone: ZoneId?,
         @RequestParam("lang") lang: LocalizationLanguage,
+        @RequestParam("type", required = false) type: PublishableObjectType?,
+        @RequestParam("id", required = false) id: IntId<*>?,
+        @RequestParam("filenameObjectPart", required = false) filenameObjectPart: FileName?,
     ): ResponseEntity<ByteArray> {
         val translation = localizationService.getLocalization(lang)
+        val specificId = getSpecificObjectId(type, id)
 
         val publicationsAsCsv =
             publicationLogService.fetchPublicationsAsCsv(
                 layoutBranch ?: LayoutBranch.main,
                 from,
                 to,
+                specificId = specificId,
                 sortBy,
                 order,
                 timeZone,
@@ -190,7 +196,12 @@ constructor(
             )
 
         val dateString = getDateStringForFileName(from, to, timeZone ?: ZoneId.of("UTC"))
-        val fileName = translation.filename("publication-log", localizationParams("dateRange" to (dateString ?: "")))
+        val fileNameKey = if (filenameObjectPart != null) "publication-log-for-object" else "publication-log"
+        val fileName =
+            translation.filename(
+                fileNameKey,
+                localizationParams("dateRange" to (dateString ?: ""), "objectName" to filenameObjectPart?.toString()),
+            )
 
         return getCsvResponseEntity(publicationsAsCsv, fileName)
     }
@@ -207,8 +218,7 @@ constructor(
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): Page<PublicationTableItem> {
-        require((type == null) == (id == null)) { "Must provide either both or neither of id and type"}
-        val specificId = if (type != null) PublishableObjectIdAndType(requireNotNull(id), type) else null
+        val specificId = getSpecificObjectId(type, id)
 
         val publications =
             publicationLogService.fetchPublicationDetails(
@@ -261,5 +271,10 @@ constructor(
             val filename = translation.filename("split-details", localizationParams("locationTrackName" to ltName))
             getCsvResponseEntity(csv, filename)
         }
+    }
+
+    private fun getSpecificObjectId(type: PublishableObjectType?, id: IntId<*>?): PublishableObjectIdAndType? {
+        require((type == null) == (id == null)) { "Must provide either both or neither of id and type" }
+        return if (type != null) PublishableObjectIdAndType(requireNotNull(id), type) else null
     }
 }

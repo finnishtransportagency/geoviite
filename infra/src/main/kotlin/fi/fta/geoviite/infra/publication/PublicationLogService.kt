@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -327,6 +328,7 @@ constructor(
         layoutBranch: LayoutBranch,
         from: Instant? = null,
         to: Instant? = null,
+        specificId: PublishableObjectIdAndType? = null,
         sortBy: PublicationTableColumn? = null,
         order: SortOrder? = null,
         timeZone: ZoneId? = null,
@@ -337,6 +339,7 @@ constructor(
                 layoutBranch = layoutBranch,
                 from = from,
                 to = to,
+                specificId = specificId,
                 sortBy = sortBy,
                 order = order,
                 translation = translation,
