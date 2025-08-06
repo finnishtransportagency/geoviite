@@ -28,15 +28,16 @@ import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.queryOne
+import fi.fta.geoviite.infra.util.setForceCustomPlan
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -446,6 +447,7 @@ class LocationTrackDao(
     fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
         fetchVersionsNear(context, bbox).map(::fetch)
 
+    @Transactional(readOnly = true)
     fun fetchVersionsNear(
         context: LayoutContext,
         bbox: BoundingBox,
@@ -498,6 +500,11 @@ class LocationTrackDao(
                 "min_length" to minLength,
             )
 
+        // This query is poorly optimized when JDBC tries to prepare a plan for it.
+        // By default, this happens on the tenth query (configurable by adding ?prepareThreshold=0 on the connection
+        // string), and results in a drastic slowdown for this query. Force a custom plan to avoid the issue.
+        // Note: this must be in the same transaction as the query.
+        jdbcTemplate.setForceCustomPlan()
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getLayoutRowVersion("id", "design_id", "draft", "version")
         }
