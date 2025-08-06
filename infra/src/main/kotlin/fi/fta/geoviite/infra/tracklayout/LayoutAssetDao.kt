@@ -130,7 +130,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
         }
 
     override fun fetchMany(versions: Collection<LayoutRowVersion<T>>): List<T> =
-        fetchManyByVersion(versions).values.toList()
+        fetchManyByVersion(versions).let { fetched -> versions.mapNotNull(fetched::get) }
 
     override fun fetchManyByVersion(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T> =
         if (cacheEnabled) {
