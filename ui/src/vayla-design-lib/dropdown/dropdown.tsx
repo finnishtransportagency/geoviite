@@ -34,6 +34,7 @@ export const dropdownOption = <TValue,>(
 export enum DropdownSize {
     SMALL = 'dropdown--small',
     MEDIUM = 'dropdown--medium',
+    LARGE = 'dropdown--large',
     STRETCH = 'dropdown--stretch',
     AUTO = 'dropdown--auto-width',
 }
