@@ -349,14 +349,14 @@ const PublicationLog: React.FC = () => {
                                 value={storedSpecificItem}
                                 getName={getSearchableItemName}
                                 disabled={false}
-                                size={DropdownSize.MEDIUM}
+                                size={DropdownSize.LARGE}
                                 searchTypes={[
                                     SearchItemType.LOCATION_TRACK,
                                     SearchItemType.SWITCH,
                                     SearchItemType.TRACK_NUMBER,
                                 ]}
                                 wide={false}
-                                useAnchorElementWidth={false}
+                                useAnchorElementWidth={true}
                                 clearable
                             />
                         }

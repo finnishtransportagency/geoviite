@@ -1820,7 +1820,7 @@
         "search-specific-object": "Hae...",
         "export-csv": "Lataa CSV",
         "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää",
-        "search-range-too-long": "Hakuaikaväli on liian pitkä. Lyhennä hakuaikaväliä alle {{maxDays}} päivän mittaiseksi."
+        "search-range-too-long": "Lyhennä hakuaikaväliä alle {{maxDays}} päivän mittaiseksi tai valitse muutoskohde."
     },
     "publication-card": {
         "latest": "Viimeisimmät viedyt julkaisut",
