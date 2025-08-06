@@ -81,7 +81,7 @@ constructor(
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrackId =
-            locationTrackDao.lookupByExternalId(oid)?.id
+            locationTrackDao.lookupByExternalId(oid.toString())?.id
                 ?: throw ExtOidNotFoundExceptionV1("location track lookup failed for oid=$oid")
 
         return locationTrackDao
@@ -121,7 +121,7 @@ constructor(
             null
         } else {
             val locationTrackId =
-                locationTrackDao.lookupByExternalId(oid)?.id
+                locationTrackDao.lookupByExternalId(oid.toString())?.id
                     ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
 
             val fromLocationTrackVersion =

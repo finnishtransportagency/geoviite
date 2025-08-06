@@ -43,6 +43,7 @@ import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.END
 import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
@@ -247,11 +248,9 @@ class LocationTrackService(
 
     fun idMatches(
         layoutContext: LayoutContext,
-        possibleIds: List<IntId<LocationTrack>>? = null,
-    ): ((term: String, item: LocationTrack) -> Boolean) =
-        dao.fetchExternalIds(layoutContext.branch, possibleIds).let { externalIds ->
-            return { term, item -> externalIds[item.id]?.oid?.toString() == term || item.id.toString() == term }
-        }
+        searchTerm: FreeText,
+        onlyIds: Collection<IntId<LocationTrack>>? = null,
+    ): ((term: String, item: LocationTrack) -> Boolean) = idMatches(dao, layoutContext, searchTerm, onlyIds)
 
     override fun contentMatches(term: String, item: LocationTrack) =
         item.exists && (item.name.contains(term, true) || item.description.contains(term, true))
@@ -725,7 +724,7 @@ class LocationTrackService(
         moment: Instant,
     ): LocationTrack? {
         return locationTrackDao
-            .lookupByExternalId(oid)
+            .lookupByExternalId(oid.toString())
             ?.let { layoutRowId ->
                 locationTrackDao.fetchOfficialVersionAtMoment(layoutContext.branch, layoutRowId.id, moment)
             }

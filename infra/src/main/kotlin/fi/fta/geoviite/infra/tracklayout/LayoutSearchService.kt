@@ -41,7 +41,11 @@ constructor(
         return locationTrackService
             .list(layoutContext, true)
             .let { list ->
-                locationTrackService.filterBySearchTerm(list, searchTerm, locationTrackService.idMatches(layoutContext))
+                locationTrackService.filterBySearchTerm(
+                    list,
+                    searchTerm,
+                    locationTrackService.idMatches(layoutContext, searchTerm),
+                )
             }
             .sortedBy(LocationTrack::name)
             .take(limit)
@@ -50,7 +54,9 @@ constructor(
     fun searchAllSwitches(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LayoutSwitch> {
         return switchService
             .list(layoutContext, true)
-            .let { list -> switchService.filterBySearchTerm(list, searchTerm, switchService.idMatches(layoutContext)) }
+            .let { list ->
+                switchService.filterBySearchTerm(list, searchTerm, switchService.idMatches(layoutContext, searchTerm))
+            }
             .sortedBy(LayoutSwitch::name)
             .take(limit)
     }
@@ -59,7 +65,11 @@ constructor(
         return trackNumberService
             .list(layoutContext, true)
             .let { list ->
-                trackNumberService.filterBySearchTerm(list, searchTerm, trackNumberService.idMatches(layoutContext))
+                trackNumberService.filterBySearchTerm(
+                    list,
+                    searchTerm,
+                    trackNumberService.idMatches(layoutContext, searchTerm),
+                )
             }
             .sortedBy(LayoutTrackNumber::number)
             .take(limit)
@@ -109,9 +119,10 @@ constructor(
             else emptyList()
         val trackNumbers = emptyList<LayoutTrackNumber>()
 
-        val switchIdMatch = switchService.idMatches(layoutContext, switches.map { it.id as IntId })
-        val ltIdMatch = locationTrackService.idMatches(layoutContext, locationTracks.map { it.id as IntId })
-        val trackNumberIdMatch = trackNumberService.idMatches(layoutContext, trackNumbers.map { it.id as IntId })
+        val switchIdMatch = switchService.idMatches(layoutContext, searchTerm, switches.map { it.id as IntId })
+        val ltIdMatch = locationTrackService.idMatches(layoutContext, searchTerm, locationTracks.map { it.id as IntId })
+        val trackNumberIdMatch =
+            trackNumberService.idMatches(layoutContext, searchTerm, trackNumbers.map { it.id as IntId })
 
         return TrackLayoutSearchResult(
             switches =

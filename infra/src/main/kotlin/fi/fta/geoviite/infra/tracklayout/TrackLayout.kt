@@ -1,8 +1,14 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geography.ETRS89_TM35FIN_SRID
 import fi.fta.geoviite.infra.logging.Loggable
+import fi.fta.geoviite.infra.ratko.IExternalIdDao
+import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 
 val LAYOUT_SRID = ETRS89_TM35FIN_SRID
@@ -50,3 +56,19 @@ sealed class PolyLineLayoutAsset<T : PolyLineLayoutAsset<T>>(contextData: Layout
     LayoutAsset<T>(contextData) {}
 
 data class LayoutAssetChangeInfo(val created: Instant, val changed: Instant?)
+
+fun <T : LayoutAsset<T>> idMatches(
+    dao: IExternalIdDao<T>,
+    layoutContext: LayoutContext,
+    searchTerm: FreeText,
+    onlyIds: Collection<IntId<T>>?,
+): ((term: String, item: T) -> Boolean) {
+    val rowId = dao.lookupByExternalId(searchTerm.toString())
+    return { term, item ->
+        (onlyIds == null || onlyIds.contains(item.id)) &&
+            (item.id.toString() == term ||
+                (rowId != null &&
+                    rowId.id == item.id &&
+                    (rowId.context.branch == layoutContext.branch || rowId.context.branch == LayoutBranch.main)))
+    }
+}
