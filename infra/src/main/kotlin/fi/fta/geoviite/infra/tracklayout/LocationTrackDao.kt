@@ -500,10 +500,8 @@ class LocationTrackDao(
                 "min_length" to minLength,
             )
 
-        // This query is poorly optimized when JDBC tries to prepare a plan for it.
-        // By default, this happens on the tenth query (configurable by adding ?prepareThreshold=0 on the connection
-        // string), and results in a drastic slowdown for this query. Force a custom plan to avoid the issue.
-        // Note: this must be in the same transaction as the query.
+        // GVT-3181 This query is poorly optimized when JDBC tries to prepare a plan for it.
+        // Force a custom plan to avoid the issue. Note: this must be in the same transaction as the query.
         jdbcTemplate.setForceCustomPlan()
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getLayoutRowVersion("id", "design_id", "draft", "version")
