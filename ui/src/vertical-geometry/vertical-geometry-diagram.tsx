@@ -13,14 +13,17 @@ import { getSnappedPoint } from 'vertical-geometry/snapped-point';
 import { Coordinates, xToM } from 'vertical-geometry/coordinates';
 import { getBottomAndTopTicks, sumPaddings, zeroSafeDivision } from 'vertical-geometry/util';
 import { PlanLinkingSummaryItem, TrackKmHeights } from 'geometry/geometry-api';
-import { VerticalGeometryDiagramDisplayItem } from 'geometry/geometry-model';
+import {
+    GeometryAlignmentId,
+    GeometryPlanId,
+    VerticalGeometryDiagramDisplayItem,
+} from 'geometry/geometry-model';
 import {
     findTrackMeterIndexContainingM,
     getTrackMeterPairAroundIndex,
 } from 'vertical-geometry/track-meter-index';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { BoundingBox } from 'model/geometry';
-import { OnSelectOptions } from 'selection/selection-model';
 import { PlanLinkingHeaders } from 'vertical-geometry/plan-linking-header';
 import { DisplayedPositionGuide } from 'vertical-geometry/displayed-position-guide';
 
@@ -38,7 +41,7 @@ type VerticalGeometryDiagramProps = {
     endM: number;
     showArea: (area: BoundingBox) => void;
     linkingSummary: PlanLinkingSummaryItem[] | undefined;
-    onSelect: (options: OnSelectOptions) => void;
+    onSelectGeometryAlignment: (geometryId: GeometryAlignmentId, planId: GeometryPlanId) => void;
     onMove: (startM: number, endM: number) => void;
     horizontalTick: number;
     width: number;
@@ -52,7 +55,7 @@ const VerticalGeometryDiagramM: React.FC<VerticalGeometryDiagramProps> = ({
     visibleEndM,
     showArea,
     linkingSummary,
-    onSelect,
+    onSelectGeometryAlignment,
     onMove,
     horizontalTick,
     startM,
@@ -117,6 +120,8 @@ const VerticalGeometryDiagramM: React.FC<VerticalGeometryDiagramProps> = ({
     const drawTangentArrows =
         coordinates.mMeterLengthPxOverM > minimumPixelWidthToDrawTangentArrows;
 
+    const pointerCapturePointerId = React.useRef<undefined | PointerEvent['pointerId']>(undefined);
+
     const onMouseMove: React.EventHandler<React.MouseEvent<unknown>> = (
         e: React.MouseEvent<SVGSVGElement>,
     ) => {
@@ -128,6 +133,10 @@ const VerticalGeometryDiagramM: React.FC<VerticalGeometryDiagramProps> = ({
         setMousePositionInElement([e.clientX - elementBounds.x, e.clientY - elementBounds.y]);
 
         if (panning) {
+            if (pointerCapturePointerId.current !== undefined) {
+                ref?.current?.setPointerCapture(pointerCapturePointerId.current);
+                pointerCapturePointerId.current = undefined;
+            }
             const requestedPanDistance = (panning - e.clientX) / coordinates.mMeterLengthPxOverM;
             const panDistance = Math.min(
                 endM - visibleEndM,
@@ -200,7 +209,7 @@ const VerticalGeometryDiagramM: React.FC<VerticalGeometryDiagramProps> = ({
         <div
             className={diagramClasses}
             onPointerDown={(e) => {
-                ref?.current?.setPointerCapture(e.pointerId);
+                pointerCapturePointerId.current = e.pointerId;
                 e.preventDefault();
                 setPanning(e.clientX);
             }}
@@ -241,7 +250,7 @@ const VerticalGeometryDiagramM: React.FC<VerticalGeometryDiagramProps> = ({
                     <PlanLinkingHeaders
                         coordinates={coordinates}
                         planLinkingSummary={linkingSummary}
-                        planLinkingOnSelect={onSelect}
+                        onSelectGeometryAlignment={onSelectGeometryAlignment}
                     />
                     <DisplayedPositionGuide coordinates={coordinates} maxMeters={endM} />
                     <Translate x={0} y={240}>

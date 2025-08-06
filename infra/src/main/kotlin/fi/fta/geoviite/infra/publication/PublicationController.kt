@@ -201,15 +201,21 @@ constructor(
         @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
+        @RequestParam("type", required = false) type: PublishableObjectType?,
+        @RequestParam("id", required = false) id: IntId<*>?,
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): Page<PublicationTableItem> {
+        require((type == null) == (id == null)) { "Must provide either both or neither of id and type"}
+        val specificId = if (type != null) PublishableObjectIdAndType(requireNotNull(id), type) else null
+
         val publications =
             publicationLogService.fetchPublicationDetails(
                 layoutBranch = layoutBranch ?: LayoutBranch.main,
                 from = from,
                 to = to,
+                specificId = specificId,
                 sortBy = sortBy,
                 order = order,
                 translation = localizationService.getLocalization(lang),

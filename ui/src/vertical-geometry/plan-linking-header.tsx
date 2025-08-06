@@ -1,18 +1,18 @@
 import React from 'react';
 import { PlanLinkingSummaryItem } from 'geometry/geometry-api';
-import { OnSelectOptions } from 'selection/selection-model';
 import { Coordinates } from 'vertical-geometry/coordinates';
 import { PlanLinkingHeaderItem } from 'vertical-geometry/plan-linking-header-item';
+import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 
 export interface PlanLinkingHeaderProps {
     planLinkingSummary: PlanLinkingSummaryItem[] | undefined;
-    planLinkingOnSelect: (options: OnSelectOptions) => void;
+    onSelectGeometryAlignment: (geometryId: GeometryAlignmentId, planId: GeometryPlanId) => void;
     coordinates: Coordinates;
 }
 
 export const PlanLinkingHeaders: React.FC<PlanLinkingHeaderProps> = ({
     planLinkingSummary,
-    planLinkingOnSelect,
+    onSelectGeometryAlignment,
     coordinates,
 }) => {
     return (
@@ -34,7 +34,7 @@ export const PlanLinkingHeaders: React.FC<PlanLinkingHeaderProps> = ({
                         key={i}
                         coordinates={coordinates}
                         planLinkingSummaryItem={summary}
-                        onSelect={planLinkingOnSelect}
+                        onSelectGeometryAlignment={onSelectGeometryAlignment}
                     />
                 ))}
         </>

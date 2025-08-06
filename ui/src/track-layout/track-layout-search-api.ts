@@ -8,7 +8,7 @@ import {
 import { getNonNull, queryParams } from 'api/api-fetch';
 import { TRACK_LAYOUT_URI, contextInUri } from 'track-layout/track-layout-api';
 import { LayoutContext } from 'common/common-model';
-import { SearchType } from 'tool-bar/search-dropdown';
+import { SearchItemType } from 'tool-bar/search-dropdown';
 
 export interface LayoutSearchResult {
     switches: LayoutSwitch[];
@@ -20,7 +20,7 @@ export interface LayoutSearchResult {
 export async function getBySearchTerm(
     searchTerm: string,
     layoutContext: LayoutContext,
-    types: SearchType[],
+    types: SearchItemType[],
     locationTrackSearchScope?: LocationTrackId,
     limitPerResultType: number = 10,
 ): Promise<LayoutSearchResult> {

@@ -53,12 +53,7 @@ import { getLayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-
 import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
-import {
-    SearchDropdown,
-    SearchItemType,
-    SearchItemValue,
-    SearchType,
-} from 'tool-bar/search-dropdown';
+import { SearchDropdown, SearchItemValue, SearchItemType } from 'tool-bar/search-dropdown';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
@@ -168,7 +163,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         ),
     ];
 
-    function onItemSelected(item: SearchItemValue | undefined) {
+    function onItemSelected(item: SearchItemValue<SearchItemType> | undefined) {
         if (!item) {
             return;
         }
@@ -476,10 +471,10 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         onItemSelected={onItemSelected}
                         disabled={!canSearch}
                         searchTypes={[
-                            SearchType.LOCATION_TRACK,
-                            SearchType.SWITCH,
-                            SearchType.TRACK_NUMBER,
-                            SearchType.OPERATING_POINT,
+                            SearchItemType.LOCATION_TRACK,
+                            SearchItemType.SWITCH,
+                            SearchItemType.TRACK_NUMBER,
+                            SearchItemType.OPERATING_POINT,
                         ]}
                     />
                 </div>

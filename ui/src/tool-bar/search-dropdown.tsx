@@ -14,13 +14,6 @@ import { LayoutContext } from 'common/common-model';
 import { debounceAsync } from 'utils/async-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 
-export enum SearchItemType {
-    LOCATION_TRACK = 'LOCATION_TRACK',
-    SWITCH = 'SWITCH',
-    TRACK_NUMBER = 'TRACK_NUMBER',
-    OPERATING_POINT = 'OPERATING_POINT',
-}
-
 export type LocationTrackItemValue = {
     locationTrack: LayoutLocationTrack;
     type: SearchItemType.LOCATION_TRACK;
@@ -99,8 +92,8 @@ async function getOptions(
     layoutContext: LayoutContext,
     searchTerm: string,
     locationTrackSearchScope: LocationTrackId | undefined,
-    searchTypes: SearchType[],
-): Promise<Item<SearchItemValue>[]> {
+    searchTypes: SearchItemType[],
+): Promise<Item<SearchItemValue<SearchItemType>>[]> {
     if (isNilOrBlank(searchTerm) || !searchTerm.match(SEARCH_REGEX)) {
         return Promise.resolve([]);
     }
@@ -127,33 +120,42 @@ async function getOptions(
 // Use debounced function to collect keystrokes before triggering a search
 const debouncedGetOptions = debounceAsync(getOptions, 250);
 
-export type SearchItemValue =
-    | LocationTrackItemValue
-    | SwitchItemValue
-    | TrackNumberItemValue
-    | OperatingPointItemValue;
+export type SearchItemValue<SearchTypes extends SearchItemType> =
+    SearchTypes extends 'LOCATION_TRACK'
+        ? LocationTrackItemValue
+        : SearchTypes extends 'SWITCH'
+          ? SwitchItemValue
+          : SearchTypes extends 'TRACK_NUMBER'
+            ? TrackNumberItemValue
+            : SearchTypes extends 'OPERATING_POINT'
+              ? OperatingPointItemValue
+              : never;
 
-type SearchDropdownProps = {
+type SearchDropdownProps<SearchTypes extends SearchItemType> = {
     layoutContext: LayoutContext;
     splittingState?: SplittingState;
     placeholder: string;
     disabled?: boolean;
-    onItemSelected: (item: SearchItemValue | undefined) => void;
-    searchTypes: SearchType[];
+    onItemSelected: (item: SearchItemValue<SearchTypes> | undefined) => void;
+    searchTypes: SearchTypes[];
     onBlur?: () => void;
     hasError?: boolean;
-    value?: SearchItemValue;
-    getName?: (item: SearchItemValue) => string;
+    value?: SearchItemValue<SearchTypes>;
+    getName?: (item: SearchItemValue<SearchTypes>) => string;
+    size?: DropdownSize;
+    wide?: boolean;
+    useAnchorElementWidth?: boolean;
+    clearable?: boolean;
 };
 
-export enum SearchType {
+export enum SearchItemType {
     LOCATION_TRACK = 'LOCATION_TRACK',
     SWITCH = 'SWITCH',
     TRACK_NUMBER = 'TRACK_NUMBER',
     OPERATING_POINT = 'OPERATING_POINT',
 }
 
-export const SearchDropdown: React.FC<SearchDropdownProps> = ({
+export const SearchDropdown = <SearchTypes extends SearchItemType>({
     layoutContext,
     placeholder,
     disabled = false,
@@ -164,7 +166,11 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
     hasError,
     value,
     getName,
-}) => {
+    size = DropdownSize.STRETCH,
+    wide = true,
+    useAnchorElementWidth,
+    clearable,
+}: SearchDropdownProps<SearchTypes>) => {
     // Use memoized function to make debouncing functionality to work when re-rendering
     const memoizedDebouncedGetOptions = React.useCallback(
         (searchTerm: string) =>
@@ -184,14 +190,16 @@ export const SearchDropdown: React.FC<SearchDropdownProps> = ({
             options={memoizedDebouncedGetOptions}
             searchable
             onChange={onItemSelected}
-            size={DropdownSize.STRETCH}
+            size={size}
             onBlur={onBlur}
             hasError={hasError}
             value={value}
             getName={getName}
             wideList
-            wide
+            wide={wide}
+            useAnchorElementWidth={useAnchorElementWidth}
             qa-id="search-box"
+            clearable={clearable}
         />
     );
 };

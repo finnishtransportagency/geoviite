@@ -13,6 +13,7 @@ import {
     getPublicationsAsTableItems,
     getPublicationsCsvUri,
     MAX_RETURNED_PUBLICATION_LOG_ROWS,
+    PublishableObjectIdAndType,
 } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Button } from 'vayla-design-lib/button/button';
@@ -37,12 +38,16 @@ import { debounceAsync } from 'utils/async-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SortDirection } from 'utils/table-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import { SearchDropdown, SearchItemType, SearchItemValue } from 'tool-bar/search-dropdown';
+import { officialMainLayoutContext } from 'common/common-model';
+import { DropdownSize } from 'vayla-design-lib/dropdown/dropdown';
 
 const MAX_SEARCH_DAYS = 180;
 
 type TableFetchFn = (
     from?: Date,
     to?: Date,
+    specificItem?: PublishableObjectIdAndType,
     sortBy?: PublicationDetailsTableSortField,
     order?: SortDirection,
 ) => Promise<Page<PublicationTableItem>>;
@@ -107,6 +112,39 @@ const PublicationLogTableHeading: React.FC<PublicationLogTableHeadingProps> = ({
     );
 };
 
+export type SearchablePublicationLogItem =
+    | SearchItemType.LOCATION_TRACK
+    | SearchItemType.TRACK_NUMBER
+    | SearchItemType.SWITCH;
+
+function searchableItemIdAndType(
+    item: SearchItemValue<SearchablePublicationLogItem>,
+): PublishableObjectIdAndType {
+    switch (item.type) {
+        case SearchItemType.LOCATION_TRACK:
+            return { type: item.type, id: item.locationTrack.id };
+        case SearchItemType.TRACK_NUMBER:
+            return { type: item.type, id: item.trackNumber.id };
+        case SearchItemType.SWITCH:
+            return { type: item.type, id: item.layoutSwitch.id };
+        default:
+            return exhaustiveMatchingGuard(item);
+    }
+}
+
+function getSearchableItemName(item: SearchItemValue<SearchablePublicationLogItem>): string {
+    switch (item.type) {
+        case SearchItemType.LOCATION_TRACK:
+            return item.locationTrack.name;
+        case SearchItemType.TRACK_NUMBER:
+            return item.trackNumber.number;
+        case SearchItemType.SWITCH:
+            return item.layoutSwitch.name;
+        default:
+            return exhaustiveMatchingGuard(item);
+    }
+}
+
 const PublicationLog: React.FC = () => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -122,6 +160,7 @@ const PublicationLog: React.FC = () => {
 
     const storedStartDate = parseISOOrUndefined(selectedPublicationSearch?.startDate);
     const storedEndDate = parseISOOrUndefined(selectedPublicationSearch?.endDate);
+    const storedSpecificItem = selectedPublicationSearch?.specificItem;
 
     const [sortInfo, setSortInfo] =
         React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
@@ -136,6 +175,7 @@ const PublicationLog: React.FC = () => {
         updatePublicationsTable(
             storedStartDate ?? parseISOOrUndefined(defaultPublicationSearch.startDate),
             storedEndDate ?? parseISOOrUndefined(defaultPublicationSearch.endDate),
+            storedSpecificItem,
             sortInfo,
             getPublicationsAsTableItems,
         );
@@ -146,12 +186,26 @@ const PublicationLog: React.FC = () => {
             updatePublicationsTable(
                 storedStartDate,
                 storedEndDate,
+                storedSpecificItem,
                 updatedSort,
                 publicationTableFetchFunctionByChangeMethod('SORTING_CHANGED'),
             ).then(() => setSortInfo(updatedSort));
         } else {
             setSortInfo(updatedSort);
         }
+    };
+
+    const setSpecificItem = (
+        newSpecificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
+    ) => {
+        trackLayoutActionDelegates.setSelectedPublicationSearchSearchableItem(newSpecificItem);
+        updatePublicationsTable(
+            storedStartDate,
+            storedEndDate,
+            newSpecificItem,
+            sortInfo,
+            publicationTableFetchFunctionByChangeMethod('PICKER'),
+        );
     };
 
     const setStartDate = (newStartDate: Date | undefined, source: DataSourceChangeMethod) => {
@@ -161,6 +215,7 @@ const PublicationLog: React.FC = () => {
         updatePublicationsTable(
             newStartDate,
             storedEndDate,
+            storedSpecificItem,
             sortInfo,
             publicationTableFetchFunctionByChangeMethod(source),
         );
@@ -171,21 +226,25 @@ const PublicationLog: React.FC = () => {
         updatePublicationsTable(
             storedStartDate,
             newEndDate,
+            storedSpecificItem,
             sortInfo,
             publicationTableFetchFunctionByChangeMethod(source),
         );
     };
 
     const isValidPublicationLogSearchRange = (
+        specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
         start: Date | undefined,
         end: Date | undefined,
     ): boolean => {
         return (
-            start !== undefined && end !== undefined && daysBetween(start, end) < MAX_SEARCH_DAYS
+            specificItem !== undefined || // go nuts with single-item searches, they're cheap
+            (start !== undefined && end !== undefined && daysBetween(start, end) < MAX_SEARCH_DAYS)
         );
     };
 
     const isStoredSearchRangeValid = isValidPublicationLogSearchRange(
+        storedSpecificItem,
         storedStartDate,
         storedEndDate,
     );
@@ -193,10 +252,11 @@ const PublicationLog: React.FC = () => {
     const updatePublicationsTable = (
         startDate: Date | undefined,
         endDate: Date | undefined,
+        specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
         sortInfo: PublicationDetailsTableSortInformation,
         fetchFn: TableFetchFn,
     ): Promise<Page<PublicationTableItem> | undefined> => {
-        if (!isValidPublicationLogSearchRange(startDate, endDate)) {
+        if (!isValidPublicationLogSearchRange(specificItem, startDate, endDate)) {
             clearPublicationsTable();
             return Promise.resolve(undefined);
         }
@@ -207,6 +267,7 @@ const PublicationLog: React.FC = () => {
         return fetchFn(
             startDate && startOfDay(startDate),
             endDate && endOfDay(endDate),
+            specificItem === undefined ? undefined : searchableItemIdAndType(specificItem),
             sortInfo.propName,
             sortInfo.direction,
         ).then((r) => {
@@ -277,6 +338,29 @@ const PublicationLog: React.FC = () => {
                         }
                         errors={endDateErrors}
                     />
+                    <FieldLayout
+                        label={t('publication-log.specific-object')}
+                        value={
+                            <SearchDropdown
+                                layoutContext={officialMainLayoutContext()}
+                                splittingState={undefined}
+                                placeholder={t('publication-log.search-specific-object')}
+                                onItemSelected={setSpecificItem}
+                                value={storedSpecificItem}
+                                getName={getSearchableItemName}
+                                disabled={false}
+                                size={DropdownSize.LARGE}
+                                searchTypes={[
+                                    SearchItemType.LOCATION_TRACK,
+                                    SearchItemType.SWITCH,
+                                    SearchItemType.TRACK_NUMBER,
+                                ]}
+                                wide={false}
+                                useAnchorElementWidth={true}
+                                clearable
+                            />
+                        }
+                    />
                     <PrivilegeRequired privilege={DOWNLOAD_PUBLICATION}>
                         <div className={styles['publication-log__export_button']}>
                             <Button
@@ -293,6 +377,9 @@ const PublicationLog: React.FC = () => {
                                     (location.href = getPublicationsCsvUri(
                                         storedStartDate,
                                         storedEndDate && endOfDay(storedEndDate),
+                                        storedSpecificItem === undefined
+                                            ? undefined
+                                            : searchableItemIdAndType(storedSpecificItem),
                                         sortInfo?.propName,
                                         sortInfo?.direction,
                                     ))

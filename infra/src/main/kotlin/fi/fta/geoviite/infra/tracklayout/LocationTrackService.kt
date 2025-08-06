@@ -220,15 +220,14 @@ class LocationTrackService(
     }
 
     @Transactional
-    fun fetchDuplicates(layoutContext: LayoutContext, id: IntId<LocationTrack>): List<LocationTrack> {
-        return dao.fetchDuplicateVersions(layoutContext, id).map(dao::fetch)
-    }
+    fun fetchDuplicates(layoutContext: LayoutContext, id: IntId<LocationTrack>): List<LocationTrack> =
+        dao.fetchDuplicates(layoutContext, id)
 
     @Transactional
     fun clearDuplicateReferences(branch: LayoutBranch, id: IntId<LocationTrack>) =
-        dao.fetchDuplicateVersions(branch.draft, id, includeDeleted = true)
-            .map { version -> asDraft(branch, dao.fetch(version)) to alignmentDao.fetch(version) }
-            .forEach { (dup, geom) -> saveDraft(branch, dup.copy(duplicateOf = null), geom) }
+        associateWithGeometries(dao.fetchDuplicates(branch.draft, id, includeDeleted = true)).forEach { (dup, geom) ->
+            saveDraft(branch, asDraft(branch, dup).copy(duplicateOf = null), geom)
+        }
 
     fun listNonLinked(branch: LayoutBranch): List<LocationTrack> {
         return dao.list(branch.draft, false).filter { a -> a.segmentCount == 0 }
@@ -271,19 +270,14 @@ class LocationTrackService(
         minLength: Double? = null,
         locationTrackIds: Set<IntId<LocationTrack>>? = null,
     ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
-        return if (boundingBox == null) {
-                dao.list(layoutContext, includeDeleted, trackNumberId)
-            } else {
-                dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId, minLength)
-                    .map(dao::fetch)
-            }
-            .let { list ->
-                if (locationTrackIds == null) list
-                else
-                    list.filter { locationTrack -> locationTrackIds.contains(locationTrack.id as IntId<LocationTrack>) }
-            }
-            .let { list -> filterByBoundingBox(list, boundingBox) }
-            .let(::associateWithGeometries)
+        val versions =
+            if (boundingBox == null) dao.fetchVersions(layoutContext, includeDeleted, trackNumberId)
+            else dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId, minLength)
+        val filteredVersions =
+            if (locationTrackIds == null) versions
+            else versions.filter { version -> locationTrackIds.contains(version.id) }
+        val tracks = filterByBoundingBox(dao.fetchMany(filteredVersions), boundingBox)
+        return associateWithGeometries(tracks)
     }
 
     @Transactional(readOnly = true)
@@ -292,6 +286,13 @@ class LocationTrackService(
         ids: List<IntId<LocationTrack>>,
     ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
         return dao.getMany(layoutContext, ids).let(::associateWithGeometries)
+    }
+
+    @Transactional(readOnly = true)
+    fun getManyWithGeometries(
+        versions: List<LayoutRowVersion<LocationTrack>>
+    ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
+        return dao.fetchMany(versions).let(::associateWithGeometries)
     }
 
     @Transactional(readOnly = true)
@@ -450,7 +451,7 @@ class LocationTrackService(
     ): Pair<LocationTrack, DbLocationTrackGeometry> = locationTrackWithGeometry(dao, alignmentDao, version)
 
     private fun associateWithGeometries(
-        lines: List<LocationTrack>
+        lines: Collection<LocationTrack>
     ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
         // This is a little convoluted to avoid extra passes of transaction annotation handling in
         // alignmentDao.fetch

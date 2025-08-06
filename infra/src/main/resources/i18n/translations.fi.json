@@ -35,6 +35,7 @@
                     "location-track-not-found": "Sijaintiraidetta ei löydetty.",
                     "track-number-not-found": "Ratanumeroa ei löydetty.",
                     "track-layout-version-not-found": "Rataverkon versiota ei löydetty.",
+                    "wrong-track-layout-version-order": "Pyynnön sisältämä rataverkon lähdeversio oli uudempi kuin vertailtava rataverkon versio (järjestys oli väärinpäin).",
                     "client-error": "Pyyntö oli tunnistamattomalla tavalla virheellinen (HTTP {{koodi}}).",
                     "server-error": "Pyynnön käsittely epäonnistui palvelimella (HTTP {{koodi}}).",
                     "unauthorized": "Pyyntöön ei ollut oikeutta.",
@@ -925,7 +926,8 @@
         "oid": {
             "copy-success": "OID {{oid}} kopioitu leikepöydälle",
             "copy-failed": "OID:n kopiointi leikepöydälle epäonnistui"
-        }
+        },
+        "show-in-publication-log": "Avaa julkaisuloki"
     },
     "data-products": {
         "search": {
@@ -1814,9 +1816,11 @@
         "breadcrumbs-text": "Julkaisuloki",
         "start-date": "Alkupvm.",
         "end-date": "Loppupvm.",
+        "specific-object": "Muutoskohde",
+        "search-specific-object": "Hae...",
         "export-csv": "Lataa CSV",
         "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää",
-        "search-range-too-long": "Hakuaikaväli on liian pitkä. Lyhennä hakuaikaväliä alle {{maxDays}} päivän mittaiseksi."
+        "search-range-too-long": "Lyhennä hakuaikaväliä alle {{maxDays}} päivän mittaiseksi tai valitse muutoskohde."
     },
     "publication-card": {
         "latest": "Viimeisimmät viedyt julkaisut",

@@ -15,7 +15,6 @@ import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -24,6 +23,8 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
+import kotlin.test.assertNotEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -73,6 +74,38 @@ class LayoutKmPostDaoIT @Autowired constructor(private val kmPostDao: LayoutKmPo
         assertEquals(official.id, alteredDraft.id)
         assertEquals(official, kmPostDao.fetchVersion(MainLayoutContext.official, alteredDraft.id))
         assertEquals(alteredDraft, kmPostDao.fetchVersion(MainLayoutContext.draft, alteredDraft.id))
+    }
+
+    @Test
+    fun `Multi-fetching object versions works correctly`() {
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+
+        val official1a = mainOfficialContext.save(kmPost(trackNumberId, KmNumber(1), state = IN_USE))
+        val official1b = testDBService.update(official1a) { kmp -> kmp.copy(state = NOT_IN_USE) }
+        val official2a = mainOfficialContext.save(kmPost(trackNumberId, KmNumber(2), state = IN_USE))
+        val official2b = testDBService.update(official2a) { kmp -> kmp.copy(state = NOT_IN_USE) }
+        val draft1a = mainDraftContext.save(kmPost(trackNumberId, KmNumber(3), state = IN_USE))
+        val draft1b = testDBService.update(draft1a) { kmp -> kmp.copy(state = NOT_IN_USE) }
+        val draft2a = mainDraftContext.save(kmPost(trackNumberId, KmNumber(4), state = IN_USE))
+        val draft2b = testDBService.update(draft2a) { kmp -> kmp.copy(state = NOT_IN_USE) }
+
+        val allVersions = listOf(official1a, official1b, official2a, official2b, draft1a, draft1b, draft2a, draft2b)
+        // Verify that that individual version fetches return different objects as expected
+        allVersions.forEach { version ->
+            allVersions
+                .filter { it != version }
+                .forEach { otherVersion -> assertNotEquals(kmPostDao.fetch(version), kmPostDao.fetch(otherVersion)) }
+        }
+
+        // Verify that multi-fetches return the expected objects
+        assertEquals(
+            setOf(kmPostDao.fetch(official1a), kmPostDao.fetch(official2b), kmPostDao.fetch(draft2a)),
+            kmPostDao.fetchMany(listOf(official1a, official2b, draft2a)).toSet(),
+        )
+        assertEquals(
+            setOf(kmPostDao.fetch(official1b), kmPostDao.fetch(draft1b), kmPostDao.fetch(draft2b)),
+            kmPostDao.fetchMany(listOf(official1b, draft1b, draft2b)).toSet(),
+        )
     }
 
     @Test

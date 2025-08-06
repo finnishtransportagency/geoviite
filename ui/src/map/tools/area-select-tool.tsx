@@ -135,7 +135,7 @@ export function createAreaSelectTool(
                 <MapToolButton
                     setActive={() => setActiveTool(createAreaSelectTool(onSelect))}
                     isActive={isActive}
-                    icon={Icons.Edit}
+                    icon={Icons.SelectArea}
                 />
             );
         },
