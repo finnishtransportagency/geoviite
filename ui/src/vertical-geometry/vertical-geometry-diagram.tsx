@@ -117,6 +117,8 @@ const VerticalGeometryDiagramM: React.FC<VerticalGeometryDiagramProps> = ({
     const drawTangentArrows =
         coordinates.mMeterLengthPxOverM > minimumPixelWidthToDrawTangentArrows;
 
+    const pointerCapturePointerId = React.useRef<undefined | PointerEvent['pointerId']>(undefined);
+
     const onMouseMove: React.EventHandler<React.MouseEvent<unknown>> = (
         e: React.MouseEvent<SVGSVGElement>,
     ) => {
@@ -128,6 +130,10 @@ const VerticalGeometryDiagramM: React.FC<VerticalGeometryDiagramProps> = ({
         setMousePositionInElement([e.clientX - elementBounds.x, e.clientY - elementBounds.y]);
 
         if (panning) {
+            if (pointerCapturePointerId.current !== undefined) {
+                ref?.current?.setPointerCapture(pointerCapturePointerId.current);
+                pointerCapturePointerId.current = undefined;
+            }
             const requestedPanDistance = (panning - e.clientX) / coordinates.mMeterLengthPxOverM;
             const panDistance = Math.min(
                 endM - visibleEndM,
@@ -200,7 +206,7 @@ const VerticalGeometryDiagramM: React.FC<VerticalGeometryDiagramProps> = ({
         <div
             className={diagramClasses}
             onPointerDown={(e) => {
-                ref?.current?.setPointerCapture(e.pointerId);
+                pointerCapturePointerId.current = e.pointerId;
                 e.preventDefault();
                 setPanning(e.clientX);
             }}
