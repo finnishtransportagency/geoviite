@@ -34,8 +34,6 @@
                     "oid-not-found": "Pyynnön OID-tunnuksen perusteella ei löydetty kohdetta.",
                     "location-track-not-found": "Sijaintiraidetta ei löydetty.",
                     "track-number-not-found": "Ratanumeroa ei löydetty.",
-                    "track-layout-version-not-found": "Rataverkon versiota ei löydetty.",
-                    "wrong-track-layout-version-order": "Pyynnön sisältämä rataverkon lähdeversio oli uudempi kuin vertailtava rataverkon versio (järjestys oli väärinpäin).",
                     "client-error": "Pyyntö oli tunnistamattomalla tavalla virheellinen (HTTP {{koodi}}).",
                     "server-error": "Pyynnön käsittely epäonnistui palvelimella (HTTP {{koodi}}).",
                     "unauthorized": "Pyyntöön ei ollut oikeutta.",
@@ -122,7 +120,9 @@
             "missing-parameter": "Virhe: pyynnöstä puuttuu vaadittu parametri ({{param}})",
             "invalid-body": "Virhe: pyynnön sisältöä ei voitu lukea",
             "conversion-failed": "Virhe: Pyynnössä oli virheellinen arvo {{name}}",
-            "invalid-version": "Virhe: Käyttöliittymän versio ei vastaa palvelimen versiota"
+            "invalid-version": "Virhe: Käyttöliittymän versio ei vastaa palvelimen versiota",
+            "wrong-track-layout-version-order": "Virhe: Pyynnön sisältämä rataverkon lähdeversio oli uudempi kuin vertailtava rataverkon versio (järjestys oli väärinpäin).",
+            "track-layout-version-not-found": "Virhe: Rataverkon versiota ei löydetty."
         },
         "deleting": {
             "generic": "Poistamisessa tapahtui virhe",

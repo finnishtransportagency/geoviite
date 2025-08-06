@@ -50,11 +50,7 @@ class ExtLocationTrackControllerV1(
     @ApiResponses(
         value =
             [
-                ApiResponse(
-                    responseCode = "200",
-                    description =
-                        "Sijaintiraidekokoelma löytyi onnistuneesti uusimmasta tai annetusta rataverkon versiosta.",
-                ),
+                ApiResponse(responseCode = "200", description = "Sijaintiraidekokoelman haku onnistui."),
                 ApiResponse(
                     responseCode = "400",
                     description = EXT_OPENAPI_INVALID_ARGUMENTS,
@@ -95,7 +91,7 @@ class ExtLocationTrackControllerV1(
                 ApiResponse(
                     responseCode = "200",
                     description =
-                        "Sijaintiraidekokoelman muutokset haettiin onnistuneesti vertaillen uusimpaan tai annettuun rataverkon versioon.",
+                        "Sijaintiraidekokoelman muutokset haettiin onnistuneesti kahden rataverkon version välillä.",
                 ),
                 ApiResponse(
                     responseCode = "204",
@@ -152,10 +148,7 @@ class ExtLocationTrackControllerV1(
     @ApiResponses(
         value =
             [
-                ApiResponse(
-                    responseCode = "200",
-                    description = "Sijaintiraide löytyi onnistuneesti uusimmasta tai annetusta rataverkon versiosta.",
-                ),
+                ApiResponse(responseCode = "200", description = "Sijaintiraiteen haku onnistui."),
                 ApiResponse(
                     responseCode = "204",
                     description =
@@ -215,8 +208,7 @@ class ExtLocationTrackControllerV1(
             [
                 ApiResponse(
                     responseCode = "200",
-                    description =
-                        "Sijaintiraiteen muutokset löytyivät onnistuneesti uusimmasta tai annetusta rataverkon versiosta.",
+                    description = "Sijaintiraiteen muutokset haettiin onnistuneesti kahden rataverkon version välillä.",
                 ),
                 ApiResponse(
                     responseCode = "204",
@@ -275,11 +267,7 @@ class ExtLocationTrackControllerV1(
     @ApiResponses(
         value =
             [
-                ApiResponse(
-                    responseCode = "200",
-                    description =
-                        "Sijaintiraiteen geometria löytyi onnistuneesti uusimmasta tai annetusta rataverkon versiosta.",
-                ),
+                ApiResponse(responseCode = "200", description = "Sijaintiraiteen geometrian haku onnistui."),
                 ApiResponse(
                     responseCode = "204",
                     description =

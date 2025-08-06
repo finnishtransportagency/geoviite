@@ -8,8 +8,10 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -43,7 +45,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
     private val publicationDao: PublicationDao,
-    private val extPublicationService: ExtPublicationServiceV1,
+    private val publicationService: PublicationService,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -69,7 +71,7 @@ constructor(
                                 locationTrackDao.listPublishedLocationTracksAtMoment(
                                     specifiedPublication.publicationTime
                                 )
-                        } ?: throw ExtTrackLayoutVersionNotFound("trackLayoutVersion=${trackLayoutVersion}")
+                        } ?: throw TrackLayoutVersionNotFound("trackLayoutVersion=${trackLayoutVersion}")
                 }
             }
 
@@ -94,7 +96,7 @@ constructor(
         val layoutContext = MainLayoutContext.official
 
         val (fromPublication, toPublication) =
-            extPublicationService.getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
+            publicationService.getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
 
         return if (fromPublication == toPublication) {
             logger.info(

@@ -5,12 +5,16 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublication
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
+import fi.fta.geoviite.infra.error.InvalidTrackLayoutVersionOrder
 import fi.fta.geoviite.infra.error.PublicationFailureException
+import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
@@ -515,5 +519,28 @@ constructor(
             ?.let { name ->
                 throw DuplicateNameInPublicationException(DuplicateNameInPublication.SWITCH, name, exception)
             }
+    }
+
+    fun getPublicationsToCompare(
+        modificationsFromVersion: Uuid<Publication>,
+        trackLayoutVersion: Uuid<Publication>?,
+    ): Pair<Publication, Publication> {
+        val fromPublication =
+            publicationDao.fetchPublicationByUuid(modificationsFromVersion)
+                ?: throw TrackLayoutVersionNotFound("modificationsFromVersion=${modificationsFromVersion}")
+
+        val toPublication =
+            trackLayoutVersion?.let { uuid ->
+                publicationDao.fetchPublicationByUuid(uuid)
+                    ?: throw TrackLayoutVersionNotFound("trackLayoutVersion=${uuid}")
+            } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+
+        if (fromPublication.id.intValue > toPublication.id.intValue) {
+            throw InvalidTrackLayoutVersionOrder(
+                "fromPublication=${fromPublication} is strictly newer than toPublication=${toPublication}"
+            )
+        }
+
+        return fromPublication to toPublication
     }
 }
