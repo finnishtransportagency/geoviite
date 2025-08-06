@@ -513,7 +513,7 @@ function getNameForTarget(
     const nameSpecifier: LocationTrackNameSpecifier | undefined = undefined;
     const nameFreeText =
         startSwitch?.nameParts !== undefined && endSwitch?.nameParts !== undefined
-            ? `${startSwitch.nameParts.shortNumberPart}-${endSwitch.nameParts.shortNumberPart}`
+            ? `${startSwitch.nameParts.prefix} ${startSwitch.nameParts.shortNumberPart}-${endSwitch.nameParts.prefix} ${endSwitch.nameParts.shortNumberPart}`
             : '';
 
     return {
