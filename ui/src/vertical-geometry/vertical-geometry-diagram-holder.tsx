@@ -2,7 +2,11 @@ import * as React from 'react';
 import { VerticalGeometryDiagram } from 'vertical-geometry/vertical-geometry-diagram';
 import { useAlignmentHeights } from 'vertical-geometry/km-heights-api';
 import { ChangeTimes } from 'common/common-slice';
-import { VerticalGeometryDiagramDisplayItem } from 'geometry/geometry-model';
+import {
+    GeometryAlignmentId,
+    GeometryPlanId,
+    VerticalGeometryDiagramDisplayItem,
+} from 'geometry/geometry-model';
 import {
     getGeometryPlanVerticalGeometry,
     getLocationTrackLinkingSummary,
@@ -17,7 +21,6 @@ import {
 import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { OnSelectOptions } from 'selection/selection-model';
 import { BoundingBox } from 'model/geometry';
 import { processLayoutGeometries, processPlanGeometries } from 'vertical-geometry/util';
 import { useTranslation } from 'react-i18next';
@@ -38,7 +41,7 @@ type VerticalGeometryDiagramHolderProps = {
     alignmentId: VerticalGeometryDiagramAlignmentId;
     changeTimes: ChangeTimes;
     onCloseDiagram: () => void;
-    onSelect: (options: OnSelectOptions) => void;
+    onSelectGeometryAlignment: (geometryId: GeometryAlignmentId, planId: GeometryPlanId) => void;
     showArea: (area: BoundingBox) => void;
 
     setSavedVisibleExtentM: (
@@ -91,7 +94,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
     alignmentId,
     changeTimes,
     onCloseDiagram,
-    onSelect,
+    onSelectGeometryAlignment,
     showArea,
     setSavedVisibleExtentM,
     savedVisibleExtentLookup,
@@ -274,7 +277,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                     visibleEndM={alignmentAndExtents?.endM ?? endM}
                     onMove={onMove}
                     showArea={showArea}
-                    onSelect={onSelect}
+                    onSelectGeometryAlignment={onSelectGeometryAlignment}
                     horizontalTick={horizontalTickLengthMeters}
                     height={diagramHeight}
                     width={diagramWidth}
