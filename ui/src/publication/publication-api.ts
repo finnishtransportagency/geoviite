@@ -34,8 +34,13 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { createPublicationCandidateReference } from 'publication/publication-utils';
 import { DesignBranch, LayoutBranch, PublicationState } from 'common/common-model';
 import {
+    LayoutKmPost,
     LayoutKmPostId,
+    LayoutLocationTrack,
+    LayoutReferenceLine,
+    LayoutSwitch,
     LayoutSwitchId,
+    LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
     ReferenceLineId,
@@ -297,6 +302,19 @@ export type ReferenceLineIdAndType = { id: ReferenceLineId; type: 'REFERENCE_LIN
 export type LocationTrackIdAndType = { id: LocationTrackId; type: 'LOCATION_TRACK' };
 export type SwitchIdAndType = { id: LayoutSwitchId; type: 'SWITCH' };
 export type KmPostIdAndType = { id: LayoutKmPostId; type: 'KM_POST' };
+
+export type PublishedAsset =
+    | PublishedAssetTrackNumber
+    | PublishedAssetReferenceLine
+    | PublishedAssetLocationTrack
+    | PublishedAssetSwitch
+    | PublishedAssetKmPost;
+
+export type PublishedAssetTrackNumber = { asset: LayoutTrackNumber; type: 'TRACK_NUMBER' };
+export type PublishedAssetReferenceLine = { asset: LayoutReferenceLine; type: 'REFERENCE_LINE' };
+export type PublishedAssetLocationTrack = { asset: LayoutLocationTrack; type: 'LOCATION_TRACK' };
+export type PublishedAssetSwitch = { asset: LayoutSwitch; type: 'SWITCH' };
+export type PublishedAssetKmPost = { asset: LayoutKmPost; type: 'KM_POST' };
 
 export const getPublicationsCsvUri = (
     fromDate?: Date,

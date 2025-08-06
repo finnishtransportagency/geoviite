@@ -36,8 +36,34 @@ enum class PublicationTableColumn {
     CHANGES,
 }
 
+sealed class PublishedAsset {
+    abstract val type: PublishableObjectType
+}
+
+data class PublishedAssetTrackNumber(val asset: LayoutTrackNumber) : PublishedAsset() {
+    override val type = PublishableObjectType.TRACK_NUMBER
+}
+
+data class PublishedAssetReferenceLine(val asset: ReferenceLine) : PublishedAsset() {
+    override val type = PublishableObjectType.REFERENCE_LINE
+}
+
+data class PublishedAssetLocationTrack(val asset: LocationTrack) : PublishedAsset() {
+    override val type = PublishableObjectType.LOCATION_TRACK
+}
+
+data class PublishedAssetSwitch(val asset: LayoutSwitch) : PublishedAsset() {
+    override val type = PublishableObjectType.SWITCH
+}
+
+data class PublishedAssetKmPost(val asset: LayoutKmPost) : PublishedAsset() {
+    override val type = PublishableObjectType.KM_POST
+}
+
 data class PublicationTableItem(
     val name: FreeText,
+    val publicationId: IntId<Publication>,
+    val asset: PublishedAsset,
     val trackNumbers: List<TrackNumber>,
     val changedKmNumbers: List<Range<KmNumber>>,
     val operation: Operation,

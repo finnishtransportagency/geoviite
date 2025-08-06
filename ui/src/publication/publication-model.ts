@@ -27,6 +27,7 @@ import { SplitTargetOperation } from 'tool-panel/location-track/split-store';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SearchItemValue } from 'tool-bar/search-dropdown';
 import { SearchablePublicationLogItem } from 'publication/log/publication-log';
+import { PublishedAsset } from 'publication/publication-api';
 
 export type LayoutValidationIssue = {
     type: LayoutValidationIssueType;
@@ -370,6 +371,8 @@ export type PublishedCalculatedChanges = {
 
 export type PublicationTableItem = {
     id: string; //Auto generated
+    asset: PublishedAsset;
+    publicationId: PublicationId;
     name: string;
     trackNumbers: TrackNumber[];
     changedKmNumbers: Range<string>[];
