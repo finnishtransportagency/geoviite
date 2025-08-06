@@ -71,6 +71,14 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
         [trackLayoutDelegates, alignmentId],
     );
 
+    const onSelectGeometryAlignment = React.useCallback(
+        (geometryId: GeometryAlignmentId, planId: GeometryPlanId) => {
+            trackLayoutDelegates.onSelect({ geometryAlignmentIds: [{ geometryId, planId }] });
+            trackLayoutDelegates.setToolPanelTab({ type: 'GEOMETRY_ALIGNMENT', id: geometryId });
+        },
+        [trackLayoutDelegates],
+    );
+
     return (
         <>
             {alignmentId && (
@@ -78,7 +86,7 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
                     alignmentId={alignmentId}
                     changeTimes={changeTimes}
                     onCloseDiagram={closeDiagram}
-                    onSelect={trackLayoutDelegates.onSelect}
+                    onSelectGeometryAlignment={onSelectGeometryAlignment}
                     showArea={trackLayoutDelegates.showArea}
                     setSavedVisibleExtentM={setVisibleExtentM}
                     savedVisibleExtentLookup={
