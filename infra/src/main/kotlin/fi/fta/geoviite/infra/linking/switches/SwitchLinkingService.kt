@@ -368,7 +368,11 @@ constructor(
                             switchId,
                             onlySwitchId = switchId,
                         )
-                        .forEach { track -> changedLocationTracks[track.first.id as IntId] = track }
+                        .forEach { track ->
+                            val id = track.first.id as IntId
+                            val orig = nearbyTracksForMatch[id]
+                            if (orig == null || orig != track) changedLocationTracks[id] = track
+                        }
                     updateLayoutSwitch(branch, match, switchId)
                     TrackSwitchRelinkingResult(switchId, TrackSwitchRelinkingResultType.RELINKED)
                 }
