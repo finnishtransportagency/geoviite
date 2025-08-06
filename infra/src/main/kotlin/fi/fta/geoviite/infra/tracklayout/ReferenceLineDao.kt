@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getTrackMeter
 import fi.fta.geoviite.infra.util.queryOptional
+import fi.fta.geoviite.infra.util.setForceCustomPlan
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -57,14 +58,14 @@ class ReferenceLineDao(
               rlv.start_address,
               rlv.origin_design_id
             from layout.reference_line_version rlv
+              inner join lateral
+                (
+                  select
+                    unnest(:ids) id,
+                    unnest(:layout_context_ids) layout_context_id,
+                    unnest(:versions) version
+                ) args on args.id = rlv.id and args.layout_context_id = rlv.layout_context_id and args.version = rlv.version
               left join layout.alignment_version av on rlv.alignment_id = av.id and rlv.alignment_version = av.version
-            inner join lateral
-              (
-                select
-                  unnest(:ids) id,
-                  unnest(:layout_context_ids) layout_context_id,
-                  unnest(:versions) version
-              ) args on args.id = rlv.id and args.layout_context_id = rlv.layout_context_id and args.version = rlv.version
             where rlv.deleted = false
         """
                 .trimIndent()
@@ -241,6 +242,7 @@ class ReferenceLineDao(
         }
     }
 
+    @Transactional(readOnly = true)
     fun fetchVersionsNear(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
@@ -257,15 +259,21 @@ class ReferenceLineDao(
                 join layout.alignment
                      on reference_line.alignment_id = alignment.id and reference_line.alignment_version = alignment.version
               where (:include_deleted or track_number.state != 'DELETED')
-                and postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                                          alignment.bounding_box)
-                and exists(select *
-                             from layout.segment_version
-                               join layout.segment_geometry on geometry_id = segment_geometry.id
-                             where segment_version.alignment_id = reference_line.alignment_id
-                               and segment_version.alignment_version = reference_line.alignment_version
-                               and postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                                                         segment_geometry.bounding_box));
+                and postgis.st_intersects(
+                  postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                  alignment.bounding_box
+                )
+                and exists(
+                  select *
+                    from layout.segment_version
+                      join layout.segment_geometry on geometry_id = segment_geometry.id
+                    where segment_version.alignment_id = reference_line.alignment_id
+                      and segment_version.alignment_version = reference_line.alignment_version
+                      and postgis.st_intersects(
+                        postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                        segment_geometry.bounding_box
+                      )
+                );
         """
                 .trimIndent()
 
@@ -281,6 +289,9 @@ class ReferenceLineDao(
                 "include_deleted" to includeDeleted,
             )
 
+        // GVT-3181 This query is poorly optimized when JDBC tries to prepare a plan for it.
+        // Force a custom plan to avoid the issue. Note: this must be in the same transaction as the query.
+        jdbcTemplate.setForceCustomPlan()
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getLayoutRowVersion("id", "design_id", "draft", "version")
         }
