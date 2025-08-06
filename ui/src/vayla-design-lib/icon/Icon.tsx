@@ -13,6 +13,7 @@ import ascending from './glyphs/action/ascending.svg';
 import descending from './glyphs/action/descending.svg';
 import targetSvg from './glyphs/action/target.svg';
 import clearSvg from './glyphs/action/clear.svg';
+import selectArea from './glyphs/action/select-area.svg';
 import infoSvg from './glyphs/status/info.svg';
 import deniedSvg from './glyphs/status/denied.svg';
 import selectedSvg from './glyphs/status/selected.svg';
@@ -112,6 +113,7 @@ const iconNameToSvgMap = {
     Select: selectSvg,
     Target: targetSvg,
     Clear: clearSvg,
+    SelectArea: selectArea,
 
     // Misc
     Layers: layersSvg,
