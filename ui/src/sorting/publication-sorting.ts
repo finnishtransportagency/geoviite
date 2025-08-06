@@ -1,5 +1,6 @@
-import { Operation } from 'publication/publication-model';
+import { Operation, PublicationTableItem } from 'publication/publication-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { ChangeTableEntry } from 'preview/change-table-entry-mapping';
 
 export const publicationOperationSortPriority = (operation: Operation | undefined) => {
     switch (operation) {
@@ -22,6 +23,6 @@ export const publicationOperationSortPriority = (operation: Operation | undefine
 };
 
 export const publicationOperationCompare = (
-    a: { operation: Operation },
-    b: { operation: Operation },
+    a: Pick<ChangeTableEntry, 'operation'> | Pick<PublicationTableItem, 'operation'>,
+    b: Pick<ChangeTableEntry, 'operation'> | Pick<PublicationTableItem, 'operation'>,
 ) => publicationOperationSortPriority(b.operation) - publicationOperationSortPriority(a.operation);

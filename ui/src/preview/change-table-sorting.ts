@@ -2,6 +2,7 @@ import { LayoutValidationIssue, validationIssueIsError } from 'publication/publi
 import { fieldComparator } from 'utils/array-utils';
 import { nextSortDirection, SortDirection } from 'utils/table-utils';
 import { publicationOperationCompare } from 'sorting/publication-sorting';
+import { PreviewTableEntry } from 'preview/preview-table';
 
 export enum SortProps {
     NAME = 'NAME',
@@ -29,13 +30,25 @@ const issueSeverityPriority = (issues: LayoutValidationIssue[]) => {
     return priority;
 };
 
-const nameCompare = fieldComparator((entry: { name: string }) => entry.name.toLocaleLowerCase());
-const trackNumberCompare = fieldComparator((entry: { trackNumber: string }) => entry.trackNumber);
-const userNameCompare = fieldComparator((entry: { userName: string }) => entry.userName);
-const changeTimeCompare = fieldComparator((entry: { changeTime: string }) => entry.changeTime);
+const nameCompare = fieldComparator((entry: Pick<PreviewTableEntry, 'name'>) =>
+    entry.name.toLocaleLowerCase(),
+);
+
+const trackNumberCompare = fieldComparator((entry: Pick<PreviewTableEntry, 'trackNumbers'>) =>
+    entry.trackNumbers.join(','),
+);
+
+const userNameCompare = fieldComparator(
+    (entry: Pick<PreviewTableEntry, 'userName'>) => entry.userName,
+);
+
+const changeTimeCompare = fieldComparator(
+    (entry: Pick<PreviewTableEntry, 'changeTime'>) => entry.changeTime,
+);
+
 const issueListCompare = (
-    a: { issues: LayoutValidationIssue[] },
-    b: { issues: LayoutValidationIssue[] },
+    a: Pick<PreviewTableEntry, 'issues'>,
+    b: Pick<PreviewTableEntry, 'issues'>,
 ) => {
     const priorityBySeverity = issueSeverityPriority(b.issues) - issueSeverityPriority(a.issues);
     return priorityBySeverity !== 0 ? priorityBySeverity : b.issues.length - a.issues.length;
