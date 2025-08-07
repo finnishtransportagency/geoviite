@@ -4,8 +4,8 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
@@ -78,8 +78,8 @@ class AddressChangesService(val geocodingService: GeocodingService) {
     fun getAddressChanges(
         beforeTrack: LocationTrack?,
         afterTrack: LocationTrack,
-        beforeContextKey: GeocodingContextCacheKey?,
-        afterContextKey: GeocodingContextCacheKey?,
+        beforeContextKey: LayoutGeocodingContextCacheKey?,
+        afterContextKey: LayoutGeocodingContextCacheKey?,
     ): AddressChanges =
         if (beforeTrack == afterTrack && beforeContextKey == afterContextKey) {
             AddressChanges(setOf(), startPointChanged = false, endPointChanged = false)
@@ -89,7 +89,7 @@ class AddressChangesService(val geocodingService: GeocodingService) {
 
     private fun getAddresses(
         track: LocationTrack?,
-        contextKey: GeocodingContextCacheKey?,
+        contextKey: LayoutGeocodingContextCacheKey?,
     ): AlignmentAddresses<LocationTrackM>? =
         if (track == null || contextKey == null || !track.exists) null
         else geocodingService.getAddressPoints(contextKey, track.getVersionOrThrow())

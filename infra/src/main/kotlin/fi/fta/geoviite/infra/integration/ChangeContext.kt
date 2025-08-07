@@ -2,9 +2,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
@@ -13,7 +12,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import java.time.Instant
 import kotlin.reflect.KClass
 
@@ -30,20 +28,16 @@ class ChangeContext(
     val kmPosts: TypedChangeContext<LayoutKmPost>,
     val locationTracks: TypedChangeContext<LocationTrack>,
     val switches: TypedChangeContext<LayoutSwitch>,
-    val geocodingKeysBefore: LazyMap<IntId<LayoutTrackNumber>, GeocodingContextCacheKey?>,
-    val geocodingKeysAfter: LazyMap<IntId<LayoutTrackNumber>, GeocodingContextCacheKey?>,
+    val geocodingKeysBefore: LazyMap<IntId<LayoutTrackNumber>, LayoutGeocodingContextCacheKey?>,
+    val geocodingKeysAfter: LazyMap<IntId<LayoutTrackNumber>, LayoutGeocodingContextCacheKey?>,
     val getTrackNumberTracksBefore: (trackNumberId: IntId<LayoutTrackNumber>) -> List<LayoutRowVersion<LocationTrack>>,
 ) {
 
     fun getGeocodingContextBefore(id: IntId<LayoutTrackNumber>) =
-        geocodingKeysBefore[id]?.let { key ->
-            geocodingService.getGeocodingContext(key) as? GeocodingContext<ReferenceLineM>
-        }
+        geocodingKeysBefore[id]?.let { key -> geocodingService.getGeocodingContext(key) }
 
     fun getGeocodingContextAfter(id: IntId<LayoutTrackNumber>) =
-        geocodingKeysAfter[id]?.let { key ->
-            geocodingService.getGeocodingContext(key) as? GeocodingContext<ReferenceLineM>
-        }
+        geocodingKeysAfter[id]?.let { key -> geocodingService.getGeocodingContext(key) }
 }
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
