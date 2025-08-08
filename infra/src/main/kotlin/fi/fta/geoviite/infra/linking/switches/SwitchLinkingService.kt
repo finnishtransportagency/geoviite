@@ -330,9 +330,16 @@ constructor(
             mutableMapOf()
 
         val relinkingResults =
-            originalSwitches.mapIndexed { index, (switchId, originalSwitch) ->
+            originalSwitches.mapIndexedNotNull { index, (switchId, originalSwitch) ->
                 val originallyLinked = originallyLinkedLocationTracksByIndex[index]
-                relinkOneSwitchOnTrack(branch, originalSwitch, switchId, originallyLinked, changedLocationTracks)
+                relinkOneSwitchOnTrack(
+                    branch,
+                    trackId,
+                    originalSwitch,
+                    switchId,
+                    originallyLinked,
+                    changedLocationTracks,
+                )
             }
         changedLocationTracks.values.forEach { (track, geometry) ->
             locationTrackService.saveDraft(branch, track, geometry)
@@ -342,11 +349,12 @@ constructor(
 
     private fun relinkOneSwitchOnTrack(
         branch: LayoutBranch,
+        relinkingTrackId: IntId<LocationTrack>,
         originalSwitch: LayoutSwitch,
         switchId: IntId<LayoutSwitch>,
         originallyLinked: Map<IntId<LocationTrack>, Pair<LocationTrack, DbLocationTrackGeometry>>,
         changedLocationTracks: MutableMap<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
-    ): TrackSwitchRelinkingResult {
+    ): TrackSwitchRelinkingResult? {
         val switchStructure = switchLibraryService.getSwitchStructure(originalSwitch.switchStructureId)
         val presentationJointLocation = originalSwitch.getJoint(switchStructure.presentationJointNumber)?.location
         checkNotNull(presentationJointLocation) { "no presentation joint on switch ${originalSwitch.id}" }
@@ -361,6 +369,7 @@ constructor(
                 .toList()
 
         return applyFittedSwitchInTrackRelinking(
+            relinkingTrackId,
             createFittedSwitchByPoint(switchId, presentationJointLocation, switchStructure, nearbyTracksForFit),
             switchId,
             branch,
@@ -371,15 +380,22 @@ constructor(
     }
 
     private fun applyFittedSwitchInTrackRelinking(
+        relinkingTrackId: IntId<LocationTrack>,
         fittedSwitch: FittedSwitch?,
         switchId: IntId<LayoutSwitch>,
         branch: LayoutBranch,
         originallyLinked: Map<IntId<LocationTrack>, Pair<LocationTrack, DbLocationTrackGeometry>>,
         changedLocationTracks: MutableMap<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
         switchStructure: SwitchStructure,
-    ): TrackSwitchRelinkingResult {
-        return if (fittedSwitch == null) {
+    ): TrackSwitchRelinkingResult? =
+        if (fittedSwitch == null) {
             TrackSwitchRelinkingResult(switchId, TrackSwitchRelinkingResultType.NOT_AUTOMATICALLY_LINKABLE)
+        } else if (
+            fittedSwitch.joints.none { joint ->
+                joint.matches.any { match -> match.locationTrackId == relinkingTrackId }
+            }
+        ) {
+            null
         } else {
             val nearbyTracksForMatch =
                 findLocationTracksForMatchingSwitchToTracks(branch, fittedSwitch).let { nearby ->
@@ -406,7 +422,6 @@ constructor(
             updateLayoutSwitch(branch, match, switchId)
             TrackSwitchRelinkingResult(switchId, TrackSwitchRelinkingResultType.RELINKED)
         }
-    }
 
     @Transactional(readOnly = true)
     fun getTrackSwitchSuggestions(context: LayoutContext, trackId: IntId<LocationTrack>) =
