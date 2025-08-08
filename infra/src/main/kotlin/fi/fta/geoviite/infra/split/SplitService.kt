@@ -44,9 +44,9 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -568,11 +568,45 @@ fun splitLocationTrack(
             val (newTrack, newGeometry) =
                 target.duplicate?.let { d ->
                     when (d.operation) {
-                        SplitTargetDuplicateOperation.TRANSFER ->
+                        //                        SplitTargetOperation.TRANSFER ->
+                        //                            todo()
+                        //                            val updatedDuplicatTrack =
+                        //                                updateSplitTargetForTransferAssets(
+                        //                                    duplicateTrack = d.track,
+                        //                                    topologicalConnectivityType = connectivityType,
+                        //                                )
+                        //                            val updatedGeometry = splice(geometry) // Edgejen yhdistely
+                        // ennemmin kuin splice?
+                        //                            target
+                        //
+                        //                            edges.forEach { asd -> asd.segments }
+
+                        SplitTargetDuplicateOperation.TRANSFER -> {
+                            val replacedEdgeIndexRange =
+                                findSplitEdgeIndices(d.geometry, target.startSwitch, nextSwitch)
+
+                            val newEdges =
+                                listOf(
+                                        // Partial duplicate edges before the split start position
+                                        d.geometry.edges.subList(0, replacedEdgeIndexRange.start),
+                                        // Split source track edges
+                                        edges,
+                                        // Partial duplicate edges after the split end position
+                                        d.geometry.edges.subList(
+                                            replacedEdgeIndexRange.endInclusive + 1,
+                                            d.geometry.edges.size,
+                                        ),
+                                    )
+                                    .flatten()
+
+                            val testNewGeom = TmpLocationTrackGeometry.of(newEdges, d.track.id as? IntId)
+
                             updateSplitTargetForTransferAssets(
                                 duplicateTrack = d.track,
                                 topologicalConnectivityType = connectivityType,
-                            ) to d.geometry
+                            ) to testNewGeom // TODO Tässä yhteydessä geometrian pitäisi olla
+                        }
+
                         SplitTargetDuplicateOperation.OVERWRITE ->
                             updateSplitTargetForOverwriteDuplicate(
                                 sourceTrack = track,

@@ -5,7 +5,9 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.linking.splice
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.OVERWRITE
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.TRANSFER
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -14,8 +16,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.NodeConnection
@@ -342,6 +346,23 @@ constructor(
         val foundSplits = splitService.findUnfinishedSplits(LayoutBranch.main, switchIds = split.relinkedSwitches)
 
         assertEquals(splitId, foundSplits.first().id)
+    }
+
+    @Test
+    fun `Edge splicing works`() { // TODO Rename/move
+        val mainTrack =
+            mainOfficialContext.save(
+                locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
+                trackGeometry(verticalEdge(Point(x = 0.0, y = 0.0), segmentCount = 3)),
+            )
+
+        val (track, geometry) = locationTrackService.getWithGeometry(mainTrack)
+        val segment = segment(Point(2.0, 0.0), Point(3.0, y = 10.0), Point(4.0, 0.0))
+
+        val newGeometry =
+            splice(geometry, Range<LineM<LocationTrackM>>(LineM(2.0), LineM(4.0)), added = listOf(segment))
+
+        val asd = 1
     }
 
     @Test
