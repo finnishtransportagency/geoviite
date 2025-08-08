@@ -9,7 +9,6 @@ import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
 import { TimeStamp } from 'common/common-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_LAYOUT_DRAFT } from 'user/user-model';
-import { EnvRestricted } from 'environment/env-restricted';
 
 type FrontPageProps = {
     publicationChangeTime: TimeStamp;
@@ -36,17 +35,15 @@ const Frontpage: React.FC<FrontPageProps> = ({
                     ratkoStatus={ratkoStatus}
                     branchType="MAIN"
                 />
-                <EnvRestricted restrictTo="test">
-                    <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
-                        <PublicationCard
-                            publicationChangeTime={publicationChangeTime}
-                            ratkoPushChangeTime={ratkoPushChangeTime}
-                            splitChangeTime={splitChangeTime}
-                            ratkoStatus={ratkoStatus}
-                            branchType="DESIGN"
-                        />
-                    </PrivilegeRequired>
-                </EnvRestricted>
+                <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
+                    <PublicationCard
+                        publicationChangeTime={publicationChangeTime}
+                        ratkoPushChangeTime={ratkoPushChangeTime}
+                        splitChangeTime={splitChangeTime}
+                        ratkoStatus={ratkoStatus}
+                        branchType="DESIGN"
+                    />
+                </PrivilegeRequired>
                 <UserCardContainer />
             </div>
         </React.Fragment>

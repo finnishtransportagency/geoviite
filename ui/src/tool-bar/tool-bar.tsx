@@ -41,7 +41,6 @@ import {
 } from 'common/common-model';
 import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
-import { EnvRestricted } from 'environment/env-restricted';
 import {
     calculateBoundingBoxToShowAroundLocation,
     MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
@@ -53,7 +52,7 @@ import { getLayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-
 import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
-import { SearchDropdown, SearchItemValue, SearchItemType } from 'tool-bar/search-dropdown';
+import { SearchDropdown, SearchItemType, SearchItemValue } from 'tool-bar/search-dropdown';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
@@ -334,97 +333,87 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             <span>{t(`enum.LayoutContextMode.MAIN_DRAFT`)}</span>
                         </TabHeader>
                     </PrivilegeRequired>
-                    <EnvRestricted restrictTo={'test'}>
-                        <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
-                            <div ref={designTabRef}>
-                                <TabHeader
-                                    qaId={'design-mode-tab'}
-                                    selected={layoutContextMode === 'DESIGN'}
-                                    title={layoutContextTransferDisabledReason()}
-                                    disabled={!!splittingState || !!linkingState}
-                                    onClick={switchToDesign}>
-                                    <span className={styles['tool-bar__tab-content']}>
-                                        {t(`enum.LayoutContextMode.DESIGN`)}
-                                        <span>{currentDesign && `:`}</span>
-                                        <div className={styles['tool-bar__design-tab-actions']}>
-                                            <Button
-                                                className={styles['tool-bar__design-select-button']}
-                                                title={currentDesign?.name}
-                                                variant={ButtonVariant.GHOST}
-                                                icon={Icons.Down}
-                                                iconPosition={ButtonIconPosition.END}
-                                                disabled={!!splittingState || !!linkingState}
-                                                inheritTypography={true}
-                                                ref={designSelectButtonRef}
-                                                onClick={() => {
-                                                    switchToDesign();
-                                                    setDesignIdSelectorOpened(
-                                                        !designIdSelectorOpened,
-                                                    );
-                                                }}
-                                                qa-id={'workspace-selection-dropdown-toggle'}>
-                                                {currentDesign && (
-                                                    <span
-                                                        className={styles['tool-bar__design-name']}>
-                                                        {currentDesign.name}
-                                                    </span>
-                                                )}
-                                            </Button>
-                                            <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                                {layoutContextMode === 'DESIGN' &&
-                                                    currentDesign && (
-                                                        <React.Fragment>
-                                                            <Button
-                                                                variant={ButtonVariant.GHOST}
-                                                                size={ButtonSize.SMALL}
-                                                                icon={Icons.Edit}
-                                                                onClick={() =>
-                                                                    setShowEditWorkspaceDialog(true)
-                                                                }
-                                                                qa-id={'workspace-edit-button'}
-                                                            />
-                                                            <Button
-                                                                variant={ButtonVariant.GHOST}
-                                                                size={ButtonSize.SMALL}
-                                                                icon={Icons.Delete}
-                                                                onClick={() =>
-                                                                    setShowDeleteWorkspaceDialog(
-                                                                        true,
-                                                                    )
-                                                                }
-                                                                qa-id={'workspace-delete-button'}
-                                                            />
-                                                        </React.Fragment>
-                                                    )}
-                                            </PrivilegeRequired>
-                                        </div>
-                                    </span>
-                                </TabHeader>
-                                {showDesignIdSelector && (
-                                    <CloseableModal
-                                        anchorElementRef={
-                                            currentDesign ? designSelectButtonRef : designTabRef
-                                        }
-                                        openingElementRef={designSelectButtonRef}
-                                        onClickOutside={() => {
-                                            setDesignIdSelectorOpened(false);
-                                        }}
-                                        className={styles['tool-bar__design-id-selector-popup']}
-                                        margin={
-                                            currentDesign
-                                                ? DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED
-                                                : DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED
-                                        }>
-                                        <DesignSelectionContainer
-                                            onDesignIdChange={() =>
-                                                setDesignIdSelectorOpened(false)
-                                            }
-                                        />
-                                    </CloseableModal>
-                                )}
-                            </div>
-                        </PrivilegeRequired>
-                    </EnvRestricted>
+                    <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
+                        <div ref={designTabRef}>
+                            <TabHeader
+                                qaId={'design-mode-tab'}
+                                selected={layoutContextMode === 'DESIGN'}
+                                title={layoutContextTransferDisabledReason()}
+                                disabled={!!splittingState || !!linkingState}
+                                onClick={switchToDesign}>
+                                <span className={styles['tool-bar__tab-content']}>
+                                    {t(`enum.LayoutContextMode.DESIGN`)}
+                                    <span>{currentDesign && `:`}</span>
+                                    <div className={styles['tool-bar__design-tab-actions']}>
+                                        <Button
+                                            className={styles['tool-bar__design-select-button']}
+                                            title={currentDesign?.name}
+                                            variant={ButtonVariant.GHOST}
+                                            icon={Icons.Down}
+                                            iconPosition={ButtonIconPosition.END}
+                                            disabled={!!splittingState || !!linkingState}
+                                            inheritTypography={true}
+                                            ref={designSelectButtonRef}
+                                            onClick={() => {
+                                                switchToDesign();
+                                                setDesignIdSelectorOpened(!designIdSelectorOpened);
+                                            }}
+                                            qa-id={'workspace-selection-dropdown-toggle'}>
+                                            {currentDesign && (
+                                                <span className={styles['tool-bar__design-name']}>
+                                                    {currentDesign.name}
+                                                </span>
+                                            )}
+                                        </Button>
+                                        <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                                            {layoutContextMode === 'DESIGN' && currentDesign && (
+                                                <React.Fragment>
+                                                    <Button
+                                                        variant={ButtonVariant.GHOST}
+                                                        size={ButtonSize.SMALL}
+                                                        icon={Icons.Edit}
+                                                        onClick={() =>
+                                                            setShowEditWorkspaceDialog(true)
+                                                        }
+                                                        qa-id={'workspace-edit-button'}
+                                                    />
+                                                    <Button
+                                                        variant={ButtonVariant.GHOST}
+                                                        size={ButtonSize.SMALL}
+                                                        icon={Icons.Delete}
+                                                        onClick={() =>
+                                                            setShowDeleteWorkspaceDialog(true)
+                                                        }
+                                                        qa-id={'workspace-delete-button'}
+                                                    />
+                                                </React.Fragment>
+                                            )}
+                                        </PrivilegeRequired>
+                                    </div>
+                                </span>
+                            </TabHeader>
+                            {showDesignIdSelector && (
+                                <CloseableModal
+                                    anchorElementRef={
+                                        currentDesign ? designSelectButtonRef : designTabRef
+                                    }
+                                    openingElementRef={designSelectButtonRef}
+                                    onClickOutside={() => {
+                                        setDesignIdSelectorOpened(false);
+                                    }}
+                                    className={styles['tool-bar__design-id-selector-popup']}
+                                    margin={
+                                        currentDesign
+                                            ? DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED
+                                            : DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED
+                                    }>
+                                    <DesignSelectionContainer
+                                        onDesignIdChange={() => setDesignIdSelectorOpened(false)}
+                                    />
+                                </CloseableModal>
+                            )}
+                        </div>
+                    </PrivilegeRequired>
                 </span>
             </div>
             <div className={styles['tool-bar__right-section']}>
