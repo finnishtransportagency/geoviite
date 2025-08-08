@@ -1922,6 +1922,227 @@ constructor(
         }
     }
 
+    @Test
+    fun `relinkTrack does not relink unrelated tracks`() {
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
+        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
+        val switchToRelink =
+            switchDao.save(
+                switch(
+                    switchStructure.id,
+                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
+                )
+            )
+        val unrelatedSwitch =
+            switchDao.save(
+                switch(
+                    switchStructure.id,
+                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(40.0, 0.0), null)),
+                )
+            )
+
+        // layout: relinkingTrack is on y=0.0, goes from x=0.0 to 100.0, branches off to negative y at x=10.0
+        // unrelated track is on y=0.5, goes from x=0.0 to 100.0, branches off to positive y at x=40.0
+        val relinkingTrack =
+            locationTrackDao
+                .save(
+                    locationTrack(trackNumberId, name = "track to relink"),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                            endOuterSwitch = switchLinkYV(switchToRelink.id, 1),
+                        ),
+                        edge(
+                            listOf(segment(Point(10.0, 0.0), Point(40.0, 0.0))),
+                            startInnerSwitch = switchLinkYV(switchToRelink.id, 1),
+                            endInnerSwitch = switchLinkYV(switchToRelink.id, 2),
+                        ),
+                        edge(
+                            listOf(segment(Point(40.0, 0.0), Point(100.0, 0.0))),
+                            startOuterSwitch = switchLinkYV(switchToRelink.id, 2),
+                        ),
+                    ),
+                )
+                .id
+        val branchingTrack =
+            locationTrackDao
+                .save(
+                    locationTrack(trackNumberId, name = "branching track"),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(10.0, 0.0), Point(40.0, -2.0))),
+                            startInnerSwitch = switchLinkYV(switchToRelink.id, 1),
+                            endInnerSwitch = switchLinkYV(switchToRelink.id, 3),
+                        ),
+                        edge(
+                            listOf(segment(Point(40.0, -2.0), Point(100.0, -10.0))),
+                            startOuterSwitch = switchLinkYV(switchToRelink.id, 3),
+                        ),
+                    ),
+                )
+                .id
+
+        val unrelatedThroughTrack =
+            locationTrackDao
+                .save(
+                    locationTrack(trackNumberId, name = "unrelated track"),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.5), Point(40.0, 0.5))),
+                            endOuterSwitch = switchLinkYV(unrelatedSwitch.id, 1),
+                        ),
+                        edge(
+                            listOf(segment(Point(40.0, 0.5), Point(80.0, 0.5))),
+                            startInnerSwitch = switchLinkYV(unrelatedSwitch.id, 1),
+                            endInnerSwitch = switchLinkYV(unrelatedSwitch.id, 2),
+                        ),
+                        edge(
+                            listOf(segment(Point(80.0, 0.5), Point(100.0, 0.5))),
+                            startOuterSwitch = switchLinkYV(unrelatedSwitch.id, 2),
+                        ),
+                    ),
+                )
+                .id
+
+        val unrelatedBranchingTrack =
+            locationTrackDao
+                .save(
+                    locationTrack(trackNumberId, name = "unrelated branching track"),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(40.0, 0.5), Point(80.0, 2.5))),
+                            startInnerSwitch = switchLinkYV(unrelatedSwitch.id, 1),
+                            endInnerSwitch = switchLinkYV(unrelatedSwitch.id, 3),
+                        ),
+                        edge(
+                            listOf(segment(Point(80.0, 2.5), Point(100.0, 10.0))),
+                            startOuterSwitch = switchLinkYV(unrelatedSwitch.id, 3),
+                        ),
+                    ),
+                )
+                .id
+
+        assertEquals(mainOfficialContext.context, mainDraftContext.fetch(unrelatedBranchingTrack)?.layoutContext)
+        assertEquals(mainOfficialContext.context, mainDraftContext.fetch(unrelatedThroughTrack)?.layoutContext)
+
+        switchLinkingService.relinkTrack(LayoutBranch.main, relinkingTrack)
+
+        assertEquals(mainDraftContext.context, mainDraftContext.fetch(relinkingTrack)?.layoutContext)
+        assertEquals(mainDraftContext.context, mainDraftContext.fetch(branchingTrack)?.layoutContext)
+        assertEquals(mainOfficialContext.context, mainDraftContext.fetch(unrelatedBranchingTrack)?.layoutContext)
+        assertEquals(mainOfficialContext.context, mainDraftContext.fetch(unrelatedThroughTrack)?.layoutContext)
+    }
+
+    @Test
+    fun `relinkTrack connects track outward topologically`() {
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
+                .id
+        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
+        val startSwitch =
+            switchDao.save(
+                switch(
+                    switchStructure.id,
+                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(40.0, 0.0), null)),
+                )
+            )
+        val endSwitch =
+            switchDao.save(
+                switch(
+                    switchStructure.id,
+                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(80.0, 0.0), null)),
+                )
+            )
+
+        // layout: relinkingTrack is on y=0.0, goes from x=40.0 to 80.0
+        // beforeTrack and afterTrack are fully correctly linked, to startSwitch and endSwitch respectively
+        val relinkingTrack =
+            locationTrackDao.save(
+                locationTrack(trackNumberId, name = "relinking track"),
+                trackGeometryOfSegments(segment(Point(40.0, 0.0), Point(80.0, 0.0))),
+            )
+        locationTrackDao
+            .save(
+                locationTrack(trackNumberId, name = "start track"),
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                        endOuterSwitch = switchLinkYV(startSwitch.id, 2),
+                    ),
+                    edge(
+                        listOf(segment(Point(10.0, 0.0), Point(40.0, 0.0))),
+                        startInnerSwitch = switchLinkYV(startSwitch.id, 2),
+                        endInnerSwitch = switchLinkYV(startSwitch.id, 1),
+                    ),
+                ),
+            )
+            .id
+        locationTrackDao
+            .save(
+                locationTrack(trackNumberId, name = "start branching track"),
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(0.0, 2.0), Point(10.0, 2.0))),
+                        endOuterSwitch = switchLinkYV(startSwitch.id, 3),
+                    ),
+                    edge(
+                        listOf(segment(Point(10.0, 2.0), Point(40.0, 0.0))),
+                        startInnerSwitch = switchLinkYV(startSwitch.id, 3),
+                        endInnerSwitch = switchLinkYV(startSwitch.id, 1),
+                    ),
+                ),
+            )
+            .id
+        locationTrackDao
+            .save(
+                locationTrack(trackNumberId, name = "end track"),
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(80.0, 0.0), Point(120.0, 0.0))),
+                        startInnerSwitch = switchLinkYV(endSwitch.id, 1),
+                        endInnerSwitch = switchLinkYV(endSwitch.id, 2),
+                    ),
+                    edge(
+                        listOf(segment(Point(120.0, 0.0), Point(130.0, 0.0))),
+                        startOuterSwitch = switchLinkYV(endSwitch.id, 2),
+                    ),
+                ),
+            )
+            .id
+        locationTrackDao
+            .save(
+                locationTrack(trackNumberId, name = "end branching track"),
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(80.0, 0.0), Point(120.0, -2.0))),
+                        startInnerSwitch = switchLinkYV(endSwitch.id, 1),
+                        endInnerSwitch = switchLinkYV(endSwitch.id, 3),
+                    ),
+                    edge(
+                        listOf(segment(Point(120.0, -2.0), Point(130.0, -2.0))),
+                        startOuterSwitch = switchLinkYV(endSwitch.id, 3),
+                    ),
+                ),
+            )
+            .id
+
+        val relinkingTrackGeometryInitially =
+            locationTrackService.getWithGeometryOrThrow(mainDraftContext.context, relinkingTrack.id).second
+        assertEquals(null, relinkingTrackGeometryInitially.edges[0].startNode.switchOut)
+        assertEquals(null, relinkingTrackGeometryInitially.edges[0].endNode.switchOut)
+
+        switchLinkingService.relinkTrack(LayoutBranch.main, relinkingTrack.id)
+        val relinkingTrackGeometry =
+            locationTrackService.getWithGeometryOrThrow(mainDraftContext.context, relinkingTrack.id).second
+        assertEquals(1, relinkingTrackGeometry.edges.size)
+        assertEquals(switchLinkYV(startSwitch.id, 1), relinkingTrackGeometry.edges[0].startNode.switchOut)
+        assertEquals(switchLinkYV(endSwitch.id, 1), relinkingTrackGeometry.edges[0].endNode.switchOut)
+    }
+
     private fun createDraftLocationTrackFromLayoutSegments(
         layoutSegments: List<LayoutSegment>
     ): Pair<LocationTrack, LocationTrackGeometry> {
