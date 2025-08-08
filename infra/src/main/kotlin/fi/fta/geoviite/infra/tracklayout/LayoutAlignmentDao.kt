@@ -51,7 +51,6 @@ import fi.fta.geoviite.infra.util.getPoint3DMOrNull
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getSridOrNull
 import fi.fta.geoviite.infra.util.measureAndCollect
-import fi.fta.geoviite.infra.util.produceIf
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
 import fi.fta.geoviite.infra.util.setUser
@@ -629,67 +628,82 @@ class LayoutAlignmentDao(
         return deletedRowId
     }
 
-    fun getNodeConnectionsNear(context: LayoutContext, target: IPoint, distance: Double): List<NodeTrackConnections> =
-        getNodeConnectionsNear(context, MultiPoint(target), distance)
-
-    fun getNodeConnectionsNear(
+    fun getNodeConnectionsNearPoints(
         context: LayoutContext,
-        target: MultiPoint,
+        targets: List<MultiPoint>,
         distance: Double,
-    ): List<NodeTrackConnections> {
-        val sql =
-            """
-            with
-              target as (select postgis.st_setsrid(postgis.st_geomfromtext(:target_wkt), :srid) location)
+    ): List<List<NodeTrackConnections>> {
+        if (targets.isEmpty()) {
+            return listOf()
+        }
+
+        val sql = """
+            with target as materialized (
+              select
+                postgis.st_setsrid(postgis.st_geomfromtext(target_wkt), :srid) as location,
+                ordinality - 1 as ix
+                from unnest(array [:target_wkts]) with ordinality as t(target_wkt, ordinality)
+            ),
+              target_edge as materialized (
+                (
+                  select e.start_node_id as node_id, e.id as edge_id, target.ix
+                    from target
+                      join layout.edge e on postgis.st_dwithin(start_location, target.location, :distance)
+                )
+                union all
+                (
+                  select e.end_node_id as node_id, e.id as edge_id, target.ix
+                    from target
+                      join layout.edge e on postgis.st_dwithin(end_location, target.location, :distance)
+                )
+              )
             select
               lt.id,
               lt.layout_context_id,
               lt.version,
-              e.start_node_id,
-              e.end_node_id,
-              postgis.st_dwithin(start_location, target.location, :distance) as start_is_within,
-              postgis.st_dwithin(end_location, target.location, :distance) end_is_within
+              target_edge.node_id,
+              target_edge.ix
               from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
-                            inner join layout.location_track_version_edge ltve
+                inner join layout.location_track_version_edge ltve
                            on ltve.location_track_id = lt.id
                              and ltve.location_track_layout_context_id = lt.layout_context_id
                              and ltve.location_track_version = lt.version
-                inner join layout.edge e on ltve.edge_id = e.id
-                ,target
+                join target_edge using (edge_id)
               where lt.state != 'DELETED'
-                and (postgis.st_dwithin(start_location, target.location, :distance)
-                  or postgis.st_dwithin(end_location, target.location, :distance)
-                )
-        """
-                .trimIndent()
+        """.trimIndent()
+
         val params =
             mapOf(
-                "target_wkt" to target.toWkt(),
+                "target_wkts" to targets.map(MultiPoint::toWkt),
                 "publication_state" to context.state.name,
                 "design_id" to context.branch.designId?.intValue,
                 "distance" to distance,
                 "srid" to LAYOUT_SRID.code,
             )
-        val connections =
+        val connectionsByIndex =
             jdbcTemplate
                 .query(sql, params) { rs, _ ->
                     val trackVersion = rs.getLayoutRowVersion<LocationTrack>("id", "layout_context_id", "version")
-                    listOfNotNull(
-                        produceIf(rs.getBoolean("start_is_within")) {
-                            rs.getIntId<LayoutNode>("start_node_id") to trackVersion
-                        },
-                        produceIf(rs.getBoolean("end_is_within")) {
-                            rs.getIntId<LayoutNode>("end_node_id") to trackVersion
-                        },
-                    )
+                    val index = rs.getInt("ix")
+                    index to (rs.getIntId<LayoutNode>("node_id") to trackVersion)
                 }
-                .flatten()
                 .groupBy({ it.first }, { it.second })
-        val nodes = fetchNodes(connections.keys)
-        return connections
-            .map { (nodeId, entries) -> NodeTrackConnections(requireNotNull(nodes[nodeId]), entries.distinct()) }
-            .also { logger.daoAccess(AccessType.FETCH, NodeTrackConnections::class, it.map { c -> c.node.id }) }
+                .mapValues { (_, nodeConnections) -> nodeConnections.groupBy({ it.first }, { it.second }) }
+        val nodes = fetchNodes(connectionsByIndex.values.flatMap { it.keys }.toSet())
+        return targets.indices.map { ix ->
+            (connectionsByIndex[ix] ?: mapOf()).let { connections ->
+                connections.map { (nodeId, entries) ->
+                    NodeTrackConnections(requireNotNull(nodes[nodeId]), entries.toSet())
+                }
+            }
+        }
     }
+
+    fun getNodeConnectionsNear(
+        context: LayoutContext,
+        target: MultiPoint,
+        distance: Double,
+    ): List<NodeTrackConnections> = getNodeConnectionsNearPoints(context, listOf(target), distance).first()
 
     @Transactional
     fun deleteOrphanedAlignments(): List<IntId<LayoutAlignment>> {

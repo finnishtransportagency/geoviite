@@ -6,16 +6,12 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
-import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
-import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
-import fi.fta.geoviite.infra.tracklayout.TOPOLOGY_CALC_DISTANCE
 import fi.fta.geoviite.infra.tracklayout.toEdgeM
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import kotlin.math.absoluteValue
@@ -30,8 +26,7 @@ fun matchFittedSwitchToTracks(
     }
     val jointsOnEdges = mapFittedSwitchToEdges(fittedSwitch, clearedTracks)
     val adjustedJointsOnEdges = completeIncompleteJointSequences(fittedSwitch, jointsOnEdges, clearedTracks)
-    val extraTopologyLinks = findTopologyLinksToUnmatchedNearbyTracks(fittedSwitch, clearedTracks)
-    val bestLinks = pickBestLinkingByTrack(adjustedJointsOnEdges + extraTopologyLinks, jointsOnEdges)
+    val bestLinks = pickBestLinkingByTrack(adjustedJointsOnEdges, jointsOnEdges)
 
     val linkedTracks = suggestDelinking(clearedTracks) + suggestLinking(bestLinks, clearedTracks)
 
@@ -45,61 +40,9 @@ fun matchFittedSwitchToTracks(
             )
         },
         linkedTracks,
+        topologicallyLinkedTracks = setOf(),
     )
 }
-
-private fun findTopologyLinksToUnmatchedNearbyTracks(
-    fittedSwitch: FittedSwitch,
-    clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
-): Map<EdgeId, List<List<JointOnEdge>>> =
-    clearedTracks
-        .filterKeys { trackId ->
-            fittedSwitch.joints.none { joint -> joint.matches.any { match -> match.locationTrackId == trackId } }
-        }
-        .flatMap { (trackId, track) ->
-            val (_, geometry) = track
-            listOfNotNull(geometry.start?.let { 0 to it }, geometry.end?.let { geometry.edges.lastIndex to it })
-                .flatMap { (trackEndEdgeIndex, trackEndPoint) ->
-                    findTopologyLinksToTrackEnd(
-                        fittedSwitch,
-                        trackEndPoint,
-                        trackId,
-                        trackEndEdgeIndex,
-                        geometry.edgeMs[trackEndEdgeIndex].min,
-                    )
-                }
-        }
-        .associate { (trackId, joint) -> trackId to listOf(listOf(joint)) }
-
-private fun findTopologyLinksToTrackEnd(
-    fittedSwitch: FittedSwitch,
-    trackEndPoint: AlignmentPoint<LocationTrackM>,
-    trackId: IntId<LocationTrack>,
-    trackEndEdgeIndex: Int,
-    trackEndEdgeStartM: LineM<LocationTrackM>,
-): List<Pair<EdgeId, JointOnEdge>> =
-    fittedSwitch.joints.mapNotNull { fittedSwitchJoint ->
-        if (lineLength(fittedSwitchJoint.location, trackEndPoint) > TOPOLOGY_CALC_DISTANCE) null
-        else {
-            val edgeId = EdgeId(trackId, trackEndEdgeIndex)
-            val joint = asTopologyJointOnEdge(fittedSwitchJoint, fittedSwitch, trackEndPoint, trackEndEdgeStartM)
-            edgeId to joint
-        }
-    }
-
-private fun asTopologyJointOnEdge(
-    fittedSwitchJoint: FittedSwitchJoint,
-    fittedSwitch: FittedSwitch,
-    trackEndPoint: AlignmentPoint<LocationTrackM>,
-    trackEndEdgeStartM: LineM<LocationTrackM>,
-): JointOnEdge =
-    JointOnEdge(
-        fittedSwitchJoint.number,
-        SwitchJointRole.of(fittedSwitch.switchStructure, fittedSwitchJoint.number),
-        trackEndPoint.m.toEdgeM(trackEndEdgeStartM),
-        RelativeDirection.Along,
-        trackEndPoint.toPoint(),
-    )
 
 private fun pickBestLinkingByTrack(
     linking: Map<EdgeId, List<List<JointOnEdge>>>,
@@ -166,14 +109,11 @@ private fun completeIncompleteJointSequences(
             joints: List<JointOnEdge>,
         ) = validateJointSequence(fittedSwitch.switchStructure, structureAlignment, joints, edgeId, clearedTracks)
 
-        val sequenceAsValidTopologicalLink =
-            jointSequenceAsValidTopologyLink(fittedSwitch, edgeId, jointsFromSwitchFit, clearedTracks)
         val validStructureAlignmentsForSequence =
             structureAlignments.filter { structureAlignment ->
                 isValidInnerJointLinkSequence(structureAlignment, jointsFromSwitchFit)
             }
         listOfNotNull(
-                sequenceAsValidTopologicalLink?.let(::listOf)?.let(::listOf),
                 validStructureAlignmentsForSequence.map { validStructureAlignment ->
                     tossExtraJoints(validStructureAlignment, jointsFromSwitchFit)
                 },
@@ -193,34 +133,6 @@ private fun completeIncompleteJointSequences(
             .flatten()
     }
 }
-
-private fun jointSequenceAsValidTopologyLink(
-    fittedSwitch: FittedSwitch,
-    edgeId: EdgeId,
-    jointSequence: List<JointOnEdge>,
-    clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
-): JointOnEdge? =
-    if (jointSequence.size != 1 || jointSequence[0].jointRole == SwitchJointRole.MATH) {
-        null
-    } else {
-        val singleJoint = jointSequence[0]
-        val edge = getEdge(edgeId, clearedTracks)
-        val point = edge.getPointAtM(singleJoint.mOnEdge)
-        val switchJoint = fittedSwitch.joints.find { it.number == singleJoint.jointNumber }
-        if (
-            point != null &&
-                switchJoint != null &&
-                (singleJoint.mOnEdge.distance < TOPOLOGY_CALC_DISTANCE ||
-                    (edge.end.m.distance - singleJoint.mOnEdge.distance) < TOPOLOGY_CALC_DISTANCE) &&
-                lineLength(point, switchJoint.location) < TOPOLOGY_CALC_DISTANCE
-        ) {
-            val isStart = singleJoint.mOnEdge.distance < TOPOLOGY_CALC_DISTANCE
-            singleJoint.copy(
-                mOnEdge = if (isStart) LineM(0.0) else edge.end.m,
-                location = if (isStart) edge.start.toPoint() else edge.end.toPoint(),
-            )
-        } else null
-    }
 
 private fun validateJointSequence(
     switchStructure: SwitchStructure,
