@@ -26,7 +26,6 @@ import fi.fta.geoviite.infra.tracklayout.TopologyRecalculationRequest
 import fi.fta.geoviite.infra.tracklayout.asDraft
 import fi.fta.geoviite.infra.tracklayout.getTopologicallyLinkableJointLocations
 import fi.fta.geoviite.infra.util.processNonNulls
-import kotlin.Pair
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 
@@ -130,7 +129,6 @@ constructor(
                             TopologyRecalculationRequest(
                                 changedTracks,
                                 getTopologicallyLinkableJointLocations(changedTracks, switchId),
-                                switchId,
                             )
                         },
                     )

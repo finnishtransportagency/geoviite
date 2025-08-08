@@ -72,7 +72,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -1382,73 +1381,6 @@ constructor(
     }
 
     @Test
-    @Disabled // work out whether this unrealistic situation actually needs to be supported
-    fun `relinking moves mislinked topo link to correct switch despite confuser branching track, and does not pointlessly update alignments or tracks`() {
-        val trackNumberId =
-            mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
-                .id
-        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
-
-        val switch = switchDao.save(switch(switchStructure.id, joints = listOf()))
-        val someOtherSwitch = switchDao.save(switch(draft = false))
-
-        val throughTrackStart =
-            locationTrackService.saveDraft(
-                LayoutBranch.main,
-                locationTrack(trackNumberId, name = "through track start", draft = true),
-                trackGeometry(
-                    edge(
-                        segments = listOf(segment(Point(0.0, 0.0), Point(134.43, 0.0))),
-                        endOuterSwitch = SwitchLink(someOtherSwitch.id, SwitchJointRole.MAIN, JointNumber(1)),
-                    )
-                ),
-            )
-        locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(trackNumberId, name = "through track switch and end", draft = true),
-            trackGeometry(
-                edge(
-                    segments = listOf(segment(Point(134.43, 0.0), Point(200.0, 0.0))),
-                    startInnerSwitch = SwitchLink(switch.id, SwitchJointRole.MAIN, JointNumber(1)),
-                    endInnerSwitch = SwitchLink(switch.id, SwitchJointRole.CONNECTION, JointNumber(2)),
-                )
-            ),
-        )
-        // confuser branching track is misleadingly placed starting at the origin, while the switch
-        // is at x=134.43
-        locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(trackNumberId, name = "branching track", draft = true),
-            trackGeometry(
-                edge(
-                    segments = listOf(segment(Point(0.0, 0.0), Point(35.0, -2.0))),
-                    startInnerSwitch = SwitchLink(switch.id, SwitchJointRole.MAIN, JointNumber(1)),
-                    endInnerSwitch = SwitchLink(switch.id, SwitchJointRole.CONNECTION, JointNumber(3)),
-                )
-            ),
-        )
-        val uninvolvedTrack =
-            locationTrackService.saveDraft(
-                LayoutBranch.main,
-                locationTrack(trackNumberId, name = "uninvolved track", draft = true),
-                trackGeometryOfSegments(segment(Point(133.43, -1.0), Point(199.0, -1.0))),
-            )
-        val suggestedSwitch =
-            switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(134.43, 0.0), switch.id)!!
-        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestedSwitch, switch.id, geometrySwitchId = null)
-
-        assertTrackDraftVersionSwitchLinks(throughTrackStart.id, null, switch.id, listOf(0.0..134.4 to null))
-        val updatedThroughTrackStartGeometry =
-            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, throughTrackStart.id).second
-        assertEquals(null, updatedThroughTrackStartGeometry.edges[0].startNode.switchIn)
-        assertEquals(null, updatedThroughTrackStartGeometry.edges[0].startNode.switchOut)
-        assertEquals(null, updatedThroughTrackStartGeometry.edges[0].endNode.switchIn)
-        assertEquals(switchLinkYV(switch.id, 1), updatedThroughTrackStartGeometry.edges[0].endNode.switchOut)
-        assertEquals(uninvolvedTrack, locationTrackDao.fetchVersion(MainLayoutContext.draft, uninvolvedTrack.id))
-    }
-
-    @Test
     fun `relinking removes misplaced topological switch link`() {
         val trackNumberId =
             mainOfficialContext
@@ -2031,12 +1963,7 @@ constructor(
                     fittedSwitchTracks + switchContainingTracks,
                 )
                 .let { modifiedTracks ->
-                    locationTrackService.recalculateTopology(
-                        layoutContext,
-                        modifiedTracks,
-                        switchId,
-                        onlySwitchId = null,
-                    )
+                    locationTrackService.recalculateTopology(layoutContext, modifiedTracks, switchId)
                 }
 
         return linkedTracks

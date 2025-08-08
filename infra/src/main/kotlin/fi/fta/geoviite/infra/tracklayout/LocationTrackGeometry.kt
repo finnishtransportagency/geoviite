@@ -785,26 +785,15 @@ private fun verifyEdgeContent(edge: LayoutEdge) {
             "Edge end node must not be a a track start: $edge end(inner)=$innerBoundary"
         }
     }
-    // TODO: GVT-2926 We shouldn't have edges like this, but we do. What's up?
-    // We shouldn't really have edges between null and a joint, but due to old data, we do
-    //        require(
-    //            startNode.switchOut == null || endNode.switchIn == null || startNode.switchOut?.id
-    // ==
-    // endNode.switchIn?.id
-    //        ) {
-    //            "An edge that is switch internal geometry, can only be that for one switch:
-    // start=${startNode.switchOut} end=${endNode.switchIn}"
-    //        }
 }
 
 private fun verifySwitchNode(portA: SwitchLink, portB: SwitchLink?) {
     require(portA.id != portB?.id) {
         "A node cannot have two ports for the same switch (2 joints in one location): portA=$portA portB=$portB"
     }
-    //        require(portA.id != portB?.id || portA.jointNumber != portB.jointNumber) {
-    //    "Switch node cannot have two identical ports (they should be the same single port):
-    // portA=$portA portB=$portB"
-    // }
+    require(portA.id != portB?.id || portA.jointNumber != portB.jointNumber) {
+        "Switch node cannot have two identical ports (they should be the same single port): portA=$portA portB=$portB"
+    }
 }
 
 private fun verifyTrackBoundaryNode(portA: TrackBoundary, portB: TrackBoundary?) {
@@ -939,12 +928,31 @@ private fun reconnectNode(currentNodeConnection: NodeConnection, newNode: Layout
         currentNodeConnection.type == TRACK_BOUNDARY && newNode.type == SWITCH ->
             TmpNodeConnection(B, newNode).also { require(newNode.portB == null) }
 
+        // Normally, the inner port should already be defined and reconnecting should only produce a topology link
         newNode.portA == currentNodeConnection.innerPort -> TmpNodeConnection(A, newNode)
         newNode.portB == currentNodeConnection.innerPort -> TmpNodeConnection(B, newNode)
-        // The connection port doesn't exist on the new node -> cannot reconnect
-        // If the outer ports match, we could connect to outer.reversed, but that would be wrong:
-        // one side of the edge would be inner-switch while the other side is not
-        else -> error("Unable to replace edge node: current=$currentNodeConnection new=$newNode")
+
+        // However, in partial linking situations (new track connecting to existing switch-combination), the
+        // intermediate state requires connecting to a combination node based on the outer port and replacing the inner
+        // one. This can create an edge with conflicting inner ports (the opposite side is not the same switch), but
+        // it should be corrected when the second switch is linked to the track. Publication validation must ensure
+        // that the broken state does not go into official layout.
+
+        // For such a connection, we need to have an outer port to correctly resolve the orientation
+        currentNodeConnection.outerPort == null ->
+            error(
+                "Unable to replace inner node since there is no outer port to resolve the connection with: " +
+                    "current=$currentNodeConnection new=$newNode"
+            )
+        newNode.portA == currentNodeConnection.outerPort -> TmpNodeConnection(B, newNode)
+        newNode.portB == currentNodeConnection.outerPort -> TmpNodeConnection(A, newNode)
+
+        // Insufficient information to orient the new node
+        else ->
+            error(
+                "Unable to replace edge node since it doesn't seem related to the current one: " +
+                    "current=$currentNodeConnection new=$newNode"
+            )
     }
 
 fun replaceEdges(
