@@ -2169,6 +2169,7 @@
         "vertical-geometry-list-plan-csv": "Pystygeometria {{planFileName}}.csv",
         "vertical-geometry-list-entire-track-network": "Pystygeometria (koko rataverkko) {{date}}.csv",
         "publication-log": "Julkaisuloki {{dateRange}}.csv",
+        "publication-log-for-object": "Julkaisuloki {{objectName}} {{dateRange}}.csv",
         "split-details": "Raiteen jakaminen {{locationTrackName}}.csv",
         "geometries-folder": "Geometriat",
         "geometry-plans-summary-csv": "Yhteenveto {{date}} {{applicability}} {{alignmentName}}.csv",
