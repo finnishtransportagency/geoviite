@@ -593,18 +593,19 @@ fun splitLocationTrack(
                                         edges,
                                         // Partial duplicate edges after the split end position
                                         d.geometry.edges.subList(
-                                            replacedEdgeIndexRange.endInclusive + 1,
+                                            replacedEdgeIndexRange.endInclusive,
                                             d.geometry.edges.size,
                                         ),
                                     )
                                     .flatten()
+                                    .distinct()
 
                             val testNewGeom = TmpLocationTrackGeometry.of(newEdges, d.track.id as? IntId)
 
                             updateSplitTargetForTransferAssets(
                                 duplicateTrack = d.track,
                                 topologicalConnectivityType = connectivityType,
-                            ) to testNewGeom // TODO Tässä yhteydessä geometrian pitäisi olla
+                            ) to testNewGeom
                         }
 
                         SplitTargetDuplicateOperation.OVERWRITE ->
