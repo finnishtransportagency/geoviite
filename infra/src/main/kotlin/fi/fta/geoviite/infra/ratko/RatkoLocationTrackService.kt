@@ -17,7 +17,9 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
+import fi.fta.geoviite.infra.publication.SwitchChanges
 import fi.fta.geoviite.infra.ratko.model.PushableLayoutBranch
 import fi.fta.geoviite.infra.ratko.model.PushableMainBranch
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
@@ -34,6 +36,7 @@ import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegmentMetadata
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -58,6 +61,7 @@ constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val geocodingService: GeocodingService,
+    private val publicationDao: PublicationDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -73,6 +77,8 @@ constructor(
 
         val asd = // TODO
             splits.map { (split, existingRatkoLocationTrack) ->
+                val publishedSwitches =
+                    split.publicationId.let(::requireNotNull).let(publicationDao::fetchPublicationSwitchChanges)
 
                 // TODO Doesn't seem like the correct place
                 val (sourceTrack, sourceTrackGeometry) =
@@ -108,7 +114,7 @@ constructor(
                     when (splitTarget.operation) {
                         SplitTargetOperation.CREATE,
                         SplitTargetOperation.OVERWRITE,
-                        SplitTargetOperation.TRANSFER -> { // TODO Transfer has missing functionality for now
+                        SplitTargetOperation.TRANSFER -> { // TODO Looks like this needs some cleanup
 
                             val startAndEnd =
                                 getSplitTargetTrackStartAndEndAddresses(
@@ -151,16 +157,48 @@ constructor(
                                 if (splitTarget.operation == SplitTargetOperation.TRANSFER) {
                                     logger.info("Transferring ${splitTarget.locationTrackId}") // TODO Remove
 
-                                    updateLocationTrack(
-                                        layoutContext.branch,
+                                    val locationTrack =
                                         locationTrackDao
                                             .get(layoutContext, splitTarget.locationTrackId)
-                                            .let(::requireNotNull),
+                                            .let(::requireNotNull)
+
+                                    val trackKmsToUpdate =
+                                        inferTrackKmsFromSwitches(
+                                            layoutContext,
+                                            split,
+                                            splitTarget.locationTrackId,
+                                            publishedSwitches,
+                                        )
+
+                                    logger.info(
+                                        "Updating geometry for transfer target track=${splitTarget.locationTrackId}, kmNumbers=$trackKmsToUpdate"
+                                    )
+
+                                    // Due to a possibly mismatching geometry between Geoviite & Ratko, the track
+                                    // kilometers containing relinked switches are updated for a transfer target track.
+                                    // If this is not done, the integration may fail further in the chain due to a
+                                    // missing joint point in Ratko.
+                                    updateLocationTrack(
+                                        layoutContext.branch,
+                                        locationTrack,
                                         externalLocationTrackId,
                                         existingRatkoLocationTrack,
-                                        allKmNumbers, // TODO This is most probably not correct. How should these be
-                                        // defined though?
+                                        trackKmsToUpdate,
                                         publicationTime,
+                                    )
+
+                                    updateLocationTrack(
+                                        layoutContext.branch,
+                                        locationTrack,
+                                        externalLocationTrackId,
+                                        existingRatkoLocationTrack,
+                                        allKmNumbers, // TODO Unused when using referenced geometry (below)
+                                        publicationTime,
+                                        locationTrackOidOfGeometry =
+                                            MainBranchRatkoExternalId(
+                                                oidMapping[split.sourceLocationTrackId]?.oid.let(::requireNotNull)
+                                            ),
+                                        splitStartAndEnd = startAndEnd,
                                     )
                                 } else {
                                     updateLocationTrack(
@@ -197,6 +235,29 @@ constructor(
             }
 
         return emptyList() // TODO
+    }
+
+    private fun inferTrackKmsFromSwitches( // TODO Rename
+        layoutContext: LayoutContext,
+        split: Split,
+        locationTrackId: IntId<LocationTrack>,
+        publishedSwitchChanges: Map<IntId<LayoutSwitch>, SwitchChanges>,
+    ): Set<KmNumber> {
+        val locationTrackSwitches =
+            locationTrackService.getSwitchesForLocationTrack(layoutContext, locationTrackId).toSet()
+
+        val switchesToUpdate =
+            split.relinkedSwitches.filter { relinkedSwitch -> relinkedSwitch in locationTrackSwitches }
+
+        return switchesToUpdate
+            .flatMap { switchId ->
+                publishedSwitchChanges
+                    .getValue(switchId)
+                    .joints
+                    .map { joint -> joint.address }
+                    .map { address -> address.kmNumber }
+            }
+            .toSet()
     }
 
     private fun updateEntireLocationTrack(
