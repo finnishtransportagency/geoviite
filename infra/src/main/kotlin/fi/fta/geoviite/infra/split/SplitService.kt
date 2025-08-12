@@ -593,7 +593,7 @@ fun splitLocationTrack(
                                         edges,
                                         // Partial duplicate edges after the split end position
                                         d.geometry.edges.subList(
-                                            replacedEdgeIndexRange.endInclusive,
+                                            replacedEdgeIndexRange.endInclusive + 1,
                                             d.geometry.edges.size,
                                         ),
                                     )

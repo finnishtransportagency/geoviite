@@ -155,7 +155,9 @@ constructor(
 
                                 // TODO Reduce indentation by figuring out operations to do first
                                 if (splitTarget.operation == SplitTargetOperation.TRANSFER) {
-                                    logger.info("Transferring ${splitTarget.locationTrackId}") // TODO Remove
+                                    logger.info(
+                                        "Transferring partial duplicate=${splitTarget.locationTrackId}"
+                                    ) // TODO Remove
 
                                     val locationTrack =
                                         locationTrackDao
