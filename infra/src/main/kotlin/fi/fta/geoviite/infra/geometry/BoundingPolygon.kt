@@ -23,16 +23,10 @@ fun getBoundingPolygonPointsFromAlignments(
 
 private fun tryCreateBoundingPolygon(anglePoints: List<IPoint>, transformation: Transformation): Polygon? =
     try {
-        createBoundingPolygonPoints(anglePoints, transformation)
-            ?.takeIf { p -> p.size >= MIN_POLYGON_POINTS }
+        boundingPolygonPointsByConvexHull(anglePoints, transformation.sourceSrid)
+            .map(transformation::transform)
+            .takeIf { p -> p.size >= MIN_POLYGON_POINTS }
             ?.let(::Polygon)
-    } catch (e: Exception) {
-        null
-    }
-
-private fun createBoundingPolygonPoints(points: List<IPoint>, transformation: Transformation): List<Point>? =
-    try {
-        boundingPolygonPointsByConvexHull(points, transformation.sourceSrid).map(transformation::transform)
     } catch (e: Exception) {
         null
     }
