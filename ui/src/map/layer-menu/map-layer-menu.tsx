@@ -16,7 +16,7 @@ import {
     layersToHideByProxy,
     layersToShowByProxy,
 } from 'map/map-store';
-import { VIEW_GEOMETRY } from 'user/user-model';
+import { VIEW_GEOMETRY, VIEW_LAYOUT_DRAFT } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 
@@ -182,12 +182,14 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
                         />
                     </PrivilegeRequired>
                     <EnvRestricted restrictTo="dev">
-                        <MapLayerGroup
-                            title={t('map-layer-menu.debug-title')}
-                            menuItemVisibilities={mapLayerMenuGroups.debug}
-                            onMenuChange={onMenuChange}
-                            mapLayerVisibilities={visibleLayers}
-                        />
+                        <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
+                            <MapLayerGroup
+                                title={t('map-layer-menu.debug-title')}
+                                menuItemVisibilities={mapLayerMenuGroups.debug}
+                                onMenuChange={onMenuChange}
+                                mapLayerVisibilities={visibleLayers}
+                            />
+                        </PrivilegeRequired>
                     </EnvRestricted>
                 </CloseableModal>
             )}
