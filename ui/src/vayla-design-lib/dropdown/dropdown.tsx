@@ -313,6 +313,7 @@ export const Dropdown = function <TItemValue>({
 
     function handleInputKeyUp(e: React.KeyboardEvent<HTMLInputElement>) {
         switch (e.code) {
+            case 'Delete':
             case 'Backspace': {
                 if (isEmpty(valueShownInInput) && props.canUnselect) {
                     select(undefined);
