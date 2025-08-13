@@ -240,6 +240,9 @@ export const Dropdown = function <TItemValue>({
             searchFor(value);
             setOptionFocusIndex(0);
         }
+        if (value === '' && props.canUnselect) {
+            select(undefined);
+        }
     }
 
     function getItemClassName(item: Item<TItemValue> | undefined, index: number) {
@@ -307,18 +310,6 @@ export const Dropdown = function <TItemValue>({
                     }
                     break;
                 }
-            }
-        }
-    }
-
-    function handleInputKeyUp(e: React.KeyboardEvent<HTMLInputElement>) {
-        switch (e.code) {
-            case 'Delete':
-            case 'Backspace': {
-                if (isEmpty(valueShownInInput) && props.canUnselect) {
-                    select(undefined);
-                }
-                break;
             }
         }
     }
@@ -474,7 +465,6 @@ export const Dropdown = function <TItemValue>({
                         onBlur={handleInputBlur}
                         onKeyPress={handleInputKeyPress}
                         onKeyDown={handleInputKeyDown}
-                        onKeyUp={handleInputKeyUp}
                         disabled={props.disabled}
                         value={valueShownInInput}
                         onChange={(e) => handleInputChange(e.target.value)}
