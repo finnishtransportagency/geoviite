@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -35,7 +36,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1129,6 +1129,23 @@ constructor(
             assertEquals(LocationTrackNamingScheme.CHORD, structure.scheme)
             assertEquals(AlignmentName("ABC V001-V003"), name)
         }
+    }
+
+    @Test
+    fun `idMatches finds tracks even if ids or oids need trimming`() {
+        val track1 = createPublishedLocationTrack(1)
+        val track2 = createPublishedLocationTrack(2)
+        val track2oid = externalIdForLocationTrack()
+        locationTrackService.insertExternalId(LayoutBranch.main, track2.track.id as IntId, track2oid)
+
+        val intIdTerm = FreeText(" ${track1.track.id} ")
+        val intIdMatchFunction = locationTrackService.idMatches(MainLayoutContext.official, intIdTerm, null)
+
+        val oidTerm = FreeText(" $track2oid ")
+        val oidMatchFunction = locationTrackService.idMatches(MainLayoutContext.official, oidTerm, null)
+
+        assertTrue(intIdMatchFunction(intIdTerm.toString(), track1.track))
+        assertTrue(oidMatchFunction(oidTerm.toString(), track2.track))
     }
 
     private fun updateDraft(
