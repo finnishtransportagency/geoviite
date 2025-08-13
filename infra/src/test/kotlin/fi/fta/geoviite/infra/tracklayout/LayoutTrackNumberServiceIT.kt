@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -17,6 +16,9 @@ import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
+import fi.fta.geoviite.infra.util.FreeText
+import java.math.BigDecimal
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -28,8 +30,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.math.BigDecimal
-import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -524,6 +524,23 @@ constructor(
         assertNull(getPolygon(KmNumber(5), null))
         assertNull(getPolygon(KmNumber(0), KmNumber(0)))
         assertNull(getPolygon(KmNumber(5), KmNumber(5)))
+    }
+
+    @Test
+    fun `idMatches finds track numbers even if ids or oids need trimming`() {
+        val tn1 = mainOfficialContext.save(trackNumber(TrackNumber("001"))).let { mainOfficialContext.fetch(it.id) }!!
+        val tn2 = mainOfficialContext.save(trackNumber(TrackNumber("002"))).let { mainOfficialContext.fetch(it.id) }!!
+        val track2oid = externalIdForTrackNumber()
+        trackNumberService.insertExternalId(LayoutBranch.main, tn2.id as IntId, track2oid)
+
+        val intIdTerm = FreeText(" ${tn1.id} ")
+        val intIdMatchFunction = trackNumberService.idMatches(MainLayoutContext.official, intIdTerm, null)
+
+        val oidTerm = FreeText(" $track2oid ")
+        val oidMatchFunction = trackNumberService.idMatches(MainLayoutContext.official, oidTerm, null)
+
+        assertTrue(intIdMatchFunction(intIdTerm.toString(), tn1))
+        assertTrue(oidMatchFunction(oidTerm.toString(), tn2))
     }
 
     private fun assertVersionReferences(

@@ -711,13 +711,13 @@ fun toSegmentPoints(points: List<IPoint3DM<SegmentM>>) =
         )
     }
 
-fun <M: AlignmentM<M>> toAlignmentPoints(vararg points: IPoint) = toAlignmentPoints(to3DMPoints<M>(points.asList()))
+fun <M : AlignmentM<M>> toAlignmentPoints(vararg points: IPoint) = toAlignmentPoints(to3DMPoints<M>(points.asList()))
 
-fun <M: AlignmentM<M>>  toAlignmentPoints(vararg points: Point3DZ) = toAlignmentPoints(to3DMPoints<M>(points.asList()))
+fun <M : AlignmentM<M>> toAlignmentPoints(vararg points: Point3DZ) = toAlignmentPoints(to3DMPoints<M>(points.asList()))
 
-fun <M: AlignmentM<M>> toAlignmentPoints(vararg points: IPoint3DM<M>) = toAlignmentPoints(points.asList())
+fun <M : AlignmentM<M>> toAlignmentPoints(vararg points: IPoint3DM<M>) = toAlignmentPoints(points.asList())
 
-fun <M: AlignmentM<M>> toAlignmentPoints(points: List<IPoint3DM<M>>) =
+fun <M : AlignmentM<M>> toAlignmentPoints(points: List<IPoint3DM<M>>) =
     points.map { point ->
         AlignmentPoint(
             point.x,
@@ -732,7 +732,7 @@ fun <M: AlignmentM<M>> toAlignmentPoints(points: List<IPoint3DM<M>>) =
         )
     }
 
-fun  <M: AnyM<M>> to3DMPoints(points: List<IPoint>, start: Double = 0.0): List<IPoint3DM<M>> {
+fun <M : AnyM<M>> to3DMPoints(points: List<IPoint>, start: Double = 0.0): List<IPoint3DM<M>> {
     val pointsWithDistance =
         points.mapIndexed { index, point ->
             val distance = points.getOrNull(index - 1)?.let { prev -> lineLength(prev, point) } ?: 0.0
@@ -910,7 +910,8 @@ fun kmPost(
 
 fun segmentPoint(x: Double, y: Double, m: Double = 1.0) = SegmentPoint(x, y, null, LineM(m), null)
 
-fun <M: AlignmentM<M>> alignmentPoint(x: Double, y: Double, m: Double = 1.0) = AlignmentPoint(x, y, null, LineM<M>(m), null)
+fun <M : AlignmentM<M>> alignmentPoint(x: Double, y: Double, m: Double = 1.0) =
+    AlignmentPoint(x, y, null, LineM<M>(m), null)
 
 fun locationTrackPoint(x: Double, y: Double, m: Double) = AlignmentPoint(x, y, null, LineM<LocationTrackM>(m), null)
 
@@ -923,7 +924,7 @@ fun rawPoints(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double
         )
     )
 
-fun <M: AlignmentM<M>> points(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
+fun <M : AlignmentM<M>> points(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
     toAlignmentPoints(
         to3DMPoints<M>(
             (1..count).map { pointNumber ->
@@ -968,6 +969,15 @@ fun externalIdForLocationTrack(): Oid<LocationTrack> {
 }
 
 fun externalIdForTrackNumber(): Oid<LayoutTrackNumber> {
+    val first = nextInt(100, 999)
+    val second = nextInt(100, 999)
+    val third = nextInt(100, 999)
+    val fourth = nextInt(100, 999)
+
+    return Oid("$first.$second.$third.$fourth")
+}
+
+fun externalIdForSwitch(): Oid<LayoutSwitch> {
     val first = nextInt(100, 999)
     val second = nextInt(100, 999)
     val third = nextInt(100, 999)
@@ -1024,7 +1034,12 @@ fun switchLinkingAtHalf(
         jointNumber,
     )
 
-fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int, m: LineM<LocationTrackM>, jointNumber: Int) =
+fun switchLinkingAt(
+    locationTrackId: DomainId<LocationTrack>,
+    segmentIndex: Int,
+    m: LineM<LocationTrackM>,
+    jointNumber: Int,
+) =
     FittedSwitchJointMatch(
         locationTrackId = locationTrackId as IntId<LocationTrack>,
         segmentIndex = segmentIndex,

@@ -159,7 +159,7 @@ class ExternalIdDao<T : LayoutAsset<T>>(
             where external_id = any(array[:external_ids])
       """
 
-        val params = mapOf("external_ids" to oids.map { oid -> oid.toString() })
+        val params = mapOf("external_ids" to oids)
 
         return jdbcTemplate
             .query(sql, params) { rs, _ ->

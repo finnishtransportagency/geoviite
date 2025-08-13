@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
+import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -513,6 +514,23 @@ constructor(
                 .trackSwitchLinks
                 .map { l -> l.link },
         )
+    }
+
+    @Test
+    fun `idMatches finds switches even if ids or oids need trimming`() {
+        val switch1 = mainOfficialContext.save(switch()).let { mainOfficialContext.fetch(it.id) }!!
+        val switch2 = mainOfficialContext.save(switch()).let { mainOfficialContext.fetch(it.id) }!!
+        val switch2oid = externalIdForSwitch()
+        switchService.insertExternalIdForSwitch(LayoutBranch.main, switch2.id as IntId, switch2oid)
+
+        val intIdTerm = FreeText(" ${switch1.id} ")
+        val intIdMatchFunction = switchService.idMatches(MainLayoutContext.official, intIdTerm, null)
+
+        val oidTerm = FreeText(" $switch2oid ")
+        val oidMatchFunction = switchService.idMatches(MainLayoutContext.official, oidTerm, null)
+
+        assertTrue(intIdMatchFunction(intIdTerm.toString(), switch1))
+        assertTrue(oidMatchFunction(oidTerm.toString(), switch2))
     }
 
     private fun insertDraft(

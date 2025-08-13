@@ -31,7 +31,7 @@ class ExternalIdDaoIT @Autowired constructor(private val trackNumberDao: LayoutT
     }
 
     @Test
-    fun `Single external id can be found`() {
+    fun `External ids can be found one-by-one`() {
         val testOids =
             listOf<Oid<LayoutTrackNumber>>(someOid(), someOid()).map { oid ->
                 mainOfficialContext.createLayoutTrackNumberWithOid(oid).let { rowVersion ->
