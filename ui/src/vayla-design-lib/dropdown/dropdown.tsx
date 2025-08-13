@@ -221,12 +221,16 @@ export const Dropdown = function <TItemValue>({
         setHasFocus(true);
     }
 
-    function handleInputBlur() {
+    function handleInputBlur(event: React.FocusEvent<HTMLInputElement>) {
         if (isMouseDown) {
             // Input blur may happen because a mouse down event in a header or a dropdown list,
             // in this case we don't want to lose focus
             focusInput();
         } else {
+            if (event.target.value.trim() === '' && props.canUnselect) {
+                select(undefined);
+            }
+
             setHasFocus(false);
             setOpen(false);
             setSearchTermCommitted(false);
@@ -291,6 +295,7 @@ export const Dropdown = function <TItemValue>({
                             select(item?.value || undefined);
                         }
                     }
+                    break;
                 }
             }
         } else {
@@ -304,6 +309,7 @@ export const Dropdown = function <TItemValue>({
                     if (isEmpty(valueShownInInput)) {
                         select(undefined);
                     }
+                    break;
                 }
             }
         }
