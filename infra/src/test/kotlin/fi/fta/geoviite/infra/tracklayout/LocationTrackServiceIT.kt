@@ -873,18 +873,18 @@ constructor(
             )
 
         mainOfficialContext.saveAndFetch(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(1), roughLayoutLocation = Point(0.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(1), gkLocation = kmPostGkLocation(0.0, 0.0))
         )
         val kmPost2 =
             mainOfficialContext.saveAndFetch(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(1000.0, 0.0))
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(2), gkLocation = kmPostGkLocation(1000.0, 0.0))
             )
         val kmPost3 =
             mainOfficialContext.saveAndFetch(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(2000.0, 0.0))
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(3), gkLocation = kmPostGkLocation(2000.0, 0.0))
             )
         mainOfficialContext.saveAndFetch(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(3000.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), gkLocation = kmPostGkLocation(3000.0, 0.0))
         )
 
         val polygon =
@@ -929,13 +929,13 @@ constructor(
             )
 
         mainOfficialContext.save(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(2000.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(2), gkLocation = kmPostGkLocation(2000.0, 0.0))
         )
         mainOfficialContext.save(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(3000.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(3), gkLocation = kmPostGkLocation(3000.0, 0.0))
         )
         mainOfficialContext.save(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(4000.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), gkLocation = kmPostGkLocation(4000.0, 0.0))
         )
 
         fun getPolygon(startKm: KmNumber?, endKm: KmNumber?) =

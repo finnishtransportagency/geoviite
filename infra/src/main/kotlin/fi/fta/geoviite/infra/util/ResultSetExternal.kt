@@ -380,20 +380,35 @@ fun ResultSet.getPVId(name: String): PVId = verifyNotNull(name, ::getPVIdOrNull)
 
 fun ResultSet.getPVIdOrNull(name: String): PVId? = getString(name)?.let(::PVId)
 
-fun <T> ResultSet.getChange(name: String, getter: (name: String) -> T?): Change<T> =
+fun <T> ResultSet.getChange(name: String, nullableGetter: (name: String) -> T?): Change<T> =
+    Change(
+        nullableGetter("old_$name"),
+        requireNotNull(nullableGetter(name)) { "Change new value was null: column=$name" },
+    )
+
+fun <T> ResultSet.getNullableChange(name: String, getter: (name: String) -> T?): Change<T?> =
     Change(getter("old_$name"), getter(name))
 
-fun ResultSet.getChangePoint(nameX: String, nameY: String) =
+fun ResultSet.getChangePoint(nameX: String, nameY: String): Change<Point> =
+    Change(getPointOrNull("old_$nameX", "old_$nameY"), getPoint(nameX, nameY))
+
+fun ResultSet.getNullableChangePoint(nameX: String, nameY: String) =
     Change(getPointOrNull("old_$nameX", "old_$nameY"), getPointOrNull(nameX, nameY))
 
-fun ResultSet.getChangeGeometryPoint(nameX: String, nameY: String, sridName: String) =
+fun ResultSet.getChangeGeometryPoint(nameX: String, nameY: String, sridName: String): Change<GeometryPoint> =
+    Change(
+        getGeometryPointOrNull("old_$nameX", "old_$nameY", "old_$sridName"),
+        getGeometryPoint(nameX, nameY, sridName),
+    )
+
+fun ResultSet.getNullableChangeGeometryPoint(nameX: String, nameY: String, sridName: String) =
     Change(
         getGeometryPointOrNull("old_$nameX", "old_$nameY", "old_$sridName"),
         getGeometryPointOrNull(nameX, nameY, sridName),
     )
 
 fun <T> ResultSet.getChangeRowVersion(idName: String, versionName: String): Change<RowVersion<T>> =
-    Change(getRowVersionOrNull("old_$idName", "old_$versionName"), getRowVersionOrNull(idName, versionName))
+    Change(getRowVersionOrNull("old_$idName", "old_$versionName"), getRowVersion(idName, versionName))
 
 fun ResultSet.getLayoutContext(contextIdName: String): LayoutContext =
     verifyNotNull(contextIdName, ::getLayoutContextOrNull)

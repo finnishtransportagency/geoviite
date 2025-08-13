@@ -58,6 +58,7 @@ import fi.fta.geoviite.infra.tracklayout.asDesignDraft
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
@@ -72,6 +73,9 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import fi.fta.geoviite.infra.util.LayoutAssetTable
+import fi.fta.geoviite.infra.util.getLayoutRowVersion
+import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -897,7 +901,7 @@ constructor(
         val referenceLine = designDraftContext.save(referenceLine(trackNumber, alignmentVersion = alignment)).id
         val someGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
         val locationTrack = designDraftContext.save(locationTrack(trackNumber), someGeometry).id
-        val kmPost = designDraftContext.save(kmPost(trackNumber, KmNumber(1), Point(1.0, 1.0))).id
+        val kmPost = designDraftContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(1.0, 1.0))).id
         val switch = designDraftContext.save(switch()).id
 
         publicationTestSupportService.publishAndVerify(
@@ -938,7 +942,7 @@ constructor(
         val referenceLine = testDraftContext.save(referenceLine(trackNumber, alignmentVersion = alignment)).id
         val someGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
         val locationTrack = testDraftContext.save(locationTrack(trackNumber), someGeometry).id
-        val kmPost = testDraftContext.save(kmPost(trackNumber, KmNumber(1), Point(1.0, 1.0))).id
+        val kmPost = testDraftContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(1.0, 1.0))).id
         val switch = testDraftContext.save(switch()).id
 
         publicationTestSupportService.publishAndVerify(
@@ -994,7 +998,7 @@ constructor(
         val referenceLine = mainOfficialContext.save(referenceLine(trackNumber, alignmentVersion = alignment)).id
         val someGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
         val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), someGeometry).id
-        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), Point(1.0, 1.0))).id
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(1.0, 1.0))).id
         val switch = mainOfficialContext.save(switch()).id
 
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
@@ -1066,7 +1070,7 @@ constructor(
         val referenceLine = mainOfficialContext.save(referenceLine(trackNumber, alignmentVersion = alignment)).id
         val someGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
         val locationTrack = mainOfficialContext.save(locationTrack(trackNumber), someGeometry).id
-        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), Point(1.0, 1.0))).id
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(1.0, 1.0))).id
         val switch = mainOfficialContext.save(switch()).id
 
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
@@ -1759,6 +1763,182 @@ constructor(
         )
         assertEquals(mainOfficialContext.context, mainDraftContext.fetch(switch.id)!!.layoutContext)
         assertEquals(mainOfficialContext.context, mainDraftContext.fetch(locationTrack.id)!!.layoutContext)
+    }
+
+    @Test
+    fun `Publication base versions are resolved correctly`() {
+        val tn = mainDraftContext.createLayoutTrackNumber()
+        val rl =
+            mainDraftContext.save(
+                referenceLine(trackNumberId = tn.id, startAddress = TrackMeter.ZERO),
+                alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+            )
+        val kmp = mainDraftContext.save(kmPost(tn.id, KmNumber(1), kmPostGkLocation(9.0, 9.0)))
+        val sw =
+            mainDraftContext.save(
+                switch(joints = listOf(switchJoint(1, Point(1.0, 1.0)), switchJoint(3, Point(5.0, 5.0))))
+            )
+        val lt =
+            mainDraftContext.save(
+                locationTrack(trackNumberId = tn.id),
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(1.0, 1.0), Point(5.0, 5.0))),
+                        startInnerSwitch = switchLinkYV(sw.id, 1),
+                        endInnerSwitch = switchLinkYV(sw.id, 3),
+                    )
+                ),
+            )
+        trackNumberDao.insertExternalId(tn.id, LayoutBranch.main, Oid("1.2.3.4.5"))
+        switchDao.insertExternalId(sw.id, LayoutBranch.main, Oid("1.2.3.4.6"))
+        locationTrackDao.insertExternalId(lt.id, LayoutBranch.main, Oid("1.2.3.4.6"))
+
+        val initialPublishResult =
+            publishManualPublication(
+                LayoutBranch.main,
+                trackNumbers = listOf(tn.id),
+                referenceLines = listOf(rl.id),
+                kmPosts = listOf(kmp.id),
+                switches = listOf(sw.id),
+                locationTracks = listOf(lt.id),
+            )
+        assertPublicationResults(null, initialPublishResult)
+
+        val mainUpdatedResult =
+            touchAsDraftAndPublish(
+                LayoutBranch.main,
+                listOf(tn.id),
+                listOf(rl.id),
+                listOf(kmp.id),
+                listOf(sw.id),
+                listOf(lt.id),
+            )
+        assertPublicationResults(initialPublishResult, mainUpdatedResult)
+
+        val designBranch = testDBService.createDesignBranch()
+        trackNumberDao.insertExternalId(tn.id, designBranch, Oid("1.2.3.4.7"))
+        switchDao.insertExternalId(sw.id, designBranch, Oid("1.2.3.4.8"))
+        locationTrackDao.insertExternalId(lt.id, designBranch, Oid("1.2.3.4.9"))
+        val designCreatedResult =
+            touchAsDraftAndPublish(
+                designBranch,
+                listOf(tn.id),
+                listOf(rl.id),
+                listOf(kmp.id),
+                listOf(sw.id),
+                listOf(lt.id),
+            )
+        assertPublicationResults(mainUpdatedResult, designCreatedResult)
+
+        val designUpdatedResult =
+            touchAsDraftAndPublish(
+                designBranch,
+                listOf(tn.id),
+                listOf(rl.id),
+                listOf(kmp.id),
+                listOf(sw.id),
+                listOf(lt.id),
+            )
+        assertPublicationResults(designCreatedResult, designUpdatedResult)
+    }
+
+    private fun touchAsDraftAndPublish(
+        branch: LayoutBranch,
+        trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
+        referenceLines: List<IntId<ReferenceLine>> = listOf(),
+        kmPosts: List<IntId<LayoutKmPost>> = listOf(),
+        switches: List<IntId<LayoutSwitch>> = listOf(),
+        locationTracks: List<IntId<LocationTrack>> = listOf(),
+    ): PublicationResult {
+        val ctx = testDBService.testContext(branch, DRAFT)
+        trackNumbers.forEach { id -> ctx.save(ctx.fetch(id)!!) }
+        referenceLines.forEach { id -> ctx.save(ctx.fetch(id)!!) }
+        kmPosts.forEach { id -> ctx.save(ctx.fetch(id)!!) }
+        switches.forEach { id -> ctx.save(ctx.fetch(id)!!) }
+        locationTracks.forEach { id -> ctx.save(ctx.fetch(id)!!) }
+        return publishManualPublication(
+            branch,
+            trackNumbers = trackNumbers,
+            referenceLines = referenceLines,
+            kmPosts = kmPosts,
+            switches = switches,
+            locationTracks = locationTracks,
+        )
+    }
+
+    private fun assertPublicationResults(basePublication: PublicationResult?, newPublication: PublicationResult) {
+        // Verify that the new versions are built upon base versions
+        assertBaseVersions(basePublication?.trackNumbers, newPublication.trackNumbers)
+        assertBaseVersions(basePublication?.referenceLines, newPublication.referenceLines)
+        assertBaseVersions(basePublication?.kmPosts, newPublication.kmPosts)
+        assertBaseVersions(basePublication?.switches, newPublication.switches)
+        assertBaseVersions(basePublication?.locationTracks, newPublication.locationTracks)
+        // Verify that the new versions are indeed the latest
+        assertNewVersions(newPublication.trackNumbers, trackNumberDao)
+        assertNewVersions(newPublication.referenceLines, referenceLineDao)
+        assertNewVersions(newPublication.kmPosts, kmPostDao)
+        assertNewVersions(newPublication.switches, switchDao)
+        assertNewVersions(newPublication.locationTracks, locationTrackDao)
+        // Verify that both match what is found in the publication tables in the database
+        assertEquals(
+            newPublication.trackNumbers.map { it.versionChange }.toSet(),
+            getChanges(newPublication.publicationId, LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER),
+        )
+        assertEquals(
+            newPublication.referenceLines.map { it.versionChange }.toSet(),
+            getChanges(newPublication.publicationId, LayoutAssetTable.LAYOUT_ASSET_REFERENCE_LINE),
+        )
+        assertEquals(
+            newPublication.kmPosts.map { it.versionChange }.toSet(),
+            getChanges(newPublication.publicationId, LayoutAssetTable.LAYOUT_ASSET_KM_POST),
+        )
+        assertEquals(
+            newPublication.switches.map { it.versionChange }.toSet(),
+            getChanges(newPublication.publicationId, LayoutAssetTable.LAYOUT_ASSET_SWITCH),
+        )
+        assertEquals(
+            newPublication.locationTracks.map { it.versionChange }.toSet(),
+            getChanges(newPublication.publicationId, LayoutAssetTable.LAYOUT_ASSET_LOCATION_TRACK),
+        )
+    }
+
+    private fun <T : LayoutAsset<T>> assertBaseVersions(
+        baseResult: List<PublicationResultVersions<T>>?,
+        newResult: List<PublicationResultVersions<T>>,
+    ) {
+        newResult.forEach { result ->
+            val prevPublished = baseResult?.find { b -> b.published.id == result.published.id }?.published
+            assertEquals(prevPublished, result.base)
+        }
+    }
+
+    private fun <T : LayoutAsset<T>> assertNewVersions(
+        newResult: List<PublicationResultVersions<T>>,
+        dao: LayoutAssetDao<T, *>,
+    ) {
+        newResult.forEach { result ->
+            assertEquals(dao.fetchVersion(result.published.context, result.published.id), result.published)
+        }
+    }
+
+    private fun <T : LayoutAsset<T>> getChanges(
+        id: IntId<Publication>,
+        table: LayoutAssetTable,
+    ): Set<Change<LayoutRowVersion<T>>> {
+        val sql =
+            """
+            select id, layout_context_id, version, base_layout_context_id, base_version
+            from publication.${table.dbTable.table}
+            where publication_id = :publication_id
+        """
+                .trimIndent()
+        return jdbc
+            .query(sql, mapOf("publication_id" to id.intValue)) { rs, _ ->
+                val baseVersion = rs.getLayoutRowVersionOrNull<T>("id", "base_layout_context_id", "base_version")
+                val newVersion = rs.getLayoutRowVersion<T>("id", "layout_context_id", "version")
+                Change(old = baseVersion, new = newVersion)
+            }
+            .toSet()
     }
 
     private fun publishManualPublication(

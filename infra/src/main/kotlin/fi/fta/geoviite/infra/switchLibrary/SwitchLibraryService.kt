@@ -17,6 +17,10 @@ class SwitchLibraryService(
         structures.associateBy { switchStructure -> switchStructure.id }
     }
 
+    fun getDefaultSwitchOwner(): SwitchOwner {
+        return requireNotNull(getSwitchOwner(IntId(1))) { "Default switch owner not found" }
+    }
+
     fun getSwitchStructures(): List<SwitchStructure> = structures
 
     fun getSwitchStructuresById(): Map<IntId<SwitchStructure>, SwitchStructure> = structuresById

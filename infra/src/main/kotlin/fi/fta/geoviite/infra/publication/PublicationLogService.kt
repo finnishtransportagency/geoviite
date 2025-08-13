@@ -42,12 +42,12 @@ import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
@@ -748,7 +748,7 @@ constructor(
             ),
             compareChangeValues(
                 changes.measurementMethod,
-                { it.name },
+                { it?.name },
                 PropKey("measurement-method"),
                 null,
                 "MeasurementMethod",
@@ -823,17 +823,14 @@ constructor(
                     previousComparisonTime,
                 )
         val publicationKmPostChanges =
-            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.KM_POST))
-                mapOf()
+            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.KM_POST)) mapOf()
             else publicationDao.fetchPublicationKmPostChanges(publication.id)
 
         val publicationReferenceLineChanges =
-            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.REFERENCE_LINE))
-                mapOf()
+            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.REFERENCE_LINE)) mapOf()
             else publicationDao.fetchPublicationReferenceLineChanges(publication.id)
         val publicationSwitchChanges =
-            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.SWITCH))
-                mapOf()
+            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.SWITCH)) mapOf()
             else publicationDao.fetchPublicationSwitchChanges(publication.id)
 
         val trackNumbers =

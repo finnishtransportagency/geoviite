@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -116,13 +115,13 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumber.id,
                         km = KmNumber(2),
-                        roughLayoutLocation = Point(1.0, 0.0),
+                        gkLocation = kmPostGkLocation(1.0, 0.0),
                         draft = false,
                     ),
                     kmPost(
                         trackNumberId = trackNumber.id,
                         km = KmNumber(3),
-                        roughLayoutLocation = Point(3.0, 0.0),
+                        gkLocation = kmPostGkLocation(3.0, 0.0),
                         draft = false,
                     ),
                 )
@@ -213,10 +212,10 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumber.id,
                         km = KmNumber(2),
-                        roughLayoutLocation = Point(1.0, 0.0),
+                        gkLocation = kmPostGkLocation(1.0, 0.0),
                         draft = false,
                     ),
-                    kmPost(trackNumberId = trackNumber.id, km = KmNumber(3), roughLayoutLocation = null, draft = false),
+                    kmPost(trackNumberId = trackNumber.id, km = KmNumber(3), gkLocation = null, draft = false),
                 )
                 .map(kmPostDao::save)
 
@@ -441,18 +440,18 @@ constructor(
                 .id
 
         mainOfficialContext.saveAndFetch(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(1), roughLayoutLocation = Point(0.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(1), gkLocation = kmPostGkLocation(0.0, 0.0))
         )
         val kmPost2 =
             mainOfficialContext.saveAndFetch(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(1000.0, 0.0))
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(2), gkLocation = kmPostGkLocation(1000.0, 0.0))
             )
         val kmPost3 =
             mainOfficialContext.saveAndFetch(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(2000.0, 0.0))
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(3), gkLocation = kmPostGkLocation(2000.0, 0.0))
             )
         mainOfficialContext.saveAndFetch(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(3000.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), gkLocation = kmPostGkLocation(3000.0, 0.0))
         )
 
         val polygon =
@@ -494,10 +493,18 @@ constructor(
                 )
                 .id
 
-        mainOfficialContext.save(kmPost(trackNumberId = id, km = KmNumber(1), roughLayoutLocation = Point(1000.0, 0.0)))
-        mainOfficialContext.save(kmPost(trackNumberId = id, km = KmNumber(2), roughLayoutLocation = Point(2000.0, 0.0)))
-        mainOfficialContext.save(kmPost(trackNumberId = id, km = KmNumber(3), roughLayoutLocation = Point(3000.0, 0.0)))
-        mainOfficialContext.save(kmPost(trackNumberId = id, km = KmNumber(4), roughLayoutLocation = Point(4000.0, 0.0)))
+        mainOfficialContext.save(
+            kmPost(trackNumberId = id, km = KmNumber(1), gkLocation = kmPostGkLocation(1000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = id, km = KmNumber(2), gkLocation = kmPostGkLocation(2000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = id, km = KmNumber(3), gkLocation = kmPostGkLocation(3000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = id, km = KmNumber(4), gkLocation = kmPostGkLocation(4000.0, 0.0))
+        )
 
         fun getPolygon(startKm: KmNumber?, endKm: KmNumber?) =
             trackNumberService.getReferenceLinePolygon(MainLayoutContext.official, id, startKm, endKm, 1.0)

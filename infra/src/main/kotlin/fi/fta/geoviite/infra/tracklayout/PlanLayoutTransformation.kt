@@ -31,6 +31,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
@@ -50,6 +51,7 @@ fun toTrackLayout(
     includeGeometryData: Boolean,
     planToGkTransformation: ToGkFinTransformation,
     getStructure: (IntId<SwitchStructure>) -> SwitchStructure,
+    ownerId: IntId<SwitchOwner>,
 ): GeometryPlanLayout {
     val switches =
         toLayoutSwitches(
@@ -57,6 +59,7 @@ fun toTrackLayout(
                 s.switchStructureId?.let(getStructure)?.let { structure -> s to structure }
             },
             planToLayout,
+            ownerId,
         )
 
     val alignments: List<PlanLayoutAlignment> =
@@ -113,7 +116,12 @@ fun toLayoutKmPosts(
     }
 }
 
-fun toLayoutSwitch(switch: GeometrySwitch, structure: SwitchStructure, toMapCoordinate: Transformation): LayoutSwitch =
+fun toLayoutSwitch(
+    switch: GeometrySwitch,
+    structure: SwitchStructure,
+    toMapCoordinate: Transformation,
+    ownerId: IntId<SwitchOwner>,
+): LayoutSwitch =
     LayoutSwitch(
         name = switch.name,
         switchStructureId = structure.id,
@@ -129,7 +137,7 @@ fun toLayoutSwitch(switch: GeometrySwitch, structure: SwitchStructure, toMapCoor
             },
         sourceId = switch.id,
         trapPoint = null,
-        ownerId = null,
+        ownerId = ownerId,
         source = GeometrySource.PLAN,
         contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
         draftOid = null,
@@ -138,9 +146,10 @@ fun toLayoutSwitch(switch: GeometrySwitch, structure: SwitchStructure, toMapCoor
 fun toLayoutSwitches(
     geometrySwitches: List<Pair<GeometrySwitch, SwitchStructure>>,
     planToLayout: Transformation,
+    ownerId: IntId<SwitchOwner>,
 ): Map<DomainId<GeometrySwitch>, LayoutSwitch> =
     geometrySwitches
-        .map { (switch, structure) -> toLayoutSwitch(switch, structure, planToLayout).let { switch.id to it } }
+        .map { (switch, structure) -> toLayoutSwitch(switch, structure, planToLayout, ownerId).let { switch.id to it } }
         .associate { it }
 
 fun toMapAlignments(

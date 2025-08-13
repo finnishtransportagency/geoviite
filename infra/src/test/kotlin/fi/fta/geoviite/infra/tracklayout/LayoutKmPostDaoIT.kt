@@ -37,17 +37,20 @@ class LayoutKmPostDaoIT @Autowired constructor(private val kmPostDao: LayoutKmPo
             kmPost(
                 trackNumberId = trackNumberId,
                 km = KmNumber(123),
-                gkLocation = GeometryPoint(25500000.0, 6675000.0, Srid(3879)),
+                gkLocation =
+                    kmPostGkLocation(
+                        GeometryPoint(25500000.0, 6675000.0, Srid(3879)),
+                        KmPostGkLocationSource.FROM_GEOMETRY,
+                        true,
+                    ),
                 state = IN_USE,
                 draft = false,
-                gkLocationConfirmed = true,
-                gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,
             )
         val post2 =
             kmPost(
                 trackNumberId = trackNumberId,
                 km = KmNumber(125),
-                gkLocation = GeometryPoint(25500005.0, 6675005.0, Srid(3879)),
+                gkLocation = kmPostGkLocation(GeometryPoint(25500005.0, 6675005.0, Srid(3879))),
                 state = NOT_IN_USE,
                 draft = false,
             )
@@ -111,7 +114,7 @@ class LayoutKmPostDaoIT @Autowired constructor(private val kmPostDao: LayoutKmPo
     @Test
     fun kmPostVersioningWorks() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val tempPost = kmPost(trackNumberId, KmNumber(1), roughLayoutLocation = null)
+        val tempPost = kmPost(trackNumberId, KmNumber(1), gkLocation = null)
         val insertVersion = mainOfficialContext.save(tempPost)
         val id = insertVersion.id
         val inserted = kmPostDao.fetch(insertVersion)
