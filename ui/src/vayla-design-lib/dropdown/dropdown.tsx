@@ -291,6 +291,7 @@ export const Dropdown = function <TItemValue>({
                             select(item?.value || undefined);
                         }
                     }
+                    break;
                 }
             }
         } else {
@@ -304,7 +305,19 @@ export const Dropdown = function <TItemValue>({
                     if (isEmpty(valueShownInInput)) {
                         select(undefined);
                     }
+                    break;
                 }
+            }
+        }
+    }
+
+    function handleInputKeyUp(e: React.KeyboardEvent<HTMLInputElement>) {
+        switch (e.code) {
+            case 'Backspace': {
+                if (isEmpty(valueShownInInput) && props.canUnselect) {
+                    select(undefined);
+                }
+                break;
             }
         }
     }
@@ -460,6 +473,7 @@ export const Dropdown = function <TItemValue>({
                         onBlur={handleInputBlur}
                         onKeyPress={handleInputKeyPress}
                         onKeyDown={handleInputKeyDown}
+                        onKeyUp={handleInputKeyUp}
                         disabled={props.disabled}
                         value={valueShownInInput}
                         onChange={(e) => handleInputChange(e.target.value)}
