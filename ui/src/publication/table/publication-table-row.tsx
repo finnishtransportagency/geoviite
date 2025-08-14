@@ -75,7 +75,7 @@ const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
 
     const rowClassNames = createClassName(
         'publication-table__row',
-        detailsVisible && styles['publication-table__row-details--borderless'],
+        detailsVisible && styles['publication-table__row--details-are-visible'],
     );
 
     const assetAsSearchItem = assetToSearchItem(asset);
@@ -130,9 +130,9 @@ const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
                 <td>{ratkoPushTime ? formatDateFull(ratkoPushTime) : t('no')}</td>
             </tr>
             {detailsVisible && (
-                <tr>
-                    <td className={styles['publication-table__row-details-left-bar-container']}>
-                        <span className={styles['publication-table__row-details-left-bar']}></span>
+                <tr className={styles['publication-table__details-row']}>
+                    <td className={styles['publication-table__details-left-bar-container']}>
+                        <span className={styles['publication-table__details-left-bar']}></span>
                     </td>
                     <td colSpan={8}>
                         <PublicationTableDetails id={id} changes={propChanges} />
