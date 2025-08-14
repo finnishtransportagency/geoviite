@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -577,10 +578,13 @@ data class KmPostPublicationCandidate(
 }
 
 data class SwitchLocationTrack(
-    val name: AlignmentName,
+    val id: IntId<LocationTrack>,
     val trackNumberId: IntId<LayoutTrackNumber>,
-    val oldVersion: LayoutRowVersion<LocationTrack>,
+    val name: AlignmentName,
+    val joints: List<PublicationSwitchJoint>,
 )
+
+data class PublicationSwitchJoint(val jointNumber: JointNumber, val location: Point, val isPresentationJoint: Boolean)
 
 data class Change<T>(val old: T?, val new: T) {
     companion object {
@@ -622,9 +626,7 @@ data class SwitchChanges(
     val type: Change<SwitchType>,
     val owner: Change<MetaDataName>,
     val measurementMethod: Change<MeasurementMethod?>,
-    val joints: List<PublicationDao.PublicationSwitchJoint>,
-    //    val tracks: Change<List<LayoutRowVersion<LocationTrack>>>,
-    val locationTracks: List<SwitchLocationTrack>,
+    val trackConnections: Change<List<SwitchLocationTrack>>,
 )
 
 data class ReferenceLineChanges(
