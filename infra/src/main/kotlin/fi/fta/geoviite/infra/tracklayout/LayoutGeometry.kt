@@ -614,6 +614,8 @@ interface LayoutPoint<M : AnyM<M>> : IPoint3DM<M> {
             isSame(z, other.z, LAYOUT_HEIGHT_DELTA) &&
             isSame(cant, other.cant, LAYOUT_CANT_DELTA)
 
+    fun isSameXY(other: IPoint) = isSame(other)
+
     fun isSame(other: IPoint) = super.isSame(other, LAYOUT_COORDINATE_DELTA)
 }
 
