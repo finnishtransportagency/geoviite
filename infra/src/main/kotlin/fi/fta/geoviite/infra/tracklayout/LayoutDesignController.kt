@@ -10,14 +10,18 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestParam
 
 @GeoviiteController("/track-layout/layout-design")
 class LayoutDesignController(val layoutDesignService: LayoutDesignService) {
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/")
-    fun getLayoutDesigns(): List<LayoutDesign> {
-        return layoutDesignService.list()
+    fun getLayoutDesigns(
+        @RequestParam("includeDeleted") includeDeleted: Boolean = false,
+        @RequestParam("includeCompleted") includeCompleted: Boolean = false,
+    ): List<LayoutDesign> {
+        return layoutDesignService.list(includeCompleted = includeCompleted, includeDeleted = includeDeleted)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
