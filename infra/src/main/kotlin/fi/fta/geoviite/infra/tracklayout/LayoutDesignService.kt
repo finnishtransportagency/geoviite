@@ -29,8 +29,8 @@ class LayoutDesignService(
     private val switchDao: LayoutSwitchDao,
     private val kmPostDao: LayoutKmPostDao,
 ) {
-    fun list(): List<LayoutDesign> {
-        return dao.list()
+    fun list(includeCompleted: Boolean, includeDeleted: Boolean): List<LayoutDesign> {
+        return dao.list(includeCompleted = includeCompleted, includeDeleted = includeDeleted)
     }
 
     fun getOrThrow(id: IntId<LayoutDesign>): LayoutDesign {

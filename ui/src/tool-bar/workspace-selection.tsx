@@ -62,7 +62,7 @@ export const DesignSelection: React.FC<DesignSelectionProps> = ({ designId, onDe
     });
 
     const [designs, _] = useLoaderWithStatus(
-        () => getLayoutDesigns(getChangeTimes().layoutDesign),
+        () => getLayoutDesigns(false, false, getChangeTimes().layoutDesign),
         [getChangeTimes().layoutDesign],
     );
 
