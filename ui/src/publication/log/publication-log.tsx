@@ -379,7 +379,11 @@ const PublicationLog: React.FC = () => {
                                         storedEndDate && endOfDay(storedEndDate),
                                         storedSpecificItem === undefined
                                             ? undefined
-                                            : searchableItemIdAndType(storedSpecificItem),
+                                            : {
+                                                  idAndType:
+                                                      searchableItemIdAndType(storedSpecificItem),
+                                                  name: getSearchableItemName(storedSpecificItem),
+                                              },
                                         sortInfo?.propName,
                                         sortInfo?.direction,
                                     ))

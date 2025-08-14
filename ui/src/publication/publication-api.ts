@@ -319,7 +319,7 @@ export type PublishedAssetKmPost = { asset: LayoutKmPost; type: 'KM_POST' };
 export const getPublicationsCsvUri = (
     fromDate?: Date,
     toDate?: Date,
-    specificObjectId?: PublishableObjectIdAndType,
+    specificObject?: { idAndType: PublishableObjectIdAndType; name: string },
     sortBy?: PublicationDetailsTableSortField,
     order?: SortDirection,
 ): string => {
@@ -328,8 +328,9 @@ export const getPublicationsCsvUri = (
     const params = queryParams({
         from: fromDate ? fromDate.toISOString() : undefined,
         to: toDate ? toDate.toISOString() : undefined,
-        id: specificObjectId ? specificObjectId.id : undefined,
-        type: specificObjectId ? specificObjectId.type : undefined,
+        id: specificObject?.idAndType?.id,
+        type: specificObject?.idAndType?.type,
+        filenameObjectPart: specificObject?.name,
         sortBy: isSorted && sortBy ? sortBy : undefined,
         order: isSorted ? order : undefined,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
