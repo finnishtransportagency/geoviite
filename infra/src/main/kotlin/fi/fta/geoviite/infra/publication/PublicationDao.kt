@@ -37,7 +37,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
@@ -67,13 +66,12 @@ import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getJointNumber
+import fi.fta.geoviite.infra.util.getJointNumberOrNull
 import fi.fta.geoviite.infra.util.getKmNumber
 import fi.fta.geoviite.infra.util.getKmNumberOrNull
 import fi.fta.geoviite.infra.util.getLayoutBranch
-import fi.fta.geoviite.infra.util.getLayoutBranchArrayOrNull
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
-import fi.fta.geoviite.infra.util.getList
 import fi.fta.geoviite.infra.util.getListOrNull
 import fi.fta.geoviite.infra.util.getNullableChange
 import fi.fta.geoviite.infra.util.getNullableChangePoint
@@ -1355,165 +1353,209 @@ class PublicationDao(
             .also { logger.daoAccess(FETCH, ReferenceLineChanges::class, publicationId) }
     }
 
-    data class PublicationSwitchJoint(
-        val jointNumber: JointNumber,
-        val locationTrackId: IntId<LocationTrack>,
-        val removed: Boolean,
-        val point: Point,
-        val address: TrackMeter,
-        val trackNumberId: IntId<LayoutTrackNumber>,
-    )
+    private enum class ChangeSide {
+        OLD,
+        NEW,
+        NA,
+    }
 
     fun fetchPublicationSwitchChanges(publicationId: IntId<Publication>): Map<IntId<LayoutSwitch>, SwitchChanges> {
         val sql =
             """
-            with joints as (
-              select
-                switch_id,
-                array_agg(location_track_id order by joint_number, location_track_id) as location_track_ids,
-                array_agg(joint_number order by joint_number, location_track_id) as joint_numbers,
-                array_agg(removed order by joint_number, location_track_id) as removed,
-                array_agg(postgis.st_x(point) order by joint_number, location_track_id) as points_x,
-                array_agg(postgis.st_y(point) order by joint_number, location_track_id) as points_y,
-                array_agg(address order by joint_number, location_track_id) as addresses,
-                array_agg(track_number_id order by joint_number, location_track_id) as track_number_ids
-                from publication.switch_joint
-                  left join publication.publication p on p.id = publication_id
-                where publication_id = :publication_id
-                group by switch_id
-            ),
-            location_tracks as (
-              select switch_id,
-                array_agg(lt.track_number_id order by location_track_id) as lt_track_number_ids,
-                array_agg(lt.name order by location_track_id) as lt_names,
-                array_agg(lt.id order by location_track_id) as lt_location_track_ids,
-                array_agg(lt.design_id order by location_track_id) as lt_design_ids,
-                -- TODO: GVT-3207 This should use base-version and -context from plt instead
-                array_agg(
-                  greatest(1, lt.version - case when plt.direct_change is true then 1 else 0 end) order by location_track_id
-                ) as lt_location_track_old_versions
-                from publication.switch_location_tracks
-                  left join layout.location_track_version lt
-                    on lt.id = location_track_id
-                      and lt.version = location_track_version
-                      and lt.layout_context_id = location_track_layout_context_id
-                  left join lateral
-                    (select direct_change
-                    from publication.location_track plt
-                    where plt.publication_id = :publication_id
-                      and plt.id = switch_location_tracks.location_track_id) plt on (true)
-                where publication_id = :publication_id
-                group by switch_id
-            )
-            select
-              switch.id as switch_id,
-              switch_version.state_category,
-              old_switch_version.state_category as old_state_category,
-              switch_version.name,
-              old_switch_version.name as old_name,
-              switch_version.trap_point,
-              old_switch_version.trap_point as old_trap_point,
-              switch_owner.name as owner,
-              old_switch_owner.name as old_owner,
-              switch_structure.type,
-              old_switch_structure.type as old_type,
-              plan.measurement_method,
-              old_plan.measurement_method as old_measurement_method,
-              joints.location_track_ids,
-              joints.joint_numbers,
-              joints.removed,
-              joints.points_x,
-              joints.points_y,
-              joints.addresses,
-              joints.track_number_ids,
-              switch_structure.presentation_joint_number,
-              location_tracks.lt_track_number_ids,
-              location_tracks.lt_names,
-              location_tracks.lt_location_track_ids,
-              location_tracks.lt_design_ids,
-              location_tracks.lt_location_track_old_versions
-              from publication.switch
-                join publication.publication on switch.publication_id = publication.id
-                left join layout.switch_version switch_version
-                          on switch.id = switch_version.id
-                            and switch.layout_context_id = switch_version.layout_context_id
-                            and switch.version = switch_version.version
-                left join common.switch_structure switch_structure
-                          on switch_structure.id = switch_version.switch_structure_id
-                left join common.switch_owner
-                          on switch_owner.id = switch_version.owner_id
-                left join geometry.switch gs
-                          on switch_version.geometry_switch_id = gs.id
-                left join geometry.plan plan
-                          on gs.plan_id = plan.id
-                left join layout.switch_version old_switch_version
-                          on switch.id = old_switch_version.id
-                            and switch.base_layout_context_id = old_switch_version.layout_context_id
-                            and switch.base_version = old_switch_version.version
-                left join common.switch_structure old_switch_structure
-                          on old_switch_structure.id = old_switch_version.switch_structure_id
-                left join common.switch_owner old_switch_owner
-                          on old_switch_owner.id = old_switch_version.owner_id
-                left join geometry.switch old_gs
-                          on old_switch_version.geometry_switch_id = old_gs.id
-                left join geometry.plan old_plan
-                          on old_gs.plan_id = old_plan.id
-                left join joints
-                          on joints.switch_id = switch.id
-                left join location_tracks
-                          on location_tracks.switch_id = switch.id
-              where publication_id = :publication_id
-        """
+            with
+              touched_tracks as (
+                select
+                  'NEW' as change_side,
+                  plt.id as location_track_id,
+                  plt.layout_context_id as location_track_layout_context_id,
+                  plt.version as location_track_version
+                  from publication.location_track plt
+                  where plt.publication_id = :publication_id
+                union all
+                select
+                  'OLD' as change_side,
+                  plt.id as location_track_id,
+                  plt.base_layout_context_id as location_track_layout_context_id,
+                  plt.base_version as location_track_version
+                  from publication.location_track plt
+                  where plt.publication_id = :publication_id
+                    and plt.base_layout_context_id is not null
+                union all
+                select
+                  'NA' as change_side,
+                  pslt.location_track_id as location_track_id,
+                  pslt.location_track_layout_context_id as location_track_layout_context_id,
+                  pslt.location_track_version as location_track_version
+                  from publication.switch_location_tracks pslt
+                  where pslt.publication_id = :publication_id
+                    and not exists (
+                      select * 
+                      from publication.location_track plt 
+                      where pslt.publication_id = :publication_id
+                        and pslt.location_track_id = plt.id
+                    )
+              ),
+              touched_joint_locations as (
+                select
+                  joints.switch_id,
+                  array_agg(
+                    track.change_side
+                    order by track.change_side, track.location_track_id, joints.sort
+                  ) as track_change_sides,
+                  array_agg(
+                    track.location_track_id
+                    order by track.change_side, track.location_track_id, joints.sort
+                  ) as track_ids,
+                  array_agg(
+                    ltv.track_number_id
+                    order by track.change_side, track.location_track_id, joints.sort
+                  ) as track_track_number_ids,
+                  array_agg(
+                    ltv.name
+                    order by track.change_side, track.location_track_id, joints.sort
+                  ) as track_names,
+                  array_agg(
+                    joints.joint_number
+                    order by track.change_side, track.location_track_id, joints.sort
+                  ) as track_joint_numbers,
+                  array_agg(
+                    postgis.st_x(joints.location)
+                    order by track.change_side, track.location_track_id, joints.sort
+                  ) as track_joint_locations_x,
+                  array_agg(
+                    postgis.st_y(joints.location)
+                    order by track.change_side, track.location_track_id, joints.sort
+                  ) as track_joint_locations_y
+                  from touched_tracks track
+                    inner join layout.location_track_version ltv
+                               on ltv.id = track.location_track_id
+                                 and ltv.layout_context_id = track.location_track_layout_context_id
+                                 and ltv.version = track.location_track_version
+                    inner join lateral (
+                    select
+                      start_np.switch_id as switch_id,
+                      start_np.switch_joint_number as joint_number,
+                      e.start_location as location,
+                      0 as sort
+                      from layout.location_track_version_edge first_ltv_e
+                        inner join layout.edge e on first_ltv_e.edge_id = e.id
+                        inner join layout.node_port start_np on start_np.node_id = e.start_node_id and start_np.port = e.start_node_port
+                      where first_ltv_e.location_track_id = track.location_track_id
+                        and first_ltv_e.location_track_layout_context_id = track.location_track_layout_context_id
+                        and first_ltv_e.location_track_version = track.location_track_version
+                        and first_ltv_e.edge_index = 0
+                    union all
+                    select
+                      end_np.switch_id as switch_id,
+                      end_np.switch_joint_number as joint_number,
+                      e.end_location as location,
+                      ltv_e.edge_index+1 as sort
+                      from layout.location_track_version_edge ltv_e
+                        inner join layout.edge e on ltv_e.edge_id = e.id
+                        inner join layout.node_port end_np on end_np.node_id = e.end_node_id and end_np.port = e.end_node_port
+                      where ltv_e.location_track_id = track.location_track_id
+                        and ltv_e.location_track_layout_context_id = track.location_track_layout_context_id
+                        and ltv_e.location_track_version = track.location_track_version
+                    ) joints on true
+                  where joint_number is not null
+                  group by joints.switch_id
+              )
+          select
+            switch.id as switch_id,
+            switch_version.state_category,
+            old_switch_version.state_category as old_state_category,
+            switch_version.name,
+            old_switch_version.name as old_name,
+            switch_version.trap_point,
+            old_switch_version.trap_point as old_trap_point,
+            switch_owner.name as owner,
+            old_switch_owner.name as old_owner,
+            switch_structure.type,
+            old_switch_structure.type as old_type,
+            plan.measurement_method,
+            old_plan.measurement_method as old_measurement_method,
+            switch_structure.presentation_joint_number,
+            old_switch_structure.presentation_joint_number old_presentation_joint_number,
+            joints.track_change_sides,
+            joints.track_ids,
+            joints.track_track_number_ids,
+            joints.track_names,
+            joints.track_joint_numbers,
+            joints.track_joint_locations_x,
+            joints.track_joint_locations_y
+            from publication.switch
+              join publication.publication on switch.publication_id = publication.id
+              left join layout.switch_version switch_version
+                        on switch.id = switch_version.id
+                          and switch.layout_context_id = switch_version.layout_context_id
+                          and switch.version = switch_version.version
+              left join common.switch_structure switch_structure
+                        on switch_structure.id = switch_version.switch_structure_id
+              left join common.switch_owner on switch_owner.id = switch_version.owner_id
+              left join geometry.switch gs on switch_version.geometry_switch_id = gs.id
+              left join geometry.plan plan on gs.plan_id = plan.id
+              left join layout.switch_version old_switch_version
+                        on switch.id = old_switch_version.id
+                          and switch.base_layout_context_id = old_switch_version.layout_context_id
+                          and switch.base_version = old_switch_version.version
+              left join common.switch_structure old_switch_structure
+                        on old_switch_structure.id = old_switch_version.switch_structure_id
+              left join common.switch_owner old_switch_owner on old_switch_owner.id = old_switch_version.owner_id
+              left join geometry.switch old_gs on old_switch_version.geometry_switch_id = old_gs.id
+              left join geometry.plan old_plan on old_gs.plan_id = old_plan.id
+              left join touched_joint_locations joints on joints.switch_id = switch.id
+            where publication_id = :publication_id
+            """
                 .trimIndent()
 
         return jdbcTemplate
             .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-                val presentationJointNumber = rs.getInt("presentation_joint_number").let(::JointNumber)
-                val trackNumbers =
-                    rs.getListOrNull<Int>("track_number_ids")?.map { IntId<LayoutTrackNumber>(it) } ?: emptyList()
-                val locationTracks =
-                    rs.getListOrNull<Int>("location_track_ids")?.map { IntId<LocationTrack>(it) } ?: emptyList()
-                val jointNumbers = rs.getListOrNull<Int>("joint_numbers") ?: emptyList()
-                val removed = rs.getListOrNull<Boolean>("removed") ?: emptyList()
-                val points =
-                    rs.getListOrNull<Double>("points_x")?.zip(rs.getList<Double>("points_y"))?.map {
-                        Point(it.first, it.second)
-                    } ?: emptyList()
-                val addresses = rs.getListOrNull<String>("addresses")?.map(::TrackMeter) ?: emptyList()
-                val joints =
-                    jointNumbers.indices
-                        .map { index ->
-                            PublicationSwitchJoint(
-                                jointNumber = JointNumber(jointNumbers[index]),
-                                locationTrackId = locationTracks[index],
-                                removed = removed[index],
-                                point = points[index],
-                                address = addresses[index],
-                                trackNumberId = trackNumbers[index],
-                            )
-                        }
-                        .filter { joint -> joint.jointNumber == presentationJointNumber }
-
-                val locationTrackNames = rs.getListOrNull<String>("lt_names")?.map(::AlignmentName) ?: emptyList()
+                val presentationJointNumberChange = rs.getChange("presentation_joint_number", rs::getJointNumberOrNull)
+                val trackIds = rs.getListOrNull<Int>("track_ids")?.map { IntId<LocationTrack>(it) } ?: emptyList()
                 val trackNumberIds =
-                    rs.getListOrNull<Int>("lt_track_number_ids")?.map { IntId<LayoutTrackNumber>(it) } ?: emptyList()
-                val locationTrackIds =
-                    rs.getListOrNull<Int>("lt_location_track_ids")?.let { ids ->
-                        rs.getLayoutBranchArrayOrNull("lt_design_ids")?.let { branches ->
-                            ids.zip(branches) { id, branch -> LayoutRowId(IntId<LocationTrack>(id), branch.official) }
-                        }
-                    } ?: emptyList()
-                val locationTrackOldVersions = rs.getListOrNull<Int>("lt_location_track_old_versions") ?: emptyList()
-                val lts =
-                    locationTrackNames.indices.map { index ->
-                        SwitchLocationTrack(
-                            trackNumberId = trackNumberIds[index],
-                            name = locationTrackNames[index],
-                            oldVersion = LayoutRowVersion(locationTrackIds[index], locationTrackOldVersions[index]),
-                        )
-                    }
-                val id = rs.getIntId<LayoutSwitch>("switch_id")
+                    rs.getListOrNull<Int>("track_track_number_ids")?.map { IntId<LayoutTrackNumber>(it) } ?: emptyList()
+                val trackChangeSides =
+                    rs.getStringArrayOrNull("track_change_sides")?.map { enumValueOf<ChangeSide>(it) } ?: emptyList()
+                val trackNames = rs.getStringArrayOrNull("track_names")?.map(::AlignmentName) ?: emptyList()
+                val trackJointNumbers = rs.getListOrNull<Int>("track_joint_numbers")?.map(::JointNumber) ?: emptyList()
+                val trackJointXs = rs.getListOrNull<Double>("track_joint_locations_x") ?: emptyList()
+                val trackJointYs = rs.getListOrNull<Double>("track_joint_locations_y") ?: emptyList()
+                val oldTracks = mutableMapOf<IntId<LocationTrack>, SwitchLocationTrack>()
+                val newTracks = mutableMapOf<IntId<LocationTrack>, SwitchLocationTrack>()
+                val unchangedTracks = mutableMapOf<IntId<LocationTrack>, SwitchLocationTrack>()
 
+                trackIds.forEachIndexed { index, id ->
+                    val connectionMap =
+                        when (requireNotNull(trackChangeSides[index])) {
+                            ChangeSide.OLD -> oldTracks
+                            ChangeSide.NEW -> newTracks
+                            ChangeSide.NA -> unchangedTracks
+                        }
+                    val presentationJointNumber =
+                        when (requireNotNull(trackChangeSides[index])) {
+                            ChangeSide.OLD -> presentationJointNumberChange.old
+                            else -> presentationJointNumberChange.new
+                        }
+                    connectionMap.compute(id) { id, current ->
+                        val jointNumber = requireNotNull(trackJointNumbers[index])
+                        val joint =
+                            PublicationSwitchJoint(
+                                jointNumber = jointNumber,
+                                location =
+                                    Point(requireNotNull(trackJointXs[index]), requireNotNull(trackJointYs[index])),
+                                isPresentationJoint = jointNumber == presentationJointNumber,
+                            )
+                        current?.copy(joints = current.joints + joint)
+                            ?: SwitchLocationTrack(
+                                id = id,
+                                trackNumberId = requireNotNull(trackNumberIds[index]),
+                                name = requireNotNull(trackNames[index]),
+                                joints = listOf(joint),
+                            )
+                    }
+                }
+
+                val id = rs.getIntId<LayoutSwitch>("switch_id")
                 id to
                     SwitchChanges(
                         id,
@@ -1523,14 +1565,21 @@ class PublicationDao(
                         trapPoint =
                             rs.getChange("trap_point") {
                                 rs.getBooleanOrNull(it).let { value ->
-                                    if (value == null) TrapPoint.UNKNOWN else if (value) TrapPoint.YES else TrapPoint.NO
+                                    when (value) {
+                                        null -> TrapPoint.UNKNOWN
+                                        true -> TrapPoint.YES
+                                        false -> TrapPoint.NO
+                                    }
                                 }
                             },
                         owner = rs.getChange("owner") { rs.getString(it)?.let(::MetaDataName) },
                         measurementMethod =
                             rs.getNullableChange("measurement_method") { rs.getEnumOrNull<MeasurementMethod>(it) },
-                        joints = joints,
-                        locationTracks = lts,
+                        trackConnections =
+                            Change(
+                                old = (unchangedTracks + oldTracks).values.sortedBy { it.id.intValue },
+                                new = (unchangedTracks + newTracks).values.sortedBy { it.id.intValue },
+                            ),
                     )
             }
             .toMap()

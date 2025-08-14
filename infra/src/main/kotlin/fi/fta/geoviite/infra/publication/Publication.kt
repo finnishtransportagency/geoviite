@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -577,10 +578,13 @@ data class KmPostPublicationCandidate(
 }
 
 data class SwitchLocationTrack(
-    val name: AlignmentName,
+    val id: IntId<LocationTrack>,
     val trackNumberId: IntId<LayoutTrackNumber>,
-    val oldVersion: LayoutRowVersion<LocationTrack>,
+    val name: AlignmentName,
+    val joints: List<PublicationSwitchJoint>,
 )
+
+data class PublicationSwitchJoint(val jointNumber: JointNumber, val location: Point, val isPresentationJoint: Boolean)
 
 data class Change<T>(val old: T?, val new: T) {
     companion object {
@@ -588,7 +592,27 @@ data class Change<T>(val old: T?, val new: T) {
     }
 
     fun <S> map(op: (T) -> S): Change<S> = Change(old?.let(op), op(new))
+
+    fun isChanged(isSame: (old: T, new: T) -> Boolean = { old, new -> old == new }): Boolean =
+        when {
+            old == null && new == null -> false
+            old == null || new == null -> true
+            else -> !isSame(old, new)
+        }
 }
+
+/**
+ * Turns a change of lists inta list of changes, picking items by their id, designated byt the [getId] lambda. If some
+ * item is duplicated in either list (id is not unique in old or new state), then only the first instance one of said
+ * item will be considered for the change.
+ */
+fun <T, S> Change<List<T>>.itemize(getId: (T) -> S): List<Pair<S, Change<T?>>> {
+    val oldItems = old?.distinctBy(getId)?.associateBy(getId) ?: emptyMap()
+    val newItems = new.distinctBy(getId).associateBy(getId)
+    return (oldItems.keys + newItems.keys).distinct().map { key -> key to Change(oldItems[key], newItems[key]) }
+}
+
+fun <T> Change<T?>.ifHasEndState(): Change<T>? = if (new != null) Change(old, new) else null
 
 data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
@@ -614,6 +638,18 @@ enum class TrapPoint {
     UNKNOWN,
 }
 
+data class TrackNumberJointLocationChange(
+    val trackNumberId: IntId<LayoutTrackNumber>,
+    val jointNumber: JointNumber,
+    val location: Change<Point?>,
+)
+
+data class TrackJointChange(
+    val id: IntId<LocationTrack>,
+    val name: AlignmentName,
+    val joints: Change<List<JointNumber>?>,
+)
+
 data class SwitchChanges(
     val id: IntId<LayoutSwitch>,
     val name: Change<SwitchName>,
@@ -622,10 +658,57 @@ data class SwitchChanges(
     val type: Change<SwitchType>,
     val owner: Change<MetaDataName>,
     val measurementMethod: Change<MeasurementMethod?>,
-    val joints: List<PublicationDao.PublicationSwitchJoint>,
-    //    val tracks: Change<List<LayoutRowVersion<LocationTrack>>>,
-    val locationTracks: List<SwitchLocationTrack>,
-)
+    val trackConnections: Change<List<SwitchLocationTrack>>,
+) {
+    fun getTrackJoints(): List<TrackJointChange> =
+        getLocationTrackIds().mapNotNull { id ->
+            trackConnections
+                .map { tracks -> tracks.find { it.id == id } }
+                .let { trackChange ->
+                    val name = trackChange.new?.name ?: trackChange.old?.name
+                    val joints = trackChange.map { t -> t?.joints?.map { j -> j.jointNumber } }
+                    if (name != null) TrackJointChange(id, name, joints) else null
+                }
+        }
+
+    fun getTrackNumberJointLocations(): List<TrackNumberJointLocationChange> =
+        getTrackNumberJointNumbers().map { (tnId, jointNumber) ->
+            TrackNumberJointLocationChange(
+                trackNumberId = tnId,
+                jointNumber = jointNumber,
+                location = getTrackNumberJointLocation(tnId, jointNumber),
+            )
+        }
+
+    private fun getLocationTrackIds(): List<IntId<LocationTrack>> =
+        ((trackConnections.old?.map { t -> t.id } ?: emptyList()) + trackConnections.new.map { t -> t.id })
+            .distinct()
+            .sortedBy { it.intValue }
+
+    private fun getTrackNumberJointNumbers(): List<Pair<IntId<LayoutTrackNumber>, JointNumber>> =
+        trackConnections
+            .map { tracks -> tracks.flatMap { t -> t.joints.map { t.trackNumberId to it.jointNumber } }.distinct() }
+            .let { (old, new) -> (old ?: emptyList()) + new }
+            .distinct()
+
+    private fun getTrackNumberJointLocation(
+        trackNumberId: IntId<LayoutTrackNumber>,
+        jointNumber: JointNumber,
+    ): Change<Point?> =
+        trackConnections.map { tracks -> getTrackNumberJointLocation(tracks, trackNumberId, jointNumber) }
+
+    private fun getTrackNumberJointLocation(
+        tracks: List<SwitchLocationTrack>,
+        id: IntId<LayoutTrackNumber>,
+        jointNumber: JointNumber,
+    ): Point? =
+        tracks
+            .asSequence()
+            .filter { t -> t.trackNumberId == id }
+            .mapNotNull { t -> t.joints.find { j -> j.jointNumber == jointNumber } }
+            .firstOrNull()
+            ?.location
+}
 
 data class ReferenceLineChanges(
     val id: IntId<ReferenceLine>,

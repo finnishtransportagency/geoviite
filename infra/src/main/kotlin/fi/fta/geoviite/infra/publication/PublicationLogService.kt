@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
@@ -24,9 +25,11 @@ import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -372,12 +375,7 @@ constructor(
                 trackNumberChanges.startAddress,
                 { it.toString() },
                 PropKey("start-address"),
-                remark =
-                    getAddressMovedRemarkOrNull(
-                        translation,
-                        trackNumberChanges.startAddress.old,
-                        trackNumberChanges.startAddress.new,
-                    ),
+                remark = getAddressMovedRemarkOrNull(translation, trackNumberChanges.startAddress),
             ),
             compareChange(
                 { oldEndAddress != newEndAddress },
@@ -417,13 +415,13 @@ constructor(
             }
         val newStartPointAndM =
             locationTrackChanges.startPoint.new?.let { newStart ->
-                locationTrackChanges.trackNumberId.new?.let {
+                locationTrackChanges.trackNumberId.new.let {
                     getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newStart)
                 }
             }
         val newEndPointAndM =
             locationTrackChanges.endPoint.new?.let { newEnd ->
-                locationTrackChanges.trackNumberId.new?.let {
+                locationTrackChanges.trackNumberId.new.let {
                     getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newEnd)
                 }
             }
@@ -664,77 +662,114 @@ constructor(
             }
         }
 
+    fun jointsString(jointNumbers: List<JointNumber>): String =
+        jointNumbers.joinToString("-") { j -> j.intValue.toString() }
+
     fun diffSwitch(
         translation: Translation,
         changes: SwitchChanges,
         newTimestamp: Instant,
         oldTimestamp: Instant,
-        operation: Operation,
         trackNumberCache: List<TrackNumberAndChangeTime>,
         geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
     ): List<PublicationChange<*>> {
-        val relatedJoints = changes.joints.filterNot { it.removed }.distinctBy { it.trackNumberId }
-
-        val oldLinkedLocationTracks =
-            changes.locationTracks.associate { lt ->
-                locationTrackService.getWithGeometry(lt.oldVersion).let { (track, geometry) ->
-                    track.id as IntId to (track to geometry)
+        val getTrackNumber = { tnId: IntId<LayoutTrackNumber> ->
+            // If the track number name changed in the same publication, it has it's own change row
+            // -> just use the new name here for clarity, even for old address
+            requireNotNull(trackNumberCache.findLast { tn -> tn.id == tnId && tn.changeTime <= newTimestamp }?.number)
+        }
+        val getAddressChange = { pointChange: Change<Point?>, trackNumberId: IntId<LayoutTrackNumber> ->
+            val oldCtx = pointChange.old?.let { geocodingContextGetter(trackNumberId, oldTimestamp) }
+            val newCtx = pointChange.new?.let { geocodingContextGetter(trackNumberId, newTimestamp) }
+            val pointChanged =
+                when {
+                    pointChange.old == null && pointChange.new == null -> false
+                    pointChange.old == null || pointChange.new == null -> true
+                    else -> !pointChange.old.isSame(pointChange.new, LAYOUT_COORDINATE_DELTA)
                 }
-            }
+            if (oldCtx != newCtx || pointChanged) {
+                Change(
+                    old = pointChange.old?.let { p -> oldCtx?.getAddress(p)?.first },
+                    new = pointChange.new?.let { p -> newCtx?.getAddress(p)?.first },
+                )
+            } else null
+        }
+
+        val connectedTrackChanges =
+            if (changes.state.new != LayoutStateCategory.NOT_EXISTING) {
+                changes.getTrackJoints().mapNotNull { track ->
+                    val localizationParams = localizationParams("locationTrack" to track.name)
+                    compareChange(
+                        change = track.joints,
+                        valueTransform = {
+                            "${translation.t("publication-details-table.track-linked")} ${jointsString(it)}"
+                        },
+                        propKey = PropKey("location-track-connectivity", localizationParams),
+                        nullReplacement = translation.t("publication-details-table.track-not-linked"),
+                    )
+                }
+            } else emptyList()
+
         val jointLocationChanges =
-            relatedJoints
-                .flatMap { joint ->
-                    val oldLocation =
-                        oldLinkedLocationTracks[joint.locationTrackId]
-                            ?.let { (_, geometry) -> geometry.getSwitchLocation(changes.id, joint.jointNumber) }
-                            ?.toPoint()
-                    val distance =
-                        if (oldLocation != null && !pointsAreSame(joint.point, oldLocation)) {
-                            calculateDistance(listOf(joint.point, oldLocation), LAYOUT_SRID)
-                        } else {
-                            0.0
-                        }
-                    val jointPropKeyParams =
-                        localizationParams(
-                            "trackNumber" to
-                                trackNumberCache
-                                    .findLast { it.id == joint.trackNumberId && it.changeTime <= newTimestamp }
-                                    ?.number
-                                    ?.value,
-                            "switchType" to
-                                changes.type.new?.parts?.baseType?.let { switchBaseTypeToProp(translation, it) },
+            if (changes.state.new != LayoutStateCategory.NOT_EXISTING) {
+                changes.trackConnections
+                    .map { tracks -> tracks.flatMap { t -> t.joints } }
+                    // Transform to list of per-joint changes
+                    .itemize { j -> j.jointNumber }
+                    .sortedBy { (j, _) -> j.intValue }
+                    // Joint addition/removal is visible in connectedTrackChanges so we only care about location changes
+                    // TODO: GVT-3128 Do we want to show coordinates in addition/removal cases?
+                    // .filter { (_, change) -> change.old != null && change.new != null }
+                    .mapNotNull { (jointNumber: JointNumber, change: Change<PublicationSwitchJoint?>) ->
+                        val distance =
+                            if (change.old != null && change.new != null) {
+                                calculateDistance(listOf(change.old.location, change.new.location), LAYOUT_SRID)
+                            } else {
+                                0.0
+                            }
+                        val jointPropKeyParams = localizationParams("jointNumber" to "${jointNumber.intValue}")
+                        compareChange(
+                            change = change.map { c -> c?.location },
+                            isSame = { old, new -> distance < DISTANCE_CHANGE_THRESHOLD },
+                            valueTransform = ::formatLocation,
+                            propKey = PropKey("switch-joint-location", jointPropKeyParams),
+                            remark = getPointMovedRemarkOrNull(translation, change.old?.location, change.new?.location),
+                            nullReplacement = translation.t("publication-details-table.no-location"),
                         )
-                    val oldAddress =
-                        oldLocation?.let {
-                            geocodingContextGetter(joint.trackNumberId, oldTimestamp)?.getAddress(it)?.first
-                        }
+                    }
+            } else emptyList()
 
-                    val list =
-                        listOfNotNull(
-                            compareChange(
-                                { distance > DISTANCE_CHANGE_THRESHOLD },
-                                oldLocation,
-                                joint.point,
-                                ::formatLocation,
-                                PropKey("switch-joint-location", jointPropKeyParams),
-                                getPointMovedRemarkOrNull(translation, oldLocation, joint.point),
-                                null,
-                            ),
-                            compareChange(
-                                { oldAddress != joint.address },
-                                oldAddress,
-                                joint.address,
-                                { it.toString() },
-                                PropKey("switch-track-address", jointPropKeyParams),
-                                getAddressMovedRemarkOrNull(translation, oldAddress, joint.address),
-                            ),
-                        )
-                    list
-                }
-                .sortedBy { it.propKey.key }
-
-        val oldLinkedTrackNames = oldLinkedLocationTracks.values.map { it.first.name }.sorted()
-        val newLinkedTrackNames = changes.locationTracks.map { it.name }.sorted()
+        val jointAddressChanges =
+            if (changes.state.new != LayoutStateCategory.NOT_EXISTING) {
+                changes
+                    .getTrackNumberJointLocations()
+                    .groupBy { change -> change.jointNumber }
+                    .toList()
+                    .sortedBy { (j, _) -> j.intValue }
+                    .flatMap { (joint: JointNumber, changes: List<TrackNumberJointLocationChange>) ->
+                        changes
+                            .sortedBy { c -> c.trackNumberId.intValue }
+                            .mapNotNull { change ->
+                                getAddressChange(change.location, change.trackNumberId)
+                                    // TODO: GVT-3128 Do we want to show addresses in addition/removal cases?
+                                    // ?.takeIf { change -> change.old != null && change.new != null }
+                                    ?.let { addressChange ->
+                                        val jointPropKeyParams =
+                                            localizationParams(
+                                                "jointNumber" to "${joint.intValue}",
+                                                "trackNumber" to getTrackNumber(change.trackNumberId),
+                                            )
+                                        compareChange(
+                                            change = addressChange,
+                                            valueTransform = { "$it" },
+                                            propKey = PropKey("switch-track-address", jointPropKeyParams),
+                                            remark = getAddressMovedRemarkOrNull(translation, addressChange),
+                                            nullReplacement = translation.t("publication-details-table.no-location"),
+                                        )
+                                    }
+                            }
+                    }
+            } else emptyList()
 
         return listOfNotNull(
             compareChangeValues(changes.name, { it }, PropKey("switch")),
@@ -742,13 +777,6 @@ constructor(
             compareChangeValues(changes.type, { it.typeName }, PropKey("switch-type")),
             compareChangeValues(changes.trapPoint, { it }, PropKey("trap-point"), enumLocalizationKey = "TrapPoint"),
             compareChangeValues(changes.owner, { it }, PropKey("owner")),
-            compareChange(
-                { oldLinkedTrackNames != newLinkedTrackNames },
-                oldLinkedTrackNames,
-                newLinkedTrackNames,
-                { list -> list.joinToString(", ") { it } },
-                PropKey("location-track-connectivity"),
-            ),
             compareChangeValues(
                 changes.measurementMethod,
                 { it?.name },
@@ -756,7 +784,7 @@ constructor(
                 null,
                 "MeasurementMethod",
             ),
-        ) + jointLocationChanges
+        ) + connectedTrackChanges + jointLocationChanges + jointAddressChanges
     }
 
     private fun getOrPutGeocodingContext(
@@ -946,7 +974,6 @@ constructor(
                                 },
                                 publication.publicationTime,
                                 previousComparisonTime,
-                                s.operation,
                                 trackNumberNamesCache,
                                 geocodingContextGetter,
                             ),
@@ -1038,7 +1065,6 @@ constructor(
                                 },
                                 publication.publicationTime,
                                 previousComparisonTime,
-                                Operation.CALCULATED,
                                 trackNumberNamesCache,
                                 geocodingContextGetter,
                             ),

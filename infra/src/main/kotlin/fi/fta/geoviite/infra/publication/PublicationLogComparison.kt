@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.util.produceIf
+
 fun <T, U> compareChangeValues(
     change: Change<T>,
     valueTransform: (T) -> U,
@@ -47,8 +49,8 @@ fun <T, U> compareChange(
     propKey: PropKey,
     remark: String? = null,
     enumLocalizationKey: String? = null,
-) =
-    if (predicate()) {
+): PublicationChange<U>? =
+    produceIf(predicate()) {
         PublicationChange(
             propKey,
             value =
@@ -59,4 +61,33 @@ fun <T, U> compareChange(
                 ),
             remark,
         )
-    } else null
+    }
+
+fun <T, U> compareChange(
+    change: Change<T?>,
+    valueTransform: (T) -> U,
+    propKey: PropKey,
+    remark: String? = null,
+    enumLocalizationKey: String? = null,
+    nullReplacement: U? = null,
+    isSame: (old: T, new: T) -> Boolean = { old, new -> old == new },
+): PublicationChange<U>? {
+    val changed =
+        when {
+            change.old == null && change.new == null -> false
+            change.old == null || change.new == null -> true
+            else -> !isSame(change.old, change.new)
+        }
+    return produceIf(changed) {
+        PublicationChange(
+            propKey,
+            value =
+                ChangeValue(
+                    oldValue = change.old?.let(valueTransform) ?: nullReplacement,
+                    newValue = change.new?.let(valueTransform) ?: nullReplacement,
+                    localizationKey = enumLocalizationKey,
+                ),
+            remark,
+        )
+    }
+}
