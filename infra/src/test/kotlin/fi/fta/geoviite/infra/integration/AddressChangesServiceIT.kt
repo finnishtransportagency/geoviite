@@ -40,6 +40,7 @@ import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.fixMValues
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -644,7 +645,7 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumber.id as IntId,
                         km = KmNumber(1),
-                        roughLayoutLocation = refPoint + 5.0,
+                        gkLocation = kmPostGkLocation(refPoint + 5.0),
                         draft = false,
                     )
                 )
@@ -655,7 +656,7 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumber.id as IntId,
                         km = KmNumber(2),
-                        roughLayoutLocation = refPoint + 10.0,
+                        gkLocation = kmPostGkLocation(refPoint + 10.0),
                         draft = false,
                     )
                 )

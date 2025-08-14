@@ -23,18 +23,19 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
-import java.math.BigDecimal
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -64,7 +65,7 @@ constructor(
             kmPost(
                 trackNumberId = trackNumberId,
                 km = KmNumber(0),
-                roughLayoutLocation = DEFAULT_BASE_POINT + Point(0.0, 0.0),
+                gkLocation = kmPostGkLocation(DEFAULT_BASE_POINT + Point(0.0, 0.0)),
                 draft = false,
             )
         )

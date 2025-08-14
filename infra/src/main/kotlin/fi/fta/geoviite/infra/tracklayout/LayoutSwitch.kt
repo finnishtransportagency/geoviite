@@ -43,7 +43,7 @@ data class LayoutSwitch(
     val joints: List<LayoutSwitchJoint>,
     val sourceId: DomainId<GeometrySwitch>?,
     val trapPoint: Boolean?,
-    val ownerId: IntId<SwitchOwner>?,
+    val ownerId: IntId<SwitchOwner>,
     val source: GeometrySource,
     val draftOid: Oid<LayoutSwitch>?,
     @JsonIgnore override val contextData: LayoutContextData<LayoutSwitch>,

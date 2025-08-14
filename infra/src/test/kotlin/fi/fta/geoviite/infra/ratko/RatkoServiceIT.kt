@@ -86,6 +86,7 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -777,12 +778,12 @@ constructor(
         val kmPost1 =
             kmPostService.saveDraft(
                 LayoutBranch.main,
-                kmPost(trackNumberId, KmNumber(1), Point(2.0, 0.0), draft = true),
+                kmPost(trackNumberId, KmNumber(1), kmPostGkLocation(2.0, 0.0), draft = true),
             )
         val kmPost2 =
             kmPostService.saveDraft(
                 LayoutBranch.main,
-                kmPost(trackNumberId, KmNumber(2), Point(4.0, 0.0), draft = true),
+                kmPost(trackNumberId, KmNumber(2), kmPostGkLocation(4.0, 0.0), draft = true),
             )
 
         val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumberId)
@@ -830,12 +831,12 @@ constructor(
         val kmPost1 =
             kmPostService.saveDraft(
                 LayoutBranch.main,
-                kmPost(trackNumber.id, KmNumber(1), Point(2.0, 0.0), draft = true),
+                kmPost(trackNumber.id, KmNumber(1), kmPostGkLocation(2.0, 0.0), draft = true),
             )
         val kmPost2 =
             kmPostService.saveDraft(
                 LayoutBranch.main,
-                kmPost(trackNumber.id, KmNumber(2), Point(4.0, 0.0), draft = true),
+                kmPost(trackNumber.id, KmNumber(2), kmPostGkLocation(4.0, 0.0), draft = true),
             )
 
         val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
@@ -878,12 +879,12 @@ constructor(
         val kmPost1 =
             kmPostService.saveDraft(
                 LayoutBranch.main,
-                kmPost(trackNumber.id, KmNumber(1), Point(2.0, 0.0), draft = true),
+                kmPost(trackNumber.id, KmNumber(1), kmPostGkLocation(2.0, 0.0), draft = true),
             )
         val kmPost2 =
             kmPostService.saveDraft(
                 LayoutBranch.main,
-                kmPost(trackNumber.id, KmNumber(2), Point(4.0, 0.0), draft = true),
+                kmPost(trackNumber.id, KmNumber(2), kmPostGkLocation(4.0, 0.0), draft = true),
             )
 
         val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
@@ -1154,7 +1155,7 @@ constructor(
         val kmPost =
             kmPostService.saveDraft(
                 LayoutBranch.main,
-                kmPost(trackNumber.id, KmNumber(1), roughLayoutLocation = Point(5.0, 0.0), draft = true),
+                kmPost(trackNumber.id, KmNumber(1), kmPostGkLocation(5.0, 0.0), draft = true),
             )
         publishAndPush(kmPosts = listOf(kmPost.id))
         val deletions = fakeRatko.getRouteNumberPointDeletions("1.2.3.4.5")

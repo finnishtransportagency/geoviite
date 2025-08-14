@@ -58,6 +58,7 @@ import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
@@ -70,12 +71,6 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
 import fi.fta.geoviite.infra.util.SortOrder
-import java.sql.Timestamp
-import java.time.Instant
-import kotlin.math.absoluteValue
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -84,6 +79,12 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import java.sql.Timestamp
+import java.time.Instant
+import kotlin.math.absoluteValue
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -482,18 +483,13 @@ constructor(
                 )
                 .id
 
+        val gkLocation = kmPostGkLocation(1.0, 1.0)
         val kmPost =
             kmPostService.getOrThrow(
                 MainLayoutContext.draft,
                 kmPostService.insertKmPost(
                     LayoutBranch.main,
-                    LayoutKmPostSaveRequest(
-                        KmNumber(0),
-                        LayoutState.IN_USE,
-                        trackNumberId,
-                        gkLocation = null,
-                        sourceId = null,
-                    ),
+                    LayoutKmPostSaveRequest(KmNumber(0), LayoutState.IN_USE, trackNumberId, gkLocation, sourceId = null),
                 ),
             )
         publish(
@@ -511,7 +507,7 @@ constructor(
                         KmNumber(1),
                         LayoutState.NOT_IN_USE,
                         trackNumber2Id,
-                        gkLocation = null,
+                        gkLocation,
                         sourceId = null,
                     ),
                 ),
@@ -542,7 +538,7 @@ constructor(
     @Test
     fun `simple km post change in design is reported`() {
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1))).id
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(1.0, 1.0))).id
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
         kmPostService.saveDraft(testBranch, mainOfficialContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publish(publicationService, testBranch, kmPosts = listOf(kmPost))
@@ -579,7 +575,7 @@ constructor(
                 KmNumber(0),
                 LayoutState.IN_USE,
                 mainOfficialContext.createLayoutTrackNumber().id,
-                gkLocation = null,
+                kmPostGkLocation(1.0, 1.0),
                 sourceId = null,
             )
 
@@ -1401,7 +1397,7 @@ constructor(
                 ),
             )
         val kmPost =
-            mainDraftContext.save(kmPost(trackNumber.id, km = KmNumber(124), roughLayoutLocation = Point(4.0, 4.0)))
+            mainDraftContext.save(kmPost(trackNumber.id, km = KmNumber(124), gkLocation = kmPostGkLocation(4.0, 4.0)))
         val requestPublishEverything =
             publicationRequest(
                 trackNumbers = listOf(trackNumber.id),
@@ -1470,11 +1466,9 @@ constructor(
             assertEquals(null, change.startPoint.old)
             assertEquals(Point(0.0, 0.0), change.startPoint.new)
         }
-        publicationDao
-            .fetchPublishedLocationTracks(setOf(originalPublication))
-            .getValue(originalPublication)
-            .let { (directChanges, indirectChanges) ->
-                assertEquals(
+        publicationDao.fetchPublishedLocationTracks(setOf(originalPublication)).getValue(originalPublication).let {
+            (directChanges, indirectChanges) ->
+            assertEquals(
                 listOf(locationTrackDao.fetchVersion(MainLayoutContext.official, locationTrack.id)),
                 directChanges.map { it.version },
             )
@@ -1485,10 +1479,8 @@ constructor(
             val change = changes[locationTrack.id]!!
             assertEquals("original", change.name.new.toString())
         }
-        publicationDao
-            .fetchPublishedSwitches(setOf(originalPublication))
-            .getValue(originalPublication)
-            .let { (directChanges, indirectChanges) ->
+        publicationDao.fetchPublishedSwitches(setOf(originalPublication)).getValue(originalPublication).let {
+            (directChanges, indirectChanges) ->
             assertEquals(
                 listOf(switchDao.fetchVersion(MainLayoutContext.official, switch.id)),
                 directChanges.map { it.version },
@@ -1500,10 +1492,8 @@ constructor(
             val change = changes[switch.id]!!
             assertEquals("original", change.name.new.toString())
         }
-        publicationDao
-            .fetchPublishedKmPosts(setOf(originalPublication))
-            .getValue(originalPublication)
-            .let { published ->
+        publicationDao.fetchPublishedKmPosts(setOf(originalPublication)).getValue(originalPublication).let { published
+            ->
             assertEquals(1, published.size)
             assertEquals(KmNumber(124), published[0].kmNumber)
         }

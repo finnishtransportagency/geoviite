@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -258,8 +259,22 @@ constructor(
     @Test
     fun `Link geometry KM-Post to nearest track layout KM-post`() {
         val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
-        kmPostDao.save(kmPost(trackNumberId, KmNumber("0123"), DEFAULT_BASE_POINT + Point(5.0, 5.0), draft = false))
-        kmPostDao.save(kmPost(trackNumberId, KmNumber("0124"), DEFAULT_BASE_POINT + Point(17.0, 18.0), draft = false))
+        kmPostDao.save(
+            kmPost(
+                trackNumberId,
+                KmNumber("0123"),
+                kmPostGkLocation(DEFAULT_BASE_POINT + Point(5.0, 5.0)),
+                draft = false,
+            )
+        )
+        kmPostDao.save(
+            kmPost(
+                trackNumberId,
+                KmNumber("0124"),
+                kmPostGkLocation(DEFAULT_BASE_POINT + Point(17.0, 18.0)),
+                draft = false,
+            )
+        )
 
         val plan =
             testGeometryPlanService

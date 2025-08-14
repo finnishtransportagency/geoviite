@@ -57,14 +57,14 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.processFlattened
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
+import withUser
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
-import withUser
 
 val unknownSwitchName = SwitchName("-")
 
@@ -189,7 +189,7 @@ constructor(
             }
         val structure = switch.switchStructureId?.let(switchLibraryService::getSwitchStructure)
         return if (transformation != null && structure != null) {
-            toLayoutSwitch(switch, structure, transformation)
+            toLayoutSwitch(switch, structure, transformation, switchLibraryService.getDefaultSwitchOwner().id)
         } else {
             null
         }

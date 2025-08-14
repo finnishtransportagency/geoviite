@@ -422,7 +422,7 @@ class LayoutSwitchDao(
                     accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
                 ),
             trapPoint = rs.getBooleanOrNull("trap_point"),
-            ownerId = rs.getIntIdOrNull("owner_id"),
+            ownerId = rs.getIntId("owner_id"),
             source = rs.getEnum("source"),
             draftOid = rs.getOidOrNull("draft_oid"),
             contextData =

@@ -32,6 +32,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
@@ -178,19 +179,19 @@ class HelsinkiTestData private constructor() {
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber("0001we"),
-                    roughLayoutLocation = point1,
+                    gkLocation = kmPostGkLocation(point1),
                     draft = false,
                 ),
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber("0002we"),
-                    roughLayoutLocation = point2,
+                    gkLocation = kmPostGkLocation(point2),
                     draft = false,
                 ),
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber("0003we"),
-                    roughLayoutLocation = point3,
+                    gkLocation = kmPostGkLocation(point3),
                     draft = false,
                 ),
             )
@@ -205,19 +206,19 @@ class HelsinkiTestData private constructor() {
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber("0001es"),
-                    roughLayoutLocation = point1,
+                    gkLocation = kmPostGkLocation(point1),
                     draft = false,
                 ),
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber("0002es"),
-                    roughLayoutLocation = point2,
+                    gkLocation = kmPostGkLocation(point2),
                     draft = false,
                 ),
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber("0003es"),
-                    roughLayoutLocation = point3,
+                    gkLocation = kmPostGkLocation(point3),
                     draft = false,
                 ),
             )

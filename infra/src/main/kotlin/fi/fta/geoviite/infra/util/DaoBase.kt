@@ -8,12 +8,12 @@ import fi.fta.geoviite.infra.logging.AccessType.VERSION_FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.FetchType.MULTI
 import fi.fta.geoviite.infra.util.FetchType.SINGLE
-import java.sql.ResultSet
-import java.time.Instant
-import kotlin.reflect.KClass
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import java.sql.ResultSet
+import java.time.Instant
+import kotlin.reflect.KClass
 
 enum class FetchType {
     SINGLE,
@@ -52,7 +52,7 @@ enum class LayoutAssetTable(val dbTable: DbTable, val idTable: String, layoutCon
     val versionTable: String = dbTable.versionTable
 }
 
-enum class DbTable(schema: String, table: String, sortColumns: List<String> = listOf("id")) {
+enum class DbTable(schema: String, val table: String, sortColumns: List<String> = listOf("id")) {
     COMMON_SWITCH_STRUCTURE("common", "switch_structure"),
     LAYOUT_ALIGNMENT("layout", "alignment"),
     LAYOUT_LOCATION_TRACK("layout", "location_track"),

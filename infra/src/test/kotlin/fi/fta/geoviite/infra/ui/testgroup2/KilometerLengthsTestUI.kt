@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -17,14 +18,14 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -53,9 +54,9 @@ constructor(
             locationTrack(trackNumberId = trackNumberId, name = "foo bar", draft = false),
             trackGeometryOfSegments(lineSegments),
         )
-        kmPostDao.save(kmPost(trackNumberId, KmNumber(1), Point(900.0, 1.0), draft = false))
-        kmPostDao.save(kmPost(trackNumberId, KmNumber(2), Point(2000.0, -1.0), draft = false))
-        kmPostDao.save(kmPost(trackNumberId, KmNumber(3), Point(3000.0, 0.0), draft = false))
+        kmPostDao.save(kmPost(trackNumberId, KmNumber(1), kmPostGkLocation(900.0, 1.0), draft = false))
+        kmPostDao.save(kmPost(trackNumberId, KmNumber(2), kmPostGkLocation(2000.0, -1.0), draft = false))
+        kmPostDao.save(kmPost(trackNumberId, KmNumber(3), kmPostGkLocation(3000.0, 0.0), draft = false))
     }
 
     @Test

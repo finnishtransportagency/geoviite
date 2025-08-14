@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertEquals
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -110,21 +111,22 @@ constructor(
 
         kmPostService.saveDraft(
             LayoutBranch.main,
-            kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 14.5), draft = true),
+            kmPost(trackNumberId, KmNumber("0155"), kmPostGkLocation(0.0, 14.5), draft = true),
         )
         kmPostService.saveDraft(
             LayoutBranch.main,
-            kmPost(trackNumberId, KmNumber("0156"), Point(0.0, 27.6), draft = true),
+            kmPost(trackNumberId, KmNumber("0156"), kmPostGkLocation(0.0, 27.6), draft = true),
         )
 
         // tickLength = 5 => normal ticks less than 2.5 distance apart from a neighbor get dropped
-        val actual = geometryService.getLocationTrackHeights(
-            MainLayoutContext.draft,
-            locationTrackId,
-            LineM(0.0),
-            LineM(30.0),
-            5
-        )!!
+        val actual =
+            geometryService.getLocationTrackHeights(
+                MainLayoutContext.draft,
+                locationTrackId,
+                LineM(0.0),
+                LineM(30.0),
+                5,
+            )!!
 
         // location track starts 1 m after reference line start; reference line start address is
         // 123.4; so first address
@@ -134,10 +136,11 @@ constructor(
         // start.
         val expectedData =
             listOf(
-                "0154" to listOf(124.4 to 0.0, 125.0 to 0.6, 130.0 to 5.6, 135.0 to 10.6),
-                "0155" to listOf(0.0 to 13.5, 5.0 to 18.5, 10.0 to 23.5),
-                "0156" to listOf(0.0 to 26.6, 1.4 to 28.0),
-            ).map { (kmNumber, ms) -> kmNumber to ms.map { (meter, m) -> meter to LineM<LocationTrackM>(m) } }
+                    "0154" to listOf(124.4 to 0.0, 125.0 to 0.6, 130.0 to 5.6, 135.0 to 10.6),
+                    "0155" to listOf(0.0 to 13.5, 5.0 to 18.5, 10.0 to 23.5),
+                    "0156" to listOf(0.0 to 26.6, 1.4 to 28.0),
+                )
+                .map { (kmNumber, ms) -> kmNumber to ms.map { (meter, m) -> meter to LineM<LocationTrackM>(m) } }
 
         actual.forEachIndexed { kmIndex, actualKm ->
             val expectedKm = expectedData[kmIndex]
@@ -210,13 +213,14 @@ constructor(
                     ),
                 )
                 .id
-        val kmHeights = geometryService.getLocationTrackHeights(
-            MainLayoutContext.draft,
-            locationTrackId,
-            LineM(0.0),
-            LineM(20.0),
-            5
-        )!!
+        val kmHeights =
+            geometryService.getLocationTrackHeights(
+                MainLayoutContext.draft,
+                locationTrackId,
+                LineM(0.0),
+                LineM(20.0),
+                5,
+            )!!
         // this track is exactly straight on the reference line, so m-values and track meters
         // coincide perfectly; also,
         // the profile is at exactly 50 meters height at every point where it's linked
@@ -235,12 +239,13 @@ constructor(
                     13 to 50,
                     15 to 50,
                     17 to 50,
-                ).map { (m, h) ->
+                )
+                .map { (m, h) ->
                     TrackMeterHeight(
                         LineM<LocationTrackM>(m.toDouble()),
                         m.toDouble(),
                         h?.toDouble(),
-                        Point(0.0, m.toDouble())
+                        Point(0.0, m.toDouble()),
                     )
                 }
         assertEquals(expected, kmHeights[0].trackMeterHeights)
@@ -287,16 +292,17 @@ constructor(
         // its position back to exactly 10, causing the 9..10 connection segment's end address to
         // also be in
         // track km 0155
-        val post = kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 10.00001), draft = true)
+        val post = kmPost(trackNumberId, KmNumber("0155"), kmPostGkLocation(0.0, 10.00001), draft = true)
         kmPostService.saveDraft(LayoutBranch.main, post)
 
-        val actual = geometryService.getLocationTrackHeights(
-            MainLayoutContext.draft,
-            locationTrackId,
-            LineM(0.0),
-            LineM(20.0),
-            5
-        )!!
+        val actual =
+            geometryService.getLocationTrackHeights(
+                MainLayoutContext.draft,
+                locationTrackId,
+                LineM(0.0),
+                LineM(20.0),
+                5,
+            )!!
 
         val expected =
             listOf(
@@ -335,19 +341,20 @@ constructor(
                 .id
         kmPostService.saveDraft(
             LayoutBranch.main,
-            kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 8.0), draft = true),
+            kmPost(trackNumberId, KmNumber("0155"), kmPostGkLocation(0.0, 8.0), draft = true),
         )
         kmPostService.saveDraft(
             LayoutBranch.main,
-            kmPost(trackNumberId, KmNumber("0156"), Point(0.0, 9.0), draft = true),
+            kmPost(trackNumberId, KmNumber("0156"), kmPostGkLocation(0.0, 9.0), draft = true),
         )
-        val actual = geometryService.getLocationTrackHeights(
-            MainLayoutContext.draft,
-            locationTrackId,
-            LineM(0.0),
-            LineM(20.0),
-            5
-        )!!
+        val actual =
+            geometryService.getLocationTrackHeights(
+                MainLayoutContext.draft,
+                locationTrackId,
+                LineM(0.0),
+                LineM(20.0),
+                5,
+            )!!
         assertEquals(3, actual.size)
         assertEquals(2, actual[0].trackMeterHeights.size)
         assertEquals(1, actual[1].trackMeterHeights.size)

@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -546,7 +547,7 @@ constructor(
                 kmPost(
                     trackNumberId = geocodableTrack.trackNumber.id as IntId,
                     km = KmNumber(index + 1),
-                    roughLayoutLocation = kmPostLocation,
+                    gkLocation = kmPostGkLocation(kmPostLocation),
                     draft = false,
                 )
             }

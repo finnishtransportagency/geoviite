@@ -40,6 +40,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.offsetGeometry
 import fi.fta.geoviite.infra.tracklayout.rawPoints
@@ -413,8 +414,8 @@ class PublicationValidationTest {
                 geocodingContext(
                     toSegmentPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(
-                        kmPost(IntId(1), KmNumber(1), Point(12.0, 0.0), draft = true),
-                        kmPost(IntId(1), KmNumber(2), Point(18.0, 0.0), draft = true),
+                        kmPost(IntId(1), KmNumber(1), kmPostGkLocation(12.0, 0.0), draft = true),
+                        kmPost(IntId(1), KmNumber(2), kmPostGkLocation(18.0, 0.0), draft = true),
                     ),
                 ),
                 TrackNumber("001"),
@@ -428,8 +429,8 @@ class PublicationValidationTest {
                 geocodingContext(
                     toSegmentPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(
-                        kmPost(IntId(1), KmNumber(2), Point(18.0, 0.0), draft = true),
-                        kmPost(IntId(1), KmNumber(1), Point(12.0, 0.0), draft = true),
+                        kmPost(IntId(1), KmNumber(2), kmPostGkLocation(18.0, 0.0), draft = true),
+                        kmPost(IntId(1), KmNumber(1), kmPostGkLocation(12.0, 0.0), draft = true),
                     ),
                 ),
                 TrackNumber("001"),
@@ -448,7 +449,7 @@ class PublicationValidationTest {
             validateGeocodingContext(
                 geocodingContext(
                     toSegmentPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
-                    listOf(kmPost(IntId(1), KmNumber(1), Point(15.0, 0.0), draft = true)),
+                    listOf(kmPost(IntId(1), KmNumber(1), kmPostGkLocation(15.0, 0.0), draft = true)),
                 ),
                 TrackNumber("001"),
             ),
@@ -459,7 +460,7 @@ class PublicationValidationTest {
             validateGeocodingContext(
                 geocodingContext(
                     toSegmentPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
-                    listOf(kmPost(IntId(1), KmNumber(1), Point(5.0, 0.0), draft = true)),
+                    listOf(kmPost(IntId(1), KmNumber(1), kmPostGkLocation(5.0, 0.0), draft = true)),
                 ),
                 TrackNumber("001"),
             ),
@@ -470,7 +471,7 @@ class PublicationValidationTest {
             validateGeocodingContext(
                 geocodingContext(
                     toSegmentPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
-                    listOf(kmPost(IntId(1), KmNumber(1), Point(25.0, 0.0), draft = true)),
+                    listOf(kmPost(IntId(1), KmNumber(1), kmPostGkLocation(25.0, 0.0), draft = true)),
                 ),
                 TrackNumber("001"),
             ),
@@ -995,7 +996,11 @@ class PublicationValidationTest {
         tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     ): List<LayoutValidationIssue> = validateSwitchLocationTrackLinkStructure(switch, structure, tracks)
 
-    private fun <M: AlignmentM<M>> assertAddressPointError(hasError: Boolean, geocode: () -> AlignmentAddresses<M>?, error: String) {
+    private fun <M : AlignmentM<M>> assertAddressPointError(
+        hasError: Boolean,
+        geocode: () -> AlignmentAddresses<M>?,
+        error: String,
+    ) {
         assertContainsError(
             hasError,
             validateAddressPoints(

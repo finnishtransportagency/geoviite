@@ -50,6 +50,7 @@ import fi.fta.geoviite.infra.tracklayout.addTopologyStartSwitchIntoLocationTrack
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.moveKmPostLocation
 import fi.fta.geoviite.infra.tracklayout.moveLocationTrackGeometryPointsAndUpdate
@@ -506,7 +507,7 @@ constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
-            { point -> if (point.m.distance <200) point + 2.0 else point.toPoint() },
+            { point -> if (point.m.distance < 200) point + 2.0 else point.toPoint() },
             locationTrackService = locationTrackService,
         )
 
@@ -1067,8 +1068,7 @@ constructor(
     fun `changes done in a main publication can be inherited to assets edited in design`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
-        val kmPost =
-            mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         val switch = mainOfficialContext.save(switch(joints = listOf(switchJoint(1, Point(7.0, 0.0))))).id
         val locationTrack =
             mainOfficialContext
@@ -1134,8 +1134,7 @@ constructor(
         mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        val kmPost =
-            mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         val switch = designDraftContext.save(switch(joints = listOf(switchJoint(1, Point(7.0, 0.0))))).id
         val locationTrack =
             designDraftContext
@@ -1195,8 +1194,7 @@ constructor(
     fun `changes to main objects that are overridden in design don't cause inherited changes`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
-        val kmPost =
-            mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         val switch =
             mainOfficialContext
                 .save(
@@ -1257,9 +1255,9 @@ constructor(
     fun `getChangedSwitchesFromChangedLocationTrackKms happy path`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(12.0, 0.0))))
-        mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
-        mainOfficialContext.save(kmPost(trackNumber, KmNumber(2), roughLayoutLocation = Point(6.0, 0.0))).id
-        mainOfficialContext.save(kmPost(trackNumber, KmNumber(3), roughLayoutLocation = Point(9.0, 0.0))).id
+        mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
+        mainOfficialContext.save(kmPost(trackNumber, KmNumber(2), kmPostGkLocation(6.0, 0.0))).id
+        mainOfficialContext.save(kmPost(trackNumber, KmNumber(3), kmPostGkLocation(9.0, 0.0))).id
         val switchAt0 = mainDraftContext.save(switch(joints = listOf(switchJoint(1, Point(4.0, 0.0))))).id
         val switchAt4 = mainDraftContext.save(switch(joints = listOf(switchJoint(1, Point(4.0, 0.0))))).id
         val locationTrack =
@@ -1324,7 +1322,7 @@ constructor(
     fun `getChangedSwitchesFromChangedLocationTrackKms accepts cancelled location tracks created in design`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(12.0, 0.0))))
-        mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0))).id
+        mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         val switch = mainOfficialContext.save(switch(joints = listOf(switchJoint(1, Point(4.0, 0.0))))).id
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, PublicationState.OFFICIAL)
@@ -1431,7 +1429,7 @@ constructor(
                         kmPost(
                             trackNumberId = trackNumber.id as IntId,
                             km = kmNumber,
-                            roughLayoutLocation = refPoint + location,
+                            gkLocation = kmPostGkLocation(refPoint + location),
                             draft = false,
                         )
                     )

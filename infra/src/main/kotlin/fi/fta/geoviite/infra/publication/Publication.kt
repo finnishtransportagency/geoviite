@@ -2,7 +2,25 @@ package fi.fta.geoviite.infra.publication
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DesignBranch
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.MainBranch
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.TrackNumberDescription
+import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -19,7 +37,24 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
+import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import java.time.Instant
@@ -547,7 +582,13 @@ data class SwitchLocationTrack(
     val oldVersion: LayoutRowVersion<LocationTrack>,
 )
 
-data class Change<T>(val old: T?, val new: T?)
+data class Change<T>(val old: T?, val new: T) {
+    companion object {
+        fun <S, T> of(old: S?, new: S, getter: (S) -> T): Change<T> = Change(old?.let(getter), getter(new))
+    }
+
+    fun <S> map(op: (T) -> S): Change<S> = Change(old?.let(op), op(new))
+}
 
 data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
@@ -555,11 +596,12 @@ data class LocationTrackChanges(
     val descriptionBase: Change<LocationTrackDescriptionBase>,
     val descriptionSuffix: Change<LocationTrackDescriptionSuffix>,
     val state: Change<LocationTrackState>,
-    val duplicateOf: Change<IntId<LocationTrack>>,
+    val duplicateOf: Change<IntId<LocationTrack>?>,
     val type: Change<LocationTrackType>,
     val length: Change<Double>,
-    val startPoint: Change<Point>,
-    val endPoint: Change<Point>,
+    // TODO: These should not be nullable, but current test data contains broken location tracks
+    val startPoint: Change<Point?>,
+    val endPoint: Change<Point?>,
     val trackNumberId: Change<IntId<LayoutTrackNumber>>,
     val geometryChangeSummaries: List<GeometryChangeSummary>?,
     val owner: Change<IntId<LocationTrackOwner>>,
@@ -579,8 +621,9 @@ data class SwitchChanges(
     val trapPoint: Change<TrapPoint>,
     val type: Change<SwitchType>,
     val owner: Change<MetaDataName>,
-    val measurementMethod: Change<MeasurementMethod>,
+    val measurementMethod: Change<MeasurementMethod?>,
     val joints: List<PublicationDao.PublicationSwitchJoint>,
+    //    val tracks: Change<List<LayoutRowVersion<LocationTrack>>>,
     val locationTracks: List<SwitchLocationTrack>,
 )
 
@@ -598,8 +641,9 @@ data class TrackNumberChanges(
     val trackNumber: Change<TrackNumber>,
     val description: Change<TrackNumberDescription>,
     val state: Change<LayoutState>,
-    val startAddress: Change<TrackMeter>,
-    val endPoint: Change<Point>,
+    // TODO: These should not be nullable, but current test data contains broken track numbers
+    val startAddress: Change<TrackMeter?>,
+    val endPoint: Change<Point?>,
 )
 
 data class KmPostChanges(
@@ -752,11 +796,11 @@ fun draftTransitionOrOfficialState(publicationState: PublicationState, branch: L
     }
 
 data class PublishedVersions(
-    val trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>>,
-    val referenceLines: List<LayoutRowVersion<ReferenceLine>>,
-    val locationTracks: List<LayoutRowVersion<LocationTrack>>,
-    val switches: List<LayoutRowVersion<LayoutSwitch>>,
-    val kmPosts: List<LayoutRowVersion<LayoutKmPost>>,
+    val trackNumbers: List<Change<LayoutRowVersion<LayoutTrackNumber>>>,
+    val referenceLines: List<Change<LayoutRowVersion<ReferenceLine>>>,
+    val locationTracks: List<Change<LayoutRowVersion<LocationTrack>>>,
+    val switches: List<Change<LayoutRowVersion<LayoutSwitch>>>,
+    val kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>>,
 )
 
 data class PreparedPublicationRequest(
@@ -770,5 +814,8 @@ data class PreparedPublicationRequest(
 
 data class PublicationResultVersions<T : LayoutAsset<T>>(
     val published: LayoutRowVersion<T>,
+    val base: LayoutRowVersion<T>?,
     val completed: Pair<DesignBranch, LayoutRowVersion<T>>?,
-)
+) {
+    val versionChange: Change<LayoutRowVersion<T>> = Change(base, published)
+}

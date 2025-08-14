@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.geography.ToGkFinTransformation
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -123,6 +124,7 @@ class PlanLayoutCache(
                 heightTriangles,
                 planToGkTransformation,
                 { id -> switchLibraryService.getSwitchStructure(id) },
+                switchLibraryService.getDefaultSwitchOwner().id,
                 logger,
             )
         // caching is optional because some callers just want the transformation, but don't have a
@@ -143,6 +145,7 @@ private fun transformToLayoutPlan(
     heightTriangles: List<HeightTriangle>,
     planToGkTransformation: ToGkFinTransformation,
     getStructure: (IntId<SwitchStructure>) -> SwitchStructure,
+    ownerId: IntId<SwitchOwner>,
     logger: Logger,
 ): Pair<GeometryPlanLayout?, TransformationError?> =
     try {
@@ -155,6 +158,7 @@ private fun transformToLayoutPlan(
             pointListStepLength = pointListStepLength,
             planToGkTransformation = planToGkTransformation,
             getStructure = getStructure,
+            ownerId = ownerId,
         ) to null
     } catch (e: CoordinateTransformationException) {
         logger.warn(

@@ -7,13 +7,13 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.linking.LayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.Point
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -35,7 +35,7 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumberId,
                         km = KmNumber(1),
-                        roughLayoutLocation = Point(1.0, 1.0),
+                        gkLocation = kmPostGkLocation(1.0, 1.0),
                         draft = false,
                     )
                 )
@@ -46,29 +46,27 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumberId,
                         km = KmNumber(2),
-                        roughLayoutLocation = Point(2.0, 1.0),
-                        draft = false,
+                        gkLocation = kmPostGkLocation(2.0, 1.0),
+                        draft = true,
                     )
                 )
             )
         val kmPost3 =
             kmPostDao.fetch(
-                kmPostDao.save(
-                    kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = null, draft = false)
-                )
+                kmPostDao.save(kmPost(trackNumberId = trackNumberId, km = KmNumber(3), gkLocation = null, draft = true))
             )
 
         kmPostDao.save(
             kmPost(
                 trackNumberId = mainOfficialContext.createLayoutTrackNumber().id,
                 km = KmNumber(4),
-                roughLayoutLocation = null,
-                draft = false,
+                gkLocation = null,
+                draft = true,
             )
         )
 
         val actual =
-            kmPostService.listNearbyOnTrackPaged(MainLayoutContext.official, Point(0.0, 0.0), trackNumberId, 0, null)
+            kmPostService.listNearbyOnTrackPaged(MainLayoutContext.draft, Point(0.0, 0.0), trackNumberId, 0, null)
         val expected = listOf(kmPost3, kmPost1, kmPost2)
         assertEquals(expected, actual)
     }
@@ -82,7 +80,7 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumberId,
                         km = KmNumber(1),
-                        roughLayoutLocation = Point(1.0, 1.0),
+                        gkLocation = kmPostGkLocation(1.0, 1.0),
                         draft = false,
                     )
                 )
@@ -100,7 +98,7 @@ constructor(
             kmPost(
                 trackNumberId = trackNumberId,
                 km = KmNumber(1),
-                roughLayoutLocation = Point(1.0, 1.0),
+                gkLocation = kmPostGkLocation(1.0, 1.0),
                 draft = false,
             )
         )
@@ -118,7 +116,7 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumber1Id,
                         km = KmNumber(1),
-                        roughLayoutLocation = Point(1.0, 1.0),
+                        gkLocation = kmPostGkLocation(1.0, 1.0),
                         draft = false,
                     )
                 )
@@ -174,12 +172,18 @@ constructor(
         )
         val kmPosts =
             listOf(
-                kmPost(trackNumberId, KmNumber(1), Point(0.0, 3.0), draft = true),
-                kmPost(trackNumberId, KmNumber(2), Point(0.0, 5.0), draft = true),
+                kmPost(trackNumberId, KmNumber(1), kmPostGkLocation(0.0, 3.0), draft = true),
+                kmPost(trackNumberId, KmNumber(2), kmPostGkLocation(0.0, 5.0), draft = true),
                 kmPost(trackNumberId, KmNumber(3), null, draft = true),
-                kmPost(trackNumberId, KmNumber(4), Point(0.0, 6.0), state = LayoutState.NOT_IN_USE, draft = true),
-                kmPost(trackNumberId, KmNumber(5, "A"), Point(3.0, 14.0), draft = true),
-                kmPost(trackNumberId, KmNumber(5, "AA"), Point(6.0, 18.0), draft = true),
+                kmPost(
+                    trackNumberId,
+                    KmNumber(4),
+                    kmPostGkLocation(0.0, 6.0),
+                    state = LayoutState.NOT_IN_USE,
+                    draft = true,
+                ),
+                kmPost(trackNumberId, KmNumber(5, "A"), kmPostGkLocation(3.0, 14.0), draft = true),
+                kmPost(trackNumberId, KmNumber(5, "AA"), kmPostGkLocation(6.0, 18.0), draft = true),
             )
         val kmPostSaveResults = kmPosts.map { d -> kmPostService.saveDraft(LayoutBranch.main, d) }.map { it.id }
 

@@ -49,6 +49,7 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -1902,7 +1903,7 @@ constructor(
             designOfficialContext
                 .save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
-        val kmPost = designOfficialContext.save(kmPost(trackNumber, KmNumber(1), Point(1.0, 0.0))).id
+        val kmPost = designOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(1.0, 0.0))).id
         designDraftContext.save(designOfficialContext.fetch(kmPost)!!)
         trackNumberService.cancel(designBranch, trackNumber)
         referenceLineService.cancel(designBranch, referenceLine)
@@ -2009,19 +2010,23 @@ constructor(
         val alignment = alignment(segment(Point(0.0, 0.0), Point(40.0, 0.0)))
         mainOfficialContext.save(referenceLine(trackNumberId), alignment).id
 
-        mainOfficialContext.save(kmPost(trackNumberId, KmNumber(1), Point(1.0, 0.0)))
-        mainOfficialContext.save(kmPost(trackNumberId, KmNumber(2), Point(2.0, 0.0)))
-        mainOfficialContext.save(kmPost(trackNumberId, KmNumber(3), Point(3.0, 0.0), state = LayoutState.DELETED))
-        mainOfficialContext.save(kmPost(trackNumberId, KmNumber(4), Point(4.0, 0.0), state = LayoutState.DELETED))
-        val kp1 = designOfficialContext.save(kmPost(trackNumberId, KmNumber(1), Point(1.0, 0.0))).id
+        mainOfficialContext.save(kmPost(trackNumberId, KmNumber(1), kmPostGkLocation(1.0, 0.0)))
+        mainOfficialContext.save(kmPost(trackNumberId, KmNumber(2), kmPostGkLocation(2.0, 0.0)))
+        mainOfficialContext.save(
+            kmPost(trackNumberId, KmNumber(3), kmPostGkLocation(3.0, 0.0), state = LayoutState.DELETED)
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId, KmNumber(4), kmPostGkLocation(4.0, 0.0), state = LayoutState.DELETED)
+        )
+        val kp1 = designOfficialContext.save(kmPost(trackNumberId, KmNumber(1), kmPostGkLocation(1.0, 0.0))).id
         val kp2 =
             designOfficialContext
-                .save(kmPost(trackNumberId, KmNumber(2), Point(2.0, 0.0), state = LayoutState.DELETED))
+                .save(kmPost(trackNumberId, KmNumber(2), kmPostGkLocation(2.0, 0.0), state = LayoutState.DELETED))
                 .id
-        val kp3 = designOfficialContext.save(kmPost(trackNumberId, KmNumber(3), Point(3.0, 0.0))).id
+        val kp3 = designOfficialContext.save(kmPost(trackNumberId, KmNumber(3), kmPostGkLocation(3.0, 0.0))).id
         val kp4 =
             designOfficialContext
-                .save(kmPost(trackNumberId, KmNumber(4), Point(4.0, 0.0), state = LayoutState.DELETED))
+                .save(kmPost(trackNumberId, KmNumber(4), kmPostGkLocation(4.0, 0.0), state = LayoutState.DELETED))
                 .id
 
         val validation =

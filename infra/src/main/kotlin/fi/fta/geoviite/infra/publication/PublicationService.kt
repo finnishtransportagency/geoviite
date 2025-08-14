@@ -422,11 +422,11 @@ constructor(
             publicationId,
             calculatedChanges,
             PublishedVersions(
-                trackNumbers.map { it.published },
-                referenceLines.map { it.published },
-                locationTracks.map { it.published },
-                switches.map { it.published },
-                kmPosts.map { it.published },
+                trackNumbers.map { it.versionChange },
+                referenceLines.map { it.versionChange },
+                locationTracks.map { it.versionChange },
+                switches.map { it.versionChange },
+                kmPosts.map { it.versionChange },
             ),
         )
 
