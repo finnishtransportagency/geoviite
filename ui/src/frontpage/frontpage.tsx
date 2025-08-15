@@ -11,6 +11,8 @@ import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_LAYOUT_DRAFT } from 'user/user-model';
 import DesignPublicationCard from 'publication/card/design-publication-card';
 
+const MAX_LISTED_PUBLICATIONS = 8;
+
 type FrontPageProps = {
     publicationChangeTime: TimeStamp;
     ratkoPushChangeTime: TimeStamp;
@@ -36,11 +38,13 @@ const Frontpage: React.FC<FrontPageProps> = ({
                     ratkoPushChangeTime={ratkoPushChangeTime}
                     splitChangeTime={splitChangeTime}
                     ratkoStatus={ratkoStatus}
+                    maxListedPublications={MAX_LISTED_PUBLICATIONS}
                 />
                 <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
                     <DesignPublicationCard
                         publicationChangeTime={publicationChangeTime}
                         designChangeTime={designChangeTime}
+                        maxListedPublications={MAX_LISTED_PUBLICATIONS}
                     />
                 </PrivilegeRequired>
                 <UserCardContainer />

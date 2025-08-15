@@ -25,11 +25,12 @@ import {
 import { PublicationDetails } from 'publication/publication-model';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
-type PublishListProps = {
+type MainPublicationCardProps = {
     publicationChangeTime: TimeStamp;
     ratkoPushChangeTime: TimeStamp;
     splitChangeTime: TimeStamp;
     ratkoStatus: RatkoStatus | undefined;
+    maxListedPublications: number;
 };
 
 const RATKO_SUPPORT_EMAIL = 'vayla.asiakkaat.fi@cgi.com';
@@ -112,13 +113,12 @@ function latestFailureByLayoutBranch(
     ].sort((a, b) => compareTimestamps(b.publicationTime, a.publicationTime));
 }
 
-export const MAX_LISTED_PUBLICATIONS = 8;
-
-const MainPublicationCard: React.FC<PublishListProps> = ({
+const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
     publicationChangeTime,
     ratkoPushChangeTime,
     splitChangeTime,
     ratkoStatus,
+    maxListedPublications,
 }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -134,7 +134,7 @@ const MainPublicationCard: React.FC<PublishListProps> = ({
 
     const [pageCount, setPageCount] = React.useState(1);
     const [publications, publicationFetchStatus] = useLoaderWithStatus(
-        () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount, 'MAIN'),
+        () => getLatestPublications(maxListedPublications * pageCount, 'MAIN'),
         [publicationChangeTime, ratkoPushChangeTime, splitChangeTime, pageCount],
     );
     const reachedLastPublication =
