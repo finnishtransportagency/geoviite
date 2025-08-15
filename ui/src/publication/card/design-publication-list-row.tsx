@@ -51,6 +51,7 @@ const ManualPublicationRowContent: React.FC<DesignPublicationListRowProps> = ({
     publication,
     designName,
 }) => {
+    const { t } = useTranslation();
     return (
         <div className={styles['publication-list-item']}>
             <span className={styles['publication-list-item__timestamp']}>
@@ -61,7 +62,7 @@ const ManualPublicationRowContent: React.FC<DesignPublicationListRowProps> = ({
             <span>
                 <React.Fragment>
                     <span className={styles['publication-list-item__design-name']}>
-                        {`${designName ?? '???'}:`}
+                        {`${designName ?? t('publication-card.missing-design-name')}:`}
                     </span>
                     {publication.message}
                 </React.Fragment>
@@ -74,6 +75,7 @@ const GeneratedPublicationRowContent: React.FC<DesignPublicationListRowProps> = 
     publication,
     designName,
 }) => {
+    const { t } = useTranslation();
     const itemClassNames = createClassName(
         styles['publication-list-item'],
         publication.cause !== PublicationCause.MANUAL &&
@@ -88,7 +90,10 @@ const GeneratedPublicationRowContent: React.FC<DesignPublicationListRowProps> = 
                     {formatDateFull(publication.publicationTime)}
                 </span>
             </span>
-            <span className={styles['publication-list-item__design-name']}>{`${designName}:`}</span>
+            <span
+                className={
+                    styles['publication-list-item__design-name']
+                }>{`${designName ?? t('publication-card.missing-design-name')}:`}</span>
             <DesignPublicationCauseText cause={publication.cause} />
         </div>
     );
