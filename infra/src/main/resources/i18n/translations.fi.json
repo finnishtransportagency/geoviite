@@ -1841,8 +1841,8 @@
         "transfer-starts-after-reconnect": "Vienti käynnistyy automaattisesti Ratko-yhteyden palautumisen jälkeen",
         "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
         "design-publication-cause": {
-            "design-cancellation": "{{designName}}: Suunnitelman poisto",
-            "design-change": "{{designName}}: Suunnitelman metatietojen muutos"
+            "design-cancellation": "Suunnitelman poisto",
+            "design-change": "Suunnitelman metatietojen muutos"
         },
         "push-error": {
             "location-track": "Sijaintiraiteen",

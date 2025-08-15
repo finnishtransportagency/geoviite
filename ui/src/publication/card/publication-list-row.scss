@@ -1,9 +1,5 @@
 @use 'vayla-design-lib' as vayla-design;
 
-.publication-list__header {
-    margin-bottom: 12px;
-}
-
 .publication-list-item-container {
     margin-bottom: 12px;
 }
@@ -111,7 +107,13 @@
         margin-right: 2px;
     }
 
-    &--design-publication {
+    &__design-icon {
+        align-items: center;
+        margin-right: 4px;
+        margin-left: 2px;
+    }
+
+    &--generated-publication {
         font-style: italic;
         color: vayla-design.$color-black-lighter;
         fill: vayla-design.$color-black-lighter;

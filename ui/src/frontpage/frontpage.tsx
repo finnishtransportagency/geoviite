@@ -1,5 +1,5 @@
 import * as React from 'react';
-import PublicationCard from 'publication/card/publication-card';
+import MainPublicationCard from 'publication/card/main-publication-card';
 import styles from './frontpage.scss';
 
 import { useLoaderWithTimer } from 'utils/react-utils';
@@ -9,6 +9,7 @@ import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
 import { TimeStamp } from 'common/common-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_LAYOUT_DRAFT } from 'user/user-model';
+import DesignPublicationCard from 'publication/card/design-publication-card';
 
 type FrontPageProps = {
     publicationChangeTime: TimeStamp;
@@ -28,21 +29,14 @@ const Frontpage: React.FC<FrontPageProps> = ({
     return (
         <React.Fragment>
             <div className={styles['frontpage']}>
-                <PublicationCard
+                <MainPublicationCard
                     publicationChangeTime={publicationChangeTime}
                     ratkoPushChangeTime={ratkoPushChangeTime}
                     splitChangeTime={splitChangeTime}
                     ratkoStatus={ratkoStatus}
-                    branchType="MAIN"
                 />
                 <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
-                    <PublicationCard
-                        publicationChangeTime={publicationChangeTime}
-                        ratkoPushChangeTime={ratkoPushChangeTime}
-                        splitChangeTime={splitChangeTime}
-                        ratkoStatus={ratkoStatus}
-                        branchType="DESIGN"
-                    />
+                    <DesignPublicationCard publicationChangeTime={publicationChangeTime} />
                 </PrivilegeRequired>
                 <UserCardContainer />
             </div>

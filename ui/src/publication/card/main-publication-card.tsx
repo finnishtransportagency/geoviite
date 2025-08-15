@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { compareTimestamps } from 'utils/date-utils';
-import { PublicationList } from 'publication/card/publication-list';
+import { MainPublicationList } from 'publication/card/main-publication-list';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { RatkoPushErrorDetails } from 'ratko/ratko-push-error';
 import { ratkoPushFailed, RatkoPushStatus, ratkoPushSucceeded } from 'ratko/ratko-model';
@@ -22,7 +22,7 @@ import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
-import { LayoutBranchType, PublicationDetails } from 'publication/publication-model';
+import { PublicationDetails } from 'publication/publication-model';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type PublishListProps = {
@@ -30,7 +30,6 @@ type PublishListProps = {
     ratkoPushChangeTime: TimeStamp;
     splitChangeTime: TimeStamp;
     ratkoStatus: RatkoStatus | undefined;
-    branchType: LayoutBranchType;
 };
 
 const RATKO_SUPPORT_EMAIL = 'vayla.asiakkaat.fi@cgi.com';
@@ -115,12 +114,11 @@ function latestFailureByLayoutBranch(
 
 export const MAX_LISTED_PUBLICATIONS = 8;
 
-const PublicationCard: React.FC<PublishListProps> = ({
+const MainPublicationCard: React.FC<PublishListProps> = ({
     publicationChangeTime,
     ratkoPushChangeTime,
     splitChangeTime,
     ratkoStatus,
-    branchType,
 }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -136,7 +134,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
 
     const [pageCount, setPageCount] = React.useState(1);
     const [publications, publicationFetchStatus] = useLoaderWithStatus(
-        () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount, branchType),
+        () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount, 'MAIN'),
         [publicationChangeTime, ratkoPushChangeTime, splitChangeTime, pageCount],
     );
     const reachedLastPublication =
@@ -174,28 +172,13 @@ const PublicationCard: React.FC<PublishListProps> = ({
         navigate('publication-search');
     };
 
-    const latestPublicationsTitle =
-        branchType === 'MAIN' ? t('publication-card.latest') : t('publication-card.designs-latest');
-
-    const noPublicationsMessage =
-        branchType === 'MAIN'
-            ? t('publication-card.no-publications')
-            : t('publication-card.designs-no-publications');
-
-    // All design publications immediately succeed for now as they are not transferred anywhere.
-    const successfulPublicationsToDisplay = branchType === 'MAIN' ? successes : allPublications;
-
     return (
         <Card
             className={styles['publication-card']}
             content={
                 <React.Fragment>
                     <h2 className={styles['publication-card__title']}>
-                        {t(
-                            branchType === 'MAIN'
-                                ? 'publication-card.title'
-                                : 'publication-card.designs-title',
-                        )}
+                        {t('publication-card.title')}
                     </h2>
                     <ProgressIndicatorWrapper
                         indicator={ProgressIndicatorType.Area}
@@ -205,7 +188,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                 {parseRatkoOfflineStatus(ratkoStatus?.ratkoStatusCode)}
                             </p>
                         )}
-                        {branchType === 'MAIN' && nonSuccesses.length > 0 && (
+                        {nonSuccesses.length > 0 && (
                             <section>
                                 <h3 className={styles['publication-card__subsection-title']}>
                                     {t('publication-card.waiting')}
@@ -213,7 +196,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                 {latestFailures.map((fail) => (
                                     <RatkoPushErrorDetails key={fail.id} failedPublication={fail} />
                                 ))}
-                                <PublicationList publications={nonSuccesses} />
+                                <MainPublicationList publications={nonSuccesses} />
                                 {allWaiting && (
                                     <div className={styles['publication-card__waiting-text']}>
                                         <Icons.SetTime
@@ -232,25 +215,25 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                 {latestFailures.length > 0 && (
                                     <div className={styles['publication-card__ratko-push-button']}>
                                         <RatkoPublishButton
-                                            branchType={branchType}
+                                            branchType={'MAIN'}
                                             disabled={ratkoConnectionError}
                                         />
                                     </div>
                                 )}
                             </section>
                         )}
-                        {(successfulPublicationsToDisplay.length > 0 || reachedLastPublication) && (
+                        {(successes.length > 0 || reachedLastPublication) && (
                             <section>
                                 <h3 className={styles['publication-card__subsection-title']}>
-                                    {latestPublicationsTitle}
+                                    {t('publication-card.latest')}
                                 </h3>
-                                <PublicationList publications={successfulPublicationsToDisplay} />
+                                <MainPublicationList publications={successes} />
                             </section>
                         )}
-                        {successfulPublicationsToDisplay.length === 0 &&
+                        {successes.length === 0 &&
                             (nonSuccesses.length === 0 || reachedLastPublication) && (
                                 <div className={styles['publication-card__no-publications']}>
-                                    {noPublicationsMessage}
+                                    {t('publication-card.no-publications')}
                                 </div>
                             )}
                         {!reachedLastPublication && (
@@ -261,7 +244,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                             </div>
                         )}
                         <br />
-                        {branchType === 'MAIN' && (
+                        {
                             <div>
                                 <AnchorLink
                                     onClick={() => navigateToPublicationLog()}
@@ -269,7 +252,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                     {t('publication-card.log-link')}
                                 </AnchorLink>
                             </div>
-                        )}
+                        }
                     </ProgressIndicatorWrapper>
                 </React.Fragment>
             }
@@ -277,4 +260,4 @@ const PublicationCard: React.FC<PublishListProps> = ({
     );
 };
 
-export default PublicationCard;
+export default MainPublicationCard;
