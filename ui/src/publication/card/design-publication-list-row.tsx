@@ -6,11 +6,10 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { createClassName } from 'vayla-design-lib/utils';
 import { formatDateFull } from 'utils/date-utils';
-import { LayoutDesign } from 'track-layout/layout-design-api';
 
 type DesignPublicationListRowProps = {
     publication: PublicationDetails;
-    design: LayoutDesign;
+    designName: string | undefined;
 };
 
 const DesignPublicationCauseIcon: React.FC<{ cause: PublicationCause }> = ({ cause }) => {
@@ -50,7 +49,7 @@ const DesignPublicationCauseText: React.FC<{ cause: PublicationCause }> = ({ cau
 
 const ManualPublicationRowContent: React.FC<DesignPublicationListRowProps> = ({
     publication,
-    design,
+    designName,
 }) => {
     return (
         <div className={styles['publication-list-item']}>
@@ -62,7 +61,7 @@ const ManualPublicationRowContent: React.FC<DesignPublicationListRowProps> = ({
             <span>
                 <React.Fragment>
                     <span className={styles['publication-list-item__design-name']}>
-                        {`${design.name}:`}
+                        {`${designName ?? '???'}:`}
                     </span>
                     {publication.message}
                 </React.Fragment>
@@ -73,7 +72,7 @@ const ManualPublicationRowContent: React.FC<DesignPublicationListRowProps> = ({
 
 const GeneratedPublicationRowContent: React.FC<DesignPublicationListRowProps> = ({
     publication,
-    design,
+    designName,
 }) => {
     const itemClassNames = createClassName(
         styles['publication-list-item'],
@@ -89,9 +88,7 @@ const GeneratedPublicationRowContent: React.FC<DesignPublicationListRowProps> = 
                     {formatDateFull(publication.publicationTime)}
                 </span>
             </span>
-            <span className={styles['publication-list-item__design-name']}>
-                {`${design.name}:`}
-            </span>
+            <span className={styles['publication-list-item__design-name']}>{`${designName}:`}</span>
             <DesignPublicationCauseText cause={publication.cause} />
         </div>
     );
@@ -99,14 +96,14 @@ const GeneratedPublicationRowContent: React.FC<DesignPublicationListRowProps> = 
 
 export const DesignPublicationListRow: React.FC<DesignPublicationListRowProps> = ({
     publication,
-    design,
+    designName,
 }) => {
     return (
         <div className={styles['publication-list-item-container']}>
             {publication.cause === PublicationCause.MANUAL ? (
-                <ManualPublicationRowContent publication={publication} design={design} />
+                <ManualPublicationRowContent publication={publication} designName={designName} />
             ) : (
-                <GeneratedPublicationRowContent publication={publication} design={design} />
+                <GeneratedPublicationRowContent publication={publication} designName={designName} />
             )}
         </div>
     );

@@ -23,18 +23,16 @@ export const DesignPublicationList: React.FC<PublicationListProps> = ({
             {publications
                 .filter((p) => !HIDDEN_PUBLICATION_CAUSES.includes(p.cause))
                 .map((publication) => {
-                    const design = designs?.find(
+                    const designName = designs?.find(
                         (d) => designBranch(d.id) === publication.layoutBranch.branch,
-                    );
+                    )?.name;
 
-                    return design ? (
+                    return (
                         <DesignPublicationListRow
                             key={publication.id}
                             publication={publication}
-                            design={design}
+                            designName={designName}
                         />
-                    ) : (
-                        <React.Fragment key={publication.id} />
                     );
                 })}
         </div>
