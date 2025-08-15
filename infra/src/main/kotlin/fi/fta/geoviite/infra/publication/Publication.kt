@@ -125,6 +125,7 @@ data class PublishedInDesign(
 enum class PublicationCause {
     MANUAL, // the usual cause: All user-created publications
     LAYOUT_DESIGN_CHANGE,
+    LAYOUT_DESIGN_DELETE,
     LAYOUT_DESIGN_CANCELLATION,
     MERGE_FINALIZATION,
     CALCULATED_CHANGE,

@@ -8,20 +8,21 @@ import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationLogService
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.queryOne
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -108,7 +109,7 @@ constructor(
     }
 
     @Test
-    fun `cancelling a design creates a cancelling publication and leaves no trace behind in the layout asset tables`() {
+    fun `cancelling a design creates two publications (design delete and design cancellation) and leaves no trace behind in the layout asset tables`() {
         val designBranch = testDBService.createDesignBranch()
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
@@ -140,13 +141,35 @@ constructor(
         assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_SWITCH))
         assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_KM_POST))
 
-        val latestPublication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
-        val details = publicationLogService.getPublicationDetails(latestPublication[0].id)
-        assertContainsSingleCancelledOfficialObject(details.trackNumbers.map { it.version }, trackNumberDao)
-        assertContainsSingleCancelledOfficialObject(details.referenceLines.map { it.version }, referenceLineDao)
-        assertContainsSingleCancelledOfficialObject(details.locationTracks.map { it.version }, locationTrackDao)
-        assertContainsSingleCancelledOfficialObject(details.switches.map { it.version }, switchDao)
-        assertContainsSingleCancelledOfficialObject(details.kmPosts.map { it.version }, kmPostDao)
+        val latestPublication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 2)
+        val designCancellationDetails = publicationLogService.getPublicationDetails(latestPublication[0].id)
+        val designDeleteDetails = publicationLogService.getPublicationDetails(latestPublication[1].id)
+
+        // Design delete should only contain design metadata change, no assets
+        assertEquals(PublicationCause.LAYOUT_DESIGN_DELETE, designDeleteDetails.cause)
+        assertEquals(0, designDeleteDetails.trackNumbers.size)
+        assertEquals(0, designDeleteDetails.referenceLines.size)
+        assertEquals(0, designDeleteDetails.locationTracks.size)
+        assertEquals(0, designDeleteDetails.switches.size)
+        assertEquals(0, designDeleteDetails.kmPosts.size)
+        assertEquals(null, designDeleteDetails.split)
+
+        // Design cancellation should contain assets
+        assertEquals(PublicationCause.LAYOUT_DESIGN_CANCELLATION, designCancellationDetails.cause)
+        assertContainsSingleCancelledOfficialObject(
+            designCancellationDetails.trackNumbers.map { it.version },
+            trackNumberDao,
+        )
+        assertContainsSingleCancelledOfficialObject(
+            designCancellationDetails.referenceLines.map { it.version },
+            referenceLineDao,
+        )
+        assertContainsSingleCancelledOfficialObject(
+            designCancellationDetails.locationTracks.map { it.version },
+            locationTrackDao,
+        )
+        assertContainsSingleCancelledOfficialObject(designCancellationDetails.switches.map { it.version }, switchDao)
+        assertContainsSingleCancelledOfficialObject(designCancellationDetails.kmPosts.map { it.version }, kmPostDao)
     }
 
     @Test

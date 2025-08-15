@@ -110,4 +110,10 @@
         font-weight: 600;
         margin-right: 2px;
     }
+
+    &--design-publication {
+        font-style: italic;
+        color: vayla-design.$color-black-lighter;
+        fill: vayla-design.$color-black-lighter;
+    }
 }

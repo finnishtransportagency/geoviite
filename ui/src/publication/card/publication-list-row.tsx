@@ -1,6 +1,10 @@
 import React, { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BulkTransferState, PublicationDetails } from 'publication/publication-model';
+import {
+    BulkTransferState,
+    PublicationCause,
+    PublicationDetails,
+} from 'publication/publication-model';
 import { ratkoPushFailed, ratkoPushInProgress, ratkoPushSucceeded } from 'ratko/ratko-model';
 import styles from 'publication/card/publication-list.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
@@ -67,6 +71,52 @@ const bulkTransferStateIcon = (bulkTransferState: BulkTransferState | undefined)
     }
 };
 
+const designPublicationCauseIcon = (cause: PublicationCause) => {
+    switch (cause) {
+        case PublicationCause.LAYOUT_DESIGN_DELETE:
+            return <Icons.Delete size={IconSize.SMALL} color={IconColor.INHERIT} />;
+        case PublicationCause.LAYOUT_DESIGN_CHANGE:
+            return <Icons.Edit size={IconSize.SMALL} color={IconColor.INHERIT} />;
+        case PublicationCause.CALCULATED_CHANGE:
+        case PublicationCause.LAYOUT_DESIGN_CANCELLATION:
+        case PublicationCause.MANUAL:
+        case PublicationCause.MERGE_FINALIZATION:
+            return <React.Fragment />;
+        default:
+            return exhaustiveMatchingGuard(cause);
+    }
+};
+
+const DesignPublicationCause: React.FC<{ designName: string; cause: PublicationCause }> = ({
+    designName,
+    cause,
+}) => {
+    const { t } = useTranslation();
+    switch (cause) {
+        case PublicationCause.LAYOUT_DESIGN_DELETE:
+            return (
+                <span>
+                    {t('publication-card.design-publication-cause.design-cancellation', {
+                        designName,
+                    })}
+                </span>
+            );
+        case PublicationCause.LAYOUT_DESIGN_CHANGE:
+            return (
+                <span>
+                    {t('publication-card.design-publication-cause.design-change', { designName })}
+                </span>
+            );
+        case PublicationCause.CALCULATED_CHANGE:
+        case PublicationCause.LAYOUT_DESIGN_CANCELLATION:
+        case PublicationCause.MERGE_FINALIZATION:
+        case PublicationCause.MANUAL:
+            return <React.Fragment />;
+        default:
+            return exhaustiveMatchingGuard(cause);
+    }
+};
+
 export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publication }) => {
     const { t } = useTranslation();
 
@@ -80,6 +130,13 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
     const buttonClassNames = createClassName(
         menuOpen && styles['publication-list-item__split-action-button--open'],
     );
+    const itemClassNames = createClassName(
+        styles['publication-list-item'],
+        publication.cause !== PublicationCause.MANUAL &&
+            !!design &&
+            styles['publication-list-item--design-publication'],
+    );
+
     const menuRef = React.createRef<HTMLDivElement>();
 
     const actions: MenuSelectOption[] = [
@@ -113,7 +170,7 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
 
     return (
         <div className={styles['publication-list-item-container']}>
-            <div className={styles['publication-list-item']}>
+            <div className={itemClassNames}>
                 <span className={styles['publication-list-item__timestamp']}>
                     {ratkoPushInProgress(publication.ratkoPushStatus) && (
                         <Spinner size={SpinnerSize.SMALL} />
@@ -123,6 +180,7 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
                             <Icons.StatusError size={IconSize.SMALL} color={IconColor.INHERIT} />
                         </span>
                     )}
+                    {designPublicationCauseIcon(publication.cause)}
                     <span className={styles['publication-list-item__text']}>
                         {(() => {
                             const text = formatDateFull(publication.publicationTime);
@@ -137,12 +195,21 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publicat
                     </span>
                 </span>
                 <span>
-                    {design && (
-                        <span className={styles['publication-list-item__design-name']}>
-                            {`${design}:`}
-                        </span>
+                    {publication.cause === PublicationCause.MANUAL ? (
+                        <React.Fragment>
+                            {design && (
+                                <span className={styles['publication-list-item__design-name']}>
+                                    {`${design}:`}
+                                </span>
+                            )}
+                            {publication.message}
+                        </React.Fragment>
+                    ) : (
+                        <DesignPublicationCause
+                            designName={design || ''}
+                            cause={publication.cause}
+                        />
                     )}
-                    {publication.message}
                 </span>
             </div>
             {publication.split && (
