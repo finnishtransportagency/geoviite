@@ -25,7 +25,9 @@ export type PublicationListRowSplitProps = {
     publicationId: PublicationId;
 };
 
-const publicationStateIcon = (ratkoPushStatus: RatkoPushStatus | undefined): React.ReactNode => {
+const PublicationStateIcon: React.FC<{ ratkoPushStatus: RatkoPushStatus | undefined }> = ({
+    ratkoPushStatus,
+}) => {
     if (ratkoPushSucceeded(ratkoPushStatus)) {
         return (
             <span className={styles['publication-list-item--success']}>
@@ -45,7 +47,9 @@ const publicationStateIcon = (ratkoPushStatus: RatkoPushStatus | undefined): Rea
     }
 };
 
-const bulkTransferStateIcon = (bulkTransferState: BulkTransferState | undefined) => {
+const BulkTransferStateIcon: React.FC<{
+    bulkTransferState: BulkTransferState | undefined;
+}> = ({ bulkTransferState }) => {
     switch (bulkTransferState) {
         case 'PENDING':
         case undefined:
@@ -119,11 +123,17 @@ export const PublicationListRowSplit: React.FC<PublicationListRowSplitProps> = (
                 <div className={styles['publication-list-item__split']}>
                     <div>
                         <div className={styles['publication-list-item__split-detail-row']}>
-                            <span>{publicationStateIcon(ratkoPushStatus)}</span>
+                            <span>
+                                <PublicationStateIcon ratkoPushStatus={ratkoPushStatus} />
+                            </span>
                             <span>{t('publication-card.publication-status')}</span>
                         </div>
                         <div className={styles['publication-list-item__split-detail-row']}>
-                            <span>{bulkTransferStateIcon(split.bulkTransferState)}</span>
+                            <span>
+                                <BulkTransferStateIcon
+                                    bulkTransferState={split.bulkTransferState}
+                                />
+                            </span>
                             <span>{t('publication-card.bulk-transfer-status')}</span>
                         </div>
                     </div>
