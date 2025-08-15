@@ -29,26 +29,15 @@ const DesignPublicationCauseIcon: React.FC<{ cause: PublicationCause }> = ({ cau
     }
 };
 
-const DesignPublicationCauseText: React.FC<{ designName: string; cause: PublicationCause }> = ({
-    designName,
-    cause,
-}) => {
+const DesignPublicationCauseText: React.FC<{ cause: PublicationCause }> = ({ cause }) => {
     const { t } = useTranslation();
     switch (cause) {
         case PublicationCause.LAYOUT_DESIGN_DELETE:
             return (
-                <span>
-                    {t('publication-card.design-publication-cause.design-cancellation', {
-                        designName,
-                    })}
-                </span>
+                <span>{t('publication-card.design-publication-cause.design-cancellation')}</span>
             );
         case PublicationCause.LAYOUT_DESIGN_CHANGE:
-            return (
-                <span>
-                    {t('publication-card.design-publication-cause.design-change', { designName })}
-                </span>
-            );
+            return <span>{t('publication-card.design-publication-cause.design-change')}</span>;
         case PublicationCause.CALCULATED_CHANGE:
         case PublicationCause.LAYOUT_DESIGN_CANCELLATION:
         case PublicationCause.MERGE_FINALIZATION:
@@ -103,7 +92,7 @@ const GeneratedPublicationRowContent: React.FC<DesignPublicationListRowProps> = 
             <span className={styles['publication-list-item__design-name']}>
                 {`${design.name}:`}
             </span>
-            <DesignPublicationCauseText designName={design.name || ''} cause={publication.cause} />
+            <DesignPublicationCauseText cause={publication.cause} />
         </div>
     );
 };

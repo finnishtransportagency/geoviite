@@ -15,12 +15,14 @@ type FrontPageProps = {
     publicationChangeTime: TimeStamp;
     ratkoPushChangeTime: TimeStamp;
     splitChangeTime: TimeStamp;
+    designChangeTime: TimeStamp;
 };
 
 const Frontpage: React.FC<FrontPageProps> = ({
     publicationChangeTime,
     ratkoPushChangeTime,
     splitChangeTime,
+    designChangeTime,
 }) => {
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
 
@@ -36,7 +38,10 @@ const Frontpage: React.FC<FrontPageProps> = ({
                     ratkoStatus={ratkoStatus}
                 />
                 <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
-                    <DesignPublicationCard publicationChangeTime={publicationChangeTime} />
+                    <DesignPublicationCard
+                        publicationChangeTime={publicationChangeTime}
+                        designChangeTime={designChangeTime}
+                    />
                 </PrivilegeRequired>
                 <UserCardContainer />
             </div>

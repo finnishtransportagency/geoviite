@@ -16,15 +16,18 @@ import {
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { DesignPublicationList } from 'publication/card/design-publication-list';
 import { getLayoutDesigns } from 'track-layout/layout-design-api';
-import { getChangeTimes } from 'common/change-time-api';
 
 type PublishListProps = {
     publicationChangeTime: TimeStamp;
+    designChangeTime: TimeStamp;
 };
 
 export const MAX_LISTED_PUBLICATIONS = 8;
 
-const DesignPublicationCard: React.FC<PublishListProps> = ({ publicationChangeTime }) => {
+const DesignPublicationCard: React.FC<PublishListProps> = ({
+    publicationChangeTime,
+    designChangeTime,
+}) => {
     const { t } = useTranslation();
 
     const trackLayoutActionDelegates = React.useMemo(
@@ -38,8 +41,8 @@ const DesignPublicationCard: React.FC<PublishListProps> = ({ publicationChangeTi
 
     const [pageCount, setPageCount] = React.useState(1);
     const [designs, designFetchStatus] = useLoaderWithStatus(
-        () => getLayoutDesigns(true, true, getChangeTimes().layoutDesign),
-        [getChangeTimes().layoutDesign],
+        () => getLayoutDesigns(true, true, designChangeTime),
+        [designChangeTime],
     );
 
     const [publications, publicationFetchStatus] = useLoaderWithStatus(
