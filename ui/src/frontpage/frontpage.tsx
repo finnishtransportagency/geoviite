@@ -1,5 +1,5 @@
 import * as React from 'react';
-import PublicationCard from 'publication/card/publication-card';
+import MainPublicationCard from 'publication/card/main-publication-card';
 import styles from './frontpage.scss';
 
 import { useLoaderWithTimer } from 'utils/react-utils';
@@ -9,17 +9,22 @@ import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
 import { TimeStamp } from 'common/common-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_LAYOUT_DRAFT } from 'user/user-model';
+import DesignPublicationCard from 'publication/card/design-publication-card';
+
+const MAX_LISTED_PUBLICATIONS = 8;
 
 type FrontPageProps = {
     publicationChangeTime: TimeStamp;
     ratkoPushChangeTime: TimeStamp;
     splitChangeTime: TimeStamp;
+    designChangeTime: TimeStamp;
 };
 
 const Frontpage: React.FC<FrontPageProps> = ({
     publicationChangeTime,
     ratkoPushChangeTime,
     splitChangeTime,
+    designChangeTime,
 }) => {
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
 
@@ -28,20 +33,18 @@ const Frontpage: React.FC<FrontPageProps> = ({
     return (
         <React.Fragment>
             <div className={styles['frontpage']}>
-                <PublicationCard
+                <MainPublicationCard
                     publicationChangeTime={publicationChangeTime}
                     ratkoPushChangeTime={ratkoPushChangeTime}
                     splitChangeTime={splitChangeTime}
                     ratkoStatus={ratkoStatus}
-                    branchType="MAIN"
+                    maxListedPublications={MAX_LISTED_PUBLICATIONS}
                 />
                 <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
-                    <PublicationCard
+                    <DesignPublicationCard
                         publicationChangeTime={publicationChangeTime}
-                        ratkoPushChangeTime={ratkoPushChangeTime}
-                        splitChangeTime={splitChangeTime}
-                        ratkoStatus={ratkoStatus}
-                        branchType="DESIGN"
+                        designChangeTime={designChangeTime}
+                        maxListedPublications={MAX_LISTED_PUBLICATIONS}
                     />
                 </PrivilegeRequired>
                 <UserCardContainer />
