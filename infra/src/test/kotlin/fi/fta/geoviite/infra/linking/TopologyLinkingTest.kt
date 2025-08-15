@@ -32,48 +32,61 @@ class TopologyLinkingTest {
         // Single switch nodes get combined
         assertEquals(
             mapOf(loneSwitch1Node to switch12Node, loneSwitch2Node to switch12Node),
-            combineEligibleNodes(listOf(loneSwitch1Node, loneSwitch2Node)),
+            combineEligibleNodes(listOf(loneSwitch1Node, loneSwitch2Node), onlySwitchId = null),
         )
         // Switches are not combined within the same switch
         assertEquals(
             emptyMap<LayoutNode, LayoutNode>(),
-            combineEligibleNodes(listOf(loneSwitch1Node, loneSwitch1_2Node)),
+            combineEligibleNodes(listOf(loneSwitch1Node, loneSwitch1_2Node), onlySwitchId = null),
         )
         // Single switch nodes get combined and multi-switch ones are kept (including the one that is already combined)
         assertEquals(
             mapOf(loneSwitch1Node to switch12Node, loneSwitch2Node to switch12Node),
-            combineEligibleNodes(listOf(loneSwitch1Node, loneSwitch2Node, switch12Node, switch23Node)),
+            combineEligibleNodes(
+                listOf(loneSwitch1Node, loneSwitch2Node, switch12Node, switch23Node),
+                onlySwitchId = null,
+            ),
         )
         // Single switch nodes are added to existing multi-switch nodes rather than each other
         assertEquals(
             mapOf(loneSwitch1Node to switch12Node, loneSwitch3Node to switch23Node),
-            combineEligibleNodes(listOf(loneSwitch1Node, loneSwitch3Node, switch12Node, switch23Node)),
+            combineEligibleNodes(
+                listOf(loneSwitch1Node, loneSwitch3Node, switch12Node, switch23Node),
+                onlySwitchId = null,
+            ),
         )
         // Track boundaries are not combined with each other
         assertEquals(
             emptyMap<LayoutNode, LayoutNode>(),
-            combineEligibleNodes(listOf(trackBoundaryNode1, trackBoundaryNode2)),
+            combineEligibleNodes(listOf(trackBoundaryNode1, trackBoundaryNode2), onlySwitchId = null),
         )
         // Track boundaries are combined to switches
         assertEquals(
             mapOf(trackBoundaryNode1 to loneSwitch1Node, trackBoundaryNode2 to loneSwitch1Node),
-            combineEligibleNodes(listOf(trackBoundaryNode1, trackBoundaryNode2, loneSwitch1Node)),
+            combineEligibleNodes(listOf(trackBoundaryNode1, trackBoundaryNode2, loneSwitch1Node), onlySwitchId = null),
         )
         // Track boundaries are combined to combination-switches generated in a previous step
         // However, boundaries cannot be connected to such nodes as we wouldn't know which port to use
         assertEquals(
             mapOf(loneSwitch1Node to switch12Node, loneSwitch2Node to switch12Node),
-            combineEligibleNodes(listOf(trackBoundaryNode1, trackBoundaryNode2, loneSwitch1Node, loneSwitch2Node)),
+            combineEligibleNodes(
+                listOf(trackBoundaryNode1, trackBoundaryNode2, loneSwitch1Node, loneSwitch2Node),
+                onlySwitchId = null,
+            ),
         )
         // Track boundaries are combined with existing combination-tracks
         assertEquals(
             mapOf(trackBoundaryNode1 to trackBoundary12Node, trackBoundaryNode2 to trackBoundary12Node),
-            combineEligibleNodes(listOf(trackBoundaryNode1, trackBoundaryNode2, trackBoundary12Node)),
+            combineEligibleNodes(
+                listOf(trackBoundaryNode1, trackBoundaryNode2, trackBoundary12Node),
+                onlySwitchId = null,
+            ),
         )
         // Combination track boundaries are not combined with anything
         assertFalse(
             combineEligibleNodes(
-                    listOf(trackBoundaryNode1, trackBoundaryNode2, trackBoundary12Node, loneSwitch1Node, switch12Node)
+                    listOf(trackBoundaryNode1, trackBoundaryNode2, trackBoundary12Node, loneSwitch1Node, switch12Node),
+                    onlySwitchId = null,
                 )
                 .containsKey(trackBoundary12Node)
         )

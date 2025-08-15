@@ -446,26 +446,26 @@ constructor(
 
         // Only track1 has something at this point (the track start)
         assertEquals(
-            listOf(NodeTrackConnections(geometry1.nodes[0], listOf(track1.getVersionOrThrow()))),
+            listOf(NodeTrackConnections(geometry1.nodes[0], setOf(track1.getVersionOrThrow()))),
             alignmentDao.getNodeConnectionsNear(MainLayoutContext.official, MultiPoint(track1Start), 1.0),
         )
         // Both track1 & track 2 go through the crossing point
         assertEquals(
             listOf(
-                NodeTrackConnections(geometry1.nodes[1], listOf(track1.getVersionOrThrow())),
-                NodeTrackConnections(geometry2.nodes[1], listOf(track2.getVersionOrThrow())),
+                NodeTrackConnections(geometry1.nodes[1], setOf(track1.getVersionOrThrow())),
+                NodeTrackConnections(geometry2.nodes[1], setOf(track2.getVersionOrThrow())),
             ),
             alignmentDao.getNodeConnectionsNear(MainLayoutContext.official, MultiPoint(crossingPoint), 1.0),
         )
         // In official context, only track 1 is at the end-point
         assertEquals(
-            listOf(NodeTrackConnections(geometry1.nodes[2], listOf(track1.getVersionOrThrow()))),
+            listOf(NodeTrackConnections(geometry1.nodes[2], setOf(track1.getVersionOrThrow()))),
             alignmentDao.getNodeConnectionsNear(MainLayoutContext.official, MultiPoint(track1End), 1.0),
         )
         // In draft context, also track 3 starts from the same node
         assertEquals(
             listOf(
-                NodeTrackConnections(geometry1.nodes[2], listOf(track1.getVersionOrThrow(), track3.getVersionOrThrow()))
+                NodeTrackConnections(geometry1.nodes[2], setOf(track1.getVersionOrThrow(), track3.getVersionOrThrow()))
             ),
             alignmentDao.getNodeConnectionsNear(MainLayoutContext.draft, MultiPoint(track1End), 1.0),
         )

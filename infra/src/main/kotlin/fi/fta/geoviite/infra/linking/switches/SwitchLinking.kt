@@ -81,11 +81,15 @@ data class SwitchPlacingRequest(val points: SamplingGridPoints, val layoutSwitch
 data class SuggestedSwitch(
     val joints: List<LayoutSwitchJoint>,
     val trackLinks: Map<IntId<LocationTrack>, SwitchLinkingTrackLinks>,
+    val topologicallyLinkedTracks: Set<IntId<LocationTrack>>,
 )
 
 data class SwitchLinkingParameters(val suggestedSwitch: SuggestedSwitch, val geometrySwitchId: IntId<GeometrySwitch>?)
 
-data class SwitchLinkingTrackLinks(val locationTrackVersion: Int, val suggestedLinks: SuggestedLinks?) {
+data class SwitchLinkingTrackLinks(
+    val locationTrackVersion: Int,
+    val suggestedLinks: SuggestedLinks?,
+) {
     @JsonIgnore fun isLinked(): Boolean = suggestedLinks != null
 }
 

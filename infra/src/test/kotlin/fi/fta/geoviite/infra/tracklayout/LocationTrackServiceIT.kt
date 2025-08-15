@@ -215,6 +215,27 @@ constructor(
     }
 
     @Test
+    fun `getWithGeometries returns results in request order, even with duplicates`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val one = createAndVerifyTrack(trackNumber, 1)
+        val two = createAndVerifyTrack(trackNumber, 2)
+        val three = createAndVerifyTrack(trackNumber, 3)
+
+        assertEquals(
+            listOf(one.id, two.id, two.id, three.id),
+            locationTrackService
+                .getManyWithGeometries(mainDraftContext.context, listOf(one.id, two.id, two.id, three.id))
+                .map { it.first.id },
+        )
+        assertEquals(
+            listOf(three.id, one.id, two.id, three.id, two.id),
+            locationTrackService
+                .getManyWithGeometries(mainDraftContext.context, listOf(three.id, one.id, two.id, three.id, two.id))
+                .map { it.first.id },
+        )
+    }
+
+    @Test
     fun `Topology recalculate works`() {
         val switch1Id =
             mainDraftContext
@@ -286,7 +307,8 @@ constructor(
                 )
 
         val changedTracks =
-            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id)
+            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id,
+                onlySwitchId = null)
 
         val newTrack1 = changedTracks.first { it.first.id == track1.first.id }
         assertEquals(
@@ -396,7 +418,7 @@ constructor(
                 )
 
         val changedTracks =
-            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id)
+            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id, onlySwitchId = null)
 
         val newTrack1 = changedTracks.first { it.first.id == track1.first.id }
         assertEquals(
@@ -469,7 +491,7 @@ constructor(
             locationTrack(trackNumberId, id = IntId(2)) to
                 trackGeometry(edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0)))), trackId = IntId(2))
         val changedTracks =
-            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2), switchId)
+            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2), switchId, onlySwitchId = null)
 
         // Both tracks are in the result set
         assertEquals(2, changedTracks.size)
@@ -533,7 +555,7 @@ constructor(
                 )
 
         val changedTracks =
-            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id)
+            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id, onlySwitchId = null)
 
         val newTrack1 = changedTracks.first { it.first.id == track1.first.id }
         val newTrack2 = changedTracks.first { it.first.id == track2.first.id }
@@ -568,6 +590,7 @@ constructor(
                 MainLayoutContext.draft,
                 listOf(),
                 listOf(MultiPoint(Point(10.0, 0.0))),
+                onlySwitchId = null,
             )
 
         // Nothing to do on the first track & not pre-changed -> no unneeded change is generated
@@ -605,7 +628,7 @@ constructor(
                 trackGeometry(edge(listOf(segment(point3, point4)), startInnerSwitch = switchLinkYV(switch1Id, 2)))
 
         val changedTracks =
-            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1UnsavedChange), switch1Id)
+            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1UnsavedChange), switch1Id, onlySwitchId = null)
 
         // Track1 should come out as given on the changed-list as there's no new topology changes
         val newTrack1 = changedTracks.first { it.first.id == track1SavedOfficial }
@@ -1187,7 +1210,10 @@ constructor(
         val version: LayoutRowVersion<LocationTrack>,
         val track: LocationTrack,
         val geometry: LocationTrackGeometry,
-    )
+    ) {
+        val id: IntId<LocationTrack>
+            get() = version.id
+    }
 
     private fun createAndVerifyTrack(trackNumberId: IntId<LayoutTrackNumber>, seed: Int): VerifiedTrack {
         val insertRequest = saveRequest(trackNumberId, seed)
