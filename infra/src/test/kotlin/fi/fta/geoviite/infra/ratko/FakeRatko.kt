@@ -46,6 +46,7 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
+import org.mockserver.model.Parameter
 import org.slf4j.event.Level
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -111,10 +112,13 @@ class FakeRatko(port: Int) {
     }
 
     fun acceptsNewLocationTrackWithReferencedGeometry(oid: String, locationTrackOidOfGeometry: String) {
+        post("/api/infra/v1.0/locationtracks", mapOf<String, String>(), MatchType.STRICT, Times.once())
+            .respond(okJson(mapOf("id" to oid)))
+        get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
         post(
                 "/api/infra/v1.0/locationtracks",
-                mapOf<String, String>(),
-                MatchType.STRICT,
+                mapOf("id" to oid),
+                MatchType.ONLY_MATCHING_FIELDS,
                 Times.once(),
                 queryParams = mapOf("locationtrackOidOfGeometry" to locationTrackOidOfGeometry),
             )
@@ -230,6 +234,8 @@ class FakeRatko(port: Int) {
     fun hasSwitch(switchAsset: InterfaceRatkoSwitch) {
         get("/api/assets/v1.2/${switchAsset.id}").respond(okJson(switchAsset))
         put("/api/assets/v1.2/${switchAsset.id}/properties").respond(ok())
+        put("/api/assets/v1.2/${switchAsset.id}/locations").respond(ok())
+        put("/api/assets/v1.2/${switchAsset.id}/geoms").respond(ok())
     }
 
     fun getPushedRouteNumber(oid: Oid<LayoutTrackNumber>): List<RatkoRouteNumber> =
@@ -473,7 +479,7 @@ class FakeRatko(port: Int) {
     ): ForwardChainExpectation =
         mockServer.`when`(
             request(url).withMethod(method).apply {
-                queryParams.forEach { (name, value) -> withQueryStringParameter(name, value) }
+                queryParams.forEach { (name, value) -> this.withQueryStringParameters(Parameter(name, value)) }
 
                 if (body != null) {
                     this.withBody(JsonBody.json(body, bodyMatchType ?: MatchType.ONLY_MATCHING_FIELDS))

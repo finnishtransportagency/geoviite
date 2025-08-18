@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.geometryAlignment
@@ -50,6 +51,9 @@ import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumberStateType
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
+import fi.fta.geoviite.infra.split.SplitRequest
+import fi.fta.geoviite.infra.split.SplitRequestTarget
+import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.tracklayout.DesignState
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -74,6 +78,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -84,6 +89,7 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -97,9 +103,15 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import fi.fta.geoviite.infra.tracklayout.verticalEdge
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.queryOne
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -108,10 +120,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -136,6 +144,7 @@ constructor(
     val geometryDao: GeometryDao,
     val publicationDao: PublicationDao,
     val splitDao: SplitDao,
+    val splitService: SplitService,
     val splitTestDataService: SplitTestDataService,
     val layoutDesignDao: LayoutDesignDao,
     val publicationTestSupportService: PublicationTestSupportService,
@@ -177,6 +186,116 @@ constructor(
 
     @Test
     fun startRatkoPublish() {
+        ratkoService.pushChangesToRatko(LayoutBranch.main)
+    }
+
+    @Test
+    fun `split test TODO`() {
+        //        val trackNumberId =
+
+        testDBService.clearAllTables()
+        val trackNumber = TrackNumber("876")
+
+        val trackStartPoint = HelsinkiTestData.HKI_BASE_POINT + Point(x = 675.0, y = 410.0)
+        val preEdge = verticalEdge(trackStartPoint, 3)
+
+        val switch1Oid = someOid<LayoutSwitch>()
+        val switchStartPoint1 = preEdge.lastSegmentEnd
+        val (switch1, straightEdges1, turningEdges1) =
+            splitTestDataService.createSwitchAndGeometry(switchStartPoint1, externalId = switch1Oid)
+        fakeRatko.hasSwitch(ratkoSwitch(oid = switch1Oid.toString()))
+
+        val edge1To2 = verticalEdge(straightEdges1.last().lastSegmentEnd, 2)
+
+        val switch2Oid = someOid<LayoutSwitch>()
+        val switchStartPoint2 = edge1To2.lastSegmentEnd
+        val (_, straightEdges2, turningEdges2) =
+            splitTestDataService.createSwitchAndGeometry(switchStartPoint2, externalId = switch2Oid)
+        fakeRatko.hasSwitch(ratkoSwitch(oid = switch2Oid.toString()))
+
+        val postEdge = verticalEdge(straightEdges2.last().lastSegmentEnd, 4)
+
+        val geometry =
+            trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1To2 + straightEdges2 + postEdge))
+
+        val trackNumberId =
+            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(alignment(geometry.segments), trackNumber).id
+        val trackNumberOid = someOid<LayoutTrackNumber>()
+        trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, trackNumberOid)
+
+        val sourceTrackId = mainOfficialContext.save(locationTrack(trackNumberId), geometry).id
+
+        val splitSourceTrackOid = someOid<LocationTrack>()
+        locationTrackService.insertExternalId(LayoutBranch.main, sourceTrackId, splitSourceTrackOid)
+        fakeRatko.hasLocationTrack(ratkoLocationTrack(id = splitSourceTrackOid.toString()))
+
+        val sourceTrackName = locationTrackService.get(MainLayoutContext.official, sourceTrackId)!!.name.toString()
+        mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges1))
+        mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges2))
+
+        val splitData =
+            splitService
+                .split(
+                    LayoutBranch.main,
+                    SplitRequest(
+                        sourceTrackId = sourceTrackId,
+                        targetTracks =
+                            listOf(
+                                SplitRequestTarget(
+                                    duplicateTrack = null,
+                                    startAtSwitchId = null, // TODO This could also be null
+                                    namingScheme = LocationTrackNamingScheme.FREE_TEXT,
+                                    nameFreeText = AlignmentName("start track"),
+                                    nameSpecifier = null,
+                                    descriptionBase = LocationTrackDescriptionBase("start"),
+                                    descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
+                                ),
+                                SplitRequestTarget(
+                                    duplicateTrack = null,
+                                    startAtSwitchId = switch1.id,
+                                    namingScheme = LocationTrackNamingScheme.FREE_TEXT,
+                                    nameFreeText = AlignmentName("end track"),
+                                    nameSpecifier = null,
+                                    descriptionBase = LocationTrackDescriptionBase("start"),
+                                    descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
+                                ),
+                            ),
+                    ),
+                )
+                .let(splitService::get)
+                .let(::requireNotNull)
+
+        //                fakeRatko.acceptsNewLocationTrackWithReferencedGeometry("2.2.2.2.2", "123.123.123.123")
+        //                fakeRatko.acceptsNewLocationTrackWithReferencedGeometry("3.3.3.3.3", "123.123.123.123")
+
+        //        fakeRatko.acceptsNewLocationTrackGivingItOid("2.2.2.2")
+        //        fakeRatko.acceptsNewLocationTrackGivingItOid("3.3.3.3")
+
+        val targetTrackOid1 = someOid<LocationTrack>()
+        val targetTrackOid2 = someOid<LocationTrack>()
+
+        //        fakeRatko.acceptsNewLocationTrackGivingItOid(targetTrackOid1.toString())
+        //        fakeRatko.acceptsNewLocationTrackGivingItOid(targetTrackOid2.toString())
+
+        fakeRatko.acceptsNewLocationTrackWithReferencedGeometry(
+            targetTrackOid1.toString(),
+            splitSourceTrackOid.toString(),
+        )
+        fakeRatko.acceptsNewLocationTrackWithReferencedGeometry(
+            targetTrackOid2.toString(),
+            splitSourceTrackOid.toString(),
+        )
+        publicationService.publishManualPublication(
+            LayoutBranch.main,
+            PublicationRequest(
+                publicationRequestIds(switches = splitData.relinkedSwitches, locationTracks = splitData.locationTracks),
+                FreeTextWithNewLines.of(""),
+            ),
+        )
+
+        // TODO:
+        // Should assert that the geometry of the original location track is pushed
+        // Should assert that all relinkedSwitches are pushed
         ratkoService.pushChangesToRatko(LayoutBranch.main)
     }
 
