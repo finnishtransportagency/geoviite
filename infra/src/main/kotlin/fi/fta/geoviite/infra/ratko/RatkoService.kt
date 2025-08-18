@@ -43,12 +43,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import java.time.Duration
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import java.time.Duration
+import java.time.Instant
 
 open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
     RuntimeException(cause)
@@ -129,6 +129,7 @@ constructor(
                     )
                 }
 
+                // TODO Remove
                 if (ratkoClientConfiguration.bulkTransfersEnabled) {
                     manageRatkoBulkTransfers(layoutBranch)
                 }
@@ -314,7 +315,6 @@ constructor(
                                 .let(::requireNotNull)
 
                         val existingRatkoLocationTrack = ratkoClient.getLocationTrack(RatkoOid(splitSourceTrackOid))
-
                         if (existingRatkoLocationTrack == null) {
                             logger.info(
                                 "Split target tracks will be pushed normally as the source location track did not exist in Ratko, splitId=${split.id}, sourceLocationTrackId=${split.sourceLocationTrackId}"
@@ -337,7 +337,7 @@ constructor(
                 )
 
             val locationTrackOidsPushedInSplits =
-                ratkoLocationTrackService.pushSplits(splitsToPush, lastPublicationTime)
+                ratkoLocationTrackService.pushSplits(splitsToPush, lastPublicationTime) // TODO Remove
 
             val locationTrackIdsPushedInSplits = splits.flatMap { split -> split.locationTracks }
             val locationTracksToPush =

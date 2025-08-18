@@ -433,13 +433,16 @@ constructor(
                 logger.info(
                     "Referenced geometry from track=$referencedGeometryOid was already set for ${locationTrackExternalId.oid}"
                 )
+
+                // TODO See above why this is commented out (newLocationTrack-call). This structure seems to need some
+                // work though.
                 //                val (startAddress, endAddress) = splitStartAndEnd.let(::requireNotNull)
                 //
                 //                ratkoClient.patchLocationTrackPoints(
                 //                    sourceTrackExternalId = locationTrackOidOfGeometry,
                 //                    targetTrackExternalId = MainBranchRatkoExternalId(locationTrackExternalId.oid),
-                //                    startAddress = requireNotNull(startAddress),
-                //                    endAddress = requireNotNull(endAddress),
+                //                    startAddress = startAddress,
+                //                    endAddress = endAddress,
                 //                )
             } ?: createLocationTrackPoints(RatkoOid(locationTrackExternalId.oid.toString()), midPoints)
 
@@ -480,7 +483,7 @@ constructor(
     ) {
         val geocodingContext = geocodingService.getGeocodingContextAtMoment(branch, locationTrack.trackNumberId, moment)
 
-        val asd =
+        val asd = // TODO Fix
             alignmentDao
                 .fetchMetadata(locationTrack.getVersionOrThrow())
                 .fold(mutableListOf<LayoutSegmentMetadata>()) { acc, metadata ->
@@ -642,8 +645,8 @@ constructor(
                 ratkoClient.patchLocationTrackPoints(
                     sourceTrackExternalId = referencedGeometryOid,
                     targetTrackExternalId = MainBranchRatkoExternalId(locationTrackExternalId.oid),
-                    startAddress = requireNotNull(startAddress),
-                    endAddress = requireNotNull(endAddress),
+                    startAddress = startAddress,
+                    endAddress = endAddress,
                 )
 
                 //                updateLocationTrackGeometry(locationTrackOid = locationTrackRatkoOid, newPoints =

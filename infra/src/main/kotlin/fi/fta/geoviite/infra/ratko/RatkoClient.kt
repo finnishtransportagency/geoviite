@@ -42,7 +42,6 @@ import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -56,6 +55,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.springframework.web.reactive.function.client.bodyToMono
 import org.springframework.web.util.UriComponentsBuilder
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 val defaultBlockTimeout: Duration = defaultResponseTimeout.plusMinutes(1L)
 
@@ -250,9 +250,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         client
             .patch()
             .uri { builder ->
-                // Due to special handling of the plus character "+" (as it is treated as a space in a URL) the
-                // following uses a
-                // query param template first. Plus characters are parts of track addresses, such as "0001+0123".
+                // Due to special handling of the plus character "+" (as it is treated as a space in a URL), the
+                // following call uses a query param template.
+                //
+                // Plus characters are parts of track addresses, such as "0001+0123".
                 builder.path(url).apply { params.forEach { (k, v) -> queryParam(k, "{$k}") } }.build(params)
             }
             .contentType(MediaType.APPLICATION_JSON)
@@ -281,10 +282,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         logger.integrationCall("newLocationTrack", "locationTrack" to locationTrack)
 
         return locationTrackOidOfGeometry?.let { referencedGeometryOid ->
-            val url = "$LOCATION_TRACK_PATH?locationtrackOidOfGeometry=$referencedGeometryOid"
-            val fixedUrl = "$LOCATION_TRACK_PATH?locationtrackOidOfGeometry=${referencedGeometryOid.id}"
+            val url = "$LOCATION_TRACK_PATH?locationtrackOidOfGeometry=${referencedGeometryOid.id}"
 
-            postWithResponseBody(fixedUrl, locationTrack)
+            postWithResponseBody(url, locationTrack)
         } ?: postWithResponseBody(LOCATION_TRACK_PATH, locationTrack)
     }
 
