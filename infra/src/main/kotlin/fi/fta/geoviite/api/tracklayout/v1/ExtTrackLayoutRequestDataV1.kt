@@ -4,7 +4,13 @@ import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.geocoding.Resolution
 import io.swagger.v3.oas.annotations.media.Schema
 
-@Schema(type = "String", allowableValues = ["0.25", "1"], defaultValue = "1")
+@Schema(
+    name = "Osoitepistevali",
+    enumAsRef = true,
+    type = "String",
+    allowableValues = ["0.25", "1"],
+    defaultValue = "1",
+)
 enum class ExtResolutionV1(@JsonValue val value: String) {
     QUARTER_METER("0.25"),
     ONE_METER("1");
