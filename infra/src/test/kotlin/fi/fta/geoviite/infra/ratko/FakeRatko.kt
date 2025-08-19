@@ -136,10 +136,20 @@ class FakeRatko(port: Int) {
         startKmM: String,
         endKmM: String,
     ) {
+        get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
+        // TODO Onkohan tämä alempi post-kutsu tarpeellinen? Miksi tämä lentää duplikaatille?
+        post(
+                "/api/infra/v1.0/locationtracks",
+                mapOf("id" to oid),
+                MatchType.ONLY_MATCHING_FIELDS,
+                Times.once(),
+                queryParams = mapOf("locationtrackOidOfGeometry" to locationTrackOidOfGeometry),
+            )
+            .respond(okJson(mapOf("id" to oid)))
         patch(
                 "/api/infra/v1.1/locationtracks",
                 mapOf<String, String>(),
-                MatchType.STRICT,
+                MatchType.ONLY_MATCHING_FIELDS,
                 Times.once(),
                 queryParams =
                     mapOf(
@@ -477,16 +487,18 @@ class FakeRatko(port: Int) {
         times: Times?,
         queryParams: Map<String, String>,
     ): ForwardChainExpectation =
-        mockServer.`when`(
-            request(url).withMethod(method).apply {
-                queryParams.forEach { (name, value) -> this.withQueryStringParameters(Parameter(name, value)) }
+        mockServer
+            .`when`(
+                request(url).withMethod(method).apply {
+                    queryParams.forEach { (name, value) -> this.withQueryStringParameters(Parameter(name, value)) }
 
-                if (body != null) {
-                    this.withBody(JsonBody.json(body, bodyMatchType ?: MatchType.ONLY_MATCHING_FIELDS))
-                }
-            },
-            times ?: Times.unlimited(),
-        )
+                    if (body != null) {
+                        this.withBody(JsonBody.json(body, bodyMatchType ?: MatchType.ONLY_MATCHING_FIELDS))
+                    }
+                },
+                times ?: Times.unlimited(),
+            )
+            .also { println(url) }
 
     private fun ok() = HttpResponse.response().withStatusCode(200)
 

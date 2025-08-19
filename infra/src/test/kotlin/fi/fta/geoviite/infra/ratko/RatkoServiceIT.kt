@@ -197,7 +197,67 @@ constructor(
 
     @Test fun `Ratko integration handles a partial duplicate track within a split`() {}
 
-    @Test fun `Ratko integration handles a duplicate track within a split`() {}
+    @Test
+    fun `Ratko integration handles a duplicate track within a split`() {
+        testDBService.clearAllTables()
+
+        val splittableTrack = createRatkoSplittableTrack(switchAmount = 2)
+
+        fakeRatko.hasLocationTrack(ratkoLocationTrack(id = splittableTrack.splitSourceTrackOid.toString()))
+        splittableTrack.switchOids.values.map { oid -> fakeRatko.hasSwitch(ratkoSwitch(oid = oid.toString())) }
+
+        // This track's geometry may not actually be overlapping. This is fine, as a duplicate track's geometry
+        // should be completely overwritten when pushing to Ratko.
+        val someDuplicateTrackId =
+            mainOfficialContext
+                .save(
+                    locationTrack(splittableTrack.trackNumberId, duplicateOf = splittableTrack.splitSourceTrackId),
+                    trackGeometryOfSegments(segment(Point(10.0, 0.0), Point(30.0, 0.0))),
+                )
+                .id
+
+        val someDuplicateTrackOid =
+            someOid<LocationTrack>().also { oid ->
+                locationTrackService.insertExternalId(LayoutBranch.main, someDuplicateTrackId, oid)
+            }
+
+        val targetTracks =
+            testCreateSplitRequestTargets(
+                newTrack(),
+                duplicateTrack(startAtSwitch = splittableTrack.switches[0], duplicateOf = someDuplicateTrackId),
+            )
+
+        fakeRatko.acceptsNewLocationTrackWithReferencedGeometry(
+            someOid<LocationTrack>().toString(),
+            splittableTrack.splitSourceTrackOid.toString(),
+        )
+
+        fakeRatko.acceptsUpdatingLocationTrackWithReferencedGeometry(
+            someDuplicateTrackOid.toString(),
+            splittableTrack.splitSourceTrackOid.toString(),
+            startKmM = "asd",
+            endKmM = "foobar",
+        )
+
+        val splitData =
+            splitService
+                .split(
+                    LayoutBranch.main,
+                    SplitRequest(sourceTrackId = splittableTrack.splitSourceTrackId, targetTracks = targetTracks),
+                )
+                .let(splitService::get)
+                .let(::requireNotNull)
+
+        publicationService.publishManualPublication(
+            LayoutBranch.main,
+            PublicationRequest(
+                publicationRequestIds(switches = splitData.relinkedSwitches, locationTracks = splitData.locationTracks),
+                FreeTextWithNewLines.of(""),
+            ),
+        )
+
+        ratkoService.pushChangesToRatko(LayoutBranch.main)
+    }
 
     @Test fun `Ratko integration sets the source track state to OLD after pushing a split`() {}
 
@@ -316,8 +376,6 @@ constructor(
 
     @Test
     fun `Ratko integration handles a split consisting of new tracks`() {
-        testDBService.clearAllTables()
-
         val splittableTrack = createRatkoSplittableTrack(switchAmount = 2)
 
         fakeRatko.hasLocationTrack(ratkoLocationTrack(id = splittableTrack.splitSourceTrackOid.toString()))
