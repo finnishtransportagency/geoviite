@@ -144,7 +144,7 @@ class FakeRatko(port: Int) {
                 queryParams =
                     mapOf(
                         "locationtrackOIDOfGeometry" to locationTrackOidOfGeometry,
-                        "locationrackOidOfGeometryStartKmM" to startKmM,
+                        "locationtrackOIDOfGeometryStartKmM" to startKmM,
                         "locationtrackOIDOfGeometryEndKmM" to endKmM,
                     ),
             )

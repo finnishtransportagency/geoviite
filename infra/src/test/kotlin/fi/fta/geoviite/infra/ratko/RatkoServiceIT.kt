@@ -108,10 +108,6 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.queryOne
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -120,6 +116,10 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -296,6 +296,9 @@ constructor(
         // TODO:
         // Should assert that the geometry of the original location track is pushed
         // Should assert that all relinkedSwitches are pushed
+
+        // TODO Test duplicate track split
+        // TODO Test mixed track pushing (oh boy)
         ratkoService.pushChangesToRatko(LayoutBranch.main)
     }
 
