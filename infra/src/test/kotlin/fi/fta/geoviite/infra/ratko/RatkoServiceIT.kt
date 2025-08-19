@@ -61,6 +61,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignName
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignSaveRequest
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
@@ -104,7 +105,6 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.queryOne
@@ -189,102 +189,184 @@ constructor(
         ratkoService.pushChangesToRatko(LayoutBranch.main)
     }
 
-    @Test
-    fun `split test TODO`() {
-        //        val trackNumberId =
+    @Test fun `Ratko integration creates splits source track if it does not exist in Ratko`() {}
 
-        testDBService.clearAllTables()
-        val trackNumber = TrackNumber("876")
+    @Test fun `Ratko integration sends full split source track geometry`() {}
 
-        val trackStartPoint = HelsinkiTestData.HKI_BASE_POINT + Point(x = 675.0, y = 410.0)
-        val preEdge = verticalEdge(trackStartPoint, 3)
+    @Test fun `Ratko integration handles a partial duplicate track within a split`() {}
 
-        val switch1Oid = someOid<LayoutSwitch>()
-        val switchStartPoint1 = preEdge.lastSegmentEnd
-        val (switch1, straightEdges1, turningEdges1) =
-            splitTestDataService.createSwitchAndGeometry(switchStartPoint1, externalId = switch1Oid)
-        fakeRatko.hasSwitch(ratkoSwitch(oid = switch1Oid.toString()))
+    @Test fun `Ratko integration handles a duplicate track within a split`() {}
 
-        val edge1To2 = verticalEdge(straightEdges1.last().lastSegmentEnd, 2)
+    @Test fun `Ratko integration sets the source track state to OLD after pushing a split`() {}
 
-        val switch2Oid = someOid<LayoutSwitch>()
-        val switchStartPoint2 = edge1To2.lastSegmentEnd
-        val (_, straightEdges2, turningEdges2) =
-            splitTestDataService.createSwitchAndGeometry(switchStartPoint2, externalId = switch2Oid)
-        fakeRatko.hasSwitch(ratkoSwitch(oid = switch2Oid.toString()))
+    @Test fun `Ratko integration sets the source track state to IN_USE when retrying a previously failed push`() {}
 
-        val postEdge = verticalEdge(straightEdges2.last().lastSegmentEnd, 4)
+    data class TestRatkoSplittableTrack(
+        val trackNumberId: IntId<LayoutTrackNumber>,
+        val trackNumberOid: Oid<LayoutTrackNumber>,
+        val splitSourceTrackId: IntId<LocationTrack>,
+        val splitSourceTrackOid: Oid<LocationTrack>,
+        val switches: List<IntId<LayoutSwitch>>,
+        val switchOids: Map<IntId<LayoutSwitch>, Oid<LayoutSwitch>>,
+        val turningTracks: List<IntId<LocationTrack>>,
+    )
 
-        val geometry =
-            trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1To2 + straightEdges2 + postEdge))
+    fun createRatkoSplittableTrack(
+        trackNumber: TrackNumber = TrackNumber("123"),
+        startPoint: Point = Point(0.0, 0.0),
+        switchAmount: Int = 2,
+        segmentPointOffset: Double = 10.0,
+    ): TestRatkoSplittableTrack {
+        val branch = LayoutBranch.main
+        val layoutContext = mainOfficialContext
+
+        val switches = mutableListOf<Pair<IntId<LayoutSwitch>, Oid<LayoutSwitch>>>()
+
+        val preEdge = verticalEdge(startPoint, 3, segmentPointOffset)
+        val straightEdges = mutableListOf(preEdge)
+        val turningEdges = mutableListOf<LayoutEdge>()
+
+        repeat(switchAmount) { i ->
+            val switchOid = someOid<LayoutSwitch>()
+            val switchStartPoint = straightEdges.last().lastSegmentEnd
+
+            val (switchVersion, switchStraightEdges, switchTurningEdges) =
+                splitTestDataService.createSwitchAndGeometry(
+                    switchStartPoint,
+                    externalId = switchOid,
+                    layoutContext = layoutContext,
+                )
+
+            switches += switchVersion.id to switchOid
+
+            straightEdges += switchStraightEdges
+            turningEdges += switchTurningEdges
+
+            if (i != switchAmount - 1) {
+                val edgeBetweenSwitches = verticalEdge(straightEdges.last().lastSegmentEnd, 2)
+                straightEdges += edgeBetweenSwitches
+            }
+        }
+
+        val postEdge = verticalEdge(straightEdges.last().lastSegmentEnd, 4)
+        val straightGeometry = trackGeometry(combineEdges(listOf(preEdge) + straightEdges + listOf(postEdge)))
 
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(alignment(geometry.segments), trackNumber).id
-        val trackNumberOid = someOid<LayoutTrackNumber>()
-        trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, trackNumberOid)
+            mainOfficialContext
+                .createLayoutTrackNumberAndReferenceLine(alignment(straightGeometry.segments), trackNumber)
+                .id
 
-        val sourceTrackId = mainOfficialContext.save(locationTrack(trackNumberId), geometry).id
+        val splitSourceTrackId = layoutContext.save(locationTrack(trackNumberId), straightGeometry).id
 
-        val splitSourceTrackOid = someOid<LocationTrack>()
-        locationTrackService.insertExternalId(LayoutBranch.main, sourceTrackId, splitSourceTrackOid)
-        fakeRatko.hasLocationTrack(ratkoLocationTrack(id = splitSourceTrackOid.toString()))
+        return TestRatkoSplittableTrack(
+            trackNumberId = trackNumberId,
+            trackNumberOid =
+                someOid<LayoutTrackNumber>().also { oid ->
+                    trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, oid)
+                },
+            splitSourceTrackId = splitSourceTrackId,
+            splitSourceTrackOid =
+                someOid<LocationTrack>().also { oid ->
+                    locationTrackService.insertExternalId(LayoutBranch.main, splitSourceTrackId, oid)
+                },
+            switches = switches.map { it.first },
+            switchOids = switches.toMap(),
+            turningTracks =
+                turningEdges
+                    .map { edge -> layoutContext.save(locationTrack(trackNumberId), trackGeometry(edge)) }
+                    .map { version -> version.id },
+        )
+    }
 
-        val sourceTrackName = locationTrackService.get(MainLayoutContext.official, sourceTrackId)!!.name.toString()
-        mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges1))
-        mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges2))
+    @Test
+    fun `Ratko integration handles a split consisting of new tracks`() {
+        testDBService.clearAllTables()
+
+        val splittableTrack = createRatkoSplittableTrack(switchAmount = 2)
+
+        fakeRatko.hasLocationTrack(ratkoLocationTrack(id = splittableTrack.splitSourceTrackOid.toString()))
+        splittableTrack.switchOids.values.map { oid -> fakeRatko.hasSwitch(ratkoSwitch(oid = oid.toString())) }
+
+        //        val trackNumber = TrackNumber("876")
+
+        //        val trackStartPoint = Point(0.0, 0.0)
+        //        val preEdge = verticalEdge(trackStartPoint, 3)
+        //
+        //        val switch1Oid = someOid<LayoutSwitch>()
+        //        val switchStartPoint1 = preEdge.lastSegmentEnd
+        //        val (switch1, straightEdges1, turningEdges1) =
+        //            splitTestDataService.createSwitchAndGeometry(switchStartPoint1, externalId = switch1Oid)
+        //        fakeRatko.hasSwitch(ratkoSwitch(oid = switch1Oid.toString()))
+
+        //        val edge1To2 = verticalEdge(straightEdges1.last().lastSegmentEnd, 2)
+
+        //        val switch2Oid = someOid<LayoutSwitch>()
+        //        val switchStartPoint2 = edge1To2.lastSegmentEnd
+        //        val (_, straightEdges2, turningEdges2) =
+        //            splitTestDataService.createSwitchAndGeometry(switchStartPoint2, externalId = switch2Oid)
+        //        fakeRatko.hasSwitch(ratkoSwitch(oid = switch2Oid.toString()))
+
+        //        val postEdge = verticalEdge(straightEdges2.last().lastSegmentEnd, 4)
+
+        //        val geometry =
+        //            trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1To2 + straightEdges2 +
+        // postEdge))
+        //
+        //        val trackNumberId =
+        //            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(alignment(geometry.segments),
+        // trackNumber).id
+        //        val trackNumberOid = someOid<LayoutTrackNumber>()
+        //        trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, trackNumberOid)
+        //
+        //        val sourceTrackId = mainOfficialContext.save(locationTrack(trackNumberId), geometry).id
+
+        //        val splitSourceTrackOid = someOid<LocationTrack>()
+        //        locationTrackService.insertExternalId(LayoutBranch.main, sourceTrackId, splitSourceTrackOid)
+        //        fakeRatko.hasLocationTrack(ratkoLocationTrack(id = splitSourceTrackOid.toString()))
+
+        //        mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges1))
+        //        mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges2))
+
+        val targetTracks =
+            listOf(
+                SplitRequestTarget(
+                    duplicateTrack = null,
+                    startAtSwitchId = null,
+                    namingScheme = LocationTrackNamingScheme.FREE_TEXT,
+                    nameFreeText = AlignmentName("start track"),
+                    nameSpecifier = null,
+                    descriptionBase = LocationTrackDescriptionBase("start"),
+                    descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
+                ),
+                SplitRequestTarget(
+                    duplicateTrack = null,
+                    startAtSwitchId = splittableTrack.switches[0],
+                    namingScheme = LocationTrackNamingScheme.FREE_TEXT,
+                    nameFreeText = AlignmentName("end track"),
+                    nameSpecifier = null,
+                    descriptionBase = LocationTrackDescriptionBase("start"),
+                    descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
+                ),
+            )
+
+        targetTracks.forEach {
+            val targetTrackOid = someOid<LocationTrack>()
+
+            fakeRatko.acceptsNewLocationTrackWithReferencedGeometry(
+                targetTrackOid.toString(),
+                splittableTrack.splitSourceTrackOid.toString(),
+            )
+        }
 
         val splitData =
             splitService
                 .split(
                     LayoutBranch.main,
-                    SplitRequest(
-                        sourceTrackId = sourceTrackId,
-                        targetTracks =
-                            listOf(
-                                SplitRequestTarget(
-                                    duplicateTrack = null,
-                                    startAtSwitchId = null, // TODO This could also be null
-                                    namingScheme = LocationTrackNamingScheme.FREE_TEXT,
-                                    nameFreeText = AlignmentName("start track"),
-                                    nameSpecifier = null,
-                                    descriptionBase = LocationTrackDescriptionBase("start"),
-                                    descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
-                                ),
-                                SplitRequestTarget(
-                                    duplicateTrack = null,
-                                    startAtSwitchId = switch1.id,
-                                    namingScheme = LocationTrackNamingScheme.FREE_TEXT,
-                                    nameFreeText = AlignmentName("end track"),
-                                    nameSpecifier = null,
-                                    descriptionBase = LocationTrackDescriptionBase("start"),
-                                    descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
-                                ),
-                            ),
-                    ),
+                    SplitRequest(sourceTrackId = splittableTrack.splitSourceTrackId, targetTracks = targetTracks),
                 )
                 .let(splitService::get)
                 .let(::requireNotNull)
 
-        //                fakeRatko.acceptsNewLocationTrackWithReferencedGeometry("2.2.2.2.2", "123.123.123.123")
-        //                fakeRatko.acceptsNewLocationTrackWithReferencedGeometry("3.3.3.3.3", "123.123.123.123")
-
-        //        fakeRatko.acceptsNewLocationTrackGivingItOid("2.2.2.2")
-        //        fakeRatko.acceptsNewLocationTrackGivingItOid("3.3.3.3")
-
-        val targetTrackOid1 = someOid<LocationTrack>()
-        val targetTrackOid2 = someOid<LocationTrack>()
-
-        //        fakeRatko.acceptsNewLocationTrackGivingItOid(targetTrackOid1.toString())
-        //        fakeRatko.acceptsNewLocationTrackGivingItOid(targetTrackOid2.toString())
-
-        fakeRatko.acceptsNewLocationTrackWithReferencedGeometry(
-            targetTrackOid1.toString(),
-            splitSourceTrackOid.toString(),
-        )
-        fakeRatko.acceptsNewLocationTrackWithReferencedGeometry(
-            targetTrackOid2.toString(),
-            splitSourceTrackOid.toString(),
-        )
         publicationService.publishManualPublication(
             LayoutBranch.main,
             PublicationRequest(
