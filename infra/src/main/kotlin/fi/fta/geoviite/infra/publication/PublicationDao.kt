@@ -1344,8 +1344,8 @@ class PublicationDao(
                         id,
                         trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
                         length = rs.getChange("length", rs::getDoubleOrNull),
-                        startPoint = rs.getChangePoint("start_x", "start_y"),
-                        endPoint = rs.getChangePoint("end_x", "end_y"),
+                        startPoint = rs.getNullableChangePoint("start_x", "start_y"),
+                        endPoint = rs.getNullableChangePoint("end_x", "end_y"),
                         alignmentVersion = rs.getChangeRowVersion("alignment_id", "alignment_version"),
                     )
             }

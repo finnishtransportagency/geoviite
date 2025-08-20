@@ -592,17 +592,10 @@ data class Change<T>(val old: T?, val new: T) {
     }
 
     fun <S> map(op: (T) -> S): Change<S> = Change(old?.let(op), op(new))
-
-    fun isChanged(isSame: (old: T, new: T) -> Boolean = { old, new -> old == new }): Boolean =
-        when {
-            old == null && new == null -> false
-            old == null || new == null -> true
-            else -> !isSame(old, new)
-        }
 }
 
 /**
- * Turns a change of lists inta list of changes, picking items by their id, designated byt the [getId] lambda. If some
+ * Turns a change of lists into a list of changes, picking items by their id, designated byt the [getId] lambda. If some
  * item is duplicated in either list (id is not unique in old or new state), then only the first instance one of said
  * item will be considered for the change.
  */
@@ -660,25 +653,27 @@ data class SwitchChanges(
     val measurementMethod: Change<MeasurementMethod?>,
     val trackConnections: Change<List<SwitchLocationTrack>>,
 ) {
-    fun getTrackJoints(): List<TrackJointChange> =
-        getLocationTrackIds().mapNotNull { id ->
-            trackConnections
-                .map { tracks -> tracks.find { it.id == id } }
-                .let { trackChange ->
-                    val name = trackChange.new?.name ?: trackChange.old?.name
-                    val joints = trackChange.map { t -> t?.joints?.map { j -> j.jointNumber } }
-                    if (name != null) TrackJointChange(id, name, joints) else null
-                }
-        }
+    val trackJoints: List<TrackJointChange>
+        get() =
+            getLocationTrackIds().mapNotNull { id ->
+                trackConnections
+                    .map { tracks -> tracks.find { it.id == id } }
+                    .let { trackChange ->
+                        val name = trackChange.new?.name ?: trackChange.old?.name
+                        val joints = trackChange.map { t -> t?.joints?.map { j -> j.jointNumber } }
+                        if (name != null) TrackJointChange(id, name, joints) else null
+                    }
+            }
 
-    fun getTrackNumberJointLocations(): List<TrackNumberJointLocationChange> =
-        getTrackNumberJointNumbers().map { (tnId, jointNumber) ->
-            TrackNumberJointLocationChange(
-                trackNumberId = tnId,
-                jointNumber = jointNumber,
-                location = getTrackNumberJointLocation(tnId, jointNumber),
-            )
-        }
+    val trackNumberJointLocations: List<TrackNumberJointLocationChange>
+        get() =
+            getTrackNumberJointNumbers().map { (tnId, jointNumber) ->
+                TrackNumberJointLocationChange(
+                    trackNumberId = tnId,
+                    jointNumber = jointNumber,
+                    location = getTrackNumberJointLocation(tnId, jointNumber),
+                )
+            }
 
     private fun getLocationTrackIds(): List<IntId<LocationTrack>> =
         ((trackConnections.old?.map { t -> t.id } ?: emptyList()) + trackConnections.new.map { t -> t.id })
@@ -714,8 +709,8 @@ data class ReferenceLineChanges(
     val id: IntId<ReferenceLine>,
     val trackNumberId: Change<IntId<LayoutTrackNumber>>,
     val length: Change<Double>,
-    val startPoint: Change<Point>,
-    val endPoint: Change<Point>,
+    val startPoint: Change<Point?>,
+    val endPoint: Change<Point?>,
     val alignmentVersion: Change<RowVersion<LayoutAlignment>>,
 )
 

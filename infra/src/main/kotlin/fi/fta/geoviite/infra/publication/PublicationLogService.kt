@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
-import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -697,14 +696,17 @@ constructor(
 
         val connectedTrackChanges =
             if (changes.state.new != LayoutStateCategory.NOT_EXISTING) {
-                changes.getTrackJoints().mapNotNull { track ->
+                changes.trackJoints.mapNotNull { track ->
                     val localizationParams = localizationParams("locationTrack" to track.name)
                     compareChange(
                         change = track.joints,
                         valueTransform = {
-                            "${translation.t("publication-details-table.track-linked")} ${jointsString(it)}"
+                            translation.t(
+                                "publication-details-table.track-linked",
+                                localizationParams("joints" to jointsString(it)),
+                            )
                         },
-                        propKey = PropKey("location-track-connectivity", localizationParams),
+                        propKey = PropKey("location-track-link", localizationParams),
                         nullReplacement = translation.t("publication-details-table.track-not-linked"),
                     )
                 }
@@ -727,7 +729,7 @@ constructor(
                             } else {
                                 0.0
                             }
-                        val jointPropKeyParams = localizationParams("jointNumber" to "${jointNumber.intValue}")
+                        val jointPropKeyParams = localizationParams("jointNumber" to jointNumber.intValue.toString())
                         compareChange(
                             change = change.map { c -> c?.location },
                             isSame = { old, new -> distance < DISTANCE_CHANGE_THRESHOLD },
@@ -741,8 +743,7 @@ constructor(
 
         val jointAddressChanges =
             if (changes.state.new != LayoutStateCategory.NOT_EXISTING) {
-                changes
-                    .getTrackNumberJointLocations()
+                changes.trackNumberJointLocations
                     .groupBy { change -> change.jointNumber }
                     .toList()
                     .sortedBy { (j, _) -> j.intValue }
@@ -756,12 +757,12 @@ constructor(
                                     ?.let { addressChange ->
                                         val jointPropKeyParams =
                                             localizationParams(
-                                                "jointNumber" to "${joint.intValue}",
+                                                "jointNumber" to joint.intValue.toString(),
                                                 "trackNumber" to getTrackNumber(change.trackNumberId),
                                             )
                                         compareChange(
                                             change = addressChange,
-                                            valueTransform = { "$it" },
+                                            valueTransform = { it.toString() },
                                             propKey = PropKey("switch-track-address", jointPropKeyParams),
                                             remark = getAddressMovedRemarkOrNull(translation, addressChange),
                                             nullReplacement = translation.t("publication-details-table.no-location"),
@@ -869,7 +870,11 @@ constructor(
                 .filter { tn -> specificObjectId == null || specificObjectId.isTrackNumber(tn.id) }
                 .map { tn ->
                     mapToPublicationTableItem(
-                        name = "${translation.t("publication-table.track-number-long")} ${tn.number}",
+                        name =
+                            translation.t(
+                                "publication-table.track-number-long",
+                                localizationParams("trackNumber" to tn.number),
+                            ),
                         asset = PublishedAssetTrackNumber(trackNumberDao.fetch(tn.version)),
                         trackNumbers = setOf(tn.number),
                         changedKmNumbers = tn.changedKmNumbers,
@@ -898,7 +903,8 @@ constructor(
                             ?.number
 
                     mapToPublicationTableItem(
-                        name = "${translation.t("publication-table.reference-line")} $tn",
+                        name =
+                            translation.t("publication-table.reference-line", localizationParams("trackNumber" to tn)),
                         asset = PublishedAssetReferenceLine(referenceLineDao.fetch(rl.version)),
                         trackNumbers = setOfNotNull(tn),
                         changedKmNumbers = rl.changedKmNumbers,
@@ -927,7 +933,11 @@ constructor(
                             .findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }
                             ?.number
                     mapToPublicationTableItem(
-                        name = "${translation.t("publication-table.location-track")} ${lt.name}",
+                        name =
+                            translation.t(
+                                "publication-table.location-track",
+                                localizationParams("locationTrack" to lt.name),
+                            ),
                         asset = PublishedAssetLocationTrack(locationTrackDao.fetch(lt.version)),
                         trackNumbers = setOfNotNull(trackNumber),
                         changedKmNumbers = lt.changedKmNumbers,
@@ -961,7 +971,7 @@ constructor(
                             publication.publicationTime,
                         )
                     mapToPublicationTableItem(
-                        name = "${translation.t("publication-table.switch")} ${s.name}",
+                        name = translation.t("publication-table.switch", localizationParams("switch" to s.name)),
                         asset = PublishedAssetSwitch(layoutSwitchDao.fetch(s.version)),
                         trackNumbers = tns,
                         operation = s.operation,
@@ -989,7 +999,8 @@ constructor(
                             .findLast { it.id == kp.trackNumberId && it.changeTime <= publication.publicationTime }
                             ?.number
                     mapToPublicationTableItem(
-                        name = "${translation.t("publication-table.km-post")} ${kp.kmNumber}",
+                        name =
+                            translation.t("publication-table.km-post", localizationParams("kmNumber" to kp.kmNumber)),
                         asset = PublishedAssetKmPost(layoutKmPostDao.fetch(kp.version)),
                         trackNumbers = setOfNotNull(tn),
                         operation = kp.operation,
@@ -1018,7 +1029,11 @@ constructor(
                             .findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }
                             ?.number
                     mapToPublicationTableItem(
-                        name = "${translation.t("publication-table.location-track")} ${lt.name}",
+                        name =
+                            translation.t(
+                                "publication-table.location-track",
+                                localizationParams("locationTrack" to lt.name),
+                            ),
                         asset = PublishedAssetLocationTrack(locationTrackDao.fetch(lt.version)),
                         trackNumbers = setOfNotNull(tn),
                         changedKmNumbers = lt.changedKmNumbers,
@@ -1052,7 +1067,7 @@ constructor(
                             publication.publicationTime,
                         )
                     mapToPublicationTableItem(
-                        name = "${translation.t("publication-table.switch")} ${s.name}",
+                        name = translation.t("publication-table.switch", localizationParams("switch" to s.name)),
                         asset = PublishedAssetSwitch(layoutSwitchDao.fetch(s.version)),
                         trackNumbers = tns,
                         operation = Operation.CALCULATED,

@@ -40,8 +40,8 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
                 </tr>
             </thead>
             <tbody>
-                {changes.map((change) => (
-                    <tr key={`${id}_${change.propKey.key}_${change.propKey.params}`}>
+                {changes.map((change, index) => (
+                    <tr key={`${id}_detail_${index}`}>
                         <td>
                             {t(
                                 `publication-details-table.prop.${change.propKey.key}`,
