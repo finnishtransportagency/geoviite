@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
@@ -34,7 +35,6 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
-import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegmentMetadata
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -63,238 +63,220 @@ constructor(
     private val geocodingService: GeocodingService,
     private val publicationDao: PublicationDao,
 ) {
+
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushSplits(splits: List<Pair<Split, RatkoLocationTrack>>, publicationTime: Instant): List<Oid<LocationTrack>> {
+    fun pushSplits(
+        splitsWithRatkoSourceTrack: List<Pair<Split, RatkoLocationTrack>>,
+        publicationTime: Instant,
+    ): List<Oid<LocationTrack>> {
         val layoutContext = LayoutContext.of(LayoutBranch.main, PublicationState.OFFICIAL)
         val pushableBranch = PushableMainBranch
 
         val oidMapping =
             locationTrackDao.fetchExternalIds(
                 layoutContext.branch,
-                splits.flatMap { (split, _) -> split.locationTracks },
+                splitsWithRatkoSourceTrack.flatMap { (split, _) -> split.locationTracks },
             )
 
-        val asd = // TODO
-            splits.map { (split, existingRatkoLocationTrack) ->
-                val publishedSwitches =
-                    split.publicationId.let(::requireNotNull).let(publicationDao::fetchPublicationSwitchChanges)
-
-                // TODO Doesn't seem like the correct place
-                val (sourceTrack, sourceTrackGeometry) =
-                    locationTrackService.getWithGeometry(split.sourceLocationTrackVersion)
-
-                val sourceTrackGeocodingContext =
-                    geocodingService.getGeocodingContext(layoutContext, sourceTrack.trackNumberId).let(::requireNotNull)
-
-                // Refresh the state of the source track
-                updateEntireLocationTrack(
-                    pushableBranch,
-                    layoutContext,
-                    publicationTime,
-                    split.sourceLocationTrackVersion,
-                    existingRatkoLocationTrack,
-                )
-
-                split.targetLocationTracks.map { splitTarget ->
-                    val externalLocationTrackId =
-                        MainBranchRatkoExternalId(
-                            oid = oidMapping[splitTarget.locationTrackId]?.oid.let(::requireNotNull)
-                        )
-
-                    // TODO Move the existing fetch up the chain so that the operation to be executed is already
-                    // known here
-                    val existingRatkoLocationTrack = ratkoClient.getLocationTrack(RatkoOid(externalLocationTrackId.oid))
-
-                    val (_, splitTargetGeometry) =
-                        locationTrackService
-                            .getWithGeometry(layoutContext, splitTarget.locationTrackId)
-                            .let(::requireNotNull)
-
-                    when (splitTarget.operation) {
-                        SplitTargetOperation.CREATE,
-                        SplitTargetOperation.OVERWRITE,
-                        SplitTargetOperation.TRANSFER -> { // TODO Looks like this needs some cleanup
-
-                            val startAndEnd =
-                                getSplitTargetTrackStartAndEndAddresses(
-                                        sourceTrackGeocodingContext,
-                                        sourceTrackGeometry,
-                                        splitTarget,
-                                        splitTargetGeometry,
-                                    )
-                                    .let { (start, end) -> requireNotNull(start) to requireNotNull(end) }
-
-                            if (existingRatkoLocationTrack == null) {
-                                createLocationTrack(
-                                    layoutContext.branch,
-                                    locationTrackDao
-                                        .get(layoutContext, splitTarget.locationTrackId)
-                                        .let(::requireNotNull),
-                                    externalLocationTrackId,
-                                    publicationTime,
-                                    locationTrackOidOfGeometry =
-                                        MainBranchRatkoExternalId(
-                                            oidMapping[split.sourceLocationTrackId]?.oid.let(::requireNotNull)
-                                        ),
-                                    splitStartAndEnd = startAndEnd,
-                                )
-                            } else {
-                                val alignmentAddresses =
-                                    geocodingService.getAddressPoints(layoutContext, splitTarget.locationTrackId)
-
-                                requireNotNull(alignmentAddresses) {
-                                    "Address points were undetermined, lt=${splitTarget.locationTrackId}"
-                                }
-
-                                val allKmNumbers =
-                                    alignmentAddresses.allPoints
-                                        .asSequence()
-                                        .map { addressPoint -> addressPoint.address.kmNumber }
-                                        .toSet()
-
-                                // TODO Reduce indentation by figuring out operations to do first
-                                if (splitTarget.operation == SplitTargetOperation.TRANSFER) {
-                                    logger.info(
-                                        "Transferring partial duplicate=${splitTarget.locationTrackId}"
-                                    ) // TODO Remove
-
-                                    val locationTrack =
-                                        locationTrackDao
-                                            .get(layoutContext, splitTarget.locationTrackId)
-                                            .let(::requireNotNull)
-
-                                    val trackKmsToUpdate =
-                                        inferTrackKmsFromSwitches(
-                                            layoutContext,
-                                            split,
-                                            splitTarget.locationTrackId,
-                                            publishedSwitches,
-                                        )
-
-                                    logger.info(
-                                        "Updating geometry for transfer target track=${splitTarget.locationTrackId}, kmNumbers=$trackKmsToUpdate"
-                                    )
-
-                                    // Due to a possibly mismatching geometry between Geoviite & Ratko, the track
-                                    // kilometers containing relinked switches are updated for a transfer target track.
-                                    // If this is not done, the integration may fail further in the chain due to a
-                                    // missing joint point in Ratko.
-                                    updateLocationTrack(
-                                        layoutContext.branch,
-                                        locationTrack,
-                                        externalLocationTrackId,
-                                        existingRatkoLocationTrack,
-                                        trackKmsToUpdate,
-                                        publicationTime,
-                                    )
-
-                                    updateLocationTrack(
-                                        layoutContext.branch,
-                                        locationTrack,
-                                        externalLocationTrackId,
-                                        existingRatkoLocationTrack,
-                                        allKmNumbers, // TODO Unused when using referenced geometry (below)
-                                        publicationTime,
-                                        locationTrackOidOfGeometry =
-                                            MainBranchRatkoExternalId(
-                                                oidMapping[split.sourceLocationTrackId]?.oid.let(::requireNotNull)
-                                            ),
-                                        splitStartAndEnd = startAndEnd,
-                                    )
-                                } else {
-                                    updateLocationTrack(
-                                        layoutContext.branch,
-                                        locationTrackDao
-                                            .get(layoutContext, splitTarget.locationTrackId)
-                                            .let(::requireNotNull),
-                                        externalLocationTrackId,
-                                        existingRatkoLocationTrack,
-                                        allKmNumbers, // TODO Unused when using referenced geometry (below)
-                                        publicationTime,
-                                        locationTrackOidOfGeometry =
-                                            MainBranchRatkoExternalId(
-                                                oidMapping[split.sourceLocationTrackId]?.oid.let(::requireNotNull)
-                                            ),
-                                        splitStartAndEnd = startAndEnd,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // TODO Create a named function for setting the state to "OLD"?
-                updateLocationTrackProperties(
-                    branch = layoutContext.branch,
-                    locationTrack = sourceTrack,
-                    locationTrackExternalId =
-                        MainBranchRatkoExternalId(
-                            oidMapping[sourceTrack.id]?.oid.let(::requireNotNull)
-                        ), // TODO Should probably not be created here
-                    locationTrackStateOverride = RatkoLocationTrackState.OLD,
-                )
-            }
-
-        return emptyList() // TODO
+        return splitsWithRatkoSourceTrack.flatMap { (split, sourceRatkoLocationTrack) ->
+            pushSingleSplit(layoutContext, pushableBranch, split, sourceRatkoLocationTrack, oidMapping, publicationTime)
+        }
     }
 
-    private fun inferTrackKmsFromSwitches( // TODO Rename
+    private fun pushSingleSplit(
         layoutContext: LayoutContext,
+        pushableBranch: PushableLayoutBranch,
         split: Split,
-        locationTrackId: IntId<LocationTrack>,
-        publishedSwitchChanges: Map<IntId<LayoutSwitch>, SwitchChanges>,
-    ): Set<KmNumber> {
-        val locationTrackSwitches =
-            locationTrackService.getSwitchesForLocationTrack(layoutContext, locationTrackId).toSet()
+        sourceRatkoLocationTrack: RatkoLocationTrack,
+        oidMapping: Map<IntId<LocationTrack>, RatkoExternalId<LocationTrack>>,
+        publicationTime: Instant,
+    ): List<Oid<LocationTrack>> {
+        // The state of the source track is refreshed before pushing any split target tracks as the geometry is being
+        // referenced for target tracks from the source track (which may not be up-to-date within Ratko).
+        val (sourceTrack, sourceTrackGeometry) = locationTrackService.getWithGeometry(split.sourceLocationTrackVersion)
+        val sourceTrackExternalId = MainBranchRatkoExternalId(oidMapping[sourceTrack.id]?.oid.let(::requireNotNull))
 
-        val switchesToUpdate =
-            split.relinkedSwitches.filter { relinkedSwitch -> relinkedSwitch in locationTrackSwitches }
+        refreshSplitSourceTrackState(
+            pushableBranch,
+            layoutContext,
+            publicationTime,
+            sourceTrack,
+            sourceTrackExternalId,
+            sourceRatkoLocationTrack,
+        )
 
-        return switchesToUpdate
-            .flatMap { switchId ->
-                publishedSwitchChanges
-                    .getValue(switchId)
-                    .joints
-                    .map { joint -> joint.address }
-                    .map { address -> address.kmNumber }
+        val sourceTrackGeocodingContext =
+            geocodingService.getGeocodingContext(layoutContext, sourceTrack.trackNumberId).let(::requireNotNull)
+
+        val publishedSwitches =
+            split.publicationId.let(::requireNotNull).let(publicationDao::fetchPublicationSwitchChanges)
+
+        val pushedTargetLocationTrackOids =
+            split.targetLocationTracks.map { splitTarget ->
+                val targetLocationTrackExternalId =
+                    oidMapping[splitTarget.locationTrackId]?.oid.let(::requireNotNull).let(::MainBranchRatkoExternalId)
+
+                val (targetLocationTrack, targetGeometry) =
+                    locationTrackService
+                        .getWithGeometry(layoutContext, splitTarget.locationTrackId)
+                        .let(::requireNotNull)
+
+                val startAndEnd =
+                    getSplitTargetTrackStartAndEndAddresses(
+                            sourceTrackGeocodingContext,
+                            sourceTrackGeometry,
+                            splitTarget,
+                            targetGeometry,
+                        )
+                        .let { (start, end) -> requireNotNull(start) to requireNotNull(end) }
+
+                pushSplitTarget(
+                    layoutContext,
+                    sourceTrackExternalId,
+                    targetLocationTrackExternalId,
+                    targetLocationTrack,
+                    splitTarget.operation,
+                    startAndEnd,
+                    publicationTime,
+                    split.relinkedSwitches,
+                    publishedSwitches,
+                )
             }
-            .toSet()
+
+        // Source track state is set to OLD after all split related updates are made.
+        updateLocationTrackProperties(
+            branch = layoutContext.branch,
+            locationTrack = sourceTrack,
+            locationTrackExternalId = sourceTrackExternalId,
+            locationTrackStateOverride = RatkoLocationTrackState.OLD,
+        )
+
+        return pushedTargetLocationTrackOids
     }
 
-    private fun updateEntireLocationTrack(
-        pushableBranch: PushableLayoutBranch,
-        layoutContext: LayoutContext, // TODO Only one of these should be enough right?
+    private fun pushSplitTarget(
+        layoutContext: LayoutContext,
+        sourceTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
+        targetLocationTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
+        targetLocationTrack: LocationTrack,
+        splitTargetOperation: SplitTargetOperation,
+        splitStartAndEnd: Pair<TrackMeter, TrackMeter>,
         publicationTime: Instant,
-        locationTrackVersion: LayoutRowVersion<LocationTrack>,
+        relinkedSwitches: List<IntId<LayoutSwitch>>,
+        publishedSwitches: Map<IntId<LayoutSwitch>, SwitchChanges>,
+    ): Oid<LocationTrack> {
+        val existingRatkoLocationTrack = ratkoClient.getLocationTrack(RatkoOid(targetLocationTrackExternalId.oid))
+
+        if (existingRatkoLocationTrack == null) {
+            createLocationTrack(
+                layoutContext.branch,
+                targetLocationTrack,
+                targetLocationTrackExternalId,
+                publicationTime,
+                locationTrackOidOfGeometry = sourceTrackExternalId,
+                splitStartAndEnd = splitStartAndEnd,
+            )
+        } else {
+            if (splitTargetOperation == SplitTargetOperation.TRANSFER) {
+                // Due to a possibly mismatching geometry between Geoviite & Ratko, the track
+                // kilometers containing relinked switches are updated for a transfer target track.
+                // If this is not done, the integration may fail further in the chain due to a
+                // missing joint point in Ratko.
+                pushSwitchKmsForSplitTransferTarget(
+                    layoutContext,
+                    relinkedSwitches,
+                    targetLocationTrack,
+                    targetLocationTrackExternalId,
+                    existingRatkoLocationTrack,
+                    publicationTime,
+                    publishedSwitches,
+                )
+            }
+
+            // TODO Unused when using referenced geometry (below)
+            val allKmNumbers =
+                geocodingService
+                    .getAddressPoints(layoutContext, targetLocationTrack.id as IntId)
+                    .let(::requireNotNull)
+                    .allPoints
+                    .asSequence()
+                    .map { addressPoint -> addressPoint.address.kmNumber }
+                    .toSet()
+
+            updateLocationTrack(
+                layoutContext.branch,
+                targetLocationTrack,
+                targetLocationTrackExternalId,
+                existingRatkoLocationTrack,
+                allKmNumbers,
+                publicationTime,
+                locationTrackOidOfGeometry = sourceTrackExternalId,
+                splitStartAndEnd = splitStartAndEnd,
+            )
+        }
+
+        return targetLocationTrackExternalId.oid
+    }
+
+    private fun pushSwitchKmsForSplitTransferTarget(
+        layoutContext: LayoutContext,
+        relinkedSwitches: List<IntId<LayoutSwitch>>,
+        targetLocationTrack: LocationTrack,
+        targetLocationTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
+        existingRatkoLocationTrack: RatkoLocationTrack,
+        publicationTime: Instant,
+        publishedSwitches: Map<IntId<LayoutSwitch>, SwitchChanges>,
+    ) {
+        val locationTrackSwitches =
+            locationTrackService.getSwitchesForLocationTrack(layoutContext, targetLocationTrack.id as IntId).toSet()
+
+        val switchesToUpdate = relinkedSwitches.filter { relinkedSwitch -> relinkedSwitch in locationTrackSwitches }
+        val trackKmsToUpdate =
+            switchesToUpdate
+                .flatMap { switchId ->
+                    publishedSwitches
+                        .getValue(switchId)
+                        .joints
+                        .map { joint -> joint.address }
+                        .map { address -> address.kmNumber }
+                }
+                .toSet()
+
+        logger.info(
+            "Updating geometry for transfer target track=${targetLocationTrack.id}, kmNumbers=$trackKmsToUpdate"
+        )
+
+        updateLocationTrack(
+            layoutContext.branch,
+            targetLocationTrack,
+            targetLocationTrackExternalId,
+            existingRatkoLocationTrack,
+            trackKmsToUpdate,
+            publicationTime,
+        )
+    }
+
+    private fun refreshSplitSourceTrackState(
+        pushableBranch: PushableLayoutBranch,
+        layoutContext: LayoutContext,
+        publicationTime: Instant,
+        sourceTrack: LocationTrack,
+        sourceTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
         existingRatkoLocationTrack: RatkoLocationTrack,
     ) {
-        val sourceLocationTrack = locationTrackDao.fetch(locationTrackVersion)
-
-        val externalId =
-            getFullExtIdAndManagePlanItem(
-                branch = pushableBranch,
-                sourceLocationTrack.id as IntId,
-                sourceLocationTrack.designAssetState,
-                ratkoClient,
-                locationTrackDao::fetchExternalId,
-                locationTrackDao::savePlanItemId,
-            )
-
-        requireNotNull(externalId) { "OID required for location track, lt=${sourceLocationTrack.id}" }
-
         // TODO These could be passed and fetched with the actual time (similarly to what the
         // updateLocationTrack is doing)
-        val alignmentAddresses = geocodingService.getAddressPoints(layoutContext, sourceLocationTrack.id)
-        requireNotNull(alignmentAddresses) { "Address points were undetermined, lt=${sourceLocationTrack.id}" }
+        val alignmentAddresses = geocodingService.getAddressPoints(layoutContext, sourceTrack.id as IntId)
+        requireNotNull(alignmentAddresses) { "Address points were undetermined, lt=${sourceTrack.id}" }
 
         val allKmNumbers =
             alignmentAddresses.allPoints.asSequence().map { addressPoint -> addressPoint.address.kmNumber }.toSet()
 
         updateLocationTrack(
             branch = pushableBranch.branch,
-            locationTrack = sourceLocationTrack,
-            locationTrackExternalId = externalId,
+            locationTrack = sourceTrack,
+            locationTrackExternalId = sourceTrackExternalId,
             existingRatkoLocationTrack = existingRatkoLocationTrack,
             changedKmNumbers = allKmNumbers,
             moment = publicationTime,

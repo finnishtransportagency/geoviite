@@ -197,6 +197,8 @@ constructor(
 
     @Test fun `Ratko integration handles a partial duplicate track within a split`() {}
 
+    @Test fun `Ratko integration sets a split as completed after all push related steps have completed`() {}
+
     @Test
     fun `Ratko integration handles a duplicate track within a split`() {
         testDBService.clearAllTables()

@@ -304,31 +304,6 @@ constructor(
                     PushableMainBranch
                 }
 
-            val splits = publications.mapNotNull { publication -> publication.split?.id }.map(splitService::getOrThrow)
-
-            val splitsToPush =
-                if (pushableBranch == PushableMainBranch) {
-                    splits.mapNotNull { split ->
-                        val splitSourceTrackOid =
-                            locationTrackService
-                                .getExternalIdsByBranch(split.sourceLocationTrackId)[pushableBranch.branch]
-                                .let(::requireNotNull)
-
-                        val existingRatkoLocationTrack = ratkoClient.getLocationTrack(RatkoOid(splitSourceTrackOid))
-                        if (existingRatkoLocationTrack == null) {
-                            logger.info(
-                                "Split target tracks will be pushed normally as the source location track did not exist in Ratko, splitId=${split.id}, sourceLocationTrackId=${split.sourceLocationTrackId}"
-                            )
-                            null
-                        } else {
-                            split to existingRatkoLocationTrack
-                        }
-                    }
-                } else {
-                    require(splits.isEmpty()) { "Pushing splits is only supported in the main branch" }
-                    emptyList()
-                }
-
             val pushedRouteNumberOids =
                 ratkoRouteNumberService.pushTrackNumberChangesToRatko(
                     pushableBranch,
@@ -336,8 +311,10 @@ constructor(
                     lastPublicationTime,
                 )
 
+            val splits = publications.mapNotNull { publication -> publication.split?.id }.map(splitService::getOrThrow)
+            val splitsToPush = prepareSplitsToPush(pushableBranch, splits)
             val locationTrackOidsPushedInSplits =
-                ratkoLocationTrackService.pushSplits(splitsToPush, lastPublicationTime) // TODO Remove
+                ratkoLocationTrackService.pushSplits(splitsToPush, lastPublicationTime)
 
             val locationTrackIdsPushedInSplits = splits.flatMap { split -> split.locationTracks }
             val locationTracksToPush =
@@ -530,4 +507,34 @@ constructor(
     private fun createPlanInRatko(lastPublicationDesign: LayoutDesign, designId: IntId<LayoutDesign>): RatkoPlanId =
         requireNotNull(ratkoClient.createPlan(newRatkoPlan(lastPublicationDesign))) { "Expected plan ID from Ratko" }
             .also { ratkoId -> layoutDesignDao.initializeRatkoId(designId, ratkoId) }
+
+    private fun prepareSplitsToPush(
+        pushableBranch: PushableLayoutBranch,
+        splits: List<Split>,
+    ): List<Pair<Split, RatkoLocationTrack>> {
+        return if (pushableBranch == PushableMainBranch) {
+            splits.mapNotNull { split ->
+                val splitSourceTrackOid =
+                    locationTrackService.getExternalIdsByBranch(split.sourceLocationTrackId)[pushableBranch.branch]
+
+                requireNotNull(splitSourceTrackOid) {
+                    "Split source track must have an external id (oid) defined when split of it is being pushed"
+                }
+
+                val existingRatkoLocationTrack = ratkoClient.getLocationTrack(RatkoOid(splitSourceTrackOid))
+                // TODO Modify this to creation of the source track instead of skipping the split pushing
+                if (existingRatkoLocationTrack == null) {
+                    logger.info(
+                        "Split target tracks will be pushed normally as the source location track did not exist in Ratko, splitId=${split.id}, sourceLocationTrackId=${split.sourceLocationTrackId}"
+                    )
+                    null
+                } else {
+                    split to existingRatkoLocationTrack
+                }
+            }
+        } else {
+            require(splits.isEmpty()) { "Pushing splits is only supported in the main branch" }
+            emptyList()
+        }
+    }
 }
