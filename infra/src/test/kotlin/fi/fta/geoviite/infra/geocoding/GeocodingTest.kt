@@ -26,20 +26,21 @@ import fi.fta.geoviite.infra.tracklayout.alignmentFromPoints
 import fi.fta.geoviite.infra.tracklayout.assertEquals
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 import kotlin.math.PI
 import kotlin.math.sqrt
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 const val DELTA = 0.000001
 
@@ -104,21 +105,16 @@ val trackNumber: TrackNumber = TrackNumber("T001")
 val kmPostLocations =
     (0..5).map { i ->
         val alignmentPoint = alignment.getPointAtM(alignment.length * i / 5)
-        checkNotNull(alignmentPoint?.toPoint())
+        kmPostGkLocation(checkNotNull(alignmentPoint?.toPoint()))
     }
 
 val kmPosts =
     listOf(
-        kmPost(
-            trackNumberId = null,
-            km = startAddress.kmNumber,
-            roughLayoutLocation = kmPostLocations[0],
-            draft = false,
-        ),
-        kmPost(trackNumberId = null, km = KmNumber(3), roughLayoutLocation = kmPostLocations[1], draft = false),
-        kmPost(trackNumberId = null, km = KmNumber(4), roughLayoutLocation = kmPostLocations[2], draft = false),
-        kmPost(trackNumberId = null, km = KmNumber(5, "A"), roughLayoutLocation = kmPostLocations[3], draft = false),
-        kmPost(trackNumberId = null, km = KmNumber(5, "B"), roughLayoutLocation = kmPostLocations[4], draft = false),
+        kmPost(trackNumberId = null, km = startAddress.kmNumber, gkLocation = kmPostLocations[0], draft = false),
+        kmPost(trackNumberId = null, km = KmNumber(3), gkLocation = kmPostLocations[1], draft = false),
+        kmPost(trackNumberId = null, km = KmNumber(4), gkLocation = kmPostLocations[2], draft = false),
+        kmPost(trackNumberId = null, km = KmNumber(5, "A"), gkLocation = kmPostLocations[3], draft = false),
+        kmPost(trackNumberId = null, km = KmNumber(5, "B"), gkLocation = kmPostLocations[4], draft = false),
     )
 val context =
     GeocodingContext(
@@ -325,7 +321,9 @@ class GeocodingTest {
                     PolyLineEdge(
                         start = points[index - 1],
                         end = point,
-                        segmentStart = if (index <= points1.lastIndex) LineM<ReferenceLineM>(0.0) else points1.last().m.castToDifferentM(),
+                        segmentStart =
+                            if (index <= points1.lastIndex) LineM<ReferenceLineM>(0.0)
+                            else points1.last().m.castToDifferentM(),
                         referenceDirection = directionBetweenPoints(points[index - 1], point),
                     )
             }
@@ -746,7 +744,7 @@ class GeocodingTest {
         val trackNumber = TrackNumber("T001")
         val startAlignment = LayoutAlignment(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
-        val kmPost = kmPost(IntId(1), KmNumber(10), Point(5.0, 0.0), draft = false)
+        val kmPost = kmPost(IntId(1), KmNumber(10), kmPostGkLocation(5.0, 0.0), draft = false)
 
         val result =
             GeocodingContext.create(
@@ -768,7 +766,7 @@ class GeocodingTest {
         val trackNumber = TrackNumber("T001")
         val startAlignment = LayoutAlignment(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
-        val kmPost = kmPost(IntId(1), KmNumber(11), Point(-5.0, 0.0), draft = false)
+        val kmPost = kmPost(IntId(1), KmNumber(11), kmPostGkLocation(-5.0, 0.0), draft = false)
 
         val result =
             GeocodingContext.create(
@@ -790,7 +788,7 @@ class GeocodingTest {
         val trackNumber = TrackNumber("T001")
         val startAlignment = LayoutAlignment(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
-        val kmPost = kmPost(IntId(1), KmNumber(11), Point(50.0, 0.0), draft = false)
+        val kmPost = kmPost(IntId(1), KmNumber(11), kmPostGkLocation(50.0, 0.0), draft = false)
 
         val result =
             GeocodingContext.create(
@@ -812,7 +810,7 @@ class GeocodingTest {
         val trackNumber = TrackNumber("T001")
         val startAlignment = LayoutAlignment(segments = listOf(segment(Point(0.0, 0.0), Point(40000.0, 0.0))))
 
-        val kmPost = kmPost(IntId(1), KmNumber(11), Point(20000.0, 0.0), draft = false)
+        val kmPost = kmPost(IntId(1), KmNumber(11), kmPostGkLocation(20000.0, 0.0), draft = false)
 
         val result =
             GeocodingContext.create(
@@ -833,7 +831,7 @@ class GeocodingTest {
     fun `should require start km to have sane length`() {
         val trackNumber = TrackNumber("T001")
         val startAlignment = LayoutAlignment(segments = listOf(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
-        val kmPost = kmPost(IntId(1), KmNumber(1), Point(15.0, 0.0), draft = false)
+        val kmPost = kmPost(IntId(1), KmNumber(1), kmPostGkLocation(15.0, 0.0), draft = false)
         val result =
             GeocodingContext.create(
                 trackNumber = trackNumber,
@@ -890,11 +888,7 @@ class GeocodingTest {
     fun `geocoding survives contact with terrible zigzag alignment`() {
         val terribleZigzag = listOf(0.0, 5.0, 3.0, 7.0, 4.0, 10.0)
         val terribleZigzagAlignment =
-            alignment(
-                terribleZigzag.zipWithNext { start, end ->
-                    segment(Point(start, 0.0), Point(end, 0.0))
-                }
-            )
+            alignment(terribleZigzag.zipWithNext { start, end -> segment(Point(start, 0.0), Point(end, 0.0)) })
         val risingZigzagAlignment =
             alignment(
                 terribleZigzag.zip(terribleZigzag.indices).zipWithNext { (start, i), (end, _) ->
@@ -1029,13 +1023,16 @@ class GeocodingTest {
                 AddressPoint(AlignmentPoint(1.0, 6.0, null, m = LineM(1.0), null), TrackMeter("0000+0006")),
                 // m-value: zigzag's diagonal is 1 meter tall and 2 meters wide, hence sqrt(1 + 4); plus 1 meter before
                 // the turn, and 3 meters after
-                AddressPoint(AlignmentPoint(0.0, 7.0, null, m = LineM<ReferenceLineM>(4.0 + sqrt(5.0)), null), TrackMeter("0000+0007")),
+                AddressPoint(
+                    AlignmentPoint(0.0, 7.0, null, m = LineM<ReferenceLineM>(4.0 + sqrt(5.0)), null),
+                    TrackMeter("0000+0007"),
+                ),
             ),
             result.midPoints,
         )
     }
 
-    private fun <M: AlignmentM<M>> assertEqualsRounded(
+    private fun <M : AlignmentM<M>> assertEqualsRounded(
         expectedAddressPoints: List<AddressPoint<M>>,
         actualAddressPoints: List<AddressPoint<M>>,
     ) {

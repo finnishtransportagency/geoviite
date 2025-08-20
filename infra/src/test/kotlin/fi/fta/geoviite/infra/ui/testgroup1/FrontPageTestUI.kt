@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.integration.IndirectChanges
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.ratko.FakeRatkoService
@@ -28,13 +29,13 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import java.time.Instant
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -73,7 +74,7 @@ constructor(
         publicationDao.insertCalculatedChanges(
             successfulPublicationId,
             changesTouchingTrackNumber(trackNumberId),
-            publishedVersions(trackNumbers = listOf(originalTrackNumber)),
+            publishedVersions(trackNumbers = listOf(Change(null, originalTrackNumber))),
         )
 
         val updatedTrackNumberVersion =
@@ -92,7 +93,7 @@ constructor(
         publicationDao.insertCalculatedChanges(
             failingPublicationId,
             changesTouchingTrackNumber(trackNumberId),
-            publishedVersions(trackNumbers = listOf(updatedTrackNumberVersion)),
+            publishedVersions(trackNumbers = listOf(Change(originalTrackNumber, updatedTrackNumberVersion))),
         )
 
         val failedRatkoPushId = ratkoPushDao.startPushing(listOf(failingPublicationId))
