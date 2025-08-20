@@ -78,12 +78,17 @@ class LocationTrackService(
                 nameStructure = request.nameStructure,
                 name =
                     request.nameStructure.reify(
-                        trackNumberDao.getOrThrow(branch.draft, request.trackNumberId),
-                        null,
-                        null,
+                        trackNumber = trackNumberDao.getOrThrow(branch.draft, request.trackNumberId),
+                        startSwitch = null,
+                        endSwitch = null,
                     ),
                 descriptionStructure = request.descriptionStructure,
-                description = request.descriptionStructure.reify(descriptionTranslation, null, null),
+                description =
+                    request.descriptionStructure.reify(
+                        translation = descriptionTranslation,
+                        startSwitch = null,
+                        endSwitch = null,
+                    ),
                 type = request.type,
                 state = request.state,
                 trackNumberId = request.trackNumberId,
@@ -126,7 +131,7 @@ class LocationTrackService(
         id: IntId<LocationTrack>,
         request: LocationTrackSaveRequest,
     ): LayoutRowVersion<LocationTrack> {
-        val (originalTrack: LocationTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
+        val (originalTrack, originalGeometry) = getWithGeometryOrThrow(branch.draft, id)
         val locationTrack =
             originalTrack.copy(
                 nameStructure = request.nameStructure,
@@ -191,7 +196,7 @@ class LocationTrackService(
         params: LocationTrackGeometry,
     ): LayoutRowVersion<LocationTrack> {
         val versions =
-            dao.fetchDependencyVersions(
+            dao.fetchTrackDependencyVersions(
                 context = branch.draft,
                 trackNumberId = track.trackNumberId,
                 startSwitchId = params.startSwitchLink?.id,
@@ -738,7 +743,7 @@ class LocationTrackService(
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         switchId: IntId<LayoutSwitch>? = null,
     ): List<LayoutRowVersion<LocationTrack>> =
-        dao.fetchDependencyVersions(branch.draft, trackNumberId, switchId).mapNotNull {
+        dao.fetchAffectedTrackDependencyVersions(branch.draft, trackNumberId, switchId).mapNotNull {
             (trackVersion, dependencyVersions) ->
             if (noUpdateLocationTracks.contains(trackVersion.id)) null
             else {

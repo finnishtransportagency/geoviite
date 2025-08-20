@@ -128,6 +128,7 @@ class LocationTrackDao(
                     name to daoResponse
                 }
             // Ensure that the result contains all asked-for names, even if there are no matches
+            logger.daoAccess(AccessType.FETCH, "findNameDuplicates", names)
             names.associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }
         }
     }
@@ -438,9 +439,11 @@ class LocationTrackDao(
                 "include_deleted" to includeDeleted,
                 "names" to names.joinToString(",") { name -> name.toString().lowercase() },
             )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
-        }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
+            }
+            .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchVersions") }
     }
 
     @Transactional(readOnly = true)
@@ -503,9 +506,11 @@ class LocationTrackDao(
         // GVT-3181 This query is poorly optimized when JDBC tries to prepare a plan for it.
         // Force a custom plan to avoid the issue. Note: this must be in the same transaction as the query.
         jdbcTemplate.setForceCustomPlan()
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
-        }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
+            }
+            .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchVersionsNear", bbox) }
     }
 
     @Cacheable(CACHE_COMMON_LOCATION_TRACK_OWNER, sync = true)
@@ -594,9 +599,11 @@ class LocationTrackDao(
                 val daoResponse = rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
                 trackNumberId to daoResponse
             }
-        return trackNumberIds.associateWith { trackNumberId ->
-            versions.filter { (tnId, _) -> tnId == trackNumberId }.map { (_, trackVersions) -> trackVersions }
-        }
+        return trackNumberIds
+            .associateWith { trackNumberId ->
+                versions.filter { (tnId, _) -> tnId == trackNumberId }.map { (_, trackVersions) -> trackVersions }
+            }
+            .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchVersionsForPublication", trackIdsToPublish) }
     }
 
     fun listPublishedLocationTracksAtMoment(moment: Instant): List<LocationTrack> {
@@ -617,6 +624,7 @@ class LocationTrackDao(
                 rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
             }
             .map(::fetch)
+            .also { logger.daoAccess(AccessType.FETCH, LocationTrack::class, moment) }
     }
 
     @Transactional
@@ -631,7 +639,7 @@ class LocationTrackDao(
         insertExternalIdInExistingTransaction(branch, id, oid)
     }
 
-    fun fetchDependencyVersions(
+    fun fetchTrackDependencyVersions(
         context: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
         startSwitchId: IntId<LayoutSwitch>?,
@@ -672,23 +680,33 @@ class LocationTrackDao(
                 "start_switch_id" to startSwitchId?.intValue,
                 "end_switch_id" to endSwitchId?.intValue,
             )
-        return jdbcTemplate.queryOne(sql, params) { rs, _ ->
-            LocationTrackDependencyVersions(
-                trackNumberVersion =
-                    rs.getLayoutRowVersion("track_number_id", "track_number_layout_context_id", "track_number_version"),
-                startSwitchVersion =
-                    rs.getLayoutRowVersionOrNull(
-                        "start_switch_id",
-                        "start_switch_layout_context_id",
-                        "start_switch_version",
-                    ),
-                endSwitchVersion =
-                    rs.getLayoutRowVersionOrNull("end_switch_id", "end_switch_layout_context_id", "end_switch_version"),
-            )
-        }
+        return jdbcTemplate
+            .queryOne(sql, params) { rs, _ ->
+                LocationTrackDependencyVersions(
+                    trackNumberVersion =
+                        rs.getLayoutRowVersion(
+                            "track_number_id",
+                            "track_number_layout_context_id",
+                            "track_number_version",
+                        ),
+                    startSwitchVersion =
+                        rs.getLayoutRowVersionOrNull(
+                            "start_switch_id",
+                            "start_switch_layout_context_id",
+                            "start_switch_version",
+                        ),
+                    endSwitchVersion =
+                        rs.getLayoutRowVersionOrNull(
+                            "end_switch_id",
+                            "end_switch_layout_context_id",
+                            "end_switch_version",
+                        ),
+                )
+            }
+            .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchTrackDependencyVersions", it) }
     }
 
-    fun fetchDependencyVersions(
+    fun fetchAffectedTrackDependencyVersions(
         context: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
         switchId: IntId<LayoutSwitch>? = null,
@@ -754,5 +772,6 @@ class LocationTrackDao(
                     )
             }
             .associate { it }
+            .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchAffectedTrackDependencyVersions", it) }
     }
 }

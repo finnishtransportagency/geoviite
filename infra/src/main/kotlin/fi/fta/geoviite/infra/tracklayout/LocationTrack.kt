@@ -218,7 +218,7 @@ data class LocationTrack(
     val descriptionStructure: LocationTrackDescriptionStructure,
     /**
      * Reified description from the structured fields, using dependencies (end switches). Should not be edited directly,
-     * only, only via the method [LocationTrackDescriptionStructure.reify]
+     * only via the method [LocationTrackDescriptionStructure.reify]
      */
     val description: FreeText,
     val type: LocationTrackType,

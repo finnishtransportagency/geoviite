@@ -42,7 +42,7 @@ import { LayoutValidationIssue } from 'publication/publication-model';
 export type LocationTrackSaveRequest = {
     namingScheme?: LocationTrackNamingScheme;
     nameFreeText?: string;
-    nameSpecifier?: LocationTrackNameSpecifier | undefined;
+    nameSpecifier?: LocationTrackNameSpecifier;
     descriptionBase?: string;
     descriptionSuffix?: LocationTrackDescriptionSuffixMode;
     type?: LocationTrackType;

@@ -148,7 +148,7 @@ export async function updateSwitch(
         layoutUri('switches', draftLayoutContext(layoutContext), id),
         updatedSwitch,
     );
-    // Switch changes can also affect location track names
+    // Switch changes can also affect location track names & descriptions
     await Promise.all([updateSwitchChangeTime(), updateLocationTrackChangeTime()]);
     return result;
 }
@@ -160,7 +160,7 @@ export async function deleteDraftSwitch(
     const result = await deleteNonNull<LayoutSwitchId>(
         layoutUri('switches', draftLayoutContext(layoutContext), switchId),
     );
-    // Switch changes can also affect location track names
+    // Switch changes can also affect location track names & descriptions
     await Promise.all([updateSwitchChangeTime(), updateLocationTrackChangeTime()]);
     return result;
 }
@@ -218,7 +218,7 @@ export async function cancelSwitch(design: DesignBranch, id: LayoutSwitchId): Pr
         `${layoutUriByBranch('switches', design)}/${id}/cancel`,
         '',
     );
-    // Switch changes can also affect location track names
+    // Switch changes can also affect location track names & descriptions
     await Promise.all([updateSwitchChangeTime(), updateLocationTrackChangeTime()]);
     return result;
 }

@@ -5,6 +5,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RatkoExternalId
+import fi.fta.geoviite.infra.logging.AccessType
+import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
@@ -16,8 +18,8 @@ import fi.fta.geoviite.infra.util.getOid
 import fi.fta.geoviite.infra.util.getRatkoExternalId
 import fi.fta.geoviite.infra.util.getRatkoExternalIdOrNull
 import fi.fta.geoviite.infra.util.queryOptional
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import java.time.Instant
 
 interface IExternalIdDao<T : LayoutAsset<T>> {
     fun getExternalIdChangeTime(): Instant
@@ -57,14 +59,16 @@ class ExternalIdDao<T : LayoutAsset<T>>(
             where id = :id and layout_context_id = :layout_context_id
         """
                 .trimIndent()
-        jdbcTemplate.update(
-            sql,
-            mapOf(
-                "id" to id.intValue,
-                "layout_context_id" to branch.official.toSqlString(),
-                "plan_item_id" to planItemId.intValue,
-            ),
-        )
+        jdbcTemplate
+            .update(
+                sql,
+                mapOf(
+                    "id" to id.intValue,
+                    "layout_context_id" to branch.official.toSqlString(),
+                    "plan_item_id" to planItemId.intValue,
+                ),
+            )
+            .also { logger.daoAccess(AccessType.UPSERT, RatkoPlanItemId::class, id) }
     }
 
     override fun insertExternalIdInExistingTransaction(branch: LayoutBranch, id: IntId<T>, oid: Oid<T>) {
@@ -74,15 +78,17 @@ class ExternalIdDao<T : LayoutAsset<T>>(
             values (:id, :layout_context_id, :design_id, :external_id)
         """
                 .trimIndent()
-        jdbcTemplate.update(
-            sql,
-            mapOf(
-                "id" to id.intValue,
-                "design_id" to branch.designId?.intValue,
-                "layout_context_id" to branch.official.toSqlString(),
-                "external_id" to oid.toString(),
-            ),
-        )
+        jdbcTemplate
+            .update(
+                sql,
+                mapOf(
+                    "id" to id.intValue,
+                    "design_id" to branch.designId?.intValue,
+                    "layout_context_id" to branch.official.toSqlString(),
+                    "external_id" to oid.toString(),
+                ),
+            )
+            .also { logger.daoAccess(AccessType.UPSERT, RatkoPlanItemId::class, id) }
     }
 
     override fun fetchExternalId(branch: LayoutBranch, id: IntId<T>): RatkoExternalId<T>? {
@@ -93,11 +99,11 @@ class ExternalIdDao<T : LayoutAsset<T>>(
                where id = :id and design_id is not distinct from :design_id;
             """
                 .trimIndent()
-        return jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue, "design_id" to branch.designId?.intValue)) {
-            rs,
-            _ ->
-            rs.getRatkoExternalIdOrNull("external_id", "plan_item_id")
-        }
+        return jdbcTemplate
+            .queryOptional(sql, mapOf("id" to id.intValue, "design_id" to branch.designId?.intValue)) { rs, _ ->
+                rs.getRatkoExternalIdOrNull<T>("external_id", "plan_item_id")
+            }
+            .also { logger.daoAccess(AccessType.FETCH, RatkoExternalId::class, id) }
     }
 
     override fun fetchExternalIdsWithInheritance(
@@ -143,6 +149,7 @@ class ExternalIdDao<T : LayoutAsset<T>>(
                 rs.getLayoutBranch("design_id") to rs.getRatkoExternalId<T>("external_id", "plan_item_id")
             }
             .associate { it }
+            .also { logger.daoAccess(AccessType.FETCH, RatkoExternalId::class, "ALL") }
     }
 
     override fun lookupByExternalId(oid: String): LayoutRowId<T>? {
@@ -169,5 +176,6 @@ class ExternalIdDao<T : LayoutAsset<T>>(
                 oid to layoutRowId
             }
             .toMap()
+            .also { logger.daoAccess(AccessType.VERSION_FETCH, "lookupByExternalIds", oids) }
     }
 }

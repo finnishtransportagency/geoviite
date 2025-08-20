@@ -109,10 +109,10 @@ type LocationTrackDialogProps = {
 
 const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm, 250);
 
-const NAME_FIELDS = [
-    'namingScheme' as keyof LocationTrackSaveRequest,
-    'nameFreeText' as keyof LocationTrackSaveRequest,
-    'nameSpecifier' as keyof LocationTrackSaveRequest,
+const NAME_FIELDS: (keyof LocationTrackSaveRequest)[] = [
+    'namingScheme',
+    'nameFreeText',
+    'nameSpecifier',
 ];
 
 export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (

@@ -532,7 +532,6 @@ export function formatTrackName(
 ): string {
     switch (namingScheme) {
         case LocationTrackNamingScheme.FREE_TEXT:
-            return nameFreeText ?? '';
         case LocationTrackNamingScheme.WITHIN_OPERATING_POINT:
             return nameFreeText ?? '';
         case LocationTrackNamingScheme.TRACK_NUMBER_TRACK:
