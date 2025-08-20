@@ -70,6 +70,7 @@ constructor(
         splitsWithRatkoSourceTrack: List<Pair<Split, RatkoLocationTrack>>,
         publicationTime: Instant,
     ): List<Oid<LocationTrack>> {
+        // TODO Wire these from caller?
         val layoutContext = LayoutContext.of(LayoutBranch.main, PublicationState.OFFICIAL)
         val pushableBranch = PushableMainBranch
 
@@ -122,7 +123,7 @@ constructor(
                         .getWithGeometry(layoutContext, splitTarget.locationTrackId)
                         .let(::requireNotNull)
 
-                val startAndEnd =
+                val targetStartAndEnd =
                     getSplitTargetTrackStartAndEndAddresses(
                             sourceTrackGeocodingContext,
                             sourceTrackGeometry,
@@ -136,11 +137,11 @@ constructor(
                     sourceTrackExternalId,
                     targetLocationTrackExternalId,
                     targetLocationTrack,
+                    targetStartAndEnd,
                     splitTarget.operation,
-                    startAndEnd,
-                    publicationTime,
                     split.relinkedSwitches,
                     publishedSwitches,
+                    publicationTime,
                 )
             }
 
@@ -160,11 +161,11 @@ constructor(
         sourceTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
         targetLocationTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
         targetLocationTrack: LocationTrack,
+        targetStartAndEnd: Pair<TrackMeter, TrackMeter>,
         splitTargetOperation: SplitTargetOperation,
-        splitStartAndEnd: Pair<TrackMeter, TrackMeter>,
-        publicationTime: Instant,
-        relinkedSwitches: List<IntId<LayoutSwitch>>,
+        splitRelinkedSwitches: List<IntId<LayoutSwitch>>,
         publishedSwitches: Map<IntId<LayoutSwitch>, SwitchChanges>,
+        publicationTime: Instant,
     ): Oid<LocationTrack> {
         val existingRatkoLocationTrack = ratkoClient.getLocationTrack(RatkoOid(targetLocationTrackExternalId.oid))
 
@@ -175,17 +176,17 @@ constructor(
                 targetLocationTrackExternalId,
                 publicationTime,
                 locationTrackOidOfGeometry = sourceTrackExternalId,
-                splitStartAndEnd = splitStartAndEnd,
+                splitStartAndEnd = targetStartAndEnd,
             )
         } else {
             if (splitTargetOperation == SplitTargetOperation.TRANSFER) {
                 // Due to a possibly mismatching geometry between Geoviite & Ratko, the track
-                // kilometers containing relinked switches are updated for a transfer target track.
-                // If this is not done, the integration may fail further in the chain due to a
-                // missing joint point in Ratko.
+                // kilometers containing relinked switches are updated for a TRANSFER target track.
+                // If this is not done, the integration may fail further in the chain of operations
+                // due to a missing switch joint address point in Ratko.
                 pushSwitchKmsForSplitTransferTarget(
                     layoutContext,
-                    relinkedSwitches,
+                    splitRelinkedSwitches,
                     targetLocationTrack,
                     targetLocationTrackExternalId,
                     existingRatkoLocationTrack,
@@ -212,7 +213,7 @@ constructor(
                 allKmNumbers,
                 publicationTime,
                 locationTrackOidOfGeometry = sourceTrackExternalId,
-                splitStartAndEnd = splitStartAndEnd,
+                splitStartAndEnd = targetStartAndEnd,
             )
         }
 
@@ -228,10 +229,9 @@ constructor(
         publicationTime: Instant,
         publishedSwitches: Map<IntId<LayoutSwitch>, SwitchChanges>,
     ) {
-        val locationTrackSwitches =
-            locationTrackService.getSwitchesForLocationTrack(layoutContext, targetLocationTrack.id as IntId).toSet()
+        val switchesToUpdate =
+            relinkedSwitches.filter { relinkedSwitch -> relinkedSwitch in targetLocationTrack.switchIds }
 
-        val switchesToUpdate = relinkedSwitches.filter { relinkedSwitch -> relinkedSwitch in locationTrackSwitches }
         val trackKmsToUpdate =
             switchesToUpdate
                 .flatMap { switchId ->
@@ -263,7 +263,7 @@ constructor(
         publicationTime: Instant,
         sourceTrack: LocationTrack,
         sourceTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
-        existingRatkoLocationTrack: RatkoLocationTrack,
+        sourceRatkoLocationTrack: RatkoLocationTrack,
     ) {
         // TODO These could be passed and fetched with the actual time (similarly to what the
         // updateLocationTrack is doing)
@@ -277,7 +277,7 @@ constructor(
             branch = pushableBranch.branch,
             locationTrack = sourceTrack,
             locationTrackExternalId = sourceTrackExternalId,
-            existingRatkoLocationTrack = existingRatkoLocationTrack,
+            existingRatkoLocationTrack = sourceRatkoLocationTrack,
             changedKmNumbers = allKmNumbers,
             moment = publicationTime,
             locationTrackStateOverride = RatkoLocationTrackState.IN_USE,
