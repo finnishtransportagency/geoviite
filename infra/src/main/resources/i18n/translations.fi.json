@@ -1734,12 +1734,12 @@
         "publication-time": "Aika",
         "publication-user": "Käyttäjä",
         "message": "Selite",
-        "track-number-long": "Ratanumero",
+        "track-number-long": "Ratanumero {{trackNumber}}",
         "pushed-to-ratko": "Viety Ratkoon",
-        "location-track": "Sijaintiraide",
-        "reference-line": "Pituusmittauslinja",
-        "switch": "Vaihde",
-        "km-post": "Tasakilometripiste",
+        "location-track": "Sijaintiraide {{locationTrack}}",
+        "reference-line": "Pituusmittauslinja {{trackNumber}}",
+        "switch": "Vaihde {{switch}}",
+        "km-post": "Tasakilometripiste {{kmNumber}}",
         "count-header-loading": "Julkaistut muutokset",
         "count-header": "Julkaistut muutokset ({{number}}{{truncated}} kpl)",
         "calculated-change": "Laskennallinen muutos",
@@ -1754,6 +1754,9 @@
         "new-value": "Uusi arvo",
         "remarks": "Huomioita",
         "not-calculated": "Ei laskettu",
+        "track-not-linked": "Ei liitosta",
+        "no-location": "Ei sijaintia",
+        "track-linked": "Linja {{joints}}",
         "remark": {
             "changed-x-meters": "Muutos {{value}} m",
             "shortened-x-meters": "Lyhentynyt {{value}} m",
@@ -1769,10 +1772,6 @@
             "switch-link-added-plural": "Vaihteet {{value}} linkitetty",
             "switch-link-removed-singular": "Vaihteen {{value}} linkitys purettu",
             "switch-link-removed-plural": "Vaihteiden {{value}} linkitys purettu"
-        },
-        "joint": {
-            "math-point": "Matemaattinen piste",
-            "forward-joint": "Etujatkos"
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
@@ -1801,13 +1800,13 @@
             "start-address": "Alkuosoite",
             "end-address": "Loppuosoite",
             "switch": "Vaihdetunnus",
-            "switch-track-address": "Rataosoite ratanumerolla {{trackNumber}} ({{switchType}})",
+            "switch-track-address": "Pisteen {{jointNumber}} rataosoite ratanumerolla {{trackNumber}}",
             "state-category": "Tilakategoria",
             "switch-type": "Vaihdetyyppi",
             "trap-point": "Turvavaihde",
             "measurement-method": "Sijainnin mittausmenetelmä",
-            "location-track-connectivity": "Liitos raiteisiin",
-            "switch-joint-location": "Sijainti ratanumerolla {{trackNumber}} ({{switchType}})",
+            "location-track-link": "Liitos raiteeseen {{locationTrack}}",
+            "switch-joint-location": "Pisteen {{jointNumber}} sijainti",
             "address": "Rataosoite",
             "linked-switches": "Vaihdelinkitykset"
         }

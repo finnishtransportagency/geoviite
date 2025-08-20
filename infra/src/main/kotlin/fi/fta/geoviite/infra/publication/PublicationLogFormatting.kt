@@ -3,11 +3,9 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geography.GeometryPoint
-import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.math.roundTo3Decimals
-import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -41,18 +39,3 @@ fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: Z
     else if (instant1Date == null) "-$instant2Date"
     else if (instant2Date == null) "$instant1Date" else "$instant1Date-$instant2Date"
 }
-
-fun switchBaseTypeToProp(translation: Translation, switchBaseType: SwitchBaseType) =
-    when (switchBaseType) {
-        SwitchBaseType.KRV,
-        SwitchBaseType.YRV,
-        SwitchBaseType.SRR,
-        SwitchBaseType.RR -> translation.t("publication-details-table.joint.forward-joint")
-
-        SwitchBaseType.KV,
-        SwitchBaseType.SKV,
-        SwitchBaseType.TYV,
-        SwitchBaseType.UKV,
-        SwitchBaseType.EV,
-        SwitchBaseType.YV -> translation.t("publication-details-table.joint.math-point")
-    }

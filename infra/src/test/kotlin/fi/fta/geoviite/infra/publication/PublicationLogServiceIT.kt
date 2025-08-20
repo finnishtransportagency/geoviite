@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.linking.LayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
@@ -671,7 +672,6 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                Operation.DELETE,
                 trackNumberDao.fetchTrackNumberNames(),
             ) { _, _ ->
                 null
@@ -717,7 +717,6 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                Operation.MODIFY,
                 trackNumberDao.fetchTrackNumberNames(),
             ) { _, _ ->
                 null
@@ -1203,14 +1202,24 @@ constructor(
 
     @Test
     fun `switch diff consistently uses segment point for joint location`() {
-        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(TrackNumber("1234")).id as IntId
-        referenceLineDao.save(
-            referenceLine(
-                trackNumberId,
-                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
-                draft = false,
+        val trackNumber = TrackNumber("1234")
+        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
+        val referenceLine =
+            referenceLineDao.save(
+                referenceLine(
+                    trackNumberId,
+                    alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
+                    draft = false,
+                )
             )
-        )
+        val geocodingContext =
+            GeocodingContext.create(
+                    trackNumber = trackNumber,
+                    startAddress = TrackMeter.ZERO,
+                    referenceLineGeometry = referenceLineService.getWithAlignment(referenceLine).second,
+                    kmPosts = emptyList(),
+                )
+                .geocodingContext
         val switch =
             switchDao.save(
                 switch(
@@ -1266,11 +1275,9 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                Operation.MODIFY,
                 trackNumberDao.fetchTrackNumberNames(),
-            ) { _, _ ->
-                null
-            }
+                { _, _ -> geocodingContext },
+            )
         assertEquals(
             listOf("switch-joint-location", "switch-track-address").sorted(),
             diff.map { it.propKey.key.toString() }.sorted(),
@@ -1284,14 +1291,24 @@ constructor(
 
     @Test
     fun `switch diff consistently uses segment point for joint location with edit made in design`() {
-        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(TrackNumber("1234")).id as IntId
-        referenceLineDao.save(
-            referenceLine(
-                trackNumberId,
-                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
-                draft = false,
+        val trackNumber = TrackNumber("1234")
+        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
+        val referenceLine =
+            referenceLineDao.save(
+                referenceLine(
+                    trackNumberId,
+                    alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
+                    draft = false,
+                )
             )
-        )
+        val geocodingContext =
+            GeocodingContext.create(
+                    trackNumber = trackNumber,
+                    startAddress = TrackMeter.ZERO,
+                    referenceLineGeometry = referenceLineService.getWithAlignment(referenceLine).second,
+                    kmPosts = emptyList(),
+                )
+                .geocodingContext
         val switch =
             switchDao.save(
                 switch(
@@ -1353,11 +1370,9 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                Operation.MODIFY,
                 trackNumberDao.fetchTrackNumberNames(),
-            ) { _, _ ->
-                null
-            }
+                { _, _ -> geocodingContext },
+            )
         assertEquals(2, diff.size)
         assertEquals(
             listOf("switch-joint-location", "switch-track-address").sorted(),

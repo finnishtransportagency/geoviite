@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -61,6 +62,32 @@ fun getPointMovedRemarkOrNull(
         }
     }
 }
+
+fun getChangedSwitchTrackNumberAddressesRemarkOrNull(
+    translation: Translation,
+    oldAddresses: List<Pair<TrackNumber, TrackMeter>>?,
+    newAddresses: List<Pair<TrackNumber, TrackMeter>>?,
+): String? {
+    val old =
+        oldAddresses?.filter { (oTn, oAddress) -> newAddresses?.find { (nTn, _) -> nTn == oTn }?.second != oAddress }
+            ?: emptyList()
+    val new =
+        newAddresses?.filter { (nTn, nAddress) -> oldAddresses?.find { (oTn, _) -> oTn == nTn }?.second != nAddress }
+            ?: emptyList()
+    return (old + new)
+        .distinct()
+        .takeIf { it.isNotEmpty() }
+        ?.let { changed ->
+            publicationChangeRemark(
+                translation = translation,
+                key = "track-number-addresses-changed",
+                value = changed.joinToString { (tn, _) -> tn.toString() },
+            )
+        }
+}
+
+fun getAddressMovedRemarkOrNull(translation: Translation, change: Change<TrackMeter?>): String? =
+    getAddressMovedRemarkOrNull(translation, change.old, change.new)
 
 fun getAddressMovedRemarkOrNull(translation: Translation, oldAddress: TrackMeter?, newAddress: TrackMeter?): String? {
     return if (newAddress == null || oldAddress == null) {
