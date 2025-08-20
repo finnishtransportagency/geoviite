@@ -417,7 +417,6 @@ constructor(
         // Should assert that the geometry of the original location track is pushed
         // Should assert that all relinkedSwitches are pushed
 
-        // TODO Test duplicate track split
         // TODO Test mixed track pushing (oh boy)
         ratkoService.pushChangesToRatko(LayoutBranch.main)
     }
