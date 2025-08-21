@@ -6,10 +6,8 @@ import { MainPublicationList } from 'publication/card/main-publication-list';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { RatkoPushErrorDetails } from 'ratko/ratko-push-error';
 import { ratkoPushFailed, RatkoPushStatus, ratkoPushSucceeded } from 'ratko/ratko-model';
-import Card from 'geoviite-design-lib/card/card';
 import styles from './publication-card.scss';
 import { RatkoStatus } from 'ratko/ratko-api';
-import i18n from 'i18next';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
@@ -18,34 +16,42 @@ import { defaultPublicationSearch } from 'publication/publication-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getLatestPublications } from 'publication/publication-api';
 import { LayoutBranch, TimeStamp } from 'common/common-model';
-import {
-    ProgressIndicatorType,
-    ProgressIndicatorWrapper,
-} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { PublicationDetails } from 'publication/publication-model';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import PublicationCard, {
+    NoPublicationsInfo,
+    PUBLICATION_LIST_PAGE_SIZE,
+    PublicationCardSection,
+    ShowMorePublicationsLink,
+} from 'publication/card/publication-card';
 
 type MainPublicationCardProps = {
     publicationChangeTime: TimeStamp;
     ratkoPushChangeTime: TimeStamp;
     splitChangeTime: TimeStamp;
     ratkoStatus: RatkoStatus | undefined;
-    maxListedPublications: number;
 };
 
 const RATKO_SUPPORT_EMAIL = 'vayla.asiakkaat.fi@cgi.com';
 export const GEOVIITE_SUPPORT_EMAIL = 'geoviite.support@solita.fi';
 
-const parseRatkoConnectionError = (
-    errorType: string,
-    ratkoStatusCode: number | undefined,
-    contact: string,
-) => {
+type RatkoConnectionErrorProps = {
+    errorType: string;
+    ratkoStatusCode: number | undefined;
+    contact: string;
+};
+
+const RatkoConnectionError: React.FC<RatkoConnectionErrorProps> = ({
+    errorType,
+    ratkoStatusCode,
+    contact,
+}) => {
+    const { t } = useTranslation();
     return (
         <span>
-            {i18n.t(`error-in-ratko-connection.${errorType}`, { code: ratkoStatusCode })}
+            {t(`error-in-ratko-connection.${errorType}`, { code: ratkoStatusCode })}
             <br />
-            {i18n.t(`error-in-ratko-connection.${contact}`, {
+            {t(`error-in-ratko-connection.${contact}`, {
                 geoviiteSupportEmail: GEOVIITE_SUPPORT_EMAIL,
                 ratkoSupportEmail: RATKO_SUPPORT_EMAIL,
             })}
@@ -53,42 +59,52 @@ const parseRatkoConnectionError = (
     );
 };
 
-const parseRatkoOfflineStatus = (ratkoStatus: number | undefined): React.JSX.Element => {
+const RatkoOfflineStatusInfo: React.FC<{ ratkoStatus: number | undefined }> = ({ ratkoStatus }) => {
     if (ratkoStatus === undefined) {
-        return parseRatkoConnectionError(
-            'connection-error-without-status-code',
-            ratkoStatus,
-            'contact-geoviite-support-if-needed',
+        return (
+            <RatkoConnectionError
+                errorType={'connection-error-without-status-code'}
+                ratkoStatusCode={ratkoStatus}
+                contact={'contact-geoviite-support-if-needed'}
+            />
         );
     } else if (ratkoStatus >= 500) {
-        return ratkoStatus === 503
-            ? parseRatkoConnectionError(
-                  'temporary-error-status-code',
-                  ratkoStatus,
-                  'contact-ratko-support-if-needed',
-              )
-            : parseRatkoConnectionError(
-                  'connection-error-status-code',
-                  ratkoStatus,
-                  'contact-ratko-support',
-              );
+        return ratkoStatus === 503 ? (
+            <RatkoConnectionError
+                errorType={'temporary-error-status-code'}
+                ratkoStatusCode={ratkoStatus}
+                contact={'contact-ratko-support-if-needed'}
+            />
+        ) : (
+            <RatkoConnectionError
+                errorType={'connection-error-status-code'}
+                ratkoStatusCode={ratkoStatus}
+                contact={'contact-ratko-support'}
+            />
+        );
     } else if (ratkoStatus >= 400) {
-        return parseRatkoConnectionError(
-            'connection-error-status-code',
-            ratkoStatus,
-            'contact-geoviite-support',
+        return (
+            <RatkoConnectionError
+                errorType={'connection-error-status-code'}
+                ratkoStatusCode={ratkoStatus}
+                contact={'contact-geoviite-support'}
+            />
         );
     } else if (ratkoStatus >= 300) {
-        return parseRatkoConnectionError(
-            'integration-error-status-code',
-            ratkoStatus,
-            'contact-geoviite-support',
+        return (
+            <RatkoConnectionError
+                errorType={'integration-error-status-code'}
+                ratkoStatusCode={ratkoStatus}
+                contact={'contact-geoviite-support'}
+            />
         );
     } else {
-        return parseRatkoConnectionError(
-            'connection-error-without-status-code',
-            ratkoStatus,
-            'contact-geoviite-support-if-needed',
+        return (
+            <RatkoConnectionError
+                errorType={'connection-error-without-status-code'}
+                ratkoStatusCode={ratkoStatus}
+                contact={'contact-geoviite-support-if-needed'}
+            />
         );
     }
 };
@@ -113,12 +129,27 @@ function latestFailureByLayoutBranch(
     ].sort((a, b) => compareTimestamps(b.publicationTime, a.publicationTime));
 }
 
+const WaitingRatkoPushReason: React.FC<{ hasConnectionError: boolean }> = ({
+    hasConnectionError,
+}) => {
+    const { t } = useTranslation();
+    return (
+        <div className={styles['publication-card__waiting-text']}>
+            <Icons.SetTime size={IconSize.SMALL} color={IconColor.INHERIT} />
+            <span>
+                {hasConnectionError
+                    ? t('publication-card.transfer-starts-after-reconnect')
+                    : t('publication-card.transfer-starts-shortly')}
+            </span>
+        </div>
+    );
+};
+
 const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
     publicationChangeTime,
     ratkoPushChangeTime,
     splitChangeTime,
     ratkoStatus,
-    maxListedPublications,
 }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -134,7 +165,7 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
 
     const [pageCount, setPageCount] = React.useState(1);
     const [publications, publicationFetchStatus] = useLoaderWithStatus(
-        () => getLatestPublications(maxListedPublications * pageCount, 'MAIN'),
+        () => getLatestPublications(PUBLICATION_LIST_PAGE_SIZE * pageCount, 'MAIN'),
         [publicationChangeTime, ratkoPushChangeTime, splitChangeTime, pageCount],
     );
     const reachedLastPublication =
@@ -154,8 +185,8 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
     );
 
     const latestFailures = latestFailureByLayoutBranch(allPublications);
-    const ratkoConnectionError =
-        ratkoStatus &&
+    const hasRatkoConnectionError =
+        !!ratkoStatus &&
         (ratkoStatus.connectionStatus === 'ONLINE_ERROR' ||
             ratkoStatus.connectionStatus === 'OFFLINE');
 
@@ -173,90 +204,56 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
     };
 
     return (
-        <Card
-            className={styles['publication-card']}
-            content={
-                <React.Fragment>
-                    <h2 className={styles['publication-card__title']}>
-                        {t('publication-card.title')}
-                    </h2>
-                    <ProgressIndicatorWrapper
-                        indicator={ProgressIndicatorType.Area}
-                        inProgress={publicationFetchStatus !== LoaderStatus.Ready}>
-                        {ratkoConnectionError && (
-                            <p className={styles['publication-card__title-errors']}>
-                                {parseRatkoOfflineStatus(ratkoStatus?.ratkoStatusCode)}
-                            </p>
+        <PublicationCard
+            title={t('publication-card.title')}
+            loading={publicationFetchStatus !== LoaderStatus.Ready}>
+            <React.Fragment>
+                {hasRatkoConnectionError && (
+                    <p className={styles['publication-card__title-errors']}>
+                        <RatkoOfflineStatusInfo ratkoStatus={ratkoStatus?.ratkoStatusCode} />
+                    </p>
+                )}
+                {nonSuccesses.length > 0 && (
+                    <PublicationCardSection title={t('publication-card.waiting')}>
+                        {latestFailures.map((fail) => (
+                            <RatkoPushErrorDetails key={fail.id} failedPublication={fail} />
+                        ))}
+                        <MainPublicationList publications={nonSuccesses} />
+                        {allWaiting && (
+                            <WaitingRatkoPushReason hasConnectionError={hasRatkoConnectionError} />
                         )}
-                        {nonSuccesses.length > 0 && (
-                            <section>
-                                <h3 className={styles['publication-card__subsection-title']}>
-                                    {t('publication-card.waiting')}
-                                </h3>
-                                {latestFailures.map((fail) => (
-                                    <RatkoPushErrorDetails key={fail.id} failedPublication={fail} />
-                                ))}
-                                <MainPublicationList publications={nonSuccesses} />
-                                {allWaiting && (
-                                    <div className={styles['publication-card__waiting-text']}>
-                                        <Icons.SetTime
-                                            size={IconSize.SMALL}
-                                            color={IconColor.INHERIT}
-                                        />
-                                        <span>
-                                            {ratkoConnectionError
-                                                ? t(
-                                                      'publication-card.transfer-starts-after-reconnect',
-                                                  )
-                                                : t('publication-card.transfer-starts-shortly')}
-                                        </span>
-                                    </div>
-                                )}
-                                {latestFailures.length > 0 && (
-                                    <div className={styles['publication-card__ratko-push-button']}>
-                                        <RatkoPublishButton
-                                            branchType={'MAIN'}
-                                            disabled={ratkoConnectionError}
-                                        />
-                                    </div>
-                                )}
-                            </section>
-                        )}
-                        {(successes.length > 0 || reachedLastPublication) && (
-                            <section>
-                                <h3 className={styles['publication-card__subsection-title']}>
-                                    {t('publication-card.latest')}
-                                </h3>
-                                <MainPublicationList publications={successes} />
-                            </section>
-                        )}
-                        {successes.length === 0 &&
-                            (nonSuccesses.length === 0 || reachedLastPublication) && (
-                                <div className={styles['publication-card__no-publications']}>
-                                    {t('publication-card.no-publications')}
-                                </div>
-                            )}
-                        {!reachedLastPublication && (
-                            <div className={styles['publication-card__show-more']}>
-                                <AnchorLink onClick={() => setPageCount(pageCount + 1)}>
-                                    {t('publication-card.show-more')}
-                                </AnchorLink>
+                        {latestFailures.length > 0 && (
+                            <div className={styles['publication-card__ratko-push-button']}>
+                                <RatkoPublishButton
+                                    branchType={'MAIN'}
+                                    disabled={hasRatkoConnectionError}
+                                />
                             </div>
                         )}
-                        <br />
-                        {
-                            <div>
-                                <AnchorLink
-                                    onClick={() => navigateToPublicationLog()}
-                                    qa-id={'open-publication-log'}>
-                                    {t('publication-card.log-link')}
-                                </AnchorLink>
-                            </div>
-                        }
-                    </ProgressIndicatorWrapper>
-                </React.Fragment>
-            }
-        />
+                    </PublicationCardSection>
+                )}
+                {(successes.length > 0 || reachedLastPublication) && (
+                    <PublicationCardSection title={t('publication-card.latest')}>
+                        <MainPublicationList publications={successes} />
+                    </PublicationCardSection>
+                )}
+                {successes.length === 0 &&
+                    (nonSuccesses.length === 0 || reachedLastPublication) && (
+                        <NoPublicationsInfo title={t('publication-card.no-publications')} />
+                    )}
+                {!reachedLastPublication && (
+                    <ShowMorePublicationsLink showMore={() => setPageCount(pageCount + 1)} />
+                )}
+                <br />
+                <div>
+                    <AnchorLink
+                        onClick={() => navigateToPublicationLog()}
+                        qa-id={'open-publication-log'}>
+                        {t('publication-card.log-link')}
+                    </AnchorLink>
+                </div>
+            </React.Fragment>
+        </PublicationCard>
     );
 };
 

@@ -1,1 +1,0 @@
-alter type publication.publication_cause add value 'LAYOUT_DESIGN_DELETE';

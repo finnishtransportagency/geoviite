@@ -46,10 +46,10 @@ class LayoutDesignService(
             }
             if (dao.designHasPublications(id)) {
                 if (request.designState == DesignState.DELETED) {
-                    makeEmptyPublicationForDesignDeletion(designBranch)
+                    makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_DELETE)
                     cancelUnpublishedObjectsInDesign(designBranch)
                 } else {
-                    makeEmptyPublicationForDesignChange(designBranch)
+                    makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_CHANGE)
                 }
             }
             dao.update(id, request)
@@ -128,21 +128,12 @@ class LayoutDesignService(
         )
     }
 
-    private fun makeEmptyPublicationForDesignChange(designBranch: DesignBranch) =
+    private fun makeEmptyPublication(branchBranch: DesignBranch, cause: PublicationCause) =
         publicationService.publishChanges(
-            designBranch,
-            ValidationVersions.emptyWithTarget(ValidateContext(designBranch.official)),
+            branchBranch,
+            ValidationVersions.emptyWithTarget(ValidateContext(branchBranch.official)),
             CalculatedChanges.empty(),
             FreeTextWithNewLines.of(""),
-            PublicationCause.LAYOUT_DESIGN_CHANGE,
-        )
-
-    private fun makeEmptyPublicationForDesignDeletion(designBranch: DesignBranch) =
-        publicationService.publishChanges(
-            designBranch,
-            ValidationVersions.emptyWithTarget(ValidateContext(designBranch.official)),
-            CalculatedChanges.empty(),
-            FreeTextWithNewLines.of(""),
-            PublicationCause.LAYOUT_DESIGN_DELETE,
+            cause,
         )
 }

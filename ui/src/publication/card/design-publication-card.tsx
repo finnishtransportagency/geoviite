@@ -2,31 +2,28 @@ import * as React from 'react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { compareTimestamps } from 'utils/date-utils';
-import Card from 'geoviite-design-lib/card/card';
-import styles from './publication-card.scss';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { getLatestPublications } from 'publication/publication-api';
 import { TimeStamp } from 'common/common-model';
-import {
-    ProgressIndicatorType,
-    ProgressIndicatorWrapper,
-} from 'vayla-design-lib/progress/progress-indicator-wrapper';
-import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { DesignPublicationList } from 'publication/card/design-publication-list';
 import { getLayoutDesigns } from 'track-layout/layout-design-api';
+import PublicationCard, {
+    NoPublicationsInfo,
+    PUBLICATION_LIST_PAGE_SIZE,
+    PublicationCardSection,
+    ShowMorePublicationsLink,
+} from 'publication/card/publication-card';
 
 type DesignPublicationCardProps = {
     publicationChangeTime: TimeStamp;
     designChangeTime: TimeStamp;
-    maxListedPublications: number;
 };
 
 const DesignPublicationCard: React.FC<DesignPublicationCardProps> = ({
     publicationChangeTime,
     designChangeTime,
-    maxListedPublications,
 }) => {
     const { t } = useTranslation();
 
@@ -46,7 +43,7 @@ const DesignPublicationCard: React.FC<DesignPublicationCardProps> = ({
     );
 
     const [publications, publicationFetchStatus] = useLoaderWithStatus(
-        () => getLatestPublications(maxListedPublications * pageCount, 'DESIGN'),
+        () => getLatestPublications(PUBLICATION_LIST_PAGE_SIZE * pageCount, 'DESIGN'),
         [publicationChangeTime, pageCount],
     );
     const reachedLastPublication =
@@ -58,47 +55,27 @@ const DesignPublicationCard: React.FC<DesignPublicationCardProps> = ({
             ?.reverse() ?? [];
 
     return (
-        <Card
-            className={styles['publication-card']}
-            content={
-                <React.Fragment>
-                    <h2 className={styles['publication-card__title']}>
-                        {t('publication-card.designs-title')}
-                    </h2>
-                    <ProgressIndicatorWrapper
-                        indicator={ProgressIndicatorType.Area}
-                        inProgress={
-                            publicationFetchStatus !== LoaderStatus.Ready &&
-                            designFetchStatus !== LoaderStatus.Ready
-                        }>
-                        {(allPublications.length > 0 || reachedLastPublication) && !!designs && (
-                            <section>
-                                <h3 className={styles['publication-card__subsection-title']}>
-                                    {t('publication-card.designs-latest')}
-                                </h3>
-                                <DesignPublicationList
-                                    publications={allPublications}
-                                    designs={designs}
-                                />
-                            </section>
-                        )}
-                        {allPublications.length === 0 && reachedLastPublication && (
-                            <div className={styles['publication-card__no-publications']}>
-                                {t('publication-card.designs-no-publications')}
-                            </div>
-                        )}
-                        {!reachedLastPublication && (
-                            <div className={styles['publication-card__show-more']}>
-                                <AnchorLink onClick={() => setPageCount(pageCount + 1)}>
-                                    {t('publication-card.show-more')}
-                                </AnchorLink>
-                            </div>
-                        )}
-                        <br />
-                    </ProgressIndicatorWrapper>
-                </React.Fragment>
-            }
-        />
+        <PublicationCard
+            title={t('publication-card.designs-title')}
+            loading={
+                publicationFetchStatus !== LoaderStatus.Ready &&
+                designFetchStatus !== LoaderStatus.Ready
+            }>
+            <React.Fragment>
+                {(allPublications.length > 0 || reachedLastPublication) && !!designs && (
+                    <PublicationCardSection title={t('publication-card.designs-latest')}>
+                        <DesignPublicationList publications={allPublications} designs={designs} />
+                    </PublicationCardSection>
+                )}
+                {allPublications.length === 0 && reachedLastPublication && (
+                    <NoPublicationsInfo title={t('publication-card.designs-no-publications')} />
+                )}
+                {!reachedLastPublication && (
+                    <ShowMorePublicationsLink showMore={() => setPageCount(pageCount + 1)} />
+                )}
+                <br />
+            </React.Fragment>
+        </PublicationCard>
     );
 };
 

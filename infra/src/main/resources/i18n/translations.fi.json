@@ -1540,7 +1540,8 @@
         "publish-success": "Muutokset julkaistu paikannuspohjaan",
         "design-publish-success": "Suunnitelmatilan muutokset julkaistu",
         "merge-to-main-success": "Suunnitelmatilan muutokset siirretty luonnostilaan",
-        "cancellation-success": "Muutoksen peruminen on kirjattu julkaistavaksi suunnitelman muutokseksi",
+        "cancellation-success": "Julkaistu muutos peruttu",
+        "cancellation-success-details": "Peruminen täytyy julkaista erikseen",
         "revert-success": "Luonnosmuutokset peruttu",
         "track-numbers": "Ratanumeroita",
         "km-posts": "Tasakilometripisteitä",
@@ -1842,8 +1843,12 @@
         "transfer-starts-after-reconnect": "Vienti käynnistyy automaattisesti Ratko-yhteyden palautumisen jälkeen",
         "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
         "design-publication-cause": {
-            "design-cancellation": "Suunnitelman poisto",
-            "design-change": "Suunnitelman metatietojen muutos"
+            "LAYOUT_DESIGN_DELETE": "Suunnitelman poisto",
+            "LAYOUT_DESIGN_CHANGE": "Suunnitelman metatietojen muutos",
+            "MANUAL": "Operaattorin tekemä julkaisu",
+            "CALCULATED_CHANGE": "Laskennallinen muutos",
+            "LAYOUT_DESIGN_CANCELLATION": "Suunnitelman kohteiden peruutus",
+            "MERGE_FINALIZATION": "Suunnitelman luonnosmuutosten siirto luonnostilaan"
         },
         "push-error": {
             "location-track": "Sijaintiraiteen",

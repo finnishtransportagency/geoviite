@@ -9,10 +9,10 @@ type PublicationListProps = {
     designs: LayoutDesign[];
 };
 
-const HIDDEN_PUBLICATION_CAUSES = [
+const HIDDEN_PUBLICATION_CAUSES: PublicationCause[] = [
     PublicationCause.LAYOUT_DESIGN_CANCELLATION,
     PublicationCause.CALCULATED_CHANGE,
-];
+] as const;
 
 export const DesignPublicationList: React.FC<PublicationListProps> = ({
     publications,

@@ -28,25 +28,6 @@ const DesignPublicationCauseIcon: React.FC<{ cause: PublicationCause }> = ({ cau
     }
 };
 
-const DesignPublicationCauseText: React.FC<{ cause: PublicationCause }> = ({ cause }) => {
-    const { t } = useTranslation();
-    switch (cause) {
-        case PublicationCause.LAYOUT_DESIGN_DELETE:
-            return (
-                <span>{t('publication-card.design-publication-cause.design-cancellation')}</span>
-            );
-        case PublicationCause.LAYOUT_DESIGN_CHANGE:
-            return <span>{t('publication-card.design-publication-cause.design-change')}</span>;
-        case PublicationCause.CALCULATED_CHANGE:
-        case PublicationCause.LAYOUT_DESIGN_CANCELLATION:
-        case PublicationCause.MERGE_FINALIZATION:
-        case PublicationCause.MANUAL:
-            return <React.Fragment />;
-        default:
-            return exhaustiveMatchingGuard(cause);
-    }
-};
-
 const ManualPublicationRowContent: React.FC<DesignPublicationListRowProps> = ({
     publication,
     designName,
@@ -94,7 +75,9 @@ const GeneratedPublicationRowContent: React.FC<DesignPublicationListRowProps> = 
                 className={
                     styles['publication-list-item__design-name']
                 }>{`${designName ?? t('publication-card.missing-design-name')}:`}</span>
-            <DesignPublicationCauseText cause={publication.cause} />
+            {publication.cause !== PublicationCause.MANUAL && (
+                <span>{t(`publication-card.design-publication-cause.${publication.cause}`)}</span>
+            )}
         </div>
     );
 };

@@ -451,7 +451,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         const design = props.layoutContext.branch;
         if (design === 'MAIN') return;
         return cancelPublicationCandidate(publicationCandidate, design).then(() => {
-            Snackbar.success('publish.cancellation-success');
+            Snackbar.success(
+                'publish.cancellation-success',
+                'publish.cancellation-success-details',
+            );
             setPublicationCandidates((publicationCandidates) => {
                 const filteredCandidates = publicationCandidates.filter(
                     (pc) => pc.id !== publicationCandidate.id,
