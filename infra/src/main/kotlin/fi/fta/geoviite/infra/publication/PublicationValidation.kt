@@ -34,7 +34,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
@@ -991,7 +990,7 @@ fun validateWithParams(
     issue: () -> Pair<String, LocalizationParams>,
 ): LayoutValidationIssue? =
     if (!valid) {
-        issue().let { (key, params) -> LayoutValidationIssue(type, LocalizationKey(key), params) }
+        issue().let { (key, params) -> LayoutValidationIssue(type, LocalizationKey.of(key), params) }
     } else {
         null
     }
@@ -1003,13 +1002,13 @@ fun validationError(key: String, vararg params: Pair<String, Any?>): LayoutValid
     LayoutValidationIssue(ERROR, key, params.associate { it })
 
 fun validationError(key: String, params: LocalizationParams): LayoutValidationIssue =
-    LayoutValidationIssue(ERROR, LocalizationKey(key), params)
+    LayoutValidationIssue(ERROR, LocalizationKey.of(key), params)
 
 fun validationWarning(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
     LayoutValidationIssue(WARNING, key, params.associate { it })
 
 fun validationWarning(key: String, params: LocalizationParams): LayoutValidationIssue =
-    LayoutValidationIssue(WARNING, LocalizationKey(key), params)
+    LayoutValidationIssue(WARNING, LocalizationKey.of(key), params)
 
 private fun cancelledOrNotPublishedKey(keyPrefix: String, cancelled: Boolean) =
     "$keyPrefix${if (cancelled) ".cancelled" else ".not-published"}"

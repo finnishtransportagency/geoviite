@@ -13,7 +13,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun SRR54_2x1_9_4_8() =
     SwitchStructureData(
-        type = SwitchType("SRR54-2x1:9-4,8"),
+        type = SwitchType.of("SRR54-2x1:9-4,8"),
         presentationJointNumber = JointNumber(5),
         joints =
             setOf(

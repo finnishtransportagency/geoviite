@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun EV_SJ43_5_9_1_9_H() =
     SwitchStructureData(
-        type = SwitchType("EV-SJ43-5,9-1:9-H"),
+        type = SwitchType.of("EV-SJ43-5,9-1:9-H"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -44,4 +44,4 @@ fun EV_SJ43_5_9_1_9_H() =
             ),
     )
 
-fun EV_SJ43_5_9_1_9_V() = EV_SJ43_5_9_1_9_H().flipAlongYAxis().copy(type = SwitchType("EV-SJ43-5,9-1:9-V"))
+fun EV_SJ43_5_9_1_9_V() = EV_SJ43_5_9_1_9_H().flipAlongYAxis().copy(type = SwitchType.of("EV-SJ43-5,9-1:9-V"))

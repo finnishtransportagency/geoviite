@@ -3,9 +3,9 @@ package fi.fta.geoviite.infra.localization
 import com.fasterxml.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.util.FileName
+import org.springframework.beans.factory.annotation.Value
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import org.springframework.beans.factory.annotation.Value
 
 private val LOCALIZATION_PARAMS_PLACEHOLDER_REGEX = Regex("\\{\\{[a-zA-Z0-9_\\s\\-]*\\}\\}")
 
@@ -14,9 +14,9 @@ data class Translation(val lang: LocalizationLanguage, val localization: String)
 
     fun t(key: LocalizationKey) = t(key, LocalizationParams.empty)
 
-    fun t(key: String) = t(LocalizationKey(key), LocalizationParams.empty)
+    fun t(key: String) = t(LocalizationKey.of(key), LocalizationParams.empty)
 
-    fun t(key: String, params: LocalizationParams) = t(LocalizationKey(key), params)
+    fun t(key: String, params: LocalizationParams) = t(LocalizationKey.of(key), params)
 
     fun t(key: LocalizationKey, params: LocalizationParams): String {
         var node = jsonRoot

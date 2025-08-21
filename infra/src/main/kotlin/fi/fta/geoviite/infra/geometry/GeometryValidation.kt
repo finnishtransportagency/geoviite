@@ -2,12 +2,25 @@ package fi.fta.geoviite.infra.geometry
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.codeDictionary.FeatureType
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.CantRotationPoint.CENTER
-import fi.fta.geoviite.infra.geometry.GeometryIssueType.*
+import fi.fta.geoviite.infra.geometry.GeometryIssueType.OBSERVATION_MAJOR
+import fi.fta.geoviite.infra.geometry.GeometryIssueType.OBSERVATION_MINOR
+import fi.fta.geoviite.infra.geometry.GeometryIssueType.VALIDATION_ERROR
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.localization.LocalizationKey
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.angleDiffRads
+import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.radsToDegrees
+import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.switchLibrary.calculateSwitchLocationDelta
@@ -50,7 +63,7 @@ data class GeometryValidationIssueData(
         parentKey: String,
         errorKey: String,
         errorType: GeometryIssueType,
-    ) : this(LocalizationKey("$VALIDATION.$parentKey.$errorKey"), errorType)
+    ) : this(LocalizationKey.of("$VALIDATION.$parentKey.$errorKey"), errorType)
 }
 
 data class MetadataError(@JsonIgnore private val data: GeometryValidationIssueData, val value: String?) :

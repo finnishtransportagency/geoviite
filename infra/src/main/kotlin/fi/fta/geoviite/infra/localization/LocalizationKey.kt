@@ -4,11 +4,16 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.util.StringSanitizer
+import java.util.concurrent.ConcurrentHashMap
 
-data class LocalizationKey @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
+data class LocalizationKey @JsonCreator(mode = DELEGATING) private constructor(private val value: String) :
     Comparable<LocalizationKey>, CharSequence by value {
 
     companion object {
+        private val keyCache = ConcurrentHashMap<String, LocalizationKey>()
+
+        fun of(value: String): LocalizationKey = keyCache.computeIfAbsent(value) { LocalizationKey(it) }
+
         val allowedLength = 1..100
         const val ALLOWED_CHARACTERS = "A-Za-z0-9_\\-."
         val sanitizer = StringSanitizer(LocalizationKey::class, ALLOWED_CHARACTERS, allowedLength)

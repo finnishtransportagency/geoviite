@@ -12,20 +12,19 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.GeographyService
-import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
@@ -68,8 +67,8 @@ constructor(
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
     private val referenceLineDao: ReferenceLineDao,
-    private val layoutSwitchDao: LayoutSwitchDao,
-    private val layoutKmPostDao: LayoutKmPostDao,
+    private val switchDao: LayoutSwitchDao,
+    private val kmPostDao: LayoutKmPostDao,
 ) {
 
     @Transactional(readOnly = true)
@@ -725,7 +724,10 @@ constructor(
                     .mapNotNull { (jointNumber: JointNumber, change: Change<PublicationSwitchJoint?>) ->
                         val distance =
                             if (change.old != null && change.new != null) {
-                                calculateDistance(listOf(change.old.location, change.new.location), LAYOUT_SRID)
+                                // TODO: GVT-3232 How useful is this?
+                                lineLength(change.old.location, change.new.location)
+                                //                                calculateDistance(listOf(change.old.location,
+                                // change.new.location), LAYOUT_SRID)
                             } else {
                                 0.0
                             }
@@ -865,226 +867,236 @@ constructor(
             if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.SWITCH)) mapOf()
             else publicationDao.fetchPublicationSwitchChanges(publication.id)
 
+        val trackNumbersToDiff =
+            publication.trackNumbers.filter { tn -> specificObjectId == null || specificObjectId.isTrackNumber(tn.id) }
+        val referenceLinesToDiff =
+            publication.referenceLines.filter { rl ->
+                specificObjectId == null || specificObjectId.isReferenceLine(rl.id)
+            }
+        val kmPostsToDiff =
+            publication.kmPosts.filter { kp -> specificObjectId == null || specificObjectId.isKmPost(kp.id) }
+        val switchesToDiff =
+            publication.switches.filter { sw -> specificObjectId == null || specificObjectId.isSwitch(sw.id) }
+        val indirectSwitchesToDiff =
+            publication.indirectChanges.switches.filter { s ->
+                specificObjectId == null || specificObjectId.isSwitch(s.id)
+            }
+        val locationTracksToDiff =
+            publication.locationTracks.filter { lt ->
+                specificObjectId == null || specificObjectId.isLocationTrack(lt.id)
+            }
+        val indirectLocationTracksToDiff =
+            publication.indirectChanges.locationTracks.filter { lt ->
+                specificObjectId == null || specificObjectId.isLocationTrack(lt.id)
+            }
+
+        // Multi-fetch the actual objects to avoid extra round-trips to DB
+        val trackNumberVersions = trackNumberDao.fetchManyByVersion(trackNumbersToDiff.map { it.version })
+        val referenceLineVersions = referenceLineDao.fetchManyByVersion(referenceLinesToDiff.map { it.version })
+        val kmPostVersions = kmPostDao.fetchManyByVersion(kmPostsToDiff.map { it.version })
+        val locationTrackVersions =
+            locationTrackDao.fetchManyByVersion(
+                (locationTracksToDiff + indirectLocationTracksToDiff).map { it.version }.distinct()
+            )
+        val switchVersions =
+            switchDao.fetchManyByVersion((switchesToDiff + indirectSwitchesToDiff).map { it.version }.distinct())
+
         val trackNumbers =
-            publication.trackNumbers
-                .filter { tn -> specificObjectId == null || specificObjectId.isTrackNumber(tn.id) }
-                .map { tn ->
-                    mapToPublicationTableItem(
-                        name =
-                            translation.t(
-                                "publication-table.track-number-long",
-                                localizationParams("trackNumber" to tn.number),
-                            ),
-                        asset = PublishedAssetTrackNumber(trackNumberDao.fetch(tn.version)),
-                        trackNumbers = setOf(tn.number),
-                        changedKmNumbers = tn.changedKmNumbers,
-                        operation = tn.operation,
-                        publication = publication,
-                        propChanges =
-                            diffTrackNumber(
-                                translation,
-                                publicationTrackNumberChanges.getOrElse(tn.id) {
-                                    error("Track number changes not found: id=${tn.id} version=${tn.version}")
-                                },
-                                publication.publicationTime,
-                                previousComparisonTime,
-                                geocodingContextGetter,
-                            ),
-                    )
-                }
+            trackNumbersToDiff.map { tn ->
+                mapToPublicationTableItem(
+                    name =
+                        translation.t(
+                            "publication-table.track-number-long",
+                            localizationParams("trackNumber" to tn.number),
+                        ),
+                    asset = PublishedAssetTrackNumber(trackNumberVersions.getValue(tn.version)),
+                    trackNumbers = setOf(tn.number),
+                    changedKmNumbers = tn.changedKmNumbers,
+                    operation = tn.operation,
+                    publication = publication,
+                    propChanges =
+                        diffTrackNumber(
+                            translation,
+                            publicationTrackNumberChanges.getOrElse(tn.id) {
+                                error("Track number changes not found: id=${tn.id} version=${tn.version}")
+                            },
+                            publication.publicationTime,
+                            previousComparisonTime,
+                            geocodingContextGetter,
+                        ),
+                )
+            }
 
         val referenceLines =
-            publication.referenceLines
-                .filter { rl -> specificObjectId == null || specificObjectId.isReferenceLine(rl.id) }
-                .map { rl ->
-                    val tn =
-                        trackNumberNamesCache
-                            .findLast { it.id == rl.trackNumberId && it.changeTime <= publication.publicationTime }
-                            ?.number
+            referenceLinesToDiff.map { rl ->
+                val tn =
+                    trackNumberNamesCache
+                        .findLast { it.id == rl.trackNumberId && it.changeTime <= publication.publicationTime }
+                        ?.number
 
-                    mapToPublicationTableItem(
-                        name =
-                            translation.t("publication-table.reference-line", localizationParams("trackNumber" to tn)),
-                        asset = PublishedAssetReferenceLine(referenceLineDao.fetch(rl.version)),
-                        trackNumbers = setOfNotNull(tn),
-                        changedKmNumbers = rl.changedKmNumbers,
-                        operation = rl.operation,
-                        publication = publication,
-                        propChanges =
-                            diffReferenceLine(
-                                translation,
-                                publicationReferenceLineChanges.getOrElse(rl.id) {
-                                    error("Reference line changes not found: id=${rl.id} version=${rl.version}")
-                                },
-                                publication.publicationTime,
-                                previousComparisonTime,
-                                rl.changedKmNumbers,
-                                geocodingContextGetter,
-                            ),
-                    )
-                }
+                mapToPublicationTableItem(
+                    name = translation.t("publication-table.reference-line", localizationParams("trackNumber" to tn)),
+                    asset = PublishedAssetReferenceLine(referenceLineVersions.getValue(rl.version)),
+                    trackNumbers = setOfNotNull(tn),
+                    changedKmNumbers = rl.changedKmNumbers,
+                    operation = rl.operation,
+                    publication = publication,
+                    propChanges =
+                        diffReferenceLine(
+                            translation,
+                            publicationReferenceLineChanges.getOrElse(rl.id) {
+                                error("Reference line changes not found: id=${rl.id} version=${rl.version}")
+                            },
+                            publication.publicationTime,
+                            previousComparisonTime,
+                            rl.changedKmNumbers,
+                            geocodingContextGetter,
+                        ),
+                )
+            }
 
         val locationTracks =
-            publication.locationTracks
-                .filter { lt -> specificObjectId == null || specificObjectId.isLocationTrack(lt.id) }
-                .map { lt ->
-                    val trackNumber =
-                        trackNumberNamesCache
-                            .findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }
-                            ?.number
-                    mapToPublicationTableItem(
-                        name =
-                            translation.t(
-                                "publication-table.location-track",
-                                localizationParams("locationTrack" to lt.name),
-                            ),
-                        asset = PublishedAssetLocationTrack(locationTrackDao.fetch(lt.version)),
-                        trackNumbers = setOfNotNull(trackNumber),
-                        changedKmNumbers = lt.changedKmNumbers,
-                        operation = lt.operation,
-                        publication = publication,
-                        propChanges =
-                            diffLocationTrack(
-                                translation,
-                                publicationLocationTrackChanges.getOrElse(lt.id) {
-                                    error("Location track changes not found: id=${lt.id} version=${lt.version}")
-                                },
-                                switchLinkChanges[lt.id],
-                                publication.layoutBranch.branch,
-                                publication.publicationTime,
-                                previousComparisonTime,
-                                trackNumberNamesCache,
-                                lt.changedKmNumbers,
-                                geocodingContextGetter,
-                            ),
-                    )
-                }
+            locationTracksToDiff.map { lt ->
+                val trackNumber =
+                    trackNumberNamesCache
+                        .findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }
+                        ?.number
+                mapToPublicationTableItem(
+                    name =
+                        translation.t(
+                            "publication-table.location-track",
+                            localizationParams("locationTrack" to lt.name),
+                        ),
+                    asset = PublishedAssetLocationTrack(locationTrackVersions.getValue(lt.version)),
+                    trackNumbers = setOfNotNull(trackNumber),
+                    changedKmNumbers = lt.changedKmNumbers,
+                    operation = lt.operation,
+                    publication = publication,
+                    propChanges =
+                        diffLocationTrack(
+                            translation,
+                            publicationLocationTrackChanges.getOrElse(lt.id) {
+                                error("Location track changes not found: id=${lt.id} version=${lt.version}")
+                            },
+                            switchLinkChanges[lt.id],
+                            publication.layoutBranch.branch,
+                            publication.publicationTime,
+                            previousComparisonTime,
+                            trackNumberNamesCache,
+                            lt.changedKmNumbers,
+                            geocodingContextGetter,
+                        ),
+                )
+            }
 
         val switches =
-            publication.switches
-                .filter { sw -> specificObjectId == null || specificObjectId.isSwitch(sw.id) }
-                .map { s ->
-                    val tns =
-                        latestTrackNumberNamesAtMoment(
-                            trackNumberNamesCache,
-                            s.trackNumberIds,
+            switchesToDiff.map { s ->
+                val tns =
+                    latestTrackNumberNamesAtMoment(trackNumberNamesCache, s.trackNumberIds, publication.publicationTime)
+                mapToPublicationTableItem(
+                    name = translation.t("publication-table.switch", localizationParams("switch" to s.name)),
+                    asset = PublishedAssetSwitch(switchVersions.getValue(s.version)),
+                    trackNumbers = tns,
+                    operation = s.operation,
+                    publication = publication,
+                    propChanges =
+                        diffSwitch(
+                            translation,
+                            publicationSwitchChanges.getOrElse(s.id) {
+                                error("Switch changes not found: id=${s.id} version=${s.version}")
+                            },
                             publication.publicationTime,
-                        )
-                    mapToPublicationTableItem(
-                        name = translation.t("publication-table.switch", localizationParams("switch" to s.name)),
-                        asset = PublishedAssetSwitch(layoutSwitchDao.fetch(s.version)),
-                        trackNumbers = tns,
-                        operation = s.operation,
-                        publication = publication,
-                        propChanges =
-                            diffSwitch(
-                                translation,
-                                publicationSwitchChanges.getOrElse(s.id) {
-                                    error("Switch changes not found: id=${s.id} version=${s.version}")
-                                },
-                                publication.publicationTime,
-                                previousComparisonTime,
-                                trackNumberNamesCache,
-                                geocodingContextGetter,
-                            ),
-                    )
-                }
+                            previousComparisonTime,
+                            trackNumberNamesCache,
+                            geocodingContextGetter,
+                        ),
+                )
+            }
 
         val kmPosts =
-            publication.kmPosts
-                .filter { kp -> specificObjectId == null || specificObjectId.isKmPost(kp.id) }
-                .map { kp ->
-                    val tn =
-                        trackNumberNamesCache
-                            .findLast { it.id == kp.trackNumberId && it.changeTime <= publication.publicationTime }
-                            ?.number
-                    mapToPublicationTableItem(
-                        name =
-                            translation.t("publication-table.km-post", localizationParams("kmNumber" to kp.kmNumber)),
-                        asset = PublishedAssetKmPost(layoutKmPostDao.fetch(kp.version)),
-                        trackNumbers = setOfNotNull(tn),
-                        operation = kp.operation,
-                        publication = publication,
-                        propChanges =
-                            diffKmPost(
-                                translation,
-                                publicationKmPostChanges.getOrElse(kp.id) {
-                                    error("KM Post changes not found: id=${kp.id} version=${kp.version}")
-                                },
-                                publication.publicationTime,
-                                previousComparisonTime,
-                                trackNumberNamesCache,
-                                geocodingContextGetter,
-                                crsNameGetter = { srid -> geographyService.getCoordinateSystem(srid).name.toString() },
-                            ),
-                    )
-                }
+            kmPostsToDiff.map { kp ->
+                val tn =
+                    trackNumberNamesCache
+                        .findLast { it.id == kp.trackNumberId && it.changeTime <= publication.publicationTime }
+                        ?.number
+                mapToPublicationTableItem(
+                    name = translation.t("publication-table.km-post", localizationParams("kmNumber" to kp.kmNumber)),
+                    asset = PublishedAssetKmPost(kmPostVersions.getValue(kp.version)),
+                    trackNumbers = setOfNotNull(tn),
+                    operation = kp.operation,
+                    publication = publication,
+                    propChanges =
+                        diffKmPost(
+                            translation,
+                            publicationKmPostChanges.getOrElse(kp.id) {
+                                error("KM Post changes not found: id=${kp.id} version=${kp.version}")
+                            },
+                            publication.publicationTime,
+                            previousComparisonTime,
+                            trackNumberNamesCache,
+                            geocodingContextGetter,
+                            crsNameGetter = { srid -> geographyService.getCoordinateSystem(srid).name.toString() },
+                        ),
+                )
+            }
 
         val calculatedLocationTracks =
-            publication.indirectChanges.locationTracks
-                .filter { lt -> specificObjectId == null || specificObjectId.isLocationTrack(lt.id) }
-                .map { lt ->
-                    val tn =
-                        trackNumberNamesCache
-                            .findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }
-                            ?.number
-                    mapToPublicationTableItem(
-                        name =
-                            translation.t(
-                                "publication-table.location-track",
-                                localizationParams("locationTrack" to lt.name),
-                            ),
-                        asset = PublishedAssetLocationTrack(locationTrackDao.fetch(lt.version)),
-                        trackNumbers = setOfNotNull(tn),
-                        changedKmNumbers = lt.changedKmNumbers,
-                        operation = Operation.CALCULATED,
-                        publication = publication,
-                        propChanges =
-                            diffLocationTrack(
-                                translation,
-                                publicationLocationTrackChanges.getOrElse(lt.id) {
-                                    error("Location track changes not found: id=${lt.id} version=${lt.version}")
-                                },
-                                switchLinkChanges[lt.id],
-                                publication.layoutBranch.branch,
-                                publication.publicationTime,
-                                previousComparisonTime,
-                                trackNumberNamesCache,
-                                lt.changedKmNumbers,
-                                geocodingContextGetter,
-                            ),
-                    )
-                }
+            indirectLocationTracksToDiff.map { lt ->
+                val tn =
+                    trackNumberNamesCache
+                        .findLast { it.id == lt.trackNumberId && it.changeTime <= publication.publicationTime }
+                        ?.number
+                mapToPublicationTableItem(
+                    name =
+                        translation.t(
+                            "publication-table.location-track",
+                            localizationParams("locationTrack" to lt.name),
+                        ),
+                    asset = PublishedAssetLocationTrack(locationTrackVersions.getValue(lt.version)),
+                    trackNumbers = setOfNotNull(tn),
+                    changedKmNumbers = lt.changedKmNumbers,
+                    operation = Operation.CALCULATED,
+                    publication = publication,
+                    propChanges =
+                        diffLocationTrack(
+                            translation,
+                            publicationLocationTrackChanges.getOrElse(lt.id) {
+                                error("Location track changes not found: id=${lt.id} version=${lt.version}")
+                            },
+                            switchLinkChanges[lt.id],
+                            publication.layoutBranch.branch,
+                            publication.publicationTime,
+                            previousComparisonTime,
+                            trackNumberNamesCache,
+                            lt.changedKmNumbers,
+                            geocodingContextGetter,
+                        ),
+                )
+            }
 
         val calculatedSwitches =
-            publication.indirectChanges.switches
-                .filter { s -> specificObjectId == null || specificObjectId.isSwitch(s.id) }
-                .map { s ->
-                    val tns =
-                        latestTrackNumberNamesAtMoment(
-                            trackNumberNamesCache,
-                            s.trackNumberIds,
+            indirectSwitchesToDiff.map { s ->
+                val tns =
+                    latestTrackNumberNamesAtMoment(trackNumberNamesCache, s.trackNumberIds, publication.publicationTime)
+                mapToPublicationTableItem(
+                    name = translation.t("publication-table.switch", localizationParams("switch" to s.name)),
+                    asset = PublishedAssetSwitch(switchVersions.getValue(s.version)),
+                    trackNumbers = tns,
+                    operation = Operation.CALCULATED,
+                    publication = publication,
+                    propChanges =
+                        diffSwitch(
+                            translation,
+                            publicationSwitchChanges.getOrElse(s.id) {
+                                error("Switch changes not found: id=${s.id} version=${s.version}")
+                            },
                             publication.publicationTime,
-                        )
-                    mapToPublicationTableItem(
-                        name = translation.t("publication-table.switch", localizationParams("switch" to s.name)),
-                        asset = PublishedAssetSwitch(layoutSwitchDao.fetch(s.version)),
-                        trackNumbers = tns,
-                        operation = Operation.CALCULATED,
-                        publication = publication,
-                        propChanges =
-                            diffSwitch(
-                                translation,
-                                publicationSwitchChanges.getOrElse(s.id) {
-                                    error("Switch changes not found: id=${s.id} version=${s.version}")
-                                },
-                                publication.publicationTime,
-                                previousComparisonTime,
-                                trackNumberNamesCache,
-                                geocodingContextGetter,
-                            ),
-                    )
-                }
+                            previousComparisonTime,
+                            trackNumberNamesCache,
+                            geocodingContextGetter,
+                        ),
+                )
+            }
 
         return listOf(
                 trackNumbers,

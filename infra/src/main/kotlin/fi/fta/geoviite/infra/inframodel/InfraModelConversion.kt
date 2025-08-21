@@ -60,19 +60,18 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.switchLibrary.switchTypeRequiresHandedness
-import fi.fta.geoviite.infra.switchLibrary.tryParseSwitchType
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.formatForException
 import fi.fta.geoviite.infra.util.formatForLog
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.BigDecimal.ZERO
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 const val INFRAMODEL_SWITCH_CODE = "IM_switch"
 const val INFRAMODEL_SWITCH_TYPE = "switchType"
@@ -562,7 +561,7 @@ fun collectGeometrySwitches(
                 verifySameField("Switch typeName", xmlSwitches, TempSwitch::typeName, TempSwitch::name)
             val switchTypeName = normalizeSwitchTypeName(switchTypeNameAliases, switchTypeNameXml)
             val switchTypeRequiresHandedness =
-                tryParseSwitchType(switchTypeName).let { switchType ->
+                SwitchType.tryParse(switchTypeName).let { switchType ->
                     if (switchType != null) switchTypeRequiresHandedness(switchType.parts.baseType) else false
                 }
             val switchTypeHand = verifySameField("Switch hand", xmlSwitches, TempSwitch::hand, TempSwitch::name)
@@ -572,7 +571,7 @@ fun collectGeometrySwitches(
                     else "$switchTypeName-${hand.abbreviation}"
                 }
 
-            val switchType = tryParseSwitchType(fullSwitchTypeName)
+            val switchType = SwitchType.tryParse(fullSwitchTypeName)
             val switchStructure = switchType?.let { type -> switchStructuresByType[type] }
 
             if (switchType == null) {
