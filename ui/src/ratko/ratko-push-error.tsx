@@ -8,7 +8,7 @@ import { RatkoAssetType, RatkoPushErrorAsset } from 'ratko/ratko-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
-import { GEOVIITE_SUPPORT_EMAIL } from 'publication/card/publication-card';
+import { GEOVIITE_SUPPORT_EMAIL } from 'publication/card/main-publication-card';
 
 type RatkoPushErrorDetailsProps = {
     failedPublication: PublicationDetails;

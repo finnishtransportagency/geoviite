@@ -208,6 +208,15 @@ type PublishedInDesign = {
 
 export type PublishedInBranch = PublishedInMain | PublishedInDesign;
 
+export enum PublicationCause {
+    MANUAL = 'MANUAL',
+    LAYOUT_DESIGN_CHANGE = 'LAYOUT_DESIGN_CHANGE',
+    LAYOUT_DESIGN_DELETE = 'LAYOUT_DESIGN_DELETE',
+    LAYOUT_DESIGN_CANCELLATION = 'LAYOUT_DESIGN_CANCELLATION',
+    MERGE_FINALIZATION = 'MERGE_FINALIZATION',
+    CALCULATED_CHANGE = 'CALCULATED_CHANGE',
+}
+
 export type PublicationDetails = {
     id: PublicationId;
     publicationTime: TimeStamp;
@@ -223,6 +232,7 @@ export type PublicationDetails = {
     calculatedChanges: PublishedCalculatedChanges;
     message?: string;
     split?: SplitHeader;
+    cause: PublicationCause;
 };
 
 export type PublishedTrackNumber = {
