@@ -9,15 +9,18 @@ export const ALIGNMENT_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-_]+$/g;
 export const ALIGNMENT_DESCRIPTION_REGEX = /^[A-ZÄÖÅa-zäöå0-9 _\-–—+().,'"/\\<>:!?&]+$/g;
 export const ALIGNMENT_NAME_MAX_LENGTH = 50;
 
-const freeTextSchemes = [
+const MANDATORY_FREE_TEXT_SCHEMES: LocationTrackNamingScheme[] = [
     LocationTrackNamingScheme.FREE_TEXT,
     LocationTrackNamingScheme.WITHIN_OPERATING_POINT,
+] as const;
+const ALL_FREE_TEXT_SCHEMES: LocationTrackNamingScheme[] = [
     LocationTrackNamingScheme.TRACK_NUMBER_TRACK,
-];
-const specifierSchemes = [
+    ...MANDATORY_FREE_TEXT_SCHEMES,
+] as const;
+
+const MANDATORY_NAME_SPECIFIER_SCHEMES: LocationTrackNamingScheme[] = [
     LocationTrackNamingScheme.TRACK_NUMBER_TRACK,
-    LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS,
-];
+] as const;
 
 export const validateLocationTrackName = (
     name: string | undefined,
@@ -65,7 +68,7 @@ export const validateLocationTrackNameStructure = (
                   type: FieldValidationIssueType.ERROR,
               }
             : undefined,
-        freeTextSchemes.includes(namingScheme ?? LocationTrackNamingScheme.FREE_TEXT) &&
+        MANDATORY_FREE_TEXT_SCHEMES.includes(namingScheme ?? LocationTrackNamingScheme.FREE_TEXT) &&
         isNilOrBlank(nameFreeText)
             ? {
                   field: 'nameFreeText' as keyof LocationTrackSaveRequest,
@@ -73,7 +76,7 @@ export const validateLocationTrackNameStructure = (
                   type: FieldValidationIssueType.ERROR,
               }
             : undefined,
-        freeTextSchemes.includes(namingScheme ?? LocationTrackNamingScheme.FREE_TEXT) &&
+        ALL_FREE_TEXT_SCHEMES.includes(namingScheme ?? LocationTrackNamingScheme.FREE_TEXT) &&
         !isNilOrBlank(nameFreeText) &&
         (!nameFreeText?.match(ALIGNMENT_NAME_REGEX) ||
             nameFreeText.length > ALIGNMENT_NAME_MAX_LENGTH)
@@ -83,8 +86,9 @@ export const validateLocationTrackNameStructure = (
                   type: FieldValidationIssueType.ERROR,
               }
             : undefined,
-        specifierSchemes.includes(namingScheme ?? LocationTrackNamingScheme.FREE_TEXT) &&
-        isNil(nameSpecifier)
+        MANDATORY_NAME_SPECIFIER_SCHEMES.includes(
+            namingScheme ?? LocationTrackNamingScheme.FREE_TEXT,
+        ) && isNil(nameSpecifier)
             ? {
                   field: 'nameSpecifier' as keyof LocationTrackSaveRequest,
                   reason: 'mandatory-field',

@@ -500,6 +500,7 @@
         "name-in-use-deleted": "Huomaa, että ratanumerolla on poistettu raide samalla tunnuksella",
         "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun raiteen tästä",
         "track-already-has-duplicates": "Tällä raiteella on jo duplikaattiraiteita",
+        "name-specifier-placeholder": "Ei tarkennetta",
         "name-specifiers": {
             "PR": "PR",
             "ER": "ER",
