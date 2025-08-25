@@ -51,7 +51,7 @@ constructor(
             locationTrack(
                 trackNumberId = mainOfficialContext.createLayoutTrackNumber().id,
                 nameStructure = trackNameStructure("ORIG"),
-                descriptionStructure = trackDescriptionStructure("Oridinal location track"),
+                descriptionStructure = trackDescriptionStructure("Original location track"),
                 type = MAIN,
                 state = LocationTrackState.IN_USE,
                 draft = false,

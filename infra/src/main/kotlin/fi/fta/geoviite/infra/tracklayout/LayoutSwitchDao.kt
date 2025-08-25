@@ -31,13 +31,13 @@ import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 
 const val SWITCH_CACHE_SIZE = 10000L
 
@@ -296,7 +296,10 @@ class LayoutSwitchDao(
         }
     }
 
-    override fun fetchInternal(version: LayoutRowVersion<LayoutSwitch>): LayoutSwitch {
+    override fun fetchManyInternal(
+        versions: Collection<LayoutRowVersion<LayoutSwitch>>
+    ): Map<LayoutRowVersion<LayoutSwitch>, LayoutSwitch> {
+        if (versions.isEmpty()) return emptyMap()
         val sql =
             """
             select 
@@ -312,7 +315,7 @@ class LayoutSwitchDao(
               sv.trap_point,
               sv.owner_id,
               sv.source,
-              origin_design_id,
+              sv.origin_design_id,
               sv.draft_oid,
               coalesce(joint_numbers, '{}') as joint_numbers,
               coalesce(joint_roles, '{}') as joint_roles,
@@ -320,6 +323,13 @@ class LayoutSwitchDao(
               coalesce(joint_y_values, '{}') as joint_y_values,
               coalesce(joint_location_accuracies, '{}') as joint_location_accuracies
             from layout.switch_version sv
+              inner join lateral
+                (
+                  select
+                    unnest(:ids) id,
+                    unnest(:layout_context_ids) layout_context_id,
+                    unnest(:versions) version
+                ) args on args.id = sv.id and args.layout_context_id = sv.layout_context_id and args.version = sv.version
               left join lateral (
                 select 
                   array_agg(jv.number order by jv.number) as joint_numbers,
@@ -332,19 +342,19 @@ class LayoutSwitchDao(
                     and jv.switch_layout_context_id = sv.layout_context_id
                     and jv.switch_version = sv.version
               ) jv on (true)
-            where sv.id = :id and sv.layout_context_id = :layout_context_id and sv.version = :version
-              and sv.deleted = false
+            where sv.deleted = false
         """
                 .trimIndent()
         val params =
             mapOf(
-                "id" to version.id.intValue,
-                "layout_context_id" to version.context.toSqlString(),
-                "version" to version.version,
+                "ids" to versions.map { v -> v.id.intValue }.toTypedArray(),
+                "versions" to versions.map { v -> v.version }.toTypedArray(),
+                "layout_context_ids" to versions.map { v -> v.context.toSqlString() }.toTypedArray(),
             )
-        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutSwitch(rs) }).also {
-            logger.daoAccess(FETCH, LayoutSwitch::class, version)
-        }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ -> getLayoutSwitch(rs) }
+            .associateBy { s -> s.getVersionOrThrow() }
+            .also { logger.daoAccess(FETCH, LayoutSwitch::class, versions) }
     }
 
     override fun preloadCache(): Int {
@@ -412,7 +422,7 @@ class LayoutSwitchDao(
                     accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
                 ),
             trapPoint = rs.getBooleanOrNull("trap_point"),
-            ownerId = rs.getIntIdOrNull("owner_id"),
+            ownerId = rs.getIntId("owner_id"),
             source = rs.getEnum("source"),
             draftOid = rs.getOidOrNull("draft_oid"),
             contextData =

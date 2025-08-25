@@ -50,11 +50,7 @@ class ExtLocationTrackControllerV1(
     @ApiResponses(
         value =
             [
-                ApiResponse(
-                    responseCode = "200",
-                    description =
-                        "Sijaintiraidekokoelma löytyi onnistuneesti uusimmasta tai annetusta rataverkon versiosta.",
-                ),
+                ApiResponse(responseCode = "200", description = "Sijaintiraidekokoelman haku onnistui."),
                 ApiResponse(
                     responseCode = "400",
                     description = EXT_OPENAPI_INVALID_ARGUMENTS,
@@ -95,7 +91,7 @@ class ExtLocationTrackControllerV1(
                 ApiResponse(
                     responseCode = "200",
                     description =
-                        "Sijaintiraidekokoelman muutokset haettiin onnistuneesti vertaillen uusimpaan tai annettuun rataverkon versioon.",
+                        "Sijaintiraidekokoelman muutokset haettiin onnistuneesti kahden rataverkon version välillä.",
                 ),
                 ApiResponse(
                     responseCode = "204",
@@ -152,10 +148,7 @@ class ExtLocationTrackControllerV1(
     @ApiResponses(
         value =
             [
-                ApiResponse(
-                    responseCode = "200",
-                    description = "Sijaintiraide löytyi onnistuneesti uusimmasta tai annetusta rataverkon versiosta.",
-                ),
+                ApiResponse(responseCode = "200", description = "Sijaintiraiteen haku onnistui."),
                 ApiResponse(
                     responseCode = "204",
                     description =
@@ -198,7 +191,49 @@ class ExtLocationTrackControllerV1(
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset", params = [MODIFICATIONS_FROM_VERSION])
     @Tag(name = EXT_LOCATION_TRACK_TAG_V1)
-    @Operation(summary = "Yksittäisen sijaintiraiteen muutosten haku OID-tunnuksella")
+    @Operation(
+        summary = "Yksittäisen sijaintiraiteen muutosten haku OID-tunnuksella",
+        description =
+            """
+                Esimerkkejä HTTP-paluukoodien arvoista tietyissä tilanteissa:
+                
+                - 200, kun sijaintiraide on luotu annetun rataverkon version ja uusimman rataverkon välillä (null -> Raiteen versio A).
+                - 200, kun sijaintiraide muuttuu rataverkon versioiden välillä, joissa kummassakin se on olemassa (Raiteen versio A -> Raiteen versio B).
+                - 204, kun kysytään muutoksia rataverkon versioiden välillä, joissa kummassakaan haettua sijaintiraidetta ei ole olemassa (null -> null).
+                - 204, kun muutoksia sijaintiraiteeseen ei ole tapahtunut rataverkon versioiden välillä (Raiteen versio A -> Raiteen versio A).
+            """,
+    )
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(
+                    responseCode = "200",
+                    description = "Sijaintiraiteen muutokset haettiin onnistuneesti kahden rataverkon version välillä.",
+                ),
+                ApiResponse(
+                    responseCode = "204",
+                    description =
+                        "Sijaintiraiteen OID-tunnus löytyi, mutta muutoksia vertailtavien versioiden välillä ei ole.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description =
+                        "Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
     fun extGetLocationTrackModifications(
         @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
         @PathVariable(LOCATION_TRACK_OID_PARAM)
@@ -223,7 +258,7 @@ class ExtLocationTrackControllerV1(
                 trackLayoutVersion,
                 coordinateSystem ?: LAYOUT_SRID,
             )
-            ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
+            .let(::toResponse)
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria")
@@ -232,11 +267,7 @@ class ExtLocationTrackControllerV1(
     @ApiResponses(
         value =
             [
-                ApiResponse(
-                    responseCode = "200",
-                    description =
-                        "Sijaintiraiteen geometria löytyi onnistuneesti uusimmasta tai annetusta rataverkon versiosta.",
-                ),
+                ApiResponse(responseCode = "200", description = "Sijaintiraiteen geometrian haku onnistui."),
                 ApiResponse(
                     responseCode = "204",
                     description =

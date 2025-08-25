@@ -210,6 +210,40 @@ constructor(
         assertEquals(0, searchResults.trackNumbers.size)
     }
 
+    @Test
+    fun `search by oid supports finding design objects by main oid`() {
+        val trackNumberVersion = mainOfficialContext.createLayoutTrackNumber()
+        val trackNumberId = trackNumberVersion.id
+        val designBranch = testDBService.createDesignBranch()
+        trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("1.2.3.4.5"))
+        trackNumberService.insertExternalId(designBranch, trackNumberId, Oid("2.3.4.5.6"))
+
+        fun search(term: String, branch: LayoutBranch) =
+            searchService.searchAssets(
+                branch.draft,
+                FreeText(term),
+                100,
+                locationTrackSearchScope = null,
+                searchedAssetTypes =
+                    listOf(
+                        TrackLayoutSearchedAssetType.LOCATION_TRACK,
+                        TrackLayoutSearchedAssetType.SWITCH,
+                        TrackLayoutSearchedAssetType.TRACK_NUMBER,
+                    ),
+            )
+
+        val tn = testDBService.fetch(trackNumberVersion)
+
+        assertEquals(listOf(tn), search("1.2.3.4.5", LayoutBranch.main).trackNumbers)
+        assertEquals(listOf(), search("2.3.4.5.6", LayoutBranch.main).trackNumbers)
+        assertEquals(listOf(), search("1.1.1.1.1", LayoutBranch.main).trackNumbers)
+
+        assertEquals(listOf(tn), search("1.2.3.4.5", designBranch).trackNumbers)
+        assertEquals(listOf(tn), search("2.3.4.5.6", designBranch).trackNumbers)
+        assertEquals(listOf(), search("1.1.1.1.1", designBranch).trackNumbers)
+
+    }
+
     private fun saveTrackNumbersWithSaveRequests(
         trackNumbers: List<TrackNumber>,
         layoutState: LayoutState,

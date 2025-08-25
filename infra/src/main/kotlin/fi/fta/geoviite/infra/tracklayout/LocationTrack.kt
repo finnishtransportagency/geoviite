@@ -111,13 +111,10 @@ sealed class LocationTrackNameStructure {
                     LocationTrackNameWithinOperatingPoint(
                         requireNotNull(freeText) { "Naming scheme of type $scheme must have a free text part" }
                     )
-                LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS ->
-                    LocationTrackNameBetweenOperatingPoints(
-                        requireNotNull(specifier) { "Naming scheme of type $scheme must have a name specifier part" }
-                    )
+                LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS -> LocationTrackNameBetweenOperatingPoints(specifier)
                 LocationTrackNamingScheme.TRACK_NUMBER_TRACK ->
                     LocationTrackNameByTrackNumber(
-                        requireNotNull(freeText) { "Naming scheme of type $scheme must have a free text part" },
+                        freeText,
                         requireNotNull(specifier) { "Naming scheme of type $scheme must have a name specifier part" },
                     )
                 LocationTrackNamingScheme.CHORD -> LocationTrackNameChord
@@ -144,21 +141,31 @@ data class LocationTrackNameWithinOperatingPoint(override val freeText: Alignmen
 }
 
 data class LocationTrackNameByTrackNumber(
-    override val freeText: AlignmentName,
+    override val freeText: AlignmentName?,
     override val specifier: LocationTrackNameSpecifier,
 ) : LocationTrackNameStructure() {
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.TRACK_NUMBER_TRACK
 
-    fun format(trackNumber: TrackNumber): AlignmentName =
-        AlignmentName("$trackNumber ${specifier.properForm} $freeText".trim())
+    fun format(trackNumber: TrackNumber): AlignmentName {
+        val nameString =
+            if (freeText != null) "$trackNumber ${specifier.properForm} $freeText"
+            else "$trackNumber ${specifier.properForm}"
+
+        return AlignmentName(nameString.trim())
+    }
 }
 
-data class LocationTrackNameBetweenOperatingPoints(override val specifier: LocationTrackNameSpecifier) :
+data class LocationTrackNameBetweenOperatingPoints(override val specifier: LocationTrackNameSpecifier?) :
     LocationTrackNameStructure() {
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS
 
-    fun format(startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName =
-        AlignmentName("${specifier.properForm} ${getShortName(startSwitch)}-${getShortName(endSwitch)}")
+    fun format(startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName {
+        val nameString =
+            if (specifier != null) "${specifier.properForm} ${getShortName(startSwitch)}-${getShortName(endSwitch)}"
+            else "${getShortName(startSwitch)}-${getShortName(endSwitch)}"
+
+        return AlignmentName(nameString.trim())
+    }
 }
 
 data object LocationTrackNameChord : LocationTrackNameStructure() {
@@ -218,7 +225,7 @@ data class LocationTrack(
     val descriptionStructure: LocationTrackDescriptionStructure,
     /**
      * Reified description from the structured fields, using dependencies (end switches). Should not be edited directly,
-     * only, only via the method [LocationTrackDescriptionStructure.reify]
+     * only via the method [LocationTrackDescriptionStructure.reify]
      */
     val description: FreeText,
     val type: LocationTrackType,

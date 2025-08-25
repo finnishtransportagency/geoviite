@@ -1,5 +1,5 @@
 import * as React from 'react';
-import PublicationCard from 'publication/card/publication-card';
+import MainPublicationCard from 'publication/card/main-publication-card';
 import styles from './frontpage.scss';
 
 import { useLoaderWithTimer } from 'utils/react-utils';
@@ -9,18 +9,20 @@ import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
 import { TimeStamp } from 'common/common-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_LAYOUT_DRAFT } from 'user/user-model';
-import { EnvRestricted } from 'environment/env-restricted';
+import DesignPublicationCard from 'publication/card/design-publication-card';
 
 type FrontPageProps = {
     publicationChangeTime: TimeStamp;
     ratkoPushChangeTime: TimeStamp;
     splitChangeTime: TimeStamp;
+    designChangeTime: TimeStamp;
 };
 
 const Frontpage: React.FC<FrontPageProps> = ({
     publicationChangeTime,
     ratkoPushChangeTime,
     splitChangeTime,
+    designChangeTime,
 }) => {
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
 
@@ -29,24 +31,18 @@ const Frontpage: React.FC<FrontPageProps> = ({
     return (
         <React.Fragment>
             <div className={styles['frontpage']}>
-                <PublicationCard
+                <MainPublicationCard
                     publicationChangeTime={publicationChangeTime}
                     ratkoPushChangeTime={ratkoPushChangeTime}
                     splitChangeTime={splitChangeTime}
                     ratkoStatus={ratkoStatus}
-                    branchType="MAIN"
                 />
-                <EnvRestricted restrictTo="test">
-                    <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
-                        <PublicationCard
-                            publicationChangeTime={publicationChangeTime}
-                            ratkoPushChangeTime={ratkoPushChangeTime}
-                            splitChangeTime={splitChangeTime}
-                            ratkoStatus={ratkoStatus}
-                            branchType="DESIGN"
-                        />
-                    </PrivilegeRequired>
-                </EnvRestricted>
+                <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
+                    <DesignPublicationCard
+                        publicationChangeTime={publicationChangeTime}
+                        designChangeTime={designChangeTime}
+                    />
+                </PrivilegeRequired>
                 <UserCardContainer />
             </div>
         </React.Fragment>

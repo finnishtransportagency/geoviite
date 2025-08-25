@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -21,16 +22,16 @@ import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstantOrNull
-import java.time.Instant
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -67,7 +68,7 @@ constructor(
         val locationTrackResponse = insertAndPublishLocationTrack()
         locationTrackId = locationTrackResponse.id
         val beforePublish = ratkoPushDao.getLatestPublicationMoment()
-        publicationId = createPublication(locationTracks = listOf(locationTrackResponse))
+        publicationId = createPublication(locationTracks = listOf(Change(null, locationTrackResponse)))
         publicationMoment = publicationDao.getPublication(publicationId).publicationTime
         assertTrue(publicationMoment > beforePublish)
         assertEquals(publicationMoment, ratkoPushDao.getLatestPublicationMoment())
@@ -147,7 +148,8 @@ constructor(
         assertTrue(lastPush < publicationMoment)
 
         val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, lastPush, null)
-        val (publishedLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(publications[1].id)
+        val (publishedLocationTracks, _) =
+            publicationDao.fetchPublishedLocationTracks(setOf(publications[1].id)).getValue(publications[1].id)
 
         assertEquals(publicationId, publications[1].id)
         assertEquals(locationTrackId, publishedLocationTracks[0].id)
@@ -172,7 +174,8 @@ constructor(
         val latestPushedPublish = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
         assertTrue(latestPushedPublish < publicationMoment)
         val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushedPublish, null)
-        val (publishedLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(publications[1].id)
+        val (publishedLocationTracks, _) =
+            publicationDao.fetchPublishedLocationTracks(setOf(publications[1].id)).getValue(publications[1].id)
 
         assertEquals(2, publications.size)
         assertEquals(publicationId, publications[1].id)
@@ -182,7 +185,8 @@ constructor(
     @Test
     fun shouldReturnMultipleUnpublishedLayoutPublishes() {
         val locationTrack2Response = insertAndPublishLocationTrack()
-        val publicationId2 = createPublication(locationTracks = listOf(locationTrack2Response), message = "Test")
+        val publicationId2 =
+            createPublication(locationTracks = listOf(Change(null, locationTrack2Response)), message = "Test")
 
         val latestPushedMoment = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
         assertTrue(latestPushedMoment < publicationMoment)
@@ -194,8 +198,14 @@ constructor(
         assertNotNull(fetchedLayoutPublish)
         assertNotNull(fetchedLayoutPublish2)
 
-        val (publishLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(fetchedLayoutPublish.id)
-        val (publish2LocationTracks, _) = publicationDao.fetchPublishedLocationTracks(fetchedLayoutPublish2.id)
+        val (publishLocationTracks, _) =
+            publicationDao
+                .fetchPublishedLocationTracks(setOf(fetchedLayoutPublish.id))
+                .getValue(fetchedLayoutPublish.id)
+        val (publish2LocationTracks, _) =
+            publicationDao
+                .fetchPublishedLocationTracks(setOf(fetchedLayoutPublish2.id))
+                .getValue(fetchedLayoutPublish2.id)
 
         assertEquals(1, publishLocationTracks.size)
         assertEquals(1, publish2LocationTracks.size)
@@ -207,9 +217,11 @@ constructor(
     @Test
     fun `Should return latest publications`() {
         val locationTrack1Response = insertAndPublishLocationTrack()
-        val publicationId1 = createPublication(locationTracks = listOf(locationTrack1Response), message = "Test")
+        val publicationId1 =
+            createPublication(locationTracks = listOf(Change(null, locationTrack1Response)), message = "Test")
         val locationTrack2Response = insertAndPublishLocationTrack()
-        val publicationId2 = createPublication(locationTracks = listOf(locationTrack2Response), message = "Test")
+        val publicationId2 =
+            createPublication(locationTracks = listOf(Change(null, locationTrack2Response)), message = "Test")
 
         val publications = publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, 2)
 
@@ -251,11 +263,11 @@ constructor(
 
     fun createPublication(
         layoutBranch: LayoutBranch = LayoutBranch.main,
-        trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>> = listOf(),
-        referenceLines: List<LayoutRowVersion<ReferenceLine>> = listOf(),
-        locationTracks: List<LayoutRowVersion<LocationTrack>> = listOf(),
-        switches: List<LayoutRowVersion<LayoutSwitch>> = listOf(),
-        kmPosts: List<LayoutRowVersion<LayoutKmPost>> = listOf(),
+        trackNumbers: List<Change<LayoutRowVersion<LayoutTrackNumber>>> = listOf(),
+        referenceLines: List<Change<LayoutRowVersion<ReferenceLine>>> = listOf(),
+        locationTracks: List<Change<LayoutRowVersion<LocationTrack>>> = listOf(),
+        switches: List<Change<LayoutRowVersion<LayoutSwitch>>> = listOf(),
+        kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>> = listOf(),
         message: String = "",
     ): IntId<Publication> =
         publicationDao
@@ -270,12 +282,12 @@ constructor(
                     CalculatedChanges(
                         directChanges =
                             DirectChanges(
-                                kmPostChanges = kmPosts.map { it.id },
-                                referenceLineChanges = referenceLines.map { it.id },
+                                kmPostChanges = kmPosts.map { it.new.id },
+                                referenceLineChanges = referenceLines.map { it.new.id },
                                 trackNumberChanges =
                                     trackNumbers.map {
                                         TrackNumberChange(
-                                            trackNumberId = it.id,
+                                            trackNumberId = it.new.id,
                                             changedKmNumbers = emptySet(),
                                             isStartChanged = false,
                                             isEndChanged = false,
@@ -284,13 +296,13 @@ constructor(
                                 locationTrackChanges =
                                     locationTracks.map {
                                         LocationTrackChange(
-                                            locationTrackId = it.id,
+                                            locationTrackId = it.new.id,
                                             changedKmNumbers = emptySet(),
                                             isStartChanged = false,
                                             isEndChanged = false,
                                         )
                                     },
-                                switchChanges = switches.map { SwitchChange(it.id, emptyList()) },
+                                switchChanges = switches.map { SwitchChange(it.new.id, emptyList()) },
                             ),
                         indirectChanges =
                             IndirectChanges(

@@ -95,7 +95,7 @@ class GeocodingDao(
         branch: LayoutBranch,
         trackNumberId: IntId<LayoutTrackNumber>,
         moment: Instant,
-    ): GeocodingContextCacheKey? {
+    ): LayoutGeocodingContextCacheKey? {
         // language=SQL
         val sql =
             """
@@ -207,7 +207,7 @@ class GeocodingDao(
     fun getLayoutGeocodingContextCacheKey(
         trackNumberId: IntId<LayoutTrackNumber>,
         versions: ValidationVersions,
-    ): GeocodingContextCacheKey? {
+    ): LayoutGeocodingContextCacheKey? {
         val base = getLayoutGeocodingContextCacheKey(versions.target.baseContext, trackNumberId)
         val trackNumberVersion = versions.findTrackNumber(trackNumberId) ?: base?.trackNumberVersion
         // We have to fetch the actual objects (reference line & km-post) here to check references

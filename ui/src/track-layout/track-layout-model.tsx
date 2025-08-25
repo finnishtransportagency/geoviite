@@ -24,9 +24,10 @@ import {
 } from 'common/common-model';
 import { deduplicateById } from 'utils/array-utils';
 import { AlignmentPolyLine, GeometryAlignmentHeader } from './layout-map-api';
-import { GeometryPlanLinkStatus } from 'linking/linking-model';
+import { GeometryPlanLinkStatus, LocationTrackSaveRequest } from 'linking/linking-model';
 import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
 import { Brand } from 'common/brand';
+import { isNilOrBlank } from 'utils/string-utils';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
 export type LocationTrackState = 'BUILT' | 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
@@ -178,6 +179,43 @@ export function getNameSpecifier(
 ): LocationTrackNameSpecifier | undefined {
     return nameStructure && 'specifier' in nameStructure ? nameStructure.specifier : undefined;
 }
+
+export const locationTrackNameFieldsSanitized = (
+    saveRequest: LocationTrackSaveRequest,
+): Pick<LocationTrackSaveRequest, 'nameFreeText' | 'nameSpecifier'> => {
+    const freeText = !isNilOrBlank(saveRequest.nameFreeText)
+        ? saveRequest.nameFreeText?.trim()
+        : undefined;
+    const specifier = saveRequest.nameSpecifier;
+
+    switch (saveRequest.namingScheme) {
+        case LocationTrackNamingScheme.FREE_TEXT:
+        case LocationTrackNamingScheme.WITHIN_OPERATING_POINT:
+            return {
+                nameFreeText: freeText,
+                nameSpecifier: undefined,
+            };
+        case LocationTrackNamingScheme.TRACK_NUMBER_TRACK:
+            return {
+                nameFreeText: freeText,
+                nameSpecifier: specifier,
+            };
+        case LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS:
+            return {
+                nameFreeText: undefined,
+                nameSpecifier: specifier,
+            };
+        case LocationTrackNamingScheme.CHORD:
+            return {
+                nameFreeText: undefined,
+                nameSpecifier: undefined,
+            };
+        case undefined:
+            throw Error('Naming scheme is mandatory for location track save request!');
+        default:
+            return exhaustiveMatchingGuard(saveRequest.namingScheme);
+    }
+};
 
 export type LocationTrackDescriptionStructure = {
     base?: string;
@@ -532,13 +570,14 @@ export function formatTrackName(
 ): string {
     switch (namingScheme) {
         case LocationTrackNamingScheme.FREE_TEXT:
-            return nameFreeText ?? '';
         case LocationTrackNamingScheme.WITHIN_OPERATING_POINT:
             return nameFreeText ?? '';
         case LocationTrackNamingScheme.TRACK_NUMBER_TRACK:
             return `${withPlaceholder(trackNumber)} ${toProperForm(nameSpecifier)} ${nameFreeText ?? ''}`.trim();
         case LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS:
-            return `${toProperForm(nameSpecifier)} ${getShortName(startSwitch)}-${getShortName(endSwitch)}`;
+            return nameSpecifier
+                ? `${toProperForm(nameSpecifier)} ${getShortName(startSwitch)}-${getShortName(endSwitch)}`
+                : `${getShortName(startSwitch)}-${getShortName(endSwitch)}`;
         case LocationTrackNamingScheme.CHORD: {
             if (startSwitch !== undefined && startSwitch?.prefix === endSwitch?.prefix) {
                 return `${startSwitch.prefix} ${getShortNumber(startSwitch)}-${getShortNumber(endSwitch)}`;
@@ -566,11 +605,11 @@ export function formatTrackDescription(
         case 'NONE':
             return descriptionBase;
         case 'SWITCH_TO_BUFFER':
-            return `${getShortName(startSwitch ?? endSwitch)} - ${t('location-track-dialog.buffer')}`;
+            return `${descriptionBase} ${getShortName(startSwitch ?? endSwitch)} - ${t('location-track-dialog.buffer')}`;
         case 'SWITCH_TO_OWNERSHIP_BOUNDARY':
-            return `${getShortName(startSwitch ?? endSwitch)} - ${t('location-track-dialog.ownership-boundary')}`;
+            return `${descriptionBase} ${getShortName(startSwitch ?? endSwitch)} - ${t('location-track-dialog.ownership-boundary')}`;
         case 'SWITCH_TO_SWITCH':
-            return `${getShortName(startSwitch)} - ${getShortName(endSwitch)}`;
+            return `${descriptionBase} ${getShortName(startSwitch)} - ${getShortName(endSwitch)}`;
         default:
             return exhaustiveMatchingGuard(descriptionSuffix);
     }

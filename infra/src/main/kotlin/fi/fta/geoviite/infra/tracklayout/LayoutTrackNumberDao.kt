@@ -82,7 +82,10 @@ class LayoutTrackNumberDao(
         }
     }
 
-    override fun fetchInternal(version: LayoutRowVersion<LayoutTrackNumber>): LayoutTrackNumber {
+    override fun fetchManyInternal(
+        versions: Collection<LayoutRowVersion<LayoutTrackNumber>>
+    ): Map<LayoutRowVersion<LayoutTrackNumber>, LayoutTrackNumber> {
+        if (versions.isEmpty()) return emptyMap()
         val sql =
             """
             select
@@ -98,22 +101,26 @@ class LayoutTrackNumberDao(
               (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
               tn.origin_design_id
             from layout.track_number_version tn
-            where tn.id = :id
-              and tn.layout_context_id = :layout_context_id
-              and tn.version = :version
-              and tn.deleted = false
-            order by tn.id, tn.version
+              inner join lateral
+                (
+                  select
+                    unnest(:ids) id,
+                    unnest(:layout_context_ids) layout_context_id,
+                    unnest(:versions) version
+                ) args on args.id = tn.id and args.layout_context_id = tn.layout_context_id and args.version = tn.version
+              where tn.deleted = false
         """
                 .trimIndent()
         val params =
             mapOf(
-                "id" to version.id.intValue,
-                "layout_context_id" to version.context.toSqlString(),
-                "version" to version.version,
+                "ids" to versions.map { v -> v.id.intValue }.toTypedArray(),
+                "versions" to versions.map { v -> v.version }.toTypedArray(),
+                "layout_context_ids" to versions.map { v -> v.context.toSqlString() }.toTypedArray(),
             )
-        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutTrackNumber(rs) }).also {
-            logger.daoAccess(AccessType.FETCH, LayoutTrackNumber::class, version)
-        }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ -> getLayoutTrackNumber(rs) }
+            .associateBy { tn -> tn.getVersionOrThrow() }
+            .also { logger.daoAccess(AccessType.FETCH, LayoutTrackNumber::class, versions) }
     }
 
     override fun preloadCache(): Int {

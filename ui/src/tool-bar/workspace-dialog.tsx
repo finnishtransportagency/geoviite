@@ -40,6 +40,7 @@ const saveRequest = (name: string, estimatedCompletion: Date): LayoutDesignSaveR
 });
 
 export const DESIGN_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-+_!?.,"/()<>:&*#€$]*$/g;
+
 function validateDesignName(name: string, committed: boolean): string[] {
     return [
         committed && name.length < 2 ? 'name-too-short' : undefined,
@@ -65,7 +66,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
     const nameInputRef = React.useRef<HTMLInputElement>(null);
 
     const [allDesigns, allDesignsFetchStatus] = useLoaderWithStatus(
-        () => getLayoutDesigns(getChangeTimes().layoutDesign),
+        () => getLayoutDesigns(false, false, getChangeTimes().layoutDesign),
         [getChangeTimes().layoutDesign],
     );
     const designNameErrors = validateDesignName(name.trim(), nameCommitted);

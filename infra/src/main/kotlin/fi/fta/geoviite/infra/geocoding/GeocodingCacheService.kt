@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.configuration.CACHE_PLAN_GEOCODING_CONTEXTS
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.PlanLayoutService
 import fi.fta.geoviite.infra.map.MapAlignmentType
-import fi.fta.geoviite.infra.tracklayout.GeocodingAlignmentM
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
@@ -24,11 +23,11 @@ import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.context.annotation.Lazy
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 sealed interface GeocodingContextCacheKey
 
@@ -68,19 +67,22 @@ class GeocodingCacheService(
     @Autowired @Lazy lateinit var geocodingCacheService: GeocodingCacheService
 
     @Transactional(readOnly = true)
-    fun <M : GeocodingAlignmentM<M>> getGeocodingContext(key: GeocodingContextCacheKey): GeocodingContext<M>? =
-        getGeocodingContextWithReasons(key)?.geocodingContext as GeocodingContext<M>?
+    fun getGeocodingContext(key: LayoutGeocodingContextCacheKey): GeocodingContext<ReferenceLineM>? =
+        getGeocodingContextWithReasons(key)?.geocodingContext
 
     @Transactional(readOnly = true)
-    fun <M : GeocodingAlignmentM<M>> getGeocodingContextWithReasons(
-        key: GeocodingContextCacheKey
-    ): GeocodingContextCreateResult<M>? =
-        when (key) {
-            is LayoutGeocodingContextCacheKey -> geocodingCacheService.getLayoutGeocodingContext(key)
-            is GeometryGeocodingContextCacheKey -> geocodingCacheService.getGeometryGeocodingContext(key)
-        }
-        // caller's responsibility to not cast a layout geocoding context to a geometry one/vice versa
-        as GeocodingContextCreateResult<M>?
+    fun getGeocodingContext(key: GeometryGeocodingContextCacheKey): GeocodingContext<PlanLayoutAlignmentM>? =
+        getGeocodingContextWithReasons(key)?.geocodingContext
+
+    @Transactional(readOnly = true)
+    fun getGeocodingContextWithReasons(
+        key: LayoutGeocodingContextCacheKey
+    ): GeocodingContextCreateResult<ReferenceLineM>? = geocodingCacheService.getLayoutGeocodingContext(key)
+
+    @Transactional(readOnly = true)
+    fun getGeocodingContextWithReasons(
+        key: GeometryGeocodingContextCacheKey
+    ): GeocodingContextCreateResult<PlanLayoutAlignmentM>? = geocodingCacheService.getGeometryGeocodingContext(key)
 
     @Transactional(readOnly = true)
     @Cacheable(CACHE_GEOCODING_CONTEXTS, sync = true)
@@ -92,7 +94,7 @@ class GeocodingCacheService(
                 ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
         // If the track number is deleted or reference line has no geometry, we cannot geocode.
         if (!trackNumber.exists || alignment.segments.isEmpty()) return null
-        val kmPosts = key.kmPostVersions.map(kmPostDao::fetch).sortedBy { post -> post.kmNumber }
+        val kmPosts = kmPostDao.fetchMany(key.kmPostVersions).sortedBy { post -> post.kmNumber }
         return GeocodingContext.create(trackNumber.number, referenceLine.startAddress, alignment, kmPosts)
     }
 

@@ -9,9 +9,9 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
@@ -40,6 +40,7 @@ import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.fixMValues
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -47,16 +48,16 @@ import fi.fta.geoviite.infra.tracklayout.splitSegment
 import fi.fta.geoviite.infra.tracklayout.toAlignmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import kotlin.math.ceil
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -644,7 +645,7 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumber.id as IntId,
                         km = KmNumber(1),
-                        roughLayoutLocation = refPoint + 5.0,
+                        gkLocation = kmPostGkLocation(refPoint + 5.0),
                         draft = false,
                     )
                 )
@@ -655,7 +656,7 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumber.id as IntId,
                         km = KmNumber(2),
-                        roughLayoutLocation = refPoint + 10.0,
+                        gkLocation = kmPostGkLocation(refPoint + 10.0),
                         draft = false,
                     )
                 )
@@ -761,10 +762,8 @@ constructor(
         end: Pair<Point, TrackMeter>,
     ): AlignmentAddresses<M> =
         AlignmentAddresses(
-            startPoint = AddressPoint(
-                AlignmentPoint(start.first.x, start.first.y, null, LineM<M>(0.0), null),
-                start.second
-            ),
+            startPoint =
+                AddressPoint(AlignmentPoint(start.first.x, start.first.y, null, LineM<M>(0.0), null), start.second),
             endPoint =
                 AddressPoint(
                     AlignmentPoint(end.first.x, end.first.y, null, LineM<M>(lineLength(start.first, end.first)), null),
@@ -808,7 +807,7 @@ constructor(
     fun <M : AlignmentM<M>> someAddressPoint() =
         AddressPoint(AlignmentPoint(0.0, 0.0, null, LineM<M>(0.0), null), TrackMeter(0, 0))
 
-    fun getAllKms(geocodingContextCacheKey: GeocodingContextCacheKey, start: IPoint, end: IPoint): Set<KmNumber> {
+    fun getAllKms(geocodingContextCacheKey: LayoutGeocodingContextCacheKey, start: IPoint, end: IPoint): Set<KmNumber> {
         val context = geocodingService.getGeocodingContext(geocodingContextCacheKey)!!
         val startKm = context.getAddress(start)!!.first.kmNumber
         val endKm = context.getAddress(end)!!.first.kmNumber

@@ -52,23 +52,23 @@ const changeTableEntryCommonFields = (
 });
 
 export function getTrackNumberUiName(trackNumber: TrackNumber | undefined) {
-    return `${i18n.t('publication-table.track-number-long')} ${trackNumber}`;
+    return i18n.t('publication-table.track-number-long', { trackNumber });
 }
 
 export function getReferenceLineUiName(trackNumber: TrackNumber | undefined) {
-    return `${i18n.t('publication-table.reference-line')} ${trackNumber}`;
+    return i18n.t('publication-table.reference-line', { trackNumber });
 }
 
 export function getLocationTrackUiName(name: string) {
-    return `${i18n.t('publication-table.location-track')} ${name}`;
+    return i18n.t('publication-table.location-track', { locationTrack: name });
 }
 
 export function getSwitchUiName(name: string) {
-    return `${i18n.t('publication-table.switch')} ${name}`;
+    return i18n.t('publication-table.switch', { switch: name });
 }
 
 export function getKmPostUiName(kmNumber: KmNumber) {
-    return `${i18n.t('publication-table.km-post')} ${kmNumber}`;
+    return i18n.t('publication-table.km-post', { kmNumber });
 }
 
 export const trackNumberToChangeTableEntry = (trackNumber: TrackNumberPublicationCandidate) => ({

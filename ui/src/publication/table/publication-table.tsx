@@ -1,9 +1,9 @@
 import { Table, Th } from 'vayla-design-lib/table/table';
-import { PublicationTableRow } from 'publication/table/publication-table-row';
+import PublicationTableRow from 'publication/table/publication-table-row';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './publication-table.scss';
-import { PublicationTableItem } from 'publication/publication-model';
+import { PublicationId, PublicationTableItem } from 'publication/publication-model';
 import {
     getSortInfoForProp,
     PublicationDetailsTableSortField,
@@ -13,12 +13,20 @@ import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { useState } from 'react';
 import { negComparator } from 'utils/array-utils';
+import { createDelegates } from 'store/store-utils';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { useAppNavigate } from 'common/navigate';
+import { SearchablePublicationLogItem } from 'publication/log/publication-log';
+import { SearchItemValue } from 'tool-bar/search-dropdown';
 
 export type PublicationTableProps = {
     items: PublicationTableItem[];
     sortInfo?: PublicationDetailsTableSortInformation;
     onSortChange?: (sortInfo: PublicationDetailsTableSortInformation) => void;
     isLoading?: boolean;
+    displaySingleItemHistory: (
+        item: SearchItemValue<SearchablePublicationLogItem> | undefined,
+    ) => void;
 };
 
 const PublicationTable: React.FC<PublicationTableProps> = ({
@@ -26,6 +34,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
     onSortChange,
     sortInfo,
     isLoading,
+    displaySingleItemHistory,
 }) => {
     const { t } = useTranslation();
 
@@ -63,13 +72,17 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
 
     const [itemDetailsVisible, setItemDetailsVisible] = useState<PublicationTableItem['id'][]>([]);
 
-    const publicationItemDetailsVisibilityToggle = (id: PublicationTableItem['id']) => {
-        if (!itemDetailsVisible.includes(id)) {
-            setItemDetailsVisible([...itemDetailsVisible, id]);
-        } else {
-            setItemDetailsVisible(itemDetailsVisible.filter((existingId) => existingId !== id));
-        }
-    };
+    const publicationItemDetailsVisibilityToggle = React.useCallback(
+        (id: PublicationTableItem['id']) =>
+            setItemDetailsVisible((itemDetailsVisible) => {
+                if (!itemDetailsVisible.includes(id)) {
+                    return [...itemDetailsVisible, id];
+                } else {
+                    return itemDetailsVisible.filter((existingId) => existingId !== id);
+                }
+            }),
+        [setItemDetailsVisible],
+    );
 
     const anyPublicationItemDetailsVisible = itemDetailsVisible.length > 0;
     const toggleVisibilityOfAllDetails = () => {
@@ -79,6 +92,14 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
             setItemDetailsVisible(items.map((item) => item.id));
         }
     };
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
+    const navigate = useAppNavigate();
+    const displaySinglePublication = React.useCallback(
+        (publicationId: PublicationId) => {
+            navigate('publication-view', publicationId);
+        },
+        [delegates],
+    );
 
     return (
         <div className={styles['publication-table']}>
@@ -138,6 +159,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                         <PublicationTableRow
                             key={entry.id}
                             id={entry.id}
+                            publicationId={entry.publicationId}
+                            asset={entry.asset}
                             name={entry.name}
                             trackNumbers={entry.trackNumbers}
                             publicationTime={entry.publicationTime}
@@ -148,9 +171,9 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                             message={entry.message}
                             propChanges={entry.propChanges}
                             detailsVisible={itemDetailsVisible.includes(entry.id)}
-                            detailsVisibleToggle={() =>
-                                publicationItemDetailsVisibilityToggle(entry.id)
-                            }
+                            detailsVisibleToggle={publicationItemDetailsVisibilityToggle}
+                            displayItemHistory={displaySingleItemHistory}
+                            displaySinglePublication={displaySinglePublication}
                         />
                     ))}
                 </tbody>

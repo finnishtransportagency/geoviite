@@ -17,9 +17,7 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import {
     refreshTrackNumberSelection,
     useCoordinateSystem,
-    useReferenceLineChangeTimes,
     useReferenceLineStartAndEnd,
-    useTrackNumberChangeTimes,
 } from 'track-layout/track-layout-react-utils';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
@@ -27,7 +25,7 @@ import { updateReferenceLineGeometry } from 'linking/linking-api';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { formatDateShort, getMaxTimestamp, getMinTimestamp } from 'utils/date-utils';
+import { getMaxTimestamp } from 'utils/date-utils';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
 import { MapViewport } from 'map/map-model';
@@ -42,6 +40,7 @@ import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_GEOMETRY } from 'user/user-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { TrackNumberOid } from 'track-layout/oid';
+import { TrackNumberChangeInfoInfobox } from 'tool-panel/track-number/track-number-change-info-infobox';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -106,16 +105,6 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         trackNumberChangeTime,
     );
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
-    const tnChangeTimes = useTrackNumberChangeTimes(trackNumber?.id, layoutContext);
-    const rlChangeTimes = useReferenceLineChangeTimes(referenceLine?.id, layoutContext);
-    const createdTime =
-        tnChangeTimes?.created && rlChangeTimes?.created
-            ? getMinTimestamp(tnChangeTimes.created, rlChangeTimes.created)
-            : tnChangeTimes?.created || rlChangeTimes?.created;
-    const changedTime =
-        tnChangeTimes?.changed && rlChangeTimes?.changed
-            ? getMaxTimestamp(tnChangeTimes.changed, rlChangeTimes.changed)
-            : tnChangeTimes?.changed || rlChangeTimes?.changed;
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
@@ -377,26 +366,13 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 layoutContext={layoutContext}
                 changeTime={trackNumberChangeTime}
             />
-            {createdTime && changedTime && (
-                <Infobox
-                    contentVisible={visibilities.log}
-                    onContentVisibilityChange={() => visibilityChange('log')}
-                    title={t('tool-panel.reference-line.change-info-heading')}
-                    qa-id="track-number-log-infobox">
-                    <InfoboxContent>
-                        <InfoboxField
-                            qaId="track-number-created-date"
-                            label={t('tool-panel.created')}
-                            value={formatDateShort(createdTime)}
-                        />
-                        <InfoboxField
-                            qaId="track-number-changed-date"
-                            label={t('tool-panel.changed')}
-                            value={formatDateShort(changedTime)}
-                        />
-                    </InfoboxContent>
-                </Infobox>
-            )}
+            <TrackNumberChangeInfoInfobox
+                trackNumber={trackNumber}
+                referenceLine={referenceLine}
+                layoutContext={layoutContext}
+                visible={visibilities.log}
+                visibilityChange={() => visibilityChange('log')}
+            />
             {showEditDialog && (
                 <TrackNumberEditDialogContainer
                     editTrackNumberId={trackNumber.id}

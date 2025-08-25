@@ -29,9 +29,6 @@ const val CACHE_PLAN_GEOCODING_CONTEXTS = "plan-geocoding-contexts"
 
 const val CACHE_RATKO_HEALTH_STATUS = "ratko-health-status"
 
-const val CACHE_PUBLISHED_LOCATION_TRACKS = "published-location-tracks"
-const val CACHE_PUBLISHED_SWITCHES = "published-switches"
-
 val planCacheDuration: Duration = Duration.ofMinutes(60)
 val layoutCacheDuration: Duration = Duration.ofMinutes(60)
 val staticDataCacheDuration: Duration = Duration.ofHours(24)
@@ -64,9 +61,6 @@ constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boole
             manager.registerCustomCache(CACHE_PLAN_GEOCODING_CONTEXTS, cache(50, planCacheDuration))
 
             manager.registerCustomCache(CACHE_RATKO_HEALTH_STATUS, ephemeralCache(1, healthCheckLifetime))
-
-            manager.registerCustomCache(CACHE_PUBLISHED_LOCATION_TRACKS, cache(500, staticDataCacheDuration))
-            manager.registerCustomCache(CACHE_PUBLISHED_SWITCHES, cache(500, staticDataCacheDuration))
 
             manager
         } else {

@@ -11,9 +11,11 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -62,6 +64,7 @@ constructor(
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
+    private val publicationService: PublicationService,
     private val publicationDao: PublicationDao,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -76,11 +79,11 @@ constructor(
         val publication =
             trackLayoutVersion?.let { uuid ->
                 publicationDao.fetchPublicationByUuid(uuid)
-                    ?: throw ExtTrackLayoutVersionNotFound("trackLayoutVersion=${trackLayoutVersion}")
+                    ?: throw TrackLayoutVersionNotFound("trackLayoutVersion=${trackLayoutVersion}")
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
         val locationTrackId =
-            locationTrackDao.lookupByExternalId(oid)?.id
+            locationTrackDao.lookupByExternalId(oid.toString())?.id
                 ?: throw ExtOidNotFoundExceptionV1("location track lookup failed for oid=$oid")
 
         return locationTrackDao
@@ -110,15 +113,8 @@ constructor(
     ): ExtModifiedLocationTrackResponseV1? {
         val layoutContext = MainLayoutContext.official
 
-        val fromPublication =
-            publicationDao.fetchPublicationByUuid(modificationsFromVersion)
-                ?: throw ExtTrackLayoutVersionNotFound("modificationsFromVersion=${modificationsFromVersion}")
-
-        val toPublication =
-            trackLayoutVersion?.let { uuid ->
-                publicationDao.fetchPublicationByUuid(uuid)
-                    ?: throw ExtTrackLayoutVersionNotFound("trackLayoutVersion=${uuid}")
-            } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
+        val (fromPublication, toPublication) =
+            publicationService.getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
 
         return if (fromPublication == toPublication) {
             logger.info(
@@ -127,7 +123,7 @@ constructor(
             null
         } else {
             val locationTrackId =
-                locationTrackDao.lookupByExternalId(oid)?.id
+                locationTrackDao.lookupByExternalId(oid.toString())?.id
                     ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
 
             val fromLocationTrackVersion =
@@ -136,9 +132,6 @@ constructor(
                     locationTrackId,
                     fromPublication.publicationTime,
                 )
-                    ?: throw ExtLocationTrackNotFoundExceptionV1(
-                        "'from' version fetch failed, moment=${fromPublication.publicationTime}, locationTrackId=$locationTrackId"
-                    )
 
             val toLocationTrackVersion =
                 locationTrackDao.fetchOfficialVersionAtMoment(
@@ -146,9 +139,6 @@ constructor(
                     locationTrackId,
                     toPublication.publicationTime,
                 )
-                    ?: throw ExtLocationTrackNotFoundExceptionV1(
-                        "'to' version fetch failed, moment=${toPublication.publicationTime}, locationTrackId=$locationTrackId"
-                    )
 
             return if (fromLocationTrackVersion == toLocationTrackVersion) {
                 logger.info(
@@ -156,6 +146,10 @@ constructor(
                 )
                 null
             } else {
+                checkNotNull(toLocationTrackVersion) {
+                    "It should not be possible for the fromLocationTrackVersion to be non-null, while the toLocationTrackVersion is null."
+                }
+
                 ExtModifiedLocationTrackResponseV1(
                     modificationsFromVersion = modificationsFromVersion,
                     trackLayoutVersion = toPublication.uuid,

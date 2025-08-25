@@ -93,6 +93,7 @@ abstract class LayoutAssetService<
         branch: LayoutBranch,
         draftVersion: LayoutRowVersion<ObjectType>,
     ): PublicationResultVersions<ObjectType> {
+        val baseVersion = dao.fetchVersion(branch.official, draftVersion.id)
         val draft = dao.fetch(draftVersion)
         require(branch == draft.branch) {
             "Draft branch does not match the publishing operation: branch=$branch draft=$draft"
@@ -104,6 +105,7 @@ abstract class LayoutAssetService<
         require(!published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
 
         val publishedSaveParams = dao.getBaseSaveParams(draftVersion)
+
         val publicationVersion =
             dao.save(published, publishedSaveParams).also { r ->
                 require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
@@ -121,7 +123,11 @@ abstract class LayoutAssetService<
                 completeMergeToMain(draftVersion.id, originBranch, publishedSaveParams)
             }
 
-        return PublicationResultVersions(published = publicationVersion, completed = completedVersion)
+        return PublicationResultVersions(
+            published = publicationVersion,
+            base = baseVersion,
+            completed = completedVersion,
+        )
     }
 
     private fun completeMergeToMain(

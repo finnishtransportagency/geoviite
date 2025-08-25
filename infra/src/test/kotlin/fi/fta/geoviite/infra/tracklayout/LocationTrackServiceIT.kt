@@ -215,6 +215,27 @@ constructor(
     }
 
     @Test
+    fun `getWithGeometries returns results in request order, even with duplicates`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val one = createAndVerifyTrack(trackNumber, 1)
+        val two = createAndVerifyTrack(trackNumber, 2)
+        val three = createAndVerifyTrack(trackNumber, 3)
+
+        assertEquals(
+            listOf(one.id, two.id, two.id, three.id),
+            locationTrackService
+                .getManyWithGeometries(mainDraftContext.context, listOf(one.id, two.id, two.id, three.id))
+                .map { it.first.id },
+        )
+        assertEquals(
+            listOf(three.id, one.id, two.id, three.id, two.id),
+            locationTrackService
+                .getManyWithGeometries(mainDraftContext.context, listOf(three.id, one.id, two.id, three.id, two.id))
+                .map { it.first.id },
+        )
+    }
+
+    @Test
     fun `Topology recalculate works`() {
         val switch1Id =
             mainDraftContext
@@ -873,18 +894,18 @@ constructor(
             )
 
         mainOfficialContext.saveAndFetch(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(1), roughLayoutLocation = Point(0.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(1), gkLocation = kmPostGkLocation(0.0, 0.0))
         )
         val kmPost2 =
             mainOfficialContext.saveAndFetch(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(1000.0, 0.0))
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(2), gkLocation = kmPostGkLocation(1000.0, 0.0))
             )
         val kmPost3 =
             mainOfficialContext.saveAndFetch(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(2000.0, 0.0))
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(3), gkLocation = kmPostGkLocation(2000.0, 0.0))
             )
         mainOfficialContext.saveAndFetch(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(3000.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), gkLocation = kmPostGkLocation(3000.0, 0.0))
         )
 
         val polygon =
@@ -929,13 +950,13 @@ constructor(
             )
 
         mainOfficialContext.save(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(2000.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(2), gkLocation = kmPostGkLocation(2000.0, 0.0))
         )
         mainOfficialContext.save(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(3000.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(3), gkLocation = kmPostGkLocation(3000.0, 0.0))
         )
         mainOfficialContext.save(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(4000.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), gkLocation = kmPostGkLocation(4000.0, 0.0))
         )
 
         fun getPolygon(startKm: KmNumber?, endKm: KmNumber?) =
@@ -1131,6 +1152,23 @@ constructor(
         }
     }
 
+    @Test
+    fun `idMatches finds tracks even if ids or oids need trimming`() {
+        val track1 = createPublishedLocationTrack(1)
+        val track2 = createPublishedLocationTrack(2)
+        val track2oid = externalIdForLocationTrack()
+        locationTrackService.insertExternalId(LayoutBranch.main, track2.track.id as IntId, track2oid)
+
+        val intIdTerm = FreeText(" ${track1.track.id} ")
+        val intIdMatchFunction = locationTrackService.idMatches(MainLayoutContext.official, intIdTerm, null)
+
+        val oidTerm = FreeText(" $track2oid ")
+        val oidMatchFunction = locationTrackService.idMatches(MainLayoutContext.official, oidTerm, null)
+
+        assertTrue(intIdMatchFunction(intIdTerm.toString(), track1.track))
+        assertTrue(oidMatchFunction(oidTerm.toString(), track2.track))
+    }
+
     private fun updateDraft(
         id: IntId<LocationTrack>,
         op: (LocationTrack, LocationTrackGeometry) -> Pair<LocationTrack, LocationTrackGeometry>,
@@ -1170,7 +1208,10 @@ constructor(
         val version: LayoutRowVersion<LocationTrack>,
         val track: LocationTrack,
         val geometry: LocationTrackGeometry,
-    )
+    ) {
+        val id: IntId<LocationTrack>
+            get() = version.id
+    }
 
     private fun createAndVerifyTrack(trackNumberId: IntId<LayoutTrackNumber>, seed: Int): VerifiedTrack {
         val insertRequest = saveRequest(trackNumberId, seed)

@@ -44,9 +44,9 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -203,7 +203,11 @@ class SplitService(
     }
 
     fun getSplitIdByPublicationId(publicationId: IntId<Publication>): IntId<Split>? {
-        return splitDao.fetchSplitIdByPublication(publicationId)
+        return splitDao.fetchSplitIdsByPublication(setOf(publicationId))[publicationId]
+    }
+
+    fun getSplitIdsByPublication(publicationIds: Set<IntId<Publication>>): Map<IntId<Publication>, IntId<Split>> {
+        return splitDao.fetchSplitIdsByPublication(publicationIds)
     }
 
     fun get(splitId: IntId<Split>): Split? {
@@ -701,13 +705,13 @@ private fun createSplitTarget(
 
 private fun calculateTopologicalConnectivity(
     sourceTrack: LocationTrack,
-    sourceEdges: Int,
+    sourceEdgeCount: Int,
     edgeIndices: ClosedRange<Int>,
 ): TopologicalConnectivityType =
     topologicalConnectivityTypeOf(
         startConnected = edgeIndices.start != 0 || sourceTrack.topologicalConnectivity.isStartConnected(),
         endConnected =
-            edgeIndices.endInclusive + 1 != sourceEdges || sourceTrack.topologicalConnectivity.isEndConnected(),
+            edgeIndices.endInclusive + 1 != sourceEdgeCount || sourceTrack.topologicalConnectivity.isEndConnected(),
     )
 
 private fun findSplitEdgeIndices(

@@ -16,6 +16,9 @@ import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
+import fi.fta.geoviite.infra.util.FreeText
+import java.math.BigDecimal
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -27,8 +30,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.math.BigDecimal
-import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -115,13 +116,13 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumber.id,
                         km = KmNumber(2),
-                        roughLayoutLocation = Point(1.0, 0.0),
+                        gkLocation = kmPostGkLocation(1.0, 0.0),
                         draft = false,
                     ),
                     kmPost(
                         trackNumberId = trackNumber.id,
                         km = KmNumber(3),
-                        roughLayoutLocation = Point(3.0, 0.0),
+                        gkLocation = kmPostGkLocation(3.0, 0.0),
                         draft = false,
                     ),
                 )
@@ -212,10 +213,10 @@ constructor(
                     kmPost(
                         trackNumberId = trackNumber.id,
                         km = KmNumber(2),
-                        roughLayoutLocation = Point(1.0, 0.0),
+                        gkLocation = kmPostGkLocation(1.0, 0.0),
                         draft = false,
                     ),
-                    kmPost(trackNumberId = trackNumber.id, km = KmNumber(3), roughLayoutLocation = null, draft = false),
+                    kmPost(trackNumberId = trackNumber.id, km = KmNumber(3), gkLocation = null, draft = false),
                 )
                 .map(kmPostDao::save)
 
@@ -440,18 +441,18 @@ constructor(
                 .id
 
         mainOfficialContext.saveAndFetch(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(1), roughLayoutLocation = Point(0.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(1), gkLocation = kmPostGkLocation(0.0, 0.0))
         )
         val kmPost2 =
             mainOfficialContext.saveAndFetch(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber(2), roughLayoutLocation = Point(1000.0, 0.0))
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(2), gkLocation = kmPostGkLocation(1000.0, 0.0))
             )
         val kmPost3 =
             mainOfficialContext.saveAndFetch(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber(3), roughLayoutLocation = Point(2000.0, 0.0))
+                kmPost(trackNumberId = trackNumberId, km = KmNumber(3), gkLocation = kmPostGkLocation(2000.0, 0.0))
             )
         mainOfficialContext.saveAndFetch(
-            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), roughLayoutLocation = Point(3000.0, 0.0))
+            kmPost(trackNumberId = trackNumberId, km = KmNumber(4), gkLocation = kmPostGkLocation(3000.0, 0.0))
         )
 
         val polygon =
@@ -493,10 +494,18 @@ constructor(
                 )
                 .id
 
-        mainOfficialContext.save(kmPost(trackNumberId = id, km = KmNumber(1), roughLayoutLocation = Point(1000.0, 0.0)))
-        mainOfficialContext.save(kmPost(trackNumberId = id, km = KmNumber(2), roughLayoutLocation = Point(2000.0, 0.0)))
-        mainOfficialContext.save(kmPost(trackNumberId = id, km = KmNumber(3), roughLayoutLocation = Point(3000.0, 0.0)))
-        mainOfficialContext.save(kmPost(trackNumberId = id, km = KmNumber(4), roughLayoutLocation = Point(4000.0, 0.0)))
+        mainOfficialContext.save(
+            kmPost(trackNumberId = id, km = KmNumber(1), gkLocation = kmPostGkLocation(1000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = id, km = KmNumber(2), gkLocation = kmPostGkLocation(2000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = id, km = KmNumber(3), gkLocation = kmPostGkLocation(3000.0, 0.0))
+        )
+        mainOfficialContext.save(
+            kmPost(trackNumberId = id, km = KmNumber(4), gkLocation = kmPostGkLocation(4000.0, 0.0))
+        )
 
         fun getPolygon(startKm: KmNumber?, endKm: KmNumber?) =
             trackNumberService.getReferenceLinePolygon(MainLayoutContext.official, id, startKm, endKm, 1.0)
@@ -523,6 +532,23 @@ constructor(
         assertNull(getPolygon(KmNumber(5), null))
         assertNull(getPolygon(KmNumber(0), KmNumber(0)))
         assertNull(getPolygon(KmNumber(5), KmNumber(5)))
+    }
+
+    @Test
+    fun `idMatches finds track numbers even if ids or oids need trimming`() {
+        val tn1 = mainOfficialContext.save(trackNumber(TrackNumber("001"))).let { mainOfficialContext.fetch(it.id) }!!
+        val tn2 = mainOfficialContext.save(trackNumber(TrackNumber("002"))).let { mainOfficialContext.fetch(it.id) }!!
+        val track2oid = externalIdForTrackNumber()
+        trackNumberService.insertExternalId(LayoutBranch.main, tn2.id as IntId, track2oid)
+
+        val intIdTerm = FreeText(" ${tn1.id} ")
+        val intIdMatchFunction = trackNumberService.idMatches(MainLayoutContext.official, intIdTerm, null)
+
+        val oidTerm = FreeText(" $track2oid ")
+        val oidMatchFunction = trackNumberService.idMatches(MainLayoutContext.official, oidTerm, null)
+
+        assertTrue(intIdMatchFunction(intIdTerm.toString(), tn1))
+        assertTrue(oidMatchFunction(oidTerm.toString(), tn2))
     }
 
     private fun assertVersionReferences(

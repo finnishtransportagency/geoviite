@@ -5,8 +5,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingCacheService
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -434,7 +433,7 @@ constructor(
             val oidDuplicationIssues =
                 validateSwitchOidDuplication(
                     switch,
-                    switch.draftOid?.let(switchDao::lookupByExternalId)?.let { row ->
+                    switch.draftOid?.toString()?.let(switchDao::lookupByExternalId)?.let { row ->
                         switchDao.get(row.context, row.id)
                     },
                 )
@@ -582,18 +581,18 @@ constructor(
     }
 
     private fun validateGeocodingContext(
-        cacheKey: GeocodingContextCacheKey?,
+        cacheKey: LayoutGeocodingContextCacheKey?,
         localizationKey: String,
         trackNumber: TrackNumber,
     ) =
         cacheKey
-            ?.let { key -> geocodingCacheService.getGeocodingContextWithReasons<ReferenceLineM>(key) }
+            ?.let { key -> geocodingCacheService.getGeocodingContextWithReasons(key) }
             ?.let { context -> validateGeocodingContext(context, trackNumber) }
             ?: listOf(noGeocodingContext(localizationKey))
 
     private fun validateAddressPoints(
         trackNumber: LayoutTrackNumber,
-        contextKey: GeocodingContextCacheKey,
+        contextKey: LayoutGeocodingContextCacheKey,
         track: LocationTrack,
         validationTargetLocalizationPrefix: String,
     ): List<LayoutValidationIssue> =

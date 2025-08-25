@@ -329,53 +329,97 @@ constructor(
             mutableMapOf()
 
         val relinkingResults =
-            originalSwitches.mapIndexed { index, (switchId, originalSwitch) ->
-                val switchStructure = switchLibraryService.getSwitchStructure(originalSwitch.switchStructureId)
-                val presentationJointLocation =
-                    originalSwitch.getJoint(switchStructure.presentationJointNumber)?.location
-                checkNotNull(presentationJointLocation) { "no presentation joint on switch ${originalSwitch.id}" }
-                val nearbyTracksForFit =
-                    locationTrackService
-                        .getLocationTracksNear(branch.draft, presentationJointLocation)
-                        .let { nearby ->
-                            val map = nearby.associateBy { it.first.id as IntId }
-                            map + changedLocationTracks.filterKeys { id -> map.containsKey(id) }
-                        }
-                        .values
-                        .toList()
-
-                val fittedSwitch =
-                    createFittedSwitchByPoint(switchId, presentationJointLocation, switchStructure, nearbyTracksForFit)
-                if (fittedSwitch == null) {
-                    TrackSwitchRelinkingResult(switchId, TrackSwitchRelinkingResultType.NOT_AUTOMATICALLY_LINKABLE)
-                } else {
-                    val nearbyTracksForMatch =
-                        findLocationTracksForMatchingSwitchToTracks(branch, fittedSwitch).let { nearby ->
-                            val original = originallyLinkedLocationTracksByIndex[index]
-                            nearby + clearSwitchFromTracks(switchId, original + changedLocationTracks)
-                        }
-                    val match = matchFittedSwitchToTracks(fittedSwitch, nearbyTracksForMatch, layoutSwitchId = switchId)
-                    locationTrackService
-                        .recalculateTopology(
-                            branch.draft,
-                            withChangesFromLinkingSwitch(
-                                match,
-                                switchStructure,
-                                switchId,
-                                nearbyTracksForMatch.filterKeys { track -> match.trackLinks.containsKey(track) },
-                            ),
-                            switchId,
-                        )
-                        .forEach { track -> changedLocationTracks[track.first.id as IntId] = track }
-                    updateLayoutSwitch(branch, match, switchId)
-                    TrackSwitchRelinkingResult(switchId, TrackSwitchRelinkingResultType.RELINKED)
-                }
+            originalSwitches.mapIndexedNotNull { index, (switchId, originalSwitch) ->
+                val originallyLinked = originallyLinkedLocationTracksByIndex[index]
+                relinkOneSwitchOnTrack(
+                    branch,
+                    trackId,
+                    originalSwitch,
+                    switchId,
+                    originallyLinked,
+                    changedLocationTracks,
+                )
             }
         changedLocationTracks.values.forEach { (track, geometry) ->
             locationTrackService.saveDraft(branch, track, geometry)
         }
         return relinkingResults
     }
+
+    private fun relinkOneSwitchOnTrack(
+        branch: LayoutBranch,
+        relinkingTrackId: IntId<LocationTrack>,
+        originalSwitch: LayoutSwitch,
+        switchId: IntId<LayoutSwitch>,
+        originallyLinked: Map<IntId<LocationTrack>, Pair<LocationTrack, DbLocationTrackGeometry>>,
+        changedLocationTracks: MutableMap<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+    ): TrackSwitchRelinkingResult? {
+        val switchStructure = switchLibraryService.getSwitchStructure(originalSwitch.switchStructureId)
+        val presentationJointLocation = originalSwitch.getJoint(switchStructure.presentationJointNumber)?.location
+        checkNotNull(presentationJointLocation) { "no presentation joint on switch ${originalSwitch.id}" }
+        val nearbyTracksForFit =
+            locationTrackService
+                .getLocationTracksNear(branch.draft, presentationJointLocation)
+                .let { nearby ->
+                    val map = nearby.associateBy { it.first.id as IntId }
+                    map + changedLocationTracks.filterKeys { id -> map.containsKey(id) }
+                }
+                .values
+                .toList()
+
+        return applyFittedSwitchInTrackRelinking(
+            relinkingTrackId,
+            createFittedSwitchByPoint(switchId, presentationJointLocation, switchStructure, nearbyTracksForFit),
+            switchId,
+            branch,
+            originallyLinked,
+            changedLocationTracks,
+            switchStructure,
+        )
+    }
+
+    private fun applyFittedSwitchInTrackRelinking(
+        relinkingTrackId: IntId<LocationTrack>,
+        fittedSwitch: FittedSwitch?,
+        switchId: IntId<LayoutSwitch>,
+        branch: LayoutBranch,
+        originallyLinked: Map<IntId<LocationTrack>, Pair<LocationTrack, DbLocationTrackGeometry>>,
+        changedLocationTracks: MutableMap<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+        switchStructure: SwitchStructure,
+    ): TrackSwitchRelinkingResult? =
+        if (fittedSwitch == null) {
+            TrackSwitchRelinkingResult(switchId, TrackSwitchRelinkingResultType.NOT_AUTOMATICALLY_LINKABLE)
+        } else if (
+            fittedSwitch.joints.none { joint ->
+                joint.matches.any { match -> match.locationTrackId == relinkingTrackId }
+            }
+        ) {
+            null
+        } else {
+            val nearbyTracksForMatch =
+                findLocationTracksForMatchingSwitchToTracks(branch, fittedSwitch).let { nearby ->
+                    nearby + clearSwitchFromTracks(switchId, originallyLinked + changedLocationTracks)
+                }
+            val match = matchFittedSwitchToTracks(fittedSwitch, nearbyTracksForMatch, layoutSwitchId = switchId)
+            locationTrackService
+                .recalculateTopology(
+                    branch.draft,
+                    withChangesFromLinkingSwitch(
+                        match,
+                        switchStructure,
+                        switchId,
+                        nearbyTracksForMatch.filterKeys { track -> match.trackLinks.containsKey(track) },
+                    ),
+                    switchId,
+                )
+                .forEach { track ->
+                    val id = track.first.id as IntId
+                    val orig = nearbyTracksForMatch[id]
+                    if (orig == null || orig != track) changedLocationTracks[id] = track
+                }
+            updateLayoutSwitch(branch, match, switchId)
+            TrackSwitchRelinkingResult(switchId, TrackSwitchRelinkingResultType.RELINKED)
+        }
 
     @Transactional(readOnly = true)
     fun getTrackSwitchSuggestions(context: LayoutContext, trackId: IntId<LocationTrack>) =

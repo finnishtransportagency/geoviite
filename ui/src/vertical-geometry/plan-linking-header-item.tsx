@@ -2,22 +2,25 @@ import React from 'react';
 import { Coordinates, mToX } from 'vertical-geometry/coordinates';
 import { PlanLinkingSummaryItem } from 'geometry/geometry-api';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
-import { OnSelectOptions } from 'selection/selection-model';
-import ElevationMeasurementMethod from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
+import { elevationMeasurementMethodText } from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
+import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
+import { useTranslation } from 'react-i18next';
 
 export interface PlanLinkingItemHeaderProps {
     coordinates: Coordinates;
     planLinkingSummaryItem: PlanLinkingSummaryItem;
-    onSelect: (options: OnSelectOptions) => void;
+    onSelectGeometryAlignment: (geometryId: GeometryAlignmentId, planId: GeometryPlanId) => void;
 }
 
 export const PlanLinkingHeaderItem: React.FC<PlanLinkingItemHeaderProps> = ({
     coordinates,
     planLinkingSummaryItem,
-    onSelect,
+    onSelectGeometryAlignment,
 }) => {
+    const { t } = useTranslation();
+
     const textLineOneYPx = 8;
-    const textLineTwoYPx = 18;
+    const textLineTwoYPx = 20;
 
     const textDropAreaPx = 3;
 
@@ -45,14 +48,7 @@ export const PlanLinkingHeaderItem: React.FC<PlanLinkingItemHeaderProps> = ({
                 onClick={() =>
                     planId &&
                     alignmentHeader &&
-                    onSelect({
-                        geometryAlignmentIds: [
-                            {
-                                geometryId: alignmentHeader.id,
-                                planId: planId,
-                            },
-                        ],
-                    })
+                    onSelectGeometryAlignment(alignmentHeader.id, planId)
                 }
                 className={styles['vertical-geometry-diagram__plan-link']}
                 x={textStartX}
@@ -64,12 +60,13 @@ export const PlanLinkingHeaderItem: React.FC<PlanLinkingItemHeaderProps> = ({
                     transform={`translate(0 ${textLineOneYPx}) scale(0.7)`}>
                     <tspan>{filename}</tspan>
                     <tspan x="0" dy={textLineTwoYPx}>
-                        {verticalCoordinateSystem && verticalCoordinateSystem + ', '}
-                        <ElevationMeasurementMethod
-                            method={elevationMeasurementMethod}
-                            lowerCase={verticalCoordinateSystem !== undefined}
-                            includeTermContextForUnknownMethod={true}
-                        />
+                        {verticalCoordinateSystem === undefined ? (
+                            <tspan fontWeight={'bold'} fill={'red'}>
+                                {t('vertical-geometry-diagram.no-vertical-coordinate-system')}
+                            </tspan>
+                        ) : (
+                            `${verticalCoordinateSystem}, ${elevationMeasurementMethodText(t, elevationMeasurementMethod, true, true)}`
+                        )}
                     </tspan>
                 </text>
             </svg>

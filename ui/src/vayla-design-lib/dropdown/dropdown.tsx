@@ -34,6 +34,7 @@ export const dropdownOption = <TValue,>(
 export enum DropdownSize {
     SMALL = 'dropdown--small',
     MEDIUM = 'dropdown--medium',
+    LARGE = 'dropdown--large',
     STRETCH = 'dropdown--stretch',
     AUTO = 'dropdown--auto-width',
 }
@@ -60,7 +61,8 @@ export type DropdownProps<TItemValue> = {
     displaySelectedName?: boolean;
     value?: TItemValue;
     getName?: (value: TItemValue) => string;
-    canUnselect?: boolean;
+    clearable?: boolean; // makes the icon X to clear the dropdown
+    canUnselect?: boolean; // adds a "none" option
     searchable?: boolean;
     filter?: (option: Item<TItemValue>, searchTerm: string) => boolean;
     options?: DropdownOptions<TItemValue>;
@@ -81,6 +83,7 @@ export type DropdownProps<TItemValue> = {
     openOverride?: boolean;
     popupMode?: DropdownPopupMode;
     customIcon?: IconComponent;
+    useAnchorElementWidth?: boolean;
 } & Pick<React.HTMLProps<HTMLInputElement>, 'disabled' | 'title'>;
 
 function isOptionsArray<TItemValue>(
@@ -218,12 +221,16 @@ export const Dropdown = function <TItemValue>({
         setHasFocus(true);
     }
 
-    function handleInputBlur() {
+    function handleInputBlur(event: React.FocusEvent<HTMLInputElement>) {
         if (isMouseDown) {
             // Input blur may happen because a mouse down event in a header or a dropdown list,
             // in this case we don't want to lose focus
             focusInput();
         } else {
+            if (event.target.value.trim() === '' && props.canUnselect) {
+                select(undefined);
+            }
+
             setHasFocus(false);
             setOpen(false);
             setSearchTermCommitted(false);
@@ -288,6 +295,7 @@ export const Dropdown = function <TItemValue>({
                             select(item?.value || undefined);
                         }
                     }
+                    break;
                 }
             }
         } else {
@@ -301,6 +309,7 @@ export const Dropdown = function <TItemValue>({
                     if (isEmpty(valueShownInInput)) {
                         select(undefined);
                     }
+                    break;
                 }
             }
         }
@@ -464,7 +473,9 @@ export const Dropdown = function <TItemValue>({
                     />
                 </div>
                 <div className={styles['dropdown__icon']}>
-                    {CustomIcon ? (
+                    {props.clearable && props.value !== undefined ? (
+                        <Icons.Close size={IconSize.SMALL} onClick={unselect} />
+                    ) : CustomIcon ? (
                         <CustomIcon
                             size={IconSize.SMALL}
                             color={props.disabled ? IconColor.INHERIT : undefined}
@@ -485,7 +496,7 @@ export const Dropdown = function <TItemValue>({
             {openOrOverridden &&
                 (popupMode === DropdownPopupMode.Modal ? (
                     <CloseableModal
-                        useAnchorElementWidth
+                        useAnchorElementWidth={props.useAnchorElementWidth ?? true}
                         onClickOutside={() => setOpen(false)}
                         className={createClassName(
                             styles['dropdown__list-container'],

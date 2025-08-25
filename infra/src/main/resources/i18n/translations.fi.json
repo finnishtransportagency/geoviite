@@ -34,7 +34,6 @@
                     "oid-not-found": "Pyynnön OID-tunnuksen perusteella ei löydetty kohdetta.",
                     "location-track-not-found": "Sijaintiraidetta ei löydetty.",
                     "track-number-not-found": "Ratanumeroa ei löydetty.",
-                    "track-layout-version-not-found": "Rataverkon versiota ei löydetty.",
                     "client-error": "Pyyntö oli tunnistamattomalla tavalla virheellinen (HTTP {{koodi}}).",
                     "server-error": "Pyynnön käsittely epäonnistui palvelimella (HTTP {{koodi}}).",
                     "unauthorized": "Pyyntöön ei ollut oikeutta.",
@@ -121,7 +120,9 @@
             "missing-parameter": "Virhe: pyynnöstä puuttuu vaadittu parametri ({{param}})",
             "invalid-body": "Virhe: pyynnön sisältöä ei voitu lukea",
             "conversion-failed": "Virhe: Pyynnössä oli virheellinen arvo {{name}}",
-            "invalid-version": "Virhe: Käyttöliittymän versio ei vastaa palvelimen versiota"
+            "invalid-version": "Virhe: Käyttöliittymän versio ei vastaa palvelimen versiota",
+            "wrong-track-layout-version-order": "Virhe: Pyynnön sisältämä rataverkon lähdeversio oli uudempi kuin vertailtava rataverkon versio (järjestys oli väärinpäin).",
+            "track-layout-version-not-found": "Virhe: Rataverkon versiota ei löydetty."
         },
         "deleting": {
             "generic": "Poistamisessa tapahtui virhe",
@@ -499,6 +500,7 @@
         "name-in-use-deleted": "Huomaa, että ratanumerolla on poistettu raide samalla tunnuksella",
         "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun raiteen tästä",
         "track-already-has-duplicates": "Tällä raiteella on jo duplikaattiraiteita",
+        "name-specifier-placeholder": "Ei tarkennetta",
         "name-specifiers": {
             "PR": "PR",
             "ER": "ER",
@@ -925,7 +927,8 @@
         "oid": {
             "copy-success": "OID {{oid}} kopioitu leikepöydälle",
             "copy-failed": "OID:n kopiointi leikepöydälle epäonnistui"
-        }
+        },
+        "show-in-publication-log": "Avaa julkaisuloki"
     },
     "data-products": {
         "search": {
@@ -1538,7 +1541,8 @@
         "publish-success": "Muutokset julkaistu paikannuspohjaan",
         "design-publish-success": "Suunnitelmatilan muutokset julkaistu",
         "merge-to-main-success": "Suunnitelmatilan muutokset siirretty luonnostilaan",
-        "cancellation-success": "Muutoksen peruminen on kirjattu julkaistavaksi suunnitelman muutokseksi",
+        "cancellation-success": "Julkaistu muutos peruttu",
+        "cancellation-success-details": "Peruminen täytyy julkaista erikseen",
         "revert-success": "Luonnosmuutokset peruttu",
         "track-numbers": "Ratanumeroita",
         "km-posts": "Tasakilometripisteitä",
@@ -1732,12 +1736,12 @@
         "publication-time": "Aika",
         "publication-user": "Käyttäjä",
         "message": "Selite",
-        "track-number-long": "Ratanumero",
+        "track-number-long": "Ratanumero {{trackNumber}}",
         "pushed-to-ratko": "Viety Ratkoon",
-        "location-track": "Sijaintiraide",
-        "reference-line": "Pituusmittauslinja",
-        "switch": "Vaihde",
-        "km-post": "Tasakilometripiste",
+        "location-track": "Sijaintiraide {{locationTrack}}",
+        "reference-line": "Pituusmittauslinja {{trackNumber}}",
+        "switch": "Vaihde {{switch}}",
+        "km-post": "Tasakilometripiste {{kmNumber}}",
         "count-header-loading": "Julkaistut muutokset",
         "count-header": "Julkaistut muutokset ({{number}}{{truncated}} kpl)",
         "calculated-change": "Laskennallinen muutos",
@@ -1752,6 +1756,9 @@
         "new-value": "Uusi arvo",
         "remarks": "Huomioita",
         "not-calculated": "Ei laskettu",
+        "track-not-linked": "Ei liitosta",
+        "no-location": "Ei sijaintia",
+        "track-linked": "Linja {{joints}}",
         "remark": {
             "changed-x-meters": "Muutos {{value}} m",
             "shortened-x-meters": "Lyhentynyt {{value}} m",
@@ -1767,10 +1774,6 @@
             "switch-link-added-plural": "Vaihteet {{value}} linkitetty",
             "switch-link-removed-singular": "Vaihteen {{value}} linkitys purettu",
             "switch-link-removed-plural": "Vaihteiden {{value}} linkitys purettu"
-        },
-        "joint": {
-            "math-point": "Matemaattinen piste",
-            "forward-joint": "Etujatkos"
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
@@ -1799,13 +1802,13 @@
             "start-address": "Alkuosoite",
             "end-address": "Loppuosoite",
             "switch": "Vaihdetunnus",
-            "switch-track-address": "Rataosoite ratanumerolla {{trackNumber}} ({{switchType}})",
+            "switch-track-address": "Pisteen {{jointNumber}} rataosoite ratanumerolla {{trackNumber}}",
             "state-category": "Tilakategoria",
             "switch-type": "Vaihdetyyppi",
             "trap-point": "Turvavaihde",
             "measurement-method": "Sijainnin mittausmenetelmä",
-            "location-track-connectivity": "Liitos raiteisiin",
-            "switch-joint-location": "Sijainti ratanumerolla {{trackNumber}} ({{switchType}})",
+            "location-track-link": "Liitos raiteeseen {{locationTrack}}",
+            "switch-joint-location": "Pisteen {{jointNumber}} sijainti",
             "address": "Rataosoite",
             "linked-switches": "Vaihdelinkitykset"
         }
@@ -1814,9 +1817,11 @@
         "breadcrumbs-text": "Julkaisuloki",
         "start-date": "Alkupvm.",
         "end-date": "Loppupvm.",
+        "specific-object": "Muutoskohde",
+        "search-specific-object": "Hae...",
         "export-csv": "Lataa CSV",
         "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää",
-        "search-range-too-long": "Hakuaikaväli on liian pitkä. Lyhennä hakuaikaväliä alle {{maxDays}} päivän mittaiseksi."
+        "search-range-too-long": "Lyhennä hakuaikaväliä alle {{maxDays}} päivän mittaiseksi tai valitse muutoskohde."
     },
     "publication-card": {
         "latest": "Viimeisimmät viedyt julkaisut",
@@ -1825,6 +1830,7 @@
         "designs-title": "Suunnitelmien julkaisut",
         "designs-latest": "Viimeisimmät suunnitelmajulkaisut",
         "designs-no-publications": "Ei suunnitelmajulkaisuja.",
+        "missing-design-name": "???",
         "log-link": "Hae julkaisuja",
         "no-publications": "Ei julkaisuja.",
         "show-more": "Näytä lisää",
@@ -1836,6 +1842,14 @@
         "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
         "transfer-starts-after-reconnect": "Vienti käynnistyy automaattisesti Ratko-yhteyden palautumisen jälkeen",
         "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
+        "design-publication-cause": {
+            "LAYOUT_DESIGN_DELETE": "Suunnitelman poisto",
+            "LAYOUT_DESIGN_CHANGE": "Suunnitelman metatietojen muutos",
+            "MANUAL": "Operaattorin tekemä julkaisu",
+            "CALCULATED_CHANGE": "Laskennallinen muutos",
+            "LAYOUT_DESIGN_CANCELLATION": "Suunnitelman kohteiden peruutus",
+            "MERGE_FINALIZATION": "Suunnitelman luonnosmuutosten siirto luonnostilaan"
+        },
         "push-error": {
             "location-track": "Sijaintiraiteen",
             "track-number": "Ratanumeron",
@@ -1939,7 +1953,8 @@
     },
     "vertical-geometry-diagram": {
         "no-geometry": "Valitun raiteen pystygeometriaa ei voida esittää.",
-        "not-alignment": "Valitse raide jatkaaksesi."
+        "not-alignment": "Valitse raide jatkaaksesi.",
+        "no-vertical-coordinate-system": "Ei korkeusjärjestelmää"
     },
     "km-post-dialog": {
         "owner": "Omistaja",
@@ -2165,6 +2180,7 @@
         "vertical-geometry-list-plan-csv": "Pystygeometria {{planFileName}}.csv",
         "vertical-geometry-list-entire-track-network": "Pystygeometria (koko rataverkko) {{date}}.csv",
         "publication-log": "Julkaisuloki {{dateRange}}.csv",
+        "publication-log-for-object": "Julkaisuloki {{objectName}} {{dateRange}}.csv",
         "split-details": "Raiteen jakaminen {{locationTrackName}}.csv",
         "geometries-folder": "Geometriat",
         "geometry-plans-summary-csv": "Yhteenveto {{date}} {{applicability}} {{alignmentName}}.csv",

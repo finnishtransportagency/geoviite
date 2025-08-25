@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.linking.LayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
@@ -58,6 +59,7 @@ import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
@@ -482,18 +484,13 @@ constructor(
                 )
                 .id
 
+        val gkLocation = kmPostGkLocation(1.0, 1.0)
         val kmPost =
             kmPostService.getOrThrow(
                 MainLayoutContext.draft,
                 kmPostService.insertKmPost(
                     LayoutBranch.main,
-                    LayoutKmPostSaveRequest(
-                        KmNumber(0),
-                        LayoutState.IN_USE,
-                        trackNumberId,
-                        gkLocation = null,
-                        sourceId = null,
-                    ),
+                    LayoutKmPostSaveRequest(KmNumber(0), LayoutState.IN_USE, trackNumberId, gkLocation, sourceId = null),
                 ),
             )
         publish(
@@ -511,7 +508,7 @@ constructor(
                         KmNumber(1),
                         LayoutState.NOT_IN_USE,
                         trackNumber2Id,
-                        gkLocation = null,
+                        gkLocation,
                         sourceId = null,
                     ),
                 ),
@@ -542,7 +539,7 @@ constructor(
     @Test
     fun `simple km post change in design is reported`() {
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1))).id
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(1.0, 1.0))).id
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
         kmPostService.saveDraft(testBranch, mainOfficialContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publish(publicationService, testBranch, kmPosts = listOf(kmPost))
@@ -579,7 +576,7 @@ constructor(
                 KmNumber(0),
                 LayoutState.IN_USE,
                 mainOfficialContext.createLayoutTrackNumber().id,
-                gkLocation = null,
+                kmPostGkLocation(1.0, 1.0),
                 sourceId = null,
             )
 
@@ -675,7 +672,6 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                Operation.DELETE,
                 trackNumberDao.fetchTrackNumberNames(),
             ) { _, _ ->
                 null
@@ -721,7 +717,6 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                Operation.MODIFY,
                 trackNumberDao.fetchTrackNumberNames(),
             ) { _, _ ->
                 null
@@ -784,10 +779,11 @@ constructor(
 
         val fullInterval =
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
-                null,
-                LayoutBranch.main,
-                Instant.parse("2024-01-02T00:00:00Z"),
-                Instant.parse("2024-01-04T00:00:00Z"),
+                publicationId = null,
+                specificObjectId = null,
+                layoutBranch = LayoutBranch.main,
+                from = Instant.parse("2024-01-02T00:00:00Z"),
+                to = Instant.parse("2024-01-04T00:00:00Z"),
             )
         val expect = expectLocationTrackSwitchLinkChanges(locationTrackId)
         val switchChangeIds = switch to SwitchChangeIds("sw", Oid("1.1.1.1.2"))
@@ -843,17 +839,19 @@ constructor(
 
         val firstInterval =
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
-                null,
-                LayoutBranch.main,
-                Instant.parse("2024-01-01T00:00:00Z"),
-                Instant.parse("2024-01-02T00:00:00Z"),
+                publicationId = null,
+                specificObjectId = null,
+                layoutBranch = LayoutBranch.main,
+                from = Instant.parse("2024-01-01T00:00:00Z"),
+                to = Instant.parse("2024-01-02T00:00:00Z"),
             )
         val fullInterval =
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
-                null,
-                LayoutBranch.main,
-                Instant.parse("2024-01-02T00:00:00Z"),
-                Instant.parse("2024-01-04T00:00:00Z"),
+                publicationId = null,
+                specificObjectId = null,
+                layoutBranch = LayoutBranch.main,
+                from = Instant.parse("2024-01-02T00:00:00Z"),
+                to = Instant.parse("2024-01-04T00:00:00Z"),
             )
         val expect = expectLocationTrackSwitchLinkChanges(locationTrackId)
         val expectedFirstPublicationInMain =
@@ -1204,14 +1202,24 @@ constructor(
 
     @Test
     fun `switch diff consistently uses segment point for joint location`() {
-        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(TrackNumber("1234")).id as IntId
-        referenceLineDao.save(
-            referenceLine(
-                trackNumberId,
-                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
-                draft = false,
+        val trackNumber = TrackNumber("1234")
+        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
+        val referenceLine =
+            referenceLineDao.save(
+                referenceLine(
+                    trackNumberId,
+                    alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
+                    draft = false,
+                )
             )
-        )
+        val geocodingContext =
+            GeocodingContext.create(
+                    trackNumber = trackNumber,
+                    startAddress = TrackMeter.ZERO,
+                    referenceLineGeometry = referenceLineService.getWithAlignment(referenceLine).second,
+                    kmPosts = emptyList(),
+                )
+                .geocodingContext
         val switch =
             switchDao.save(
                 switch(
@@ -1267,11 +1275,9 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                Operation.MODIFY,
                 trackNumberDao.fetchTrackNumberNames(),
-            ) { _, _ ->
-                null
-            }
+                { _, _ -> geocodingContext },
+            )
         assertEquals(
             listOf("switch-joint-location", "switch-track-address").sorted(),
             diff.map { it.propKey.key.toString() }.sorted(),
@@ -1285,14 +1291,24 @@ constructor(
 
     @Test
     fun `switch diff consistently uses segment point for joint location with edit made in design`() {
-        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(TrackNumber("1234")).id as IntId
-        referenceLineDao.save(
-            referenceLine(
-                trackNumberId,
-                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
-                draft = false,
+        val trackNumber = TrackNumber("1234")
+        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
+        val referenceLine =
+            referenceLineDao.save(
+                referenceLine(
+                    trackNumberId,
+                    alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
+                    draft = false,
+                )
             )
-        )
+        val geocodingContext =
+            GeocodingContext.create(
+                    trackNumber = trackNumber,
+                    startAddress = TrackMeter.ZERO,
+                    referenceLineGeometry = referenceLineService.getWithAlignment(referenceLine).second,
+                    kmPosts = emptyList(),
+                )
+                .geocodingContext
         val switch =
             switchDao.save(
                 switch(
@@ -1354,11 +1370,9 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                Operation.MODIFY,
                 trackNumberDao.fetchTrackNumberNames(),
-            ) { _, _ ->
-                null
-            }
+                { _, _ -> geocodingContext },
+            )
         assertEquals(2, diff.size)
         assertEquals(
             listOf("switch-joint-location", "switch-track-address").sorted(),
@@ -1398,7 +1412,7 @@ constructor(
                 ),
             )
         val kmPost =
-            mainDraftContext.save(kmPost(trackNumber.id, km = KmNumber(124), roughLayoutLocation = Point(4.0, 4.0)))
+            mainDraftContext.save(kmPost(trackNumber.id, km = KmNumber(124), gkLocation = kmPostGkLocation(4.0, 4.0)))
         val requestPublishEverything =
             publicationRequest(
                 trackNumbers = listOf(trackNumber.id),
@@ -1435,7 +1449,8 @@ constructor(
             setPublicationTime(it.publicationId!!, Instant.parse("2024-01-02T00:00:00Z"))
         }
 
-        publicationDao.fetchPublishedTrackNumbers(originalPublication).let { (directChanges, indirectChanges) ->
+        publicationDao.fetchPublishedTrackNumbers(setOf(originalPublication)).getValue(originalPublication).let {
+            (directChanges, indirectChanges) ->
             assertEquals(
                 listOf(trackNumberDao.fetchVersion(MainLayoutContext.official, trackNumber.id)),
                 directChanges.map { it.version },
@@ -1456,7 +1471,9 @@ constructor(
             }
         assertEquals(
             listOf(referenceLineDao.fetchVersion(MainLayoutContext.official, referenceLine.id)),
-            publicationDao.fetchPublishedReferenceLines(originalPublication).map { it.version },
+            publicationDao.fetchPublishedReferenceLines(setOf(originalPublication)).getValue(originalPublication).map {
+                it.version
+            },
         )
         publicationDao.fetchPublicationReferenceLineChanges(originalPublication).let { changes ->
             assertEquals(1, changes.size)
@@ -1464,7 +1481,8 @@ constructor(
             assertEquals(null, change.startPoint.old)
             assertEquals(Point(0.0, 0.0), change.startPoint.new)
         }
-        publicationDao.fetchPublishedLocationTracks(originalPublication).let { (directChanges, indirectChanges) ->
+        publicationDao.fetchPublishedLocationTracks(setOf(originalPublication)).getValue(originalPublication).let {
+            (directChanges, indirectChanges) ->
             assertEquals(
                 listOf(locationTrackDao.fetchVersion(MainLayoutContext.official, locationTrack.id)),
                 directChanges.map { it.version },
@@ -1476,7 +1494,8 @@ constructor(
             val change = changes[locationTrack.id]!!
             assertEquals("original", change.name.new.toString())
         }
-        publicationDao.fetchPublishedSwitches(originalPublication).let { (directChanges, indirectChanges) ->
+        publicationDao.fetchPublishedSwitches(setOf(originalPublication)).getValue(originalPublication).let {
+            (directChanges, indirectChanges) ->
             assertEquals(
                 listOf(switchDao.fetchVersion(MainLayoutContext.official, switch.id)),
                 directChanges.map { it.version },
@@ -1488,7 +1507,8 @@ constructor(
             val change = changes[switch.id]!!
             assertEquals("original", change.name.new.toString())
         }
-        publicationDao.fetchPublishedKmPosts(originalPublication).let { published ->
+        publicationDao.fetchPublishedKmPosts(setOf(originalPublication)).getValue(originalPublication).let { published
+            ->
             assertEquals(1, published.size)
             assertEquals(KmNumber(124), published[0].kmNumber)
         }

@@ -10,8 +10,16 @@ select
   switch_version.state_category,
   switch_version.version,
   switch_version.change_user,
-  lag(switch_version.state_category)
-      over (partition by switch_version.id, design_id order by switch_version.version) as old_state_category
+  old.state_category as old_state_category
   from layout.switch_version
+    left join lateral (
+    select state_category
+      from layout.switch_version old
+      where old.id = switch_version.id
+        and old.layout_context_id = switch_version.layout_context_id
+        and old.version < switch_version.version
+      order by old.version desc
+      limit 1
+    ) old on (true)
   where not draft
 );

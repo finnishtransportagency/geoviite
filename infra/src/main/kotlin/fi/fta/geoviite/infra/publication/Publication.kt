@@ -2,7 +2,26 @@ package fi.fta.geoviite.infra.publication
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DesignBranch
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.MainBranch
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.TrackNumberDescription
+import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -19,7 +38,24 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.DesignAssetState
+import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import java.time.Instant
@@ -36,8 +72,34 @@ enum class PublicationTableColumn {
     CHANGES,
 }
 
+sealed class PublishedAsset {
+    abstract val type: PublishableObjectType
+}
+
+data class PublishedAssetTrackNumber(val asset: LayoutTrackNumber) : PublishedAsset() {
+    override val type = PublishableObjectType.TRACK_NUMBER
+}
+
+data class PublishedAssetReferenceLine(val asset: ReferenceLine) : PublishedAsset() {
+    override val type = PublishableObjectType.REFERENCE_LINE
+}
+
+data class PublishedAssetLocationTrack(val asset: LocationTrack) : PublishedAsset() {
+    override val type = PublishableObjectType.LOCATION_TRACK
+}
+
+data class PublishedAssetSwitch(val asset: LayoutSwitch) : PublishedAsset() {
+    override val type = PublishableObjectType.SWITCH
+}
+
+data class PublishedAssetKmPost(val asset: LayoutKmPost) : PublishedAsset() {
+    override val type = PublishableObjectType.KM_POST
+}
+
 data class PublicationTableItem(
     val name: FreeText,
+    val publicationId: IntId<Publication>,
+    val asset: PublishedAsset,
     val trackNumbers: List<TrackNumber>,
     val changedKmNumbers: List<Range<KmNumber>>,
     val operation: Operation,
@@ -99,6 +161,7 @@ data class PublishedInDesign(
 enum class PublicationCause {
     MANUAL, // the usual cause: All user-created publications
     LAYOUT_DESIGN_CHANGE,
+    LAYOUT_DESIGN_DELETE,
     LAYOUT_DESIGN_CANCELLATION,
     MERGE_FINALIZATION,
     CALCULATED_CHANGE,
@@ -188,12 +251,42 @@ data class PublicationDetails(
     val allPublishedSwitches = switches + indirectChanges.switches
 }
 
-enum class DraftChangeType {
+enum class PublishableObjectType {
     TRACK_NUMBER,
     LOCATION_TRACK,
     REFERENCE_LINE,
     SWITCH,
     KM_POST,
+}
+
+data class PublishableObjectIdAndType(val id: IntId<*>, val type: PublishableObjectType) {
+    companion object {
+        fun trackNumber(id: IntId<LayoutTrackNumber>) =
+            PublishableObjectIdAndType(id, PublishableObjectType.TRACK_NUMBER)
+
+        fun locationTrack(id: IntId<LayoutTrackNumber>) =
+            PublishableObjectIdAndType(id, PublishableObjectType.LOCATION_TRACK)
+
+        fun referenceLine(id: IntId<LayoutTrackNumber>) =
+            PublishableObjectIdAndType(id, PublishableObjectType.REFERENCE_LINE)
+
+        fun switch(id: IntId<LayoutTrackNumber>) = PublishableObjectIdAndType(id, PublishableObjectType.SWITCH)
+
+        fun kmPost(id: IntId<LayoutTrackNumber>) = PublishableObjectIdAndType(id, PublishableObjectType.KM_POST)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun locationTrackId() = if (type != PublishableObjectType.LOCATION_TRACK) null else id as IntId<LocationTrack>
+
+    fun isTrackNumber(other: IntId<LayoutTrackNumber>) = type == PublishableObjectType.TRACK_NUMBER && id == other
+
+    fun isLocationTrack(other: IntId<LocationTrack>) = type == PublishableObjectType.LOCATION_TRACK && id == other
+
+    fun isReferenceLine(other: IntId<ReferenceLine>) = type == PublishableObjectType.REFERENCE_LINE && id == other
+
+    fun isSwitch(other: IntId<LayoutSwitch>) = type == PublishableObjectType.SWITCH && id == other
+
+    fun isKmPost(other: IntId<LayoutKmPost>) = type == PublishableObjectType.KM_POST && id == other
 }
 
 enum class Operation(val priority: Int) {
@@ -390,7 +483,7 @@ data class LayoutValidationIssue(
 }
 
 interface PublicationCandidate<T : LayoutAsset<T>> {
-    val type: DraftChangeType
+    val type: PublishableObjectType
     val rowVersion: LayoutRowVersion<T>
     val draftChangeTime: Instant
     val userName: UserName
@@ -419,7 +512,7 @@ data class TrackNumberPublicationCandidate(
     override val designAssetState: DesignAssetState?,
     val boundingBox: BoundingBox?,
 ) : PublicationCandidate<LayoutTrackNumber> {
-    override val type = DraftChangeType.TRACK_NUMBER
+    override val type = PublishableObjectType.TRACK_NUMBER
 }
 
 data class ReferenceLinePublicationCandidate(
@@ -435,7 +528,7 @@ data class ReferenceLinePublicationCandidate(
     val boundingBox: BoundingBox?,
     val geometryChanges: GeometryChangeRanges<ReferenceLineM>?,
 ) : PublicationCandidate<ReferenceLine> {
-    override val type = DraftChangeType.REFERENCE_LINE
+    override val type = PublishableObjectType.REFERENCE_LINE
 }
 
 data class LocationTrackPublicationCandidate(
@@ -452,7 +545,7 @@ data class LocationTrackPublicationCandidate(
     val boundingBox: BoundingBox?,
     val geometryChanges: GeometryChangeRanges<LocationTrackM>?,
 ) : PublicationCandidate<LocationTrack> {
-    override val type = DraftChangeType.LOCATION_TRACK
+    override val type = PublishableObjectType.LOCATION_TRACK
 }
 
 data class SwitchPublicationCandidate(
@@ -467,7 +560,7 @@ data class SwitchPublicationCandidate(
     override val designAssetState: DesignAssetState?,
     val location: Point?,
 ) : PublicationCandidate<LayoutSwitch> {
-    override val type = DraftChangeType.SWITCH
+    override val type = PublishableObjectType.SWITCH
 }
 
 data class KmPostPublicationCandidate(
@@ -482,16 +575,38 @@ data class KmPostPublicationCandidate(
     override val designAssetState: DesignAssetState?,
     val location: Point?,
 ) : PublicationCandidate<LayoutKmPost> {
-    override val type = DraftChangeType.KM_POST
+    override val type = PublishableObjectType.KM_POST
 }
 
 data class SwitchLocationTrack(
-    val name: AlignmentName,
+    val id: IntId<LocationTrack>,
     val trackNumberId: IntId<LayoutTrackNumber>,
-    val oldVersion: LayoutRowVersion<LocationTrack>,
+    val name: AlignmentName,
+    val joints: List<PublicationSwitchJoint>,
 )
 
-data class Change<T>(val old: T?, val new: T?)
+data class PublicationSwitchJoint(val jointNumber: JointNumber, val location: Point, val isPresentationJoint: Boolean)
+
+data class Change<T>(val old: T?, val new: T) {
+    companion object {
+        fun <S, T> of(old: S?, new: S, getter: (S) -> T): Change<T> = Change(old?.let(getter), getter(new))
+    }
+
+    fun <S> map(op: (T) -> S): Change<S> = Change(old?.let(op), op(new))
+}
+
+/**
+ * Turns a change of lists into a list of changes, picking items by their id, designated byt the [getId] lambda. If some
+ * item is duplicated in either list (id is not unique in old or new state), then only the first instance one of said
+ * item will be considered for the change.
+ */
+fun <T, S> Change<List<T>>.itemize(getId: (T) -> S): List<Pair<S, Change<T?>>> {
+    val oldItems = old?.distinctBy(getId)?.associateBy(getId) ?: emptyMap()
+    val newItems = new.distinctBy(getId).associateBy(getId)
+    return (oldItems.keys + newItems.keys).distinct().map { key -> key to Change(oldItems[key], newItems[key]) }
+}
+
+fun <T> Change<T?>.ifHasEndState(): Change<T>? = if (new != null) Change(old, new) else null
 
 data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
@@ -499,11 +614,12 @@ data class LocationTrackChanges(
     val descriptionBase: Change<LocationTrackDescriptionBase>,
     val descriptionSuffix: Change<LocationTrackDescriptionSuffix>,
     val state: Change<LocationTrackState>,
-    val duplicateOf: Change<IntId<LocationTrack>>,
+    val duplicateOf: Change<IntId<LocationTrack>?>,
     val type: Change<LocationTrackType>,
     val length: Change<Double>,
-    val startPoint: Change<Point>,
-    val endPoint: Change<Point>,
+    // TODO: These should not be nullable, but current test data contains broken location tracks
+    val startPoint: Change<Point?>,
+    val endPoint: Change<Point?>,
     val trackNumberId: Change<IntId<LayoutTrackNumber>>,
     val geometryChangeSummaries: List<GeometryChangeSummary>?,
     val owner: Change<IntId<LocationTrackOwner>>,
@@ -516,6 +632,18 @@ enum class TrapPoint {
     UNKNOWN,
 }
 
+data class TrackNumberJointLocationChange(
+    val trackNumberId: IntId<LayoutTrackNumber>,
+    val jointNumber: JointNumber,
+    val location: Change<Point?>,
+)
+
+data class TrackJointChange(
+    val id: IntId<LocationTrack>,
+    val name: AlignmentName,
+    val joints: Change<List<JointNumber>?>,
+)
+
 data class SwitchChanges(
     val id: IntId<LayoutSwitch>,
     val name: Change<SwitchName>,
@@ -523,17 +651,67 @@ data class SwitchChanges(
     val trapPoint: Change<TrapPoint>,
     val type: Change<SwitchType>,
     val owner: Change<MetaDataName>,
-    val measurementMethod: Change<MeasurementMethod>,
-    val joints: List<PublicationDao.PublicationSwitchJoint>,
-    val locationTracks: List<SwitchLocationTrack>,
-)
+    val measurementMethod: Change<MeasurementMethod?>,
+    val trackConnections: Change<List<SwitchLocationTrack>>,
+) {
+    val trackJoints: List<TrackJointChange>
+        get() =
+            getLocationTrackIds().mapNotNull { id ->
+                trackConnections
+                    .map { tracks -> tracks.find { it.id == id } }
+                    .let { trackChange ->
+                        val name = trackChange.new?.name ?: trackChange.old?.name
+                        val joints = trackChange.map { t -> t?.joints?.map { j -> j.jointNumber } }
+                        if (name != null) TrackJointChange(id, name, joints) else null
+                    }
+            }
+
+    val trackNumberJointLocations: List<TrackNumberJointLocationChange>
+        get() =
+            getTrackNumberJointNumbers().map { (tnId, jointNumber) ->
+                TrackNumberJointLocationChange(
+                    trackNumberId = tnId,
+                    jointNumber = jointNumber,
+                    location = getTrackNumberJointLocation(tnId, jointNumber),
+                )
+            }
+
+    private fun getLocationTrackIds(): List<IntId<LocationTrack>> =
+        ((trackConnections.old?.map { t -> t.id } ?: emptyList()) + trackConnections.new.map { t -> t.id })
+            .distinct()
+            .sortedBy { it.intValue }
+
+    private fun getTrackNumberJointNumbers(): List<Pair<IntId<LayoutTrackNumber>, JointNumber>> =
+        trackConnections
+            .map { tracks -> tracks.flatMap { t -> t.joints.map { t.trackNumberId to it.jointNumber } }.distinct() }
+            .let { (old, new) -> (old ?: emptyList()) + new }
+            .distinct()
+
+    private fun getTrackNumberJointLocation(
+        trackNumberId: IntId<LayoutTrackNumber>,
+        jointNumber: JointNumber,
+    ): Change<Point?> =
+        trackConnections.map { tracks -> getTrackNumberJointLocation(tracks, trackNumberId, jointNumber) }
+
+    private fun getTrackNumberJointLocation(
+        tracks: List<SwitchLocationTrack>,
+        id: IntId<LayoutTrackNumber>,
+        jointNumber: JointNumber,
+    ): Point? =
+        tracks
+            .asSequence()
+            .filter { t -> t.trackNumberId == id }
+            .mapNotNull { t -> t.joints.find { j -> j.jointNumber == jointNumber } }
+            .firstOrNull()
+            ?.location
+}
 
 data class ReferenceLineChanges(
     val id: IntId<ReferenceLine>,
     val trackNumberId: Change<IntId<LayoutTrackNumber>>,
     val length: Change<Double>,
-    val startPoint: Change<Point>,
-    val endPoint: Change<Point>,
+    val startPoint: Change<Point?>,
+    val endPoint: Change<Point?>,
     val alignmentVersion: Change<RowVersion<LayoutAlignment>>,
 )
 
@@ -542,8 +720,9 @@ data class TrackNumberChanges(
     val trackNumber: Change<TrackNumber>,
     val description: Change<TrackNumberDescription>,
     val state: Change<LayoutState>,
-    val startAddress: Change<TrackMeter>,
-    val endPoint: Change<Point>,
+    // TODO: These should not be nullable, but current test data contains broken track numbers
+    val startAddress: Change<TrackMeter?>,
+    val endPoint: Change<Point?>,
 )
 
 data class KmPostChanges(
@@ -696,11 +875,11 @@ fun draftTransitionOrOfficialState(publicationState: PublicationState, branch: L
     }
 
 data class PublishedVersions(
-    val trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>>,
-    val referenceLines: List<LayoutRowVersion<ReferenceLine>>,
-    val locationTracks: List<LayoutRowVersion<LocationTrack>>,
-    val switches: List<LayoutRowVersion<LayoutSwitch>>,
-    val kmPosts: List<LayoutRowVersion<LayoutKmPost>>,
+    val trackNumbers: List<Change<LayoutRowVersion<LayoutTrackNumber>>>,
+    val referenceLines: List<Change<LayoutRowVersion<ReferenceLine>>>,
+    val locationTracks: List<Change<LayoutRowVersion<LocationTrack>>>,
+    val switches: List<Change<LayoutRowVersion<LayoutSwitch>>>,
+    val kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>>,
 )
 
 data class PreparedPublicationRequest(
@@ -714,5 +893,8 @@ data class PreparedPublicationRequest(
 
 data class PublicationResultVersions<T : LayoutAsset<T>>(
     val published: LayoutRowVersion<T>,
+    val base: LayoutRowVersion<T>?,
     val completed: Pair<DesignBranch, LayoutRowVersion<T>>?,
-)
+) {
+    val versionChange: Change<LayoutRowVersion<T>> = Change(base, published)
+}

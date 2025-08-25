@@ -43,6 +43,7 @@ import fi.fta.geoviite.infra.math.Point4DZM
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.PublishedVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -711,13 +712,13 @@ fun toSegmentPoints(points: List<IPoint3DM<SegmentM>>) =
         )
     }
 
-fun <M: AlignmentM<M>> toAlignmentPoints(vararg points: IPoint) = toAlignmentPoints(to3DMPoints<M>(points.asList()))
+fun <M : AlignmentM<M>> toAlignmentPoints(vararg points: IPoint) = toAlignmentPoints(to3DMPoints<M>(points.asList()))
 
-fun <M: AlignmentM<M>>  toAlignmentPoints(vararg points: Point3DZ) = toAlignmentPoints(to3DMPoints<M>(points.asList()))
+fun <M : AlignmentM<M>> toAlignmentPoints(vararg points: Point3DZ) = toAlignmentPoints(to3DMPoints<M>(points.asList()))
 
-fun <M: AlignmentM<M>> toAlignmentPoints(vararg points: IPoint3DM<M>) = toAlignmentPoints(points.asList())
+fun <M : AlignmentM<M>> toAlignmentPoints(vararg points: IPoint3DM<M>) = toAlignmentPoints(points.asList())
 
-fun <M: AlignmentM<M>> toAlignmentPoints(points: List<IPoint3DM<M>>) =
+fun <M : AlignmentM<M>> toAlignmentPoints(points: List<IPoint3DM<M>>) =
     points.map { point ->
         AlignmentPoint(
             point.x,
@@ -732,7 +733,7 @@ fun <M: AlignmentM<M>> toAlignmentPoints(points: List<IPoint3DM<M>>) =
         )
     }
 
-fun  <M: AnyM<M>> to3DMPoints(points: List<IPoint>, start: Double = 0.0): List<IPoint3DM<M>> {
+fun <M : AnyM<M>> to3DMPoints(points: List<IPoint>, start: Double = 0.0): List<IPoint3DM<M>> {
     val pointsWithDistance =
         points.mapIndexed { index, point ->
             val distance = points.getOrNull(index - 1)?.let { prev -> lineLength(prev, point) } ?: 0.0
@@ -829,7 +830,7 @@ fun switch(
     stateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
     id: IntId<LayoutSwitch>? = null,
     draft: Boolean = false,
-    ownerId: IntId<SwitchOwner>? = switchOwnerVayla().id,
+    ownerId: IntId<SwitchOwner> = switchOwnerVayla().id,
     contextData: LayoutContextData<LayoutSwitch> = createMainContext(id, draft),
     draftOid: Oid<LayoutSwitch>? = null,
 ) =
@@ -879,12 +880,9 @@ fun switchJoint(
 fun kmPost(
     trackNumberId: IntId<LayoutTrackNumber>?,
     km: KmNumber,
-    roughLayoutLocation: Point? = Point(1.0, 1.0),
-    gkLocation: GeometryPoint? = null,
+    gkLocation: LayoutKmPostGkLocation? = null,
     draft: Boolean = false,
     state: LayoutState = LayoutState.IN_USE,
-    gkLocationConfirmed: Boolean = false,
-    gkLocationSource: KmPostGkLocationSource = KmPostGkLocationSource.MANUAL,
     sourceId: IntId<GeometryKmPost>? = null,
     contextData: LayoutContextData<LayoutKmPost> = createMainContext(null, draft),
 ): LayoutKmPost {
@@ -894,23 +892,33 @@ fun kmPost(
         state = state,
         sourceId = sourceId,
         contextData = contextData,
-        gkLocation =
-            if (gkLocation != null || roughLayoutLocation != null)
-                LayoutKmPostGkLocation(
-                    location =
-                        if (gkLocation == null && roughLayoutLocation != null) {
-                            transformFromLayoutToGKCoordinate(roughLayoutLocation)
-                        } else gkLocation!!,
-                    confirmed = gkLocationConfirmed,
-                    source = gkLocationSource,
-                )
-            else null,
+        gkLocation = gkLocation,
     )
 }
 
+fun kmPostGkLocation(
+    gkLocation: GeometryPoint,
+    gkLocationSource: KmPostGkLocationSource = KmPostGkLocationSource.MANUAL,
+    gkLocationConfirmed: Boolean = false,
+) = LayoutKmPostGkLocation(location = gkLocation, confirmed = gkLocationConfirmed, source = gkLocationSource)
+
+fun kmPostGkLocation(x: Double, y: Double) = kmPostGkLocation(Point(x, y))
+
+fun kmPostGkLocation(
+    roughLayoutLocation: Point,
+    gkLocationSource: KmPostGkLocationSource = KmPostGkLocationSource.FROM_LAYOUT,
+    gkLocationConfirmed: Boolean = false,
+) =
+    LayoutKmPostGkLocation(
+        location = transformFromLayoutToGKCoordinate(roughLayoutLocation),
+        confirmed = gkLocationConfirmed,
+        source = gkLocationSource,
+    )
+
 fun segmentPoint(x: Double, y: Double, m: Double = 1.0) = SegmentPoint(x, y, null, LineM(m), null)
 
-fun <M: AlignmentM<M>> alignmentPoint(x: Double, y: Double, m: Double = 1.0) = AlignmentPoint(x, y, null, LineM<M>(m), null)
+fun <M : AlignmentM<M>> alignmentPoint(x: Double, y: Double, m: Double = 1.0) =
+    AlignmentPoint(x, y, null, LineM<M>(m), null)
 
 fun locationTrackPoint(x: Double, y: Double, m: Double) = AlignmentPoint(x, y, null, LineM<LocationTrackM>(m), null)
 
@@ -923,7 +931,7 @@ fun rawPoints(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double
         )
     )
 
-fun <M: AlignmentM<M>> points(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
+fun <M : AlignmentM<M>> points(count: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
     toAlignmentPoints(
         to3DMPoints<M>(
             (1..count).map { pointNumber ->
@@ -968,6 +976,15 @@ fun externalIdForLocationTrack(): Oid<LocationTrack> {
 }
 
 fun externalIdForTrackNumber(): Oid<LayoutTrackNumber> {
+    val first = nextInt(100, 999)
+    val second = nextInt(100, 999)
+    val third = nextInt(100, 999)
+    val fourth = nextInt(100, 999)
+
+    return Oid("$first.$second.$third.$fourth")
+}
+
+fun externalIdForSwitch(): Oid<LayoutSwitch> {
     val first = nextInt(100, 999)
     val second = nextInt(100, 999)
     val third = nextInt(100, 999)
@@ -1024,7 +1041,12 @@ fun switchLinkingAtHalf(
         jointNumber,
     )
 
-fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int, m: LineM<LocationTrackM>, jointNumber: Int) =
+fun switchLinkingAt(
+    locationTrackId: DomainId<LocationTrack>,
+    segmentIndex: Int,
+    m: LineM<LocationTrackM>,
+    jointNumber: Int,
+) =
     FittedSwitchJointMatch(
         locationTrackId = locationTrackId as IntId<LocationTrack>,
         segmentIndex = segmentIndex,
@@ -1059,9 +1081,9 @@ fun geocodingContextCacheKey(
     )
 
 fun publishedVersions(
-    trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>> = listOf(),
-    referenceLines: List<LayoutRowVersion<ReferenceLine>> = listOf(),
-    locationTracks: List<LayoutRowVersion<LocationTrack>> = listOf(),
-    switches: List<LayoutRowVersion<LayoutSwitch>> = listOf(),
-    kmPosts: List<LayoutRowVersion<LayoutKmPost>> = listOf(),
+    trackNumbers: List<Change<LayoutRowVersion<LayoutTrackNumber>>> = listOf(),
+    referenceLines: List<Change<LayoutRowVersion<ReferenceLine>>> = listOf(),
+    locationTracks: List<Change<LayoutRowVersion<LocationTrack>>> = listOf(),
+    switches: List<Change<LayoutRowVersion<LayoutSwitch>>> = listOf(),
+    kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>> = listOf(),
 ) = PublishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts)

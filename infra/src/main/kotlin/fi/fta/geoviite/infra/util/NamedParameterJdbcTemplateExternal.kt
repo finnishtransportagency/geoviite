@@ -37,6 +37,10 @@ fun NamedParameterJdbcTemplate.setUser(userName: UserName) {
     update("set local geoviite.edit_user = '$userName';", mapOf<String, Any>())
 }
 
+fun NamedParameterJdbcTemplate.setForceCustomPlan() {
+    update("set local plan_cache_mode = force_custom_plan;", mapOf<String, Any>())
+}
+
 fun <T> NamedParameterJdbcTemplate.batchUpdateIndexed(
     sql: String,
     items: List<T>,

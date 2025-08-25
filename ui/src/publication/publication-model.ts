@@ -25,6 +25,9 @@ import { BoundingBox, Point } from 'model/geometry';
 import { LocalizationParams } from 'i18n/config';
 import { SplitTargetOperation } from 'tool-panel/location-track/split-store';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { SearchItemValue } from 'tool-bar/search-dropdown';
+import { SearchablePublicationLogItem } from 'publication/log/publication-log';
+import { PublishedAsset } from 'publication/publication-api';
 
 export type LayoutValidationIssue = {
     type: LayoutValidationIssueType;
@@ -205,6 +208,15 @@ type PublishedInDesign = {
 
 export type PublishedInBranch = PublishedInMain | PublishedInDesign;
 
+export enum PublicationCause {
+    MANUAL = 'MANUAL',
+    LAYOUT_DESIGN_CHANGE = 'LAYOUT_DESIGN_CHANGE',
+    LAYOUT_DESIGN_DELETE = 'LAYOUT_DESIGN_DELETE',
+    LAYOUT_DESIGN_CANCELLATION = 'LAYOUT_DESIGN_CANCELLATION',
+    MERGE_FINALIZATION = 'MERGE_FINALIZATION',
+    CALCULATED_CHANGE = 'CALCULATED_CHANGE',
+}
+
 export type PublicationDetails = {
     id: PublicationId;
     publicationTime: TimeStamp;
@@ -220,6 +232,7 @@ export type PublicationDetails = {
     calculatedChanges: PublishedCalculatedChanges;
     message?: string;
     split?: SplitHeader;
+    cause: PublicationCause;
 };
 
 export type PublishedTrackNumber = {
@@ -368,6 +381,8 @@ export type PublishedCalculatedChanges = {
 
 export type PublicationTableItem = {
     id: string; //Auto generated
+    asset: PublishedAsset;
+    publicationId: PublicationId;
     name: string;
     trackNumbers: TrackNumber[];
     changedKmNumbers: Range<string>[];
@@ -382,6 +397,7 @@ export type PublicationTableItem = {
 export type PublicationSearch = {
     startDate: TimeStamp | undefined;
     endDate: TimeStamp | undefined;
+    specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined;
 };
 
 export type SplitInPublication = {

@@ -36,6 +36,7 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.moveKmPostLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -49,9 +50,6 @@ import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.queryOne
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -59,6 +57,9 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -124,9 +125,8 @@ constructor(
         mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         // split track with two km posts, so that moving the latter one even further doesn't affect
         // the first track km at all
-        mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), roughLayoutLocation = Point(3.0, 0.0)))
-        val kmPost =
-            mainOfficialContext.save(kmPost(trackNumber, KmNumber(2), roughLayoutLocation = Point(4.0, 0.0))).id
+        mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0)))
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(2), kmPostGkLocation(4.0, 0.0))).id
 
         val switchAtStart =
             mainOfficialContext.save(
@@ -201,10 +201,7 @@ constructor(
                 """
                     select id, design_id, draft, version
                     from layout.switch_version sv
-                      join publication.switch ps
-                        on sv.id = ps.switch_id
-                          and sv.version = ps.switch_version
-                          and sv.layout_context_id = ps.layout_context_id
+                      join publication.switch ps using (id, layout_context_id, version)
                     where ps.publication_id = :publication_id
                 """
                     .trimIndent(),
@@ -231,10 +228,7 @@ constructor(
                 """
                     select id, design_id, draft, version
                     from layout.location_track_version ltv
-                      join publication.location_track plt
-                        on ltv.id = plt.location_track_id
-                          and ltv.version = plt.location_track_version
-                          and ltv.layout_context_id = plt.layout_context_id
+                      join publication.location_track plt using (id, layout_context_id, version)
                     where plt.publication_id = :publication_id
                 """
                     .trimIndent(),
@@ -334,7 +328,7 @@ constructor(
                     ),
                 )
                 .id
-        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), Point(2.0, 0.0))).id
+        val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(2.0, 0.0))).id
 
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
@@ -428,8 +422,8 @@ constructor(
         val completionVersionInPublicationTable =
             jdbc.queryOne(
                 """
-                select ${table}_version as version from publication.$table
-                where publication_id = :publication_id and ${table}_id = :id and layout_context_id = :layout_context_id
+                select version from publication.$table
+                where publication_id = :publication_id and id = :id and layout_context_id = :layout_context_id
             """
                     .trimIndent(),
                 mapOf(

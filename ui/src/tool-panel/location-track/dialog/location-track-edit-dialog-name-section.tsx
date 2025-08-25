@@ -42,6 +42,11 @@ type LocationTrackNameBetweenOperatingPointsProps = {
     getSpecifierErrors: () => string[];
 };
 
+const NAMING_SCHEMES_WITHOUT_FULL_NAME: LocationTrackNamingScheme[] = [
+    LocationTrackNamingScheme.FREE_TEXT,
+    LocationTrackNamingScheme.WITHIN_OPERATING_POINT,
+];
+
 const LocationTrackNameFreeText: React.FC<LocationTrackNameFreeTextProps> = ({
     request,
     updateFreeText,
@@ -85,6 +90,8 @@ const LocationTrackNameTrackNumber: React.FC<LocationTrackNameTrackNumberProps> 
                         qa-id="location-track-name-specifier"
                         value={request.nameSpecifier}
                         options={locationTrackNameSpecifiers}
+                        placeholder={t('location-track-dialog.name-specifier-placeholder')}
+                        unselectText={t('location-track-dialog.name-specifier-placeholder')}
                         canUnselect={true}
                         onChange={(e) => updateSpecifier && updateSpecifier(e)}
                         onBlur={() => onCommitSpecifier && onCommitSpecifier()}
@@ -94,7 +101,7 @@ const LocationTrackNameTrackNumber: React.FC<LocationTrackNameTrackNumberProps> 
                 errors={getSpecifierErrors()}
             />
             <FieldLayout
-                label={`${t('location-track-dialog.operating-point-range')} *`}
+                label={`${t('location-track-dialog.operating-point-range')}`}
                 value={
                     <TextField
                         qa-id="location-track-name-operating-point-range"
@@ -116,12 +123,14 @@ const LocationTrackNameBetweenOperatingPoints: React.FC<
     const { t } = useTranslation();
     return (
         <FieldLayout
-            label={`${t('location-track-dialog.name-specifier')} *`}
+            label={`${t('location-track-dialog.name-specifier')}`}
             value={
                 <Dropdown
                     qa-id="location-track-name-specifier"
                     value={request.nameSpecifier}
                     options={locationTrackNameSpecifiers}
+                    placeholder={t('location-track-dialog.name-specifier-placeholder')}
+                    unselectText={t('location-track-dialog.name-specifier-placeholder')}
                     canUnselect={true}
                     onChange={(e) => updateSpecifier && updateSpecifier(e)}
                     onBlur={() => onCommitSpecifier && onCommitSpecifier()}
@@ -248,10 +257,15 @@ export const LocationTrackEditDialogNameSection: React.FC<
                             onCommitField={onCommitField}
                             getVisibleErrorsByProp={getVisibleErrorsByProp}
                         />
-                        <FieldLayout
-                            label={`${t('location-track-dialog.full-name')}`}
-                            value={fullName}
-                        />
+                        {state.locationTrack.namingScheme &&
+                            !NAMING_SCHEMES_WITHOUT_FULL_NAME.includes(
+                                state.locationTrack.namingScheme,
+                            ) && (
+                                <FieldLayout
+                                    label={`${t('location-track-dialog.full-name')}`}
+                                    value={fullName}
+                                />
+                            )}
                         {trackWithSameName && (
                             <>
                                 <div className={styles['location-track-edit-dialog__alert-color']}>

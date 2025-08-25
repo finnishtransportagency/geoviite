@@ -85,7 +85,7 @@ internal fun validateTargetGeometry(
             val sourcePoint = sourcePoints.getOrNull(targetIndex)
             if (sourcePoint?.address != targetPoint.address) {
                 LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.trackmeters-changed")
-            } else if (operation != SplitTargetOperation.TRANSFER && !targetPoint.point.isSame(sourcePoint.point)) {
+            } else if (operation != SplitTargetOperation.TRANSFER && !targetPoint.point.isSameXY(sourcePoint.point)) {
                 LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.geometry-changed")
             } else if (
                 operation == SplitTargetOperation.TRANSFER &&

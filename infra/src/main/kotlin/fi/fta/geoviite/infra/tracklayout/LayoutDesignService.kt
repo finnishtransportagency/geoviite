@@ -29,8 +29,8 @@ class LayoutDesignService(
     private val switchDao: LayoutSwitchDao,
     private val kmPostDao: LayoutKmPostDao,
 ) {
-    fun list(): List<LayoutDesign> {
-        return dao.list()
+    fun list(includeCompleted: Boolean, includeDeleted: Boolean): List<LayoutDesign> {
+        return dao.list(includeCompleted = includeCompleted, includeDeleted = includeDeleted)
     }
 
     fun getOrThrow(id: IntId<LayoutDesign>): LayoutDesign {
@@ -45,9 +45,11 @@ class LayoutDesignService(
                 deleteDraftsInDesign(designBranch)
             }
             if (dao.designHasPublications(id)) {
-                makeEmptyPublicationForDesign(designBranch)
                 if (request.designState == DesignState.DELETED) {
+                    makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_DELETE)
                     cancelUnpublishedObjectsInDesign(designBranch)
+                } else {
+                    makeEmptyPublication(designBranch, PublicationCause.LAYOUT_DESIGN_CHANGE)
                 }
             }
             dao.update(id, request)
@@ -126,12 +128,12 @@ class LayoutDesignService(
         )
     }
 
-    private fun makeEmptyPublicationForDesign(designBranch: DesignBranch) =
+    private fun makeEmptyPublication(branchBranch: DesignBranch, cause: PublicationCause) =
         publicationService.publishChanges(
-            designBranch,
-            ValidationVersions.emptyWithTarget(ValidateContext(designBranch.official)),
+            branchBranch,
+            ValidationVersions.emptyWithTarget(ValidateContext(branchBranch.official)),
             CalculatedChanges.empty(),
             FreeTextWithNewLines.of(""),
-            PublicationCause.LAYOUT_DESIGN_CHANGE,
+            cause,
         )
 }

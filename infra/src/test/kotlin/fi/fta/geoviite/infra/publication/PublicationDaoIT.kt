@@ -199,9 +199,9 @@ constructor(
 
     @Test
     fun allCalculatedChangesAreRecorded() {
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val locationTrackId = insertAndCheck(locationTrack(trackNumberId, draft = false)).first.id
-        val switchId = insertAndCheck(switch(draft = false)).first.id
+        val trackNumberVersion = mainOfficialContext.createLayoutTrackNumber()
+        val locationTrackVersion = insertAndCheck(locationTrack(trackNumberVersion.id, draft = false)).first
+        val switchVersion = insertAndCheck(switch(draft = false)).first
 
         val switchJointChange =
             SwitchJointChange(
@@ -209,9 +209,9 @@ constructor(
                 false,
                 TrackMeter(1234, "AA", 12.34, 3),
                 Point(100.0, 200.0),
-                locationTrackId,
+                locationTrackVersion.id,
                 Oid("123.456.789"),
-                trackNumberId,
+                trackNumberVersion.id,
                 Oid("1.234.567"),
             )
 
@@ -222,7 +222,7 @@ constructor(
                         trackNumberChanges =
                             listOf(
                                 TrackNumberChange(
-                                    trackNumberId,
+                                    trackNumberVersion.id,
                                     setOf(KmNumber(1234), KmNumber(45, "AB")),
                                     isStartChanged = true,
                                     isEndChanged = false,
@@ -233,13 +233,13 @@ constructor(
                         locationTrackChanges =
                             listOf(
                                 LocationTrackChange(
-                                    locationTrackId,
+                                    locationTrackVersion.id,
                                     setOf(KmNumber(456)),
                                     isStartChanged = false,
                                     isEndChanged = true,
                                 )
                             ),
-                        switchChanges = listOf(SwitchChange(switchId, listOf(switchJointChange))),
+                        switchChanges = listOf(SwitchChange(switchVersion.id, listOf(switchJointChange))),
                     ),
                 indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList()),
             )
@@ -254,28 +254,30 @@ constructor(
             publicationId,
             changes,
             publishedVersions(
-                trackNumbers = listOf(trackNumberDao.fetchVersion(MainLayoutContext.official, trackNumberId)!!),
-                locationTracks = listOf(locationTrackDao.fetchVersion(MainLayoutContext.official, locationTrackId)!!),
-                switches = listOf(switchDao.fetchVersion(MainLayoutContext.official, switchId)!!),
+                trackNumbers = listOf(Change(null, trackNumberVersion)),
+                locationTracks = listOf(Change(null, locationTrackVersion)),
+                switches = listOf(Change(null, switchVersion)),
             ),
         )
 
-        val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(publicationId)
-        val publishedLocationTracks = publicationDao.fetchPublishedLocationTracks(publicationId)
-        val publishedSwitches = publicationDao.fetchPublishedSwitches(publicationId)
-        assertTrue(publishedTrackNumbers.directChanges.all { it.id == trackNumberId })
+        val publishedTrackNumbers =
+            publicationDao.fetchPublishedTrackNumbers(setOf(publicationId)).getValue(publicationId)
+        val publishedLocationTracks =
+            publicationDao.fetchPublishedLocationTracks(setOf(publicationId)).getValue(publicationId)
+        val publishedSwitches = publicationDao.fetchPublishedSwitches(setOf(publicationId)).getValue(publicationId)
+        assertTrue(publishedTrackNumbers.directChanges.all { it.id == trackNumberVersion.id })
         assertEquals(
             changes.directChanges.trackNumberChanges.flatMap { it.changedKmNumbers }.sorted(),
             publishedTrackNumbers.directChanges.flatMap { it.changedKmNumbers }.sorted(),
         )
 
-        assertTrue(publishedLocationTracks.directChanges.all { it.id == locationTrackId })
+        assertTrue(publishedLocationTracks.directChanges.all { it.id == locationTrackVersion.id })
         assertEquals(
             changes.directChanges.locationTrackChanges.flatMap { it.changedKmNumbers }.sorted(),
             publishedLocationTracks.directChanges.flatMap { it.changedKmNumbers }.sorted(),
         )
 
-        assertTrue(publishedSwitches.directChanges.all { it.id == switchId })
+        assertTrue(publishedSwitches.directChanges.all { it.id == switchVersion.id })
         assertEquals(listOf(switchJointChange), publishedSwitches.directChanges.flatMap { it.changedJoints })
     }
 
