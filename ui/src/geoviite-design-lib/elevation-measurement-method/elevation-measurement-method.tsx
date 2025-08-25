@@ -1,16 +1,16 @@
 import React from 'react';
-import { ElevationMeasurementMethod } from 'common/common-model';
+import { ElevationMeasurementMethod as ElevationMeasurementMethodT } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type ElevationMeasurementMethodProps = {
-    method: ElevationMeasurementMethod | undefined;
+    method: ElevationMeasurementMethodT | undefined;
     lowerCase?: boolean;
     includeTermContextForUnknownMethod?: boolean;
 };
 
 function getTranslationKey(
-    method: ElevationMeasurementMethod | undefined,
+    method: ElevationMeasurementMethodT | undefined,
     includeTermContextForUnknownMethod: boolean,
 ) {
     switch (method) {
@@ -31,16 +31,31 @@ const ElevationMeasurementMethod: React.FC<ElevationMeasurementMethodProps> = ({
 }: ElevationMeasurementMethodProps) => {
     const { t } = useTranslation();
 
+    return (
+        <React.Fragment>
+            {elevationMeasurementMethodText(
+                t,
+                method,
+                lowerCase,
+                includeTermContextForUnknownMethod,
+            )}
+        </React.Fragment>
+    );
+};
+export default ElevationMeasurementMethod;
+
+export function elevationMeasurementMethodText(
+    t: ReturnType<typeof useTranslation>['t'],
+    method: ElevationMeasurementMethodT | undefined,
+    lowerCase = false,
+    includeTermContextForUnknownMethod = false,
+) {
     const measurementMethodTranslationKey = getTranslationKey(
         method,
         includeTermContextForUnknownMethod,
     );
 
-    const text = lowerCase
+    return lowerCase
         ? t(`enum.ElevationMeasurementMethod.${measurementMethodTranslationKey}`).toLowerCase()
         : t(`enum.ElevationMeasurementMethod.${measurementMethodTranslationKey}`);
-
-    return <React.Fragment>{text}</React.Fragment>;
-};
-
-export default ElevationMeasurementMethod;
+}
