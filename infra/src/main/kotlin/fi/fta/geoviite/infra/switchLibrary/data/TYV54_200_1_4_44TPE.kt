@@ -2,7 +2,11 @@ package fi.fta.geoviite.infra.switchLibrary.data
 
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 // NOTE:
 // Joint number 5 is not accurate and copied from the switch
@@ -11,7 +15,7 @@ import fi.fta.geoviite.infra.switchLibrary.*
 
 fun TYV54_200_1_4_44TPE() =
     SwitchStructureData(
-        type = SwitchType("TYV54-200-1:4,44TPE"),
+        type = SwitchType.of("TYV54-200-1:4,44TPE"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(

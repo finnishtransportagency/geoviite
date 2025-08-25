@@ -117,7 +117,7 @@ data class ChangeValue<T>(val oldValue: T?, val newValue: T?, val localizationKe
         oldValue: T?,
         newValue: T?,
         localizationKey: String?,
-    ) : this(oldValue, newValue, localizationKey?.let(::LocalizationKey))
+    ) : this(oldValue, newValue, localizationKey?.let(LocalizationKey::of))
 }
 
 data class PublicationChange<T>(
@@ -129,7 +129,10 @@ data class PublicationChange<T>(
 )
 
 data class PropKey(val key: LocalizationKey, val params: LocalizationParams = LocalizationParams.empty) {
-    constructor(key: String, params: LocalizationParams = LocalizationParams.empty) : this(LocalizationKey(key), params)
+    constructor(
+        key: String,
+        params: LocalizationParams = LocalizationParams.empty,
+    ) : this(LocalizationKey.of(key), params)
 }
 
 open class Publication(
@@ -479,7 +482,7 @@ data class LayoutValidationIssue(
         type: LayoutValidationIssueType,
         key: String,
         params: Map<String, Any?> = emptyMap(),
-    ) : this(type, LocalizationKey(key), localizationParams(params))
+    ) : this(type, LocalizationKey.of(key), localizationParams(params))
 }
 
 interface PublicationCandidate<T : LayoutAsset<T>> {

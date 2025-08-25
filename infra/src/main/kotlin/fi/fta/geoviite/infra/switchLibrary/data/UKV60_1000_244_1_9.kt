@@ -10,7 +10,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun UKV60_1000_244_1_9_O() =
     SwitchStructureData(
-        type = SwitchType("UKV60-1000/244-1:9-O"),
+        type = SwitchType.of("UKV60-1000/244-1:9-O"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -39,4 +39,4 @@ fun UKV60_1000_244_1_9_O() =
             ),
     )
 
-fun UKV60_1000_244_1_9_V() = UKV60_1000_244_1_9_O().flipAlongYAxis().copy(type = SwitchType("UKV60-1000/244-1:9-V"))
+fun UKV60_1000_244_1_9_V() = UKV60_1000_244_1_9_O().flipAlongYAxis().copy(type = SwitchType.of("UKV60-1000/244-1:9-V"))

@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun YV60_300_1_9_O() =
     SwitchStructureData(
-        type = SwitchType("YV60-300-1:9-O"),
+        type = SwitchType.of("YV60-300-1:9-O"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -41,12 +41,12 @@ fun YV60_300_1_9_O() =
             ),
     )
 
-fun YV60_300_1_9_V() = YV60_300_1_9_O().flipAlongYAxis().copy(type = SwitchType("YV60-300-1:9-V"))
+fun YV60_300_1_9_V() = YV60_300_1_9_O().flipAlongYAxis().copy(type = SwitchType.of("YV60-300-1:9-V"))
 
-fun YV60_300A_1_9_O() = YV60_300_1_9_O().copy(type = SwitchType("YV60-300A-1:9-O"))
+fun YV60_300A_1_9_O() = YV60_300_1_9_O().copy(type = SwitchType.of("YV60-300A-1:9-O"))
 
-fun YV60_300A_1_9_V() = YV60_300_1_9_V().copy(type = SwitchType("YV60-300A-1:9-V"))
+fun YV60_300A_1_9_V() = YV60_300_1_9_V().copy(type = SwitchType.of("YV60-300A-1:9-V"))
 
-fun YV60_300E_1_9_O() = YV60_300_1_9_O().copy(type = SwitchType("YV60-300E-1:9-O"))
+fun YV60_300E_1_9_O() = YV60_300_1_9_O().copy(type = SwitchType.of("YV60-300E-1:9-O"))
 
-fun YV60_300E_1_9_V() = YV60_300_1_9_V().copy(type = SwitchType("YV60-300E-1:9-V"))
+fun YV60_300E_1_9_V() = YV60_300_1_9_V().copy(type = SwitchType.of("YV60-300E-1:9-V"))

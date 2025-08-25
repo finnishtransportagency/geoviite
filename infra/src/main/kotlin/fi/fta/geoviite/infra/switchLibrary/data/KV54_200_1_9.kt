@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun KV54_200_1_9_O() =
     SwitchStructureData(
-        type = SwitchType("KV54-200-1:9-O"),
+        type = SwitchType.of("KV54-200-1:9-O"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -57,8 +57,8 @@ fun KV54_200_1_9_O() =
             ),
     )
 
-fun KV54_200_1_9_V() = KV54_200_1_9_O().flipAlongYAxis().copy(type = SwitchType("KV54-200-1:9-V"))
+fun KV54_200_1_9_V() = KV54_200_1_9_O().flipAlongYAxis().copy(type = SwitchType.of("KV54-200-1:9-V"))
 
-fun KV54_200N_1_9_O() = KV54_200_1_9_O().copy(type = SwitchType("KV54-200N-1:9-O"))
+fun KV54_200N_1_9_O() = KV54_200_1_9_O().copy(type = SwitchType.of("KV54-200N-1:9-O"))
 
-fun KV54_200N_1_9_V() = KV54_200_1_9_V().copy(type = SwitchType("KV54-200N-1:9-V"))
+fun KV54_200N_1_9_V() = KV54_200_1_9_V().copy(type = SwitchType.of("KV54-200N-1:9-V"))

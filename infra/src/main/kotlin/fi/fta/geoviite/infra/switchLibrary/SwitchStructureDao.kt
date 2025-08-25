@@ -52,7 +52,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                     version = structureVersion,
                     data =
                         SwitchStructureData(
-                            type = SwitchType(rs.getString("type")),
+                            type = SwitchType.of(rs.getString("type")),
                             presentationJointNumber = rs.getJointNumber("presentation_joint_number"),
                             joints = fetchSwitchStructureJoints(structureVersion),
                             alignments = fetchSwitchStructureAlignments(structureVersion),
@@ -84,7 +84,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                     version = structureVersion,
                     data =
                         SwitchStructureData(
-                            type = SwitchType(rs.getString("type")),
+                            type = SwitchType.of(rs.getString("type")),
                             presentationJointNumber = rs.getJointNumber("presentation_joint_number"),
                             joints = fetchSwitchStructureJoints(structureVersion),
                             alignments = fetchSwitchStructureAlignments(structureVersion),

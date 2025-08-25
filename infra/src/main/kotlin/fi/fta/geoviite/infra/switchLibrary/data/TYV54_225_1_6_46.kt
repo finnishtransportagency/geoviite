@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun TYV54_225_1_6_46() =
     SwitchStructureData(
-        type = SwitchType("TYV54-225-1:6,46"),
+        type = SwitchType.of("TYV54-225-1:6,46"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(

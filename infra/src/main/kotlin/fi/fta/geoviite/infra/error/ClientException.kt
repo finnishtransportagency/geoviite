@@ -34,7 +34,7 @@ open class ClientException(
         cause: Throwable?,
         localizedMessageKey: String,
         localizedMessageParams: LocalizationParams = LocalizationParams.empty,
-    ) : this(status, message, cause, LocalizationKey(localizedMessageKey), localizedMessageParams)
+    ) : this(status, message, cause, LocalizationKey.of(localizedMessageKey), localizedMessageParams)
 }
 
 class GeocodingFailureException(message: String, cause: Throwable? = null) :

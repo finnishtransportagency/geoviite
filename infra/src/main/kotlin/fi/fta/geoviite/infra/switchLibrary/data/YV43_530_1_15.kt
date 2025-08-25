@@ -15,7 +15,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun YV43_530_1_15_O() =
     SwitchStructureData(
-        type = SwitchType("YV43-530-1:15-O"),
+        type = SwitchType.of("YV43-530-1:15-O"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -45,4 +45,4 @@ fun YV43_530_1_15_O() =
             ),
     )
 
-fun YV43_530_1_15_V() = YV43_530_1_15_O().flipAlongYAxis().copy(type = SwitchType("YV43-530-1:15-V"))
+fun YV43_530_1_15_V() = YV43_530_1_15_O().flipAlongYAxis().copy(type = SwitchType.of("YV43-530-1:15-V"))

@@ -3,31 +3,34 @@ package fi.fta.geoviite.infra.localization
 import com.fasterxml.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.util.FileName
+import org.springframework.beans.factory.annotation.Value
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import org.springframework.beans.factory.annotation.Value
 
 private val LOCALIZATION_PARAMS_PLACEHOLDER_REGEX = Regex("\\{\\{[a-zA-Z0-9_\\s\\-]*\\}\\}")
 
 data class Translation(val lang: LocalizationLanguage, val localization: String) {
     private val jsonRoot = JsonMapper().readTree(localization)
+    private val nodeTextCache = ConcurrentHashMap<LocalizationKey, String>()
 
     fun t(key: LocalizationKey) = t(key, LocalizationParams.empty)
 
-    fun t(key: String) = t(LocalizationKey(key), LocalizationParams.empty)
+    fun t(key: String) = t(LocalizationKey.of(key), LocalizationParams.empty)
 
-    fun t(key: String, params: LocalizationParams) = t(LocalizationKey(key), params)
+    fun t(key: String, params: LocalizationParams) = t(LocalizationKey.of(key), params)
 
-    fun t(key: LocalizationKey, params: LocalizationParams): String {
-        var node = jsonRoot
-        key.split(".").let { keyPart -> keyPart.forEach { part -> node = node.path(part) } }
-
-        val nodeText = if (node.isMissingNode) key.toString() else node.asText()
-        return nodeText.replace(LOCALIZATION_PARAMS_PLACEHOLDER_REGEX) {
-            val propKey = it.value.substring(2, it.value.length - 2).trim()
+    fun t(key: LocalizationKey, params: LocalizationParams): String =
+        getNodeText(key).replace(LOCALIZATION_PARAMS_PLACEHOLDER_REGEX) { prop ->
+            val propKey = prop.value.substring(2, prop.value.length - 2).trim()
             params.get(propKey)
         }
-    }
+
+    private fun getNodeText(key: LocalizationKey) =
+        nodeTextCache.computeIfAbsent(key) { k ->
+            var node = jsonRoot
+            k.split(".").let { keyPart -> keyPart.forEach { part -> node = node.path(part) } }
+            if (node.isMissingNode) key.toString() else node.asText()
+        }
 
     fun filename(key: String, params: LocalizationParams, branch: String = "filename"): FileName {
         return t("$branch.$key", params).let(::FileName)
@@ -48,7 +51,7 @@ class TranslationCache {
     private val translations = ConcurrentHashMap<LocalizationLanguage, Translation>()
 
     fun getOrLoadTranslation(lang: LocalizationLanguage): Translation =
-        translations.getOrPut(lang) {
+        translations.computeIfAbsent(lang) {
             this::class.java.classLoader.getResource("i18n/translations.${lang.lowercase()}.json").let {
                 Translation(lang, it?.readText() ?: "")
             }

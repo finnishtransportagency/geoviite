@@ -17,6 +17,9 @@ import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.rotateAroundPoint
 import fi.fta.geoviite.infra.util.formatForException
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.jvm.optionals.getOrNull
 import kotlin.math.abs
 
 enum class SwitchBaseType(val nationality: SwitchNationality = SwitchNationality.FINNISH) {
@@ -142,25 +145,28 @@ fun parseSwedishSwitchType(typeName: String): SwitchTypeParts? {
     )
 }
 
-data class SwitchType @JsonCreator(mode = DELEGATING) constructor(val typeName: String) {
-    val parts =
-        if (typeName.startsWith("EV")) {
-            parseSwedishSwitchType(typeName)
+data class SwitchType
+@JsonCreator(mode = DELEGATING)
+private constructor(val typeName: String, val parts: SwitchTypeParts) {
+    companion object {
+        val switchTypeCache = ConcurrentHashMap<String, Optional<SwitchType>>()
+
+        fun of(typeName: String) =
+            tryParse(typeName)
                 ?: throw IllegalArgumentException("Cannot parse switch type: \"${formatForException(typeName)}\"")
-        } else {
-            parseFinnishSwitchType(typeName)
-                ?: throw IllegalArgumentException("Cannot parse switch type: \"${formatForException(typeName)}\"")
-        }
+
+        fun tryParse(typeName: String): SwitchType? =
+            switchTypeCache
+                .computeIfAbsent(typeName) { key ->
+                    Optional.ofNullable(parseParts(key)?.let { parts -> SwitchType(key, parts) })
+                }
+                .getOrNull()
+
+        private fun parseParts(typeName: String): SwitchTypeParts? =
+            if (typeName.startsWith("EV")) parseSwedishSwitchType(typeName) else parseFinnishSwitchType(typeName)
+    }
 
     @JsonValue override fun toString(): String = typeName
-}
-
-fun tryParseSwitchType(typeName: String): SwitchType? {
-    return try {
-        SwitchType(typeName)
-    } catch (e: Exception) {
-        null
-    }
 }
 
 interface ISwitchJoint {

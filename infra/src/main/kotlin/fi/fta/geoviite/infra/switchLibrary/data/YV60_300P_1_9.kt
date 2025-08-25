@@ -2,7 +2,12 @@ package fi.fta.geoviite.infra.switchLibrary.data
 
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 // NOTE:
 // This switch type may contain inaccurate point locations and wrong elements
@@ -11,7 +16,7 @@ import fi.fta.geoviite.infra.switchLibrary.*
 
 fun YV60_300P_1_9_O() =
     SwitchStructureData(
-        type = SwitchType("YV60-300P-1:9-O"),
+        type = SwitchType.of("YV60-300P-1:9-O"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -40,4 +45,4 @@ fun YV60_300P_1_9_O() =
             ),
     )
 
-fun YV60_300P_1_9_V() = YV60_300P_1_9_O().flipAlongYAxis().copy(type = SwitchType("YV60-300P-1:9-V"))
+fun YV60_300P_1_9_V() = YV60_300P_1_9_O().flipAlongYAxis().copy(type = SwitchType.of("YV60-300P-1:9-V"))

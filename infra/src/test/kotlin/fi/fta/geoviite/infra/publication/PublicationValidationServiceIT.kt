@@ -327,7 +327,7 @@ constructor(
             val trackErrors = validation.validatedAsPublicationUnit.locationTracks[0].issues
             return trackErrors.find { error ->
                 error.localizationKey ==
-                    LocalizationKey(
+                    LocalizationKey.of(
                         "validation.layout.location-track.duplicate-of.publishing-duplicate-while-duplicated"
                     )
             }
@@ -491,15 +491,15 @@ constructor(
         assertTrue(
             errorsWhenDeletingStraightTrack.any { error ->
                 error.localizationKey ==
-                    LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
-                    error.params.get("alignments") == "1-5-2" &&
-                    error.params.get("switch") == "TV123"
+                    LocalizationKey.of(
+                        "validation.layout.location-track.switch-linkage.switch-alignment-not-connected"
+                    ) && error.params.get("alignments") == "1-5-2" && error.params.get("switch") == "TV123"
             }
         )
         assertTrue(
             errorsWhenDeletingStraightTrack.any { error ->
                 error.localizationKey ==
-                    LocalizationKey("validation.layout.location-track.switch-linkage.front-joint-not-connected") &&
+                    LocalizationKey.of("validation.layout.location-track.switch-linkage.front-joint-not-connected") &&
                     error.params.get("switch") == "TV123"
             }
         )
@@ -516,15 +516,15 @@ constructor(
         assertTrue(
             errorsWhenDeletingBranchingTrack.any { error ->
                 error.localizationKey ==
-                    LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
-                    error.params.get("alignments") == "1-3" &&
-                    error.params.get("switch") == "TV123"
+                    LocalizationKey.of(
+                        "validation.layout.location-track.switch-linkage.switch-alignment-not-connected"
+                    ) && error.params.get("alignments") == "1-3" && error.params.get("switch") == "TV123"
             }
         )
         assertFalse(
             errorsWhenDeletingBranchingTrack.any { error ->
                 error.localizationKey ==
-                    LocalizationKey("validation.layout.location-track.switch-linkage.front-joint-not-connected")
+                    LocalizationKey.of("validation.layout.location-track.switch-linkage.front-joint-not-connected")
             }
         )
     }
@@ -596,9 +596,9 @@ constructor(
         assertTrue(
             locationTrackDeletionErrors.any { error ->
                 error.localizationKey ==
-                    LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
-                    error.params.get("alignments") == "1-5-2" &&
-                    error.params.get("switch") == "TV123"
+                    LocalizationKey.of(
+                        "validation.layout.location-track.switch-linkage.switch-alignment-not-connected"
+                    ) && error.params.get("alignments") == "1-5-2" && error.params.get("switch") == "TV123"
             }
         )
         // but it's OK if we link a replacement track
@@ -631,7 +631,7 @@ constructor(
         assertFalse(
             errorsWithReplacementTrackLinked.any { error ->
                 error.localizationKey ==
-                    LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected")
+                    LocalizationKey.of("validation.layout.location-track.switch-linkage.switch-alignment-not-connected")
             }
         )
     }
@@ -651,7 +651,7 @@ constructor(
         assertTrue(
             validation.errors.any {
                 it.type == LayoutValidationIssueType.FATAL &&
-                    it.localizationKey == LocalizationKey("$VALIDATION_GEOCODING.duplicate-km-posts")
+                    it.localizationKey == LocalizationKey.of("$VALIDATION_GEOCODING.duplicate-km-posts")
             }
         )
     }
@@ -666,7 +666,7 @@ constructor(
         assertTrue(
             validation.errors.any {
                 it.type == LayoutValidationIssueType.FATAL &&
-                    it.localizationKey == LocalizationKey("validation.layout.switch.duplicate-name-draft-in-main")
+                    it.localizationKey == LocalizationKey.of("validation.layout.switch.duplicate-name-draft-in-main")
             }
         )
     }
@@ -685,7 +685,8 @@ constructor(
         assertTrue(
             validation.errors.any {
                 it.type == LayoutValidationIssueType.FATAL &&
-                    it.localizationKey == LocalizationKey("validation.layout.track-number.duplicate-name-draft-in-main")
+                    it.localizationKey ==
+                        LocalizationKey.of("validation.layout.track-number.duplicate-name-draft-in-main")
             }
         )
     }
@@ -717,7 +718,7 @@ constructor(
         assertTrue(
             validation.errors.any {
                 it.type == LayoutValidationIssueType.FATAL &&
-                    it.localizationKey == LocalizationKey("$VALIDATION_LOCATION_TRACK.duplicate-name-draft-in-main")
+                    it.localizationKey == LocalizationKey.of("$VALIDATION_LOCATION_TRACK.duplicate-name-draft-in-main")
             }
         )
     }
@@ -748,7 +749,7 @@ constructor(
         val referenceLineIssues = validated.validatedAsPublicationUnit.referenceLines[0].issues
         assertEquals(1, referenceLineIssues.size)
         assertEquals(
-            LocalizationKey("validation.layout.reference-line.points.not-continuous"),
+            LocalizationKey.of("validation.layout.reference-line.points.not-continuous"),
             referenceLineIssues[0].localizationKey,
         )
     }
@@ -1028,7 +1029,10 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.WARNING,
                 "validation.layout.switch.track-linkage.switch-alignment-multiply-connected",
-                mapOf("locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})", "switch" to "TV123"),
+                mapOf(
+                    "locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})",
+                    "switch" to "TV123",
+                ),
             ),
         )
     }
@@ -1103,7 +1107,7 @@ constructor(
             errorsWhenValidatingSwitchWithTracks(trackOn152Alignment, trackOn13Alignment),
             LayoutValidationIssue(
                 LayoutValidationIssueType.WARNING,
-                LocalizationKey("validation.layout.switch.track-linkage.front-joint-not-connected"),
+                LocalizationKey.of("validation.layout.switch.track-linkage.front-joint-not-connected"),
                 LocalizationParams(mapOf("switch" to "TV123")),
             ),
         )
@@ -1255,7 +1259,7 @@ constructor(
             errors,
             LayoutValidationIssue(
                 LayoutValidationIssueType.ERROR,
-                LocalizationKey("validation.layout.split.source-not-deleted"),
+                LocalizationKey.of("validation.layout.split.source-not-deleted"),
                 localizationParams("sourceName" to locationTrackDao.fetch(splitSetup.sourceTrack).name),
             ),
         )
@@ -1278,7 +1282,7 @@ constructor(
             errors,
             LayoutValidationIssue(
                 LayoutValidationIssueType.ERROR,
-                LocalizationKey("validation.layout.split.source-and-target-track-numbers-are-different"),
+                LocalizationKey.of("validation.layout.split.source-and-target-track-numbers-are-different"),
                 localizationParams(
                     "targetName" to startTarget.name,
                     "sourceName" to locationTrackDao.fetch(splitSetup.sourceTrack).name,
@@ -1416,7 +1420,7 @@ constructor(
         val errors = validateLocationTracks(sourceTrackResponse.id, startTargetTrackId, endTargetTrackId)
 
         assertTrue(
-            errors.any { it.localizationKey == LocalizationKey("validation.layout.split.geometry-changed") },
+            errors.any { it.localizationKey == LocalizationKey.of("validation.layout.split.geometry-changed") },
             errors.joinToString { ", " },
         )
     }
@@ -1461,7 +1465,7 @@ constructor(
         )
 
         val errors = validateLocationTracks(sourceTrackResponse.id, startTargetTrackId, endTargetTrackId)
-        assertTrue(errors.any { it.localizationKey == LocalizationKey("validation.layout.split.geometry-changed") })
+        assertTrue(errors.any { it.localizationKey == LocalizationKey.of("validation.layout.split.geometry-changed") })
     }
 
     @Test
@@ -1721,7 +1725,7 @@ constructor(
             listOf(
                 LayoutValidationIssue(
                     localizationKey =
-                        LocalizationKey("validation.layout.switch.track-linkage.switch-alignment-not-connected"),
+                        LocalizationKey.of("validation.layout.switch.track-linkage.switch-alignment-not-connected"),
                     type = LayoutValidationIssueType.WARNING,
                     params = LocalizationParams(mapOf("switch" to "some switch", "alignments" to "1-3")),
                 )
@@ -1732,7 +1736,9 @@ constructor(
             validateCancellation.validatedAsPublicationUnit.locationTracks.find { it.id == branchingTrack }!!.issues,
             LayoutValidationIssue(
                 localizationKey =
-                    LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected"),
+                    LocalizationKey.of(
+                        "validation.layout.location-track.switch-linkage.switch-alignment-not-connected"
+                    ),
                 type = LayoutValidationIssueType.WARNING,
                 params = LocalizationParams(mapOf("switch" to "some switch", "alignments" to "1-3")),
             ),
@@ -1756,7 +1762,7 @@ constructor(
                 .validateSwitches(ValidateTransition(PublicationInMain), listOf(draftSwitch))[0]
                 .errors,
             LayoutValidationIssue(
-                localizationKey = LocalizationKey("validation.layout.switch.duplicate-oid"),
+                localizationKey = LocalizationKey.of("validation.layout.switch.duplicate-oid"),
                 type = LayoutValidationIssueType.ERROR,
                 params = LocalizationParams(mapOf()),
             ),
@@ -1929,7 +1935,7 @@ constructor(
         assertEquals(
             listOf(
                 LayoutValidationIssue(
-                    localizationKey = LocalizationKey("validation.layout.track-number.km-post.reference-deleted"),
+                    localizationKey = LocalizationKey.of("validation.layout.track-number.km-post.reference-deleted"),
                     type = LayoutValidationIssueType.ERROR,
                     params = LocalizationParams(mapOf("kmPosts" to "0001")),
                 )
@@ -1940,7 +1946,7 @@ constructor(
         assertEquals(
             listOf(
                 LayoutValidationIssue(
-                    localizationKey = LocalizationKey("validation.layout.track-number.km-post.reference-deleted"),
+                    localizationKey = LocalizationKey.of("validation.layout.track-number.km-post.reference-deleted"),
                     type = LayoutValidationIssueType.ERROR,
                     params = LocalizationParams(mapOf("kmPosts" to "0001")),
                 )
@@ -1950,7 +1956,7 @@ constructor(
         assertContains(
             validateBoth.validatedAsPublicationUnit.kmPosts[0].issues,
             LayoutValidationIssue(
-                localizationKey = LocalizationKey("validation.layout.km-post.track-number.cancelled"),
+                localizationKey = LocalizationKey.of("validation.layout.km-post.track-number.cancelled"),
                 type = LayoutValidationIssueType.ERROR,
                 params = LocalizationParams(mapOf("trackNumber" to trackNumberNumber.number.toString())),
             ),
@@ -1994,7 +2000,7 @@ constructor(
                 tn.issues,
                 LayoutValidationIssue(
                     type = LayoutValidationIssueType.FATAL,
-                    localizationKey = LocalizationKey("validation.layout.track-number.duplicate-name-official"),
+                    localizationKey = LocalizationKey.of("validation.layout.track-number.duplicate-name-official"),
                     params = LocalizationParams(mapOf("trackNumber" to tn.number.toString())),
                 ),
             )
@@ -2040,7 +2046,7 @@ constructor(
                 kmPost.issues,
                 LayoutValidationIssue(
                     type = LayoutValidationIssueType.FATAL,
-                    localizationKey = LocalizationKey("validation.layout.km-post.duplicate-name-official"),
+                    localizationKey = LocalizationKey.of("validation.layout.km-post.duplicate-name-official"),
                     params =
                         LocalizationParams(
                             mapOf(

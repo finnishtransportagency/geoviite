@@ -2,11 +2,16 @@ package fi.fta.geoviite.infra.switchLibrary.data
 
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun YV54_200_1_9_O() =
     SwitchStructureData(
-        type = SwitchType("YV54-200-1:9-O"),
+        type = SwitchType.of("YV54-200-1:9-O"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -36,20 +41,20 @@ fun YV54_200_1_9_O() =
             ),
     )
 
-fun YV54_200_1_9_V() = YV54_200_1_9_O().flipAlongYAxis().copy(type = SwitchType("YV54-200-1:9-V"))
+fun YV54_200_1_9_V() = YV54_200_1_9_O().flipAlongYAxis().copy(type = SwitchType.of("YV54-200-1:9-V"))
 
-fun YV54_200N_1_9_O() = YV54_200_1_9_O().copy(type = SwitchType("YV54-200N-1:9-O"))
+fun YV54_200N_1_9_O() = YV54_200_1_9_O().copy(type = SwitchType.of("YV54-200N-1:9-O"))
 
-fun YV54_200N_1_9_V() = YV54_200_1_9_V().copy(type = SwitchType("YV54-200N-1:9-V"))
+fun YV54_200N_1_9_V() = YV54_200_1_9_V().copy(type = SwitchType.of("YV54-200N-1:9-V"))
 
-fun YV54_200_1_9_1435_O() = YV54_200_1_9_O().copy(type = SwitchType("YV54-200-1:9-1435-O"))
+fun YV54_200_1_9_1435_O() = YV54_200_1_9_O().copy(type = SwitchType.of("YV54-200-1:9-1435-O"))
 
-fun YV54_200_1_9_1435_V() = YV54_200_1_9_V().copy(type = SwitchType("YV54-200-1:9-1435-V"))
+fun YV54_200_1_9_1435_V() = YV54_200_1_9_V().copy(type = SwitchType.of("YV54-200-1:9-1435-V"))
 
-fun YV54_200N_1_9_1435_O() = YV54_200_1_9_O().copy(type = SwitchType("YV54-200N-1:9-1435-O"))
+fun YV54_200N_1_9_1435_O() = YV54_200_1_9_O().copy(type = SwitchType.of("YV54-200N-1:9-1435-O"))
 
-fun YV54_200N_1_9_1435_V() = YV54_200_1_9_V().copy(type = SwitchType("YV54-200N-1:9-1435-V"))
+fun YV54_200N_1_9_1435_V() = YV54_200_1_9_V().copy(type = SwitchType.of("YV54-200N-1:9-1435-V"))
 
-fun YV54_200_1_9_1524_1435_O() = YV54_200_1_9_O().copy(type = SwitchType("YV54-200-1:9-1524/1435-O"))
+fun YV54_200_1_9_1524_1435_O() = YV54_200_1_9_O().copy(type = SwitchType.of("YV54-200-1:9-1524/1435-O"))
 
-fun YV54_200_1_9_1524_1435_V() = YV54_200_1_9_V().copy(type = SwitchType("YV54-200-1:9-1524/1435-V"))
+fun YV54_200_1_9_1524_1435_V() = YV54_200_1_9_V().copy(type = SwitchType.of("YV54-200-1:9-1524/1435-V"))

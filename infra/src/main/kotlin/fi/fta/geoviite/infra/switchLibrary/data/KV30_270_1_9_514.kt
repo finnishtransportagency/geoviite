@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun KV30_270_1_9_514_O() =
     SwitchStructureData(
-        type = SwitchType("KV30-270-1:9,514-O"),
+        type = SwitchType.of("KV30-270-1:9,514-O"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -61,4 +61,4 @@ fun KV30_270_1_9_514_O() =
             ),
     )
 
-fun KV30_270_1_9_514_V() = KV30_270_1_9_514_O().flipAlongYAxis().copy(type = SwitchType("KV30-270-1:9,514-V"))
+fun KV30_270_1_9_514_V() = KV30_270_1_9_514_O().flipAlongYAxis().copy(type = SwitchType.of("KV30-270-1:9,514-V"))

@@ -1,6 +1,11 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.github.davidmoten.rtree2.RTree
+import com.github.davidmoten.rtree2.geometry.Geometries
+import com.github.davidmoten.rtree2.geometry.Geometry
+import com.github.davidmoten.rtree2.geometry.Line
+import com.github.davidmoten.rtree2.internal.EntryDefault
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DomainId
@@ -155,8 +160,11 @@ interface IAlignment<M : AlignmentM<M>> : Loggable {
     fun getClosestPoint(target: IPoint, snapDistance: Double = 0.0): Pair<AlignmentPoint<M>, IntersectType>? =
         getClosestPointM(target)?.let { (m, type) -> getPointAtM(m, snapDistance)?.let { p -> p to type } }
 
-    fun getClosestPointM(target: IPoint): Pair<LineM<M>, IntersectType>? =
-        findClosestSegmentIndex(target)?.let { segmentIndex ->
+    fun getClosestPointM(
+        target: IPoint,
+        startSegmentIndex: Int? = findClosestSegmentIndex(target),
+    ): Pair<LineM<M>, IntersectType>? =
+        startSegmentIndex?.let { segmentIndex ->
             val segment = segments[segmentIndex]
             val segmentM = segmentMValues[segmentIndex]
             if (segment.source == GENERATED) {
@@ -251,7 +259,7 @@ interface IAlignment<M : AlignmentM<M>> : Loggable {
      * - Basic geometry, not geographic calc but in TM35FIN the difference is small
      * - Finds the closest by start/end, ignoring curvature
      */
-    private fun approximateClosestSegmentIndex(target: IPoint): Int? =
+    open fun approximateClosestSegmentIndex(target: IPoint): Int? =
         segments
             .mapIndexed { idx, seg -> pointDistanceToLine(seg.segmentStart, seg.segmentEnd, target) to idx }
             .minByOrNull { (distance, _) -> distance }
@@ -265,6 +273,23 @@ interface IAlignment<M : AlignmentM<M>> : Loggable {
     override fun toLog(): String = logFormat("segments" to segments.size, "length" to round(length, 3))
 }
 
+private fun segmentRTreeLine(segment: ISegment): Line =
+    segment.let { s -> Geometries.line(s.segmentStart.x, s.segmentStart.y, s.segmentEnd.x, s.segmentEnd.y) }
+
+data class SegmentSpatialIndex(private val rtree: RTree<Int, Geometry>, private val maxSeekDistance: Double = 1000.0) {
+    constructor(
+        segments: List<ISegment>
+    ) : this(
+        segments
+            .mapIndexed { index, segment -> EntryDefault<Int, Geometry>(index, segmentRTreeLine(segment)) }
+            .let { entries -> RTree.create<Int, Geometry>(entries) }
+    )
+
+    fun findClosest(point: IPoint): Int? {
+        return rtree.nearest(Geometries.point(point.x, point.y), maxSeekDistance, 1).firstOrNull()?.value()
+    }
+}
+
 // TODO: GVT-2935 this will become reference-line only version: rename (+ format with db & non-db types?
 data class LayoutAlignment(
     override val segments: List<LayoutSegment>,
@@ -276,6 +301,10 @@ data class LayoutAlignment(
     @get:JsonIgnore
     override val segmentsWithM: List<Pair<LayoutSegment, Range<LineM<ReferenceLineM>>>>
         get() = segments.zip(segmentMValues)
+
+    private val spatialIndex: SegmentSpatialIndex by lazy { SegmentSpatialIndex(segments) }
+
+    override fun approximateClosestSegmentIndex(target: IPoint): Int? = spatialIndex.findClosest(target)
 
     init {
         segments.forEachIndexed { index, segment ->
@@ -368,7 +397,12 @@ interface ISegmentGeometry {
         } else if (segmentM.distance >= length) {
             PointSeekResult(segmentEnd, segmentPoints.lastIndex, true)
         } else {
-            val indexAfter = segmentPoints.indexOfFirst { p -> p.m >= segmentM }
+            // Binary search will return the index of the matching item
+            // If no item matches, it will return the inverted insertion point (-insertion point - 1)
+            val indexAfter =
+                segmentPoints
+                    .binarySearch { p -> p.m.distance.compareTo(segmentM.distance) }
+                    .let { i -> if (i >= 0) i else -(i + 1) }
             val pointAfter = segmentPoints[indexAfter]
             segmentPoints.getOrNull(indexAfter - 1)?.let { pointBefore ->
                 val distanceToLast = abs(pointBefore.m.distance - segmentM.distance)

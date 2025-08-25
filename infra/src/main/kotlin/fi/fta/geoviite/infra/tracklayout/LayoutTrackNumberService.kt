@@ -31,11 +31,9 @@ import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.printCsv
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.stream.Collectors
-import kotlin.text.get
-import kotlin.toString
-import org.springframework.transaction.annotation.Transactional
 
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
 
@@ -336,14 +334,14 @@ private fun locationSourceTranslationKey(
                     false -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-ratko"
                 }
             }
-            ?.let(::LocalizationKey)
+            ?.let(LocalizationKey::of)
 }
 
 private fun gkLocationConfirmedTranslationKey(confirmed: Boolean): LocalizationKey =
     when {
         confirmed -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.confirmed"
         else -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed"
-    }.let(::LocalizationKey)
+    }.let(LocalizationKey::of)
 
 private fun getLocationByPrecision(kmPost: LayoutKmLengthDetails, precision: KmLengthsLocationPrecision): IPoint? =
     when (precision) {

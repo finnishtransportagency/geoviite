@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.switchLibrary.data.RR54_2x1_9
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300A_1_9_O
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -34,7 +34,7 @@ constructor(val switchStructureDao: SwitchStructureDao, val switchLibraryService
     @Test
     fun insertAndFetchSwitchStructureShouldWork() {
         val seq = System.currentTimeMillis()
-        val uniqueSwitchType = SwitchType("YV60-$seq-1:10")
+        val uniqueSwitchType = SwitchType.of("YV60-$seq-1:10")
         val switchStructure =
             SwitchStructureData(
                 type = uniqueSwitchType,
@@ -79,7 +79,7 @@ constructor(val switchStructureDao: SwitchStructureDao, val switchLibraryService
     @Test
     fun `Update switch structure should work as described`() {
         val seq = System.currentTimeMillis()
-        val originalSwitchType = SwitchType("YV60-$seq-1:9")
+        val originalSwitchType = SwitchType.of("YV60-$seq-1:9")
         val originalSwitchStructure = YV60_300A_1_9_O().copy(type = originalSwitchType)
         val originalVersion = switchStructureDao.upsertSwitchStructure(originalSwitchStructure)
         val originalLoadedSwitchStructure = switchStructureDao.fetchSwitchStructure(originalVersion)
@@ -95,7 +95,7 @@ constructor(val switchStructureDao: SwitchStructureDao, val switchLibraryService
     @Test
     fun `Upsert should update modified switch structure`() {
         val seq = System.currentTimeMillis()
-        val switchType = SwitchType("YV60-$seq-1:9")
+        val switchType = SwitchType.of("YV60-$seq-1:9")
         val switchStructure = YV60_300A_1_9_O().copy(type = switchType)
         val version = switchStructureDao.upsertSwitchStructure(switchStructure)
 
@@ -114,7 +114,7 @@ constructor(val switchStructureDao: SwitchStructureDao, val switchLibraryService
     @Test
     fun `Upsert should not update unmodified switch structure`() {
         val seq = System.currentTimeMillis()
-        val switchType = SwitchType("YV60-$seq-1:9")
+        val switchType = SwitchType.of("YV60-$seq-1:9")
         val switchStructure = YV60_300A_1_9_O().copy(type = switchType)
         val versionId = switchStructureDao.upsertSwitchStructure(switchStructure)
 
@@ -132,7 +132,7 @@ constructor(val switchStructureDao: SwitchStructureDao, val switchLibraryService
         val existingSwitchStructuresBeforeUpdate = switchStructureDao.fetchSwitchStructures().map { s -> s.data }
 
         val seq = System.currentTimeMillis()
-        val newSwitchType = SwitchType("YV60-$seq-1:9")
+        val newSwitchType = SwitchType.of("YV60-$seq-1:9")
         val newSwitchStructure = YV60_300A_1_9_O().copy(type = newSwitchType)
 
         switchLibraryService.replaceExistingSwitchStructures(existingSwitchStructuresBeforeUpdate + newSwitchStructure)
@@ -147,7 +147,7 @@ constructor(val switchStructureDao: SwitchStructureDao, val switchLibraryService
         val existingSwitchStructuresBeforeUpdate = switchStructureDao.fetchSwitchStructures().map { s -> s.data }
 
         val seq = System.currentTimeMillis()
-        val newSwitchType = SwitchType("YV60-$seq-1:9")
+        val newSwitchType = SwitchType.of("YV60-$seq-1:9")
         val newSwitchStructure = YV60_300A_1_9_O().copy(type = newSwitchType)
 
         switchLibraryService.replaceExistingSwitchStructures(existingSwitchStructuresBeforeUpdate + newSwitchStructure)

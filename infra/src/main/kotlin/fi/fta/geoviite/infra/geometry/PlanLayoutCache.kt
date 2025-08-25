@@ -29,7 +29,7 @@ const val INFRAMODEL_TRANSFORMATION_KEY_PARENT = "error.infra-model.transformati
 
 data class TransformationError(private val key: String, private val units: GeometryUnits) : GeometryValidationIssue {
     override val issueType = GeometryIssueType.TRANSFORMATION_ERROR
-    override val localizationKey = LocalizationKey("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.$key")
+    override val localizationKey = LocalizationKey.of("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.$key")
     val srid = units.coordinateSystemSrid
     val coordinateSystemName = units.coordinateSystemName
 }

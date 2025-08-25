@@ -186,7 +186,15 @@ fun <M : AlignmentM<M>> simplify(
                 }
 
                 s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-                    if (isPointIncluded(pIndex, p.m.segmentToAlignmentM(m.min), isEndPoint, isOverResolution, bboxContains)) {
+                    if (
+                        isPointIncluded(
+                            pIndex,
+                            p.m.segmentToAlignmentM(m.min),
+                            isEndPoint,
+                            isOverResolution,
+                            bboxContains,
+                        )
+                    ) {
                         if (!isSegmentEndPoint(pIndex)) {
                             // segment end points should be additional points,
                             // so increase m-counter only when handling middle points

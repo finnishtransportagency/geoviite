@@ -49,12 +49,12 @@ import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.getIndexRangeForRangeInOrderedList
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.processSortedBy
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
 import kotlin.math.abs
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 data class AddressPoint<M : AnyM<M>>(val point: AlignmentPoint<M>, val address: TrackMeter) {
     fun isSame(other: AddressPoint<M>) = address.isSame(other.address) && point.isSame(other.point)
@@ -443,7 +443,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
             location: IPoint,
             kmNumber: KmNumber,
             referenceLineGeometry: IAlignment<M>,
-        ) =
+        ): GeocodingReferencePoint<M>? =
             referenceLineGeometry.getClosestPointM(location)?.let { (distance, intersectType) ->
                 val pointOnLine =
                     requireNotNull(referenceLineGeometry.getPointAtM(distance)) {

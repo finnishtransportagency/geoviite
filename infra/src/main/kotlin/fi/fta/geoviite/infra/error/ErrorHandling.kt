@@ -317,7 +317,7 @@ data class ErrorDescription(
         key: String,
         params: LocalizationParams = LocalizationParams.empty,
         priority: ErrorPriority = ErrorPriority.AVERAGE,
-    ) : this(message, LocalizationKey(key), params, priority)
+    ) : this(message, LocalizationKey.of(key), params, priority)
 }
 
 fun getPSQLExceptionConstraintAndDetailOrRethrow(psqlException: PSQLException): Pair<String, String> {

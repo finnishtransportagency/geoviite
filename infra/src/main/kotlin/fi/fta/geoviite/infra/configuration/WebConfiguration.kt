@@ -94,7 +94,7 @@ class WebConfig(
         registry.addStringConstructorConverter(::AuthCode)
         registry.addStringConstructorConverter(::FreeText)
         registry.addStringConstructorConverter(FreeTextWithNewLines::of)
-        registry.addStringConstructorConverter(::LocalizationKey)
+        registry.addStringConstructorConverter(LocalizationKey::of)
 
         registry.addStringConstructorConverter(UserName::of)
         registry.addStringConstructorConverter(AuthName::of)

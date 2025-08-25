@@ -1,8 +1,21 @@
 package fi.fta.geoviite.infra.inframodel
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.HasLocalizedMessage
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.Author
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
+import fi.fta.geoviite.infra.geometry.PlanApplicability
+import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
+import fi.fta.geoviite.infra.geometry.PlanName
+import fi.fta.geoviite.infra.geometry.PlanPhase
+import fi.fta.geoviite.infra.geometry.PlanSource
+import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
@@ -47,7 +60,7 @@ fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationRes
                 listOf(
                     ParsingError(
                         if (e is HasLocalizedMessage) e.localizationKey
-                        else LocalizationKey(INFRAMODEL_PARSING_KEY_GENERIC)
+                        else LocalizationKey.of(INFRAMODEL_PARSING_KEY_GENERIC)
                     )
                 ),
             geometryPlan = null,

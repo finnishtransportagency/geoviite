@@ -13,15 +13,15 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_STATE
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.PROJECT_STATE
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.TECHNICS_FIELD
 import fi.fta.geoviite.infra.util.UnsafeString
-import java.time.Instant
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest(properties = ["geoviite.projektivelho=true"])
@@ -190,7 +190,7 @@ constructor(
         val rejection = pvDao.getRejection(version)
 
         assertEquals(version, rejection.documentVersion)
-        assertEquals(LocalizationKey("test"), rejection.reason)
+        assertEquals(LocalizationKey.of("test"), rejection.reason)
     }
 
     private fun assertDocumentExists(

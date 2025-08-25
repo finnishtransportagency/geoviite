@@ -70,7 +70,7 @@ fun switchStructureYV60_300_1_9(): SwitchStructure {
         version = RowVersion(IntId(55), 1),
         data =
             SwitchStructureData(
-                type = SwitchType("YV60-300-1:9-O"),
+                type = SwitchType.of("YV60-300-1:9-O"),
                 presentationJointNumber = JointNumber(1),
                 joints =
                     setOf(
@@ -107,7 +107,7 @@ fun switchStructureRR54_4x1_9() =
         version = RowVersion(IntId(133), 1),
         data =
             SwitchStructureData(
-                type = SwitchType("RR54-4x1:9"),
+                type = SwitchType.of("RR54-4x1:9"),
                 presentationJointNumber = JointNumber(5),
                 joints =
                     setOf(

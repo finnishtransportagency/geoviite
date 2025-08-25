@@ -10,7 +10,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun SKV60_1000_474_1_15_5_O() =
     SwitchStructureData(
-        type = SwitchType("SKV60-1000/474-1:15,5-O"),
+        type = SwitchType.of("SKV60-1000/474-1:15,5-O"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -39,4 +39,4 @@ fun SKV60_1000_474_1_15_5_O() =
     )
 
 fun SKV60_1000_474_1_15_5_V() =
-    SKV60_1000_474_1_15_5_O().flipAlongYAxis().copy(type = SwitchType("SKV60-1000/474-1:15,5-V"))
+    SKV60_1000_474_1_15_5_O().flipAlongYAxis().copy(type = SwitchType.of("SKV60-1000/474-1:15,5-V"))

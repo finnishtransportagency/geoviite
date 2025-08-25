@@ -122,7 +122,7 @@ class SwitchStructureTest {
 
     private val validSwitchStructure by lazy {
         SwitchStructureData(
-            type = SwitchType("YV60-300-1:9-O"),
+            type = SwitchType.of("YV60-300-1:9-O"),
             presentationJointNumber = JointNumber(1),
             joints =
                 setOf(
@@ -157,40 +157,40 @@ class SwitchStructureTest {
 
     @Test
     fun switchTypeParsingAllowsKnownTypes() {
-        knownSwitchTypes.forEach { type -> assertDoesNotThrow { SwitchType(type) } }
+        knownSwitchTypes.forEach { type -> assertDoesNotThrow { SwitchType.of(type) } }
     }
 
     @Test
     fun switchTypeParsingFindsExpectedParts() {
         assertEquals(
             SwitchTypeParts(SwitchBaseType.YV, 60, listOf(900), "P", "1:18", SwitchHand.RIGHT),
-            SwitchType("YV60-900P-1:18-O").parts,
+            SwitchType.of("YV60-900P-1:18-O").parts,
         )
         assertEquals(
             SwitchTypeParts(SwitchBaseType.KRV, 43, listOf(270), null, "1:9,514", SwitchHand.NONE),
-            SwitchType("KRV43-270-1:9,514").parts,
+            SwitchType.of("KRV43-270-1:9,514").parts,
         )
         assertEquals(
             SwitchTypeParts(SwitchBaseType.YV, 60, listOf(5000, 2500), null, "1:26", SwitchHand.LEFT),
-            SwitchType("YV60-5000/2500-1:26-V").parts,
+            SwitchType.of("YV60-5000/2500-1:26-V").parts,
         )
         assertEquals(
             SwitchTypeParts(SwitchBaseType.SRR, 54, listOf(), null, "2x1:9-6,0", SwitchHand.NONE),
-            SwitchType("SRR54-2x1:9-6,0").parts,
+            SwitchType.of("SRR54-2x1:9-6,0").parts,
         )
         assertEquals(
             SwitchTypeParts(SwitchBaseType.EV, 43, listOf(), null, "1:9", SwitchHand.RIGHT),
-            SwitchType("EV-SJ43-5,9-1:9-H").parts,
+            SwitchType.of("EV-SJ43-5,9-1:9-H").parts,
         )
         assertEquals(
             SwitchTypeParts(SwitchBaseType.EV, 43, listOf(), null, "1:9", SwitchHand.LEFT),
-            SwitchType("EV-SJ43-5,9-1:9-V").parts,
+            SwitchType.of("EV-SJ43-5,9-1:9-V").parts,
         )
     }
 
     @Test
     fun switchTypeDeniesInvalidValues() {
-        assertThrows<IllegalArgumentException> { SwitchType("foo") }
+        assertThrows<IllegalArgumentException> { SwitchType.of("foo") }
     }
 
     @Test
