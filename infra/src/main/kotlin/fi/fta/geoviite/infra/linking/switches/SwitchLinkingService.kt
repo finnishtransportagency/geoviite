@@ -44,9 +44,9 @@ import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.tracklayout.replaceEdges
 import fi.fta.geoviite.infra.util.processFlattened
-import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 @GeoviiteService
 class SwitchLinkingService
@@ -109,7 +109,7 @@ constructor(
                                 relevantTracks,
                             )
                         val withTopoChanges =
-                            locationTrackService.recalculateTopology(branch.draft, changedTracks, switchId, switchId)
+                            locationTrackService.recalculateTopology(branch.draft, changedTracks, switchId)
                         val topoLinkTrackIds = gatherOuterSwitchLinks(withTopoChanges, switchId)
 
                         SuggestedSwitchWithOriginallyLinkedTracks(
@@ -252,8 +252,7 @@ constructor(
                 layoutSwitchId,
                 clearSwitchFromTracks(layoutSwitchId, originalTracks),
             )
-        val recalc =
-            locationTrackService.recalculateTopology(branch.draft, changedTracks, layoutSwitchId, layoutSwitchId)
+        val recalc = locationTrackService.recalculateTopology(branch.draft, changedTracks, layoutSwitchId)
         saveLocationTrackChanges(branch, recalc, originalTracks)
         return updateLayoutSwitch(branch, suggestedSwitch, layoutSwitchId)
     }
@@ -412,7 +411,6 @@ constructor(
                         nearbyTracksForMatch.filterKeys { track -> match.trackLinks.containsKey(track) },
                     ),
                     switchId,
-                    onlySwitchId = switchId,
                 )
                 .forEach { track ->
                     val id = track.first.id as IntId

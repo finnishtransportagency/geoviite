@@ -23,7 +23,6 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -36,6 +35,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -307,8 +307,7 @@ constructor(
                 )
 
         val changedTracks =
-            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id,
-                onlySwitchId = null)
+            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id)
 
         val newTrack1 = changedTracks.first { it.first.id == track1.first.id }
         assertEquals(
@@ -418,7 +417,7 @@ constructor(
                 )
 
         val changedTracks =
-            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id, onlySwitchId = null)
+            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id)
 
         val newTrack1 = changedTracks.first { it.first.id == track1.first.id }
         assertEquals(
@@ -491,7 +490,7 @@ constructor(
             locationTrack(trackNumberId, id = IntId(2)) to
                 trackGeometry(edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0)))), trackId = IntId(2))
         val changedTracks =
-            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2), switchId, onlySwitchId = null)
+            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2), switchId)
 
         // Both tracks are in the result set
         assertEquals(2, changedTracks.size)
@@ -555,7 +554,7 @@ constructor(
                 )
 
         val changedTracks =
-            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id, onlySwitchId = null)
+            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1, track2, track3), switch1Id)
 
         val newTrack1 = changedTracks.first { it.first.id == track1.first.id }
         val newTrack2 = changedTracks.first { it.first.id == track2.first.id }
@@ -590,7 +589,6 @@ constructor(
                 MainLayoutContext.draft,
                 listOf(),
                 listOf(MultiPoint(Point(10.0, 0.0))),
-                onlySwitchId = null,
             )
 
         // Nothing to do on the first track & not pre-changed -> no unneeded change is generated
@@ -628,7 +626,7 @@ constructor(
                 trackGeometry(edge(listOf(segment(point3, point4)), startInnerSwitch = switchLinkYV(switch1Id, 2)))
 
         val changedTracks =
-            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1UnsavedChange), switch1Id, onlySwitchId = null)
+            locationTrackService.recalculateTopology(MainLayoutContext.draft, listOf(track1UnsavedChange), switch1Id)
 
         // Track1 should come out as given on the changed-list as there's no new topology changes
         val newTrack1 = changedTracks.first { it.first.id == track1SavedOfficial }

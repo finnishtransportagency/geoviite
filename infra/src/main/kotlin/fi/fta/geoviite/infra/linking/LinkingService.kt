@@ -145,12 +145,7 @@ constructor(
             locationTrackService.saveDraft(branch, track, newGeometry)
         } else {
             locationTrackService
-                .recalculateTopology(
-                    branch.draft,
-                    listOf(track to newGeometry),
-                    changedTopologyPoints,
-                    onlySwitchId = null,
-                )
+                .recalculateTopology(branch.draft, listOf(track to newGeometry), changedTopologyPoints)
                 .map { (t, g) -> locationTrackService.saveDraft(branch, t, g) }
                 .first { it.id == track.id }
         }
