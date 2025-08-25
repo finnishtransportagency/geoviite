@@ -6,6 +6,7 @@ import {
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
     LocationTrackNamingScheme,
+    locationTrackNameFieldsSanitized,
 } from 'track-layout/track-layout-model';
 import { Dialog, DialogVariant, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -287,15 +288,15 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 
     function save() {
         if (canSaveLocationTrack(state) && state.locationTrack) {
-            const locationTrackWithTrimmedStrings = {
+            const saveRequestWithSanitizedNameAndDescription = {
                 ...state.locationTrack,
-                nameFreeText: state.locationTrack.nameFreeText?.trim(),
+                ...locationTrackNameFieldsSanitized(state.locationTrack),
                 descriptionBase: state.locationTrack.descriptionBase?.trim(),
             };
 
             stateActions.onStartSaving();
             if (state.isNewLocationTrack) {
-                insertLocationTrack(layoutContextDraft, locationTrackWithTrimmedStrings)
+                insertLocationTrack(layoutContextDraft, saveRequestWithSanitizedNameAndDescription)
                     .then((locationTrackId) => {
                         props.onSave && props.onSave(locationTrackId);
                         Snackbar.success('location-track-dialog.created-successfully');
@@ -306,12 +307,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 updateLocationTrack(
                     layoutContextDraft,
                     state.existingLocationTrack.id,
-                    locationTrackWithTrimmedStrings,
+                    saveRequestWithSanitizedNameAndDescription,
                 )
                     .then((locationTrackId) => {
                         props.onSave && props.onSave(locationTrackId);
                         const successMessage =
-                            locationTrackWithTrimmedStrings.state === 'DELETED'
+                            saveRequestWithSanitizedNameAndDescription.state === 'DELETED'
                                 ? 'location-track-dialog.deleted-successfully'
                                 : 'location-track-dialog.modified-successfully';
                         Snackbar.success(successMessage);
