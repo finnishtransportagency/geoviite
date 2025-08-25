@@ -27,7 +27,6 @@ import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
-import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -541,17 +540,13 @@ constructor(
                     getSwitchLinksChangedRemark(translation, switchLinkChanges),
                 )
             },
-            // TODO owner
         )
     }
 
     fun diffReferenceLine(
         translation: Translation,
         changes: ReferenceLineChanges,
-        newTimestamp: Instant,
-        oldTimestamp: Instant,
         changedKmNumbers: Set<KmNumber>,
-        getGeocodingContext: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
     ): List<PublicationChange<*>> {
         return listOfNotNull(
             compareLength(
@@ -694,85 +689,71 @@ constructor(
         }
 
         val connectedTrackChanges =
-            if (changes.state.new != LayoutStateCategory.NOT_EXISTING) {
-                changes.trackJoints.mapNotNull { track ->
-                    val localizationParams = localizationParams("locationTrack" to track.name)
-                    compareChange(
-                        change = track.joints,
-                        valueTransform = {
-                            translation.t(
-                                "publication-details-table.track-linked",
-                                localizationParams("joints" to jointsString(it)),
-                            )
-                        },
-                        propKey = PropKey("location-track-link", localizationParams),
-                        nullReplacement = translation.t("publication-details-table.track-not-linked"),
-                    )
-                }
-            } else emptyList()
+            changes.trackJoints.mapNotNull { track ->
+                val localizationParams = localizationParams("locationTrack" to track.name)
+                compareChange(
+                    change = track.joints,
+                    valueTransform = {
+                        translation.t(
+                            "publication-details-table.track-linked",
+                            localizationParams("joints" to jointsString(it)),
+                        )
+                    },
+                    propKey = PropKey("location-track-link", localizationParams),
+                    nullReplacement = translation.t("publication-details-table.track-not-linked"),
+                )
+            }
 
         val jointLocationChanges =
-            if (changes.state.new != LayoutStateCategory.NOT_EXISTING) {
-                changes.trackConnections
-                    .map { tracks -> tracks.flatMap { t -> t.joints } }
-                    // Transform to list of per-joint changes
-                    .itemize { j -> j.jointNumber }
-                    .sortedBy { (j, _) -> j.intValue }
-                    // Joint addition/removal is visible in connectedTrackChanges so we only care about location changes
-                    // TODO: GVT-3128 Do we want to show coordinates in addition/removal cases?
-                    // .filter { (_, change) -> change.old != null && change.new != null }
-                    .mapNotNull { (jointNumber: JointNumber, change: Change<PublicationSwitchJoint?>) ->
-                        val distance =
-                            if (change.old != null && change.new != null) {
-                                // TODO: GVT-3232 How useful is this?
-                                lineLength(change.old.location, change.new.location)
-                                //                                calculateDistance(listOf(change.old.location,
-                                // change.new.location), LAYOUT_SRID)
-                            } else {
-                                0.0
-                            }
-                        val jointPropKeyParams = localizationParams("jointNumber" to jointNumber.intValue.toString())
-                        compareChange(
-                            change = change.map { c -> c?.location },
-                            isSame = { old, new -> distance < DISTANCE_CHANGE_THRESHOLD },
-                            valueTransform = ::formatLocation,
-                            propKey = PropKey("switch-joint-location", jointPropKeyParams),
-                            remark = getPointMovedRemarkOrNull(translation, change.old?.location, change.new?.location),
-                            nullReplacement = translation.t("publication-details-table.no-location"),
-                        )
-                    }
-            } else emptyList()
+            changes.trackConnections
+                .map { tracks -> tracks.flatMap { t -> t.joints } }
+                // Transform to list of per-joint changes
+                .itemize { j -> j.jointNumber }
+                .sortedBy { (j, _) -> j.intValue }
+                .mapNotNull { (jointNumber: JointNumber, change: Change<PublicationSwitchJoint?>) ->
+                    val distance =
+                        if (change.old != null && change.new != null) {
+                            // For the change diff, pythagorean distance is accurate enough
+                            lineLength(change.old.location, change.new.location)
+                        } else {
+                            0.0
+                        }
+                    val jointPropKeyParams = localizationParams("jointNumber" to jointNumber.intValue.toString())
+                    compareChange(
+                        change = change.map { c -> c?.location },
+                        isSame = { old, new -> distance < DISTANCE_CHANGE_THRESHOLD },
+                        valueTransform = ::formatLocation,
+                        propKey = PropKey("switch-joint-location", jointPropKeyParams),
+                        remark = getPointMovedRemarkOrNull(translation, change.old?.location, change.new?.location),
+                        nullReplacement = translation.t("publication-details-table.no-location"),
+                    )
+                }
 
         val jointAddressChanges =
-            if (changes.state.new != LayoutStateCategory.NOT_EXISTING) {
-                changes.trackNumberJointLocations
-                    .groupBy { change -> change.jointNumber }
-                    .toList()
-                    .sortedBy { (j, _) -> j.intValue }
-                    .flatMap { (joint: JointNumber, changes: List<TrackNumberJointLocationChange>) ->
-                        changes
-                            .sortedBy { c -> c.trackNumberId.intValue }
-                            .mapNotNull { change ->
-                                getAddressChange(change.location, change.trackNumberId)
-                                    // TODO: GVT-3128 Do we want to show addresses in addition/removal cases?
-                                    // ?.takeIf { change -> change.old != null && change.new != null }
-                                    ?.let { addressChange ->
-                                        val jointPropKeyParams =
-                                            localizationParams(
-                                                "jointNumber" to joint.intValue.toString(),
-                                                "trackNumber" to getTrackNumber(change.trackNumberId),
-                                            )
-                                        compareChange(
-                                            change = addressChange,
-                                            valueTransform = { it.toString() },
-                                            propKey = PropKey("switch-track-address", jointPropKeyParams),
-                                            remark = getAddressMovedRemarkOrNull(translation, addressChange),
-                                            nullReplacement = translation.t("publication-details-table.no-location"),
-                                        )
-                                    }
+            changes.trackNumberJointLocations
+                .groupBy { change -> change.jointNumber }
+                .toList()
+                .sortedBy { (j, _) -> j.intValue }
+                .flatMap { (joint: JointNumber, changes: List<TrackNumberJointLocationChange>) ->
+                    changes
+                        .sortedBy { c -> c.trackNumberId.intValue }
+                        .mapNotNull { change ->
+                            getAddressChange(change.location, change.trackNumberId)?.let { addressChange ->
+                                val jointPropKeyParams =
+                                    localizationParams(
+                                        "jointNumber" to joint.intValue.toString(),
+                                        "trackNumber" to getTrackNumber(change.trackNumberId),
+                                    )
+                                compareChange(
+                                    change = addressChange,
+                                    valueTransform = { it.toString() },
+                                    propKey = PropKey("switch-track-address", jointPropKeyParams),
+                                    remark = getAddressMovedRemarkOrNull(translation, addressChange),
+                                    nullReplacement = translation.t("publication-details-table.no-location"),
+                                )
                             }
-                    }
-            } else emptyList()
+                        }
+                }
 
         return listOfNotNull(
             compareChangeValues(changes.name, { it }, PropKey("switch")),
@@ -947,10 +928,7 @@ constructor(
                             publicationReferenceLineChanges.getOrElse(rl.id) {
                                 error("Reference line changes not found: id=${rl.id} version=${rl.version}")
                             },
-                            publication.publicationTime,
-                            previousComparisonTime,
                             rl.changedKmNumbers,
-                            geocodingContextGetter,
                         ),
                 )
             }

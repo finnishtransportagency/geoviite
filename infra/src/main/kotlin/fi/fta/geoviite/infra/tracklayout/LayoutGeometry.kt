@@ -5,7 +5,6 @@ import com.github.davidmoten.rtree2.RTree
 import com.github.davidmoten.rtree2.geometry.Geometries
 import com.github.davidmoten.rtree2.geometry.Geometry
 import com.github.davidmoten.rtree2.geometry.Line
-import com.github.davidmoten.rtree2.geometry.Rectangle
 import com.github.davidmoten.rtree2.internal.EntryDefault
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
@@ -277,18 +276,12 @@ interface IAlignment<M : AlignmentM<M>> : Loggable {
 private fun segmentRTreeLine(segment: ISegment): Line =
     segment.let { s -> Geometries.line(s.segmentStart.x, s.segmentStart.y, s.segmentEnd.x, s.segmentEnd.y) }
 
-private fun segmentRTreeRect(segment: ISegment): Rectangle =
-    segment.boundingBox.let { b -> Geometries.rectangle(b.x.min, b.y.min, b.x.max, b.y.max) }
-
 data class SegmentSpatialIndex(private val rtree: RTree<Int, Geometry>, private val maxSeekDistance: Double = 1000.0) {
     constructor(
         segments: List<ISegment>
     ) : this(
         segments
             .mapIndexed { index, segment -> EntryDefault<Int, Geometry>(index, segmentRTreeLine(segment)) }
-            //            .mapIndexed { index, segment -> EntryDefault<Int, Geometry>(index, segmentRTreeRect(segment))
-            // }
-            //                        .let { entries -> RTree.star().create<Int, Geometry>(entries) }
             .let { entries -> RTree.create<Int, Geometry>(entries) }
     )
 
