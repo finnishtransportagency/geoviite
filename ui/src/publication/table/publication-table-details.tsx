@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
 import { PublicationChange } from 'publication/publication-model';
+import styles from './publication-table.scss';
 
 type PublicationTableDetailsProps = {
     id: string;
@@ -30,13 +31,27 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
     }
 
     return (
-        <Table wide>
+        <Table wide className={styles['publication-table-details']}>
             <thead>
                 <tr>
-                    <Th>{t('publication-details-table.property')}</Th>
-                    <Th>{t('publication-details-table.old-value')}</Th>
-                    <Th>{t('publication-details-table.new-value')}</Th>
-                    <Th>{t('publication-details-table.remarks')}</Th>
+                    <Th
+                        transparent
+                        className={styles['publication-table-details__property-header']}>
+                        {t('publication-details-table.property')}
+                    </Th>
+                    <Th
+                        transparent
+                        className={styles['publication-table-details__old-value-header']}>
+                        {t('publication-details-table.old-value')}
+                    </Th>
+                    <Th
+                        transparent
+                        className={styles['publication-table-details__new-value-header']}>
+                        {t('publication-details-table.new-value')}
+                    </Th>
+                    <Th transparent className={styles['publication-table-details__remarks-header']}>
+                        {t('publication-details-table.remarks')}
+                    </Th>
                 </tr>
             </thead>
             <tbody>
