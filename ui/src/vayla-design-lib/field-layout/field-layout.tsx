@@ -29,6 +29,7 @@ export const FieldLayout: React.FC<FieldLayoutProps> = ({
         props.disabled && styles['field-layout__label--disabled'],
     );
     const valueClassName = createClassName(
+        styles['field-layout__value'],
         props.disabled && styles['field-layout__value--disabled'],
     );
 

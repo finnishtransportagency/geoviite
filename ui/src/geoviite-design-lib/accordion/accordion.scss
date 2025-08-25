@@ -21,7 +21,7 @@
 .accordion__header-title {
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: preserve nowrap;
 
     &--clickable {
         cursor: pointer;

@@ -259,7 +259,7 @@ $dropdown-border-error: 2px;
 
 .dropdown__list-item-text {
     flex: 1;
-    white-space: nowrap;
+    white-space: preserve nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
 }

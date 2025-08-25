@@ -6,6 +6,7 @@
         overflow: auto;
         padding-left: 32px;
         flex-grow: 1;
+        white-space: pre-wrap;
     }
 
     &__element-count {

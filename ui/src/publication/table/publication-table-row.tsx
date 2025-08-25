@@ -74,7 +74,7 @@ const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     );
 
     const rowClassNames = createClassName(
-        'publication-table__row',
+        styles['publication-table__row'],
         detailsVisible && styles['publication-table__row-details--borderless'],
     );
 
