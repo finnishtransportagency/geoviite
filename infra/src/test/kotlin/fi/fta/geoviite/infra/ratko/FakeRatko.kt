@@ -47,6 +47,7 @@ import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
 import org.mockserver.model.Parameter
+import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -59,6 +60,8 @@ class FakeRatkoService @Autowired constructor(@Value("\${geoviite.ratko.test-por
 }
 
 class FakeRatko(port: Int) {
+    private val logger = LoggerFactory.getLogger(this::class.java)
+
     private val mockServer: ClientAndServer =
         ClientAndServer.startClientAndServer(Configuration.configuration().logLevel(Level.ERROR), port)
 
@@ -507,7 +510,7 @@ class FakeRatko(port: Int) {
                 },
                 times ?: Times.unlimited(),
             )
-            .also { println(url) }
+            .also { logger.info("Binding $method $url") }
 
     private fun ok() = HttpResponse.response().withStatusCode(200)
 

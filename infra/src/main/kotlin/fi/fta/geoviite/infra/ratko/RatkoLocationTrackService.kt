@@ -259,15 +259,6 @@ constructor(
         )
     }
 
-    private fun refreshSplitSourceTrackState(
-        pushableBranch: PushableLayoutBranch,
-        publicationTime: Instant,
-        sourceTrack: LocationTrack,
-        sourceTrackKmNumbers: Set<KmNumber>,
-        sourceTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
-        sourceRatkoLocationTrack: RatkoLocationTrack,
-    ) {}
-
     fun pushLocationTrackChangesToRatko(
         branch: PushableLayoutBranch,
         publishedLocationTracks: Collection<PublishedLocationTrack>,
@@ -535,10 +526,7 @@ constructor(
                 changedNodeCollection = deletedEndsPoints,
             )
 
-            ratkoClient.deleteLocationTrackPoints(
-                RatkoOid(locationTrackExternalId.oid),
-                null,
-            ) // TODO Käytä nullia splitin lähderaiteen geometriapäivityksen viennissäkin?
+            ratkoClient.deleteLocationTrackPoints(RatkoOid(locationTrackExternalId.oid), null)
         } catch (ex: RatkoPushException) {
             throw ex
         } catch (ex: Exception) {

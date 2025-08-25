@@ -2398,7 +2398,7 @@ class PublicationDao(
             """
                 .trimIndent()
 
-        val params = mapOf("publication_id" to publicationId, "includeRemoved" to includeRemoved)
+        val params = mapOf("publication_id" to publicationId.intValue, "includeRemoved" to includeRemoved)
 
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
