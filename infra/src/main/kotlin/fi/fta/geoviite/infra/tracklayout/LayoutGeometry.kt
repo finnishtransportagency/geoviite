@@ -398,9 +398,11 @@ interface ISegmentGeometry {
             PointSeekResult(segmentEnd, segmentPoints.lastIndex, true)
         } else {
             // Binary search will return the index of the matching item
-            // If no item matches, it will return the inverted insertion point -> the index after the M
-            val indexAfter = abs(segmentPoints.binarySearch { p -> segmentM.distance.compareTo(segmentM.distance) })
-            //            .indexOfFirst { p -> p.m >= segmentM }
+            // If no item matches, it will return the inverted insertion point (-insertion point - 1)
+            val indexAfter =
+                segmentPoints
+                    .binarySearch { p -> p.m.distance.compareTo(segmentM.distance) }
+                    .let { i -> if (i >= 0) i else -(i + 1) }
             val pointAfter = segmentPoints[indexAfter]
             segmentPoints.getOrNull(indexAfter - 1)?.let { pointBefore ->
                 val distanceToLast = abs(pointBefore.m.distance - segmentM.distance)

@@ -2,9 +2,6 @@ package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.localization.LocalizationKey
-import java.io.InputStream
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,6 +9,9 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.context.ActiveProfiles
+import java.io.InputStream
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -23,7 +23,10 @@ internal class InfraModelControllerIT @Autowired constructor(val infraModelServi
         val result = infraModelService.validateInfraModelFile(emptyFile, null)
         assertNull(result.geometryPlan)
         assertEquals(1, result.geometryValidationIssues.size)
-        assertEquals(LocalizationKey(INFRAMODEL_PARSING_KEY_EMPTY), result.geometryValidationIssues[0].localizationKey)
+        assertEquals(
+            LocalizationKey.of(INFRAMODEL_PARSING_KEY_EMPTY),
+            result.geometryValidationIssues[0].localizationKey,
+        )
     }
 
     @Test
@@ -40,7 +43,7 @@ internal class InfraModelControllerIT @Autowired constructor(val infraModelServi
         assertNull(result.geometryPlan)
         assertEquals(1, result.geometryValidationIssues.size)
         assertEquals(
-            LocalizationKey("$INFRAMODEL_PARSING_KEY_PARENT.wrong-content-type"),
+            LocalizationKey.of("$INFRAMODEL_PARSING_KEY_PARENT.wrong-content-type"),
             result.geometryValidationIssues[0].localizationKey,
         )
     }
