@@ -16,6 +16,7 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
     margin: 0;
     background: rgba(colors.$color-black-lighter, 0.5);
     z-index: layers.$layer-popup;
+    white-space: pre-wrap;
 }
 
 .dialog__popup {

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
 import { PublicationChange } from 'publication/publication-model';
+import styles from './publication-table.scss';
 
 type PublicationTableDetailsProps = {
     id: string;
@@ -39,7 +40,7 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
                     <Th>{t('publication-details-table.remarks')}</Th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody className={styles['publication-table__row-details-row']}>
                 {changes.map((change, index) => (
                     <tr key={`${id}_detail_${index}`}>
                         <td>

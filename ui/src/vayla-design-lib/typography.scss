@@ -53,6 +53,7 @@ $font-family: 'Open Sans', sans-serif;
     font-style: normal;
     font-weight: $font-weight;
     line-height: 16px;
+    white-space: pre-wrap;
 }
 
 @mixin typography-caption-strong {

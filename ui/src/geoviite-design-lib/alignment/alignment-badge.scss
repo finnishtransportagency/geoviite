@@ -12,6 +12,7 @@
     padding: 5px 6px;
     border-radius: 2px;
     user-select: none;
+    white-space: pre-wrap;
 
     &--reference {
         background-color: vayla-design.$color-black-lighter;

@@ -25,6 +25,10 @@
     }
 }
 
+.field-layout__value > * {
+    white-space: pre-wrap;
+}
+
 .field-layout--has-error .field-layout__label {
     color: colors.$color-red-dark;
 }

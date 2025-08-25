@@ -75,6 +75,7 @@
         align-items: start;
         margin-left: 24px;
         flex-grow: 1;
+        white-space: pre-wrap;
 
         &--error {
             color: vayla-design.$color-red-dark;
@@ -89,6 +90,7 @@
         @include vayla-design.typography-caption;
 
         color: vayla-design.$color-black-light;
+        white-space: pre-wrap;
     }
 
     &__buttons {

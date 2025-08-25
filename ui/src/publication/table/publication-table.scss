@@ -23,7 +23,7 @@
         overflow: hidden;
 
         &--collapsed {
-            white-space: nowrap;
+            white-space: preserve nowrap;
         }
 
         &--expanded {
@@ -43,23 +43,31 @@
         }
     }
 
-    &__row-details {
-        &--borderless > td {
-            border: none;
+    &__row {
+        white-space: pre-wrap;
+
+        &-details {
+            &--borderless > td {
+                border: none;
+            }
+
+            &-row {
+                white-space: pre-wrap;
+            }
         }
-    }
 
-    &__row-details-left-bar-container {
-        position: relative;
-    }
+        &-details-left-bar-container {
+            position: relative;
+        }
 
-    &__row-details-left-bar {
-        position: absolute;
-        width: 4px;
-        top: 0;
-        left: 24px;
-        height: 100%;
-        background-color: vayla-design.$color-blue-default;
+        &-details-left-bar {
+            position: absolute;
+            width: 4px;
+            top: 0;
+            left: 24px;
+            height: 100%;
+            background-color: vayla-design.$color-blue-default;
+        }
     }
 
     &__header--accordion {
