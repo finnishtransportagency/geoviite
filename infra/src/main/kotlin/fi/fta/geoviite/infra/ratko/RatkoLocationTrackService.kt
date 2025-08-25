@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.common.RatkoExternalId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.integration.RatkoOperation
@@ -31,7 +32,9 @@ import fi.fta.geoviite.infra.ratko.model.convertToRatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoNodeCollection
 import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegmentMetadata
@@ -43,6 +46,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -96,17 +100,25 @@ constructor(
         val (sourceTrack, sourceTrackGeometry) = locationTrackService.getWithGeometry(split.sourceLocationTrackVersion)
         val sourceTrackExternalId = MainBranchRatkoExternalId(oidMapping[sourceTrack.id]?.oid.let(::requireNotNull))
 
-        refreshSplitSourceTrackState(
-            pushableBranch,
-            layoutContext,
-            publicationTime,
-            sourceTrack,
-            sourceTrackExternalId,
-            sourceRatkoLocationTrack,
-        )
-
         val sourceTrackGeocodingContext =
-            geocodingService.getGeocodingContext(layoutContext, sourceTrack.trackNumberId).let(::requireNotNull)
+            geocodingService
+                .getGeocodingContextAtMoment(pushableBranch.branch, sourceTrack.trackNumberId, publicationTime)
+                .let(::requireNotNull)
+
+        updateLocationTrack(
+            branch = pushableBranch.branch,
+            locationTrack = sourceTrack,
+            locationTrackExternalId = sourceTrackExternalId,
+            existingRatkoLocationTrack = sourceRatkoLocationTrack,
+            changedKmNumbers = getAllKmNumbers(sourceTrackGeometry, sourceTrackGeocodingContext),
+            moment = publicationTime,
+            // Split source track is overridden to be IN_USE, as otherwise it would be set to DELETED.
+            // (Which it actually already is in Geoviite, but a DELETED track cannot be referenced in Ratko).
+            //
+            // Split source track is also actually set to OLD instead of DELETED after a split has been pushed, but it
+            // cannot be set to OLD before using it with split source tracks.
+            locationTrackStateOverride = RatkoLocationTrackState.IN_USE,
+        )
 
         val publishedSwitchJoints =
             split.publicationId.let(::requireNotNull).let { publicationId ->
@@ -118,27 +130,13 @@ constructor(
                 val targetLocationTrackExternalId =
                     oidMapping[splitTarget.locationTrackId]?.oid.let(::requireNotNull).let(::MainBranchRatkoExternalId)
 
-                val (targetLocationTrack, targetGeometry) =
-                    locationTrackService
-                        .getWithGeometry(layoutContext, splitTarget.locationTrackId)
-                        .let(::requireNotNull)
-
-                val targetStartAndEnd =
-                    getSplitTargetTrackStartAndEndAddresses(
-                            sourceTrackGeocodingContext,
-                            sourceTrackGeometry,
-                            splitTarget,
-                            targetGeometry,
-                        )
-                        .let { (start, end) -> requireNotNull(start) to requireNotNull(end) }
-
                 pushSplitTarget(
                     layoutContext,
                     sourceTrackExternalId,
+                    sourceTrackGeometry,
+                    sourceTrackGeocodingContext,
                     targetLocationTrackExternalId,
-                    targetLocationTrack,
-                    targetStartAndEnd,
-                    splitTarget.operation,
+                    splitTarget,
                     split.relinkedSwitches,
                     publishedSwitchJoints,
                     publicationTime,
@@ -159,15 +157,31 @@ constructor(
     private fun pushSplitTarget(
         layoutContext: LayoutContext,
         sourceTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
+        sourceTrackGeometry: DbLocationTrackGeometry,
+        sourceTrackGeocodingContext: GeocodingContext<ReferenceLineM>,
         targetLocationTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
-        targetLocationTrack: LocationTrack,
-        targetStartAndEnd: Pair<TrackMeter, TrackMeter>,
-        splitTargetOperation: SplitTargetOperation,
+        splitTarget: SplitTarget,
         splitRelinkedSwitches: List<IntId<LayoutSwitch>>,
         publishedSwitchJoints: Map<IntId<LayoutSwitch>, List<PublishedSwitchJoint>>,
         publicationTime: Instant,
     ): Oid<LocationTrack> {
         val existingRatkoLocationTrack = ratkoClient.getLocationTrack(RatkoOid(targetLocationTrackExternalId.oid))
+
+        val (targetLocationTrack, targetGeometry) =
+            locationTrackService.getWithGeometry(layoutContext, splitTarget.locationTrackId).let(::requireNotNull)
+
+        // The split target is required to be using the same TrackNumber as the split source track,
+        // meaning that the split source track geocoding context can also be used when geocoding the target.
+        val targetStartAndEnd =
+            getSplitTargetTrackStartAndEndAddresses(
+                    sourceTrackGeocodingContext,
+                    sourceTrackGeometry,
+                    splitTarget,
+                    targetGeometry,
+                )
+                .let { (start, end) -> requireNotNull(start) to requireNotNull(end) }
+
+        val targetKmNumbers = getAllKmNumbers(targetGeometry, sourceTrackGeocodingContext)
 
         if (existingRatkoLocationTrack == null) {
             createLocationTrack(
@@ -178,7 +192,7 @@ constructor(
                 locationTrackOidOfGeometry = sourceTrackExternalId,
             )
         } else {
-            if (splitTargetOperation == SplitTargetOperation.TRANSFER) {
+            if (splitTarget.operation == SplitTargetOperation.TRANSFER) {
                 // Due to a possibly mismatching geometry between Geoviite & Ratko, the track
                 // kilometers containing relinked switches are updated for a TRANSFER target track.
                 // If this is not done, the integration may fail further in the chain of operations
@@ -194,22 +208,12 @@ constructor(
                 )
             }
 
-            // TODO Unused when using referenced geometry (below)
-            val allKmNumbers =
-                geocodingService
-                    .getAddressPoints(layoutContext, targetLocationTrack.id as IntId)
-                    .let(::requireNotNull)
-                    .allPoints
-                    .asSequence()
-                    .map { addressPoint -> addressPoint.address.kmNumber }
-                    .toSet()
-
             updateLocationTrack(
                 layoutContext.branch,
                 targetLocationTrack,
                 targetLocationTrackExternalId,
                 existingRatkoLocationTrack,
-                allKmNumbers,
+                targetKmNumbers,
                 publicationTime,
                 locationTrackOidOfGeometry = sourceTrackExternalId,
                 splitStartAndEnd = targetStartAndEnd,
@@ -257,30 +261,12 @@ constructor(
 
     private fun refreshSplitSourceTrackState(
         pushableBranch: PushableLayoutBranch,
-        layoutContext: LayoutContext,
         publicationTime: Instant,
         sourceTrack: LocationTrack,
+        sourceTrackKmNumbers: Set<KmNumber>,
         sourceTrackExternalId: MainBranchRatkoExternalId<LocationTrack>,
         sourceRatkoLocationTrack: RatkoLocationTrack,
-    ) {
-        // TODO These could be passed and fetched with the actual time (similarly to what the
-        // updateLocationTrack is doing)
-        val alignmentAddresses = geocodingService.getAddressPoints(layoutContext, sourceTrack.id as IntId)
-        requireNotNull(alignmentAddresses) { "Address points were undetermined, lt=${sourceTrack.id}" }
-
-        val allKmNumbers =
-            alignmentAddresses.allPoints.asSequence().map { addressPoint -> addressPoint.address.kmNumber }.toSet()
-
-        updateLocationTrack(
-            branch = pushableBranch.branch,
-            locationTrack = sourceTrack,
-            locationTrackExternalId = sourceTrackExternalId,
-            existingRatkoLocationTrack = sourceRatkoLocationTrack,
-            changedKmNumbers = allKmNumbers,
-            moment = publicationTime,
-            locationTrackStateOverride = RatkoLocationTrackState.IN_USE,
-        )
-    }
+    ) {}
 
     fun pushLocationTrackChangesToRatko(
         branch: PushableLayoutBranch,
@@ -702,4 +688,17 @@ constructor(
 
         return addresses to geocodingContext.getSwitchPoints(geometry)
     }
+}
+
+private fun getAllKmNumbers(
+    geometry: DbLocationTrackGeometry,
+    geocodingContext: GeocodingContext<ReferenceLineM>,
+): Set<KmNumber> {
+    return geocodingContext
+        .getAddressPoints(geometry)
+        .let(::requireNotNull)
+        .allPoints
+        .asSequence()
+        .map { addressPoint -> addressPoint.address.kmNumber }
+        .toSet()
 }

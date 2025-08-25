@@ -287,24 +287,24 @@ constructor(
         publicationTime: Instant,
         split: Split,
     ): SplitTargetInPublication? {
-        val (targetTrack, targetGeometry) = locationTrackService.getWithGeometry(rowVersion)
-        return split.getTargetLocationTrack(targetTrack.id as IntId)?.let { splitTarget ->
+        val (track, geometry) = locationTrackService.getWithGeometry(rowVersion)
+        return split.getTargetLocationTrack(track.id as IntId)?.let { splitTarget ->
             val ctx =
                 requireNotNull(
                     geocodingService.getGeocodingContextAtMoment(
                         publicationBranch,
-                        targetTrack.trackNumberId,
+                        track.trackNumberId,
                         publicationTime,
                     )
                 )
 
             val (startAddress, endAddress) =
-                getSplitTargetTrackStartAndEndAddresses(ctx, sourceGeometry, splitTarget, targetGeometry)
+                getSplitTargetTrackStartAndEndAddresses(ctx, sourceGeometry, splitTarget, geometry)
 
             return SplitTargetInPublication(
-                id = targetTrack.id,
-                name = targetTrack.name,
-                oid = locationTrackDao.fetchExternalId(publicationBranch, targetTrack.id)?.oid,
+                id = track.id,
+                name = track.name,
+                oid = locationTrackDao.fetchExternalId(publicationBranch, track.id)?.oid,
                 startAddress = startAddress,
                 endAddress = endAddress,
                 operation = splitTarget.operation,

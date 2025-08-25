@@ -53,7 +53,6 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientRequestException
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
-import org.springframework.web.util.UriComponentsBuilder
 import reactor.core.publisher.Mono
 import java.time.Duration
 
@@ -278,9 +277,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         logger.integrationCall("newLocationTrack", "locationTrack" to locationTrack)
 
         return locationTrackOidOfGeometry?.let { referencedGeometryOid ->
-            val url = "$LOCATION_TRACK_PATH?locationtrackOidOfGeometry=${referencedGeometryOid.id}"
-
-            postWithResponseBody(url, locationTrack)
+            postWithResponseBody(
+                "$LOCATION_TRACK_PATH?locationtrackOidOfGeometry=${referencedGeometryOid.id}",
+                locationTrack,
+            )
         } ?: postWithResponseBody(LOCATION_TRACK_PATH, locationTrack)
     }
 
@@ -636,11 +636,3 @@ fun combinePaths(vararg paths: Any?) =
         .mapNotNull { it?.toString() } // otherwise null will toString() to "null"
         .joinToString("/")
         .replace(Regex("/+"), "/")
-
-fun buildUrl(baseUrl: String, params: Map<String, String>): String {
-    val builder = UriComponentsBuilder.fromUriString(baseUrl)
-
-    params.forEach { (key, value) -> builder.queryParam(key, value) }
-
-    return builder.encode().toUriString()
-}
