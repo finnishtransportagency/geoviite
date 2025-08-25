@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoAssetType
 import fi.fta.geoviite.infra.ratko.model.RatkoCrs
 import fi.fta.geoviite.infra.ratko.model.RatkoGeometryType
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
+import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
 import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
@@ -110,9 +111,10 @@ class FakeRatko(port: Int) {
             .respond(okJson(mapOf("id" to oid)))
         put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
 
+        get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
         ratkoLocationTrackAfterCreation?.let { ratkoTrack ->
             get("/api/locations/v1.1/locationtracks/${oid}").respond(okJson(listOf(ratkoTrack)))
-        } ?: get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
+        }
 
         post("/api/infra/v1.0/points/${oid}").respond(ok())
         patch("/api/infra/v1.0/points/${oid}").respond(ok())
@@ -207,6 +209,28 @@ class FakeRatko(port: Int) {
         patch("/api/infra/v1.0/points/${oid}", times = allowedAmountOfPointsUpdateCalls).respond(ok())
         post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
+    }
+
+    fun expectsLocationTrackStateTransforms(
+        locationTrackAsset: InterfaceRatkoLocationTrack,
+        states: List<RatkoLocationTrackState>,
+    ) {
+        get("/api/locations/v1.1/locationtracks/${locationTrackAsset.id}").respond(okJson(listOf(locationTrackAsset)))
+        patch("/api/infra/v1.0/points/${locationTrackAsset.id}").respond(ok())
+        locationTrackAsset.nodecollection.nodes
+            .map { node -> node.point.km }
+            .distinct()
+            .forEach { km -> delete("/api/infra/v1.0/points/${locationTrackAsset.id}/${km}").respond(ok()) }
+
+        states.forEach { state ->
+            put(
+                    "/api/infra/v1.0/locationtracks",
+                    mapOf("id" to locationTrackAsset.id, "state" to state.value),
+                    MatchType.ONLY_MATCHING_FIELDS,
+                    Times.once(),
+                )
+                .respond(ok())
+        }
     }
 
     fun acceptsNewLocationTrackWithoutPointsGivingItOid(oid: String) {

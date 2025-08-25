@@ -131,7 +131,6 @@ constructor(
                     )
                 }
 
-                // TODO Remove
                 if (ratkoClientConfiguration.bulkTransfersEnabled) {
                     manageRatkoBulkTransfers(layoutBranch)
                 }
