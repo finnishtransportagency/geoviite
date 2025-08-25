@@ -2,7 +2,7 @@ import React from 'react';
 import { Coordinates, mToX } from 'vertical-geometry/coordinates';
 import { PlanLinkingSummaryItem } from 'geometry/geometry-api';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
-import ElevationMeasurementMethod from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
+import { elevationMeasurementMethodText } from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
 
@@ -20,7 +20,7 @@ export const PlanLinkingHeaderItem: React.FC<PlanLinkingItemHeaderProps> = ({
     const { t } = useTranslation();
 
     const textLineOneYPx = 8;
-    const textLineTwoYPx = 18;
+    const textLineTwoYPx = 20;
 
     const textDropAreaPx = 3;
 
@@ -65,14 +65,7 @@ export const PlanLinkingHeaderItem: React.FC<PlanLinkingItemHeaderProps> = ({
                                 {t('vertical-geometry-diagram.no-vertical-coordinate-system')}
                             </tspan>
                         ) : (
-                            <>
-                                {verticalCoordinateSystem},
-                                <ElevationMeasurementMethod
-                                    method={elevationMeasurementMethod}
-                                    lowerCase={true}
-                                    includeTermContextForUnknownMethod={true}
-                                />
-                            </>
+                            `${verticalCoordinateSystem}, ${elevationMeasurementMethodText(t, elevationMeasurementMethod, true, true)}`
                         )}
                     </tspan>
                 </text>
