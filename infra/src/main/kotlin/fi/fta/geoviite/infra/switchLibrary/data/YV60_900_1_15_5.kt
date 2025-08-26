@@ -2,11 +2,16 @@ package fi.fta.geoviite.infra.switchLibrary.data
 
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun YV60_900_1_15_5_O() =
     SwitchStructureData(
-        type = SwitchType("YV60-900-1:15,5-O"),
+        type = SwitchType.of("YV60-900-1:15,5-O"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -41,12 +46,12 @@ fun YV60_900_1_15_5_O() =
             ),
     )
 
-fun YV60_900_1_15_5_V() = YV60_900_1_15_5_O().flipAlongYAxis().copy(type = SwitchType("YV60-900-1:15,5-V"))
+fun YV60_900_1_15_5_V() = YV60_900_1_15_5_O().flipAlongYAxis().copy(type = SwitchType.of("YV60-900-1:15,5-V"))
 
-fun YV60_900A_1_15_5_O() = YV60_900_1_15_5_O().copy(type = SwitchType("YV60-900A-1:15,5-O"))
+fun YV60_900A_1_15_5_O() = YV60_900_1_15_5_O().copy(type = SwitchType.of("YV60-900A-1:15,5-O"))
 
-fun YV60_900A_1_15_5_V() = YV60_900_1_15_5_V().copy(type = SwitchType("YV60-900A-1:15,5-V"))
+fun YV60_900A_1_15_5_V() = YV60_900_1_15_5_V().copy(type = SwitchType.of("YV60-900A-1:15,5-V"))
 
-fun YV60_900E_1_15_5_O() = YV60_900_1_15_5_O().copy(type = SwitchType("YV60-900E-1:15,5-O"))
+fun YV60_900E_1_15_5_O() = YV60_900_1_15_5_O().copy(type = SwitchType.of("YV60-900E-1:15,5-O"))
 
-fun YV60_900E_1_15_5_V() = YV60_900_1_15_5_V().copy(type = SwitchType("YV60-900E-1:15,5-V"))
+fun YV60_900E_1_15_5_V() = YV60_900_1_15_5_V().copy(type = SwitchType.of("YV60-900E-1:15,5-V"))

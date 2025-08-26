@@ -3,9 +3,8 @@
 .publication-table {
     position: relative;
 
-    table {
-        border-collapse: collapse;
-        table-layout: fixed;
+    &__row--details-are-visible > td {
+        border-bottom: none;
     }
 
     &__table-header {
@@ -43,31 +42,31 @@
         }
     }
 
-    &__row {
+    &__details-row {
         white-space: pre-wrap;
+        box-shadow: 0px 6px 8px -10px rgba(0, 0, 0, 0.75) inset;
+        background: #f8f8f8;
 
-        &-details {
-            &--borderless > td {
-                border: none;
-            }
-
-            &-row {
-                white-space: pre-wrap;
-            }
+        > td {
+            border: none;
         }
 
-        &-details-left-bar-container {
-            position: relative;
+        &-row {
+            white-space: pre-wrap;
         }
+    }
 
-        &-details-left-bar {
-            position: absolute;
-            width: 4px;
-            top: 0;
-            left: 24px;
-            height: 100%;
-            background-color: vayla-design.$color-blue-default;
-        }
+    &__details-left-bar-container {
+        position: relative;
+    }
+
+    &__details-left-bar {
+        position: absolute;
+        width: 4px;
+        top: 0;
+        left: 24px;
+        height: 100%;
+        background-color: vayla-design.$color-blue-default;
     }
 
     &__header--accordion {
@@ -98,5 +97,31 @@
 
     &__header--message {
         width: auto;
+    }
+}
+
+.publication-table-details {
+    zoom: 1;
+
+    td {
+        background: none;
+        border-bottom: none;
+        border-top: 1px solid vayla-design.$color-white-dark;
+    }
+
+    &__property-header {
+        min-width: 20em;
+    }
+
+    &__old-value-header {
+        min-width: 20em;
+    }
+
+    &__new-value-header {
+        min-width: 20em;
+    }
+
+    &__remarks-header {
+        width: 100%;
     }
 }

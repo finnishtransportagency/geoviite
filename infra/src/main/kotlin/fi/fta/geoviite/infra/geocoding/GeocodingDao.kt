@@ -1,8 +1,11 @@
 package fi.fta.geoviite.infra.geocoding
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -19,12 +22,14 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.queryNotNull
 import fi.fta.geoviite.infra.util.queryOptional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
+import java.util.*
+import kotlin.jvm.optionals.getOrNull
 
 @Transactional(readOnly = true)
 @Component
@@ -36,6 +41,15 @@ class GeocodingDao(
     val alignmentDao: LayoutAlignmentDao,
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
+
+    private data class MomentCacheKey(
+        val branch: LayoutBranch,
+        val trackNumberId: IntId<LayoutTrackNumber>,
+        val moment: Instant,
+    )
+
+    private val momentCacheKeyCache: Cache<MomentCacheKey, Optional<LayoutGeocodingContextCacheKey>> =
+        Caffeine.newBuilder().maximumSize(10000).expireAfterAccess(layoutCacheDuration).build()
 
     fun listLayoutGeocodingContextCacheKeys(layoutContext: LayoutContext): List<LayoutGeocodingContextCacheKey> =
         getLayoutGeocodingContextCacheKeysInternal(layoutContext, null)
@@ -53,34 +67,34 @@ class GeocodingDao(
         // language=SQL
         val sql =
             """
-            select
-              tn.id as tn_id,
-              tn.design_id as tn_design_id,
-              tn.draft as tn_draft,
-              tn.version as tn_version,
-              rl.id as rl_id,
-              rl.design_id as rl_design_id,
-              rl.draft as rl_draft,
-              rl.version as rl_version,
-              kmp_ids,
-              kmp_design_ids,
-              kmp_drafts,
-              kmp_versions
-            from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
-              left join
-                layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                  rl on rl.track_number_id = tn.id
-              left join lateral (
                 select
-                  coalesce(array_agg(kmp.id order by id), '{}') as kmp_ids,
-                  coalesce(array_agg(kmp.design_id order by id), '{}') as kmp_design_ids,
-                  coalesce(array_agg(kmp.draft order by id), '{}') as kmp_drafts,
-                  coalesce(array_agg(kmp.version order by id), '{}') as kmp_versions
-                  from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) kmp
-                  where kmp.track_number_id = tn.id and kmp.state = 'IN_USE'
-              ) kmp on (true)
-            where ((:tn_id::int is null and tn.state != 'DELETED') or :tn_id = tn.id)
-        """
+                  tn.id as tn_id,
+                  tn.design_id as tn_design_id,
+                  tn.draft as tn_draft,
+                  tn.version as tn_version,
+                  rl.id as rl_id,
+                  rl.design_id as rl_design_id,
+                  rl.draft as rl_draft,
+                  rl.version as rl_version,
+                  kmp_ids,
+                  kmp_design_ids,
+                  kmp_drafts,
+                  kmp_versions
+                from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
+                  left join
+                    layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                      rl on rl.track_number_id = tn.id
+                  left join lateral (
+                    select
+                      coalesce(array_agg(kmp.id order by id), '{}') as kmp_ids,
+                      coalesce(array_agg(kmp.design_id order by id), '{}') as kmp_design_ids,
+                      coalesce(array_agg(kmp.draft order by id), '{}') as kmp_drafts,
+                      coalesce(array_agg(kmp.version order by id), '{}') as kmp_versions
+                      from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) kmp
+                      where kmp.track_number_id = tn.id and kmp.state = 'IN_USE'
+                  ) kmp on (true)
+                where ((:tn_id::int is null and tn.state != 'DELETED') or :tn_id = tn.id)
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -95,10 +109,12 @@ class GeocodingDao(
         branch: LayoutBranch,
         trackNumberId: IntId<LayoutTrackNumber>,
         moment: Instant,
-    ): LayoutGeocodingContextCacheKey? {
-        // language=SQL
-        val sql =
-            """
+    ): LayoutGeocodingContextCacheKey? =
+        momentCacheKeyCache
+            .get(MomentCacheKey(branch, trackNumberId, moment)) {
+                // language=SQL
+                val sql =
+                    """
             with
               tn_versions as (
                 select distinct on (id, is_design)
@@ -179,15 +195,16 @@ class GeocodingDao(
               )
                kmp on true
         """
-                .trimIndent()
-        val params =
-            mapOf(
-                "tn_id" to trackNumberId.intValue,
-                "moment" to Timestamp.from(moment),
-                "design_id" to branch.designId?.intValue,
-            )
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
-    }
+                        .trimIndent()
+                val params =
+                    mapOf(
+                        "tn_id" to trackNumberId.intValue,
+                        "moment" to Timestamp.from(moment),
+                        "design_id" to branch.designId?.intValue,
+                    )
+                Optional.ofNullable(jdbcTemplate.queryOptional(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) })
+            }
+            .getOrNull()
 
     private fun toGeocodingContextCacheKey(rs: ResultSet): LayoutGeocodingContextCacheKey? {
         val tnVersion =

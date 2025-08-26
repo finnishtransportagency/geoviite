@@ -23,7 +23,6 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -36,6 +35,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -212,6 +212,27 @@ constructor(
         assertThrows<NoSuchEntityException> {
             locationTrackService.getOrThrow(MainLayoutContext.official, draft.version.id)
         }
+    }
+
+    @Test
+    fun `getWithGeometries returns results in request order, even with duplicates`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val one = createAndVerifyTrack(trackNumber, 1)
+        val two = createAndVerifyTrack(trackNumber, 2)
+        val three = createAndVerifyTrack(trackNumber, 3)
+
+        assertEquals(
+            listOf(one.id, two.id, two.id, three.id),
+            locationTrackService
+                .getManyWithGeometries(mainDraftContext.context, listOf(one.id, two.id, two.id, three.id))
+                .map { it.first.id },
+        )
+        assertEquals(
+            listOf(three.id, one.id, two.id, three.id, two.id),
+            locationTrackService
+                .getManyWithGeometries(mainDraftContext.context, listOf(three.id, one.id, two.id, three.id, two.id))
+                .map { it.first.id },
+        )
     }
 
     @Test
@@ -1187,7 +1208,10 @@ constructor(
         val version: LayoutRowVersion<LocationTrack>,
         val track: LocationTrack,
         val geometry: LocationTrackGeometry,
-    )
+    ) {
+        val id: IntId<LocationTrack>
+            get() = version.id
+    }
 
     private fun createAndVerifyTrack(trackNumberId: IntId<LayoutTrackNumber>, seed: Int): VerifiedTrack {
         val insertRequest = saveRequest(trackNumberId, seed)

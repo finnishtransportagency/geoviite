@@ -41,7 +41,7 @@ import org.springframework.web.multipart.MultipartFile
 
 const val VALIDATION_LAYOUT_POINTS_RESOLUTION = 10
 
-val noFileValidationError = ParsingError(LocalizationKey(INFRAMODEL_PARSING_KEY_EMPTY))
+val noFileValidationError = ParsingError(LocalizationKey.of(INFRAMODEL_PARSING_KEY_EMPTY))
 const val START_KM_PARAM_KEY = "startKm"
 const val END_KM_PARAM_KEY = "endKm"
 

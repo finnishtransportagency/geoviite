@@ -37,9 +37,9 @@ data class NodeReplacementTarget(val node: LayoutNode, val tracks: List<Pair<Loc
     fun contains(trackId: DomainId<LocationTrack>): Boolean = tracks.any { (track, _) -> track.id == trackId }
 }
 
-data class NodeTrackConnections(val node: DbLayoutNode, val trackVersions: List<LayoutRowVersion<LocationTrack>>) {
+data class NodeTrackConnections(val node: DbLayoutNode, val trackVersions: Set<LayoutRowVersion<LocationTrack>>) {
     fun filterOut(trackIds: Set<IntId<LocationTrack>>): NodeTrackConnections? {
-        val newTrackVersions = trackVersions.filter { (trackId, _) -> !trackIds.contains(trackId.id) }
+        val newTrackVersions = trackVersions.filter { (trackId, _) -> !trackIds.contains(trackId.id) }.toSet()
         return when {
             newTrackVersions.isEmpty() -> null
             newTrackVersions.size == trackVersions.size -> this
@@ -131,8 +131,8 @@ private fun tryToCombinePortToNode(ownPort: NodePort, otherNode: LayoutNode): La
         // * A double-switch node where one of the links is this one (switch & joint)
         // Note: this might create multiple tmp-nodes for the same link-combination, but they will be joined upon saving
         is SwitchLink -> {
-            val otherA = otherNode.portA as? SwitchLink
-            val otherB = otherNode.portB as? SwitchLink
+            val otherA = (otherNode.portA as? SwitchLink)
+            val otherB = (otherNode.portB as? SwitchLink)
             when {
                 otherA == null -> null
                 otherB == null -> otherA.takeIf { it.id != ownPort.id }?.let { LayoutNode.of(ownPort, it) }
