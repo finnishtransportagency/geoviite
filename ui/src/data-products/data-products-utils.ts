@@ -45,17 +45,12 @@ export const debouncedGetGeometryPlanHeaders = debounceAsync(searchGeometryPlanH
 
 export const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm, 250);
 
-export const getLocationTrackOptions = (
-    tracks: LayoutLocationTrack[],
-    selectedTrack: LayoutLocationTrack | undefined,
-) =>
-    tracks
-        .filter((lt) => !selectedTrack || lt.id !== selectedTrack.id)
-        .map((lt) => ({
-            name: `${lt.name}, ${lt.description}`,
-            value: lt,
-            qaId: `location-track-${lt.id}`,
-        }));
+export const getLocationTrackOptions = (tracks: LayoutLocationTrack[]) =>
+    tracks.map((lt) => ({
+        name: `${lt.name}, ${lt.description}`,
+        value: lt,
+        qaId: `location-track-${lt.id}`,
+    }));
 
 export type ElementHeading = {
     name: string;
