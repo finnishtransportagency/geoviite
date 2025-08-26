@@ -86,6 +86,7 @@ module.exports = (env) => {
             host: '127.0.0.1',
             port: 9001,
             compress: false,
+            allowedHosts: ['localhost', '127.0.0.1'],
             proxy: [
                 {
                     context: '/api',
