@@ -45,8 +45,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
     const getLocationTracks = React.useCallback(
         (searchTerm: string) =>
             debouncedSearchTracks(searchTerm, officialMainLayoutContext(), 10).then(
-                (locationTracks) =>
-                    getLocationTrackOptions(locationTracks, state.searchParameters.locationTrack),
+                (locationTracks) => getLocationTrackOptions(locationTracks),
             ),
         [state.searchParameters.locationTrack],
     );
