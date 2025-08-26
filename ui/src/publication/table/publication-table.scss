@@ -3,6 +3,10 @@
 .publication-table {
     position: relative;
 
+    &__row {
+        white-space: pre-wrap;
+    }
+
     &__row--details-are-visible > td {
         border-bottom: none;
     }
@@ -51,7 +55,7 @@
             border: none;
         }
 
-        &-row {
+        &-subrow {
             white-space: pre-wrap;
         }
     }
