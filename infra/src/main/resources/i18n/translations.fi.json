@@ -1543,7 +1543,7 @@
         "merge-to-main-success": "Suunnitelmatilan muutokset siirretty luonnostilaan",
         "cancellation-success": "Julkaistu muutos peruttu",
         "cancellation-success-details": "Peruminen täytyy julkaista erikseen",
-        "revert-success": "Luonnosmuutokset peruttu",
+        "revert-success": "Luonnosmuutokset hylätty",
         "track-numbers": "Ratanumeroita",
         "km-posts": "Tasakilometripisteitä",
         "reference-lines": "Pituusmittauslinjoja",

@@ -71,13 +71,17 @@ const GeneratedPublicationRowContent: React.FC<DesignPublicationListRowProps> = 
                     {formatDateFull(publication.publicationTime)}
                 </span>
             </span>
-            <span
-                className={
-                    styles['publication-list-item__design-name']
-                }>{`${designName ?? t('publication-card.missing-design-name')}:`}</span>
-            {publication.cause !== PublicationCause.MANUAL && (
-                <span>{t(`publication-card.design-publication-cause.${publication.cause}`)}</span>
-            )}
+            <span>
+                <span
+                    className={
+                        styles['publication-list-item__design-name']
+                    }>{`${designName ?? t('publication-card.missing-design-name')}:`}</span>
+                {publication.cause !== PublicationCause.MANUAL && (
+                    <span>
+                        {t(`publication-card.design-publication-cause.${publication.cause}`)}
+                    </span>
+                )}
+            </span>
         </div>
     );
 };

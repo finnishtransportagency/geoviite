@@ -3,6 +3,10 @@
 .publication-table {
     position: relative;
 
+    &__row {
+        white-space: pre-wrap;
+    }
+
     &__row--details-are-visible > td {
         border-bottom: none;
     }
@@ -22,7 +26,7 @@
         overflow: hidden;
 
         &--collapsed {
-            white-space: nowrap;
+            white-space: preserve nowrap;
         }
 
         &--expanded {
@@ -43,11 +47,16 @@
     }
 
     &__details-row {
+        white-space: pre-wrap;
         box-shadow: 0px 6px 8px -10px rgba(0, 0, 0, 0.75) inset;
         background: #f8f8f8;
 
         > td {
-            background: none;
+            border: none;
+        }
+
+        &-subrow {
+            white-space: pre-wrap;
         }
     }
 

@@ -54,7 +54,7 @@ export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = (
                     </Th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody className={styles['publication-table__details-row-subrow']}>
                 {changes.map((change, index) => (
                     <tr key={`${id}_detail_${index}`}>
                         <td>

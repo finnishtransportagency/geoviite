@@ -64,6 +64,7 @@
         text-overflow: ellipsis;
         overflow-x: hidden;
         vertical-align: text-bottom;
+        white-space: pre-wrap;
     }
 
     &__design-tab-actions {

@@ -5,6 +5,7 @@
     @include vayla-design.typography-body-strong;
     font-size: 10px;
     line-height: 10px;
+    white-space: pre-wrap;
 
     color: vayla-design.$color-black-default;
     background-color: geoviite-design.$color-geoviite-cadmium-lighter;

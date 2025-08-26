@@ -14,7 +14,7 @@
     box-sizing: border-box;
     text-overflow: ellipsis;
     overflow-x: hidden;
-    white-space: nowrap;
+    white-space: preserve nowrap;
     vertical-align: top;
 
     &:hover {
