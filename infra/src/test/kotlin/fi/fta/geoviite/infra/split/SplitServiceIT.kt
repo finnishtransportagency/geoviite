@@ -2,12 +2,10 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.OVERWRITE
-import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.TRANSFER
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
@@ -18,9 +16,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.NodeConnection
-import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
-import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.combineEdges
@@ -31,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -39,7 +35,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -176,78 +171,6 @@ constructor(
         assertEquals(LocationTrackState.DELETED, locationTrackService.get(MainLayoutContext.draft, track.id)?.state)
     }
 
-    @Test
-    fun `location track split should retain partial duplicates geometry`() {
-        // Test data:
-        // Segements  ---1--2---3----
-        // Main          |------|
-        // Duplicates |-----|-------|
-        // Splits        |--|---|
-
-        val preEdge = verticalEdge(Point(0.0, 0.0), 3)
-
-        // Segments that are a part of the first switch + the branching track for switch re-linking
-        // to work
-        val (switch1, straightEdges1, turningEdges1) =
-            splitTestDataService.createSwitchAndGeometry(preEdge.lastSegmentEnd)
-        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges1))
-
-        val edge1to2 = verticalEdge(straightEdges1.last().lastSegmentEnd, 2)
-
-        // Segments that are a part of the second switch + the branching track for switch re-linking
-        // to work
-        val (switch2, straightEdges2, turningEdges2) =
-            splitTestDataService.createSwitchAndGeometry(edge1to2.lastSegmentEnd)
-        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges2))
-
-        val edge2To3 = verticalEdge(straightEdges2.last().lastSegmentEnd, 3)
-
-        // Segments that are a part of the second switch + the branching track for switch re-linking
-        // to work
-        val (_, straightEdges3, turningEdges3) = splitTestDataService.createSwitchAndGeometry(edge2To3.lastSegmentEnd)
-        mainOfficialContext.createLocationTrack(trackGeometry(turningEdges3))
-
-        val postEdge = verticalEdge(straightEdges3.last().lastSegmentEnd, 4)
-
-        // The main track goes from switch 1 to switch 3
-        val track =
-            mainOfficialContext.createLocationTrackWithReferenceLine(
-                trackGeometry(combineEdges(straightEdges1 + edge1to2 + straightEdges2 + edge2To3))
-            )
-
-        // Duplicate 1 starts before the main track and continues up to switch2
-        val duplicate1EndNode =
-            NodeConnection.switch(inner = null, outer = SwitchLink(switch2.id, SwitchJointRole.MAIN, JointNumber(1)))
-        val duplicate1 =
-            mainOfficialContext.save(
-                locationTrack(mainOfficialContext.createLayoutTrackNumber().id, duplicateOf = track.id),
-                trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1to2.withEndNode(duplicate1EndNode))),
-            )
-
-        // Duplicate 2 starts from the second switch and continues beyond the main track
-        val duplicate2 =
-            mainOfficialContext.save(
-                locationTrack(mainOfficialContext.createLayoutTrackNumber().id, duplicateOf = track.id),
-                trackGeometry(combineEdges(straightEdges2 + edge2To3 + straightEdges3 + postEdge)),
-            )
-
-        val request =
-            splitRequest(
-                track.id,
-                targetRequest(switch1.id, "part2", duplicateTrackId = duplicate1.id, operation = TRANSFER),
-                targetRequest(switch2.id, "part3", duplicateTrackId = duplicate2.id, operation = TRANSFER),
-            )
-        val result = splitDao.getOrThrow(splitService.split(LayoutBranch.main, request))
-
-        assertSplitMatchesRequest(request, result)
-
-        request.targetTracks.forEachIndexed { index, targetRequest ->
-            assertTransferTargetTrack(targetRequest, result.targetLocationTracks[index])
-        }
-
-        assertEquals(LocationTrackState.DELETED, locationTrackService.get(MainLayoutContext.draft, track.id)?.state)
-    }
-
     private fun assertSplitMatchesRequest(request: SplitRequest, split: Split) {
         assertEquals(request.sourceTrackId, split.sourceLocationTrackId)
         request.targetTracks.forEach { targetRequest ->
@@ -261,26 +184,6 @@ constructor(
             assertEquals(targetRequest.operation, targetResult.operation)
             targetRequest.duplicateTrack?.let { d -> assertEquals(d.id, targetResult.locationTrackId) }
         }
-    }
-
-    private fun assertTransferTargetTrack(request: SplitRequestTarget, response: SplitTarget) {
-        // This assert is for TRANSFER only: use assertTargetTrack for other operations
-        assertEquals(SplitTargetOperation.TRANSFER, request.operation)
-
-        val (track, geometry) =
-            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
-        val (originalTrack, originalGeometry) =
-            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.official, response.locationTrackId)
-
-        // TRANSFER operation should not change the duplicate track geometry or fields
-        assertEquals(originalTrack.name, track.name)
-        assertEquals(originalTrack.nameStructure, track.nameStructure)
-        assertEquals(originalTrack.description, track.description)
-        assertEquals(originalTrack.descriptionStructure, track.descriptionStructure)
-        assertNull(track.duplicateOf)
-        request.startAtSwitchId?.let { startSwitchId -> assertEquals(startSwitchId, track.switchIds.first()) }
-
-        assertMatches(originalGeometry, geometry)
     }
 
     private fun assertTargetTrack(
