@@ -24,12 +24,12 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -129,7 +129,7 @@ constructor(
     }
 
     private fun yv60SwitchId() =
-        switchLibraryService.getSwitchStructures().find { it.type == SwitchType("YV60-300-1:9-O") }!!.id
+        switchLibraryService.getSwitchStructures().find { it.type == SwitchType.of("YV60-300-1:9-O") }!!.id
 
     private fun firstSwitchFitResult(
         plan: GeometryPlan,

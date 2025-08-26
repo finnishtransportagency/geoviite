@@ -881,7 +881,7 @@ constructor(
                             LayoutValidationIssue(
                                 type = LayoutValidationIssueType.WARNING,
                                 localizationKey =
-                                    LocalizationKey(
+                                    LocalizationKey.of(
                                         "validation.layout.switch.track-linkage.switch-alignment-only-connected-to-duplicate"
                                     ),
                                 params =
@@ -899,7 +899,7 @@ constructor(
                             LayoutValidationIssue(
                                 type = LayoutValidationIssueType.ERROR,
                                 localizationKey =
-                                    LocalizationKey("validation.layout.switch.track-linkage.relinking-failed"),
+                                    LocalizationKey.of("validation.layout.switch.track-linkage.relinking-failed"),
                                 params = LocalizationParams(mapOf("switch" to "unsaveable")),
                             )
                         ),
@@ -1040,7 +1040,7 @@ constructor(
                         LayoutValidationIssue(
                             LayoutValidationIssueType.ERROR,
                             localizationKey =
-                                LocalizationKey("validation.layout.split.track-links-missing-after-relinking"),
+                                LocalizationKey.of("validation.layout.split.track-links-missing-after-relinking"),
                             params = LocalizationParams(mapOf("switchName" to "ok", "sourceName" to "topoTrack")),
                         )
                     ),
@@ -1054,15 +1054,17 @@ constructor(
                         LayoutValidationIssue(
                             LayoutValidationIssueType.WARNING,
                             localizationKey =
-                                LocalizationKey("validation.layout.switch.track-linkage.front-joint-not-connected"),
+                                LocalizationKey.of("validation.layout.switch.track-linkage.front-joint-not-connected"),
                             params = LocalizationParams(mapOf("switch" to "somewhere else")),
                         ),
                         LayoutValidationIssue(
                             LayoutValidationIssueType.ERROR,
                             localizationKey =
-                                LocalizationKey("validation.layout.split.track-links-missing-after-relinking"),
+                                LocalizationKey.of("validation.layout.split.track-links-missing-after-relinking"),
                             params =
-                                LocalizationParams(mapOf("switchName" to "somewhere else", "sourceName" to "topoTrack")),
+                                LocalizationParams(
+                                    mapOf("switchName" to "somewhere else", "sourceName" to "topoTrack")
+                                ),
                         ),
                     ),
             )
@@ -1465,7 +1467,7 @@ constructor(
                     geometrySwitchId = null,
                 )
             }
-        assertEquals(ex.localizationKey, LocalizationKey("error.linking.switch-deleted"))
+        assertEquals(ex.localizationKey, LocalizationKey.of("error.linking.switch-deleted"))
     }
 
     @Test

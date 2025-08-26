@@ -2,11 +2,16 @@ package fi.fta.geoviite.infra.switchLibrary.data
 
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun YV60_5000_2500_1_26_O() =
     SwitchStructureData(
-        type = SwitchType("YV60-5000/2500-1:26-O"),
+        type = SwitchType.of("YV60-5000/2500-1:26-O"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -41,4 +46,5 @@ fun YV60_5000_2500_1_26_O() =
             ),
     )
 
-fun YV60_5000_2500_1_26_V() = YV60_5000_2500_1_26_O().flipAlongYAxis().copy(type = SwitchType("YV60-5000/2500-1:26-V"))
+fun YV60_5000_2500_1_26_V() =
+    YV60_5000_2500_1_26_O().flipAlongYAxis().copy(type = SwitchType.of("YV60-5000/2500-1:26-V"))

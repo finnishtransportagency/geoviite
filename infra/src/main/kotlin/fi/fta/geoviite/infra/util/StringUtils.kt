@@ -54,13 +54,17 @@ inline fun <reified T> assertSanitized(stringValue: String, regex: Regex, length
 
 fun assertSanitized(type: KClass<*>, stringValue: String, regex: Regex, length: IntRange? = null) {
     length?.let { l -> assertLength(type, stringValue, l) }
-    assertInput(type, stringValue.matches(regex), stringValue) {
+    assertInput(type, regex.matches(stringValue), stringValue) {
         "Invalid characters in ${type.simpleName}: ${formatForException(stringValue)}"
     }
 }
 
 fun assertTrimmed(type: KClass<*>, value: String) {
-    assertInput(type, value == value.trim(), value) {
+    assertInput(
+        type,
+        value.firstOrNull()?.isWhitespace() != true && value.lastOrNull()?.isWhitespace() != true,
+        value,
+    ) {
         "Whitespace not allowed at the start or end of ${type.simpleName}: ${formatForException(value)}"
     }
 }

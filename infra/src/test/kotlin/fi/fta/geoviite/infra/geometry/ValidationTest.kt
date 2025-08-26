@@ -1,8 +1,11 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.RotationDirection
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
 import fi.fta.geoviite.infra.common.RotationDirection.CW
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geometry.CantRotationPoint.INSIDE_RAIL
 import fi.fta.geoviite.infra.geometry.CantTransitionType.LINEAR
 import fi.fta.geoviite.infra.inframodel.PlanElementName
@@ -12,10 +15,10 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
-import kotlin.math.PI
-import kotlin.math.hypot
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import kotlin.math.PI
+import kotlin.math.hypot
 
 private const val JOINT_LOCATION_DELTA = 0.01
 
@@ -194,7 +197,7 @@ class ValidationTest {
     private fun assertGeometryValidationIssues(errors: List<GeometryValidationIssue>, keyParts: List<String>) {
         assertEquals(keyParts.size, errors.size, errors.toString())
         errors.forEachIndexed { index, error ->
-            assertEquals(LocalizationKey("$VALIDATION.${keyParts[index]}"), error.localizationKey, errors.toString())
+            assertEquals(LocalizationKey.of("$VALIDATION.${keyParts[index]}"), error.localizationKey, errors.toString())
         }
     }
 

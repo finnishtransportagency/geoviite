@@ -2,13 +2,11 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.roundTo1Decimal
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import kotlin.math.abs
 
 fun publicationChangeRemark(translation: Translation, key: String, value: String? = null) =
@@ -46,45 +44,18 @@ fun getPointMovedRemarkOrNull(
     oldPoint: Point?,
     newPoint: Point?,
     translationKey: String = "moved-x-meters",
-): String? {
-    return oldPoint?.let { p1 ->
-        newPoint?.let { p2 ->
-            if (!pointsAreSame(p1, p2)) {
-                val distance = calculateDistance(listOf(p1, p2), LAYOUT_SRID)
-                if (distance > DISTANCE_CHANGE_THRESHOLD) {
-                    publicationChangeRemark(translation, translationKey, formatDistance(distance))
-                } else {
-                    null
-                }
-            } else {
-                null
-            }
+): String? =
+    if (oldPoint != null && newPoint != null && !pointsAreSame(oldPoint, newPoint)) {
+        // For the remarks, pythagorean distance is accurate enough
+        val distance = lineLength(oldPoint, newPoint)
+        if (distance > DISTANCE_CHANGE_THRESHOLD) {
+            publicationChangeRemark(translation, translationKey, formatDistance(distance))
+        } else {
+            null
         }
+    } else {
+        null
     }
-}
-
-fun getChangedSwitchTrackNumberAddressesRemarkOrNull(
-    translation: Translation,
-    oldAddresses: List<Pair<TrackNumber, TrackMeter>>?,
-    newAddresses: List<Pair<TrackNumber, TrackMeter>>?,
-): String? {
-    val old =
-        oldAddresses?.filter { (oTn, oAddress) -> newAddresses?.find { (nTn, _) -> nTn == oTn }?.second != oAddress }
-            ?: emptyList()
-    val new =
-        newAddresses?.filter { (nTn, nAddress) -> oldAddresses?.find { (oTn, _) -> oTn == nTn }?.second != nAddress }
-            ?: emptyList()
-    return (old + new)
-        .distinct()
-        .takeIf { it.isNotEmpty() }
-        ?.let { changed ->
-            publicationChangeRemark(
-                translation = translation,
-                key = "track-number-addresses-changed",
-                value = changed.joinToString { (tn, _) -> tn.toString() },
-            )
-        }
-}
 
 fun getAddressMovedRemarkOrNull(translation: Translation, change: Change<TrackMeter?>): String? =
     getAddressMovedRemarkOrNull(translation, change.old, change.new)

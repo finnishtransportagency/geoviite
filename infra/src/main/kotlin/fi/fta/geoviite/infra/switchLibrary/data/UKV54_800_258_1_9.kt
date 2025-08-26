@@ -2,7 +2,12 @@ package fi.fta.geoviite.infra.switchLibrary.data
 
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureData
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 // NOTE:
 // This switch type may contain inaccurate point locations and wrong elements
@@ -11,7 +16,7 @@ import fi.fta.geoviite.infra.switchLibrary.*
 
 fun UKV54_800_258_1_9_V() =
     SwitchStructureData(
-        type = SwitchType("UKV54-800/258-1:9-V"),
+        type = SwitchType.of("UKV54-800/258-1:9-V"),
         presentationJointNumber = JointNumber(1),
         joints =
             setOf(
@@ -41,4 +46,4 @@ fun UKV54_800_258_1_9_V() =
             ),
     )
 
-fun UKV54_800_258_1_9_O() = UKV54_800_258_1_9_V().flipAlongYAxis().copy(type = SwitchType("UKV54-800/258-1:9-O"))
+fun UKV54_800_258_1_9_O() = UKV54_800_258_1_9_V().flipAlongYAxis().copy(type = SwitchType.of("UKV54-800/258-1:9-O"))

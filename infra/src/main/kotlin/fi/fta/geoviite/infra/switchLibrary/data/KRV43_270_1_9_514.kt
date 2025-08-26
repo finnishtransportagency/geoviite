@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 
 fun KRV43_270_1_9_514() =
     SwitchStructureData(
-        type = SwitchType("KRV43-270-1:9,514"),
+        type = SwitchType.of("KRV43-270-1:9,514"),
         presentationJointNumber = JointNumber(5),
         joints =
             setOf(

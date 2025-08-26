@@ -36,7 +36,7 @@ enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     TrackNumberNotFound("track-number-not-found"),
     InputCoordinateTransformationFailed("input-coordinate-transformation-failed");
 
-    val localizationKey: LocalizationKey by lazy { LocalizationKey("$BASE.$localizationSuffix") }
+    val localizationKey: LocalizationKey by lazy { LocalizationKey.of("$BASE.$localizationSuffix") }
 
     companion object {
         private const val BASE: String = "ext-api.frame-converter.v1.error"
