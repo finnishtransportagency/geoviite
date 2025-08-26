@@ -54,7 +54,7 @@ import {
 } from 'tool-panel/location-track/splitting/location-track-split-notices';
 import { LocationTrackSplitRelinkingNotice } from 'tool-panel/location-track/splitting/location-track-split-relinking-notice';
 import {
-    findRefToFirstErroredField,
+    findFirstErroredField,
     hasUnrelinkableSwitches,
     mandatoryFieldMissing,
     otherError,
@@ -63,8 +63,13 @@ import {
     validateSplit,
 } from 'tool-panel/location-track/splitting/split-utils';
 import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
-import { BoundingBox, boundingBoxAroundPoints, multiplyBoundingBox, Point } from 'model/geometry';
-import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { BoundingBox, boundingBoxAroundPoints, multiplyBoundingBox } from 'model/geometry';
+import {
+    LoaderStatus,
+    useLoaderWithStatus,
+    useMinimallyUpdatedList,
+    useRefMap,
+} from 'utils/react-utils';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
 import { FieldValidationIssueType } from 'utils/validation-utils';
@@ -141,7 +146,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     LocationTrackSplittingInfoboxContainerProps
 > = ({ visibilities, visibilityChange, layoutContext }) => {
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
-    const delegates = createDelegates(TrackLayoutActions);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const splittingState = trackLayoutState.splittingState;
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
@@ -189,18 +194,21 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         changeTimes.layoutSwitch,
     ]);
 
-    const onShowTaskList = (locationTrack: LocationTrackId) => {
-        delegates.showLocationTrackTaskList({
-            type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION,
-            locationTrackId: locationTrack,
-            branch: layoutContext.branch,
-        });
-    };
+    const onShowTaskList = React.useCallback(
+        (locationTrack: LocationTrackId) => {
+            delegates.showLocationTrackTaskList({
+                type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION,
+                locationTrackId: locationTrack,
+                branch: layoutContext.branch,
+            });
+        },
+        [delegates],
+    );
 
-    const stopSplitting = () => {
+    const stopSplitting = React.useCallback(() => {
         delegates.stopSplitting();
         delegates.hideLayers(['location-track-split-location-layer']);
-    };
+    }, [delegates]);
 
     return (
         splittingState &&
@@ -246,6 +254,9 @@ export function getSplitPointName(
     }
 }
 
+const splitKey = (split: SplitTargetCandidate | FirstSplitTargetCandidate) =>
+    `${split.location.x}_${split.location.y}`;
+
 const createSplitComponent = (
     validatedSplit: ValidatedSplit,
     switches: LayoutSwitch[],
@@ -255,18 +266,13 @@ const createSplitComponent = (
     isPostingSplit: boolean,
     duplicateTracksInCurrentSplits: LayoutLocationTrack[],
     showArea: (bbox: BoundingBox) => void,
-    startPoint: Point,
-    endPoint: Point,
-    onFocus: () => void,
-    onBlur: () => void,
-    onHighlight: () => void,
-    onReleaseHighlight: () => void,
-    onHighlightSplitPoint: () => void,
-    onReleaseSwitchHighlight: () => void,
+    showSplitTrackOnMap: (id: SplitTargetId) => void,
+    setFocusedSplit: (id: undefined | SplitTargetId) => void,
+    setHighlightedSplit: (id: undefined | SplitTargetId) => void,
+    setHighlightedSplitPoint: (splitPoint: undefined | SplitPoint) => void,
+    setNameRef: (key: SplitTargetId, value: HTMLInputElement | null) => void,
+    setDescriptionBaseRef: (key: SplitTargetId, value: HTMLInputElement | null) => void,
 ) => {
-    const nameRef = React.createRef<HTMLInputElement>();
-    const descriptionBaseRef = React.createRef<HTMLInputElement>();
-
     const splitPoint = validatedSplit.split.splitPoint;
     const splitPointExists =
         splitPoint.type === 'ENDPOINT_SPLIT_POINT' ||
@@ -274,20 +280,12 @@ const createSplitComponent = (
             switches.find((s) => s.id === splitPoint.switchId)?.stateCategory !== 'NOT_EXISTING');
     const { split, nameIssues, descriptionIssues, switchIssues } = validatedSplit;
 
-    function showSplitTrackOnMap() {
-        showArea(multiplyBoundingBox(boundingBoxAroundPoints([startPoint, endPoint]), 1.15));
-    }
-
     return {
         component: (
             <LocationTrackSplit
                 locationTrackId={splittingState.originLocationTrack.id}
-                key={`${split.location.x}_${split.location.y}`}
+                key={splitKey(split)}
                 split={split}
-                addressPoint={{
-                    point: split.splitPoint.location,
-                    address: split.splitPoint.address,
-                }}
                 onRemove={split.type === 'SPLIT' ? removeSplit : undefined}
                 updateSplit={updateSplit}
                 duplicateTrackId={split.duplicateTrackId}
@@ -296,8 +294,8 @@ const createSplitComponent = (
                 switchIssues={switchIssues}
                 editingDisabled={splittingState.disabled || !splitPointExists || isPostingSplit}
                 deletingDisabled={splittingState.disabled || isPostingSplit}
-                nameRef={nameRef}
-                descriptionBaseRef={descriptionBaseRef}
+                setNameRef={setNameRef}
+                setDescriptionBaseRef={setDescriptionBaseRef}
                 allDuplicateLocationTracks={splittingState.duplicateTracks}
                 duplicateLocationTrack={
                     split.duplicateTrackId
@@ -307,19 +305,42 @@ const createSplitComponent = (
                 underlyingAssetExists={splitPointExists}
                 showArea={showArea}
                 onSplitTrackClicked={showSplitTrackOnMap}
-                onFocus={onFocus}
-                onBlur={onBlur}
-                onHighlight={onHighlight}
-                onReleaseHighlight={onReleaseHighlight}
-                onHighlightSplitPoint={onHighlightSplitPoint}
-                onReleaseSwitchHighlight={onReleaseSwitchHighlight}
+                setFocusedSplit={setFocusedSplit}
+                setHighlightedSplit={setHighlightedSplit}
+                setHighlightedSplitPoint={setHighlightedSplitPoint}
             />
         ),
+
         splitAndValidation: validatedSplit,
-        nameRef,
-        descriptionBaseRef,
     };
 };
+
+function useShowSplitTrackOnMap(
+    allSplits: (SplitTargetCandidate | FirstSplitTargetCandidate)[],
+    splittingState: SplittingState,
+    showArea: (bbox: BoundingBox) => void,
+): (id: SplitTargetId) => void {
+    const splitLocations = useMinimallyUpdatedList(
+        allSplits.map((split) => [split.id, split.location] as const),
+        ([id]) => id,
+    );
+    return React.useCallback(
+        (id: SplitTargetId) => {
+            const index = splitLocations.findIndex(([splitId]) => splitId === id);
+            if (index !== -1) {
+                const startPoint = expectDefined(splitLocations[index])[1];
+                const endPoint =
+                    index + 1 < allSplits.length
+                        ? expectDefined(splitLocations[index + 1])[1]
+                        : splittingState.endLocation;
+                showArea(
+                    multiplyBoundingBox(boundingBoxAroundPoints([startPoint, endPoint]), 1.15),
+                );
+            }
+        },
+        [splitLocations, splittingState.endLocation],
+    );
+}
 
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfoboxProps> = ({
     locationTrack,
@@ -346,7 +367,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const { t } = useTranslation();
     const [confirmExit, setConfirmExit] = React.useState(false);
     const [confirmOpenTaskListAndExit, setConfirmOpenTaskListAndExit] = React.useState(false);
-    const allSplits = [splittingState.firstSplit, ...splittingState.splits];
+    const allSplits = useMinimallyUpdatedList(
+        [splittingState.firstSplit, ...splittingState.splits],
+        (split) => splitKey(split),
+    );
     const switches = useSwitches(
         splittingState.trackSwitches.map((sw) => sw.switchId),
         draftLayoutContext(layoutContext),
@@ -363,15 +387,18 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         draftLayoutContext(layoutContext),
         getChangeTimes().layoutLocationTrack,
     );
-    const splitsValidated = allSplits.map((s, index) =>
-        validateSplit(
-            s,
-            allSplits[index + 1],
-            allSplits.map((s) => s.name),
-            conflictingLocationTracks || [],
-            switches,
-            splittingState.endSplitPoint,
+    const splitsValidated = useMinimallyUpdatedList(
+        allSplits.map((s, index) =>
+            validateSplit(
+                s,
+                allSplits[index + 1],
+                allSplits.map((s) => s.name),
+                conflictingLocationTracks || [],
+                switches,
+                splittingState.endSplitPoint,
+            ),
         ),
+        (validatedSplit) => splitKey(validatedSplit.split),
     );
     const allErrors = splitsValidated.flatMap((validated) => [
         ...validated.descriptionIssues,
@@ -399,6 +426,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         (duplicate) => duplicate.name,
     );
     const anyNonOverlappingDuplicates = unusedNonOverlappingDuplicates.length > 0;
+
+    const [getNameRef, setNameRef] = useRefMap<SplitTargetId, HTMLInputElement>();
+    const [getDescriptionBaseRef, setDescriptionBaseRef] = useRefMap<
+        SplitTargetId,
+        HTMLInputElement
+    >();
 
     const postSplit = () => {
         startPostingSplit();
@@ -429,25 +462,26 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     };
 
     const focusFirstErrorFieldByPredicate = (predicate: (errorReason: string) => boolean) =>
-        findRefToFirstErroredField(splitComponents, predicate)?.current?.focus();
+        findFirstErroredField(
+            splitComponents,
+            predicate,
+            getNameRef,
+            getDescriptionBaseRef,
+        )?.focus();
 
     React.useEffect(() => {
         const splitComponentToFocus = splitComponents.find(
             (s) => s.splitAndValidation.split.focusBehaviour === 'FOCUS',
         );
         if (splitComponentToFocus) {
-            splitComponentToFocus.nameRef.current?.focus();
+            getNameRef(splitComponentToFocus.splitAndValidation.split.id)?.focus();
             unfocusSplit(splitComponentToFocus.splitAndValidation.split.splitPoint);
         }
     });
+    const showSplitTrackOnMap = useShowSplitTrackOnMap(allSplits, splittingState, showArea);
 
-    const splitComponents = splitsValidated.map((split, index, allSplits) => {
-        const endLocation =
-            index + 1 < allSplits.length
-                ? expectDefined(allSplits[index + 1]).split.location
-                : splittingState.endLocation;
-
-        return createSplitComponent(
+    const splitComponents = splitsValidated.map((split) =>
+        createSplitComponent(
             split,
             switches,
             splittingState,
@@ -456,16 +490,14 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             isPostingSplit,
             duplicateTracksInCurrentSplits,
             showArea,
-            split.split.location,
-            endLocation,
-            () => setFocusedSplit(split.split.id),
-            () => setFocusedSplit(undefined),
-            () => setHighlightedSplit(split.split.id),
-            () => setHighlightedSplit(undefined),
-            () => setHighlightedSplitPoint(split.split.splitPoint),
-            () => setHighlightedSplitPoint(undefined),
-        );
-    });
+            showSplitTrackOnMap,
+            setFocusedSplit,
+            setHighlightedSplit,
+            setHighlightedSplitPoint,
+            setNameRef,
+            setDescriptionBaseRef,
+        ),
+    );
 
     return (
         <React.Fragment>
