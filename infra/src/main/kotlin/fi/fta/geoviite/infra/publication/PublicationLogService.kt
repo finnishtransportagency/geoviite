@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.geocoding.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -25,6 +24,7 @@ import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.split.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion

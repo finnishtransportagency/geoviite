@@ -16,7 +16,6 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.geocoding.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -34,6 +33,7 @@ import fi.fta.geoviite.infra.ratko.model.convertToRatkoNodeCollection
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
+import fi.fta.geoviite.infra.split.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
