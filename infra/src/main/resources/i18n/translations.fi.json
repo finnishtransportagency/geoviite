@@ -1498,7 +1498,8 @@
             "description": "Syötä vielä muutoksia kuvaava selite. Julkaisun jälkeen Geoviite lähettää muutokset automaattisesti Ratkoon.",
             "cancel": "Peruuta",
             "message": "Selite",
-            "confirm": "Julkaise muutokset ({{candidates}} kpl)"
+            "confirm": "Julkaise muutokset ({{candidates}} kpl)",
+            "message-too-long": "Selite on liian pitkä (enintään 500 merkkiä)"
         },
         "merge-to-main-confirm": {
             "title": "Siirrä muutokset luonnostilaan",

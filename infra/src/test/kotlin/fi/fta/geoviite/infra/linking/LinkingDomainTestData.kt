@@ -2,6 +2,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.publication.PublicationCause
+import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationResultSummary
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -14,7 +15,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 
 fun publicationRequest(
     trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
@@ -75,7 +75,7 @@ fun publish(
         branch,
         versions,
         calculatedChanges,
-        FreeTextWithNewLines.of("Test"),
+        PublicationMessage.of("Test"),
         PublicationCause.MANUAL,
     )
 }

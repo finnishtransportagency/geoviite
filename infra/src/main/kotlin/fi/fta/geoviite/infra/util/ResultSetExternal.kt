@@ -33,6 +33,7 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.publication.Change
+import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.publication.PublishedInBranch
 import fi.fta.geoviite.infra.publication.PublishedInDesign
 import fi.fta.geoviite.infra.publication.PublishedInMain
@@ -343,6 +344,8 @@ fun ResultSet.getFreeTextWithNewLines(name: String): FreeTextWithNewLines =
 
 fun ResultSet.getFreeTextWithNewLinesOrNull(name: String): FreeTextWithNewLines? =
     getString(name)?.let(FreeTextWithNewLines::of)
+
+fun ResultSet.getPublicationMessage(name: String): PublicationMessage = getString(name).let(PublicationMessage::of)
 
 fun ResultSet.getFileName(name: String): FileName = verifyNotNull(name, ::getFileNameOrNull)
 

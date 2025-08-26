@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 
-private const val NEW_LINE_CHARACTER = "\n"
+const val NEW_LINE_CHARACTER = "\n"
 
 data class FreeText @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
     Comparable<FreeText>, CharSequence by value {

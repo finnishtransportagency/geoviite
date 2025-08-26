@@ -46,10 +46,12 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.queryOne
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -57,9 +59,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -176,7 +175,7 @@ constructor(
         fakeRatko.acceptsNewSwitchGivingItOid(designSwitchOid)
         publicationService.publishManualPublication(
             someDesign,
-            PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), FreeTextWithNewLines.of("aoeu")),
+            PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), PublicationMessage.of("aoeu")),
         )
 
         // GVT-2798 will implement properly querying Ratko for the inherited ext IDs; for now, we
@@ -278,7 +277,7 @@ constructor(
                 LayoutBranch.main,
                 PublicationRequest(
                     publicationRequestIds(switches = listOf(switch), locationTracks = listOf(locationTrack)),
-                    FreeTextWithNewLines.of(""),
+                    PublicationMessage.of(""),
                 ),
             )
         }
@@ -291,7 +290,7 @@ constructor(
             LayoutBranch.main,
             PublicationRequest(
                 publicationRequestIds(switches = listOf(switch), locationTracks = listOf(locationTrack)),
-                FreeTextWithNewLines.of(""),
+                PublicationMessage.of(""),
             ),
         )
         assertEquals(Oid("1.2.3.4.5"), switchDao.fetchExternalId(LayoutBranch.main, switch)?.oid)
@@ -348,7 +347,7 @@ constructor(
                     switches = listOf(switch),
                     kmPosts = listOf(kmPost),
                 ),
-                FreeTextWithNewLines.of(""),
+                PublicationMessage.of(""),
             )
 
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("1.1.1.1.1"))

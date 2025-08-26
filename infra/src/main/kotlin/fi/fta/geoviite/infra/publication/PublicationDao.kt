@@ -49,7 +49,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.util.DaoBase
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getBooleanOrNull
 import fi.fta.geoviite.infra.util.getChange
@@ -59,7 +58,6 @@ import fi.fta.geoviite.infra.util.getChangeRowVersion
 import fi.fta.geoviite.infra.util.getDoubleOrNull
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
-import fi.fta.geoviite.infra.util.getFreeTextWithNewLines
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.getIntId
@@ -78,6 +76,7 @@ import fi.fta.geoviite.infra.util.getNullableChangePoint
 import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.getPointOrNull
+import fi.fta.geoviite.infra.util.getPublicationMessage
 import fi.fta.geoviite.infra.util.getPublicationPublishedIn
 import fi.fta.geoviite.infra.util.getSridOrNull
 import fi.fta.geoviite.infra.util.getStringArray
@@ -89,11 +88,11 @@ import fi.fta.geoviite.infra.util.getTrackNumberOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -432,7 +431,7 @@ class PublicationDao(
     @Transactional
     fun createPublication(
         layoutBranch: LayoutBranch,
-        message: FreeTextWithNewLines,
+        message: PublicationMessage,
         cause: PublicationCause,
         parentId: IntId<Publication>?,
     ): IntId<Publication> {
@@ -606,7 +605,7 @@ class PublicationDao(
                         uuid = rs.getUuid<Publication>("publication_uuid"),
                         publicationUser = rs.getString("publication_user").let(UserName::of),
                         publicationTime = rs.getInstant("publication_time"),
-                        message = rs.getFreeTextWithNewLines("message"),
+                        message = rs.getPublicationMessage("message"),
                         layoutBranch =
                             rs.getPublicationPublishedIn("design_id", "design_version", "parent_publication_id"),
                         cause = rs.getEnum("cause"),
@@ -689,7 +688,7 @@ class PublicationDao(
                     uuid = rs.getUuid("publication_uuid"),
                     publicationUser = rs.getString("publication_user").let(UserName::of),
                     publicationTime = rs.getInstant("publication_time"),
-                    message = rs.getFreeTextWithNewLines("message"),
+                    message = rs.getPublicationMessage("message"),
                     layoutBranch = rs.getPublicationPublishedIn("design_id", "design_version", "parent_publication_id"),
                     cause = rs.getEnum("cause"),
                 )
@@ -725,7 +724,7 @@ class PublicationDao(
                     uuid = rs.getUuid("publication_uuid"),
                     publicationUser = rs.getString("publication_user").let(UserName::of),
                     publicationTime = rs.getInstant("publication_time"),
-                    message = rs.getFreeTextWithNewLines("message"),
+                    message = rs.getPublicationMessage("message"),
                     layoutBranch = rs.getPublicationPublishedIn("design_id", "design_version", "parent_publication_id"),
                     cause = rs.getEnum("cause"),
                 )
@@ -761,7 +760,7 @@ class PublicationDao(
                     uuid = rs.getUuid("publication_uuid"),
                     publicationUser = rs.getString("publication_user").let(UserName::of),
                     publicationTime = rs.getInstant("publication_time"),
-                    message = rs.getFreeTextWithNewLines("message"),
+                    message = rs.getPublicationMessage("message"),
                     layoutBranch = rs.getPublicationPublishedIn("design_id", "design_version", "parent_publication_id"),
                     cause = rs.getEnum("cause"),
                 )

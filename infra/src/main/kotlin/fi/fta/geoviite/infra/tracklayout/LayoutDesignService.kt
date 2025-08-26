@@ -6,11 +6,11 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationInDesign
+import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidateContext
 import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 
@@ -123,7 +123,7 @@ class LayoutDesignService(
             branch,
             cancellationVersions,
             publicationService.getCalculatedChanges(cancellationVersions),
-            FreeTextWithNewLines.of(""),
+            PublicationMessage.of(""),
             PublicationCause.LAYOUT_DESIGN_CANCELLATION,
         )
     }
@@ -133,7 +133,7 @@ class LayoutDesignService(
             branchBranch,
             ValidationVersions.emptyWithTarget(ValidateContext(branchBranch.official)),
             CalculatedChanges.empty(),
-            FreeTextWithNewLines.of(""),
+            PublicationMessage.of(""),
             cause,
         )
 }

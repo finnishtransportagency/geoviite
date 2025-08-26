@@ -7,10 +7,10 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -76,7 +76,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
         val publicationId =
             publicationDao.createPublication(
                 LayoutBranch.main,
-                FreeTextWithNewLines.of("SPLIT PUBLICATION"),
+                PublicationMessage.of("SPLIT PUBLICATION"),
                 PublicationCause.MANUAL,
                 parentId = null,
             )
@@ -208,7 +208,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
         val publicationId =
             publicationDao.createPublication(
                 LayoutBranch.main,
-                FreeTextWithNewLines.of("test: bulk transfer state update"),
+                PublicationMessage.of("test: bulk transfer state update"),
                 PublicationCause.MANUAL,
                 parentId = null,
             )

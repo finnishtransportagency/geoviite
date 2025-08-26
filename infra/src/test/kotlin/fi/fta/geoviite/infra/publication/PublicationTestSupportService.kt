@@ -41,7 +41,6 @@ import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -222,7 +221,7 @@ constructor(
             layoutBranch,
             versions,
             calculatedChanges,
-            FreeTextWithNewLines.of("${this::class.simpleName}"),
+            PublicationMessage.of("${this::class.simpleName}"),
             PublicationCause.MANUAL,
         )
 }
