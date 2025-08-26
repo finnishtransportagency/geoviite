@@ -281,5 +281,5 @@ class R__10_01__update_all_switch_structures : BaseJavaMigration() {
         }
     }
 
-    override fun getChecksum(): Int = switchStructures.map { s -> s.data }.hashCode()
+    override fun getChecksum(): Int = switchStructures.map { s -> s.toString() }.hashCode()
 }

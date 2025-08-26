@@ -114,6 +114,9 @@ private fun findSwedishSwitchTypeHand(abbreviation: String): SwitchHand =
         else -> SwitchHand.NONE
     }
 
+fun parseSwitchTypeParts(typeName: String): SwitchTypeParts? =
+    if (typeName.startsWith("EV")) parseSwedishSwitchType(typeName) else parseFinnishSwitchType(typeName)
+
 /** Returns parsed switch type parts or null if parsing fails */
 fun parseFinnishSwitchType(typeName: String): SwitchTypeParts? {
     val matchResult = finnishSwitchTypeRegex().find(typeName) ?: return null
@@ -145,12 +148,11 @@ fun parseSwedishSwitchType(typeName: String): SwitchTypeParts? {
     )
 }
 
-data class SwitchType
-@JsonCreator(mode = DELEGATING)
-private constructor(val typeName: String, val parts: SwitchTypeParts) {
+data class SwitchType private constructor(val typeName: String, val parts: SwitchTypeParts) {
     companion object {
-        val switchTypeCache = ConcurrentHashMap<String, Optional<SwitchType>>()
+        private val switchTypeCache = ConcurrentHashMap<String, Optional<SwitchType>>()
 
+        @JsonCreator(mode = DELEGATING)
         fun of(typeName: String) =
             tryParse(typeName)
                 ?: throw IllegalArgumentException("Cannot parse switch type: \"${formatForException(typeName)}\"")
@@ -158,12 +160,9 @@ private constructor(val typeName: String, val parts: SwitchTypeParts) {
         fun tryParse(typeName: String): SwitchType? =
             switchTypeCache
                 .computeIfAbsent(typeName) { key ->
-                    Optional.ofNullable(parseParts(key)?.let { parts -> SwitchType(key, parts) })
+                    Optional.ofNullable(parseSwitchTypeParts(key)?.let { parts -> SwitchType(key, parts) })
                 }
                 .getOrNull()
-
-        private fun parseParts(typeName: String): SwitchTypeParts? =
-            if (typeName.startsWith("EV")) parseSwedishSwitchType(typeName) else parseFinnishSwitchType(typeName)
     }
 
     @JsonValue override fun toString(): String = typeName
@@ -269,7 +268,8 @@ data class SwitchStructureData(
     override val joints: Set<SwitchStructureJoint>,
     override val alignments: List<SwitchStructureAlignment>,
 ) : ISwitchStructure {
-    override val data = this
+    override val data
+        get() = this
 
     override val endJointNumbers: Set<JointNumber> by lazy {
         alignments.flatMap { a -> listOf(a.jointNumbers.first(), a.jointNumbers.last()) }.toSet()
