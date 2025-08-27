@@ -47,7 +47,7 @@ type TableFetchFn = (
     from?: Date,
     to?: Date,
     specificItem?: PublishableObjectIdAndType,
-    sortBy?: string,
+    sortBy?: keyof SortablePublicationTableProps,
     order?: SortDirection,
 ) => Promise<Page<PublicationTableItem>>;
 
