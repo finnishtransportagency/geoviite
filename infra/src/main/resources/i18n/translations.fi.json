@@ -570,8 +570,8 @@
             "revert-dialog": {
                 "revert-draft-confirm": "Hylätäänkö luonnos?",
                 "can-be-reverted": "Luonnoksen hylkääminen palauttaa ratanumeron ja pituusmittauslinjan takaisin uusimpaan viralliseen tilaan. Ratanumero ja pituusmittauslinja poistetaan jos niitä ei ole vielä julkaistu Ratkoon.",
-                "revert-succeeded": "Ratanumeron ja pituusmittauslinjan luonnokset hylätty.",
-                "revert-failed": "Luonnosten hylkääminen epäonnistui."
+                "revert-succeeded": "Ratanumeron ja pituusmittauslinjan luonnokset hylätty",
+                "revert-failed": "Luonnosten hylkääminen epäonnistui"
             },
             "unpublished": "Julkaisematon"
         },
@@ -793,8 +793,8 @@
             "revert-dialog": {
                 "revert-draft-confirm": "Hylätäänkö luonnos?",
                 "can-be-reverted": "Luonnoksen hylkääminen palauttaa sijaintiraiteen takaisin uusimpaan viralliseen tilaan. Sijaintiraide poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
-                "revert-succeeded": "Sijaintiraiteen luonnos hylätty.",
-                "revert-failed": "Luonnoksen hylkääminen epäonnistui."
+                "revert-succeeded": "Sijaintiraiteen luonnos hylätty",
+                "revert-failed": "Luonnoksen hylkääminen epäonnistui"
             },
             "ratko-info-heading": "Ratko",
             "push-to-ratko": "Vie Ratkoon...",
@@ -2013,8 +2013,8 @@
     "km-post-revert-draft-dialog": {
         "revert-draft-confirm": "Hylätäänkö luonnos?",
         "can-be-reverted": "Luonnoksen hylkääminen palauttaa kilometripylvään takaisin uusimpaan viralliseen tilaan. Kilometripylväs poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
-        "revert-succeeded": "Tasakilometripisteen luonnos hylätty.",
-        "revert-failed": "Luonnoksen hylkääminen epäonnistui."
+        "revert-succeeded": "Tasakilometripisteen luonnos hylätty",
+        "revert-failed": "Luonnoksen hylkääminen epäonnistui"
     },
     "switch-dialog": {
         "title-new": "Uusi vaihde",
@@ -2086,7 +2086,7 @@
     "switch-revert-dialog": {
         "title": "Hylätäänkö luonnos?",
         "guide": "Luonnoksen hylkääminen palauttaa vaihteen takaisin uusimpaan viralliseen tilaan. Vaihde poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
-        "success": "Vaihteen luonnos hylätty."
+        "success": "Vaihteen luonnos hylätty"
     },
     "track-number-edit": {
         "title": {
