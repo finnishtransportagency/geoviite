@@ -33,7 +33,7 @@ import {
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
-import { getSortDirectionIcon, SortDirection, TableSorting } from 'utils/table-utils';
+import { SortDirection, TableSorting } from 'utils/table-utils';
 import { useLoader } from 'utils/react-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
@@ -41,6 +41,7 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { PublicationGroupAmounts } from 'publication/publication-utils';
 import styles from './preview-view.scss';
 import { PreviewTableItem } from 'preview/preview-table-item';
+import { SortableTableHeader } from 'vayla-design-lib/table/sortable-table-header';
 
 export type PublishableObjectId =
     | LayoutTrackNumberId
@@ -168,22 +169,6 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
         setSortInfo(newSortInfo);
     };
 
-    const sortableTableHeader = (
-        prop: keyof SortablePreviewProps,
-        translationKey: string,
-        className: string,
-    ) => (
-        <Th
-            className={className}
-            onClick={() => sortByProp(prop)}
-            qa-id={translationKey}
-            icon={
-                sortInfo.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
-            }>
-            {t(translationKey)}
-        </Th>
-    );
-
     return (
         <div
             className={styles['preview-table__container']}
@@ -193,36 +178,48 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             <Table wide>
                 <thead className={styles['preview-table__header']}>
                     <tr>
-                        {sortableTableHeader(
-                            'name',
-                            'preview-table.change-target',
-                            styles['preview-table__header--change-target'],
-                        )}
-                        {sortableTableHeader(
-                            'trackNumbers',
-                            'preview-table.track-number-short',
-                            styles['preview-table__header--track-number-short'],
-                        )}
-                        {sortableTableHeader(
-                            'operation',
-                            'preview-table.change-type',
-                            styles['preview-table__header--change-type'],
-                        )}
-                        {sortableTableHeader(
-                            'changeTime',
-                            'preview-table.modified-moment',
-                            styles['preview-table__header--modified-moment'],
-                        )}
-                        {sortableTableHeader(
-                            'userName',
-                            'preview-table.user',
-                            styles['preview-table__header--user'],
-                        )}
-                        {sortableTableHeader(
-                            'issues',
-                            'preview-table.status',
-                            styles['preview-table__header--status'],
-                        )}
+                        <SortableTableHeader
+                            prop={'name'}
+                            translationKey={'preview-table.change-target'}
+                            className={styles['preview-table__header--change-target']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'trackNumbers'}
+                            translationKey={'preview-table.track-number-short'}
+                            className={styles['preview-table__header--track-number-short']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'operation'}
+                            translationKey={'preview-table.change-type'}
+                            className={styles['preview-table__header--change-type']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'changeTime'}
+                            translationKey={'preview-table.modified-moment'}
+                            className={styles['preview-table__header--modified-moment']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'userName'}
+                            translationKey={'preview-table.user'}
+                            className={styles['preview-table__header--user']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'issues'}
+                            translationKey={'preview-table.status'}
+                            className={styles['preview-table__header--status']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
                         <Th className={styles['preview-table__header--actions']}>
                             {t('preview-table.actions')}
                         </Th>
