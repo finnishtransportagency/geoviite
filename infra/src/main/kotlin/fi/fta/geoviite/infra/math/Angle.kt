@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.math
 
 import java.math.BigDecimal
 import kotlin.math.*
+import kotlin.math.IEEErem
 
 enum class AngularUnit {
     RADIANS,
@@ -16,8 +17,17 @@ fun gradsToRads(grads: Double): Double = PI * grads / 200
 
 fun radsToGrads(rads: Double): Double = 200 * rads / PI
 
-/** Direction in the center of 2 given directions (given in rads), on the side of the smaller angle. */
-fun angleAvgRads(rads1: Double, rads2: Double): Double = atan2(sin(rads1) + sin(rads2), cos(rads1) + cos(rads2))
+/**
+ * Direction in the center of 2 given directions (given in rads), on the side of the smaller angle. Returns normalized
+ * angles in the range [-PI, PI).
+ */
+fun angleAvgRads(rads1: Double, rads2: Double): Double = interpolateAngleRads(rads1, rads2, 0.5)
+
+/**
+ * Interpolate between two angles, on the side of the smaller angle. Returns normalized angles in the range [-PI, PI).
+ */
+fun interpolateAngleRads(rads1: Double, rads2: Double, proportion: Double) =
+    rotateAngle(rads1, normalizeDirectionRads(rads2 - rads1) * proportion)
 
 /**
  * Checks if an angle (agnostic of unit) is inside the closed range [start,end], noting that the angle can flip
@@ -56,7 +66,8 @@ fun radsMathToGeo(rads: Double) = normalizeGeodeticRads(0.5 * PI - rads)
 fun radsGeoToMath(rads: Double) = normalizeDirectionRads(0.5 * PI - rads)
 
 /** Normalize radian angle value into the half-closed range [-PI,PI) */
-private fun normalizeDirectionRads(rads: Double): Double = fract((rads - PI) / (PI * 2.0)) * (PI * 2.0) - PI
+private fun normalizeDirectionRads(rads: Double): Double =
+    rads.IEEErem(PI * 2.0).let { if (it < -PI) it + PI * 2.0 else it }.let { if (it == PI) -PI else it }
 
 /** Normalize radian angle value into the half-closed range [0,2*PI) */
 private fun normalizeGeodeticRads(rads: Double): Double = fract(rads / (PI * 2.0)) * (PI * 2.0)
