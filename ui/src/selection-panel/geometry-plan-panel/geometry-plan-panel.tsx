@@ -33,6 +33,8 @@ import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switc
 import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
 import { AlignmentHeader, GeometryAlignmentHeader } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
+import { GeometryPlanLayoutResult } from 'geometry/geometry-api';
+import { CustomGeometryValidationIssue } from 'infra-model/infra-model-slice';
 
 type GeometryPlanProps = {
     planHeader: GeometryPlanHeader;
@@ -52,8 +54,9 @@ type GeometryPlanProps = {
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
-    loadPlanLayout: () => Promise<GeometryPlanLayout | undefined>;
+    loadPlanLayout: () => Promise<GeometryPlanLayoutResult | undefined>;
     planLayout?: GeometryPlanLayout;
+    planLayoutError?: CustomGeometryValidationIssue;
     linkStatus?: GeometryPlanLinkStatus;
     planBeingLoaded: boolean;
     disabled: boolean;
@@ -85,6 +88,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     togglePlanSwitchesOpen,
     loadPlanLayout,
     planLayout,
+    planLayoutError,
     linkStatus,
     planBeingLoaded,
     disabled,
@@ -138,12 +142,12 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         setOpeningAccordion(true);
         loadPlanLayout()
             .then((planLayout) => {
-                if (planLayout) {
+                if (planLayout?.layout) {
                     togglePlanOpen({
                         isKmPostsOpen: isKmPostsOpen,
                         isSwitchesOpen: isSwitchesOpen,
                         isAlignmentsOpen: isAlignmentsOpen,
-                        id: planLayout.id,
+                        id: planLayout?.layout?.id,
                         isOpen: true,
                     });
                 }
@@ -170,7 +174,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
             onTogglePlanVisibility(wholePlanVisibility(planLayout));
         } else {
             loadPlanLayout().then((p) => {
-                if (p) onTogglePlanVisibility(wholePlanVisibility(p));
+                if (p?.layout) onTogglePlanVisibility(wholePlanVisibility(p.layout));
             });
         }
     };
@@ -224,10 +228,15 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                 onHeaderClick={() => onPlanHeaderSelection(planHeader)}
                 headerSelected={selectedItems.geometryPlans?.some((id) => id === planHeader.id)}
                 fetchingContent={openingAccordion || planBeingLoaded}
-                eyeHidden={disabled}
+                eyeHidden={disabled || !!planLayoutError}
+                error={
+                    planLayoutError
+                        ? t(planLayoutError.localizationKey, planLayoutError)
+                        : undefined
+                }
                 disabled={disabled}
                 className={disabled ? styles['geometry-plan-panel--disabled'] : ''}>
-                {planLayout && (
+                {!planLayoutError && planLayout && (
                     <div className={styles['geometry-plan-panel__alignments']}>
                         <Accordion
                             qaId={'geometry-plan-panel-km-posts'}

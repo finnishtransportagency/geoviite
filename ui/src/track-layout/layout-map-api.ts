@@ -488,7 +488,7 @@ export async function getGeometryLinkPointsByTiles(
     const mapResolution = firstMapTile.resolution;
     const alignmentResolution = toMapAlignmentResolution(mapResolution);
     const bounds = combineBoundingBoxes(mapTiles.map((tile) => tile.area));
-    const plan = await getTrackLayoutPlan(geometryPlanId, changeTime, true);
+    const plan = (await getTrackLayoutPlan(geometryPlanId, changeTime, true)).layout;
     const alignment = plan?.alignments?.find((a) => a.header.id === geometryAlignmentId);
     if (alignment && alignment.polyLine) {
         const header = alignment.header;

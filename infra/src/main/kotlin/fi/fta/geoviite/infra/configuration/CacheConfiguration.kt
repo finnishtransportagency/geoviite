@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.configuration
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
-import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -13,12 +12,14 @@ import org.springframework.cache.caffeine.CaffeineCacheManager
 import org.springframework.cache.support.NoOpCacheManager
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import java.time.Duration
 
 const val CACHE_GEOMETRY_PLAN = "geometry-plan"
 const val CACHE_GEOMETRY_SWITCH = "geometry-switch"
 
 const val CACHE_ROLES = "roles"
-const val CACHE_COORDINATE_SYSTEMS = "coordinate-systems"
+const val CACHE_GVT_COORDINATE_SYSTEMS = "gvt-coordinate-systems"
+const val CACHE_ANY_COORDINATE_SYSTEMS = "any-coordinate-systems"
 const val CACHE_FEATURE_TYPES = "feature-types"
 const val CACHE_COMMON_SWITCH_OWNER = "switch-owner"
 const val CACHE_COMMON_LOCATION_TRACK_OWNER = "location-track-owner"
@@ -50,7 +51,8 @@ constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boole
             val manager = CaffeineCacheManager()
 
             manager.registerCustomCache(CACHE_ROLES, cache(10, staticDataCacheDuration))
-            manager.registerCustomCache(CACHE_COORDINATE_SYSTEMS, cache(1, staticDataCacheDuration))
+            manager.registerCustomCache(CACHE_GVT_COORDINATE_SYSTEMS, cache(1, staticDataCacheDuration))
+            manager.registerCustomCache(CACHE_ANY_COORDINATE_SYSTEMS, cache(1000, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_FEATURE_TYPES, cache(1, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK, cache(2, staticDataCacheDuration))
 

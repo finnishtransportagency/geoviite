@@ -308,10 +308,16 @@ export async function getVisiblePlansWithStatus(
     changeTimes: ChangeTimes,
 ): Promise<PlanAndStatus[]> {
     const planIds = await getTilesPlanIds(visiblePlans, mapTiles, changeTimes);
-    const withStatuses = await getTrackLayoutPlans(planIds, changeTimes.geometryPlan, true).then(
-        (plans) =>
+    const withStatuses = await getTrackLayoutPlans(planIds, changeTimes.geometryPlan, true)
+        .then((plans) =>
+            plans
+                .map((p) => p.layout)
+                .filter(filterNotEmpty)
+                .filter((p) => !p.planHidden),
+        )
+        .then((plans) =>
             getPlanLinkStatuses(
-                plans.filter((p) => !p.planHidden).map((p) => p.id),
+                plans.map((p) => p.id),
                 layoutContext,
             ).then((statuses) =>
                 plans.map((plan) => ({
@@ -319,7 +325,7 @@ export async function getVisiblePlansWithStatus(
                     status: statuses.find((s) => s.id === plan.id),
                 })),
             ),
-    );
+        );
     return withStatuses.filter(filterNotEmpty);
 }
 
@@ -330,6 +336,7 @@ export async function getVisiblePlans(
 ): Promise<GeometryPlanLayout[]> {
     const planIds = await getTilesPlanIds(visiblePlans, mapTiles, changeTimes);
     return (await getTrackLayoutPlans(planIds, changeTimes.geometryPlan, true))
+        .map((r) => r.layout)
         .filter(filterNotEmpty)
         .filter((plan) => !plan.planHidden);
 }

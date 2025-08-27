@@ -157,10 +157,10 @@
                 }
             },
             "transformation": {
-                "srid-missing": "Suunnitelmaa ei voida esittää kartalla, koska koordinaattijärjestelmää \"{{coordinateSystemName}}\" ei osata muuntaa kartan järjestelmään TM35FIN (EPSG:3067)",
-                "bounds-resolution-failed": "Suunnitelmaa ei voida esittää kartalla, koska sisältö ei ole koordinaattijärjestelmän \"{{coordinateSystemName}} ({{srid}})\" rajoissa",
-                "bounds-outside-finland": "Suunnitelmaa ei voida esittää kartalla, koska koordinaatit ovat Suomen ulkopuolella (tulkittuna koordinaattijärjestelmässä \"{{coordinateSystemName}} ({{srid}}))",
-                "coordinate-transformation-failed": "Suunnitelmaa ei voida esittää kartalla, koska sen koordinaattien muunnos järjestelmästä \"{{coordinateSystemName}}\" ({{srid}}) kartan järjestelmään TM35FIN (EPSG:3067) epäonnistui",
+                "srid-missing": "Suunnitelmaa ei voida esittää kartalla, koska koordinaattijärjestelmää {{coordinateSystemName}} ei osata muuntaa kartan järjestelmään TM35FIN (EPSG:3067)",
+                "bounds-resolution-failed": "Suunnitelmaa ei voida esittää kartalla, koska sisältö ei ole koordinaattijärjestelmän {{coordinateSystemName}} ({{srid}}) rajoissa",
+                "bounds-outside-finland": "Suunnitelmaa ei voida esittää kartalla, koska koordinaatit ovat Suomen ulkopuolella (tulkittuna koordinaattijärjestelmässä {{coordinateSystemName}} ({{srid}}))",
+                "coordinate-transformation-failed": "Suunnitelmaa ei voida esittää kartalla, koska sen koordinaattien muunnos järjestelmästä {{coordinateSystemName}} ({{srid}}) kartan järjestelmään TM35FIN (EPSG:3067) epäonnistui",
                 "plan-transformation-failed": "Suunnitelman muuntaminen kartalla esitettävään muotoon epäonnistui"
             }
         },

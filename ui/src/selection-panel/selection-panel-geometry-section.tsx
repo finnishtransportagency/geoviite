@@ -23,7 +23,11 @@ import {
 } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
 import { useMapState, useRateLimitedEffect, useSetState } from 'utils/react-utils';
-import { getGeometryPlanHeadersBySearchTerms, getTrackLayoutPlan } from 'geometry/geometry-api';
+import {
+    GeometryPlanLayoutResult,
+    getGeometryPlanHeadersBySearchTerms,
+    getTrackLayoutPlans,
+} from 'geometry/geometry-api';
 import { GeometryPlanLayout, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { getPlanLinkStatuses } from 'linking/linking-api';
@@ -44,6 +48,7 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
+import { CustomGeometryValidationIssue } from 'infra-model/infra-model-slice';
 
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;
@@ -71,8 +76,9 @@ type GeometryPlansPanelProps = {
 const MAX_PLAN_HEADERS = 50;
 
 type FetchedGeometryPlan = {
-    planLayout: GeometryPlanLayout;
-    linkStatus: GeometryPlanLinkStatus;
+    planLayout: GeometryPlanLayout | undefined;
+    planLayoutError: CustomGeometryValidationIssue | undefined;
+    linkStatus: GeometryPlanLinkStatus | undefined;
 };
 
 const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
@@ -160,26 +166,24 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         ],
     );
 
-    const fetchPlanLayouts = (
-        ids: GeometryPlanId[],
-    ): Promise<(GeometryPlanLayout | undefined)[]> => {
+    const fetchPlanLayouts = (ids: GeometryPlanId[]): Promise<GeometryPlanLayoutResult[]> => {
         ids.forEach(startFetchingPlan);
         return Promise.all([
-            Promise.all(ids.map((id) => getTrackLayoutPlan(id, changeTimes.geometryPlan))),
+            getTrackLayoutPlans(ids, changeTimes.geometryPlan),
             getPlanLinkStatuses(ids, layoutContext),
         ])
-            .then(([planLayouts, linkStatuses]) =>
-                ids.map((id, index) => {
-                    const planLayout = planLayouts[index];
+            .then(([layouts, linkStatuses]) => {
+                ids.forEach((id, index) => {
+                    const layout = layouts[index];
                     const linkStatus = linkStatuses[index];
-                    if (planLayout && linkStatus) {
-                        setSingleFetchedPlan(id, { planLayout, linkStatus });
-                        return planLayout;
-                    } else {
-                        return undefined;
-                    }
-                }),
-            )
+                    setSingleFetchedPlan(id, {
+                        planLayout: layout?.layout,
+                        planLayoutError: layout?.error,
+                        linkStatus,
+                    });
+                });
+                return layouts;
+            })
             .finally(() => ids.forEach(finishFetchingPlan));
     };
 
@@ -190,6 +194,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     function fetchPlansAndSetVisible(planIds: GeometryPlanId[]) {
         fetchPlanLayouts(planIds).then((plans) =>
             plans
+                .map((p) => p.layout)
                 .filter(filterNotEmpty)
                 .forEach((plan) => onTogglePlanVisibility(wholePlanVisibility(plan))),
         );
@@ -345,10 +350,13 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                     togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
                                     togglePlanSwitchesOpen={togglePlanSwitchesOpen}
                                     planLayout={fetchedPlans.get(h.id)?.planLayout}
+                                    planLayoutError={fetchedPlans.get(h.id)?.planLayoutError}
                                     linkStatus={fetchedPlans.get(h.id)?.linkStatus}
                                     planBeingLoaded={plansBeingFetched.has(h.id)}
                                     loadPlanLayout={() =>
-                                        fetchPlanLayouts([h.id]).then((ps) => first(ps))
+                                        fetchPlanLayouts([h.id]).then(
+                                            (ps) => first(ps) ?? undefined,
+                                        )
                                     }
                                     disabled={disabled}
                                 />
