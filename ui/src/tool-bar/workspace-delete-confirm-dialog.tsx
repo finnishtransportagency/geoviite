@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { Trans, useTranslation } from 'react-i18next';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -26,6 +27,7 @@ export const WorkspaceDeleteConfirmDialog: React.FC<WorkspaceDeleteConfirmDialog
             designState: 'DELETED',
         });
         await updateLayoutDesignChangeTime();
+        Snackbar.success('workspace-dialog.delete-success');
         onDesignDeleted(currentDesign.id);
         closeDialog();
     }

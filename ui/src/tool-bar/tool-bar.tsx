@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import {
     Button,
@@ -48,7 +49,11 @@ import {
 import { DesignSelectionContainer } from 'tool-bar/workspace-selection';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
-import { getLayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-api';
+import {
+    getLayoutDesign,
+    LayoutDesignSaveRequest,
+    updateLayoutDesign,
+} from 'track-layout/layout-design-api';
 import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
@@ -311,6 +316,24 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         onDesignIdChange(undefined);
     };
 
+    const onSaveDesign = (
+        _: LayoutDesignId | undefined,
+        request: LayoutDesignSaveRequest,
+    ): void => {
+        if (currentDesign) {
+            setSavingWorkspace(true);
+            updateLayoutDesign(currentDesign.id, request)
+                .then(() => {
+                    setShowEditWorkspaceDialog(false);
+                })
+                .finally(() => {
+                    updateLayoutDesignChangeTime();
+                    setSavingWorkspace(false);
+                    Snackbar.success('workspace-dialog.update-success');
+                });
+        }
+    };
+
     return (
         <div className={className}>
             <div className={styles['tool-bar__left-section']}>
@@ -510,19 +533,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 <WorkspaceDialog
                     existingDesign={currentDesign}
                     onCancel={() => setShowEditWorkspaceDialog(false)}
-                    onSave={(_, request) => {
-                        if (currentDesign) {
-                            setSavingWorkspace(true);
-                            updateLayoutDesign(currentDesign.id, request)
-                                .then(() => {
-                                    setShowEditWorkspaceDialog(false);
-                                })
-                                .finally(() => {
-                                    updateLayoutDesignChangeTime();
-                                    setSavingWorkspace(false);
-                                });
-                        }
-                    }}
+                    onSave={onSaveDesign}
                     saving={savingWorkspace}
                 />
             )}
