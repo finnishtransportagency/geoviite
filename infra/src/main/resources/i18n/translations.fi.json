@@ -2078,7 +2078,10 @@
         "name-not-unique": "Nimi on jo käytössä",
         "name-too-short": "Nimi on liian lyhyt",
         "name-too-long": "Nimi on liian pitkä",
-        "name-invalid": "Nimi sisältää kiellettyjä merkkejä"
+        "name-invalid": "Nimi sisältää kiellettyjä merkkejä",
+        "create-success": "Työtila luotu ja aktivoitu",
+        "update-success": "Työtilan tiedot päivitetty",
+        "delete-success": "Työtila poistettu"
     },
     "switch-revert-dialog": {
         "title": "Hylätäänkö luonnos?",

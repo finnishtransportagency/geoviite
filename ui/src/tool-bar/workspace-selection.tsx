@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
 import {
     Dropdown,
@@ -73,6 +74,14 @@ export const DesignSelection: React.FC<DesignSelectionProps> = ({ designId, onDe
         setShowCreateWorkspaceDialog(true);
     };
 
+    const onSave = (_: LayoutDesignId | undefined, request: LayoutDesignSaveRequest): void => {
+        setSavingWorkspace(true);
+        handleInsertLayoutDesign(request).finally(() => {
+            setSavingWorkspace(false);
+            Snackbar.success('workspace-dialog.create-success');
+        });
+    };
+
     async function handleInsertLayoutDesign(request: LayoutDesignSaveRequest) {
         const designId = await insertLayoutDesign(request);
         await updateLayoutDesignChangeTime();
@@ -111,10 +120,7 @@ export const DesignSelection: React.FC<DesignSelectionProps> = ({ designId, onDe
                 <WorkspaceDialog
                     nameSuggestion={workspaceNameSuggestion}
                     onCancel={() => setShowCreateWorkspaceDialog(false)}
-                    onSave={(_, request) => {
-                        setSavingWorkspace(true);
-                        handleInsertLayoutDesign(request).finally(() => setSavingWorkspace(false));
-                    }}
+                    onSave={onSave}
                     saving={savingWorkspace}
                 />
             )}
