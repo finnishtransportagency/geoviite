@@ -19,9 +19,8 @@ import PublicationTable from 'publication/table/publication-table';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import {
-    InitiallyUnsorted,
-    PublicationDetailsTableSortField,
-    PublicationDetailsTableSortInformation,
+    SortablePublicationTableProps,
+    SortedByTimeDesc,
 } from 'publication/table/publication-table-utils';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { PublicationTableItem } from 'publication/publication-model';
@@ -36,7 +35,7 @@ import { DOWNLOAD_PUBLICATION } from 'user/user-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { debounceAsync } from 'utils/async-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { SortDirection } from 'utils/table-utils';
+import { SortDirection, TableSorting } from 'utils/table-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'tool-bar/search-dropdown';
 import { officialMainLayoutContext } from 'common/common-model';
@@ -48,7 +47,7 @@ type TableFetchFn = (
     from?: Date,
     to?: Date,
     specificItem?: PublishableObjectIdAndType,
-    sortBy?: PublicationDetailsTableSortField,
+    sortBy?: string,
     order?: SortDirection,
 ) => Promise<Page<PublicationTableItem>>;
 
@@ -163,7 +162,7 @@ const PublicationLog: React.FC = () => {
     const storedSpecificItem = selectedPublicationSearch?.specificItem;
 
     const [sortInfo, setSortInfo] =
-        React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
+        React.useState<TableSorting<SortablePublicationTableProps>>(SortedByTimeDesc);
     const [isLoading, setIsLoading] = React.useState(false);
     const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
 
@@ -181,7 +180,7 @@ const PublicationLog: React.FC = () => {
         );
     }, []);
 
-    const updateTableSorting = (updatedSort: PublicationDetailsTableSortInformation) => {
+    const updateTableSorting = (updatedSort: TableSorting<SortablePublicationTableProps>) => {
         if (pagedPublications?.items.length === MAX_RETURNED_PUBLICATION_LOG_ROWS) {
             updatePublicationsTable(
                 storedStartDate,
@@ -253,7 +252,7 @@ const PublicationLog: React.FC = () => {
         startDate: Date | undefined,
         endDate: Date | undefined,
         specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
-        sortInfo: PublicationDetailsTableSortInformation,
+        sortInfo: TableSorting<SortablePublicationTableProps>,
         fetchFn: TableFetchFn,
     ): Promise<Page<PublicationTableItem> | undefined> => {
         if (!isValidPublicationLogSearchRange(specificItem, startDate, endDate)) {

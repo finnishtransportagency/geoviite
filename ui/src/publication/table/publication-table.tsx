@@ -4,12 +4,8 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './publication-table.scss';
 import { PublicationId, PublicationTableItem } from 'publication/publication-model';
-import {
-    getSortInfoForProp,
-    PublicationDetailsTableSortField,
-    PublicationDetailsTableSortInformation,
-} from './publication-table-utils';
-import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
+import { getSortInfoForProp, SortablePublicationTableProps } from './publication-table-utils';
+import { getSortDirectionIcon, SortDirection, TableSorting } from 'utils/table-utils';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { useState } from 'react';
 import { negComparator } from 'utils/array-utils';
@@ -21,8 +17,8 @@ import { SearchItemValue } from 'tool-bar/search-dropdown';
 
 export type PublicationTableProps = {
     items: PublicationTableItem[];
-    sortInfo?: PublicationDetailsTableSortInformation;
-    onSortChange?: (sortInfo: PublicationDetailsTableSortInformation) => void;
+    sortInfo?: TableSorting<SortablePublicationTableProps>;
+    onSortChange?: (sortInfo: TableSorting<SortablePublicationTableProps>) => void;
     isLoading?: boolean;
     displaySingleItemHistory: (
         item: SearchItemValue<SearchablePublicationLogItem> | undefined,
@@ -38,7 +34,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
 }) => {
     const { t } = useTranslation();
 
-    const sortByProp = (propName: PublicationDetailsTableSortField) => {
+    const sortByProp = (propName: keyof SortablePublicationTableProps) => {
         if (sortInfo && onSortChange) {
             const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
             onSortChange(newSortInfo);
@@ -46,7 +42,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
     };
 
     const sortableTableHeader = (
-        prop: PublicationDetailsTableSortField,
+        prop: keyof SortablePublicationTableProps,
         translationKey: string,
         className: string,
     ) => (
@@ -65,8 +61,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         sortInfo && sortInfo.direction !== SortDirection.UNSORTED
             ? [...items].sort(
                   sortInfo.direction === SortDirection.ASCENDING
-                      ? sortInfo.sortFunction
-                      : negComparator(sortInfo.sortFunction),
+                      ? sortInfo.function
+                      : negComparator(sortInfo.function),
               )
             : [...items];
 
@@ -113,42 +109,42 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                             />
                         </Th>
                         {sortableTableHeader(
-                            PublicationDetailsTableSortField.NAME,
+                            'name',
                             'publication-table.name',
                             styles['publication-table__header--name'],
                         )}
                         {sortableTableHeader(
-                            PublicationDetailsTableSortField.TRACK_NUMBERS,
+                            'trackNumbers',
                             'publication-table.track-number',
                             styles['publication-table__header--track-number'],
                         )}
                         {sortableTableHeader(
-                            PublicationDetailsTableSortField.CHANGED_KM_NUMBERS,
+                            'changedKmNumbers',
                             'publication-table.km-number',
                             styles['publication-table__header--km-number'],
                         )}
                         {sortableTableHeader(
-                            PublicationDetailsTableSortField.OPERATION,
+                            'operation',
                             'publication-table.operation',
                             styles['publication-table__header--operation'],
                         )}
                         {sortableTableHeader(
-                            PublicationDetailsTableSortField.PUBLICATION_TIME,
+                            'publicationTime',
                             'publication-table.publication-time',
                             styles['publication-table__header--publication-time'],
                         )}
                         {sortableTableHeader(
-                            PublicationDetailsTableSortField.PUBLICATION_USER,
+                            'publicationUser',
                             'publication-table.publication-user',
                             styles['publication-table__header--user'],
                         )}
                         {sortableTableHeader(
-                            PublicationDetailsTableSortField.MESSAGE,
+                            'message',
                             'publication-table.message',
                             styles['publication-table__header--message'],
                         )}
                         {sortableTableHeader(
-                            PublicationDetailsTableSortField.RATKO_PUSH_TIME,
+                            'ratkoPushTime',
                             'publication-table.pushed-to-ratko',
                             styles['publication-table__header--pushed-to-ratko'],
                         )}

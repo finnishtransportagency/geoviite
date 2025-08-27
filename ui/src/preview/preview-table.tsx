@@ -13,9 +13,8 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { negComparator } from 'utils/array-utils';
 import {
     getSortInfoForProp,
-    InitiallyUnsorted,
-    SortInformation,
-    SortProps,
+    SortablePreviewProps,
+    SortedByTimeDesc,
 } from 'preview/change-table-sorting';
 import {
     ChangeTableEntry,
@@ -34,7 +33,7 @@ import {
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
-import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
+import { getSortDirectionIcon, SortDirection, TableSorting } from 'utils/table-utils';
 import { useLoader } from 'utils/react-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
@@ -101,7 +100,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             [changeTimes.layoutTrackNumber],
         ) || [];
 
-    const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
+    const [sortInfo, setSortInfo] =
+        React.useState<TableSorting<SortablePreviewProps>>(SortedByTimeDesc);
 
     const getTableEntryByType = (candidate: PublicationCandidate): ChangeTableEntry => {
         switch (candidate.type) {
@@ -163,12 +163,16 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
               )
             : [...publicationTableEntries];
 
-    const sortByProp = (propName: SortProps) => {
+    const sortByProp = (propName: keyof SortablePreviewProps) => {
         const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
         setSortInfo(newSortInfo);
     };
 
-    const sortableTableHeader = (prop: SortProps, translationKey: string, className: string) => (
+    const sortableTableHeader = (
+        prop: keyof SortablePreviewProps,
+        translationKey: string,
+        className: string,
+    ) => (
         <Th
             className={className}
             onClick={() => sortByProp(prop)}
@@ -190,32 +194,32 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                 <thead className={styles['preview-table__header']}>
                     <tr>
                         {sortableTableHeader(
-                            SortProps.NAME,
+                            'name',
                             'preview-table.change-target',
                             styles['preview-table__header--change-target'],
                         )}
                         {sortableTableHeader(
-                            SortProps.TRACK_NUMBER,
+                            'trackNumbers',
                             'preview-table.track-number-short',
                             styles['preview-table__header--track-number-short'],
                         )}
                         {sortableTableHeader(
-                            SortProps.OPERATION,
+                            'operation',
                             'preview-table.change-type',
                             styles['preview-table__header--change-type'],
                         )}
                         {sortableTableHeader(
-                            SortProps.CHANGE_TIME,
+                            'changeTime',
                             'preview-table.modified-moment',
                             styles['preview-table__header--modified-moment'],
                         )}
                         {sortableTableHeader(
-                            SortProps.USER_NAME,
+                            'userName',
                             'preview-table.user',
                             styles['preview-table__header--user'],
                         )}
                         {sortableTableHeader(
-                            SortProps.ISSUES,
+                            'issues',
                             'preview-table.status',
                             styles['preview-table__header--status'],
                         )}

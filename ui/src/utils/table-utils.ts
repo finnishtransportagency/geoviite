@@ -1,5 +1,12 @@
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { Comparator } from 'utils/array-utils';
+
+export type TableSorting<T> = {
+    propName: keyof T;
+    direction: SortDirection;
+    function: Comparator<T>;
+};
 
 export enum SortDirection {
     ASCENDING = 'ASCENDING',

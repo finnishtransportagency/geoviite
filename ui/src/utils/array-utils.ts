@@ -71,14 +71,16 @@ export function flatten<T>(list: T[][]): T[] {
     return list.flatMap((subList) => subList);
 }
 
-export function negComparator<T>(comparator: (v1: T, v2: T) => number): (v1: T, v2: T) => number {
+export type Comparator<T> = (v1: T, v2: T) => number;
+
+export function negComparator<T>(comparator: Comparator<T>): Comparator<T> {
     return (v1: T, v2: T) => comparator(v1, v2) * -1;
 }
 
 export function fieldComparator<
     T extends EmptyObject | undefined,
     S extends EmptyObject | undefined,
->(getter: (obj: T) => S): (v1: T, v2: T) => number {
+>(getter: (obj: T) => S): Comparator<T> {
     return (v1: T, v2: T) => compareByField(v1, v2, getter);
 }
 
@@ -94,9 +96,7 @@ export function chunk<T>(array: T[], chunkSize: number): T[][] {
 }
 
 //Null and undefined values are considered "max"
-export function timeStampComparator<T>(
-    getter: (obj: T) => TimeStamp | undefined,
-): (v1: T, v2: T) => number {
+export function timeStampComparator<T>(getter: (obj: T) => TimeStamp | undefined): Comparator<T> {
     return (v1: T, v2: T) => {
         const aTime = getter(v1);
         const bTime = getter(v2);

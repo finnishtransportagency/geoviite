@@ -15,8 +15,8 @@ import { TimeStamp } from 'common/common-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { useAppNavigate } from 'common/navigate';
 import {
-    InitiallyUnsorted,
-    PublicationDetailsTableSortInformation,
+    SortablePublicationTableProps,
+    SortedByNameAsc,
 } from 'publication/table/publication-table-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { createDelegates } from 'store/store-utils';
@@ -24,6 +24,7 @@ import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { SearchItemValue } from 'tool-bar/search-dropdown';
 import { SearchablePublicationLogItem } from 'publication/log/publication-log';
 import { START_OF_2022 } from 'vayla-design-lib/datepicker/datepicker';
+import { TableSorting } from 'utils/table-utils';
 
 export type PublicationDetailsViewProps = {
     publication: PublicationDetails;
@@ -43,7 +44,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     const [publicationItems, setPublicationItems] = React.useState<PublicationTableItem[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [sortInfo, setSortInfo] =
-        React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
+        React.useState<TableSorting<SortablePublicationTableProps>>(SortedByNameAsc);
     const trackLayoutActionDelegates = React.useMemo(
         () => createDelegates(trackLayoutActionCreators),
         [],
