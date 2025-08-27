@@ -42,6 +42,11 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 
+data class GeometryPlanLayoutResult(
+    val layout: GeometryPlanLayout?,
+    val error: TransformationError?,
+)
+
 @GeoviiteController("/geometry")
 class GeometryController
 @Autowired
@@ -100,8 +105,10 @@ constructor(private val geometryService: GeometryService, private val planLayout
     fun getTrackLayoutPlan(
         @PathVariable("geometryPlanId") geometryPlanId: IntId<GeometryPlan>,
         @RequestParam("includeGeometryData") includeGeometryData: Boolean = true,
-    ): ResponseEntity<GeometryPlanLayout> {
-        return toResponse(planLayoutService.getLayoutPlan(geometryPlanId, includeGeometryData).first)
+    ): GeometryPlanLayoutResult {
+        return planLayoutService.getLayoutPlan(geometryPlanId, includeGeometryData).let { (layout, error) ->
+            GeometryPlanLayoutResult(layout, error)
+        }
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)

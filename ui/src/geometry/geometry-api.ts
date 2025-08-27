@@ -53,10 +53,16 @@ import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice'
 import { GeometryAlignmentHeader } from 'track-layout/layout-map-api';
 import i18next from 'i18next';
 import { contextInUri } from 'track-layout/track-layout-api';
+import { CustomGeometryValidationIssue } from 'infra-model/infra-model-slice';
 
 export const GEOMETRY_URI = `${API_URI}/geometry`;
 
-const trackLayoutPlanCache = asyncCache<GeometryPlanId, GeometryPlanLayout | undefined>();
+export type GeometryPlanLayoutResult = {
+    layout: GeometryPlanLayout | undefined;
+    error: CustomGeometryValidationIssue | undefined;
+};
+
+const trackLayoutPlanCache = asyncCache<GeometryPlanId, GeometryPlanLayoutResult>();
 const geometryPlanCache = asyncCache<GeometryPlanId, GeometryPlan | undefined>();
 const geometryPlanAreaCache = asyncCache<string, PlanArea[]>(); // map tile ID => plan area[]
 
@@ -275,34 +281,24 @@ export async function getGeometrySwitchLayout(
     return await getNullable<LayoutSwitch>(`${GEOMETRY_URI}/switches/${switchId}/layout`);
 }
 
-export async function getTrackLayoutPlansByIds(
-    planIds: GeometryPlanId[],
-    changeTime: TimeStamp,
-    includeGeometryData = true,
-): Promise<GeometryPlanLayout[]> {
-    return Promise.all(
-        planIds.map((planId) => getTrackLayoutPlan(planId, changeTime, includeGeometryData)),
-    ).then((plans) => plans.filter(filterNotEmpty));
-}
-
 export async function getTrackLayoutPlan(
     planId: GeometryPlanId,
     changeTime: TimeStamp,
     includeGeometryData = true,
-): Promise<GeometryPlanLayout | undefined> {
+): Promise<GeometryPlanLayoutResult> {
     const url = `${GEOMETRY_URI}/plans/${planId}/layout?includeGeometryData=${includeGeometryData}`;
     const key = `${planId}-${includeGeometryData}`;
-    return trackLayoutPlanCache.get(changeTime, key, () => getNullable(url));
+    return trackLayoutPlanCache.get(changeTime, key, () => getNonNull(url));
 }
 
 export async function getTrackLayoutPlans(
     planIds: GeometryPlanId[],
     changeTime: TimeStamp,
     includeGeometryData = true,
-): Promise<GeometryPlanLayout[]> {
+): Promise<GeometryPlanLayoutResult[]> {
     return Promise.all(
         planIds.map((planId) => getTrackLayoutPlan(planId, changeTime, includeGeometryData)),
-    ).then((layouts) => layouts.filter(filterNotEmpty));
+    );
 }
 
 export async function getProjects(changeTime = getChangeTimes().project): Promise<Project[]> {

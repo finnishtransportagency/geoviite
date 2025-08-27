@@ -3,6 +3,7 @@ import styles from './accordion.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { Eye } from 'geoviite-design-lib/eye/eye';
+import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 
 type AccordionProps = {
     open: boolean;
@@ -19,6 +20,7 @@ type AccordionProps = {
     eyeHidden?: boolean;
     qaId?: string;
     className?: string;
+    error?: string;
 };
 
 export const Accordion: React.FC<AccordionProps> = ({
@@ -36,6 +38,7 @@ export const Accordion: React.FC<AccordionProps> = ({
     qaId,
     eyeHidden = false,
     className,
+    error,
 }: AccordionProps) => {
     const accordionClasses = createClassName(
         styles['accordion__header'],
@@ -64,6 +67,11 @@ export const Accordion: React.FC<AccordionProps> = ({
                     {header}
                     {subheader && <div className="accordion__subheader">{subheader}</div>}
                 </span>
+                {!!error && (
+                    <span title={error} className={styles['accordion__error-icon']}>
+                        <Icons.StatusError color={IconColor.INHERIT} />
+                    </span>
+                )}
                 {onVisibilityToggle && !eyeHidden && (
                     <Eye
                         onVisibilityToggle={onVisibilityToggle}

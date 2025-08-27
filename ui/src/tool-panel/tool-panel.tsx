@@ -27,7 +27,7 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getSwitches } from 'track-layout/layout-switch-api';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { MapViewport } from 'map/map-model';
-import { getGeometryPlanHeaders, getTrackLayoutPlansByIds } from 'geometry/geometry-api';
+import { getGeometryPlanHeaders, getTrackLayoutPlans } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
 import {
     GeometryKmPostInfoboxVisibilities,
@@ -146,7 +146,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             ...geometrySwitchIds.map((s) => s.planId),
             ...geometryAlignmentIds.map((s) => s.planId),
         ].filter(filterUnique);
-        const elementPlansPromise = getTrackLayoutPlansByIds(
+        const elementPlansPromise = getTrackLayoutPlans(
             elementPlanIds,
             changeTimes.geometryPlan,
             false,
@@ -188,7 +188,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     const planHeaders = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[4]) || [];
 
     const getPlan = (id: GeometryPlanId) =>
-        tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[5].find((p) => p.id === id);
+        tracksSwitchesKmPostsPlans &&
+        tracksSwitchesKmPostsPlans[5].find((p) => p.layout?.id === id);
 
     const infoboxVisibilityChange = (
         key: keyof InfoboxVisibilities,
@@ -260,7 +261,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 
         const geometryKmPostTabs = geometryKmPostIds.map(
             (k: SelectedGeometryItem<GeometryKmPostId>) => {
-                const kmPost = getPlan(k.planId)?.kmPosts?.find((p) => p.sourceId === k.geometryId);
+                const kmPost = getPlan(k.planId)?.layout?.kmPosts?.find(
+                    (p) => p.sourceId === k.geometryId,
+                );
                 return {
                     asset: { type: 'GEOMETRY_KM_POST', id: k.geometryId },
                     title: kmPost?.kmNumber ?? '...',
@@ -339,7 +342,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     : true,
             )
             .map((s) => {
-                const geometrySwitchLayout = getPlan(s.planId)?.switches?.find(
+                const geometrySwitchLayout = getPlan(s.planId)?.layout?.switches?.find(
                     (gs) => gs.sourceId === s.geometryId,
                 );
                 return {
@@ -378,7 +381,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 
         const geometryAlignmentTabs = geometryAlignmentIds.map(
             (item: SelectedGeometryItem<GeometryAlignmentId>): ToolPanelTab => {
-                const header = getPlan(item.planId)?.alignments?.find(
+                const header = getPlan(item.planId)?.layout?.alignments?.find(
                     (a) => a.header.id === item.geometryId,
                 )?.header;
                 return {

@@ -1,7 +1,8 @@
 package fi.fta.geoviite.infra.geography
 
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.configuration.CACHE_COORDINATE_SYSTEMS
+import fi.fta.geoviite.infra.configuration.CACHE_ANY_COORDINATE_SYSTEMS
+import fi.fta.geoviite.infra.configuration.CACHE_GVT_COORDINATE_SYSTEMS
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -17,16 +18,16 @@ import org.springframework.transaction.annotation.Transactional
 @Component
 class CoordinateSystemDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    @Cacheable(CACHE_COORDINATE_SYSTEMS, sync = true)
+    @Cacheable(CACHE_GVT_COORDINATE_SYSTEMS, sync = true)
     fun fetchApplicationCoordinateSystems(): List<CoordinateSystem> {
         val sql =
             """
-            select 
-              srid,
-              name,
-              array_to_string(aliases, ',') as aliases_str
-            from common.coordinate_system
-        """
+                select 
+                  srid,
+                  name,
+                  array_to_string(aliases, ',') as aliases_str
+                from common.coordinate_system
+            """
                 .trimIndent()
         val systems =
             jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -40,18 +41,19 @@ class CoordinateSystemDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoB
         return systems
     }
 
+    @Cacheable(CACHE_ANY_COORDINATE_SYSTEMS, sync = true)
     fun fetchCoordinateSystem(srid: Srid): CoordinateSystem {
         val sql =
             """
-            select 
-              ref.srid,
-              cs.name as cs_name,
-              split_part(ref.srtext, '"', 2) as sr_name,
-              coalesce(array_to_string(cs.aliases, ','), '') as aliases_str
-            from postgis.spatial_ref_sys ref 
-              left join common.coordinate_system cs on cs.srid = ref.srid
-            where ref.srid = :srid 
-        """
+                select 
+                  ref.srid,
+                  cs.name as cs_name,
+                  split_part(ref.srtext, '"', 2) as sr_name,
+                  coalesce(array_to_string(cs.aliases, ','), '') as aliases_str
+                from postgis.spatial_ref_sys ref 
+                  left join common.coordinate_system cs on cs.srid = ref.srid
+                where ref.srid = :srid 
+            """
                 .trimIndent()
         val system =
             jdbcTemplate
