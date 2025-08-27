@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.publication.PublicationRequest
 import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -99,8 +100,11 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.queryOne
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -109,10 +113,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1330,7 +1330,7 @@ constructor(
         val publicationId =
             publicationDao.createPublication(
                 LayoutBranch.main,
-                FreeTextWithNewLines.of("test: bulk transfer to in progress"),
+                PublicationMessage.of("test: bulk transfer to in progress"),
                 PublicationCause.MANUAL,
                 parentId = null,
             )
@@ -1363,7 +1363,7 @@ constructor(
                     publicationId =
                         publicationDao.createPublication(
                             LayoutBranch.main,
-                            FreeTextWithNewLines.of("some in progress bulk transfer"),
+                            PublicationMessage.of("some in progress bulk transfer"),
                             PublicationCause.MANUAL,
                             parentId = null,
                         ),
@@ -1381,7 +1381,7 @@ constructor(
                         publicationId =
                             publicationDao.createPublication(
                                 LayoutBranch.main,
-                                FreeTextWithNewLines.of("pending bulk transfer"),
+                                PublicationMessage.of("pending bulk transfer"),
                                 PublicationCause.MANUAL,
                                 parentId = null,
                             ),
@@ -1409,7 +1409,7 @@ constructor(
                         publicationId =
                             publicationDao.createPublication(
                                 LayoutBranch.main,
-                                FreeTextWithNewLines.of("pending bulk transfer"),
+                                PublicationMessage.of("pending bulk transfer"),
                                 PublicationCause.MANUAL,
                                 parentId = null,
                             ),
@@ -1449,7 +1449,7 @@ constructor(
                             publicationId =
                                 publicationDao.createPublication(
                                     LayoutBranch.main,
-                                    FreeTextWithNewLines.of("pending bulk transfer $index"),
+                                    PublicationMessage.of("pending bulk transfer $index"),
                                     PublicationCause.MANUAL,
                                     parentId = null,
                                 ),
@@ -1485,7 +1485,7 @@ constructor(
                                 publicationId =
                                     publicationDao.createPublication(
                                         LayoutBranch.main,
-                                        FreeTextWithNewLines.of("testing $bulkTransferState"),
+                                        PublicationMessage.of("testing $bulkTransferState"),
                                         PublicationCause.MANUAL,
                                         parentId = null,
                                     ),
@@ -1513,7 +1513,7 @@ constructor(
         fakeRatko.acceptsNewDesignGivingItId(123)
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = FreeTextWithNewLines.of("aoeu")),
+            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
         )
         ratkoService.pushChangesToRatko(design)
         assertEquals(123, layoutDesignDao.fetchRatkoId(design.designId)?.intValue)
@@ -1525,7 +1525,7 @@ constructor(
         fakeRatko.acceptsNewDesignGivingItId(123)
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = FreeTextWithNewLines.of("aoeu")),
+            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
         )
         layoutDesignDao.update(
             design.designId,
@@ -1537,7 +1537,7 @@ constructor(
         )
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = FreeTextWithNewLines.of("aoeu")),
+            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
         )
         ratkoService.pushChangesToRatko(design)
         layoutDesignDao.update(
@@ -1550,7 +1550,7 @@ constructor(
         )
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = FreeTextWithNewLines.of("aoeu")),
+            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
         )
         ratkoService.pushChangesToRatko(design)
         assertEquals(
@@ -1574,11 +1574,11 @@ constructor(
         publishAndPush()
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = FreeTextWithNewLines.of("aoeu")),
+            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
         )
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = FreeTextWithNewLines.of("uuba aaba")),
+            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("uuba aaba")),
         )
         ratkoService.pushChangesToRatko(design)
         assertEquals(listOf<RatkoPlan>(), fakeRatko.getUpdatesToDesign(123))
@@ -1613,7 +1613,7 @@ constructor(
             design,
             PublicationRequest(
                 publicationRequestIds(locationTracks = listOf(locationTrack), switches = listOf(switch)),
-                message = FreeTextWithNewLines.of("aoeu"),
+                message = PublicationMessage.of("aoeu"),
             ),
         )
 
@@ -1684,7 +1684,7 @@ constructor(
         fakeRatko.acceptsNewLocationTrackGivingItOid("1.1.1.3.2")
         publicationService.publishManualPublication(
             designBranch,
-            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+            PublicationRequest(publishAll, PublicationMessage.of("")),
         )
         trackNumberService.cancel(designBranch, trackNumber.id)
         referenceLineService.cancel(designBranch, referenceLine.id)
@@ -1692,7 +1692,7 @@ constructor(
         switchService.cancel(designBranch, switch.id)
         publicationService.publishManualPublication(
             designBranch,
-            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+            PublicationRequest(publishAll, PublicationMessage.of("")),
         )
 
         fakeRatko.acceptsNewDesignGivingItId(123)
@@ -1769,7 +1769,7 @@ constructor(
         fakeRatko.providesPlanItemIdsInDesign(123)
         publicationService.publishManualPublication(
             designBranch,
-            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+            PublicationRequest(publishAll, PublicationMessage.of("")),
         )
         ratkoService.pushChangesToRatko(designBranch)
 
@@ -1784,7 +1784,7 @@ constructor(
 
         publicationService.publishManualPublication(
             designBranch,
-            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+            PublicationRequest(publishAll, PublicationMessage.of("")),
         )
         ratkoService.pushChangesToRatko(designBranch)
         val trackNumberPlanItem = layoutTrackNumberDao.fetchExternalId(designBranch, trackNumber.id)!!.planItemId!!
@@ -1860,7 +1860,7 @@ constructor(
         fakeRatko.acceptsNewLocationTrackGivingItOid("1.1.1.3.2")
         publicationService.publishManualPublication(
             designBranch,
-            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+            PublicationRequest(publishAll, PublicationMessage.of("")),
         )
         ratkoService.pushChangesToRatko(designBranch)
         fakeRatko.hostPushedLocationTrack("1.1.1.3.2")
@@ -1871,7 +1871,7 @@ constructor(
         switchService.mergeToMainBranch(designBranch, switch.id)
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publishAll, FreeTextWithNewLines.of("")),
+            PublicationRequest(publishAll, PublicationMessage.of("")),
         )
         ratkoService.pushChangesToRatko(designBranch)
         val trackNumberPlanItem = layoutTrackNumberDao.fetchExternalId(designBranch, trackNumber.id)!!.planItemId!!
@@ -1945,7 +1945,7 @@ constructor(
                 switches = switches,
                 kmPosts = kmPosts,
             )
-        publicationService.publishManualPublication(branch, PublicationRequest(ids, FreeTextWithNewLines.of("")))
+        publicationService.publishManualPublication(branch, PublicationRequest(ids, PublicationMessage.of("")))
         ratkoService.pushChangesToRatko(branch)
     }
 

@@ -25,13 +25,15 @@ export const MainPublicationListRow: React.FC<MainPublicationListRowProps> = ({ 
                             <Icons.StatusError size={IconSize.SMALL} color={IconColor.INHERIT} />
                         </span>
                     )}
-                    <span className={styles['publication-list-item__text']}>
+                    <span className={styles['publication-list-item__header']}>
                         <RouterLink to={`/publications/${publication.id}`}>
                             {formatDateFull(publication.publicationTime)}
                         </RouterLink>
                     </span>
                 </span>
-                <span>{publication.message}</span>
+                <span className={styles['publication-list-item__message']}>
+                    {publication.message}
+                </span>
             </div>
             {publication.split && (
                 <PublicationListRowSplit

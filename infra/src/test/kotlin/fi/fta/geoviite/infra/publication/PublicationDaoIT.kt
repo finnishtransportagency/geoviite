@@ -54,14 +54,13 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -246,7 +245,7 @@ constructor(
         val publicationId =
             publicationDao.createPublication(
                 LayoutBranch.main,
-                FreeTextWithNewLines.of(""),
+                PublicationMessage.of(""),
                 PublicationCause.MANUAL,
                 parentId = null,
             )
@@ -283,7 +282,7 @@ constructor(
 
     @Test
     fun `Publication message is stored and fetched correctly`() {
-        val message = FreeTextWithNewLines.of("Test")
+        val message = PublicationMessage.of("Test")
         val publicationId =
             publicationDao.createPublication(LayoutBranch.main, message, PublicationCause.MANUAL, parentId = null)
         assertEquals(message, publicationDao.getPublication(publicationId).message)
@@ -418,25 +417,25 @@ constructor(
         val anotherDesign = DesignBranch.of(layoutDesignDao.insert(layoutDesign("two")))
         publicationDao.createPublication(
             someDesign,
-            FreeTextWithNewLines.of("in someDesign"),
+            PublicationMessage.of("in someDesign"),
             PublicationCause.MANUAL,
             parentId = null,
         )
         publicationDao.createPublication(
             LayoutBranch.main,
-            FreeTextWithNewLines.of("in main"),
+            PublicationMessage.of("in main"),
             PublicationCause.MANUAL,
             parentId = null,
         )
         publicationDao.createPublication(
             anotherDesign,
-            FreeTextWithNewLines.of("in anotherDesign"),
+            PublicationMessage.of("in anotherDesign"),
             PublicationCause.MANUAL,
             parentId = null,
         )
         publicationDao.createPublication(
             LayoutBranch.main,
-            FreeTextWithNewLines.of("again in main"),
+            PublicationMessage.of("again in main"),
             PublicationCause.MANUAL,
             parentId = null,
         )
@@ -456,7 +455,7 @@ constructor(
         val pub1 =
             publicationDao.createPublication(
                 DesignBranch.of(someDesign),
-                FreeTextWithNewLines.of("pub 1"),
+                PublicationMessage.of("pub 1"),
                 PublicationCause.MANUAL,
                 parentId = null,
             )
@@ -464,7 +463,7 @@ constructor(
         val pub2 =
             publicationDao.createPublication(
                 DesignBranch.of(someDesign),
-                FreeTextWithNewLines.of("pub 2"),
+                PublicationMessage.of("pub 2"),
                 PublicationCause.MANUAL,
                 parentId = null,
             )
@@ -472,21 +471,21 @@ constructor(
         val pub3 =
             publicationDao.createPublication(
                 DesignBranch.of(someDesign),
-                FreeTextWithNewLines.of("pub 3"),
+                PublicationMessage.of("pub 3"),
                 PublicationCause.MANUAL,
                 parentId = null,
             )
         val pub4 =
             publicationDao.createPublication(
                 DesignBranch.of(someDesign),
-                FreeTextWithNewLines.of("pub 4"),
+                PublicationMessage.of("pub 4"),
                 PublicationCause.MANUAL,
                 parentId = null,
             )
         val pub5 =
             publicationDao.createPublication(
                 DesignBranch.of(someDesign),
-                FreeTextWithNewLines.of("pub 5"),
+                PublicationMessage.of("pub 5"),
                 PublicationCause.MANUAL,
                 parentId = null,
             )
@@ -503,7 +502,7 @@ constructor(
             publicationDao
                 .createPublication(
                     MainLayoutContext.official.branch,
-                    FreeTextWithNewLines.of("test publication"),
+                    PublicationMessage.of("test publication"),
                     PublicationCause.MANUAL,
                     parentId = null,
                 )
@@ -518,7 +517,7 @@ constructor(
             publicationDao
                 .createPublication(
                     MainLayoutContext.official.branch,
-                    FreeTextWithNewLines.of("test publication"),
+                    PublicationMessage.of("test publication"),
                     PublicationCause.MANUAL,
                     parentId = null,
                 )

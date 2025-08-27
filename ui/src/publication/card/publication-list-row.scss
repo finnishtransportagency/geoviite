@@ -5,8 +5,11 @@
 }
 
 .publication-list-item {
-    display: inline-flex;
+    display: grid;
     white-space: pre-wrap;
+
+    grid-template-columns: min-content auto;
+    grid-gap: 2px 6px;
 
     a {
         text-decoration: none;
@@ -39,10 +42,8 @@
     }
 
     &__timestamp {
+        grid-column: 1;
         display: inline-flex;
-        align-items: center;
-        margin-right: 6px;
-        margin-bottom: auto;
 
         .icon,
         .spinner {
@@ -50,9 +51,14 @@
         }
     }
 
-    &__text {
+    &__header {
         @include vayla-design.typography-body-strong;
         white-space: pre;
+    }
+
+    &__message {
+        grid-column: 2;
+        overflow: hidden;
     }
 
     &__split {
@@ -65,10 +71,6 @@
         align-items: center;
         font-size: 12px;
         margin-bottom: 6px;
-
-        > :first-child {
-            margin-right: 6px;
-        }
     }
 
     &__split-detail-no-icon {
@@ -104,14 +106,9 @@
     }
 
     &__design-name {
+        grid-column: 2;
         font-weight: 600;
         margin-right: 2px;
-    }
-
-    &__design-icon {
-        align-items: center;
-        margin-right: 4px;
-        margin-left: 2px;
     }
 
     &--generated-publication {

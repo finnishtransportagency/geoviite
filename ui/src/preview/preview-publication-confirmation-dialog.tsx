@@ -6,6 +6,9 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextArea } from 'vayla-design-lib/text-area/text-area';
 import { useTranslation } from 'react-i18next';
+import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
+import { PublicationDetails } from 'publication/publication-model';
+import { filterNotEmpty } from 'utils/array-utils';
 
 export type PreviewPublicationDialogProps = {
     isPublishing: boolean;
@@ -13,6 +16,17 @@ export type PreviewPublicationDialogProps = {
     candidateCount: number;
     publish: (message: string) => void;
 };
+
+const validateMessage = (message: string): FieldValidationIssue<PublicationDetails>[] =>
+    [
+        message.length > 500
+            ? {
+                  field: 'message' as keyof PublicationDetails,
+                  type: FieldValidationIssueType.ERROR,
+                  reason: 'publish.publish-confirm.message-too-long',
+              }
+            : undefined,
+    ].filter(filterNotEmpty);
 
 export const PreviewPublicationConfirmationDialog: React.FC<PreviewPublicationDialogProps> = ({
     isPublishing,
@@ -22,6 +36,7 @@ export const PreviewPublicationConfirmationDialog: React.FC<PreviewPublicationDi
 }) => {
     const { t } = useTranslation();
     const [message, setMessage] = React.useState('');
+    const messageValidationErrors = validateMessage(message).map((err) => t(err.reason));
 
     return (
         <Dialog
@@ -53,11 +68,13 @@ export const PreviewPublicationConfirmationDialog: React.FC<PreviewPublicationDi
             </div>
             <FieldLayout
                 label={`${t('publish.publish-confirm.message')} *`}
+                errors={messageValidationErrors}
                 value={
                     <TextArea
                         qa-id={'publication-message'}
                         value={message}
                         wide
+                        hasError={messageValidationErrors.length > 0}
                         onChange={(e) => setMessage(e.currentTarget.value)}
                     />
                 }

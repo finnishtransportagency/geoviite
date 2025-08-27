@@ -38,6 +38,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
 import fi.fta.geoviite.infra.projektivelho.PVId
+import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
@@ -147,6 +148,9 @@ class WebConfig(
         logger.info("Registering track address converters")
         registry.addStringConstructorConverter(::KmNumber)
         registry.addStringConstructorConverter(::TrackMeter)
+
+        logger.info("Registering publication sanitized string converters")
+        registry.addStringConstructorConverter(PublicationMessage::of)
 
         logger.info("Registering case-insensitive path variable enum converters")
         registry.addStringConstructorConverter { enumCaseInsensitive<PublicationState>(it) }

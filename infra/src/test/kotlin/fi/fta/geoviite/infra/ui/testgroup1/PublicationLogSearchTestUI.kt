@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationCause
+import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.publication.PublicationRequest
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
@@ -12,7 +13,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.DaoBase
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.setUser
 import java.time.Instant
 import java.time.ZoneOffset
@@ -48,7 +48,7 @@ constructor(
             listOf(
                 PublicationRequest(
                     content = publicationRequestIds(trackNumbers = listOf(someTrackNumberId)),
-                    message = FreeTextWithNewLines.of("some test publication 1"),
+                    message = PublicationMessage.of("some test publication 1"),
                 ),
                 PublicationRequest(
                     content =
@@ -56,14 +56,14 @@ constructor(
                             referenceLines =
                                 listOf(mainDraftContext.save(someReferenceLine.first, someReferenceLine.second).id)
                         ),
-                    message = FreeTextWithNewLines.of("some test publication 2"),
+                    message = PublicationMessage.of("some test publication 2"),
                 ),
                 PublicationRequest(
                     content =
                         publicationRequestIds(
                             locationTracks = listOf(mainDraftContext.save(someTrack.first, someTrack.second).id)
                         ),
-                    message = FreeTextWithNewLines.of("some test publication 3"),
+                    message = PublicationMessage.of("some test publication 3"),
                 ),
             )
 

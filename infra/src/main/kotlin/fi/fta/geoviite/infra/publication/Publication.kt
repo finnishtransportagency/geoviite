@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.publication
 
+import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
@@ -57,8 +59,39 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import fi.fta.geoviite.infra.util.NEW_LINE_CHARACTER
+import fi.fta.geoviite.infra.util.StringSanitizer
+import fi.fta.geoviite.infra.util.UnsafeString
+import fi.fta.geoviite.infra.util.normalizeLinebreaksToUnixFormat
 import java.time.Instant
+
+data class PublicationMessage private constructor(private val value: String) :
+    Comparable<PublicationMessage>, CharSequence by value {
+
+    companion object {
+        const val ALLOWED_CHARACTERS = FreeText.ALLOWED_CHARACTERS + NEW_LINE_CHARACTER
+        const val ESCAPED_NEW_LINE = "\\n"
+        val ALLOWED_LENGTH = 0..500
+
+        val sanitizer = StringSanitizer(PublicationMessage::class, ALLOWED_CHARACTERS, ALLOWED_LENGTH)
+
+        @JvmStatic @JsonCreator fun of(value: String) = PublicationMessage(normalizeLinebreaksToUnixFormat(value))
+    }
+
+    init {
+        sanitizer.assertSanitized(value)
+    }
+
+    @JsonValue override fun toString(): String = value
+
+    override fun compareTo(other: PublicationMessage): Int = value.compareTo(other.value)
+
+    operator fun plus(addition: String) = PublicationMessage("$value$addition")
+
+    fun escapeNewLines(): FreeText {
+        return FreeText(UnsafeString(value.replace(NEW_LINE_CHARACTER, ESCAPED_NEW_LINE)))
+    }
+}
 
 enum class PublicationTableColumn {
     NAME,
@@ -105,7 +138,7 @@ data class PublicationTableItem(
     val operation: Operation,
     val publicationTime: Instant,
     val publicationUser: UserName,
-    val message: FreeTextWithNewLines,
+    val message: PublicationMessage,
     val ratkoPushTime: Instant?,
     val propChanges: List<PublicationChange<*>>,
 ) {
@@ -140,7 +173,7 @@ open class Publication(
     open val uuid: Uuid<Publication>,
     open val publicationTime: Instant,
     open val publicationUser: UserName,
-    open val message: FreeTextWithNewLines,
+    open val message: PublicationMessage,
     open val layoutBranch: PublishedInBranch,
     open val cause: PublicationCause,
 )
@@ -236,7 +269,7 @@ data class PublicationDetails(
     override val uuid: Uuid<Publication>,
     override val publicationTime: Instant,
     override val publicationUser: UserName,
-    override val message: FreeTextWithNewLines,
+    override val message: PublicationMessage,
     override val layoutBranch: PublishedInBranch,
     override val cause: PublicationCause,
     val trackNumbers: List<PublishedTrackNumber>,
@@ -437,7 +470,7 @@ data class PublicationRequestIds(
             kmPosts.isEmpty()
 }
 
-data class PublicationRequest(val content: PublicationRequestIds, val message: FreeTextWithNewLines)
+data class PublicationRequest(val content: PublicationRequestIds, val message: PublicationMessage)
 
 data class PublicationResult(
     val publicationId: IntId<Publication>,
@@ -889,7 +922,7 @@ data class PreparedPublicationRequest(
     val branch: LayoutBranch,
     val versions: ValidationVersions,
     val calculatedChanges: CalculatedChanges,
-    val message: FreeTextWithNewLines,
+    val message: PublicationMessage,
     val cause: PublicationCause,
     val parentId: IntId<Publication>?,
 )

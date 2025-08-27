@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.ratko.FakeRatkoService
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.ratko.ratkoRouteNumber
@@ -28,14 +29,13 @@ import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import java.time.Instant
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -67,7 +67,7 @@ constructor(
         val successfulPublicationId =
             publicationDao.createPublication(
                 LayoutBranch.main,
-                FreeTextWithNewLines.of("successful"),
+                PublicationMessage.of("successful"),
                 PublicationCause.MANUAL,
                 parentId = null,
             )
@@ -86,7 +86,7 @@ constructor(
         val failingPublicationId =
             publicationDao.createPublication(
                 LayoutBranch.main,
-                FreeTextWithNewLines.of("failing test publication"),
+                PublicationMessage.of("failing test publication"),
                 PublicationCause.MANUAL,
                 parentId = null,
             )

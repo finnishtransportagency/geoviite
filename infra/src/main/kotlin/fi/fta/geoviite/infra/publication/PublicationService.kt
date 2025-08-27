@@ -40,13 +40,12 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.util.FreeTextWithNewLines
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 @GeoviiteService
 class PublicationService
@@ -298,7 +297,7 @@ constructor(
         branch: LayoutBranch,
         versions: ValidationVersions,
         calculatedChanges: CalculatedChanges,
-        message: FreeTextWithNewLines,
+        message: PublicationMessage,
         cause: PublicationCause,
     ): PublicationResultSummary =
         publishPublicationRequests(
