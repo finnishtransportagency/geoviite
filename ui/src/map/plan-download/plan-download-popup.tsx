@@ -16,14 +16,13 @@ import { GeometryPlanId, PlanApplicability } from 'geometry/geometry-model';
 import { PlanDownloadAreaSection } from 'map/plan-download/plan-download-area-section';
 import { PlanDownloadPlanSection } from 'map/plan-download/plan-download-plan-section';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
-import { getChangeTimes } from 'common/change-time-api';
-import { useTrackLayoutAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { expectDefined } from 'utils/type-utils';
 import {
     comparePlans,
-    fetchDownloadablePlans,
     fetchAssetAndExtremities,
+    fetchDownloadablePlans,
     filterPlans,
 } from 'map/plan-download/plan-download-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -81,6 +80,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
     const { t } = useTranslation();
 
     const state = useTrackLayoutAppSelector((state) => state);
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const delegates = createDelegates(TrackLayoutActions);
     const planDownloadState = expectDefined(state.planDownloadState);
 
@@ -92,7 +92,11 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                       officialMainLayoutContext(),
                   )
                 : Promise.resolve(undefined),
-        [planDownloadState.areaSelection.asset],
+        [
+            planDownloadState.areaSelection.asset,
+            changeTimes.layoutLocationTrack,
+            changeTimes.layoutTrackNumber,
+        ],
     );
 
     React.useEffect(() => {
@@ -107,7 +111,7 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
             planDownloadState.areaSelection.asset,
             planDownloadState.areaSelection.startTrackMeter,
             planDownloadState.areaSelection.endTrackMeter,
-            getChangeTimes().geometryPlan,
+            changeTimes.geometryPlan,
         ],
     );
 
