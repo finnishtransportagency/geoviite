@@ -5,7 +5,6 @@ const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ESLintWebpackPlugin = require('eslint-webpack-plugin');
 const LicensePlugin = require('webpack-license-plugin');
-const CspHtmlWebpackPlugin = require('csp-html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 
@@ -86,6 +85,7 @@ module.exports = (env) => {
             host: '127.0.0.1',
             port: 9001,
             compress: false,
+            allowedHosts: 'all',
             proxy: [
                 {
                     context: '/api',
@@ -207,29 +207,7 @@ module.exports = (env) => {
                 template: './src/index.html',
                 favicon: './src/geoviite-design-lib/geoviite-logo.svg',
             }),
-            new MiniCssExtractPlugin({ insert: ':last-child(meta)' }),
-            // NOTE: According to this post this plugin is bad and headers should be used instead
-            // https://towardsdatascience.com/content-security-policy-how-to-create-an-iron-clad-nonce-based-csp3-policy-with-webpack-and-nginx-ce5a4605db90
-            new CspHtmlWebpackPlugin(
-                {
-                    'base-uri': "'self'",
-                    'object-src': "'none'",
-                    'img-src': 'data: http: https:', // http: is for running locally
-                    // Remove explicit style-src and favor nonces when react-select can be made to use non-inline styles
-                    'style-src': "'unsafe-inline' http: https:",
-                    'default-src': "'self'",
-                    'connect-src': 'http: https: ws:',
-                },
-                {
-                    enabled: true,
-                    hashingMethod: 'sha256',
-                    nonceEnabled: {
-                        'script-src': true,
-                        // Enable nonce for style-src when react-select can be made to use non-inline styles
-                        'style-src': false,
-                    },
-                },
-            ),
+            new MiniCssExtractPlugin(),
             new ESLintWebpackPlugin({
                 configType: 'flat',
                 extensions: ['js', 'jsx', 'ts', 'tsx'],
