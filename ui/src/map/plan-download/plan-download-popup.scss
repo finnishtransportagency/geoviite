@@ -92,6 +92,11 @@
         }
     }
 
+    &__title-asset-name {
+        text-transform: none;
+        white-space: pre-wrap;
+    }
+
     &__content {
         @include vayla-design.typography-caption;
         backdrop-filter: blur(3px);

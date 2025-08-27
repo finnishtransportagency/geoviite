@@ -8,6 +8,7 @@ import { KmNumber, LayoutContext, officialMainLayoutContext } from 'common/commo
 import {
     DownloadablePlan,
     PlanDownloadAsset,
+    PlanDownloadAssetType,
     PopupSection,
 } from 'map/plan-download/plan-download-store';
 import { createDelegates } from 'store/store-utils';
@@ -19,22 +20,25 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
-import { expectDefined } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 import {
     comparePlans,
-    fetchDownloadablePlans,
     fetchAssetAndExtremities,
+    fetchDownloadablePlans,
     filterPlans,
 } from 'map/plan-download/plan-download-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { PlanDownloadPopupSection } from 'map/plan-download/plan-download-popup-section';
 import { createPortal } from 'react-dom';
 
-const kmNumberRange = (start: KmNumber | undefined, end: KmNumber | undefined) => {
+const kmNumberRange = (
+    start: KmNumber | undefined,
+    end: KmNumber | undefined,
+): string | undefined => {
     if (start && end) return `${start}-${end}`;
     else if (start) return `${start}-`;
     else if (end) return `-${end}`;
-    else return '';
+    else return undefined;
 };
 
 type LocationSpecifierProps = {
@@ -48,17 +52,43 @@ export const LocationSpecifier: React.FC<LocationSpecifierProps> = ({
     endTrackMeter,
 }) => {
     const { t } = useTranslation();
-    const base = !selectedAsset
-        ? ''
-        : selectedAsset.type === 'LOCATION_TRACK'
-          ? `${t('plan-download.location-track')} ${selectedAsset.asset.name}`
-          : `${t('plan-download.track-number')} ${selectedAsset.asset.number}`;
-    const kmNumberString = kmNumberRange(startTrackMeter, endTrackMeter);
-    return (
-        <React.Fragment>
-            {!selectedAsset ? '' : !kmNumberString ? base : `${base}, ${kmNumberString}`}
-        </React.Fragment>
-    );
+
+    const Specifier = ({ label, assetName }: { label: string; assetName: string }) => {
+        const kmNumberString = kmNumberRange(startTrackMeter, endTrackMeter);
+
+        return (
+            <React.Fragment>
+                <span>{label} </span>
+                <span className={styles['plan-download-popup__title-asset-name']}>{assetName}</span>
+                {kmNumberString && <span>, {kmNumberString}</span>}
+            </React.Fragment>
+        );
+    };
+
+    switch (selectedAsset?.type) {
+        case PlanDownloadAssetType.TRACK_NUMBER: {
+            return (
+                <Specifier
+                    label={t('plan-download.track-number')}
+                    assetName={selectedAsset.asset.number}
+                />
+            );
+        }
+
+        case PlanDownloadAssetType.LOCATION_TRACK:
+            return (
+                <Specifier
+                    label={t('plan-download.location-track')}
+                    assetName={selectedAsset.asset.name}
+                />
+            );
+
+        case undefined:
+            return <React.Fragment />;
+
+        default:
+            return exhaustiveMatchingGuard(selectedAsset);
+    }
 };
 
 type PlanDownloadPopupProps = {
