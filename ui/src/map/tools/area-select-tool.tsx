@@ -91,7 +91,7 @@ export function createAreaSelectTool(
 
             const tooltipDraw = new Draw({
                 type: 'Circle',
-                freehandCondition: (e: MapBrowserEvent<PointerEvent>) => {
+                freehandCondition: (e: MapBrowserEvent<UIEvent>) => {
                     mode = altKeyOnly(e) ? SelectMode.Subtract : SelectMode.Add;
                     return (noModifierKeys(e) || altKeyOnly(e)) && primaryAction(e);
                 },

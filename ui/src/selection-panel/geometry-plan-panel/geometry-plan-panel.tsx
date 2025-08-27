@@ -147,7 +147,6 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                         isKmPostsOpen: isKmPostsOpen,
                         isSwitchesOpen: isSwitchesOpen,
                         isAlignmentsOpen: isAlignmentsOpen,
-                        // TODO: we should be able to open it even without a layout conversion
                         id: planLayout?.layout?.id,
                         isOpen: true,
                     });
