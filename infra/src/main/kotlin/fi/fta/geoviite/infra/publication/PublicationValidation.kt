@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.GeocodingAlignmentM
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -36,6 +37,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import fi.fta.geoviite.infra.tracklayout.TOPOLOGY_CALC_DISTANCE
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
@@ -336,7 +338,13 @@ fun validateSwitchTopologicalConnectivity(
     val existingTracks = locationTracksAndGeometries.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
+            validateSwitchAlignmentTopology(
+                switch.id as IntId,
+                structure,
+                existingTracks,
+                switch.name,
+                validatingTrack,
+            ),
         )
         .flatten()
 }
@@ -902,10 +910,64 @@ fun validateAddressPoints(
     )
 }
 
-fun validateReferenceLineGeometry(alignment: LayoutAlignment) = validateGeometry(VALIDATION_REFERENCE_LINE, alignment)
+fun validateReferenceLineGeometry(alignment: LayoutAlignment): List<LayoutValidationIssue> =
+    validateGeometry(VALIDATION_REFERENCE_LINE, alignment)
 
-fun validateLocationTrackGeometry(geometry: LocationTrackGeometry) =
-    validateGeometry(VALIDATION_LOCATION_TRACK, geometry)
+fun validateLocationTrackGeometry(geometry: LocationTrackGeometry): List<LayoutValidationIssue> =
+    validateGeometry(VALIDATION_LOCATION_TRACK, geometry) +
+        listOfNotNull(
+            validateWithParams(geometry.length.distance > TOPOLOGY_CALC_DISTANCE) {
+                "$VALIDATION_LOCATION_TRACK.too-short" to
+                    localizationParams("minLength" to TOPOLOGY_CALC_DISTANCE.toString())
+            },
+        )
+
+fun validateEdges(
+    geometry: LocationTrackGeometry,
+    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
+): List<LayoutValidationIssue> =
+    collectDuplicatedSwitches(geometry).map(getSwitchName).map { name ->
+        validationError("$VALIDATION_LOCATION_TRACK.duplicate-switch", "switch" to name)
+    } + geometry.edges.flatMap { edge -> validateEdge(edge, getSwitchName) }
+
+private fun collectDuplicatedSwitches(geometry: LocationTrackGeometry): Set<IntId<LayoutSwitch>> {
+    val seenSwitches = mutableSetOf<IntId<LayoutSwitch>>()
+    var lastSwitch: IntId<LayoutSwitch>? = null
+    return geometry.trackSwitchLinks
+        .mapNotNull { link ->
+            link.switchId
+                .takeIf { link.switchId != lastSwitch && seenSwitches.contains(link.switchId) }
+                .also {
+                    seenSwitches.add(link.switchId)
+                    lastSwitch = link.switchId
+                }
+        }
+        .toSet()
+}
+
+fun validateEdge(edge: LayoutEdge, getSwitchName: (IntId<LayoutSwitch>) -> SwitchName): List<LayoutValidationIssue> =
+    when {
+        edge.startNode.switchIn == null && edge.endNode.switchIn == null -> listOf()
+        edge.startNode.switchIn == null || edge.endNode.switchIn == null ->
+            listOf(
+                validationError(
+                    "$VALIDATION_LOCATION_TRACK.edge-switch-partial",
+                    "switch" to getSwitchName(requireNotNull(edge.startNode.switchIn ?: edge.endNode.switchIn).id),
+                )
+            )
+        edge.startNode.switchIn?.id != edge.endNode.switchIn?.id ->
+            listOf(
+                validationError(
+                    "$VALIDATION_LOCATION_TRACK.edge-switch-partial",
+                    "switch" to getSwitchName(requireNotNull(edge.startNode.switchIn).id),
+                ),
+                validationError(
+                    "$VALIDATION_LOCATION_TRACK.edge-switch-partial",
+                    "switch" to getSwitchName(requireNotNull(edge.endNode.switchIn).id),
+                ),
+            )
+        else -> emptyList()
+    }
 
 private fun validateGeometry(errorParent: String, alignment: IAlignment<*>) =
     listOfNotNull(

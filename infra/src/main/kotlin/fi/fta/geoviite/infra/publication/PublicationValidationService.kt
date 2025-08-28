@@ -552,7 +552,11 @@ constructor(
                     duplicatesAfterPublication,
                 )
 
-            val alignmentIssues = if (track.exists) validateLocationTrackGeometry(geometry) else listOf()
+            val alignmentIssues =
+                if (track.exists) {
+                    validateLocationTrackGeometry(geometry) +
+                        validateEdges(geometry) { id -> requireNotNull(validationContext.getSwitch(id)).name }
+                } else listOf()
             val geocodingIssues =
                 if (track.exists && trackNumber != null) {
                     validationContext.getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
