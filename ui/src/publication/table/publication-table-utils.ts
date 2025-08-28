@@ -1,25 +1,25 @@
-import { nextSortDirection, SortDirection } from 'utils/table-utils';
+import { nextSortDirection, SortDirection, TableSorting } from 'utils/table-utils';
 import { PublicationTableItem } from 'publication/publication-model';
 import { publicationOperationCompare } from 'sorting/publication-sorting';
 import { TimeStamp } from 'common/common-model';
-import { fieldComparator, multiFieldComparator, timeStampComparator } from 'utils/array-utils';
+import {
+    Comparator,
+    fieldComparator,
+    multiFieldComparator,
+    timeStampComparator,
+} from 'utils/array-utils';
 
-export enum PublicationDetailsTableSortField {
-    NAME = 'NAME',
-    CHANGED_KM_NUMBERS = 'CHANGED_KM_NUMBERS',
-    TRACK_NUMBERS = 'TRACK_NUMBERS',
-    OPERATION = 'OPERATION',
-    PUBLICATION_TIME = 'PUBLICATION_TIME',
-    PUBLICATION_USER = 'PUBLICATION_USER',
-    RATKO_PUSH_TIME = 'RATKO_PUSH_TIME',
-    MESSAGE = 'MESSAGE',
-}
-
-export type PublicationDetailsTableSortInformation = {
-    propName: PublicationDetailsTableSortField;
-    direction: SortDirection;
-    sortFunction: (item1: PublicationTableItem, item2: PublicationTableItem) => number;
-};
+export type SortablePublicationTableProps = Pick<
+    PublicationTableItem,
+    | 'name'
+    | 'changedKmNumbers'
+    | 'trackNumbers'
+    | 'operation'
+    | 'publicationTime'
+    | 'publicationUser'
+    | 'ratkoPushTime'
+    | 'message'
+>;
 
 const sortEmptyArraysAsLast = <T>(a: T[], b: T[]): number | undefined => {
     if (a.length === 0 && b.length !== 0) {
@@ -66,42 +66,47 @@ const publicationLogOperationCompare = (
         : fieldComparator(publicationTimeGetter)(a, b);
 };
 
-const publicationLogSortFunctions: Record<
-    PublicationDetailsTableSortField,
-    (a: PublicationTableItem, b: PublicationTableItem) => number
-> = {
-    NAME: multiFieldComparator((entry: { name: string }) => entry.name, publicationTimeGetter),
-    TRACK_NUMBERS: trackNumbersCompare,
-    CHANGED_KM_NUMBERS: changedKmNumbersCompare,
-    OPERATION: publicationLogOperationCompare,
-    PUBLICATION_TIME: timeStampComparator(
+const publicationLogSorting: {
+    [key in keyof SortablePublicationTableProps]: Comparator<SortablePublicationTableProps>;
+} = {
+    name: multiFieldComparator((entry: { name: string }) => entry.name, publicationTimeGetter),
+    trackNumbers: trackNumbersCompare,
+    changedKmNumbers: changedKmNumbersCompare,
+    operation: publicationLogOperationCompare,
+    publicationTime: timeStampComparator(
         (entry: { publicationTime: string }) => entry.publicationTime,
     ),
-    PUBLICATION_USER: multiFieldComparator(
+    publicationUser: multiFieldComparator(
         (entry: { publicationUser: string }) => entry.publicationUser,
         publicationTimeGetter,
     ),
-    RATKO_PUSH_TIME: timeStampComparator(
+    ratkoPushTime: timeStampComparator(
         (entry: { ratkoPushTime: TimeStamp }) => entry.ratkoPushTime,
     ),
-    MESSAGE: fieldComparator((entry: { message: string }) => entry.message),
+    message: fieldComparator((entry: { message: string }) => entry.message),
 };
 
-export const InitiallyUnsorted: PublicationDetailsTableSortInformation = {
-    propName: PublicationDetailsTableSortField.NAME,
-    direction: SortDirection.UNSORTED,
-    sortFunction: publicationLogSortFunctions['NAME'],
+export const SortedByTimeDesc: TableSorting<SortablePublicationTableProps> = {
+    propName: 'publicationTime',
+    direction: SortDirection.DESCENDING,
+    function: publicationLogSorting.publicationTime,
+};
+
+export const SortedByNameAsc: TableSorting<SortablePublicationTableProps> = {
+    propName: 'name',
+    direction: SortDirection.ASCENDING,
+    function: publicationLogSorting.name,
 };
 
 export const getSortInfoForProp = (
     oldSortDirection: SortDirection,
-    oldSortPropName: PublicationDetailsTableSortField,
-    newSortPropName: PublicationDetailsTableSortField,
-) => ({
+    oldSortPropName: keyof SortablePublicationTableProps,
+    newSortPropName: keyof SortablePublicationTableProps,
+): TableSorting<SortablePublicationTableProps> => ({
     propName: newSortPropName,
     direction:
         oldSortPropName === newSortPropName
             ? nextSortDirection[oldSortDirection]
             : SortDirection.ASCENDING,
-    sortFunction: publicationLogSortFunctions[newSortPropName],
+    function: publicationLogSorting[newSortPropName],
 });

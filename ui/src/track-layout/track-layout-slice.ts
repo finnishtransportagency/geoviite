@@ -35,19 +35,12 @@ import {
     SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { first, reuseListElements } from 'utils/array-utils';
-import {
-    PublicationCandidate,
-    PublicationCandidateReference,
-    PublicationStage,
-} from 'publication/publication-model';
+import { first } from 'utils/array-utils';
 import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
 import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
-import { filterByPublicationStage } from 'preview/preview-view-filters';
-import { asPublicationCandidateReferences } from 'publication/publication-utils';
 import { PlanSource } from 'geometry/geometry-model';
 import { brand } from 'common/brand';
 import {
@@ -219,7 +212,6 @@ export type TrackLayoutState = {
     layoutMode: LayoutMode;
     map: Map;
     selection: Selection;
-    stagedPublicationCandidateReferences: PublicationCandidateReference[];
     linkingState?: LinkingState;
     splittingState?: SplittingState;
     linkingIssuesSelectedBeforeLinking: boolean;
@@ -239,7 +231,6 @@ export const initialTrackLayoutState: TrackLayoutState = {
     layoutMode: 'DEFAULT',
     map: initialMapState,
     selection: initialSelectionState,
-    stagedPublicationCandidateReferences: [],
     linkingIssuesSelectedBeforeLinking: false,
     switchLinkingSelectedBeforeLinking: false,
     selectedToolPanelTab: undefined,
@@ -247,6 +238,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
     locationTrackTaskList: undefined,
     previewState: {
         showOnlyOwnUnstagedChanges: false,
+        stagedPublicationCandidateReferences: [],
     },
     geometryPlanViewSettings: {
         grouping: GeometryPlanGrouping.ByProject,
@@ -420,22 +412,6 @@ const trackLayoutSlice = createSlice({
                 }
             }
         },
-
-        setStagedPublicationCandidateReferences: function (
-            state: TrackLayoutState,
-            action: PayloadAction<PublicationCandidate[]>,
-        ): void {
-            const stagedCandidateReferences = asPublicationCandidateReferences(
-                filterByPublicationStage(action.payload, PublicationStage.STAGED),
-            );
-
-            state.stagedPublicationCandidateReferences = reuseListElements(
-                stagedCandidateReferences,
-                state.stagedPublicationCandidateReferences,
-                (candidate) => candidate.id,
-            );
-        },
-
         onHighlightItems: function (
             state: TrackLayoutState,
             action: PayloadAction<OnSelectOptions>,

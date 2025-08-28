@@ -1,15 +1,10 @@
 import { Table, Th } from 'vayla-design-lib/table/table';
 import PublicationTableRow from 'publication/table/publication-table-row';
 import * as React from 'react';
-import { useTranslation } from 'react-i18next';
 import styles from './publication-table.scss';
 import { PublicationId, PublicationTableItem } from 'publication/publication-model';
-import {
-    getSortInfoForProp,
-    PublicationDetailsTableSortField,
-    PublicationDetailsTableSortInformation,
-} from './publication-table-utils';
-import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
+import { getSortInfoForProp, SortablePublicationTableProps } from './publication-table-utils';
+import { SortDirection, TableSorting } from 'utils/table-utils';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { useState } from 'react';
 import { negComparator } from 'utils/array-utils';
@@ -18,11 +13,12 @@ import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/tr
 import { useAppNavigate } from 'common/navigate';
 import { SearchablePublicationLogItem } from 'publication/log/publication-log';
 import { SearchItemValue } from 'tool-bar/search-dropdown';
+import { SortableTableHeader } from 'vayla-design-lib/table/sortable-table-header';
 
 export type PublicationTableProps = {
     items: PublicationTableItem[];
-    sortInfo?: PublicationDetailsTableSortInformation;
-    onSortChange?: (sortInfo: PublicationDetailsTableSortInformation) => void;
+    sortInfo: TableSorting<SortablePublicationTableProps>;
+    onSortChange: (sortInfo: TableSorting<SortablePublicationTableProps>) => void;
     isLoading?: boolean;
     displaySingleItemHistory: (
         item: SearchItemValue<SearchablePublicationLogItem> | undefined,
@@ -36,37 +32,19 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
     isLoading,
     displaySingleItemHistory,
 }) => {
-    const { t } = useTranslation();
-
-    const sortByProp = (propName: PublicationDetailsTableSortField) => {
+    const sortByProp = (propName: keyof SortablePublicationTableProps) => {
         if (sortInfo && onSortChange) {
             const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
             onSortChange(newSortInfo);
         }
     };
 
-    const sortableTableHeader = (
-        prop: PublicationDetailsTableSortField,
-        translationKey: string,
-        className: string,
-    ) => (
-        <Th
-            className={className}
-            qa-id={translationKey}
-            onClick={() => sortByProp(prop)}
-            icon={
-                sortInfo?.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
-            }>
-            {t(translationKey)}
-        </Th>
-    );
-
     const sortedPublicationTableItems =
         sortInfo && sortInfo.direction !== SortDirection.UNSORTED
             ? [...items].sort(
                   sortInfo.direction === SortDirection.ASCENDING
-                      ? sortInfo.sortFunction
-                      : negComparator(sortInfo.sortFunction),
+                      ? sortInfo.function
+                      : negComparator(sortInfo.function),
               )
             : [...items];
 
@@ -112,46 +90,62 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 onToggle={() => toggleVisibilityOfAllDetails()}
                             />
                         </Th>
-                        {sortableTableHeader(
-                            PublicationDetailsTableSortField.NAME,
-                            'publication-table.name',
-                            styles['publication-table__header--name'],
-                        )}
-                        {sortableTableHeader(
-                            PublicationDetailsTableSortField.TRACK_NUMBERS,
-                            'publication-table.track-number',
-                            styles['publication-table__header--track-number'],
-                        )}
-                        {sortableTableHeader(
-                            PublicationDetailsTableSortField.CHANGED_KM_NUMBERS,
-                            'publication-table.km-number',
-                            styles['publication-table__header--km-number'],
-                        )}
-                        {sortableTableHeader(
-                            PublicationDetailsTableSortField.OPERATION,
-                            'publication-table.operation',
-                            styles['publication-table__header--operation'],
-                        )}
-                        {sortableTableHeader(
-                            PublicationDetailsTableSortField.PUBLICATION_TIME,
-                            'publication-table.publication-time',
-                            styles['publication-table__header--publication-time'],
-                        )}
-                        {sortableTableHeader(
-                            PublicationDetailsTableSortField.PUBLICATION_USER,
-                            'publication-table.publication-user',
-                            styles['publication-table__header--user'],
-                        )}
-                        {sortableTableHeader(
-                            PublicationDetailsTableSortField.MESSAGE,
-                            'publication-table.message',
-                            styles['publication-table__header--message'],
-                        )}
-                        {sortableTableHeader(
-                            PublicationDetailsTableSortField.RATKO_PUSH_TIME,
-                            'publication-table.pushed-to-ratko',
-                            styles['publication-table__header--pushed-to-ratko'],
-                        )}
+                        <SortableTableHeader
+                            prop={'name'}
+                            translationKey={'publication-table.name'}
+                            className={styles['publication-table__header--name']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'trackNumbers'}
+                            translationKey={'publication-table.track-number'}
+                            className={styles['publication-table__header--track-number']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'changedKmNumbers'}
+                            translationKey={'publication-table.km-number'}
+                            className={styles['publication-table__header--km-number']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'operation'}
+                            translationKey={'publication-table.operation'}
+                            className={styles['publication-table__header--operation']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'publicationTime'}
+                            translationKey={'publication-table.publication-time'}
+                            className={styles['publication-table__header--publication-time']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'publicationUser'}
+                            translationKey={'publication-table.publication-user'}
+                            className={styles['publication-table__header--user']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'message'}
+                            translationKey={'publication-table.message'}
+                            className={styles['publication-table__header--message']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'ratkoPushTime'}
+                            translationKey={'publication-table.pushed-to-ratko'}
+                            className={styles['publication-table__header--pushed-to-ratko']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
                     </tr>
                 </thead>
                 <tbody>

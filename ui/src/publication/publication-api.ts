@@ -28,7 +28,6 @@ import {
     ValidatedPublicationCandidates,
 } from 'publication/publication-model';
 import i18next from 'i18next';
-import { PublicationDetailsTableSortField } from 'publication/table/publication-table-utils';
 import { SortDirection } from 'utils/table-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { createPublicationCandidateReference } from 'publication/publication-utils';
@@ -45,6 +44,7 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
+import { SortablePublicationTableProps } from 'publication/table/publication-table-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
@@ -267,12 +267,25 @@ export const getPublicationAsTableItems = (id: PublicationId) =>
         `${PUBLICATION_URL}/${id}/table-rows${queryParams({ lang: i18next.language })}`,
     );
 
+const PUBLICATION_TABLE_SORT_COLUMN_NAMES: {
+    [Tkey in keyof SortablePublicationTableProps]: string;
+} = {
+    name: 'NAME',
+    trackNumbers: 'TRACK_NUMBERS',
+    changedKmNumbers: 'CHANGED_KM_NUMBERS',
+    operation: 'OPERATION',
+    publicationTime: 'PUBLICATION_TIME',
+    publicationUser: 'PUBLICATION_USER',
+    message: 'MESSAGE',
+    ratkoPushTime: 'RATKO_PUSH_TIME',
+} as const;
+
 export const MAX_RETURNED_PUBLICATION_LOG_ROWS = 500;
 export const getPublicationsAsTableItems = (
     from?: Date,
     to?: Date,
     specificItem?: PublishableObjectIdAndType,
-    sortBy?: PublicationDetailsTableSortField,
+    sortBy?: keyof SortablePublicationTableProps,
     order?: SortDirection,
 ) => {
     const isSorted = order !== SortDirection.UNSORTED;
@@ -282,7 +295,7 @@ export const getPublicationsAsTableItems = (
         to: to ? to.toISOString() : undefined,
         type: specificItem ? specificItem.type : undefined,
         id: specificItem ? specificItem.id : undefined,
-        sortBy: isSorted && sortBy ? sortBy : undefined,
+        sortBy: isSorted && sortBy ? PUBLICATION_TABLE_SORT_COLUMN_NAMES[sortBy] : undefined,
         order: isSorted ? order : undefined,
         lang: i18next.language,
     });
@@ -320,7 +333,7 @@ export const getPublicationsCsvUri = (
     fromDate?: Date,
     toDate?: Date,
     specificObject?: { idAndType: PublishableObjectIdAndType; name: string },
-    sortBy?: PublicationDetailsTableSortField,
+    sortBy?: keyof SortablePublicationTableProps,
     order?: SortDirection,
 ): string => {
     const isSorted = order !== SortDirection.UNSORTED;
@@ -331,7 +344,7 @@ export const getPublicationsCsvUri = (
         id: specificObject?.idAndType?.id,
         type: specificObject?.idAndType?.type,
         filenameObjectPart: specificObject?.name,
-        sortBy: isSorted && sortBy ? sortBy : undefined,
+        sortBy: isSorted && sortBy ? PUBLICATION_TABLE_SORT_COLUMN_NAMES[sortBy] : undefined,
         order: isSorted ? order : undefined,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         lang: i18next.language,

@@ -13,9 +13,8 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { negComparator } from 'utils/array-utils';
 import {
     getSortInfoForProp,
-    InitiallyUnsorted,
-    SortInformation,
-    SortProps,
+    SortablePreviewProps,
+    SortedByTimeDesc,
 } from 'preview/change-table-sorting';
 import {
     ChangeTableEntry,
@@ -34,7 +33,7 @@ import {
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
-import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
+import { SortDirection, TableSorting } from 'utils/table-utils';
 import { useLoader } from 'utils/react-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
@@ -42,6 +41,7 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { PublicationGroupAmounts } from 'publication/publication-utils';
 import styles from './preview-view.scss';
 import { PreviewTableItem } from 'preview/preview-table-item';
+import { SortableTableHeader } from 'vayla-design-lib/table/sortable-table-header';
 
 export type PublishableObjectId =
     | LayoutTrackNumberId
@@ -101,7 +101,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             [changeTimes.layoutTrackNumber],
         ) || [];
 
-    const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
+    const [sortInfo, setSortInfo] =
+        React.useState<TableSorting<SortablePreviewProps>>(SortedByTimeDesc);
 
     const getTableEntryByType = (candidate: PublicationCandidate): ChangeTableEntry => {
         switch (candidate.type) {
@@ -163,22 +164,10 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
               )
             : [...publicationTableEntries];
 
-    const sortByProp = (propName: SortProps) => {
+    const sortByProp = (propName: keyof SortablePreviewProps) => {
         const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
         setSortInfo(newSortInfo);
     };
-
-    const sortableTableHeader = (prop: SortProps, translationKey: string, className: string) => (
-        <Th
-            className={className}
-            onClick={() => sortByProp(prop)}
-            qa-id={translationKey}
-            icon={
-                sortInfo.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
-            }>
-            {t(translationKey)}
-        </Th>
-    );
 
     return (
         <div
@@ -189,36 +178,48 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             <Table wide>
                 <thead className={styles['preview-table__header']}>
                     <tr>
-                        {sortableTableHeader(
-                            SortProps.NAME,
-                            'preview-table.change-target',
-                            styles['preview-table__header--change-target'],
-                        )}
-                        {sortableTableHeader(
-                            SortProps.TRACK_NUMBER,
-                            'preview-table.track-number-short',
-                            styles['preview-table__header--track-number-short'],
-                        )}
-                        {sortableTableHeader(
-                            SortProps.OPERATION,
-                            'preview-table.change-type',
-                            styles['preview-table__header--change-type'],
-                        )}
-                        {sortableTableHeader(
-                            SortProps.CHANGE_TIME,
-                            'preview-table.modified-moment',
-                            styles['preview-table__header--modified-moment'],
-                        )}
-                        {sortableTableHeader(
-                            SortProps.USER_NAME,
-                            'preview-table.user',
-                            styles['preview-table__header--user'],
-                        )}
-                        {sortableTableHeader(
-                            SortProps.ISSUES,
-                            'preview-table.status',
-                            styles['preview-table__header--status'],
-                        )}
+                        <SortableTableHeader
+                            prop={'name'}
+                            translationKey={'preview-table.change-target'}
+                            className={styles['preview-table__header--change-target']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'trackNumbers'}
+                            translationKey={'preview-table.track-number-short'}
+                            className={styles['preview-table__header--track-number-short']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'operation'}
+                            translationKey={'preview-table.change-type'}
+                            className={styles['preview-table__header--change-type']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'changeTime'}
+                            translationKey={'preview-table.modified-moment'}
+                            className={styles['preview-table__header--modified-moment']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'userName'}
+                            translationKey={'preview-table.user'}
+                            className={styles['preview-table__header--user']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
+                        <SortableTableHeader
+                            prop={'issues'}
+                            translationKey={'preview-table.status'}
+                            className={styles['preview-table__header--status']}
+                            sortInfo={sortInfo}
+                            sortByProp={sortByProp}
+                        />
                         <Th className={styles['preview-table__header--actions']}>
                             {t('preview-table.actions')}
                         </Th>
