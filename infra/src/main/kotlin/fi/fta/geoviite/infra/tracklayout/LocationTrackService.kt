@@ -549,11 +549,16 @@ class LocationTrackService(
     ): List<LocationTrackDuplicate> {
         val markedDuplicateVersions = dao.fetchDuplicateVersions(layoutContext, track.id as IntId)
         val tracksLinkedThroughSwitch =
-            switchDao
-                .findLocationTracksLinkedToSwitches(layoutContext, track.switchIds)
-                .values
-                .flatten()
-                .map(LayoutSwitchDao.LocationTrackIdentifiers::rowVersion)
+            if (track.state != LocationTrackState.DELETED) {
+                switchDao
+                    .findLocationTracksLinkedToSwitches(layoutContext, track.switchIds)
+                    .values
+                    .flatten()
+                    .map(LayoutSwitchDao.LocationTrackIdentifiers::rowVersion)
+            } else {
+                emptyList()
+            }
+
         val duplicateTracksAndGeometries =
             (markedDuplicateVersions + tracksLinkedThroughSwitch).distinct().map(::getWithGeometryInternal).filter {
                 (duplicateTrack, _) ->
