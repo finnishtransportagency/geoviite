@@ -73,7 +73,6 @@ const DesignPublicationCard: React.FC<DesignPublicationCardProps> = ({
                 {!reachedLastPublication && (
                     <ShowMorePublicationsLink showMore={() => setPageCount(pageCount + 1)} />
                 )}
-                <br />
             </React.Fragment>
         </PublicationCard>
     );

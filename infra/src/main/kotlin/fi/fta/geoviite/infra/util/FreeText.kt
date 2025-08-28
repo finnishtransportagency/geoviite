@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 
 const val NEW_LINE_CHARACTER = "\n"
+const val ESCAPED_NEW_LINE = "\\n"
 
 data class FreeText @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
     Comparable<FreeText>, CharSequence by value {
@@ -33,7 +34,6 @@ data class FreeTextWithNewLines private constructor(private val value: String) :
 
     companion object {
         const val ALLOWED_CHARACTERS = FreeText.ALLOWED_CHARACTERS + NEW_LINE_CHARACTER
-        const val ESCAPED_NEW_LINE = "\\n"
 
         val sanitizer = StringSanitizer(FreeTextWithNewLines::class, ALLOWED_CHARACTERS)
 

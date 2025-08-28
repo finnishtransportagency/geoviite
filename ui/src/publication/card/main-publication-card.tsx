@@ -41,6 +41,38 @@ type RatkoConnectionErrorProps = {
     contact: string;
 };
 
+const ratkoErrorContactInfo = (statusCode: number | undefined): string => {
+    if (statusCode === undefined) {
+        return 'contact-geoviite-support-if-needed';
+    } else if (statusCode === 503) {
+        return 'contact-ratko-support-if-needed';
+    } else if (statusCode >= 500) {
+        return 'contact-ratko-support';
+    } else if (statusCode >= 400) {
+        return 'contact-geoviite-support';
+    } else if (statusCode >= 300) {
+        return 'contact-geoviite-support';
+    } else {
+        return 'contact-geoviite-support-if-needed';
+    }
+};
+
+const ratkoErrorType = (statusCode: number | undefined): string => {
+    if (statusCode === undefined) {
+        return 'connection-error-without-status-code';
+    } else if (statusCode === 503) {
+        return 'temporary-error-status-code';
+    } else if (statusCode >= 500) {
+        return 'connection-error-status-code';
+    } else if (statusCode >= 400) {
+        return 'connection-error-status-code';
+    } else if (statusCode >= 300) {
+        return 'integration-error-status-code';
+    } else {
+        return 'connection-error-without-status-code';
+    }
+};
+
 const RatkoConnectionError: React.FC<RatkoConnectionErrorProps> = ({
     errorType,
     ratkoStatusCode,
@@ -57,56 +89,6 @@ const RatkoConnectionError: React.FC<RatkoConnectionErrorProps> = ({
             })}
         </span>
     );
-};
-
-const RatkoOfflineStatusInfo: React.FC<{ ratkoStatus: number | undefined }> = ({ ratkoStatus }) => {
-    if (ratkoStatus === undefined) {
-        return (
-            <RatkoConnectionError
-                errorType={'connection-error-without-status-code'}
-                ratkoStatusCode={ratkoStatus}
-                contact={'contact-geoviite-support-if-needed'}
-            />
-        );
-    } else if (ratkoStatus >= 500) {
-        return ratkoStatus === 503 ? (
-            <RatkoConnectionError
-                errorType={'temporary-error-status-code'}
-                ratkoStatusCode={ratkoStatus}
-                contact={'contact-ratko-support-if-needed'}
-            />
-        ) : (
-            <RatkoConnectionError
-                errorType={'connection-error-status-code'}
-                ratkoStatusCode={ratkoStatus}
-                contact={'contact-ratko-support'}
-            />
-        );
-    } else if (ratkoStatus >= 400) {
-        return (
-            <RatkoConnectionError
-                errorType={'connection-error-status-code'}
-                ratkoStatusCode={ratkoStatus}
-                contact={'contact-geoviite-support'}
-            />
-        );
-    } else if (ratkoStatus >= 300) {
-        return (
-            <RatkoConnectionError
-                errorType={'integration-error-status-code'}
-                ratkoStatusCode={ratkoStatus}
-                contact={'contact-geoviite-support'}
-            />
-        );
-    } else {
-        return (
-            <RatkoConnectionError
-                errorType={'connection-error-without-status-code'}
-                ratkoStatusCode={ratkoStatus}
-                contact={'contact-geoviite-support-if-needed'}
-            />
-        );
-    }
 };
 
 function latestFailureByLayoutBranch(
@@ -210,7 +192,11 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
             <React.Fragment>
                 {hasRatkoConnectionError && (
                     <p className={styles['publication-card__title-errors']}>
-                        <RatkoOfflineStatusInfo ratkoStatus={ratkoStatus?.ratkoStatusCode} />
+                        <RatkoConnectionError
+                            ratkoStatusCode={ratkoStatus?.ratkoStatusCode}
+                            errorType={ratkoErrorType(ratkoStatus?.ratkoStatusCode)}
+                            contact={ratkoErrorContactInfo(ratkoStatus?.ratkoStatusCode)}
+                        />
                     </p>
                 )}
                 {nonSuccesses.length > 0 && (
@@ -244,8 +230,7 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
                 {!reachedLastPublication && (
                     <ShowMorePublicationsLink showMore={() => setPageCount(pageCount + 1)} />
                 )}
-                <br />
-                <div>
+                <div className={styles['publication-card__publication-log-link']}>
                     <AnchorLink
                         onClick={() => navigateToPublicationLog()}
                         qa-id={'open-publication-log'}>

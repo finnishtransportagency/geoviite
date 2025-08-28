@@ -20,11 +20,11 @@ export type PreviewPublicationDialogProps = {
 const validateMessage = (message: string): FieldValidationIssue<PublicationDetails>[] =>
     [
         message.length > 500
-            ? {
-                  field: 'message' as keyof PublicationDetails,
+            ? ({
+                  field: 'message',
                   type: FieldValidationIssueType.ERROR,
                   reason: 'publish.publish-confirm.message-too-long',
-              }
+              } satisfies FieldValidationIssue<PublicationDetails>)
             : undefined,
     ].filter(filterNotEmpty);
 
