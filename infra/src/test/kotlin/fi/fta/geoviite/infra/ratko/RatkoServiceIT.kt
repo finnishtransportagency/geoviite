@@ -822,13 +822,14 @@ constructor(
         val updatePush = switchLocations.last().let(::sortRatkoSwitchLocationsByTrack)
 
         // switch was originally after kmPost2, but it got removed and then we pushed again. kmPost2 was at m=4, while
-        // throughTrack's non-math joints are at 0 and 9.5, branchingTrack's at 0 and 7.5.
+        // throughTrack's non-math joints are at 0 and 9.5, branchingTrack's at 0 and 7.5. Existing unchanged locations
+        // at 0 get re-pushed.
         assertEquals(
             listOf(listOf("0000+0000", "0002+0005.5"), listOf("0000+0000", "0002+0003.5")),
             createPush.map { track -> track.nodecollection.nodes.map { joint -> joint.point.kmM.toString() } },
         )
         assertEquals(
-            listOf(listOf("0001+0007.5"), listOf("0001+0005.5")),
+            listOf(listOf("0000+0000"), listOf("0001+0007.5"), listOf("0000+0000"), listOf("0001+0005.5")),
             updatePush.map { track -> track.nodecollection.nodes.map { joint -> joint.point.kmM.toString() } },
         )
     }
