@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
@@ -44,9 +45,9 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -568,11 +569,31 @@ fun splitLocationTrack(
             val (newTrack, newGeometry) =
                 target.duplicate?.let { d ->
                     when (d.operation) {
-                        SplitTargetDuplicateOperation.TRANSFER ->
+                        SplitTargetDuplicateOperation.TRANSFER -> {
+                            val replacedEdgeIndexRange =
+                                findSplitEdgeIndices(d.geometry, target.startSwitch, nextSwitch)
+
+                            val newEdges =
+                                listOf(
+                                        // Partial duplicate edges before the split start position
+                                        d.geometry.edges.subList(0, replacedEdgeIndexRange.start),
+                                        // Split source track edges
+                                        edges,
+                                        // Partial duplicate edges after the split end position
+                                        d.geometry.edges.subList(
+                                            replacedEdgeIndexRange.endInclusive + 1,
+                                            d.geometry.edges.size,
+                                        ),
+                                    )
+                                    .flatten()
+                                    .distinct()
+
                             updateSplitTargetForTransferAssets(
                                 duplicateTrack = d.track,
                                 topologicalConnectivityType = connectivityType,
-                            ) to d.geometry
+                            ) to TmpLocationTrackGeometry.of(newEdges, d.track.id as? IntId)
+                        }
+
                         SplitTargetDuplicateOperation.OVERWRITE ->
                             updateSplitTargetForOverwriteDuplicate(
                                 sourceTrack = track,
@@ -845,4 +866,27 @@ private fun getAlignmentStartAndEndM(
     } else {
         null
     }
+}
+
+fun getSplitTargetTrackStartAndEndAddresses(
+    geocodingContext: GeocodingContext<ReferenceLineM>,
+    sourceGeometry: LocationTrackGeometry,
+    splitTarget: SplitTarget,
+    splitTargetGeometry: LocationTrackGeometry,
+): Pair<TrackMeter?, TrackMeter?> {
+    val (sourceStart, sourceEnd) = sourceGeometry.getEdgeStartAndEnd(splitTarget.edgeIndices)
+
+    val startBySegments = requireNotNull(geocodingContext.getAddress(sourceStart)).first
+    val endBySegments = requireNotNull(geocodingContext.getAddress(sourceEnd)).first
+
+    val startByTarget =
+        requireNotNull(splitTargetGeometry.start?.let { point -> geocodingContext.getAddress(point)?.first })
+
+    val endByTarget =
+        requireNotNull(splitTargetGeometry.end?.let { point -> geocodingContext.getAddress(point)?.first })
+
+    val startAddress = listOf(startBySegments, startByTarget).maxOrNull()
+    val endAddress = listOf(endBySegments, endByTarget).minOrNull()
+
+    return startAddress to endAddress
 }
