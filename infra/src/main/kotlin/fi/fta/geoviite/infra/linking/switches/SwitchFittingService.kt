@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.closestPointOnLine
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.dot
+import fi.fta.geoviite.infra.math.length
 import fi.fta.geoviite.infra.math.lineIntersection
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.pointDistanceToLine
@@ -983,19 +984,25 @@ fun <M : AlignmentM<M>> cropAlignment(
             !origRange.overlaps(cropRange) -> listOf()
             cropRange.contains(origRange) -> segmentsWithM
             else -> {
-                segmentsWithM.mapNotNull { (s, m) ->
-                    when {
-                        cropRange.contains(m) -> s to m
-                        cropRange.overlaps(m) -> {
-                            val newRange = Range(maxOf(m.min, cropRange.min), minOf(m.max, cropRange.max))
-                            s.slice(newRange.map { d -> d.toSegmentM(m.min) }, CROP_SLICE_SNAPPING_TOLERANCE) to
-                                newRange
-                        }
-
-                        else -> null
-                    }
+                segmentsWithM.mapNotNull { (segment, segmentMRange) ->
+                    cropSegmentToAlignmentRange(cropRange, segment, segmentMRange)
                 }
             }
         }
     return CroppedAlignment(0, newSegments.map { (s, _) -> s }, newSegments.map { (_, m) -> m })
+}
+
+private fun <M : AlignmentM<M>> cropSegmentToAlignmentRange(
+    alignmentCrop: Range<LineM<M>>,
+    segment: LayoutSegment,
+    segmentMRange: Range<LineM<M>>,
+): Pair<LayoutSegment, Range<LineM<M>>>? {
+    val segmentCrop = alignmentCrop.intersection(segmentMRange)
+    return when {
+        segmentCrop == null || segmentCrop.length().distance <= CROP_SLICE_SNAPPING_TOLERANCE -> null
+        segmentCrop == segmentMRange -> segment to segmentMRange
+        else ->
+            segment.slice(segmentCrop.map { d -> d.toSegmentM(segmentMRange.min) }, CROP_SLICE_SNAPPING_TOLERANCE) to
+                segmentCrop
+    }
 }
