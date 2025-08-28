@@ -103,11 +103,15 @@ constructor(
             val split = splits[id]
 
             PublicationDetails(
-                id = publication.id,
-                uuid = publication.uuid,
-                publicationTime = publication.publicationTime,
-                publicationUser = publication.publicationUser,
-                message = publication.message,
+                Publication(
+                    id = publication.id,
+                    uuid = publication.uuid,
+                    publicationTime = publication.publicationTime,
+                    publicationUser = publication.publicationUser,
+                    message = publication.message,
+                    layoutBranch = publication.layoutBranch,
+                    cause = publication.cause,
+                ),
                 trackNumbers = directTrackNumbers,
                 referenceLines = referenceLines,
                 locationTracks = directLocationTracks,
@@ -122,8 +126,6 @@ constructor(
                         switches = indirectSwitches,
                     ),
                 split = split?.let(::SplitHeader),
-                layoutBranch = publication.layoutBranch,
-                cause = publication.cause,
             )
         }
     }
