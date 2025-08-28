@@ -35,7 +35,7 @@ fun getLocationTrackDuplicatesBySplitPoints(
     val mainTrackSplitPoints = collectSplitPoints(mainGeometry)
     return duplicateTracksAndGeometries
         .asSequence()
-        .filter { (duplicateTrack, _) -> duplicateTrack.state !== LocationTrackState.DELETED }
+        .filter { (duplicateTrack, _) -> duplicateTrack.state != LocationTrackState.DELETED }
         .flatMap { (duplicateTrack, duplicateAlignment) ->
             getLocationTrackDuplicatesBySplitPoints(
                 mainTrack.id,
