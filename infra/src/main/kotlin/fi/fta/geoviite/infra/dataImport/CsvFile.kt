@@ -10,7 +10,7 @@ import org.apache.commons.csv.CSVRecord
 import java.io.File
 import kotlin.reflect.KClass
 
-class CsvFile<T : Enum<T>>(val filePath: String, private val type: KClass<T>) {
+data class CsvFile<T : Enum<T>>(val filePath: String, private val type: KClass<T>) {
 
     val file = File(filePath)
 
@@ -27,23 +27,17 @@ class CsvFile<T : Enum<T>>(val filePath: String, private val type: KClass<T>) {
         type.java.enumConstants.map { value -> value.name.lowercase() }
     }
 
-    private fun <T> read(op: (CSVParser) -> T): T {
+    private fun getParser(): CSVParser {
         require(file.isFile) { "No such CSV file found: ${file.absolutePath}" }
         return CSVParser.builder()
             .setFormat(csvFormat)
             .setReader(file.bufferedReader(Charsets.UTF_8))
             .get()
             .also(::validateHeaders)
-            .let(op)
     }
 
-    fun <S> parseLines(handler: (CsvLine<T>) -> S?): List<S> = read { parser ->
-        parser.mapNotNull { record -> handler(CsvLine(record)) }
-    }
-
-    fun <S> parseLinesStreaming(handler: (CsvLine<T>) -> S?): Sequence<S> = read { parser ->
-        parser.asSequence().mapNotNull { record -> handler(CsvLine(record)) }
-    }
+    fun <S> parseLines(handler: (CsvLine<T>) -> S?): List<S> =
+        getParser().use { parser -> parser.mapNotNull { record -> handler(CsvLine(record)) } }
 
     private fun validateHeaders(parser: CSVParser) =
         require(parser.headerNames.map { h -> h.lowercase() } == expectedColumns) {
