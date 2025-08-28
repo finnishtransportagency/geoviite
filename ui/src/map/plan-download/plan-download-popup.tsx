@@ -30,55 +30,65 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { PlanDownloadPopupSection } from 'map/plan-download/plan-download-popup-section';
 import { createPortal } from 'react-dom';
 
-const kmNumberRange = (
-    start: KmNumber | undefined,
-    end: KmNumber | undefined,
-): string | undefined => {
-    if (start && end) return `${start}-${end}`;
-    else if (start) return `${start}-`;
-    else if (end) return `-${end}`;
-    else return undefined;
+type SpecifierValueProps = {
+    assetLabel: string;
+    assetName: string;
+    selectedTrackRange: SelectedTrackRange;
+};
+
+const SpecifierValue: React.FC<SpecifierValueProps> = ({
+    assetLabel,
+    assetName,
+    selectedTrackRange,
+}) => {
+    const displayKmNumber =
+        selectedTrackRange.start !== undefined || selectedTrackRange.end !== undefined;
+
+    return (
+        <React.Fragment>
+            <span>{assetLabel} </span>
+            <span className={styles['plan-download-popup__title-asset-name']}>{assetName}</span>
+            {displayKmNumber && (
+                <span>
+                    , {selectedTrackRange.start}-{selectedTrackRange.end}
+                </span>
+            )}
+        </React.Fragment>
+    );
+};
+
+type SelectedTrackRange = {
+    start: KmNumber | undefined;
+    end: KmNumber | undefined;
 };
 
 type LocationSpecifierProps = {
     selectedAsset: PlanDownloadAsset | undefined;
-    startTrackMeter: string | undefined;
-    endTrackMeter: string | undefined;
+    selectedTrackRange: SelectedTrackRange;
 };
 export const LocationSpecifier: React.FC<LocationSpecifierProps> = ({
     selectedAsset,
-    startTrackMeter,
-    endTrackMeter,
+    selectedTrackRange,
 }) => {
     const { t } = useTranslation();
-
-    const Specifier = ({ label, assetName }: { label: string; assetName: string }) => {
-        const kmNumberString = kmNumberRange(startTrackMeter, endTrackMeter);
-
-        return (
-            <React.Fragment>
-                <span>{label} </span>
-                <span className={styles['plan-download-popup__title-asset-name']}>{assetName}</span>
-                {kmNumberString && <span>, {kmNumberString}</span>}
-            </React.Fragment>
-        );
-    };
 
     switch (selectedAsset?.type) {
         case PlanDownloadAssetType.TRACK_NUMBER: {
             return (
-                <Specifier
-                    label={t('plan-download.track-number')}
+                <SpecifierValue
+                    assetLabel={t('plan-download.track-number')}
                     assetName={selectedAsset.asset.number}
+                    selectedTrackRange={selectedTrackRange}
                 />
             );
         }
 
         case PlanDownloadAssetType.LOCATION_TRACK:
             return (
-                <Specifier
-                    label={t('plan-download.location-track')}
+                <SpecifierValue
+                    assetLabel={t('plan-download.location-track')}
                     assetName={selectedAsset.asset.name}
+                    selectedTrackRange={selectedTrackRange}
                 />
             );
 
@@ -239,8 +249,10 @@ export const PlanDownloadPopup: React.FC<PlanDownloadPopupProps> = ({ onClose, l
                         <span>
                             <LocationSpecifier
                                 selectedAsset={assetAndStartAndEnd}
-                                startTrackMeter={planDownloadState.areaSelection.startTrackMeter}
-                                endTrackMeter={planDownloadState.areaSelection.endTrackMeter}
+                                selectedTrackRange={{
+                                    start: planDownloadState.areaSelection.startTrackMeter,
+                                    end: planDownloadState.areaSelection.endTrackMeter,
+                                }}
                             />
                         </span>
                     </React.Fragment>
