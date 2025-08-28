@@ -168,15 +168,25 @@ data class PropKey(val key: LocalizationKey, val params: LocalizationParams = Lo
     ) : this(LocalizationKey.of(key), params)
 }
 
-open class Publication(
-    open val id: IntId<Publication>,
-    open val uuid: Uuid<Publication>,
-    open val publicationTime: Instant,
-    open val publicationUser: UserName,
-    open val message: PublicationMessage,
-    open val layoutBranch: PublishedInBranch,
-    open val cause: PublicationCause,
-)
+interface IPublication {
+    val id: IntId<Publication>
+    val uuid: Uuid<Publication>
+    val publicationTime: Instant
+    val publicationUser: UserName
+    val message: PublicationMessage
+    val layoutBranch: PublishedInBranch
+    val cause: PublicationCause
+}
+
+data class Publication(
+    override val id: IntId<Publication>,
+    override val uuid: Uuid<Publication>,
+    override val publicationTime: Instant,
+    override val publicationUser: UserName,
+    override val message: PublicationMessage,
+    override val layoutBranch: PublishedInBranch,
+    override val cause: PublicationCause,
+) : IPublication
 
 sealed class PublishedInBranch {
     abstract val branch: LayoutBranch
@@ -265,13 +275,7 @@ data class PublishedIndirectChanges(
 )
 
 data class PublicationDetails(
-    override val id: IntId<Publication>,
-    override val uuid: Uuid<Publication>,
-    override val publicationTime: Instant,
-    override val publicationUser: UserName,
-    override val message: PublicationMessage,
-    override val layoutBranch: PublishedInBranch,
-    override val cause: PublicationCause,
+    val publication: Publication,
     val trackNumbers: List<PublishedTrackNumber>,
     val referenceLines: List<PublishedReferenceLine>,
     val locationTracks: List<PublishedLocationTrack>,
@@ -281,7 +285,7 @@ data class PublicationDetails(
     val ratkoPushTime: Instant?,
     val indirectChanges: PublishedIndirectChanges,
     val split: SplitHeader?,
-) : Publication(id, uuid, publicationTime, publicationUser, message, layoutBranch, cause) {
+) : IPublication by publication {
     val allPublishedTrackNumbers = trackNumbers + indirectChanges.trackNumbers
     val allPublishedLocationTracks = locationTracks + indirectChanges.locationTracks
     val allPublishedSwitches = switches + indirectChanges.switches

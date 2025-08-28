@@ -4,13 +4,13 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geography.parse2DLineString
 import fi.fta.geoviite.infra.geography.parse2DPoint
 import fi.fta.geoviite.infra.math.Point
-import java.io.File
-import kotlin.reflect.KClass
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
 import org.apache.commons.csv.CSVRecord
+import java.io.File
+import kotlin.reflect.KClass
 
-class CsvFile<T : Enum<T>>(val filePath: String, private val type: KClass<T>) : AutoCloseable {
+class CsvFile<T : Enum<T>>(val filePath: String, private val type: KClass<T>) {
 
     val file = File(filePath)
 
@@ -22,38 +22,33 @@ class CsvFile<T : Enum<T>>(val filePath: String, private val type: KClass<T>) : 
             .setIgnoreEmptyLines(true)
             .setDelimiter(',')
             .setQuote('"')
-            .build()
+            .get()
     private val expectedColumns: List<String> by lazy {
         type.java.enumConstants.map { value -> value.name.lowercase() }
     }
-    private var parser: CSVParser? = null
 
-    fun <S> parseLines(handler: (CsvLine<T>) -> S?): List<S> {
-        if (!file.isFile) throw IllegalStateException("No such CSV file found: ${file.absolutePath}")
-        return CSVParser(file.bufferedReader(Charsets.UTF_8), csvFormat).use { parser ->
-            validateHeaders(parser)
-            parser.mapNotNull { record -> handler(CsvLine(record)) }
+    private fun <T> read(op: (CSVParser) -> T): T {
+        require(file.isFile) { "No such CSV file found: ${file.absolutePath}" }
+        return CSVParser.builder()
+            .setFormat(csvFormat)
+            .setReader(file.bufferedReader(Charsets.UTF_8))
+            .get()
+            .also(::validateHeaders)
+            .let(op)
+    }
+
+    fun <S> parseLines(handler: (CsvLine<T>) -> S?): List<S> = read { parser ->
+        parser.mapNotNull { record -> handler(CsvLine(record)) }
+    }
+
+    fun <S> parseLinesStreaming(handler: (CsvLine<T>) -> S?): Sequence<S> = read { parser ->
+        parser.asSequence().mapNotNull { record -> handler(CsvLine(record)) }
+    }
+
+    private fun validateHeaders(parser: CSVParser) =
+        require(parser.headerNames.map { h -> h.lowercase() } == expectedColumns) {
+            "CSV columns wrong: expected=$expectedColumns actual=${parser.headerNames}"
         }
-    }
-
-    fun <S> parseLinesStreaming(handler: (CsvLine<T>) -> S?): Sequence<S> {
-        if (!file.isFile) throw IllegalStateException("No such CSV file found: ${file.absolutePath}")
-        parser = CSVParser(file.bufferedReader(Charsets.UTF_8), csvFormat)
-        validateHeaders(parser ?: throw IllegalStateException("Parser lost"))
-        return parser?.asSequence()?.mapNotNull { record -> handler(CsvLine(record)) }
-            ?: throw IllegalStateException("Parser lost")
-    }
-
-    override fun close() {
-        parser?.close()
-        parser = null
-    }
-
-    private fun validateHeaders(parser: CSVParser) {
-        if (parser.headerNames.map { h -> h.lowercase() } != expectedColumns) {
-            throw IllegalStateException("CSV columns wrong: expected=$expectedColumns actual=${parser.headerNames}")
-        }
-    }
 
     class CsvLine<T : Enum<T>>(private val record: CSVRecord) {
         fun get(field: T): String = record.get(field.name.lowercase())
@@ -66,13 +61,7 @@ class CsvFile<T : Enum<T>>(val filePath: String, private val type: KClass<T>) : 
 
         inline fun <reified S> getOid(field: T): Oid<S> = Oid(get(field))
 
-        inline fun <reified S> getOidOrNull(field: T): Oid<S>? =
-            get(field).let {
-                when (it) {
-                    "" -> null
-                    else -> Oid(it)
-                }
-            }
+        inline fun <reified S> getOidOrNull(field: T): Oid<S>? = get(field).takeIf(String::isNotEmpty)?.let(::Oid)
 
         inline fun <reified S : Enum<S>> getEnum(field: T): S = enumValueOf(get(field))
 
