@@ -58,6 +58,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import fi.fta.geoviite.infra.util.ESCAPED_NEW_LINE
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.NEW_LINE_CHARACTER
 import fi.fta.geoviite.infra.util.StringSanitizer
@@ -70,7 +71,6 @@ data class PublicationMessage private constructor(private val value: String) :
 
     companion object {
         const val ALLOWED_CHARACTERS = FreeText.ALLOWED_CHARACTERS + NEW_LINE_CHARACTER
-        const val ESCAPED_NEW_LINE = "\\n"
         val ALLOWED_LENGTH = 0..500
 
         val sanitizer = StringSanitizer(PublicationMessage::class, ALLOWED_CHARACTERS, ALLOWED_LENGTH)
@@ -85,8 +85,6 @@ data class PublicationMessage private constructor(private val value: String) :
     @JsonValue override fun toString(): String = value
 
     override fun compareTo(other: PublicationMessage): Int = value.compareTo(other.value)
-
-    operator fun plus(addition: String) = PublicationMessage("$value$addition")
 
     fun escapeNewLines(): FreeText {
         return FreeText(UnsafeString(value.replace(NEW_LINE_CHARACTER, ESCAPED_NEW_LINE)))
