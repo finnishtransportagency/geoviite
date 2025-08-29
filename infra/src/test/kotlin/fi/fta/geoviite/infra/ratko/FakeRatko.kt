@@ -265,8 +265,9 @@ class FakeRatko(port: Int) {
             .forEach { km -> delete("/api/infra/v1.0/points/${locationTrackAsset.id}/${km}").respond(ok()) }
     }
 
-    fun hasSwitch(switchAsset: InterfaceRatkoSwitch) {
-        get("/api/assets/v1.2/${switchAsset.id}").respond(okJson(switchAsset))
+    fun hasSwitch(switchAsset: InterfaceRatkoSwitch, locations: List<RatkoAssetLocation>? = null) {
+        val pushedSwitch = if (locations == null) switchAsset else switchAsset.copy(locations = locations)
+        get("/api/assets/v1.2/${switchAsset.id}").respond(okJson(pushedSwitch))
         put("/api/assets/v1.2/${switchAsset.id}/properties").respond(ok())
         put("/api/assets/v1.2/${switchAsset.id}/locations").respond(ok())
         put("/api/assets/v1.2/${switchAsset.id}/geoms").respond(ok())
@@ -392,7 +393,8 @@ class FakeRatko(port: Int) {
             .lastOrNull()
             ?.bodyAsString
 
-    fun hostPushedSwitch(oid: String) = hasSwitch(getLastPushedSwitch(oid)!!)
+    fun hostPushedSwitch(oid: String) =
+        hasSwitch(getLastPushedSwitch(oid)!!, getPushedSwitchLocations(oid).lastOrNull())
 
     fun getLastPushedSwitch(oid: String): InterfaceRatkoSwitch? = lastPushedSwitchBody(oid)?.let(jsonMapper::readValue)
 

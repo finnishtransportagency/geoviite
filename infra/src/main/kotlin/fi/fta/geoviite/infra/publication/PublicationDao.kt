@@ -2009,7 +2009,8 @@ class PublicationDao(
                   location_track_id,
                   location_track_external_id, 
                   track_number_id,
-                  track_number_external_id)
+                  track_number_external_id,
+                  location_track_deleted)
                 values (
                   :publication_id,
                   :switch_id,
@@ -2020,7 +2021,8 @@ class PublicationDao(
                   :location_track_id,
                   :location_track_external_id,
                   :track_number_id,
-                  :track_number_external_id
+                  :track_number_external_id,
+                  :location_track_deleted
                 )
             """
                 .trimIndent(),
@@ -2039,6 +2041,7 @@ class PublicationDao(
                             "location_track_external_id" to cj.locationTrackExternalId,
                             "track_number_id" to cj.trackNumberId.intValue,
                             "track_number_external_id" to cj.trackNumberExternalId,
+                            "location_track_deleted" to cj.locationTrackDeleted,
                         )
                     }
                 }
@@ -2252,7 +2255,8 @@ class PublicationDao(
                   location_track_id,
                   location_track_external_id,
                   track_number_id,
-                  track_number_external_id
+                  track_number_external_id,
+                  location_track_deleted
                 from publication.switch_joint
                 where publication_id = any(array[:publication_ids]::int[])
             """
@@ -2270,6 +2274,7 @@ class PublicationDao(
                         locationTrackExternalId = rs.getOidOrNull("location_track_external_id"),
                         trackNumberId = rs.getIntId("track_number_id"),
                         trackNumberExternalId = rs.getOidOrNull("track_number_external_id"),
+                        locationTrackDeleted = rs.getBoolean("location_track_deleted"),
                     )
             }
             .groupBy({ it.first.first }, { it.first.second to it.second })
