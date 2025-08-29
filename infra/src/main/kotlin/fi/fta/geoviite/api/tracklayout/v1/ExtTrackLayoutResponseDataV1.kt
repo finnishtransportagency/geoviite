@@ -1,6 +1,9 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -66,3 +69,18 @@ enum class ExtTrackNumberStateV1(val value: String) {
         }
     }
 }
+
+@Schema(name = "Osoitepiste")
+data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataosoite") val trackAddress: String?) {
+
+    constructor(x: Double, y: Double, address: TrackMeter?) : this(x, y, address?.formatFixedDecimals(3))
+
+    constructor(point: AlignmentEndPoint) : this(point.point.x, point.point.y, point.address)
+}
+
+@Schema(name = "Osoiteväli")
+data class ExtCenterLineTrackIntervalV1(
+    @JsonProperty("alku") val startAddress: String,
+    @JsonProperty("loppu") val endAddress: String,
+    @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
+)

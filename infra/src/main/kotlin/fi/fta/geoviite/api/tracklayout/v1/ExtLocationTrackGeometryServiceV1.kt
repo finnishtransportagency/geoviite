@@ -7,10 +7,8 @@ import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
-import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
@@ -38,21 +36,6 @@ data class ExtLocationTrackModifiedGeometryResponseV1(
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
     @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: Oid<LocationTrack>,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
-)
-
-@Schema(name = "Osoitepiste")
-data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataosoite") val trackAddress: String?) {
-
-    constructor(x: Double, y: Double, address: TrackMeter?) : this(x, y, address?.formatFixedDecimals(3))
-
-    constructor(point: AlignmentEndPoint) : this(point.point.x, point.point.y, point.address)
-}
-
-@Schema(name = "Osoiteväli")
-data class ExtCenterLineTrackIntervalV1(
-    @JsonProperty("alku") val startAddress: String,
-    @JsonProperty("loppu") val endAddress: String,
-    @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
 )
 
 data class ExtTrackKilometerIntervalV1(val start: KmNumber?, val inclusiveEnd: KmNumber?) {
