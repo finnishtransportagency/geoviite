@@ -312,19 +312,59 @@ function combine(
     polyLines: AlignmentPolyLine[],
     trackNumbers: LayoutTrackNumber[],
 ): AlignmentDataHolder[] {
+    const trackNumberMap: Map<LayoutTrackNumberId, LayoutTrackNumber> = indexIntoMap(trackNumbers);
+    const { referenceLinePiecesMap, locationTrackPiecesMap } = indexPolylinesIntoMaps(polyLines);
+
     return headers
         .map((header: AlignmentHeader) => {
-            const polyLinePieces = polyLines.filter(
-                (pl) => pl.id === header.id && pl.alignmentType === header.alignmentType,
-            );
+            const polyLinePieces =
+                (header.alignmentType === 'REFERENCE_LINE'
+                    ? referenceLinePiecesMap.get(header.id as ReferenceLineId)
+                    : locationTrackPiecesMap.get(header.id as LocationTrackId)) ?? [];
             return {
                 header: header,
-                points: combineAlignmentPoints(polyLinePieces.map((p) => p.points)),
-                trackNumber: trackNumbers.find((tn) => tn.id === header.trackNumberId),
+                points: combineAlignmentPoints(polyLinePieces),
+                trackNumber:
+                    header.trackNumberId === undefined
+                        ? undefined
+                        : trackNumberMap.get(header.trackNumberId),
                 planId: undefined,
             };
         })
         .filter(filterNotEmpty);
+}
+
+function indexPolylinesIntoMaps(polyLines: AlignmentPolyLine[]): {
+    referenceLinePiecesMap: Map<ReferenceLineId, AlignmentPoint[][]>;
+    locationTrackPiecesMap: Map<LocationTrackId, AlignmentPoint[][]>;
+} {
+    const referenceLinePiecesMap: Map<ReferenceLineId, AlignmentPoint[][]> = new Map();
+    const locationTrackPiecesMap: Map<LocationTrackId, AlignmentPoint[][]> = new Map();
+    for (const pl of polyLines) {
+        switch (pl.alignmentType) {
+            case MapAlignmentType.LocationTrack: {
+                const id = pl.id as LocationTrackId;
+                const elem = locationTrackPiecesMap.get(id);
+                if (elem === undefined) {
+                    locationTrackPiecesMap.set(id, [pl.points]);
+                } else {
+                    elem.push(pl.points);
+                }
+                break;
+            }
+            case MapAlignmentType.ReferenceLine: {
+                const id = pl.id as ReferenceLineId;
+                const elem = referenceLinePiecesMap.get(id);
+                if (elem === undefined) {
+                    referenceLinePiecesMap.set(id, [pl.points]);
+                } else {
+                    elem.push(pl.points);
+                }
+                break;
+            }
+        }
+    }
+    return { referenceLinePiecesMap, locationTrackPiecesMap };
 }
 
 export async function getLocationTrackSectionsWithoutProfileByTiles(
