@@ -304,10 +304,10 @@ constructor(
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
         coordinateSystem: Srid? = null,
-        @Parameter(description = EXT_OPENAPI_TRACK_KILOMETER_START)
+        @Parameter(description = EXT_OPENAPI_REFERENCE_LINE_KILOMETER_START)
         @RequestParam(TRACK_KILOMETER_START_PARAM, required = false)
         trackKmStart: KmNumber? = null,
-        @Parameter(description = EXT_OPENAPI_TRACK_KILOMETER_END)
+        @Parameter(description = EXT_OPENAPI_REFERENCE_LINE_KILOMETER_END)
         @RequestParam(TRACK_KILOMETER_END_PARAM, required = false)
         trackKmEnd: KmNumber? = null,
     ): ResponseEntity<ExtTrackNumberGeometryResponseV1> {

@@ -35,3 +35,7 @@ const val EXT_OPENAPI_TRACK_KILOMETER_START =
     "Osoitepisteitä haetaan tästä ratakilometristä lähtien. Oletuksena osoitepisteitä haetaan raiteen alusta lähtien."
 const val EXT_OPENAPI_TRACK_KILOMETER_END =
     "Osoitepisteitä haetaan tähän ratakilometriin asti. Oletuksena osoitepisteitä haetaan raiteen loppuun asti."
+const val EXT_OPENAPI_REFERENCE_LINE_KILOMETER_START =
+    "Osoitepisteitä haetaan tästä ratakilometristä lähtien. Oletuksena osoitepisteitä haetaan ratanumeron alusta lähtien."
+const val EXT_OPENAPI_REFERENCE_LINE_KILOMETER_END =
+    "Osoitepisteitä haetaan tähän ratakilometriin asti. Oletuksena osoitepisteitä haetaan ratanumeron loppuun asti."
