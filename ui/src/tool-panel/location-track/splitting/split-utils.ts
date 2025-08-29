@@ -15,6 +15,7 @@ import {
     SplitRequestTarget,
     SplitRequestTargetDuplicate,
     SplitTargetCandidate,
+    SplitTargetId,
     SplitTargetOperation,
 } from 'tool-panel/location-track/split-store';
 import { findById } from 'utils/array-utils';
@@ -36,11 +37,9 @@ export type ValidatedSplit = {
     switchIssues: FieldValidationIssue<SplitTargetCandidate>[];
 };
 
-export type SplitComponentAndRefs = {
+export type SplitComponent = {
     component: React.JSX.Element;
     splitAndValidation: ValidatedSplit;
-    nameRef: React.RefObject<HTMLInputElement | null>;
-    descriptionBaseRef: React.RefObject<HTMLInputElement | null>;
 };
 
 export const splitRequest = (
@@ -215,10 +214,12 @@ export const otherError = (error: string) => !mandatoryFieldMissing(error) && !s
 const hasErrors = (errorsReasons: string[], predicate: (errorReason: string) => boolean) =>
     errorsReasons.filter(predicate).length > 0;
 
-export const findRefToFirstErroredField = (
-    splitComponents: SplitComponentAndRefs[],
+export const findFirstErroredField = (
+    splitComponents: SplitComponent[],
     predicate: (errorReason: string) => boolean,
-): React.RefObject<HTMLInputElement | null> | undefined => {
+    getNameRef: (id: SplitTargetId) => HTMLInputElement | undefined,
+    getDescriptionBaseRef: (id: SplitTargetId) => HTMLInputElement | undefined,
+): HTMLInputElement | undefined => {
     const invalidNameIndex = splitComponents.findIndex((s) =>
         hasErrors(
             s.splitAndValidation.nameIssues.map((err) => err.reason),
@@ -242,9 +243,16 @@ export const findRefToFirstErroredField = (
         .sort()[0];
 
     if (minIndex === undefined) return undefined;
-    else if (minIndex === invalidNameIndex || minIndex === invalidSwitchBaseIndex)
-        return splitComponents[minIndex]?.nameRef;
-    else return splitComponents[minIndex]?.descriptionBaseRef;
+    else {
+        const id = splitComponents[minIndex]?.splitAndValidation?.split?.id;
+        if (id !== undefined) {
+            return minIndex === invalidNameIndex || minIndex === invalidSwitchBaseIndex
+                ? getNameRef(id)
+                : getDescriptionBaseRef(id);
+        } else {
+            return undefined;
+        }
+    }
 };
 
 export const hasUnrelinkableSwitches = (

@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { DependencyList, EffectCallback, ForwardedRef, useEffect, useRef, useState } from 'react';
 import { debounce } from 'ts-debounce';
-import { ValueOf } from './type-utils';
-import { prevIfObjectsEqual } from 'utils/object-utils';
+import { expectDefined, ValueOf } from './type-utils';
+import { objectEquals, prevIfObjectsEqual } from 'utils/object-utils';
+import { Primitive, reuseListElements } from 'utils/array-utils';
 
 /**
  * To load/get something asynchronously and to set that into state
@@ -347,6 +348,60 @@ export function useRateLimitedEffect(
             };
         }
     }, deps);
+}
+
+export function useMinimallyUpdatedList<T>(
+    list: T[],
+    extractKey: (e: T) => Primitive,
+    equals: (a: T, b: T) => boolean = objectEquals,
+): T[] {
+    const store = React.useRef<T[]>(list);
+    const rv = reuseListElements(list, store.current, extractKey, equals);
+    store.current = rv;
+    return rv;
+}
+
+export function useMinimallyUpdatedMappedList<S, T>(
+    sourceList: S[],
+    mapper: (element: S, index: number) => T,
+    extractKey: (e: S) => Primitive,
+    equals: (a: S, b: S) => boolean = objectEquals,
+): T[] {
+    const sourceStore = React.useRef<S[]>(sourceList);
+    const sourceNow = reuseListElements(sourceList, sourceStore.current, extractKey, equals);
+    const c = sourceStore.current;
+    const targetStore = React.useRef<T[]>([]);
+    const rv = sourceNow.map((elem: S, index: number) => {
+        if (c[index] === sourceNow[index] && index in targetStore.current) {
+            return targetStore.current[index] as T;
+        } else {
+            const t = mapper(elem, index);
+            targetStore.current[index] = t;
+            return t;
+        }
+    });
+    sourceStore.current = sourceNow;
+    return rv;
+}
+
+/**
+ * Returns a getter and setter (both stable callbacks for optimization but not semantic purposes), for a map managed as
+ * in https://react.dev/learn/manipulating-the-dom-with-refs#how-to-manage-a-list-of-refs-using-a-ref-callback
+ */
+export function useRefMap<K, V>(): [(key: K) => V | undefined, (key: K, value: V | null) => void] {
+    const map = React.useRef<Map<K, V>>(undefined);
+    if (map.current === undefined) {
+        map.current = new Map();
+    }
+    const get = React.useCallback((key: K) => expectDefined(map.current).get(key), []);
+    const set = React.useCallback((key: K, value: V | null) => {
+        if (value === null) {
+            expectDefined(map.current).delete(key);
+        } else {
+            expectDefined(map.current).set(key, value);
+        }
+    }, []);
+    return [get, set];
 }
 
 export function useMapState<K, V>(

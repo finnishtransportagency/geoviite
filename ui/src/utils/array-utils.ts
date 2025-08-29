@@ -304,7 +304,7 @@ export const objectEntries = <T extends object>(obj: T) =>
         [K in keyof T]-?: [K, T[K]];
     }[keyof T][];
 
-type Primitive = string | boolean | number;
+export type Primitive = string | boolean | number;
 
 /**
  * Returns an array with newContent's content, reusing existing instances from oldElements as much as possible, and
