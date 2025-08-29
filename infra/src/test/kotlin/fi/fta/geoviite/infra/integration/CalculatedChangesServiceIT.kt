@@ -1124,6 +1124,7 @@ constructor(
                 Oid("1.2.3.4.5"),
                 trackNumber,
                 Oid("3.4.5.6.7"),
+                locationTrackDeleted = false,
             )
         assertEquals(listOf(SwitchChange(switch, listOf(expectedSwitchJointChange))), changes.switchChanges)
     }
@@ -1186,6 +1187,7 @@ constructor(
                 Oid("1.2.3.4.5"),
                 trackNumber,
                 Oid("3.4.5.6.7"),
+                locationTrackDeleted = false,
             )
         assertEquals(listOf(SwitchChange(switch, listOf(expectedSwitchJointChange))), changes.switchChanges)
     }

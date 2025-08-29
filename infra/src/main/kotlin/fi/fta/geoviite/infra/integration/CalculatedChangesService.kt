@@ -44,6 +44,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
@@ -87,6 +88,7 @@ data class SwitchJointChange(
     val locationTrackExternalId: Oid<LocationTrack>?,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val trackNumberExternalId: Oid<LayoutTrackNumber>?,
+    val locationTrackDeleted: Boolean,
 )
 
 data class SwitchChange(val switchId: IntId<LayoutSwitch>, val changedJoints: List<SwitchJointChange>)
@@ -395,7 +397,7 @@ class CalculatedChangesService(
     private fun processSwitchJointChangesByLocationTrackKmChange(
         switchJointChanges: List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>>,
         locationTrackId: IntId<LocationTrack>,
-        trackNumberId: IntId<LayoutTrackNumber>,
+        locationTrack: LocationTrack,
         filterKmNumbers: Collection<KmNumber>,
         extIds: AllOids,
     ) =
@@ -411,8 +413,9 @@ class CalculatedChangesService(
                             point = change.point.toPoint(),
                             locationTrackId = locationTrackId,
                             locationTrackExternalId = extIds.locationTracks[locationTrackId],
-                            trackNumberId = trackNumberId,
-                            trackNumberExternalId = extIds.trackNumbers[trackNumberId],
+                            trackNumberId = locationTrack.trackNumberId,
+                            trackNumberExternalId = extIds.trackNumbers[locationTrack.trackNumberId],
+                            locationTrackDeleted = locationTrack.state == LocationTrackState.DELETED,
                         )
                     }
             if (joints.isEmpty()) null else SwitchChange(switchId = switch, changedJoints = joints)
@@ -447,7 +450,7 @@ class CalculatedChangesService(
         return processSwitchJointChangesByLocationTrackKmChange(
             allChanges,
             locationTrackId,
-            locationTrack.trackNumberId,
+            locationTrack,
             filterKmNumbers,
             extIds,
         )
@@ -619,6 +622,7 @@ class CalculatedChangesService(
                                         locationTrackExternalId = extIds.locationTracks[oldLocationTrack.id],
                                         trackNumberId = oldLocationTrack.trackNumberId,
                                         trackNumberExternalId = extIds.trackNumbers[oldLocationTrack.trackNumberId],
+                                        locationTrackDeleted = oldLocationTrack.state == LocationTrackState.DELETED,
                                     )
                                 },
                         )
@@ -643,6 +647,7 @@ class CalculatedChangesService(
                                     locationTrackExternalId = extIds.locationTracks[newLocationTrack.id],
                                     trackNumberId = newLocationTrack.trackNumberId,
                                     trackNumberExternalId = newTrackNumber?.id?.let { id -> extIds.trackNumbers[id] },
+                                    locationTrackDeleted = newLocationTrack.state == LocationTrackState.DELETED,
                                 )
                             },
                     )
