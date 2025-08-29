@@ -861,13 +861,7 @@ constructor(
             kmPosts = listOf(kmPost1.id, kmPost2.id),
         )
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
-        val officialThroughTrackVersion =
-            locationTrackDao.fetchVersionOrThrow(MainLayoutContext.official, throughTrack.id)
-        locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrackDao.fetch(officialThroughTrackVersion).copy(state = LocationTrackState.DELETED),
-            alignmentDao.fetch(officialThroughTrackVersion),
-        )
+        locationTrackService.updateState(LayoutBranch.main, throughTrack.id, LocationTrackState.DELETED)
         publishAndPush(locationTracks = listOf(throughTrack.id))
         val pushedSwitchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
 
@@ -878,11 +872,7 @@ constructor(
             createPush.map { track -> track.nodecollection.nodes.map { node -> node.nodeType.name } },
         )
         val updatePush = pushedSwitchLocations.last()
-        assertEquals(1, updatePush.size)
-        assertEquals(
-            listOf("JOINT_A", "JOINT_B"),
-            updatePush[0].nodecollection.nodes.map { node -> node.nodeType.name },
-        )
+        assertEquals(0, updatePush.size)
     }
 
     @Test
@@ -2126,6 +2116,93 @@ constructor(
 
         ratkoService.pushChangesToRatko(LayoutBranch.main)
         assertEquals(splitService.get(split.id)?.bulkTransferState, BulkTransferState.DONE)
+    }
+
+    @Test
+    fun `switch creation doesn't send locations on removed location tracks`() {
+        val trackNumber = establishedTrackNumber()
+
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
+
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
+        fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
+        locationTrackService.updateState(LayoutBranch.main, throughTrack.id, LocationTrackState.DELETED)
+        publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
+        val lastPushLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7").last()
+        assertEquals(
+            listOf("2.3.4.5.6", "2.3.4.5.6"),
+            lastPushLocations.flatMap { location ->
+                location.nodecollection.nodes.map { node -> node.point.locationtrack!!.toString() }
+            },
+        )
+    }
+
+    @Test
+    fun `switch update doesn't send locations on removed location tracks`() {
+        val trackNumber = establishedTrackNumber()
+
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
+
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
+        fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
+
+        publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
+        fakeRatko.hostPushedSwitch("3.4.5.6.7")
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
+
+        locationTrackService.updateState(LayoutBranch.main, throughTrack.id, LocationTrackState.DELETED)
+        switchService.saveDraft(LayoutBranch.main, switchService.getOrThrow(mainOfficialContext.context, switch.id))
+        publishAndPush(locationTracks = listOf(throughTrack.id), switches = listOf(switch.id))
+
+        val lastPushLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7").last()
+        assertEquals(
+            listOf("2.3.4.5.6", "2.3.4.5.6"),
+            lastPushLocations.flatMap { location ->
+                location.nodecollection.nodes.map { node -> node.point.locationtrack!!.toString() }
+            },
+        )
+    }
+
+    @Test
+    fun `switch update doesn't send locations on removed location tracks, even if joint was changed`() {
+        val trackNumber = establishedTrackNumber()
+
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
+
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
+        fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
+
+        publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
+        fakeRatko.hostPushedSwitch("3.4.5.6.7")
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
+
+        // link point for switch on through track gets moved 0.1 m east (to x=5.1)
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            locationTrackService.getOrThrow(mainOfficialContext.context, throughTrack.id),
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(switch.id, 1),
+                    endInnerSwitch = switchLinkYV(switch.id, 5),
+                    segments = listOf(segment(Point(0.0, 0.0), Point(5.1, 0.0))),
+                ),
+                edge(
+                    startInnerSwitch = switchLinkYV(switch.id, 5),
+                    endInnerSwitch = switchLinkYV(switch.id, 2),
+                    segments = listOf(segment(Point(5.1, 0.0), Point(9.5, 0.0))),
+                ),
+            ),
+        )
+        locationTrackService.updateState(LayoutBranch.main, throughTrack.id, LocationTrackState.DELETED)
+        switchService.saveDraft(LayoutBranch.main, switchService.getOrThrow(mainOfficialContext.context, switch.id))
+        publishAndPush(locationTracks = listOf(throughTrack.id), switches = listOf(switch.id))
+        val lastPushLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7").last()
+        assertEquals(
+            listOf("2.3.4.5.6", "2.3.4.5.6"),
+            lastPushLocations.flatMap { location ->
+                location.nodecollection.nodes.map { node -> node.point.locationtrack!!.toString() }
+            },
+        )
     }
 
     private fun insertReferenceLineFor(
