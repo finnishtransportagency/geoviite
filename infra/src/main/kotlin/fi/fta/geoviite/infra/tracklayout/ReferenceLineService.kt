@@ -127,11 +127,8 @@ class ReferenceLineService(
         branch: LayoutBranch,
         trackNumberId: IntId<LayoutTrackNumber>,
     ): LayoutRowVersion<ReferenceLine>? {
-        val referenceLine =
-            requireNotNull(referenceLineDao.getByTrackNumber(branch.draft, trackNumberId)) {
-                "Found Track Number without Reference Line $trackNumberId"
-            }
-        return if (referenceLine.isDraft) deleteDraft(branch, referenceLine.id as IntId) else null
+        val referenceLine = referenceLineDao.getByTrackNumber(branch.draft, trackNumberId)
+        return if (referenceLine?.isDraft == true) deleteDraft(branch, referenceLine.id as IntId) else null
     }
 
     fun getByTrackNumber(layoutContext: LayoutContext, trackNumberId: IntId<LayoutTrackNumber>): ReferenceLine? {

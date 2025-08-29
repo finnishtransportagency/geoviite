@@ -1841,6 +1841,20 @@ constructor(
         assertPublicationResults(designCreatedResult, designUpdatedResult)
     }
 
+    @Test
+    fun `revert drafted creation of track number and reference line`() {
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val referenceLineId =
+            mainDraftContext.save(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))).id
+        publicationService.revertPublicationCandidates(
+            LayoutBranch.main,
+            publicationRequestIds(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId)),
+        )
+        // the test setup clears the layout tables, so these should just be empty now
+        assertEquals(0, trackNumberDao.list(mainDraftContext.context, false).size)
+        assertEquals(0, referenceLineDao.list(mainDraftContext.context, false).size)
+    }
+
     private fun touchAsDraftAndPublish(
         branch: LayoutBranch,
         trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
