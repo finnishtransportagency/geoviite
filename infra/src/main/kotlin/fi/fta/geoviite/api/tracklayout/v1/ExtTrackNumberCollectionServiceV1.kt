@@ -28,7 +28,7 @@ data class ExtTrackNumberCollectionResponseV1(
     @JsonProperty(TRACK_NUMBER_COLLECTION) val trackNumberCollection: List<ExtTrackNumberV1>,
 )
 
-@Schema(name = "Vastaus: Muutettu sijaintiraidekokoelma")
+@Schema(name = "Vastaus: Muutettu ratanumerokokoelma")
 data class ExtModifiedTrackNumberCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
