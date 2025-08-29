@@ -1,6 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.geocoding.Resolution
 import io.swagger.v3.oas.annotations.media.Schema
 
@@ -26,5 +27,14 @@ enum class ExtResolutionV1(@JsonValue val value: String) {
             QUARTER_METER -> Resolution.QUARTER_METER
             ONE_METER -> Resolution.ONE_METER
         }
+    }
+}
+
+data class ExtTrackKilometerIntervalV1(val start: KmNumber?, val inclusiveEnd: KmNumber?) {
+    fun containsKmEndInclusive(kmNumber: KmNumber): Boolean {
+        val startsAfterStartKmFilter = start == null || kmNumber >= start
+        val endsBeforeEndKmFilter = inclusiveEnd == null || kmNumber <= inclusiveEnd
+
+        return startsAfterStartKmFilter && endsBeforeEndKmFilter
     }
 }

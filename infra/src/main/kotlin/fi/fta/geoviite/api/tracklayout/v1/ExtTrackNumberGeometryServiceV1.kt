@@ -2,59 +2,58 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
-import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
-import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import io.swagger.v3.oas.annotations.media.Schema
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
-@Schema(name = "Vastaus: Sijaintiraidegeometria")
-data class ExtLocationTrackGeometryResponseV1(
+@Schema(name = "Vastaus: Ratanumerogeometria")
+data class ExtTrackNumberGeometryResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
-    @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: Oid<LocationTrack>,
+    @JsonProperty(TRACK_NUMBER_OID_PARAM) val trackNumberOid: Oid<LayoutTrackNumber>,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 
-@Schema(name = "Vastaus: Muutettu sijaintiraidegeometria")
-data class ExtLocationTrackModifiedGeometryResponseV1(
+@Schema(name = "Vastaus: Muutettu ratanumerogeometria")
+data class ExtTrackNumberkModifiedGeometryResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
-    @JsonProperty(LOCATION_TRACK_OID_PARAM) val locationTrackOid: Oid<LocationTrack>,
+    @JsonProperty(TRACK_NUMBER_OID_PARAM) val trackNumberOid: Oid<LayoutTrackNumber>,
     @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 
 @GeoviiteService
-class ExtLocationTrackGeometryServiceV1
+class ExtTrackNumberGeometryServiceV1
 @Autowired
 constructor(
     private val geocodingService: GeocodingService,
-    private val geocodingDao: GeocodingDao,
-    private val locationTrackDao: LocationTrackDao,
+    private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val publicationDao: PublicationDao,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun createGeometryResponse(
-        oid: Oid<LocationTrack>,
+        oid: Oid<LayoutTrackNumber>,
         trackLayoutVersion: Uuid<Publication>?,
         resolution: Resolution,
         coordinateSystem: Srid,
         trackIntervalFilter: ExtTrackKilometerIntervalV1,
-    ): ExtLocationTrackGeometryResponseV1? {
+    ): ExtTrackNumberGeometryResponseV1? {
         val layoutContext = MainLayoutContext.official
 
         val publication =
@@ -63,46 +62,43 @@ constructor(
                     ?: throw TrackLayoutVersionNotFound("trackLayoutVersion=${trackLayoutVersion}")
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
-        val locationTrackId =
-            locationTrackDao.lookupByExternalId(oid.toString())?.id
-                ?: throw ExtOidNotFoundExceptionV1("location track lookup failed for oid=$oid")
+        val trackNumberId =
+            layoutTrackNumberDao.lookupByExternalId(oid.toString())?.id
+                ?: throw ExtOidNotFoundExceptionV1("track number lookup failed for oid=$oid")
 
-        return locationTrackDao
-            .fetchOfficialVersionAtMoment(layoutContext.branch, locationTrackId, publication.publicationTime)
-            ?.let(locationTrackDao::fetch)
-            ?.let { locationTrack ->
-                val geocodingContextCacheKey =
-                    geocodingDao.getLayoutGeocodingContextCacheKey(
-                        layoutContext.branch,
-                        locationTrack.trackNumberId,
-                        publication.publicationTime,
-                    ) ?: throw ExtGeocodingFailedV1("could not get geocoding context cache key")
-
-                ExtLocationTrackGeometryResponseV1(
+        return layoutTrackNumberDao
+            .fetchOfficialVersionAtMoment(layoutContext.branch, trackNumberId, publication.publicationTime)
+            ?.let(layoutTrackNumberDao::fetch)
+            ?.let { trackNumber ->
+                ExtTrackNumberGeometryResponseV1(
                     trackLayoutVersion = publication.uuid,
-                    locationTrackOid = oid,
+                    trackNumberOid = oid,
                     trackIntervals =
-                        getExtLocationTrackGeometry(
-                            locationTrack.getVersionOrThrow(),
-                            geocodingContextCacheKey,
+                        getExtTrackNumberGeometry(
+                            layoutContext.branch,
+                            trackNumber,
                             trackIntervalFilter,
                             resolution,
                             coordinateSystem,
+                            publication.publicationTime,
                         ),
                 )
             }
     }
 
-    private fun getExtLocationTrackGeometry(
-        locationTrackVersion: LayoutRowVersion<LocationTrack>,
-        geocodingContextCacheKey: LayoutGeocodingContextCacheKey,
+    private fun getExtTrackNumberGeometry(
+        branch: LayoutBranch,
+        trackNumber: LayoutTrackNumber,
         trackIntervalFilter: ExtTrackKilometerIntervalV1,
         resolution: Resolution,
         coordinateSystem: Srid,
+        moment: Instant,
     ): List<ExtCenterLineTrackIntervalV1> {
         val alignmentAddresses =
-            geocodingService.getAddressPoints(geocodingContextCacheKey, locationTrackVersion, resolution)
-                ?: throw ExtGeocodingFailedV1("could not get address points")
+            geocodingService
+                .getGeocodingContextAtMoment(branch, trackNumber.id as IntId, moment)
+                ?.getReferenceLineAddressesWithResolution(resolution)
+                ?: throw ExtGeocodingFailedV1("could not get reference line address points")
 
         val extAddressPoints =
             alignmentAddresses.allPoints.mapNotNull { point ->
