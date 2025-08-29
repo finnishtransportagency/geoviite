@@ -2,10 +2,13 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
@@ -19,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
 private const val EXT_TRACK_NUMBER_TAG_V1 = "Ratanumero"
@@ -30,7 +34,10 @@ private const val EXT_TRACK_NUMBER_COLLECTION_TAG_V1 = "Ratanumerokokoelma"
 )
 class ExtTrackNumberControllerV1
 @Autowired
-constructor(private val extTrackNumberCollectionService: ExtTrackNumberCollectionServiceV1) {
+constructor(
+    private val extTrackNumberCollectionService: ExtTrackNumberCollectionServiceV1,
+    private val extTrackNumberService: ExtTrackNumberServiceV1,
+) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @GetMapping("/ratanumerot")
@@ -128,6 +135,125 @@ constructor(private val extTrackNumberCollectionService: ExtTrackNumberCollectio
                 trackLayoutVersion = trackLayoutVersion,
                 coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
             )
-            ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
+            .let(::toResponse)
+    }
+
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID_PARAM}}")
+    @Tag(name = EXT_TRACK_NUMBER_TAG_V1)
+    @Operation(summary = "Yksittäisen ratanumeron haku OID-tunnuksella")
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "Ratanumeron haku onnistui."),
+                ApiResponse(
+                    responseCode = "204",
+                    description =
+                        "Ratanumeron OID-tunnus löytyi, muttei se ole olemassa annetussa rataverkon versiossa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description =
+                        "Ratanumeroa ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
+    fun extGetTrackNumber(
+        @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
+        @PathVariable(TRACK_NUMBER_OID_PARAM)
+        oid: Oid<LayoutTrackNumber>,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
+        trackLayoutVersion: Uuid<Publication>?,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        coordinateSystem: Srid?,
+    ): ResponseEntity<ExtTrackNumberResponseV1> {
+        return extTrackNumberService
+            .createTrackNumberResponse(oid, trackLayoutVersion, coordinateSystem ?: LAYOUT_SRID)
+            .let(::toResponse)
+    }
+
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID_PARAM}}/muutokset", params = [MODIFICATIONS_FROM_VERSION])
+    @Tag(name = EXT_TRACK_NUMBER_TAG_V1)
+    @Operation(
+        summary = "Yksittäisen ratanumeron muutosten haku OID-tunnuksella",
+        description =
+            """
+                Esimerkkejä HTTP-paluukoodien arvoista tietyissä tilanteissa:
+                
+                - 200, kun ratanumero on luotu annetun rataverkon version ja uusimman rataverkon välillä (null -> Ratanumeron versio A).
+                - 200, kun ratanumero muuttuu rataverkon versioiden välillä, joissa kummassakin se on olemassa (Ratanumeron versio A -> Ratanumeron versio B).
+                - 204, kun kysytään muutoksia rataverkon versioiden välillä, joissa kummassakaan haettua ratanumeroa ei ole olemassa (null -> null).
+                - 204, kun muutoksia ratanumeroon ei ole tapahtunut rataverkon versioiden välillä (Ratanumeron versio A -> Ratanumeron versio A).
+            """,
+    )
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(
+                    responseCode = "200",
+                    description = "Ratanumeron muutokset haettiin onnistuneesti kahden rataverkon version välillä.",
+                ),
+                ApiResponse(
+                    responseCode = "204",
+                    description =
+                        "Ratanumeron OID-tunnus löytyi, mutta muutoksia vertailtavien versioiden välillä ei ole.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description =
+                        "Ratanumeroa ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
+    fun extGetTrackNumberModifications(
+        @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
+        @PathVariable(TRACK_NUMBER_OID_PARAM)
+        trackNumberOid: Oid<LayoutTrackNumber>,
+        @Parameter(
+            description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
+            schema = Schema(type = "string", format = "uuid"),
+        )
+        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true)
+        modificationsFromVersion: Uuid<Publication>,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO, schema = Schema(type = "string", format = "uuid"))
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
+        trackLayoutVersion: Uuid<Publication>?,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        coordinateSystem: Srid?,
+    ): ResponseEntity<ExtModifiedTrackNumberResponseV1> {
+        return extTrackNumberService
+            .createTrackNumberModificationResponse(
+                trackNumberOid,
+                modificationsFromVersion,
+                trackLayoutVersion,
+                coordinateSystem ?: LAYOUT_SRID,
+            )
+            .let(::toResponse)
     }
 }

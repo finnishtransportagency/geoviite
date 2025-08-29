@@ -10,6 +10,7 @@ const val LOCATION_TRACK_COLLECTION = "sijaintiraiteet"
 const val TRACK_KILOMETER_START_PARAM = "ratakilometri_alku"
 const val TRACK_KILOMETER_END_PARAM = "ratakilometri_loppu"
 const val TRACK_NUMBER_PARAM = "ratanumero"
+const val TRACK_NUMBER_OID_PARAM = "ratanumero_oid"
 const val TRACK_NUMBER_COLLECTION = "ratanumerot"
 const val COORDINATE_SYSTEM_PARAM = "koordinaatisto"
 const val ADDRESS_POINT_RESOLUTION = "osoitepistevali"
@@ -25,6 +26,7 @@ const val EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO =
 const val EXT_OPENAPI_NO_MODIFICATIONS_BETWEEN_VERSIONS =
     "Muutoksia vertailtavien rataverkon versioiden välillä ei ole."
 const val EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION = "Sijaintiraiteen OID-tunnus."
+const val EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION = "Ratanumeron OID-tunnus."
 const val EXT_OPENAPI_COORDINATE_SYSTEM =
     "Hyödynnettävän koordinaattijärjestelmän EPSG-tunnus. Oletuksena käytetään paikannuspohjan koordinaatistoa EPSG:3067 (ETRS-TM35FIN)."
 const val EXT_OPENAPI_RESOLUTION =

@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-import ExtTrackNumberV1
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
@@ -176,7 +175,7 @@ constructor(
                 trackNumberOid = trackNumberOid,
                 trackNumber = trackNumber.number,
                 trackNumberDescription = trackNumber.description,
-                trackNumberState = ExtTrackNumberStateV1.of(trackNumber.state),
+                trackNumberState = trackNumber.state.let(ExtTrackNumberStateV1::of),
                 startLocation = startLocation?.let(::ExtAddressPointV1),
                 endLocation = endLocation?.let(::ExtAddressPointV1),
             )

@@ -137,7 +137,7 @@ class ExtLocationTrackControllerV1(
                 trackLayoutVersion = trackLayoutVersion,
                 coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
             )
-            ?.let { modifiedResponse -> ResponseEntity.ok(modifiedResponse) } ?: ResponseEntity.noContent().build()
+            .let(::toResponse)
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
