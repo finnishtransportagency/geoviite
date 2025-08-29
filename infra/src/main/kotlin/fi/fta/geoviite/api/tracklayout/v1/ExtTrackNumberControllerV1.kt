@@ -2,9 +2,11 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -35,8 +37,9 @@ private const val EXT_TRACK_NUMBER_COLLECTION_TAG_V1 = "Ratanumerokokoelma"
 class ExtTrackNumberControllerV1
 @Autowired
 constructor(
-    private val extTrackNumberCollectionService: ExtTrackNumberCollectionServiceV1,
     private val extTrackNumberService: ExtTrackNumberServiceV1,
+    private val extTrackNumberGeometryService: ExtTrackNumberGeometryServiceV1,
+    private val extTrackNumberCollectionService: ExtTrackNumberCollectionServiceV1,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -253,6 +256,68 @@ constructor(
                 modificationsFromVersion,
                 trackLayoutVersion,
                 coordinateSystem ?: LAYOUT_SRID,
+            )
+            .let(::toResponse)
+    }
+
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID_PARAM}}/geometria")
+    @Tag(name = EXT_TRACK_NUMBER_TAG_V1)
+    @Operation(summary = "Yksittäisen ratanumeron geometrian haku OID-tunnuksella")
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "Ratanumeron geometrian haku onnistui."),
+                ApiResponse(
+                    responseCode = "204",
+                    description =
+                        "Ratanumeron OID-tunnus löytyi, muttei sille ole olemassa geometriaa annetussa rataverkon versiossa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description =
+                        "Ratanumeroa ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
+    fun extGetTrackNumberGeometry(
+        @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
+        @PathVariable(TRACK_NUMBER_OID_PARAM)
+        oid: Oid<LayoutTrackNumber>,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
+        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
+        trackLayoutVersion: Uuid<Publication>? = null,
+        @Parameter(description = EXT_OPENAPI_RESOLUTION)
+        @RequestParam(ADDRESS_POINT_RESOLUTION, required = false)
+        extResolution: ExtResolutionV1? = null,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        coordinateSystem: Srid? = null,
+        @Parameter(description = EXT_OPENAPI_TRACK_KILOMETER_START)
+        @RequestParam(TRACK_KILOMETER_START_PARAM, required = false)
+        trackKmStart: KmNumber? = null,
+        @Parameter(description = EXT_OPENAPI_TRACK_KILOMETER_END)
+        @RequestParam(TRACK_KILOMETER_END_PARAM, required = false)
+        trackKmEnd: KmNumber? = null,
+    ): ResponseEntity<ExtTrackNumberGeometryResponseV1> {
+        return extTrackNumberGeometryService
+            .createGeometryResponse(
+                oid,
+                trackLayoutVersion,
+                extResolution?.toResolution() ?: Resolution.ONE_METER,
+                coordinateSystem ?: LAYOUT_SRID,
+                ExtTrackKilometerIntervalV1(trackKmStart, trackKmEnd),
             )
             .let(::toResponse)
     }
