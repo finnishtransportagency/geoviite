@@ -27,10 +27,8 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
-const val EXT_TRACK_LAYOUT_BASE_PATH = "/geoviite"
-
-const val EXT_LOCATION_TRACK_TAG_V1 = "Sijaintiraide"
-const val EXT_LOCATION_TRACK_COLLECTION_TAG_V1 = "Sijaintiraidekokoelma"
+private const val EXT_LOCATION_TRACK_TAG_V1 = "Sijaintiraide"
+private const val EXT_LOCATION_TRACK_COLLECTION_TAG_V1 = "Sijaintiraidekokoelma"
 
 @PreAuthorize(AUTH_API_GEOMETRY)
 @GeoviiteExtApiController(

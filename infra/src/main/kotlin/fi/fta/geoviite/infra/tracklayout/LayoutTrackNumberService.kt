@@ -47,6 +47,7 @@ class LayoutTrackNumberService(
     dao: LayoutTrackNumberDao,
     private val referenceLineService: ReferenceLineService,
     private val geocodingService: GeocodingService,
+    private val alignmentDao: LayoutAlignmentDao,
     private val alignmentService: LayoutAlignmentService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
