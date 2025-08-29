@@ -186,7 +186,7 @@ class ReferenceLineService(
         layoutContext: LayoutContext,
         ids: List<IntId<ReferenceLine>>,
     ): List<Pair<ReferenceLine, LayoutAlignment>> {
-        return dao.getMany(layoutContext, ids).let(::associateWithGeometries)
+        return dao.getMany(layoutContext, ids).let(::associateWithAlignments)
     }
 
     @Transactional(readOnly = true)
@@ -201,7 +201,7 @@ class ReferenceLineService(
                 dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted).let(dao::fetchMany)
             })
             .let { list -> filterByBoundingBox(list, boundingBox) }
-            .let(::associateWithGeometries)
+            .let(::associateWithAlignments)
     }
 
     fun getStartAndEndAtMoment(
@@ -211,7 +211,7 @@ class ReferenceLineService(
     ): List<AlignmentStartAndEnd<ReferenceLine>> {
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(context, moment)
         val referenceLineData =
-            dao.getManyOfficialAtMoment(context.branch, ids, moment).let(::associateWithGeometries).map {
+            dao.getManyOfficialAtMoment(context.branch, ids, moment).let(::associateWithAlignments).map {
                 (referenceLine, geometry) ->
                 Triple(referenceLine, geometry, getGeocodingContext(referenceLine.trackNumberId))
             }
@@ -253,7 +253,7 @@ class ReferenceLineService(
         version: LayoutRowVersion<ReferenceLine>
     ): Pair<ReferenceLine, LayoutAlignment> = referenceLineWithAlignment(dao, alignmentDao, version)
 
-    private fun associateWithGeometries(lines: List<ReferenceLine>): List<Pair<ReferenceLine, LayoutAlignment>> {
+    private fun associateWithAlignments(lines: List<ReferenceLine>): List<Pair<ReferenceLine, LayoutAlignment>> {
         // This is a little convoluted to avoid extra passes of transaction annotation handling in
         // alignmentDao.fetch
         val alignments = alignmentDao.fetchMany(lines.map(ReferenceLine::getAlignmentVersionOrThrow))
