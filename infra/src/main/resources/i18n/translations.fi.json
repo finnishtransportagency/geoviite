@@ -522,7 +522,6 @@
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",
         "deleted-location-tracks-not-allowed": "Poistettu-tilainen raide ei voi olla osa paikannuspohjaa.",
-        "deleted-location-track-warning": "Poistettaessa myös raiteeseen liittyvät vaihdelinkitykset puretaan, eivätkä ne palaudu automaattisesti, vaikka raiteen tila palautettaisiin alkuperäiseksi.",
         "confirm-location-track-delete": "Haluatko poistaa raiteen paikannuspohjasta?"
     },
     "tool-panel": {
