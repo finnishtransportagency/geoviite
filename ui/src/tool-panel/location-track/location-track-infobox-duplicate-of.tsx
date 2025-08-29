@@ -30,7 +30,7 @@ const getTrackNumberName = (
     trackNumberId: LayoutTrackNumberId,
 ) => trackNumbers?.find((tn) => tn.id === trackNumberId)?.number || '';
 
-export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDuplicateOfProps> = ({
+const LocationTrackInfoboxDuplicateOfM: React.FC<LocationTrackInfoboxDuplicateOfProps> = ({
     targetLocationTrack,
     existingDuplicate,
     duplicatesOfLocationTrack,
@@ -88,3 +88,5 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
         <React.Fragment />
     );
 };
+
+export const LocationTrackInfoboxDuplicateOf = React.memo(LocationTrackInfoboxDuplicateOfM);
