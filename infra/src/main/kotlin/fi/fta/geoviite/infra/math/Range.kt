@@ -1,5 +1,8 @@
 package fi.fta.geoviite.infra.math
 
+import fi.fta.geoviite.infra.tracklayout.AnyM
+import fi.fta.geoviite.infra.tracklayout.LineM
+
 data class Range<T : Comparable<T>>(val min: T, val max: T) {
     constructor(range: ClosedFloatingPointRange<T>) : this(range.start, range.endInclusive)
 
@@ -23,6 +26,10 @@ data class Range<T : Comparable<T>>(val min: T, val max: T) {
 
     fun <R : Comparable<R>> map(f: (value: T) -> R): Range<R> = Range(f(min), f(max))
 }
+
+fun Range<Double>.length(): Double = max - min
+
+fun <M : AnyM<M>> Range<LineM<M>>.length(): LineM<M> = max - min
 
 fun <T : Comparable<T>> combineContinuous(ranges: List<Range<T>>): List<Range<T>> {
     val result = mutableListOf<Range<T>>()
