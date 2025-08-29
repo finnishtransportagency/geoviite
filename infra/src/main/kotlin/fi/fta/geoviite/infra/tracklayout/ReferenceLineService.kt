@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class ReferenceLineService(
@@ -185,7 +186,7 @@ class ReferenceLineService(
         layoutContext: LayoutContext,
         ids: List<IntId<ReferenceLine>>,
     ): List<Pair<ReferenceLine, LayoutAlignment>> {
-        return dao.getMany(layoutContext, ids).let(::associateWithAlignments)
+        return dao.getMany(layoutContext, ids).let(::associateWithGeometries)
     }
 
     @Transactional(readOnly = true)
@@ -200,7 +201,27 @@ class ReferenceLineService(
                 dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted).let(dao::fetchMany)
             })
             .let { list -> filterByBoundingBox(list, boundingBox) }
-            .let(::associateWithAlignments)
+            .let(::associateWithGeometries)
+    }
+
+    fun getStartAndEndAtMoment(
+        context: LayoutContext,
+        ids: List<IntId<ReferenceLine>>,
+        moment: Instant,
+    ): List<AlignmentStartAndEnd<ReferenceLine>> {
+        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(context, moment)
+        val referenceLineData =
+            dao.getManyOfficialAtMoment(context.branch, ids, moment).let(::associateWithGeometries).map {
+                (referenceLine, geometry) ->
+                Triple(referenceLine, geometry, getGeocodingContext(referenceLine.trackNumberId))
+            }
+
+        return referenceLineData
+            .parallelStream()
+            .map { (referenceLine, alignment, ctx) ->
+                AlignmentStartAndEnd.of(referenceLine.id as IntId, alignment, ctx)
+            }
+            .toList()
     }
 
     @Transactional(readOnly = true)
@@ -232,7 +253,7 @@ class ReferenceLineService(
         version: LayoutRowVersion<ReferenceLine>
     ): Pair<ReferenceLine, LayoutAlignment> = referenceLineWithAlignment(dao, alignmentDao, version)
 
-    private fun associateWithAlignments(lines: List<ReferenceLine>): List<Pair<ReferenceLine, LayoutAlignment>> {
+    private fun associateWithGeometries(lines: List<ReferenceLine>): List<Pair<ReferenceLine, LayoutAlignment>> {
         // This is a little convoluted to avoid extra passes of transaction annotation handling in
         // alignmentDao.fetch
         val alignments = alignmentDao.fetchMany(lines.map(ReferenceLine::getAlignmentVersionOrThrow))
