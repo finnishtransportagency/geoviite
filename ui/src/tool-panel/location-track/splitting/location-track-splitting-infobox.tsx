@@ -68,6 +68,7 @@ import {
     LoaderStatus,
     useLoaderWithStatus,
     useMinimallyUpdatedList,
+    useMinimallyUpdatedMappedList,
     useRefMap,
 } from 'utils/react-utils';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
@@ -480,23 +481,26 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     });
     const showSplitTrackOnMap = useShowSplitTrackOnMap(allSplits, splittingState, showArea);
 
-    const splitComponents = splitsValidated.map((split) =>
-        createSplitComponent(
-            split,
-            switches,
-            splittingState,
-            removeSplit,
-            updateSplit,
-            isPostingSplit,
-            duplicateTracksInCurrentSplits,
-            showArea,
-            showSplitTrackOnMap,
-            setFocusedSplit,
-            setHighlightedSplit,
-            setHighlightedSplitPoint,
-            setNameRef,
-            setDescriptionBaseRef,
-        ),
+    const splitComponents = useMinimallyUpdatedMappedList(
+        splitsValidated,
+        (split) =>
+            createSplitComponent(
+                split,
+                switches,
+                splittingState,
+                removeSplit,
+                updateSplit,
+                isPostingSplit,
+                duplicateTracksInCurrentSplits,
+                showArea,
+                showSplitTrackOnMap,
+                setFocusedSplit,
+                setHighlightedSplit,
+                setHighlightedSplitPoint,
+                setNameRef,
+                setDescriptionBaseRef,
+            ),
+        (split) => split.split.id,
     );
 
     return (

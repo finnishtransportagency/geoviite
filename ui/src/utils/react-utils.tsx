@@ -361,6 +361,29 @@ export function useMinimallyUpdatedList<T>(
     return rv;
 }
 
+export function useMinimallyUpdatedMappedList<S, T>(
+    sourceList: S[],
+    mapper: (element: S, index: number) => T,
+    extractKey: (e: S) => Primitive,
+    equals: (a: S, b: S) => boolean = objectEquals,
+): T[] {
+    const sourceStore = React.useRef<S[]>(sourceList);
+    const sourceNow = reuseListElements(sourceList, sourceStore.current, extractKey, equals);
+    const c = sourceStore.current;
+    const targetStore = React.useRef<T[]>([]);
+    const rv = sourceNow.map((elem: S, index: number) => {
+        if (c[index] === sourceNow[index] && index in targetStore.current) {
+            return targetStore.current[index] as T;
+        } else {
+            const t = mapper(elem, index);
+            targetStore.current[index] = t;
+            return t;
+        }
+    });
+    sourceStore.current = sourceNow;
+    return rv;
+}
+
 /**
  * Returns a getter and setter (both stable callbacks for optimization but not semantic purposes), for a map managed as
  * in https://react.dev/learn/manipulating-the-dom-with-refs#how-to-manage-a-list-of-refs-using-a-ref-callback
