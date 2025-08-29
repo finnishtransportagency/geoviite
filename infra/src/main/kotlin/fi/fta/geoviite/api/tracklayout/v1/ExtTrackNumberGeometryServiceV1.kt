@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
-import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
@@ -18,10 +17,10 @@ import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.time.Instant
 
 @Schema(name = "Vastaus: Ratanumerogeometria")
 data class ExtTrackNumberGeometryResponseV1(
@@ -43,7 +42,6 @@ class ExtTrackNumberGeometryServiceV1
 @Autowired
 constructor(
     private val geocodingService: GeocodingService,
-    private val geocodingDao: GeocodingDao,
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val publicationDao: PublicationDao,
 ) {
