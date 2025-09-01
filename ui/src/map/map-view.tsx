@@ -191,6 +191,13 @@ function getLayoutGraphLevel(mapLayerMenuGroups: MapLayerMenuGroups): LayoutGrap
         : 'MICRO';
 }
 
+function anyLayerIsLoading(
+    visibleLayers: MapLayerName[],
+    layersLoadingData: Set<MapLayerName>,
+): boolean {
+    return visibleLayers.some((l) => layersLoadingData.has(l));
+}
+
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
@@ -230,20 +237,23 @@ const MapView: React.FC<MapViewProps> = ({
         customActiveMapTool || (mapTools && first(mapTools)),
     );
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
-    const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
+    const layersLoadingData = React.useRef<Set<MapLayerName>>(new Set());
+    const [isLoading, setIsLoading] = React.useState(false);
 
-    const onLayerLoading = (name: MapLayerName, isLoading: boolean) => {
-        setLayersLoadingData((prevLoadingLayers) => {
-            if (isLoading && !prevLoadingLayers.includes(name)) {
-                return [...prevLoadingLayers, name];
-            } else if (!isLoading && prevLoadingLayers.includes(name)) {
-                return prevLoadingLayers.filter((n) => n !== name);
+    const onLayerLoading = React.useCallback(
+        (name: MapLayerName, layerIsLoading: boolean) => {
+            if (layerIsLoading) {
+                layersLoadingData.current.add(name);
             } else {
-                return prevLoadingLayers;
+                layersLoadingData.current.delete(name);
             }
-        });
-    };
-    const isLoading = () => [...map.visibleLayers].some((l) => layersLoadingData.includes(l));
+            setIsLoading(anyLayerIsLoading(map.visibleLayers, layersLoadingData.current));
+        },
+        [map.visibleLayers],
+    );
+    React.useEffect(() => {
+        setIsLoading(anyLayerIsLoading(map.visibleLayers, layersLoadingData.current));
+    }, [map.visibleLayers]);
     const inPreviewView = !!designPublicationMode;
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
 
@@ -847,7 +857,7 @@ const MapView: React.FC<MapViewProps> = ({
                 locationTracks={selection.selectedItems.locationTracks}
                 layoutContext={layoutContext}
             />
-            {isLoading() && (
+            {isLoading && (
                 <div className={styles['map__loading-spinner']} qa-id="map-loading-spinner">
                     <Spinner />
                 </div>
