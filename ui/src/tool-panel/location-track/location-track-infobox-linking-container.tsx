@@ -2,6 +2,7 @@ import * as React from 'react';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { createDelegates } from 'store/store-utils';
 import {
+    InfoboxVisibilities,
     LocationTrackInfoboxVisibilities,
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
@@ -14,7 +15,10 @@ type LocationTrackInfoboxLinkingContainerProps = {
     locationTrackId: LocationTrackId;
     onDataChange: () => void;
     visibilities: LocationTrackInfoboxVisibilities;
-    onVisibilityChange: (visibilities: LocationTrackInfoboxVisibilities) => void;
+    onInfoboxVisibilityChange: (
+        key: keyof InfoboxVisibilities,
+        visibilities: LocationTrackInfoboxVisibilities,
+    ) => void;
     onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
 };
 
@@ -22,7 +26,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     locationTrackId,
     onDataChange,
     visibilities,
-    onVisibilityChange,
+    onInfoboxVisibilityChange,
     onHoverOverPlanSection,
 }: LocationTrackInfoboxLinkingContainerProps) => {
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
@@ -32,6 +36,13 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
         locationTrackId,
         trackLayoutState.layoutContext,
         changeTimes.layoutLocationTrack,
+    );
+
+    const onVisibilityChange = React.useCallback(
+        () => (visibilities: LocationTrackInfoboxVisibilities) => {
+            onInfoboxVisibilityChange('locationTrack', visibilities);
+        },
+        [onInfoboxVisibilityChange, visibilities],
     );
 
     if (!locationTrack) return <></>;

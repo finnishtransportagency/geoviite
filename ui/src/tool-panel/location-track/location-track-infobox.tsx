@@ -86,10 +86,10 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         return undefined;
     };
 
-    function openEditLocationTrackDialog() {
+    const openEditLocationTrackDialog = React.useCallback(() => {
         setShowEditDialog(true);
         onDataChange();
-    }
+    }, [setShowEditDialog, onDataChange]);
 
     function closeEditLocationTrackDialog() {
         setShowEditDialog(false);
@@ -102,9 +102,12 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         onUnselect,
     );
 
-    const visibilityChange = (key: keyof LocationTrackInfoboxVisibilities) => {
-        onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
-    };
+    const visibilityChange = React.useCallback(
+        (key: keyof LocationTrackInfoboxVisibilities) => {
+            onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
+        },
+        [onVisibilityChange, visibilities],
+    );
 
     return (
         <React.Fragment>
@@ -139,7 +142,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             <PrivilegeRequired privilege={VIEW_GEOMETRY}>
                 <LocationTrackGeometryInfobox
                     contentVisible={visibilities.geometry}
-                    onContentVisibilityChange={() => visibilityChange('geometry')}
+                    visibilityChange={visibilityChange}
                     layoutContext={layoutContext}
                     locationTrackId={locationTrack.id}
                     viewport={viewport}

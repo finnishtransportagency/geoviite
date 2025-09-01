@@ -191,15 +191,18 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         tracksSwitchesKmPostsPlans &&
         tracksSwitchesKmPostsPlans[5].find((p) => p.layout?.id === id);
 
-    const infoboxVisibilityChange = (
-        key: keyof InfoboxVisibilities,
-        visibilities: InfoboxVisibilities[keyof InfoboxVisibilities],
-    ) => {
-        onInfoboxVisibilityChange({
-            ...infoboxVisibilities,
-            [key]: visibilities,
-        });
-    };
+    const infoboxVisibilityChange = React.useCallback(
+        (
+            key: keyof InfoboxVisibilities,
+            visibilities: InfoboxVisibilities[keyof InfoboxVisibilities],
+        ) => {
+            onInfoboxVisibilityChange({
+                ...infoboxVisibilities,
+                [key]: visibilities,
+            });
+        },
+        [onInfoboxVisibilityChange, infoboxVisibilities],
+    );
 
     React.useEffect(() => {
         if (tracksSwitchesKmPostsPlans === undefined) {
@@ -368,9 +371,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 element: (
                     <LocationTrackInfoboxLinkingContainer
                         visibilities={infoboxVisibilities.locationTrack}
-                        onVisibilityChange={(visibilities) =>
-                            infoboxVisibilityChange('locationTrack', visibilities)
-                        }
+                        onInfoboxVisibilityChange={infoboxVisibilityChange}
                         locationTrackId={track.id}
                         onDataChange={onDataChange}
                         onHoverOverPlanSection={onHoverOverPlanSection}
