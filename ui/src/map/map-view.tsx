@@ -198,6 +198,30 @@ function anyLayerIsLoading(
     return visibleLayers.some((l) => layersLoadingData.has(l));
 }
 
+function useIsLoadingMapLayers(visibleLayers: MapLayerName[]): {
+    onLayerLoading: (name: MapLayerName, layerIsLoading: boolean) => void;
+    isLoading: boolean;
+} {
+    const layersLoadingData = React.useRef<Set<MapLayerName>>(new Set());
+    const [isLoading, setIsLoading] = React.useState(false);
+
+    const onLayerLoading = React.useCallback(
+        (name: MapLayerName, layerIsLoading: boolean) => {
+            if (layerIsLoading) {
+                layersLoadingData.current.add(name);
+            } else {
+                layersLoadingData.current.delete(name);
+            }
+            setIsLoading(anyLayerIsLoading(visibleLayers, layersLoadingData.current));
+        },
+        [visibleLayers],
+    );
+    React.useEffect(() => {
+        setIsLoading(anyLayerIsLoading(visibleLayers, layersLoadingData.current));
+    }, [visibleLayers]);
+    return { isLoading, onLayerLoading };
+}
+
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
@@ -237,26 +261,9 @@ const MapView: React.FC<MapViewProps> = ({
         customActiveMapTool || (mapTools && first(mapTools)),
     );
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
-    const layersLoadingData = React.useRef<Set<MapLayerName>>(new Set());
-    const [isLoading, setIsLoading] = React.useState(false);
-
-    const onLayerLoading = React.useCallback(
-        (name: MapLayerName, layerIsLoading: boolean) => {
-            if (layerIsLoading) {
-                layersLoadingData.current.add(name);
-            } else {
-                layersLoadingData.current.delete(name);
-            }
-            setIsLoading(anyLayerIsLoading(map.visibleLayers, layersLoadingData.current));
-        },
-        [map.visibleLayers],
-    );
-    React.useEffect(() => {
-        setIsLoading(anyLayerIsLoading(map.visibleLayers, layersLoadingData.current));
-    }, [map.visibleLayers]);
     const inPreviewView = !!designPublicationMode;
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
-
+    const { isLoading, onLayerLoading } = useIsLoadingMapLayers(map.visibleLayers);
     const mapLayers = [...map.visibleLayers].sort().join();
 
     const handleClusterPointClick = (clickType: ClickType) => {
