@@ -157,15 +157,16 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
     );
     const duplicate = allDuplicateLocationTracks.find((d) => d.id === split.duplicateTrackId);
 
-    // TODO: Adding any kind of dependency array causes infinite re-render loops, find out why
     React.useEffect(() => {
         if (!nameIssues.length) {
             setNameCommitted(true);
         }
+    }, [nameIssues.length]);
+    React.useEffect(() => {
         if (!descriptionIssues.length) {
             setDescriptionCommitted(true);
         }
-    });
+    }, [descriptionIssues.length]);
 
     const nameRef = React.useCallback(
         (e: HTMLInputElement) => {
