@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.util.toResponse
@@ -40,6 +41,7 @@ constructor(
     private val extTrackNumberService: ExtTrackNumberServiceV1,
     private val extTrackNumberGeometryService: ExtTrackNumberGeometryServiceV1,
     private val extTrackNumberCollectionService: ExtTrackNumberCollectionServiceV1,
+    private val publicationService: PublicationService,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -248,14 +250,18 @@ constructor(
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedTrackNumberResponseV1> {
-        return extTrackNumberService
-            .createTrackNumberModificationResponse(
-                trackNumberOid,
-                modificationsFromVersion,
-                trackLayoutVersion,
-                coordinateSystem ?: LAYOUT_SRID,
-            )
-            .let(::toResponse)
+        return toResponse(
+            publicationService
+                .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
+                .takeIf { publications -> publications.areDifferent() }
+                ?.let { publications ->
+                    extTrackNumberService.createTrackNumberModificationResponse(
+                        trackNumberOid,
+                        coordinateSystem ?: LAYOUT_SRID,
+                        publications,
+                    )
+                } ?: publicationsAreTheSame(modificationsFromVersion)
+        )
     }
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/geometria")

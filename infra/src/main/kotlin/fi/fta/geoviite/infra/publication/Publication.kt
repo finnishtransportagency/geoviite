@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.error.InvalidTrackLayoutVersionOrder
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -935,4 +936,21 @@ data class PublicationResultVersions<T : LayoutAsset<T>>(
     val completed: Pair<DesignBranch, LayoutRowVersion<T>>?,
 ) {
     val versionChange: Change<LayoutRowVersion<T>> = Change(base, published)
+}
+
+data class PublicationComparison(
+    val fromPublication: Publication,
+    val toPublication: Publication,
+) {
+    fun init() {
+        if (fromPublication.id.intValue > toPublication.id.intValue) {
+            throw InvalidTrackLayoutVersionOrder(
+                "fromPublication=${fromPublication} is strictly newer than toPublication=${toPublication}"
+            )
+        }
+    }
+
+    fun areDifferent(): Boolean {
+        return fromPublication.id.intValue != toPublication.id.intValue
+    }
 }

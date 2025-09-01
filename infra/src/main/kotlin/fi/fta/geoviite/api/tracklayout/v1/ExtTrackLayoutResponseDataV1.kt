@@ -2,8 +2,14 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
+import fi.fta.geoviite.infra.inframodel.logger
+import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationComparison
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -84,3 +90,20 @@ data class ExtCenterLineTrackIntervalV1(
     @JsonProperty("loppu") val endAddress: String,
     @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
 )
+
+fun publicationsAreTheSame(publicationUuid: Uuid<Publication>): Nothing? {
+    logger.info(
+        "there cannot be any differences if the requested publications are the same, publicationUuid=${publicationUuid}"
+    )
+    return null
+}
+
+inline fun <reified T : LayoutAsset<T>> layoutAssetVersionsAreTheSame(
+    assetId: IntId<T>,
+    publicationComparison: PublicationComparison,
+): Nothing? {
+    logger.info(
+        "The versions used for comparing ${T::class.java}: assetId=${assetId}, fromPublication: ${publicationComparison.toPublication.id}, toPublication: ${publicationComparison.fromPublication.id}"
+    )
+    return null
+}

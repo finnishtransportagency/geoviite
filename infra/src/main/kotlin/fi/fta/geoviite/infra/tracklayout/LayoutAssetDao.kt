@@ -82,6 +82,18 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetchOfficialVersionAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>? =
         fetchManyOfficialVersionsAtMoment(branch, listOf(id), moment).firstOrNull()
 
+    fun fetchOfficialVersionComparison(
+        branch: LayoutBranch,
+        id: IntId<T>,
+        from: Instant,
+        to: Instant,
+    ): VersionComparison<T> {
+        return VersionComparison(
+            fromVersion = fetchOfficialVersionAtMoment(branch, id, from),
+            toVersion = fetchOfficialVersionAtMoment(branch, id, to),
+        )
+    }
+
     fun fetchManyOfficialVersionsAtMoment(
         branch: LayoutBranch,
         ids: List<IntId<T>>,
@@ -149,21 +161,21 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
 
     private val allCandidateVersionsSql =
         """
-        select id, version
-        from ${table.fullName}
-        where draft = (:publication_state::layout.publication_state = 'DRAFT')
-          and design_id is not distinct from :design_id
-    """
+            select id, version
+            from ${table.fullName}
+            where draft = (:publication_state::layout.publication_state = 'DRAFT')
+              and design_id is not distinct from :design_id
+        """
             .trimIndent()
 
     private val candidateVersionsSql =
         """
-        select id, version
-        from ${table.fullName}
-        where id in (:ids)
-          and draft = (:publication_state::layout.publication_state = 'DRAFT')
-          and design_id is not distinct from :design_id
-    """
+            select id, version
+            from ${table.fullName}
+            where id in (:ids)
+              and draft = (:publication_state::layout.publication_state = 'DRAFT')
+              and design_id is not distinct from :design_id
+        """
             .trimIndent()
 
     override fun fetchCandidateVersions(candidateContext: LayoutContext): List<LayoutRowVersion<T>> {
@@ -211,28 +223,28 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
 
     private val layoutAssetChangeInfoSql =
         """
-      with newest_draft as (
-        select 
-          case when deleted then null else change_time end as change_time,
-          deleted
-        from ${table.versionTable} 
-        where id = :id and draft = true and design_id is not distinct from :design_id
-        order by change_time desc limit 1
-      ),
-      newest_official as (
-        select 
-          change_time
-        from ${table.versionTable} 
-        where id = :id and draft = false and design_id is not distinct from :design_id
-        order by change_time desc limit 1
-      )
-      select 
-        (select min(change_time) from ${table.versionTable} where id = :id and version = 1) as creation_time,
-        newest_official.change_time as official_change_time, 
-        newest_draft.change_time as draft_change_time, 
-        newest_draft.deleted as draft_deleted 
-      from (select) table_dee left join newest_draft on (true) left join newest_official on (true)
-    """
+          with newest_draft as (
+            select 
+              case when deleted then null else change_time end as change_time,
+              deleted
+            from ${table.versionTable} 
+            where id = :id and draft = true and design_id is not distinct from :design_id
+            order by change_time desc limit 1
+          ),
+          newest_official as (
+            select 
+              change_time
+            from ${table.versionTable} 
+            where id = :id and draft = false and design_id is not distinct from :design_id
+            order by change_time desc limit 1
+          )
+          select 
+            (select min(change_time) from ${table.versionTable} where id = :id and version = 1) as creation_time,
+            newest_official.change_time as official_change_time, 
+            newest_draft.change_time as draft_change_time, 
+            newest_draft.deleted as draft_deleted 
+          from (select) table_dee left join newest_draft on (true) left join newest_official on (true)
+        """
             .trimIndent()
 
     override fun fetchLayoutAssetChangeInfo(layoutContext: LayoutContext, id: IntId<T>): LayoutAssetChangeInfo? {
@@ -367,12 +379,12 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
     override fun deleteRow(rowId: LayoutRowId<T>): LayoutRowVersion<T> {
         val sql =
             """
-            delete from ${table.fullName}
-            where id = :id
-              and (draft = true or design_id is not null) -- Don't allow deleting main-official rows
-              and layout_context_id = :layout_context_id
-            returning id, design_id, draft, version
-        """
+                delete from ${table.fullName}
+                where id = :id
+                  and (draft = true or design_id is not null) -- Don't allow deleting main-official rows
+                  and layout_context_id = :layout_context_id
+                returning id, design_id, draft, version
+            """
                 .trimIndent()
         jdbcTemplate.setUser()
         val params = mapOf("id" to rowId.id.intValue, "layout_context_id" to rowId.context.toSqlString())
@@ -411,13 +423,13 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
     private fun deleteDraftsInternal(branch: LayoutBranch, id: IntId<T>? = null): List<LayoutRowVersion<T>> {
         val sql =
             """
-            delete from ${table.fullName}
-            where draft = true 
-              and (:id::int is null or :id = id)
-              and design_id is not distinct from :design_id
-            returning 
-              id, version
-        """
+                delete from ${table.fullName}
+                where draft = true 
+                  and (:id::int is null or :id = id)
+                  and design_id is not distinct from :design_id
+                returning 
+                  id, version
+            """
                 .trimIndent()
         jdbcTemplate.setUser()
         val params = mapOf("id" to id?.intValue, "design_id" to branch.designId?.intValue)
@@ -436,9 +448,8 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
         // does, that's the responsibility of whoever left the stale reference in.
         val sql =
             """
-            delete from ${table.idTable} ids
-            where id = :id and not exists (select * from ${table.fullName} t where t.id = ids.id) 
-            """
+            |            delete from ${table.idTable} ids
+            |            where id = :id and not exists (select * from ${table.fullName} t where t.id = ids.id) """
                 .trimMargin()
         jdbcTemplate.execute(sql, mapOf("id" to id.intValue)) { it.execute() }
     }
@@ -462,3 +473,20 @@ fun <T : LayoutAsset<T>> verifyObjectExists(contextData: LayoutContextData<T>) {
 
 inline fun <reified T : LayoutAsset<T>, reified S> getOne(rowVersion: LayoutRowVersion<T>, result: List<S>) =
     requireOne(T::class, rowVersion, result)
+
+data class VersionComparison<T : LayoutAsset<T>>(
+    val fromVersion: LayoutRowVersion<T>?,
+    val toVersion: LayoutRowVersion<T>?,
+) {
+    fun init() {
+        if (fromVersion != null) {
+            checkNotNull(toVersion) {
+                "It should not be possible for the fromVersion to be non-null, while the toVersion is null."
+            }
+        }
+    }
+
+    fun areDifferent(): Boolean {
+        return fromVersion != toVersion
+    }
+}

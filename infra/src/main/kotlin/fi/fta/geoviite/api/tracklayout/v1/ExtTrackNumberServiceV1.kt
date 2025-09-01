@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -69,64 +70,40 @@ constructor(
 
     fun createTrackNumberModificationResponse(
         oid: Oid<LayoutTrackNumber>,
-        modificationsFromVersion: Uuid<Publication>,
-        trackLayoutVersion: Uuid<Publication>?,
         coordinateSystem: Srid,
+        publications: PublicationComparison,
     ): ExtModifiedTrackNumberResponseV1? {
-        val layoutContext = MainLayoutContext.official
+        val trackNumberId =
+            layoutTrackNumberDao.lookupByExternalId(oid.toString())?.id
+                ?: throw ExtOidNotFoundExceptionV1("track number lookup failed, oid=$oid")
 
-        val (fromPublication, toPublication) =
-            publicationService.getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
-
-        return if (fromPublication == toPublication) {
-            logger.info(
-                "there cannot be any differences if the requested publication ids are the same publication=${fromPublication.id}"
+        return layoutTrackNumberDao
+            .fetchOfficialVersionComparison(
+                MainLayoutContext.official.branch,
+                trackNumberId,
+                publications.fromPublication.publicationTime,
+                publications.toPublication.publicationTime,
             )
-            null
-        } else {
-            val trackNumberId =
-                layoutTrackNumberDao.lookupByExternalId(oid.toString())?.id
-                    ?: throw ExtOidNotFoundExceptionV1("track number lookup failed, oid=$oid")
-
-            val fromTrackNumberVersion =
-                layoutTrackNumberDao.fetchOfficialVersionAtMoment(
-                    layoutContext.branch,
-                    trackNumberId,
-                    fromPublication.publicationTime,
-                )
-
-            val toTrackNumberVersion =
-                layoutTrackNumberDao.fetchOfficialVersionAtMoment(
-                    layoutContext.branch,
-                    trackNumberId,
-                    toPublication.publicationTime,
-                )
-
-            return if (fromTrackNumberVersion == toTrackNumberVersion) {
-                logger.info(
-                    "track number version was the same for trackNumberId=$trackNumberId, earlierPublication=${fromPublication.id}, laterPublication=${toPublication.id}"
-                )
-                null
-            } else {
-                checkNotNull(toTrackNumberVersion) {
-                    "It should not be possible for the fromTrackNumberVersion to be non-null, while the toTrackNumberVersion is null."
-                }
-
+            .takeIf { assetVersions -> assetVersions.areDifferent() }
+            ?.let { assetVersions ->
                 ExtModifiedTrackNumberResponseV1(
-                    modificationsFromVersion = modificationsFromVersion,
-                    trackLayoutVersion = toPublication.uuid,
+                    modificationsFromVersion = publications.fromPublication.uuid,
+                    trackLayoutVersion = publications.toPublication.uuid,
                     coordinateSystem = coordinateSystem,
                     trackNumber =
                         getExtTrackNumber(
                             oid,
-                            layoutTrackNumberDao.fetch(toTrackNumberVersion),
+                            layoutTrackNumberDao.fetch(assetVersions.toVersion.let(::requireNotNull)),
                             MainLayoutContext.official,
-                            toPublication.publicationTime,
+                            publications.toPublication.publicationTime,
                             coordinateSystem,
                         ),
                 )
             }
-        }
+            ?: layoutAssetVersionsAreTheSame(
+                trackNumberId,
+                publications,
+            )
     }
 
     fun getExtTrackNumber(
