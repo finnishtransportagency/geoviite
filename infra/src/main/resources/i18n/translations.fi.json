@@ -1624,6 +1624,9 @@
                 },
                 "deleted-duplicated-by-existing": "Poistettavaan raiteeseen viittaa edelleen duplikaattiraiteita: {{duplicates}}",
                 "empty-segments": "Sijaintiraiteella ei ole geometriaa",
+                "too-short": "Sijaintiraiteen pituus on vain {{length}}m (<{{minLength}}m), joten sille ei voida laskea topologialinkkejä",
+                "duplicate-switch": "Vaihde {{switch}} on linkitetty raiteelle useampaan eri kohtaan",
+                "edge-switch-partial": "Vaihteen {{switch}} linkitys raiteella on vaillinainen ja se on linkitettävä uudelleen",
                 "points": {
                     "not-continuous": "Sijaintiraiteen pisteet eivät ole jatkuvia (kulma on liian suuri pisteiden välillä)"
                 },

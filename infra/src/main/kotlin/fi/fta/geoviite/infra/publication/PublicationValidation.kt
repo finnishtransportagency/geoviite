@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.FATAL
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
@@ -918,7 +919,10 @@ fun validateLocationTrackGeometry(geometry: LocationTrackGeometry): List<LayoutV
         listOfNotNull(
             validateWithParams(geometry.length.distance > TOPOLOGY_CALC_DISTANCE) {
                 "$VALIDATION_LOCATION_TRACK.too-short" to
-                    localizationParams("minLength" to TOPOLOGY_CALC_DISTANCE.toString())
+                    localizationParams(
+                        "minLength" to TOPOLOGY_CALC_DISTANCE.toString(),
+                        "length" to roundTo3Decimals(geometry.length.distance),
+                    )
             },
         )
 
