@@ -24,7 +24,7 @@ import java.time.Instant
 @Schema(name = "Vastaus: Ratanumerokokoelma")
 data class ExtTrackNumberCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
     @JsonProperty(TRACK_NUMBER_COLLECTION) val trackNumberCollection: List<ExtTrackNumberV1>,
 )
 
@@ -32,7 +32,7 @@ data class ExtTrackNumberCollectionResponseV1(
 data class ExtModifiedTrackNumberCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
     @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
     @JsonProperty(TRACK_NUMBER_COLLECTION) val trackNumberCollection: List<ExtTrackNumberV1>,
 )
 

@@ -72,7 +72,7 @@ constructor(
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ExtTrackNumberCollectionResponseV1 {
         return extTrackNumberCollectionService.createTrackNumberCollectionResponse(
@@ -104,7 +104,7 @@ constructor(
                 ),
                 ApiResponse(
                     responseCode = "404",
-                    description = "Yhtä tai useampaa rataverkon versiota ei ole olemassa.",
+                    description = EXT_OPENAPI_ONE_OR_MORE_TRACK_LAYOUT_VERSION_NOT_FOUND,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -125,11 +125,11 @@ constructor(
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
         @Parameter(
-            name = COORDINATE_SYSTEM_PARAM,
+            name = COORDINATE_SYSTEM,
             description = EXT_OPENAPI_COORDINATE_SYSTEM,
             schema = Schema(type = "string", format = "string"),
         )
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedTrackNumberCollectionResponseV1> {
         return extTrackNumberCollectionService
@@ -141,7 +141,7 @@ constructor(
             .let(::toResponse)
     }
 
-    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID_PARAM}}")
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}")
     @Tag(name = EXT_TRACK_NUMBER_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron haku OID-tunnuksella")
     @ApiResponses(
@@ -151,7 +151,7 @@ constructor(
                 ApiResponse(
                     responseCode = "204",
                     description =
-                        "Ratanumeron OID-tunnus löytyi, muttei se ole olemassa annetussa rataverkon versiossa.",
+                        "Ratanumeron OID-tunnus löytyi, mutta se ei ole olemassa annetussa rataverkon versiossa.",
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -161,8 +161,7 @@ constructor(
                 ),
                 ApiResponse(
                     responseCode = "404",
-                    description =
-                        "Ratanumeroa ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    description = EXT_OPENAPI_TRACK_NUMBER_OR_TRACK_LAYOUT_VERSION_NOT_FOUND,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -174,13 +173,13 @@ constructor(
     )
     fun extGetTrackNumber(
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
-        @PathVariable(TRACK_NUMBER_OID_PARAM)
+        @PathVariable(TRACK_NUMBER_OID)
         oid: Oid<LayoutTrackNumber>,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtTrackNumberResponseV1> {
         return extTrackNumberService
@@ -188,7 +187,7 @@ constructor(
             .let(::toResponse)
     }
 
-    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID_PARAM}}/muutokset", params = [MODIFICATIONS_FROM_VERSION])
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset", params = [MODIFICATIONS_FROM_VERSION])
     @Tag(name = EXT_TRACK_NUMBER_TAG_V1)
     @Operation(
         summary = "Yksittäisen ratanumeron muutosten haku OID-tunnuksella",
@@ -222,8 +221,7 @@ constructor(
                 ),
                 ApiResponse(
                     responseCode = "404",
-                    description =
-                        "Ratanumeroa ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    description = EXT_OPENAPI_TRACK_NUMBER_OR_TRACK_LAYOUT_VERSION_NOT_FOUND,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -235,7 +233,7 @@ constructor(
     )
     fun extGetTrackNumberModifications(
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
-        @PathVariable(TRACK_NUMBER_OID_PARAM)
+        @PathVariable(TRACK_NUMBER_OID)
         trackNumberOid: Oid<LayoutTrackNumber>,
         @Parameter(
             description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
@@ -247,7 +245,7 @@ constructor(
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedTrackNumberResponseV1> {
         return extTrackNumberService
@@ -260,7 +258,7 @@ constructor(
             .let(::toResponse)
     }
 
-    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID_PARAM}}/geometria")
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/geometria")
     @Tag(name = EXT_TRACK_NUMBER_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron geometrian haku OID-tunnuksella")
     @ApiResponses(
@@ -270,7 +268,7 @@ constructor(
                 ApiResponse(
                     responseCode = "204",
                     description =
-                        "Ratanumeron OID-tunnus löytyi, muttei sille ole olemassa geometriaa annetussa rataverkon versiossa.",
+                        "Ratanumeron OID-tunnus löytyi, mutta sille ei ole olemassa geometriaa annetussa rataverkon versiossa.",
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -280,8 +278,7 @@ constructor(
                 ),
                 ApiResponse(
                     responseCode = "404",
-                    description =
-                        "Ratanumeroa ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    description = EXT_OPENAPI_TRACK_NUMBER_OR_TRACK_LAYOUT_VERSION_NOT_FOUND,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -293,7 +290,7 @@ constructor(
     )
     fun extGetTrackNumberGeometry(
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
-        @PathVariable(TRACK_NUMBER_OID_PARAM)
+        @PathVariable(TRACK_NUMBER_OID)
         oid: Oid<LayoutTrackNumber>,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
@@ -302,13 +299,13 @@ constructor(
         @RequestParam(ADDRESS_POINT_RESOLUTION, required = false)
         extResolution: ExtResolutionV1? = null,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid? = null,
         @Parameter(description = EXT_OPENAPI_REFERENCE_LINE_KILOMETER_START)
-        @RequestParam(TRACK_KILOMETER_START_PARAM, required = false)
+        @RequestParam(TRACK_KILOMETER_START, required = false)
         trackKmStart: KmNumber? = null,
         @Parameter(description = EXT_OPENAPI_REFERENCE_LINE_KILOMETER_END)
-        @RequestParam(TRACK_KILOMETER_END_PARAM, required = false)
+        @RequestParam(TRACK_KILOMETER_END, required = false)
         trackKmEnd: KmNumber? = null,
     ): ResponseEntity<ExtTrackNumberGeometryResponseV1> {
         return extTrackNumberGeometryService

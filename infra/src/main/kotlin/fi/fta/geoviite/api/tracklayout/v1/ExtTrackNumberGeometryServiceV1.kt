@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -16,26 +15,10 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import io.swagger.v3.oas.annotations.media.Schema
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.time.Instant
-
-@Schema(name = "Vastaus: Ratanumerogeometria")
-data class ExtTrackNumberGeometryResponseV1(
-    @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
-    @JsonProperty(TRACK_NUMBER_OID_PARAM) val trackNumberOid: Oid<LayoutTrackNumber>,
-    @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
-)
-
-@Schema(name = "Vastaus: Muutettu ratanumerogeometria")
-data class ExtTrackNumberkModifiedGeometryResponseV1(
-    @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
-    @JsonProperty(MODIFICATIONS_FROM_VERSION) val modificationsFromVersion: Uuid<Publication>,
-    @JsonProperty(TRACK_NUMBER_OID_PARAM) val trackNumberOid: Oid<LayoutTrackNumber>,
-    @JsonProperty("osoitevalit") val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
-)
 
 @GeoviiteService
 class ExtTrackNumberGeometryServiceV1

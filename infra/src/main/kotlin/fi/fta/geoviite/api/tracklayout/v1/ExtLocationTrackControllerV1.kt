@@ -56,7 +56,7 @@ class ExtLocationTrackControllerV1(
                 ),
                 ApiResponse(
                     responseCode = "404",
-                    description = "Annettua rataverkon versiota ei ole olemassa.",
+                    description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_NOT_FOUND,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -71,7 +71,7 @@ class ExtLocationTrackControllerV1(
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ExtLocationTrackCollectionResponseV1 {
         return extLocationTrackCollectionService.createLocationTrackCollectionResponse(
@@ -103,7 +103,7 @@ class ExtLocationTrackControllerV1(
                 ),
                 ApiResponse(
                     responseCode = "404",
-                    description = "Yhtä tai useampaa rataverkon versiota ei ole olemassa.",
+                    description = EXT_OPENAPI_ONE_OR_MORE_TRACK_LAYOUT_VERSION_NOT_FOUND,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -124,11 +124,11 @@ class ExtLocationTrackControllerV1(
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
         @Parameter(
-            name = COORDINATE_SYSTEM_PARAM,
+            name = COORDINATE_SYSTEM,
             description = EXT_OPENAPI_COORDINATE_SYSTEM,
             schema = Schema(type = "string", format = "string"),
         )
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackCollectionResponseV1> {
         return extLocationTrackCollectionService
@@ -150,7 +150,7 @@ class ExtLocationTrackControllerV1(
                 ApiResponse(
                     responseCode = "204",
                     description =
-                        "Sijaintiraiteen OID-tunnus löytyi, muttei se ole olemassa annetussa rataverkon versiossa.",
+                        "Sijaintiraiteen OID-tunnus löytyi, mutta se ei ole olemassa annetussa rataverkon versiossa.",
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -160,8 +160,7 @@ class ExtLocationTrackControllerV1(
                 ),
                 ApiResponse(
                     responseCode = "404",
-                    description =
-                        "Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    description = EXT_OPENAPI_LOCATION_TRACK_OR_TRACK_LAYOUT_VERSION_NOT_FOUND,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -179,7 +178,7 @@ class ExtLocationTrackControllerV1(
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtLocationTrackResponseV1> {
         return extLocationTrackService
@@ -221,8 +220,7 @@ class ExtLocationTrackControllerV1(
                 ),
                 ApiResponse(
                     responseCode = "404",
-                    description =
-                        "Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    description = EXT_OPENAPI_LOCATION_TRACK_OR_TRACK_LAYOUT_VERSION_NOT_FOUND,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -246,7 +244,7 @@ class ExtLocationTrackControllerV1(
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackResponseV1> {
         return extLocationTrackService
@@ -269,7 +267,7 @@ class ExtLocationTrackControllerV1(
                 ApiResponse(
                     responseCode = "204",
                     description =
-                        "Sijaintiraiteen OID-tunnus löytyi, muttei sille ole olemassa geometriaa annetussa rataverkon versiossa.",
+                        "Sijaintiraiteen OID-tunnus löytyi, mutta sille ei ole olemassa geometriaa annetussa rataverkon versiossa.",
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -279,8 +277,7 @@ class ExtLocationTrackControllerV1(
                 ),
                 ApiResponse(
                     responseCode = "404",
-                    description =
-                        "Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa.",
+                    description = EXT_OPENAPI_LOCATION_TRACK_OR_TRACK_LAYOUT_VERSION_NOT_FOUND,
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -301,13 +298,13 @@ class ExtLocationTrackControllerV1(
         @RequestParam(ADDRESS_POINT_RESOLUTION, required = false)
         extResolution: ExtResolutionV1? = null,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid? = null,
         @Parameter(description = EXT_OPENAPI_TRACK_KILOMETER_START)
-        @RequestParam(TRACK_KILOMETER_START_PARAM, required = false)
+        @RequestParam(TRACK_KILOMETER_START, required = false)
         trackKmStart: KmNumber? = null,
         @Parameter(description = EXT_OPENAPI_TRACK_KILOMETER_END)
-        @RequestParam(TRACK_KILOMETER_END_PARAM, required = false)
+        @RequestParam(TRACK_KILOMETER_END, required = false)
         trackKmEnd: KmNumber? = null,
     ): ResponseEntity<ExtLocationTrackGeometryResponseV1> {
         return extLocationTrackGeometryService
