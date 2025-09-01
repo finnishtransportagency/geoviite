@@ -49,9 +49,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.queryOne
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -59,6 +56,9 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -247,7 +247,11 @@ constructor(
                 .save(
                     switch(
                         draftOid = Oid("1.2.3.4.5"),
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 1.0), null)),
+                        joints =
+                            listOf(
+                                LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(0.0, 1.0), null),
+                                LayoutSwitchJoint(JointNumber(3), SwitchJointRole.MAIN, Point(0.0, 10.0), null),
+                            ),
                     )
                 )
                 .id
@@ -262,6 +266,7 @@ constructor(
                         ),
                         edge(
                             startInnerSwitch = switchLinkYV(switch, 1),
+                            endInnerSwitch = switchLinkYV(switch, 3),
                             segments = listOf(segment(Point(1.0, 0.0), Point(10.0, 0.0))),
                         ),
                     ),
@@ -307,7 +312,11 @@ constructor(
             mainOfficialContext
                 .save(
                     switch(
-                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.0, 0.0), null))
+                        joints =
+                            listOf(
+                                LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.0, 0.0), null),
+                                LayoutSwitchJoint(JointNumber(3), SwitchJointRole.MAIN, Point(8.0, 0.0), null),
+                            )
                     )
                 )
                 .id
@@ -322,6 +331,7 @@ constructor(
                         ),
                         edge(
                             startInnerSwitch = switchLinkYV(switch, 1),
+                            endInnerSwitch = switchLinkYV(switch, 3),
                             segments = listOf(segment(Point(4.0, 0.0), Point(8.0, 0.0))),
                         ),
                     ),
@@ -365,7 +375,7 @@ constructor(
 
         // currently calculated change publications don't record their cause (GVT-2979), but they do
         // simply just occur right next after their cause
-        val mergeCompletionPublicationId = mergePublicationResult.publicationId!!.intValue + 1
+        val mergeCompletionPublicationId = mergePublicationResult.publicationId.intValue + 1
 
         assertEquals(MainLayoutContext.official, designDraftContext.fetchVersion(trackNumber)!!.context)
         assertEquals(MainLayoutContext.official, designDraftContext.fetchVersion(referenceLine)!!.context)
