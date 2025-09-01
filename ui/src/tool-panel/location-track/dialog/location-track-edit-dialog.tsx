@@ -5,12 +5,11 @@ import {
     LayoutLocationTrack,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
-    LocationTrackNamingScheme,
     locationTrackNameFieldsSanitized,
+    LocationTrackNamingScheme,
 } from 'track-layout/track-layout-model';
 import { Dialog, DialogVariant, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
@@ -710,12 +709,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                     }>
                     <div className={'dialog__text'}>
                         {t('location-track-delete-dialog.deleted-location-tracks-not-allowed')}
-                    </div>
-                    <div className={'dialog__text'}>
-                        <span className={styles['location-track-edit-dialog__warning']}>
-                            <Icons.StatusError color={IconColor.INHERIT} />
-                        </span>{' '}
-                        {t('location-track-delete-dialog.deleted-location-track-warning')}
                     </div>
                     <div className={'dialog__text'}>
                         {t('location-track-delete-dialog.confirm-location-track-delete')}
