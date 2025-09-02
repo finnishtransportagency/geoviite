@@ -137,17 +137,19 @@ class ExtLocationTrackControllerV1(
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackCollectionResponseV1> {
-        return toResponse(
-            publicationService
-                .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
-                .takeIf { publications -> publications.areDifferent() }
-                ?.let { publications ->
+        return publicationService
+            .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
+            .let { publications ->
+                if (publications.areDifferent()) {
                     extLocationTrackCollectionService.createLocationTrackCollectionModificationResponse(
                         publications,
                         coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
                     )
-                } ?: publicationsAreTheSame(modificationsFromVersion)
-        )
+                } else {
+                    publicationsAreTheSame(modificationsFromVersion)
+                }
+            }
+            .let(::toResponse)
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
@@ -264,18 +266,20 @@ class ExtLocationTrackControllerV1(
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackResponseV1> {
-        return toResponse(
-            publicationService
-                .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
-                .takeIf { publications -> publications.areDifferent() }
-                ?.let { publications ->
+        return publicationService
+            .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
+            .let { publications ->
+                if (publications.areDifferent()) {
                     extLocationTrackService.createLocationTrackModificationResponse(
                         locationTrackOid,
                         publications,
                         coordinateSystem ?: LAYOUT_SRID,
                     )
-                } ?: publicationsAreTheSame(modificationsFromVersion)
-        )
+                } else {
+                    publicationsAreTheSame(modificationsFromVersion)
+                }
+            }
+            .let(::toResponse)
     }
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria")

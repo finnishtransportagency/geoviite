@@ -138,17 +138,19 @@ constructor(
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedTrackNumberCollectionResponseV1> {
-        return toResponse(
-            publicationService
-                .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
-                .takeIf { publications -> publications.areDifferent() }
-                ?.let { publications ->
+        return publicationService
+            .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
+            .let { publications ->
+                if (publications.areDifferent()) {
                     extTrackNumberCollectionService.createTrackNumberCollectionModificationResponse(
                         publications,
                         coordinateSystem ?: LAYOUT_SRID,
                     )
-                } ?: publicationsAreTheSame(modificationsFromVersion)
-        )
+                } else {
+                    publicationsAreTheSame(modificationsFromVersion)
+                }
+            }
+            .let(::toResponse)
     }
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}")
@@ -261,18 +263,20 @@ constructor(
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedTrackNumberResponseV1> {
-        return toResponse(
-            publicationService
-                .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
-                .takeIf { publications -> publications.areDifferent() }
-                ?.let { publications ->
+        return publicationService
+            .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
+            .let { publications ->
+                if (publications.areDifferent()) {
                     extTrackNumberService.createTrackNumberModificationResponse(
                         trackNumberOid,
                         publications,
                         coordinateSystem ?: LAYOUT_SRID,
                     )
-                } ?: publicationsAreTheSame(modificationsFromVersion)
-        )
+                } else {
+                    publicationsAreTheSame(modificationsFromVersion)
+                }
+            }
+            .let(::toResponse)
     }
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/geometria")
