@@ -2,7 +2,8 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 const val EXT_TRACK_LAYOUT_BASE_PATH = "/geoviite"
 
-const val MODIFICATIONS_FROM_VERSION = "muutokset_versiosta"
+const val TRACK_LAYOUT_VERSION_FROM = "alkuversio"
+const val TRACK_LAYOUT_VERSION_TO = "loppuversio"
 const val TRACK_LAYOUT_VERSION = "rataverkon_versio"
 const val LOCATION_TRACK_OID = "sijaintiraide_oid"
 const val LOCATION_TRACK = "sijaintiraide"

@@ -87,7 +87,7 @@ constructor(
         }
     }
 
-    @GetMapping("/ratanumerot/muutokset", params = [MODIFICATIONS_FROM_VERSION])
+    @GetMapping("/ratanumerot/muutokset", params = [TRACK_LAYOUT_VERSION_FROM])
     @Tag(name = EXT_TRACK_NUMBER_COLLECTION_TAG_V1)
     @Operation(summary = "Ratanumerokokoelman muutosten haku")
     @ApiResponses(
@@ -125,11 +125,11 @@ constructor(
             description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
             schema = Schema(type = "string", format = "uuid"),
         )
-        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true)
-        modificationsFromVersion: Uuid<Publication>,
+        @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
+        trackLayoutVersionFrom: Uuid<Publication>,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO, schema = Schema(type = "string", format = "uuid"))
-        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
-        trackLayoutVersion: Uuid<Publication>?,
+        @RequestParam(TRACK_LAYOUT_VERSION_TO, required = false)
+        trackLayoutVersionTo: Uuid<Publication>?,
         @Parameter(
             name = COORDINATE_SYSTEM,
             description = EXT_OPENAPI_COORDINATE_SYSTEM,
@@ -139,7 +139,7 @@ constructor(
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedTrackNumberCollectionResponseV1> {
         return publicationService
-            .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
+            .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
                 if (publications.areDifferent()) {
                     extTrackNumberCollectionService.createTrackNumberCollectionModificationResponse(
@@ -147,7 +147,7 @@ constructor(
                         coordinateSystem ?: LAYOUT_SRID,
                     )
                 } else {
-                    publicationsAreTheSame(modificationsFromVersion)
+                    publicationsAreTheSame(trackLayoutVersionFrom)
                 }
             }
             .let(::toResponse)
@@ -202,7 +202,7 @@ constructor(
             .let(::toResponse)
     }
 
-    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset", params = [MODIFICATIONS_FROM_VERSION])
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset", params = [TRACK_LAYOUT_VERSION_FROM])
     @Tag(name = EXT_TRACK_NUMBER_TAG_V1)
     @Operation(
         summary = "Yksittäisen ratanumeron muutosten haku OID-tunnuksella",
@@ -254,17 +254,17 @@ constructor(
             description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
             schema = Schema(type = "string", format = "uuid"),
         )
-        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true)
-        modificationsFromVersion: Uuid<Publication>,
+        @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
+        trackLayoutVersionFrom: Uuid<Publication>,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO, schema = Schema(type = "string", format = "uuid"))
-        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
-        trackLayoutVersion: Uuid<Publication>?,
+        @RequestParam(TRACK_LAYOUT_VERSION_TO, required = false)
+        trackLayoutVersionTo: Uuid<Publication>?,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedTrackNumberResponseV1> {
         return publicationService
-            .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
+            .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
                 if (publications.areDifferent()) {
                     extTrackNumberService.createTrackNumberModificationResponse(
@@ -273,7 +273,7 @@ constructor(
                         coordinateSystem ?: LAYOUT_SRID,
                     )
                 } else {
-                    publicationsAreTheSame(modificationsFromVersion)
+                    publicationsAreTheSame(trackLayoutVersionFrom)
                 }
             }
             .let(::toResponse)

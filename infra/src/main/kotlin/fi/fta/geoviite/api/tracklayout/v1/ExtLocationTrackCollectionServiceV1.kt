@@ -62,7 +62,7 @@ constructor(
             .takeIf { modifiedLocationTracks -> modifiedLocationTracks.isNotEmpty() }
             ?.let { modifiedLocationTracks ->
                 ExtModifiedLocationTrackCollectionResponseV1(
-                    modificationsFromVersion = publications.from.uuid,
+                    trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersion = publications.to.uuid,
                     coordinateSystem = coordinateSystem,
                     locationTrackCollection =
