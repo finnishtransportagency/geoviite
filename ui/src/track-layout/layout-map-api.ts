@@ -502,6 +502,7 @@ export async function getLinkPointsByTiles(
                 draftLayoutContext(layoutContext),
                 'ALL',
                 includeSegmentEndPoints,
+                true,
             ),
         ),
     );
