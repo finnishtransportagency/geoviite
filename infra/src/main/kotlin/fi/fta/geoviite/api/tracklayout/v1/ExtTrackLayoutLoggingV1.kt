@@ -19,7 +19,7 @@ inline fun <reified T : LayoutAsset<T>> layoutAssetVersionsAreTheSame(
     publications: PublicationComparison,
 ): Nothing? {
     logger.info(
-        "The versions used for comparing ${T::class.java} were the same: assetId=${assetId}, fromPublication: ${publications.to.id} -> toPublication: ${publications.from.id}"
+        "The versions used for comparing ${T::class.simpleName} were the same: assetId=${assetId}, fromPublication: ${publications.to.id} -> toPublication: ${publications.from.id}"
     )
     return null
 }
@@ -28,7 +28,7 @@ inline fun <reified T> layoutAssetCollectionWasUnmodified(
     publications: PublicationComparison,
 ): Nothing? {
     logger.info(
-        "The ${T::class.java} collection was unmodified, fromPublication: ${publications.from.id} -> toPublication: ${publications.to.id}"
+        "The ${T::class.simpleName} collection was unmodified, fromPublication: ${publications.from.id} -> toPublication: ${publications.to.id}"
     )
     return null
 }
