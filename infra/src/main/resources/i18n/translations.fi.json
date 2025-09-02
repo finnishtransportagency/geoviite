@@ -40,8 +40,8 @@
                     "bad-request": {
                         "invalid-path": "{{metodi}} Pyynnön polku oli virheellinen",
                         "missing-parameter": "Pyynnöstä puuttui parametri: {{parametri}} ({{tyyppi}})",
-                        "conversion-failed": "Pyynnön argumentin tyyppi oli virheellinen (tavoitetyyppi: '{{tavoitetyyppi}}')",
-                        "conversion-failed-detailed": "Pyynnön argumentti {{nimi}} oli virheellinen: (tavoitetyyppi: '{{tavoitetyyppi}}') (tarkenne: {{parametri}})"
+                        "conversion-failed": "Pyynnön argumentin tyyppi oli virheellinen",
+                        "conversion-failed-detailed": "Pyynnön argumentti {{nimi}} oli virheellinen"
                     }
                 }
             }
