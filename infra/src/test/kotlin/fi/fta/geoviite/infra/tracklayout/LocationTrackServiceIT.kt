@@ -1094,7 +1094,7 @@ constructor(
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
-            assertEquals(FreeText("New description ABC V001 - ABC V002"), description)
+            assertEquals(FreeText("New description V001 - V002"), description)
         }
 
         // Changing the switch linkings should update the name and description
@@ -1115,7 +1115,7 @@ constructor(
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
-            assertEquals(FreeText("New description ABC V001 - ABC V003"), description)
+            assertEquals(FreeText("New description V001 - V003"), description)
         }
 
         // Changing the switch names should update the name and description
@@ -1130,7 +1130,7 @@ constructor(
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
-            assertEquals(FreeText("New description ABC V999 - ABC V003"), description)
+            assertEquals(FreeText("New description V999 - V003"), description)
         }
         // Make sure that switch draft revert also reverts the track name
         switchService.deleteDraft(LayoutBranch.main, switch1Id)
@@ -1141,7 +1141,7 @@ constructor(
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
-            assertEquals(FreeText("New description ABC V001 - ABC V003"), description)
+            assertEquals(FreeText("New description V001 - V003"), description)
         }
 
         // Finally, verify that chord-style naming also works
