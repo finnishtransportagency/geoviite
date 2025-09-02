@@ -56,47 +56,48 @@ export const validateLocationTrackNameStructure = (
     const nameFreeText = saveRequest.nameFreeText;
     const nameSpecifier = saveRequest.nameSpecifier;
 
-    const errors: {
-        field: keyof LocationTrackSaveRequest;
-        reason: string;
-        type: FieldValidationIssueType;
-    }[] = [
-        isNil(namingScheme)
-            ? {
-                  field: 'namingScheme' as keyof LocationTrackSaveRequest,
-                  reason: 'mandatory-field',
-                  type: FieldValidationIssueType.ERROR,
-              }
-            : undefined,
-        MANDATORY_FREE_TEXT_SCHEMES.includes(namingScheme ?? LocationTrackNamingScheme.FREE_TEXT) &&
-        isNilOrBlank(nameFreeText)
-            ? {
-                  field: 'nameFreeText' as keyof LocationTrackSaveRequest,
-                  reason: 'mandatory-field',
-                  type: FieldValidationIssueType.ERROR,
-              }
-            : undefined,
-        ALL_FREE_TEXT_SCHEMES.includes(namingScheme ?? LocationTrackNamingScheme.FREE_TEXT) &&
-        !isNilOrBlank(nameFreeText) &&
-        (!nameFreeText?.match(ALIGNMENT_NAME_REGEX) ||
-            nameFreeText.length > ALIGNMENT_NAME_MAX_LENGTH)
-            ? {
-                  field: 'nameFreeText' as keyof LocationTrackSaveRequest,
-                  reason: `invalid-name`,
-                  type: FieldValidationIssueType.ERROR,
-              }
-            : undefined,
-        MANDATORY_NAME_SPECIFIER_SCHEMES.includes(
-            namingScheme ?? LocationTrackNamingScheme.FREE_TEXT,
-        ) && isNil(nameSpecifier)
-            ? {
-                  field: 'nameSpecifier' as keyof LocationTrackSaveRequest,
-                  reason: 'mandatory-field',
-                  type: FieldValidationIssueType.ERROR,
-              }
-            : undefined,
-    ].filter(filterNotEmpty);
-    return errors;
+    return (
+        [
+            isNil(namingScheme)
+                ? {
+                      field: 'namingScheme',
+                      reason: 'mandatory-field',
+                      type: FieldValidationIssueType.ERROR,
+                  }
+                : undefined,
+            MANDATORY_FREE_TEXT_SCHEMES.includes(
+                namingScheme ?? LocationTrackNamingScheme.FREE_TEXT,
+            ) && isNilOrBlank(nameFreeText)
+                ? {
+                      field: 'nameFreeText',
+                      reason: 'mandatory-field',
+                      type: FieldValidationIssueType.ERROR,
+                  }
+                : undefined,
+            ALL_FREE_TEXT_SCHEMES.includes(namingScheme ?? LocationTrackNamingScheme.FREE_TEXT) &&
+            !isNilOrBlank(nameFreeText) &&
+            (!nameFreeText?.match(ALIGNMENT_NAME_REGEX) ||
+                nameFreeText.length > ALIGNMENT_NAME_MAX_LENGTH)
+                ? {
+                      field: 'nameFreeText',
+                      reason:
+                          saveRequest.namingScheme === 'TRACK_NUMBER_TRACK'
+                              ? 'invalid-operating-point-range-name'
+                              : 'invalid-name',
+                      type: FieldValidationIssueType.ERROR,
+                  }
+                : undefined,
+            MANDATORY_NAME_SPECIFIER_SCHEMES.includes(
+                namingScheme ?? LocationTrackNamingScheme.FREE_TEXT,
+            ) && isNil(nameSpecifier)
+                ? {
+                      field: 'nameSpecifier',
+                      reason: 'mandatory-field',
+                      type: FieldValidationIssueType.ERROR,
+                  }
+                : undefined,
+        ] satisfies (FieldValidationIssue<LocationTrackSaveRequest> | undefined)[]
+    ).filter(filterNotEmpty);
 };
 
 export const validateLocationTrackDescriptionBase = (

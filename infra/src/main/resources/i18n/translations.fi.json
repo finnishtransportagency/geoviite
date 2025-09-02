@@ -482,6 +482,7 @@
         "invalid-description-length": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
         "invalid-description-characters": "Kuvauksen perusosa sisältää virheellisiä merkkejä",
         "invalid-name": "Virheellinen sijaintiraidetunnus",
+        "invalid-operating-point-range-name": "Virheellinen liikennepaikkaväli",
         "save-in-progress": "Tallennetaan",
         "duplicate-of": "Duplikaatti raiteelle",
         "not-a-duplicate": "Ei duplikaatti",
