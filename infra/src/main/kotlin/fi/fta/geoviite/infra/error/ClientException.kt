@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.error
 
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
@@ -9,12 +9,12 @@ import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.util.formatForException
+import kotlin.reflect.KClass
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE
 import org.springframework.http.HttpStatus.UNAUTHORIZED
-import kotlin.reflect.KClass
 
 interface HasLocalizedMessage {
     val localizationKey: LocalizationKey
@@ -163,7 +163,7 @@ class DuplicateNameInPublicationException(
     )
 
 class DuplicateLocationTrackNameInPublicationException(
-    alignmentName: AlignmentName,
+    alignmentName: LocationTrackName,
     trackNumber: TrackNumber,
     cause: Throwable? = null,
 ) :
@@ -175,7 +175,7 @@ class DuplicateLocationTrackNameInPublicationException(
         localizedMessageParams = localizationParams("locationTrack" to alignmentName, "trackNumber" to trackNumber),
     )
 
-class SplitSourceLocationTrackUpdateException(alignmentName: AlignmentName, cause: Throwable? = null) :
+class SplitSourceLocationTrackUpdateException(alignmentName: LocationTrackName, cause: Throwable? = null) :
     ClientException(
         status = BAD_REQUEST,
         message = "Split source location track updates are not allowed",

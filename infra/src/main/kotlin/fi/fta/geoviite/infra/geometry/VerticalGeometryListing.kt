@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -94,7 +95,7 @@ data class VerticalGeometryListing(
     val fileName: FileName?,
     val alignmentId: DomainId<GeometryAlignment>?,
     val alignmentName: AlignmentName?,
-    val locationTrackName: AlignmentName?,
+    val locationTrackName: LocationTrackName?,
     val start: CurvedSectionEndpoint,
     val end: CurvedSectionEndpoint,
     val point: IntersectionPoint,
@@ -279,7 +280,7 @@ private fun toVerticalGeometry(
 fun toVerticalGeometryListing(
     segment: CurvedProfileSegment,
     alignment: GeometryAlignment,
-    locationTrackName: AlignmentName?,
+    locationTrackName: LocationTrackName?,
     coordinateTransform: Transformation?,
     planHeader: GeometryPlanHeader,
     geocodingContext: GeocodingContext<*>?,

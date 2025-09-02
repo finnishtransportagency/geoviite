@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
@@ -62,6 +63,7 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -75,7 +77,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -239,11 +240,11 @@ constructor(
                 LayoutValidationIssue(
                     LayoutValidationIssueType.FATAL,
                     "validation.layout.location-track.duplicate-name-draft",
-                    mapOf("locationTrack" to AlignmentName("NLT"), "trackNumber" to TrackNumber("TN")),
+                    mapOf("locationTrack" to LocationTrackName("NLT"), "trackNumber" to TrackNumber("TN")),
                 )
             },
             validation.validatedAsPublicationUnit.locationTracks
-                .filter { lt -> lt.name == AlignmentName("NLT") }
+                .filter { lt -> lt.name == LocationTrackName("NLT") }
                 .flatMap { it.issues },
         )
 
@@ -1029,10 +1030,7 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.WARNING,
                 "validation.layout.switch.track-linkage.switch-alignment-multiply-connected",
-                mapOf(
-                    "locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})",
-                    "switch" to "TV123",
-                ),
+                mapOf("locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})", "switch" to "TV123"),
             ),
         )
     }

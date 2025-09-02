@@ -560,8 +560,12 @@ constructor(
                     } ?: listOf(noGeocodingContext(VALIDATION_LOCATION_TRACK))
                 } else listOf()
 
+            val startSwitch = track.startSwitchId?.let(validationContext::getSwitch)
+            val endSwitch = track.endSwitchId?.let(validationContext::getSwitch)
+            val nameIssues = validateLocationTrackEndSwitchNames(track, startSwitch, endSwitch)
+
             val tracksWithSameName = validationContext.getLocationTracksByName(track.name)
-            val duplicateNameIssues =
+            val nameDuplicationIssues =
                 validateLocationTrackNameDuplication(
                     track,
                     trackNumberName,
@@ -574,7 +578,8 @@ constructor(
                 duplicateIssues +
                 alignmentIssues +
                 geocodingIssues +
-                duplicateNameIssues +
+                nameIssues +
+                nameDuplicationIssues +
                 trackNetworkTopologyIssues +
                 switchConnectivityIssues)
         }

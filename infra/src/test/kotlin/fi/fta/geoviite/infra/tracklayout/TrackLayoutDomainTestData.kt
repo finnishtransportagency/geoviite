@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
@@ -432,6 +433,8 @@ fun locationTrack(
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
     contextData: LayoutContextData<LocationTrack> = createMainContext(id, draft),
+    startSwitch: IntId<LayoutSwitch>? = null,
+    endSwitch: IntId<LayoutSwitch>? = null,
 ) =
     locationTrack(
         trackNumberId = trackNumberId,
@@ -446,6 +449,8 @@ fun locationTrack(
         topologicalConnectivity = topologicalConnectivity,
         duplicateOf = duplicateOf,
         ownerId = ownerId,
+        startSwitch = startSwitch,
+        endSwitch = endSwitch,
     )
 
 fun trackDescriptionStructure(
@@ -473,9 +478,11 @@ fun locationTrack(
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
+    startSwitch: IntId<LayoutSwitch>? = null,
+    endSwitch: IntId<LayoutSwitch>? = null,
 ) =
     LocationTrack(
-        name = AlignmentName(name),
+        name = LocationTrackName(name),
         nameStructure = nameStructure,
         description = FreeText(description),
         descriptionStructure = descriptionStructure,
@@ -486,8 +493,8 @@ fun locationTrack(
         boundingBox = geometry.boundingBox,
         segmentCount = geometry.segments.size,
         length = geometry.length,
-        startSwitchId = null,
-        endSwitchId = null,
+        startSwitchId = startSwitch,
+        endSwitchId = endSwitch,
         duplicateOf = duplicateOf,
         topologicalConnectivity = topologicalConnectivity,
         ownerId = ownerId,

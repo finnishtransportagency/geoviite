@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.math.Point
@@ -265,7 +265,8 @@ constructor(
             lineAndAlignment.second
 
     private fun alterTrack(trackAndGeometry: Pair<LocationTrack, LocationTrackGeometry>) =
-        trackAndGeometry.first.copy(name = AlignmentName("${trackAndGeometry.first.name}-D")) to trackAndGeometry.second
+        trackAndGeometry.first.copy(name = LocationTrackName("${trackAndGeometry.first.name}-D")) to
+            trackAndGeometry.second
 
     private fun alter(switch: LayoutSwitch): LayoutSwitch = switch.copy(name = SwitchName("${switch.name}-D"))
 

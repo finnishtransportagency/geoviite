@@ -1,6 +1,6 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
-import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -69,11 +69,11 @@ fun createValidTrackNumberNameOrNull(
     }
 }
 
-fun createValidAlignmentNameOrNull(
+fun createValidLocationTrackNameOrNull(
     unvalidatedLocationTrackName: FrameConverterStringV1
-): Pair<AlignmentName?, List<FrameConverterErrorV1>> {
+): Pair<LocationTrackName?, List<FrameConverterErrorV1>> {
     return try {
-        AlignmentName(unvalidatedLocationTrackName.toString()) to emptyList()
+        LocationTrackName(unvalidatedLocationTrackName.toString()) to emptyList()
     } catch (e: InputValidationException) {
         null to listOf(FrameConverterErrorV1.InvalidLocationTrackName)
     }

@@ -1,13 +1,13 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.Oid
@@ -201,7 +201,7 @@ constructor(
         locationTrackDao.insertExternalId(official.id, LayoutBranch.main, oid)
         val draft =
             locationTrackService.getOrThrow(MainLayoutContext.draft, official.id).let { orig ->
-                orig.copy(name = AlignmentName("${orig.name}-draft"))
+                orig.copy(name = LocationTrackName("${orig.name}-draft"))
             }
         locationTrackService.saveDraft(LayoutBranch.main, draft, locationTrackGeometry)
         fakeRatko.hasLocationTrack(ratkoLocationTrack(id = oid.toString()))

@@ -16,7 +16,7 @@ import { ZERO_TRACK_METER } from 'common/common-model';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { ALIGNMENT_DESCRIPTION_REGEX } from 'tool-panel/location-track/dialog/location-track-validation';
 
-const TRACK_NUMBER_REGEX = /^[äÄöÖåÅA-Za-z0-9 ]{2,20}$/g;
+const TRACK_NUMBER_REGEX = /^[äÄöÖåÅA-Za-z0-9 ]{2,30}$/g;
 export const ADDRESS_REGEX = /^\d{1,4}[A-Z]{0,2}(\+\d{1,4}(\.\d{1,3})?)?$/g;
 type RegexValidation = {
     field: keyof TrackNumberSaveRequest;

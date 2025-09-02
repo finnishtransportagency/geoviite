@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.asSwitchStructure
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
@@ -27,10 +27,10 @@ import fi.fta.geoviite.infra.tracklayout.segmentPoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class SwitchLinkingTest {
 
@@ -607,9 +607,27 @@ class SwitchLinkingTest {
         val linkedTracks = directlyApplyFittedSwitchChangesToTracks(switchId, fittedSwitch, nearbyTracks)
 
         // validate
-        assertInnerSwitchNodeExists(linkedTracks, trackA.locationTrackId, switchId = switchId, joint = 1, mValue = LineM(0.0))
-        assertInnerSwitchNodeExists(linkedTracks, trackA.locationTrackId, switchId = switchId, joint = 5, mValue = LineM(16.0))
-        assertInnerSwitchNodeExists(linkedTracks, trackA.locationTrackId, switchId = switchId, joint = 2, mValue = LineM(30.0))
+        assertInnerSwitchNodeExists(
+            linkedTracks,
+            trackA.locationTrackId,
+            switchId = switchId,
+            joint = 1,
+            mValue = LineM(0.0),
+        )
+        assertInnerSwitchNodeExists(
+            linkedTracks,
+            trackA.locationTrackId,
+            switchId = switchId,
+            joint = 5,
+            mValue = LineM(16.0),
+        )
+        assertInnerSwitchNodeExists(
+            linkedTracks,
+            trackA.locationTrackId,
+            switchId = switchId,
+            joint = 2,
+            mValue = LineM(30.0),
+        )
         assertJointsOnSequentialEdges(
             linkedTracks,
             trackA.locationTrackId,
@@ -617,13 +635,19 @@ class SwitchLinkingTest {
             joints = listOf(1, 5, 2),
         )
 
-        assertInnerSwitchNodeExists(linkedTracks, trackB.locationTrackId, switchId = switchId, joint = 1, mValue = LineM(0.0))
+        assertInnerSwitchNodeExists(
+            linkedTracks,
+            trackB.locationTrackId,
+            switchId = switchId,
+            joint = 1,
+            mValue = LineM(0.0),
+        )
         assertInnerSwitchNodeExists(
             linkedTracks,
             trackB.locationTrackId,
             switchId = switchId,
             joint = 3,
-            mValue = LineM(32.567,)
+            mValue = LineM(32.567),
         )
         assertJointsOnSequentialEdges(linkedTracks, trackB.locationTrackId, switchId = switchId, joints = listOf(1, 3))
     }
@@ -1119,14 +1143,14 @@ fun assertTrackAndGeometry(
 
 fun assertTrackAndGeometry(
     tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
-    name: AlignmentName,
+    name: LocationTrackName,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val trackAndGeometry = tracks.firstOrNull { (locationTrack, _) -> locationTrack.name == name }
     assertNotNull(trackAndGeometry, "Tracks do not contain location track '$name'")
     return trackAndGeometry
 }
 
-fun assertTracksExists(tracks: List<Pair<LocationTrack, LocationTrackGeometry>>, vararg trackNames: AlignmentName) {
+fun assertTracksExists(tracks: List<Pair<LocationTrack, LocationTrackGeometry>>, vararg trackNames: LocationTrackName) {
     trackNames.forEach { name -> assertTrackAndGeometry(tracks, name) }
 }
 

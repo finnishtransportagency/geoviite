@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.SwitchNameParts
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -122,10 +123,10 @@ sealed class LocationTrackNameStructure {
     }
 
     /** This logic is duplicated in frontend track-layout-model.tsx#formatTrackName */
-    fun reify(trackNumber: LayoutTrackNumber, startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName =
+    fun reify(trackNumber: LayoutTrackNumber, startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): LocationTrackName =
         when (this) {
-            is LocationTrackNameFreeText -> freeText
-            is LocationTrackNameWithinOperatingPoint -> freeText
+            is LocationTrackNameFreeText -> LocationTrackName.of(freeText)
+            is LocationTrackNameWithinOperatingPoint -> LocationTrackName.of(freeText)
             is LocationTrackNameBetweenOperatingPoints -> format(startSwitch, endSwitch)
             is LocationTrackNameByTrackNumber -> format(trackNumber.number)
             is LocationTrackNameChord -> format(startSwitch, endSwitch)
@@ -146,12 +147,12 @@ data class LocationTrackNameByTrackNumber(
 ) : LocationTrackNameStructure() {
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.TRACK_NUMBER_TRACK
 
-    fun format(trackNumber: TrackNumber): AlignmentName {
+    fun format(trackNumber: TrackNumber): LocationTrackName {
         val nameString =
             if (freeText != null) "$trackNumber ${specifier.properForm} $freeText"
             else "$trackNumber ${specifier.properForm}"
 
-        return AlignmentName(nameString.trim())
+        return LocationTrackName(nameString.trim())
     }
 }
 
@@ -159,24 +160,24 @@ data class LocationTrackNameBetweenOperatingPoints(override val specifier: Locat
     LocationTrackNameStructure() {
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS
 
-    fun format(startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName {
+    fun format(startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): LocationTrackName {
         val nameString =
             if (specifier != null) "${specifier.properForm} ${getShortName(startSwitch)}-${getShortName(endSwitch)}"
             else "${getShortName(startSwitch)}-${getShortName(endSwitch)}"
 
-        return AlignmentName(nameString.trim())
+        return LocationTrackName(nameString.trim())
     }
 }
 
 data object LocationTrackNameChord : LocationTrackNameStructure() {
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.CHORD
 
-    fun format(startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName {
+    fun format(startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): LocationTrackName {
         val sharedPrefix = startSwitch?.nameParts?.prefix?.takeIf { it == endSwitch?.nameParts?.prefix }
         val formatted =
             sharedPrefix?.let { "$sharedPrefix ${getShortNumber(startSwitch)}-${getShortNumber(endSwitch)}" }
                 ?: "${getShortName(startSwitch)}-${getShortName(endSwitch)}"
-        return AlignmentName(formatted)
+        return LocationTrackName(formatted)
     }
 }
 
@@ -221,7 +222,7 @@ data class LocationTrack(
      * Reified name from the structured fields, using dependencies (end switches & track numbers). Should not be edited
      * directly, only via the method [LocationTrackNameStructure.reify]
      */
-    val name: AlignmentName,
+    val name: LocationTrackName,
     val descriptionStructure: LocationTrackDescriptionStructure,
     /**
      * Reified description from the structured fields, using dependencies (end switches). Should not be edited directly,
@@ -276,7 +277,7 @@ data class LocationTrackDuplicate(
     val id: IntId<LocationTrack>,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val nameStructure: LocationTrackNameStructure,
-    val name: AlignmentName,
+    val name: LocationTrackName,
     val start: AlignmentPoint<LocationTrackM>?,
     val end: AlignmentPoint<LocationTrackM>?,
     val length: LineM<LocationTrackM>,

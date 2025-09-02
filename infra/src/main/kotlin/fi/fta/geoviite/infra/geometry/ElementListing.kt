@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.geometry
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
@@ -27,7 +28,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.util.CsvEntry
@@ -62,7 +62,7 @@ data class ElementListing(
     val trackNumberDescription: PlanElementName?,
     val alignmentId: DomainId<GeometryAlignment>?,
     val alignmentName: AlignmentName?,
-    val locationTrackName: AlignmentName?,
+    val locationTrackName: LocationTrackName?,
     val elementId: DomainId<GeometryElement>?,
     val elementType: TrackGeometryElementType,
     val lengthMeters: BigDecimal,

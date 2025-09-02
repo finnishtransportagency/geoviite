@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -33,7 +33,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameBetweenOperatingPoints
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameChord
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
@@ -198,6 +202,75 @@ fun validateSwitchOidDuplication(switch: LayoutSwitch, oidDuplicate: LayoutSwitc
     return if (oidDuplicate != null && oidDuplicate.id != switch.id) {
         listOf(validationError("$VALIDATION_SWITCH.duplicate-oid"))
     } else listOf()
+}
+
+fun validateNameMandatedSwitchLinks(track: LocationTrack) =
+    listOfNotNull(
+        validate(
+            !(track.nameStructure.scheme == LocationTrackNamingScheme.CHORD ||
+                track.nameStructure.scheme == LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS) ||
+                (track.startSwitchId != null && track.endSwitchId != null),
+            ERROR,
+        ) {
+            "$VALIDATION_LOCATION_TRACK.switch.missing-both-switches-name"
+        }
+    )
+
+fun validateSwitchNameShortenability(switch: LayoutSwitch) =
+    listOfNotNull(
+        validateWithParams(switch.nameParts != null) {
+            "$VALIDATION_LOCATION_TRACK.switch.unshortenable-name" to localizationParams("switchName" to switch.name)
+        }
+    )
+
+fun validateDescriptionMandatedSwitchLinks(track: LocationTrack) =
+    listOfNotNull(
+        validate(
+            track.descriptionStructure.suffix != LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ||
+                (track.startSwitchId != null && track.endSwitchId != null)
+        ) {
+            "$VALIDATION_LOCATION_TRACK.switch.missing-both-switches-description"
+        },
+        validate(
+            track.descriptionStructure.suffix == LocationTrackDescriptionSuffix.NONE ||
+                track.descriptionStructure.suffix == LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ||
+                track.startSwitchId != null ||
+                track.endSwitchId != null
+        ) {
+            "$VALIDATION_LOCATION_TRACK.switch.missing-one-switch"
+        },
+        validate(
+            !(track.descriptionStructure.suffix == LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ||
+                track.descriptionStructure.suffix == LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER) ||
+                track.startSwitchId == null ||
+                track.endSwitchId == null
+        ) {
+            "$VALIDATION_LOCATION_TRACK.switch.too-many-switches"
+        },
+    )
+
+fun validateLocationTrackEndSwitchNames(
+    track: LocationTrack,
+    startSwitch: LayoutSwitch?,
+    endSwitch: LayoutSwitch?,
+): List<LayoutValidationIssue> {
+    val structure = track.nameStructure
+    val descriptionSuffix = track.descriptionStructure.suffix
+    val errorList = mutableListOf<LayoutValidationIssue?>()
+
+    errorList.addAll(validateNameMandatedSwitchLinks(track))
+    errorList.addAll(validateDescriptionMandatedSwitchLinks(track))
+
+    if (
+        structure is LocationTrackNameChord ||
+            structure is LocationTrackNameBetweenOperatingPoints ||
+            descriptionSuffix != LocationTrackDescriptionSuffix.NONE
+    ) {
+        if (startSwitch != null) errorList.addAll(validateSwitchNameShortenability(startSwitch))
+        if (endSwitch != null) errorList.addAll(validateSwitchNameShortenability(endSwitch))
+    }
+
+    return errorList.filterNotNull()
 }
 
 fun validateLocationTrackNameDuplication(
@@ -565,7 +638,7 @@ private fun alignmentLinkingQuality(
 fun validateDuplicateOfState(
     locationTrack: LocationTrack,
     duplicateOfLocationTrack: LocationTrack?,
-    duplicateOfLocationTrackDraftName: AlignmentName?,
+    duplicateOfLocationTrackDraftName: LocationTrackName?,
     duplicateOfLocationTrackIsCancelled: Boolean,
     duplicates: List<LocationTrack>,
 ): List<LayoutValidationIssue> {

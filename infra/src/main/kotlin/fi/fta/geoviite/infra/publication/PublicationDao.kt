@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.publication
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
@@ -11,6 +10,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
@@ -283,7 +283,7 @@ class PublicationDao(
             jdbcTemplate.query(sql, publicationCandidateSqlArguments(transition)) { rs, _ ->
                 LocationTrackPublicationCandidate(
                     rowVersion = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
-                    name = AlignmentName(rs.getString("name")),
+                    name = LocationTrackName(rs.getString("name")),
                     trackNumberId = rs.getIntId("track_number_id"),
                     draftChangeTime = rs.getInstant("change_time"),
                     duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
@@ -1046,7 +1046,7 @@ class PublicationDao(
                     LocationTrackChanges(
                         id,
                         trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
-                        name = rs.getChange("name") { rs.getString(it)?.let(::AlignmentName) },
+                        name = rs.getChange("name") { rs.getString(it)?.let(::LocationTrackName) },
                         descriptionBase =
                             rs.getChange("description_base") { rs.getString(it)?.let(::LocationTrackDescriptionBase) },
                         descriptionSuffix =
@@ -1516,7 +1516,7 @@ class PublicationDao(
                     rs.getListOrNull<Int>("track_track_number_ids")?.map { IntId<LayoutTrackNumber>(it) } ?: emptyList()
                 val trackChangeSides =
                     rs.getStringArrayOrNull("track_change_sides")?.map { enumValueOf<ChangeSide>(it) } ?: emptyList()
-                val trackNames = rs.getStringArrayOrNull("track_names")?.map(::AlignmentName) ?: emptyList()
+                val trackNames = rs.getStringArrayOrNull("track_names")?.map(::LocationTrackName) ?: emptyList()
                 val trackJointNumbers = rs.getListOrNull<Int>("track_joint_numbers")?.map(::JointNumber) ?: emptyList()
                 val trackJointXs = rs.getListOrNull<Double>("track_joint_locations_x") ?: emptyList()
                 val trackJointYs = rs.getListOrNull<Double>("track_joint_locations_y") ?: emptyList()
@@ -2086,11 +2086,10 @@ class PublicationDao(
                 (rs.getIntId<Publication>("publication_id") to rs.getBoolean("direct_change")) to
                     PublishedLocationTrack(
                         version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
-                        name = AlignmentName(rs.getString("name")),
+                        name = LocationTrackName(rs.getString("name")),
                         trackNumberId = rs.getIntId("track_number_id"),
                         operation = rs.getEnum("operation"),
-                        changedKmNumbers =
-                            rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
+                        changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
                     )
             }
             .let { locationTrackRows ->

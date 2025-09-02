@@ -1,9 +1,11 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.AlignmentPolyLine
 import fi.fta.geoviite.infra.map.MapAlignmentType
@@ -122,7 +124,7 @@ class MapAlignmentService(
     fun getReferenceLineHeaders(
         layoutContext: LayoutContext,
         referenceLineIds: List<IntId<ReferenceLine>>,
-    ): List<AlignmentHeader<ReferenceLine, LayoutState>> {
+    ): List<AlignmentHeader<ReferenceLine, AlignmentName, LayoutState>> {
         val referenceLines = referenceLineService.getManyWithAlignments(layoutContext, referenceLineIds)
         val trackNumbers =
             trackNumberService
@@ -140,7 +142,7 @@ class MapAlignmentService(
     fun getLocationTrackHeaders(
         layoutContext: LayoutContext,
         locationTrackIds: List<IntId<LocationTrack>>,
-    ): List<AlignmentHeader<LocationTrack, LocationTrackState>> {
+    ): List<AlignmentHeader<LocationTrack, LocationTrackName, LocationTrackState>> {
         return locationTrackService.getManyWithGeometries(layoutContext, locationTrackIds).map { (track, geometry) ->
             toAlignmentHeader(track, geometry)
         }

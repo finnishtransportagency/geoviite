@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.Publication
@@ -161,7 +162,7 @@ data class SplittingInitializationParameters(
 data class SplitDuplicateTrack(
     val id: IntId<LocationTrack>,
     val nameStructure: LocationTrackNameStructure,
-    val name: AlignmentName,
+    val name: LocationTrackName,
     val length: LineM<LocationTrackM>,
     val status: DuplicateStatus,
 )

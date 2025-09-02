@@ -1,4 +1,4 @@
--- increment to force a rerun: 2
+-- increment to force a rerun: 3
 
 drop view if exists layout.location_track_change_view;
 create view layout.location_track_change_view as
@@ -15,13 +15,13 @@ select
   old.state as old_state
   from layout.location_track_version
     left join lateral (
-      select state
+    select state
       from layout.location_track_version old
       where old.id = location_track_version.id
         and old.layout_context_id = location_track_version.layout_context_id
         and old.version < location_track_version.version
       order by old.version desc
       limit 1
-      ) old on (true)
+    ) old on (true)
   where not draft
-);
+    );

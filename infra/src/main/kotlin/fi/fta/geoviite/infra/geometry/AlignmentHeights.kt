@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.KmNumber
@@ -33,7 +34,7 @@ data class PlanLinkingSummaryItem<M : AlignmentM<M>>(
     val startM: LineM<M>,
     val endM: LineM<M>,
     val filename: FileName?,
-    val alignmentHeader: AlignmentHeader<GeometryAlignment, LayoutState>?,
+    val alignmentHeader: AlignmentHeader<GeometryAlignment, AlignmentName, LayoutState>?,
     val planId: DomainId<GeometryPlan>?,
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
     val elevationMeasurementMethod: ElevationMeasurementMethod?,

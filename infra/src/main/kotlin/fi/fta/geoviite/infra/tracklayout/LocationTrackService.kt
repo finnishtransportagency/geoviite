@@ -1,13 +1,13 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -46,11 +46,11 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.processFlattened
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -117,7 +117,7 @@ class LocationTrackService(
         } catch (dataIntegrityException: DataIntegrityViolationException) {
             throw if (isSplitSourceReferenceError(dataIntegrityException)) {
                 SplitSourceLocationTrackUpdateException(
-                    AlignmentName(request.nameFreeText?.toString() ?: ""),
+                    LocationTrackName(request.nameFreeText?.toString() ?: ""),
                     dataIntegrityException,
                 )
             } else {
@@ -247,7 +247,7 @@ class LocationTrackService(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<LayoutTrackNumber>,
-        names: List<AlignmentName>,
+        names: List<LocationTrackName>,
     ): List<LocationTrack> {
         return dao.list(layoutContext, includeDeleted, trackNumberId, names)
     }

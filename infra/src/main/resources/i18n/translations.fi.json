@@ -1646,7 +1646,12 @@
                     "alignment-not-continuous": "Sijaintiraide on kytketty vaihteelle {{switch}} useammasta kuin yhdestä kohtaa",
                     "joint-location-mismatch": "Sijaintiraiteen ja vaihteen {{switch}} vaihdepisteiden sijainnit eivät vastaa toisiaan",
                     "wrong-joint-sequence": "Sijaintiraiteen vaihdepisteet ({{switchJoints}}) vaihteella {{switch}} ({{switchType}}) eivät vastaa vaihderakenteen linjoja",
-                    "wrong-links": "Vaihteen {{switch}} linkitys on vajavainen ja se täytyy linkittää uudelleen"
+                    "wrong-links": "Vaihteen {{switch}} linkitys on puutteellinen ja se täytyy linkittää uudelleen",
+                    "missing-both-switches-name": "Sijaintiraidetunnusta ei voi muodostaa oikein, sillä raiteen molemmissa päissä ei ole vaihdetta",
+                    "unshortenable-name": "Vaihteen {{switchName}} nimi ei ole määrämuotoinen, eikä sitä voida käyttää sijaintiraidetunnuksessa tai raiteen kuvauksessa",
+                    "too-many-switches": "Raiteen kuvausta ei voi muodostaa oikein, sillä raide yhdistyy vaihteisiin molemmista päistä",
+                    "missing-one-switch": "Raiteen kuvausta ei voi muodostaa oikein, sillä raiteen kummassakaan päässä ei ole vaihdetta",
+                    "missing-both-switches-description": "Raiteen kuvausta ei voi muodostaa oikein, sillä raiteen molemmissa päissä ei ole vaihdetta"
                 },
                 "switch-linkage": {
                     "front-joint-not-connected": "Vaihteen {{switch}} etujatkokselta ei jatku raidetta",

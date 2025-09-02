@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
@@ -9,6 +8,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -864,7 +864,7 @@ constructor(
         val lt1OriginalVersion = locationTrackDao.save(lt1, someGeometry)
         val lt1RenamedDraft =
             locationTrackDao.save(
-                asMainDraft(locationTrackDao.fetch(lt1OriginalVersion).copy(name = AlignmentName("LT2"))),
+                asMainDraft(locationTrackDao.fetch(lt1OriginalVersion).copy(name = LocationTrackName("LT2"))),
                 someGeometry,
             )
 
@@ -872,7 +872,7 @@ constructor(
         val lt2OriginalVersion = locationTrackDao.save(lt2, someGeometry)
         val lt2RenamedDraft =
             locationTrackDao.save(
-                asMainDraft(locationTrackDao.fetch(lt2OriginalVersion).copy(name = AlignmentName("LT1"))),
+                asMainDraft(locationTrackDao.fetch(lt2OriginalVersion).copy(name = LocationTrackName("LT1"))),
                 someGeometry,
             )
 
@@ -1017,7 +1017,7 @@ constructor(
         )
         testDraftContext.save(
             asDesignDraft(
-                mainOfficialContext.fetch(locationTrack)!!.copy(name = AlignmentName("edited")),
+                mainOfficialContext.fetch(locationTrack)!!.copy(name = LocationTrackName("edited")),
                 testBranch.designId,
             )
         )
@@ -1363,7 +1363,7 @@ constructor(
             )
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            targetTrackToModify.copy(name = AlignmentName("Some other draft name")),
+            targetTrackToModify.copy(name = LocationTrackName("Some other draft name")),
             targetAlignment,
         )
 

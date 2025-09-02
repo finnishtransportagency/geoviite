@@ -1,9 +1,10 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
@@ -24,8 +25,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionStructure
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
@@ -57,10 +62,10 @@ import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Test
 
 class PublicationValidationTest {
 
@@ -484,9 +489,151 @@ class PublicationValidationTest {
         val lt = locationTrack(IntId(0), duplicateOf = IntId(0), draft = true)
         assertContainsError(
             true,
-            validateDuplicateOfState(lt, lt, AlignmentName("duplicateof"), false, listOf()),
+            validateDuplicateOfState(lt, lt, LocationTrackName("duplicateof"), false, listOf()),
             "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-of-duplicated",
         )
+    }
+
+    @Test
+    fun `Validation catches chord tracks without both end switches`() {
+        val switch = switch(id = IntId(0))
+        val trackWithoutSwitches =
+            locationTrack(
+                IntId(0),
+                nameStructure = LocationTrackNameStructure.of(scheme = LocationTrackNamingScheme.CHORD),
+                draft = true,
+            )
+        val trackWithoutEndSwitch = trackWithoutSwitches.copy(startSwitchId = switch.id as IntId)
+        val trackWithoutStartSwitch = trackWithoutSwitches.copy(endSwitchId = switch.id)
+        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = switch.id, endSwitchId = switch.id)
+
+        assertContainsError(
+            true,
+            validateNameMandatedSwitchLinks(trackWithoutSwitches),
+            "$VALIDATION_LOCATION_TRACK.switch.missing-both-switches-name",
+        )
+        assertContainsError(
+            true,
+            validateNameMandatedSwitchLinks(trackWithoutStartSwitch),
+            "$VALIDATION_LOCATION_TRACK.switch.missing-both-switches-name",
+        )
+        assertContainsError(
+            true,
+            validateNameMandatedSwitchLinks(trackWithoutEndSwitch),
+            "$VALIDATION_LOCATION_TRACK.switch.missing-both-switches-name",
+        )
+        assertEquals(0, validateNameMandatedSwitchLinks(trackWithBothSwitches).size)
+    }
+
+    @Test
+    fun `Validation catches unshortenable start or end switches`() {
+        val switch = switch(name = "Unshortenable", id = IntId(0))
+        val switch2 = switch(name = "HKI V0001", id = IntId(1))
+
+        assertContainsError(
+            true,
+            validateSwitchNameShortenability(switch),
+            "$VALIDATION_LOCATION_TRACK.switch.unshortenable-name",
+        )
+        assertContainsError(
+            false,
+            validateSwitchNameShortenability(switch2),
+            "$VALIDATION_LOCATION_TRACK.switch.unshortenable-name",
+        )
+    }
+
+    @Test
+    fun `Track that ends in ownership boundary accepts exactly one terminus switch`() {
+        val switchId = switch(id = IntId(0)).id as IntId
+        val trackWithoutSwitches =
+            locationTrack(
+                IntId(0),
+                descriptionStructure =
+                    LocationTrackDescriptionStructure(
+                        base = LocationTrackDescriptionBase("desc"),
+                        suffix = LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY,
+                    ),
+            )
+        val trackWithStartSwitch = trackWithoutSwitches.copy(startSwitchId = switchId)
+        val trackWithEndSwitch = trackWithoutSwitches.copy(endSwitchId = switchId)
+        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = switchId, endSwitchId = switchId)
+
+        assertContainsError(
+            true,
+            validateDescriptionMandatedSwitchLinks(trackWithoutSwitches),
+            "$VALIDATION_LOCATION_TRACK.switch.missing-one-switch",
+        )
+        assertEquals(0, validateDescriptionMandatedSwitchLinks(trackWithStartSwitch).size)
+        assertEquals(0, validateDescriptionMandatedSwitchLinks(trackWithEndSwitch).size)
+        assertContainsError(
+            true,
+            validateDescriptionMandatedSwitchLinks(trackWithBothSwitches),
+            "$VALIDATION_LOCATION_TRACK.switch.too-many-switches",
+        )
+    }
+
+    @Test
+    fun `Track that ends in buffer accepts exactly one terminus switch`() {
+        val switchId = switch(id = IntId(0)).id as IntId
+        val trackWithoutSwitches =
+            locationTrack(
+                IntId(0),
+                descriptionStructure =
+                    LocationTrackDescriptionStructure(
+                        base = LocationTrackDescriptionBase("desc"),
+                        suffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
+                    ),
+            )
+        val trackWithStartSwitch = trackWithoutSwitches.copy(startSwitchId = switchId)
+        val trackWithEndSwitch = trackWithoutSwitches.copy(endSwitchId = switchId)
+        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = switchId, endSwitchId = switchId)
+
+        assertContainsError(
+            true,
+            validateDescriptionMandatedSwitchLinks(trackWithoutSwitches),
+            "$VALIDATION_LOCATION_TRACK.switch.missing-one-switch",
+        )
+        assertEquals(0, validateDescriptionMandatedSwitchLinks(trackWithStartSwitch).size)
+        assertEquals(0, validateDescriptionMandatedSwitchLinks(trackWithEndSwitch).size)
+        assertContainsError(
+            true,
+            validateDescriptionMandatedSwitchLinks(trackWithBothSwitches),
+            "$VALIDATION_LOCATION_TRACK.switch.too-many-switches",
+        )
+    }
+
+    @Test
+    fun `Track that ends in switches at both ends requires switches at both ends`() {
+        val switchId = switch(id = IntId(0)).id as IntId
+        val trackWithoutSwitches =
+            locationTrack(
+                IntId(0),
+                descriptionStructure =
+                    LocationTrackDescriptionStructure(
+                        base = LocationTrackDescriptionBase("desc"),
+                        suffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
+                    ),
+            )
+        val trackWithStartSwitch = trackWithoutSwitches.copy(startSwitchId = switchId)
+        val trackWithEndSwitch = trackWithoutSwitches.copy(endSwitchId = switchId)
+        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = switchId, endSwitchId = switchId)
+
+        assertContainsError(
+            true,
+            validateDescriptionMandatedSwitchLinks(trackWithoutSwitches),
+            "$VALIDATION_LOCATION_TRACK.switch.missing-both-switches-description",
+        )
+        assertContainsError(
+            true,
+            validateDescriptionMandatedSwitchLinks(trackWithStartSwitch),
+            "$VALIDATION_LOCATION_TRACK.switch.missing-both-switches-description",
+        )
+        assertContainsError(
+            true,
+            validateDescriptionMandatedSwitchLinks(trackWithEndSwitch),
+            "$VALIDATION_LOCATION_TRACK.switch.missing-both-switches-description",
+        )
+        assertEquals(0, validateDescriptionMandatedSwitchLinks(trackWithBothSwitches).size)
     }
 
     @Test
@@ -541,10 +688,7 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -566,10 +710,7 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -592,10 +733,7 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -616,10 +754,7 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -641,10 +776,7 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -666,10 +798,7 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -690,10 +819,7 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -716,10 +842,7 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -741,10 +864,7 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -766,10 +886,7 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -788,10 +905,7 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -812,10 +926,7 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -833,10 +944,7 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -854,10 +962,7 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -874,10 +979,7 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -900,10 +1002,7 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )

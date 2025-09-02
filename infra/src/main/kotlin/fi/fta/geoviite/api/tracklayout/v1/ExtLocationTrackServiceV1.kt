@@ -2,10 +2,10 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
@@ -23,10 +23,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.util.FreeText
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.time.Instant
 
 @Schema(name = "Vastaus: Sijaintiraide")
 data class ExtLocationTrackResponseV1(
@@ -46,7 +46,7 @@ data class ExtModifiedLocationTrackResponseV1(
 @Schema(name = "Sijaintiraide")
 data class ExtLocationTrackV1(
     @JsonProperty("sijaintiraide_oid") val locationTrackOid: Oid<LocationTrack>,
-    @JsonProperty("sijaintiraidetunnus") val locationTrackName: AlignmentName,
+    @JsonProperty("sijaintiraidetunnus") val locationTrackName: LocationTrackName,
     @JsonProperty("ratanumero") val trackNumberName: TrackNumber,
     @JsonProperty("ratanumero_oid") val trackNumberOid: Oid<LayoutTrackNumber>,
     @JsonProperty("tyyppi") val locationTrackType: ExtLocationTrackTypeV1,
