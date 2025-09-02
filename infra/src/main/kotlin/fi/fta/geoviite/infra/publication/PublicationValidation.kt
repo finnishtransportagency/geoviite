@@ -966,10 +966,7 @@ private fun collectDuplicatedSwitches(geometry: LocationTrackGeometry): Set<IntI
 
 fun validateEdge(edge: LayoutEdge, getSwitchName: (IntId<LayoutSwitch>) -> SwitchName): List<LayoutValidationIssue> =
     getEdgePartialSwitchIds(edge).map { partial ->
-        validationError(
-            "$VALIDATION_LOCATION_TRACK.edge-switch-partial",
-            "switch" to getSwitchName(requireNotNull(edge.startNode.switchIn ?: edge.endNode.switchIn).id),
-        )
+        validationError("$VALIDATION_LOCATION_TRACK.edge-switch-partial", "switch" to getSwitchName(partial))
     }
 
 fun getEdgePartialSwitchIds(edge: LayoutEdge): List<IntId<LayoutSwitch>> =
