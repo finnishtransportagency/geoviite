@@ -2,8 +2,11 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
+import fi.fta.geoviite.infra.tracklayout.AnyM
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -37,7 +40,7 @@ enum class ExtLocationTrackStateV1(val value: String) {
     NOT_IN_USE("käytöstä poistettu"),
     DELETED("poistettu");
 
-    @JsonValue override fun toString() = value
+    @JsonValue fun jsonValue() = value
 
     companion object {
         fun of(locationTrackState: LocationTrackState): ExtLocationTrackStateV1 {
@@ -57,7 +60,7 @@ enum class ExtTrackNumberStateV1(val value: String) {
     NOT_IN_USE("käytöstä poistettu"),
     DELETED("poistettu");
 
-    @JsonValue override fun toString() = value
+    @JsonValue fun jsonValue() = value
 
     companion object {
         fun of(trackNumberState: LayoutState): ExtTrackNumberStateV1 {
@@ -84,3 +87,24 @@ data class ExtCenterLineTrackIntervalV1(
     @JsonProperty("loppu") val endAddress: String,
     @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
 )
+
+fun <M : AnyM<M>> filteredCenterLineTrackIntervals(
+    alignmentAddresses: AlignmentAddresses<M>,
+    trackIntervalFilter: ExtTrackKilometerIntervalV1,
+    coordinateSystem: Srid,
+): List<ExtCenterLineTrackIntervalV1> {
+    val extAddressPoints =
+        alignmentAddresses.allPoints.mapNotNull { point ->
+            point
+                .takeIf { p -> trackIntervalFilter.containsKmEndInclusive(p.address.kmNumber) }
+                ?.let { toExtAddressPoint(point, coordinateSystem) }
+        }
+
+    return listOf(
+        ExtCenterLineTrackIntervalV1(
+            startAddress = alignmentAddresses.startPoint.address.toString(),
+            endAddress = alignmentAddresses.endPoint.address.toString(),
+            addressPoints = extAddressPoints,
+        )
+    )
+}

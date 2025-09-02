@@ -26,8 +26,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 const val TRACK_NUMBER_CACHE_SIZE = 1000L
 
@@ -282,27 +280,6 @@ class LayoutTrackNumberDao(
             // Ensure that the result contains all asked-for numbers, even if there are no matches
             numbers.associateWith { n -> found.filter { (number, _) -> number == n }.map { (_, v) -> v } }
         }
-    }
-
-    fun listPublishedLayoutTrackNumbersAtMoment(moment: Instant): List<LayoutTrackNumber> {
-        val sql =
-            """
-                  select distinct on (id) id, design_id, draft, version
-                  from layout.track_number_version
-                  where change_time <= :change_time
-                    and not deleted
-                    and not draft
-                    and design_id is null
-                  order by id, change_time desc
-            """
-                .trimIndent()
-
-        return jdbcTemplate
-            .query(sql, mapOf("change_time" to Timestamp.from(moment))) { rs, _ ->
-                rs.getLayoutRowVersion<LayoutTrackNumber>("id", "design_id", "draft", "version")
-            }
-            .map(::fetch)
-            .also { logger.daoAccess(AccessType.FETCH, LayoutTrackNumber::class, moment) }
     }
 
     @Transactional
