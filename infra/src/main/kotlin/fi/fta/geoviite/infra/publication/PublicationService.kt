@@ -520,15 +520,15 @@ constructor(
     }
 
     fun getPublicationsToCompare(
-        modificationsFromVersion: Uuid<Publication>,
-        trackLayoutVersion: Uuid<Publication>?,
+        trackLayoutVersionFrom: Uuid<Publication>,
+        trackLayoutVersionTo: Uuid<Publication>?,
     ): PublicationComparison {
         val fromPublication =
-            publicationDao.fetchPublicationByUuid(modificationsFromVersion)
-                ?: throw TrackLayoutVersionNotFound("modificationsFromVersion=${modificationsFromVersion}")
+            publicationDao.fetchPublicationByUuid(trackLayoutVersionFrom)
+                ?: throw TrackLayoutVersionNotFound("trackLayoutVersionFrom=${trackLayoutVersionFrom}")
 
         val toPublication =
-            trackLayoutVersion?.let { uuid ->
+            trackLayoutVersionTo?.let { uuid ->
                 publicationDao.fetchPublicationByUuid(uuid)
                     ?: throw TrackLayoutVersionNotFound("trackLayoutVersion=${uuid}")
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()

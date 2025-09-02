@@ -2375,7 +2375,7 @@ class PublicationDao(
             select distinct plt.id as location_track_id
             from publication.location_track plt
               join publication.publication publication on plt.publication_id = publication.id
-            where design_id = null 
+            where design_id is null 
               and publication.publication_time > :start_time 
               and publication.publication_time <= :end_time;
         """
@@ -2397,7 +2397,7 @@ class PublicationDao(
             select distinct ptn.id as track_number_id
             from publication.track_number ptn
               join publication.publication publication on ptn.publication_id = publication.id
-            where design_id = null 
+            where design_id is null 
               and publication.publication_time > :start_time 
               and publication.publication_time <= :end_time;
         """

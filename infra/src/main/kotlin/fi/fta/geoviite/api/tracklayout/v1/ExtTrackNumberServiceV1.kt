@@ -74,7 +74,7 @@ constructor(
             .takeIf { assetVersions -> assetVersions.areDifferent() }
             ?.let { assetVersions ->
                 ExtModifiedTrackNumberResponseV1(
-                    modificationsFromVersion = publications.from.uuid,
+                    trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersion = publications.to.uuid,
                     coordinateSystem = coordinateSystem,
                     trackNumber =

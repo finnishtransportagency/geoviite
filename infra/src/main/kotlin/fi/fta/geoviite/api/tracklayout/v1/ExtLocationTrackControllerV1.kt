@@ -86,7 +86,7 @@ class ExtLocationTrackControllerV1(
         }
     }
 
-    @GetMapping("/sijaintiraiteet/muutokset", params = [MODIFICATIONS_FROM_VERSION])
+    @GetMapping("/sijaintiraiteet/muutokset", params = [TRACK_LAYOUT_VERSION_FROM])
     @Tag(name = EXT_LOCATION_TRACK_COLLECTION_TAG_V1)
     @Operation(summary = "Sijaintiraidekokoelman muutosten haku")
     @ApiResponses(
@@ -124,11 +124,11 @@ class ExtLocationTrackControllerV1(
             description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
             schema = Schema(type = "string", format = "uuid"),
         )
-        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true)
-        modificationsFromVersion: Uuid<Publication>,
+        @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
+        trackLayoutVersionFrom: Uuid<Publication>,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO, schema = Schema(type = "string", format = "uuid"))
-        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
-        trackLayoutVersion: Uuid<Publication>?,
+        @RequestParam(TRACK_LAYOUT_VERSION_TO, required = false)
+        trackLayoutVersionTo: Uuid<Publication>?,
         @Parameter(
             name = COORDINATE_SYSTEM,
             description = EXT_OPENAPI_COORDINATE_SYSTEM,
@@ -138,7 +138,7 @@ class ExtLocationTrackControllerV1(
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackCollectionResponseV1> {
         return publicationService
-            .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
+            .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
                 if (publications.areDifferent()) {
                     extLocationTrackCollectionService.createLocationTrackCollectionModificationResponse(
@@ -146,7 +146,7 @@ class ExtLocationTrackControllerV1(
                         coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
                     )
                 } else {
-                    publicationsAreTheSame(modificationsFromVersion)
+                    publicationsAreTheSame(trackLayoutVersionFrom)
                 }
             }
             .let(::toResponse)
@@ -205,7 +205,7 @@ class ExtLocationTrackControllerV1(
             .let(::toResponse)
     }
 
-    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset", params = [MODIFICATIONS_FROM_VERSION])
+    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset", params = [TRACK_LAYOUT_VERSION_FROM])
     @Tag(name = EXT_LOCATION_TRACK_TAG_V1)
     @Operation(
         summary = "Yksittäisen sijaintiraiteen muutosten haku OID-tunnuksella",
@@ -257,17 +257,17 @@ class ExtLocationTrackControllerV1(
             description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
             schema = Schema(type = "string", format = "uuid"),
         )
-        @RequestParam(MODIFICATIONS_FROM_VERSION, required = true)
-        modificationsFromVersion: Uuid<Publication>,
+        @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
+        trackLayoutVersionFrom: Uuid<Publication>,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO, schema = Schema(type = "string", format = "uuid"))
-        @RequestParam(TRACK_LAYOUT_VERSION, required = false)
-        trackLayoutVersion: Uuid<Publication>?,
+        @RequestParam(TRACK_LAYOUT_VERSION_TO, required = false)
+        trackLayoutVersionTo: Uuid<Publication>?,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackResponseV1> {
         return publicationService
-            .getPublicationsToCompare(modificationsFromVersion, trackLayoutVersion)
+            .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
                 if (publications.areDifferent()) {
                     extLocationTrackService.createLocationTrackModificationResponse(
@@ -276,7 +276,7 @@ class ExtLocationTrackControllerV1(
                         coordinateSystem ?: LAYOUT_SRID,
                     )
                 } else {
-                    publicationsAreTheSame(modificationsFromVersion)
+                    publicationsAreTheSame(trackLayoutVersionFrom)
                 }
             }
             .let(::toResponse)
