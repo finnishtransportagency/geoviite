@@ -945,7 +945,7 @@ data class PublicationComparison(
     init {
         if (from.id.intValue > to.id.intValue) {
             throw InvalidTrackLayoutVersionOrder(
-                "'from' publication=${from} is strictly newer than 'to' publication=${to}"
+                "'from' publication=${from.uuid} is strictly newer than 'to' publication=${to.uuid}"
             )
         }
     }
