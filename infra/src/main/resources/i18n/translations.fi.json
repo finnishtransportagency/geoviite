@@ -1624,7 +1624,7 @@
                 },
                 "deleted-duplicated-by-existing": "Poistettavaan raiteeseen viittaa edelleen duplikaattiraiteita: {{duplicates}}",
                 "empty-segments": "Sijaintiraiteella ei ole geometriaa",
-                "too-short": "Sijaintiraiteen pituus on vain {{length}}m. Liian lyhyille raiteelle ei voida laskea reititystietoja.",
+                "too-short": "Sijaintiraiteen pituus on vain {{length}}m. Alle {{minLength}}m pitkille raiteelle ei voida laskea reititystietoja.",
                 "duplicate-switch": "Vaihde {{switch}} on linkitetty raiteelle useampaan eri kohtaan",
                 "edge-switch-partial": "Vaihteen {{switch}} linkitys raiteella on puutteellinen ja se on linkitettävä uudelleen",
                 "points": {
@@ -1679,7 +1679,7 @@
                     "not-continuous": "Sama raide ({{locationTracks}}) on kytketty vaihteeseen eri kohdista",
                     "joint-location-mismatch": "Vaihteen ja sijaintiraiteen vaihdepisteiden sijainnit eivät kohtaa: {{locationTracks}}",
                     "wrong-joint-sequence": "Kaikki vaihteeseen kytketyt raiteet ({{locationTracks}}) eivät vastaa vaihderakenteen linjoja",
-                    "partial-linking-edge": "Raiteen ({{locationTracks}}) ja vaihteen linkitys on puutteellinen ja vaihde täytyy linkittää uudelleen"
+                    "partial-linking-edge": "Vaihteen linkitys raiteisiin on puutteellinen ja se täytyy linkittää uudelleen"
                 },
                 "duplicate-name-official": "Vaihteen nimi {{switch}} on jo käytössä jollain toisella paikannuspohjan vaihteella",
                 "duplicate-name-draft": "Muutosjoukossa on monta vaihdetta nimellä {{switch}}",
