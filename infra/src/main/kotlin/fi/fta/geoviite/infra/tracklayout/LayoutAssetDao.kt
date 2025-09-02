@@ -482,7 +482,7 @@ data class VersionComparison<T : LayoutAsset<T>>(
     val fromVersion: LayoutRowVersion<T>?,
     val toVersion: LayoutRowVersion<T>?,
 ) {
-    fun init() {
+    init {
         if (fromVersion != null) {
             checkNotNull(toVersion) {
                 "It should not be possible for the fromVersion to be non-null, while the toVersion is null."

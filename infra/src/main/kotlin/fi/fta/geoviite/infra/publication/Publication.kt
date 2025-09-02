@@ -942,7 +942,7 @@ data class PublicationComparison(
     val from: Publication,
     val to: Publication,
 ) {
-    fun init() {
+    init {
         if (from.id.intValue > to.id.intValue) {
             throw InvalidTrackLayoutVersionOrder(
                 "'from' publication=${from} is strictly newer than 'to' publication=${to}"
