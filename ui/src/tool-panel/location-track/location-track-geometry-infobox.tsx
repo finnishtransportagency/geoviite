@@ -18,22 +18,23 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { LayoutContext } from 'common/common-model';
 import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
+import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 
 type LocationTrackGeometryInfoboxProps = {
     layoutContext: LayoutContext;
     locationTrackId: LocationTrackId;
     viewport: MapViewport;
     contentVisible: boolean;
-    onContentVisibilityChange: () => void;
+    visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
     onHighlightItem: (item: HighlightedLocationTrack | undefined) => void;
 };
 
-export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfoboxProps> = ({
+const LocationTrackGeometryInfoboxM: React.FC<LocationTrackGeometryInfoboxProps> = ({
     layoutContext,
     locationTrackId,
     viewport,
     contentVisible,
-    onContentVisibilityChange,
+    visibilityChange,
     onHighlightItem,
 }) => {
     const { t } = useTranslation();
@@ -61,6 +62,10 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                       },
             ),
         [onHighlightItem, locationTrackId],
+    );
+    const onContentVisibilityChange = React.useCallback(
+        () => visibilityChange('geometry'),
+        [visibilityChange],
     );
 
     return (
@@ -102,3 +107,5 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
         </Infobox>
     );
 };
+
+export const LocationTrackGeometryInfobox = React.memo(LocationTrackGeometryInfoboxM);

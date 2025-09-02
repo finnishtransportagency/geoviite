@@ -47,7 +47,7 @@ type LocationTrackBasicInfoInfoboxContainerProps = {
 export const LocationTrackBasicInfoInfoboxContainer: React.FC<
     LocationTrackBasicInfoInfoboxContainerProps
 > = (props: LocationTrackBasicInfoInfoboxContainerProps) => {
-    const delegates = createDelegates(TrackLayoutActions);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     return (
         <LocationTrackBasicInfoInfobox
@@ -67,7 +67,7 @@ type LocationTrackBasicInfoInfoboxProps = LocationTrackBasicInfoInfoboxContainer
     changeTimes: ChangeTimes;
 };
 
-export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfoboxProps> = ({
+const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProps> = ({
     locationTrack,
     trackNumber,
     changeTimes,
@@ -232,3 +232,5 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
         </Infobox>
     );
 };
+
+const LocationTrackBasicInfoInfobox = React.memo(LocationTrackBasicInfoInfoboxM);
