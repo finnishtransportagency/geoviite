@@ -344,7 +344,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
               deleted,
               version
               from ${table.versionTable}
-            where (:ids is null or id = any(:ids))
+            where (:ids::int[] is null or id = any(array[:ids]::int[]))
               and not draft
               and (design_id is null or design_id = :design_id)
               and change_time <= :moment
