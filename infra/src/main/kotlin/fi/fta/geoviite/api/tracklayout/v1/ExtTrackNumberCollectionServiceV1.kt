@@ -74,7 +74,7 @@ constructor(
                             publications.to.publicationTime,
                         ),
                 )
-            }
+            } ?: layoutAssetCollectionWasUnmodified<LayoutTrackNumber>(publications)
     }
 
     fun extGetTrackNumberCollection(
