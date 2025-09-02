@@ -154,9 +154,7 @@ constructor(
         validationContext.preloadSwitchTrackLinks(switchIds)
         validationContext.preloadSwitchesByName(switchIds)
 
-        return switchIds.mapNotNull { id ->
-            validateSwitch(id, validationContext)?.let { issues -> ValidatedAsset(id, issues) }
-        }
+        return switchIds.map { id -> ValidatedAsset(id, validateSwitch(id, validationContext)) }
     }
 
     @Transactional(readOnly = true)

@@ -408,6 +408,8 @@ sealed class LayoutEdge : IAlignment<EdgeM> {
 
     fun withEndNode(newEndNode: LayoutNode) = withEndNode(reconnectNode(endNode, newEndNode))
 
+    fun containsSwitch(id: IntId<LayoutSwitch>) = startNode.containsSwitch(id) || endNode.containsSwitch(id)
+
     fun withoutSwitch(switchId: IntId<LayoutSwitch>): LayoutEdge {
         val start = startNode.withoutSwitch(switchId)
         val end = endNode.withoutSwitch(switchId)

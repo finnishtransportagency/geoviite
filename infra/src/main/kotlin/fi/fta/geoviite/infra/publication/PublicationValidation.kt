@@ -242,6 +242,14 @@ fun validateSwitchLocationTrackLinkStructure(
                 ?.let { links -> track to links }
         }
     val trackLinks = indexedLinks.map { (track, links) -> track to links.map { (_, link) -> link } }
+    val tracksWithPartialSwitchEdges =
+        locationTracksAndGeometries.mapNotNull { (track, geometry) ->
+            track.name.takeIf {
+                geometry.edges.any { edge ->
+                    edge.containsSwitch(switch.id as IntId) && getEdgePartialSwitchIds(edge).contains(switch.id)
+                }
+            }
+        }
 
     val structureJoints = collectJoints(structure)
 
@@ -273,6 +281,10 @@ fun validateSwitchLocationTrackLinkStructure(
                         localizationParams("locationTracks" to errorTrackNames)
                 }
             },
+        validateWithParams(tracksWithPartialSwitchEdges.isEmpty()) {
+            "$VALIDATION_SWITCH.location-track.partial-linking-edge" to
+                localizationParams("locationTracks" to tracksWithPartialSwitchEdges.joinToString(", "))
+        },
     ) + validateSwitchTopologicalConnectivity(switch, structure, locationTracksAndGeometries, null)
 }
 
@@ -917,7 +929,10 @@ fun validateReferenceLineGeometry(alignment: LayoutAlignment): List<LayoutValida
 fun validateLocationTrackGeometry(geometry: LocationTrackGeometry): List<LayoutValidationIssue> =
     validateGeometry(VALIDATION_LOCATION_TRACK, geometry) +
         listOfNotNull(
-            validateWithParams(geometry.length.distance > TOPOLOGY_CALC_DISTANCE) {
+            validateWithParams(
+                geometry.length.distance > TOPOLOGY_CALC_DISTANCE,
+                WARNING,
+            ) {
                 "$VALIDATION_LOCATION_TRACK.too-short" to
                     localizationParams(
                         "minLength" to TOPOLOGY_CALC_DISTANCE.toString(),
@@ -950,27 +965,20 @@ private fun collectDuplicatedSwitches(geometry: LocationTrackGeometry): Set<IntI
 }
 
 fun validateEdge(edge: LayoutEdge, getSwitchName: (IntId<LayoutSwitch>) -> SwitchName): List<LayoutValidationIssue> =
-    when {
-        edge.startNode.switchIn == null && edge.endNode.switchIn == null -> listOf()
-        edge.startNode.switchIn == null || edge.endNode.switchIn == null ->
-            listOf(
-                validationError(
-                    "$VALIDATION_LOCATION_TRACK.edge-switch-partial",
-                    "switch" to getSwitchName(requireNotNull(edge.startNode.switchIn ?: edge.endNode.switchIn).id),
-                )
-            )
-        edge.startNode.switchIn?.id != edge.endNode.switchIn?.id ->
-            listOf(
-                validationError(
-                    "$VALIDATION_LOCATION_TRACK.edge-switch-partial",
-                    "switch" to getSwitchName(requireNotNull(edge.startNode.switchIn).id),
-                ),
-                validationError(
-                    "$VALIDATION_LOCATION_TRACK.edge-switch-partial",
-                    "switch" to getSwitchName(requireNotNull(edge.endNode.switchIn).id),
-                ),
-            )
-        else -> emptyList()
+    getEdgePartialSwitchIds(edge).map { partial ->
+        validationError(
+            "$VALIDATION_LOCATION_TRACK.edge-switch-partial",
+            "switch" to getSwitchName(requireNotNull(edge.startNode.switchIn ?: edge.endNode.switchIn).id),
+        )
+    }
+
+fun getEdgePartialSwitchIds(edge: LayoutEdge): List<IntId<LayoutSwitch>> =
+    (edge.startNode.switchIn?.id to edge.endNode.switchIn?.id).let { (startId, endId) ->
+        when {
+            startId == null && endId == null -> emptyList()
+            startId != endId -> listOfNotNull(startId, endId)
+            else -> emptyList()
+        }
     }
 
 private fun validateGeometry(errorParent: String, alignment: IAlignment<*>) =
