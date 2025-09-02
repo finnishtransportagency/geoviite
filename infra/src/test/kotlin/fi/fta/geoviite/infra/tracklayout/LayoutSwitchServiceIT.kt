@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
 import fi.fta.geoviite.infra.util.FreeText
-import java.time.Instant
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -399,9 +398,8 @@ constructor(
 
         // add confuser draft; should have no effect
         mainDraftContext.save(mainOfficialContext.fetch(locationTrack1.id)!!)
-
         val linkedLocationTracks =
-            switchDao.findLocationTracksLinkedToSwitchAtMoment(LayoutBranch.main, switchId, Instant.now())
+            switchDao.findLocationTracksLinkedToSwitchAtMoment(LayoutBranch.main, switchId, testDBService.getDbTime())
         assertEquals(2, linkedLocationTracks.size)
 
         assertTrue(
