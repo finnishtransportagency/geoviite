@@ -19,7 +19,7 @@ inline fun <reified T : LayoutAsset<T>> layoutAssetVersionsAreTheSame(
     publications: PublicationComparison,
 ): Nothing? {
     logger.info(
-        "The versions used for comparing ${T::class.java}: assetId=${assetId}, fromPublication: ${publications.to.id} -> toPublication: ${publications.from.id}"
+        "The versions used for comparing ${T::class.java} were the same: assetId=${assetId}, fromPublication: ${publications.to.id} -> toPublication: ${publications.from.id}"
     )
     return null
 }
