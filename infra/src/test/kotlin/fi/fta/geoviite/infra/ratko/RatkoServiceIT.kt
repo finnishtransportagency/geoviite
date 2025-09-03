@@ -66,7 +66,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -81,7 +80,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
@@ -101,10 +99,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.queryOne
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -113,6 +107,10 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1590,7 +1588,10 @@ constructor(
         val designDraft = testDBService.testContext(design, PublicationState.DRAFT)
 
         val trackNumber = establishedTrackNumber("1.1.1.1.1")
-        val switch = designDraft.save(switch(joints = listOf(switchJoint(1, Point(1.0, 0.0))))).id
+        val switch =
+            designDraft
+                .save(switch(joints = listOf(switchJoint(1, Point(1.0, 0.0)), switchJoint(3, Point(10.0, 0.0)))))
+                .id
         val locationTrack =
             designDraft
                 .save(
@@ -1602,6 +1603,7 @@ constructor(
                         ),
                         edge(
                             startInnerSwitch = switchLinkYV(switch, 1),
+                            endInnerSwitch = switchLinkYV(switch, 3),
                             segments = listOf(segment(Point(1.0, 0.0), Point(10.0, 0.0))),
                         ),
                     ),
@@ -1648,12 +1650,8 @@ constructor(
                 switch(
                     joints =
                         listOf(
-                            LayoutSwitchJoint(
-                                number = JointNumber(1),
-                                role = SwitchJointRole.MAIN,
-                                location = Point(4.0, 0.0),
-                                locationAccuracy = null,
-                            )
+                            switchJoint(1, Point(4.0, 0.0)),
+                            switchJoint(3, Point(8.0, 0.0)),
                         )
                 )
             )
@@ -1667,6 +1665,7 @@ constructor(
                     ),
                     edge(
                         startInnerSwitch = switchLinkYV(switch.id, 1),
+                        endInnerSwitch = switchLinkYV(switch.id, 3),
                         segments = listOf(segment(Point(4.0, 0.0), Point(8.0, 0.0))),
                     ),
                 ),
@@ -1728,17 +1727,7 @@ constructor(
             )
         val switch =
             designDraftContext.save(
-                switch(
-                    joints =
-                        listOf(
-                            LayoutSwitchJoint(
-                                number = JointNumber(1),
-                                role = SwitchJointRole.MAIN,
-                                location = Point(4.0, 0.0),
-                                locationAccuracy = null,
-                            )
-                        )
-                )
+                switch(joints = listOf(switchJoint(1, Point(4.0, 0.0)), switchJoint(3, Point(8.0, 0.0))))
             )
         val locationTrack =
             designDraftContext.save(
@@ -1750,6 +1739,7 @@ constructor(
                     ),
                     edge(
                         startInnerSwitch = switchLinkYV(switch.id, 1),
+                        endInnerSwitch = switchLinkYV(switch.id, 3),
                         segments = listOf(segment(Point(4.0, 0.0), Point(8.0, 0.0))),
                     ),
                 ),
@@ -1812,17 +1802,7 @@ constructor(
         val trackNumber = establishedTrackNumber("1.1.1.1.1")
         val switch =
             mainOfficialContext.save(
-                switch(
-                    joints =
-                        listOf(
-                            LayoutSwitchJoint(
-                                number = JointNumber(1),
-                                role = SwitchJointRole.MAIN,
-                                location = Point(4.0, 0.0),
-                                locationAccuracy = null,
-                            )
-                        )
-                )
+                switch(joints = listOf(switchJoint(1, Point(4.0, 0.0)), switchJoint(3, Point(8.0, 0.0))))
             )
         switchDao.insertExternalId(switch.id, LayoutBranch.main, Oid("1.1.1.2.1"))
         fakeRatko.hasSwitch(ratkoSwitch("1.1.1.2.1"))
@@ -1836,6 +1816,7 @@ constructor(
                     ),
                     edge(
                         startInnerSwitch = switchLinkYV(switch.id, 1),
+                        endInnerSwitch = switchLinkYV(switch.id, 3),
                         segments = listOf(segment(Point(4.0, 0.0), Point(8.0, 0.0))),
                     ),
                 ),

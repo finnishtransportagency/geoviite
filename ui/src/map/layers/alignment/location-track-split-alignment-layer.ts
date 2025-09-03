@@ -149,7 +149,7 @@ export function createLocationTrackSplitAlignmentLayer(
 
     const createFeatures = (locationTracks: AlignmentDataHolder[]) => {
         const splitTrack = first(locationTracks);
-        if (!splittingState || !splitTrack) {
+        if (!splittingState || !splitTrack || splitTrack.points.length === 0) {
             return [];
         }
 

@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.FATAL
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
@@ -29,6 +30,7 @@ import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.GeocodingAlignmentM
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -40,6 +42,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameChord
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import fi.fta.geoviite.infra.tracklayout.TOPOLOGY_CALC_DISTANCE
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
@@ -312,6 +315,14 @@ fun validateSwitchLocationTrackLinkStructure(
                 ?.let { links -> track to links }
         }
     val trackLinks = indexedLinks.map { (track, links) -> track to links.map { (_, link) -> link } }
+    val tracksWithPartialSwitchEdges =
+        locationTracksAndGeometries.mapNotNull { (track, geometry) ->
+            track.name.takeIf {
+                geometry.edges.any { edge ->
+                    edge.containsSwitch(switch.id as IntId) && getEdgePartialSwitchIds(edge).contains(switch.id)
+                }
+            }
+        }
 
     val structureJoints = collectJoints(structure)
 
@@ -343,6 +354,10 @@ fun validateSwitchLocationTrackLinkStructure(
                         localizationParams("locationTracks" to errorTrackNames)
                 }
             },
+        validateWithParams(tracksWithPartialSwitchEdges.isEmpty()) {
+            "$VALIDATION_SWITCH.location-track.partial-linking-edge" to
+                localizationParams("locationTracks" to tracksWithPartialSwitchEdges.joinToString(", "))
+        },
     ) + validateSwitchTopologicalConnectivity(switch, structure, locationTracksAndGeometries, null)
 }
 
@@ -409,7 +424,13 @@ fun validateSwitchTopologicalConnectivity(
     val existingTracks = locationTracksAndGeometries.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
+            validateSwitchAlignmentTopology(
+                switch.id as IntId,
+                structure,
+                existingTracks,
+                switch.name,
+                validatingTrack,
+            ),
         )
         .flatten()
 }
@@ -975,10 +996,60 @@ fun validateAddressPoints(
     )
 }
 
-fun validateReferenceLineGeometry(alignment: LayoutAlignment) = validateGeometry(VALIDATION_REFERENCE_LINE, alignment)
+fun validateReferenceLineGeometry(alignment: LayoutAlignment): List<LayoutValidationIssue> =
+    validateGeometry(VALIDATION_REFERENCE_LINE, alignment)
 
-fun validateLocationTrackGeometry(geometry: LocationTrackGeometry) =
-    validateGeometry(VALIDATION_LOCATION_TRACK, geometry)
+fun validateLocationTrackGeometry(geometry: LocationTrackGeometry): List<LayoutValidationIssue> =
+    validateGeometry(VALIDATION_LOCATION_TRACK, geometry) +
+        listOfNotNull(
+            validateWithParams(
+                geometry.length.distance > TOPOLOGY_CALC_DISTANCE,
+                WARNING,
+            ) {
+                "$VALIDATION_LOCATION_TRACK.too-short" to
+                    localizationParams(
+                        "minLength" to TOPOLOGY_CALC_DISTANCE.toString(),
+                        "length" to roundTo3Decimals(geometry.length.distance),
+                    )
+            },
+        )
+
+fun validateEdges(
+    geometry: LocationTrackGeometry,
+    getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
+): List<LayoutValidationIssue> =
+    collectDuplicatedSwitches(geometry).map(getSwitchName).map { name ->
+        validationError("$VALIDATION_LOCATION_TRACK.duplicate-switch", "switch" to name)
+    } + geometry.edges.flatMap { edge -> validateEdge(edge, getSwitchName) }
+
+private fun collectDuplicatedSwitches(geometry: LocationTrackGeometry): Set<IntId<LayoutSwitch>> {
+    val seenSwitches = mutableSetOf<IntId<LayoutSwitch>>()
+    var lastSwitch: IntId<LayoutSwitch>? = null
+    return geometry.trackSwitchLinks
+        .mapNotNull { link ->
+            link.switchId
+                .takeIf { link.switchId != lastSwitch && seenSwitches.contains(link.switchId) }
+                .also {
+                    seenSwitches.add(link.switchId)
+                    lastSwitch = link.switchId
+                }
+        }
+        .toSet()
+}
+
+fun validateEdge(edge: LayoutEdge, getSwitchName: (IntId<LayoutSwitch>) -> SwitchName): List<LayoutValidationIssue> =
+    getEdgePartialSwitchIds(edge).map { partial ->
+        validationError("$VALIDATION_LOCATION_TRACK.edge-switch-partial", "switch" to getSwitchName(partial))
+    }
+
+fun getEdgePartialSwitchIds(edge: LayoutEdge): List<IntId<LayoutSwitch>> =
+    (edge.startNode.switchIn?.id to edge.endNode.switchIn?.id).let { (startId, endId) ->
+        when {
+            startId == null && endId == null -> emptyList()
+            startId != endId -> listOfNotNull(startId, endId)
+            else -> emptyList()
+        }
+    }
 
 private fun validateGeometry(errorParent: String, alignment: IAlignment<*>) =
     listOfNotNull(

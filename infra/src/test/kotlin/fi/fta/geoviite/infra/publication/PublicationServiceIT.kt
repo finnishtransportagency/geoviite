@@ -75,8 +75,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
-import java.math.BigDecimal
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -92,6 +90,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import java.math.BigDecimal
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1629,7 +1629,7 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        val segment = segment(Point(0.0, 0.0), Point(0.0, 1.0))
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
         mainOfficialContext
             .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment(segment))
             .id
@@ -1657,7 +1657,7 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        val segment = segment(Point(0.0, 0.0), Point(0.0, 1.0))
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
         mainOfficialContext
             .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment(segment))
             .id
@@ -1686,7 +1686,7 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        val segment = segment(Point(0.0, 0.0), Point(0.0, 1.0))
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
         mainOfficialContext
             .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment(segment))
             .id
@@ -1715,7 +1715,7 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        val segment = segment(Point(0.0, 0.0), Point(0.0, 1.0))
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
         mainOfficialContext
             .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), alignment(segment))
             .id
@@ -1940,10 +1940,10 @@ constructor(
     ): Set<Change<LayoutRowVersion<T>>> {
         val sql =
             """
-            select id, layout_context_id, version, base_layout_context_id, base_version
-            from publication.${table.dbTable.table}
-            where publication_id = :publication_id
-        """
+                select id, layout_context_id, version, base_layout_context_id, base_version
+                from publication.${table.dbTable.table}
+                where publication_id = :publication_id
+            """
                 .trimIndent()
         return jdbc
             .query(sql, mapOf("publication_id" to id.intValue)) { rs, _ ->

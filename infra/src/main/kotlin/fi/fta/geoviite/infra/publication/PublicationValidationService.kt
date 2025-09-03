@@ -154,9 +154,7 @@ constructor(
         validationContext.preloadSwitchTrackLinks(switchIds)
         validationContext.preloadSwitchesByName(switchIds)
 
-        return switchIds.mapNotNull { id ->
-            validateSwitch(id, validationContext)?.let { issues -> ValidatedAsset(id, issues) }
-        }
+        return switchIds.map { id -> ValidatedAsset(id, validateSwitch(id, validationContext)) }
     }
 
     @Transactional(readOnly = true)
@@ -552,7 +550,11 @@ constructor(
                     duplicatesAfterPublication,
                 )
 
-            val alignmentIssues = if (track.exists) validateLocationTrackGeometry(geometry) else listOf()
+            val alignmentIssues =
+                if (track.exists) {
+                    validateLocationTrackGeometry(geometry) +
+                        validateEdges(geometry) { id -> requireNotNull(validationContext.getSwitch(id)).name }
+                } else listOf()
             val geocodingIssues =
                 if (track.exists && trackNumber != null) {
                     validationContext.getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
