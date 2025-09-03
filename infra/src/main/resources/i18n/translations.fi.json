@@ -65,7 +65,7 @@
         },
         "split": {
             "source-track-state-not-in-use": "Jakamista ei voitu suorittaa, koska jaettava raide ei ole \"Käytössä\"-tilassa",
-            "source-track-update-is-not-allowed": "Raide {{alignmentName}} on jaettu, eikä sen muokkaaminen ole enää mahdollista",
+            "source-track-update-is-not-allowed": "Raide {{name}} on jaettu, eikä sen muokkaaminen ole enää mahdollista",
             "segment-allocation-failed": "Jakamista ei voitu suorittaa, koska katkaisukohtien määritys epäonnistui",
             "switch-segment-mapping-failed": "Raidetta ei voitu jakaa vaihteen {{switchName}} kohdalta, koska sen uudelleenlinkitys epäonnistui",
             "switch-linking-failed": "Jakamista ei voitu suorittaa, koska vaihteiden uudelleenlinkitys epäonnistui",

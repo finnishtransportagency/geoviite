@@ -163,25 +163,25 @@ class DuplicateNameInPublicationException(
     )
 
 class DuplicateLocationTrackNameInPublicationException(
-    alignmentName: LocationTrackName,
+    locationTrackName: LocationTrackName,
     trackNumber: TrackNumber,
     cause: Throwable? = null,
 ) :
     ClientException(
         status = BAD_REQUEST,
-        message = "Duplicate location track $alignmentName in $trackNumber",
+        message = "Duplicate location track $locationTrackName in $trackNumber",
         cause = cause,
         localizedMessageKey = "error.publication.duplicate-name-on.location-track",
-        localizedMessageParams = localizationParams("locationTrack" to alignmentName, "trackNumber" to trackNumber),
+        localizedMessageParams = localizationParams("locationTrack" to locationTrackName, "trackNumber" to trackNumber),
     )
 
-class SplitSourceLocationTrackUpdateException(alignmentName: LocationTrackName, cause: Throwable? = null) :
+class SplitSourceLocationTrackUpdateException(locationTrackName: LocationTrackName, cause: Throwable? = null) :
     ClientException(
         status = BAD_REQUEST,
         message = "Split source location track updates are not allowed",
         cause = cause,
         localizedMessageKey = "error.split.source-track-update-is-not-allowed",
-        localizedMessageParams = localizationParams("alignmentName" to alignmentName),
+        localizedMessageParams = localizationParams("name" to locationTrackName),
     )
 
 enum class Integration {
