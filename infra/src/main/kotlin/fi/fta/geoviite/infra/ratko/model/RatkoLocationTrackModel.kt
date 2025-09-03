@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationDetails
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
@@ -69,7 +69,7 @@ data class RatkoSplitTargetTrack(
 )
 
 data class RatkoSplit(
-    val publication: Publication,
+    val publication: PublicationDetails,
     val split: Split,
     val ratkoSourceTrack: RatkoLocationTrack,
 )
