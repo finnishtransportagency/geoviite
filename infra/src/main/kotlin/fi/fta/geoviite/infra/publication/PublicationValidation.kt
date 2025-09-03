@@ -207,17 +207,18 @@ fun validateSwitchOidDuplication(switch: LayoutSwitch, oidDuplicate: LayoutSwitc
     } else listOf()
 }
 
-fun validateNameMandatedSwitchLinks(track: LocationTrack) =
-    listOfNotNull(
-        validate(
-            !(track.nameStructure.scheme == LocationTrackNamingScheme.CHORD ||
-                track.nameStructure.scheme == LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS) ||
-                (track.startSwitchId != null && track.endSwitchId != null),
-            ERROR,
-        ) {
+fun validateNameMandatedSwitchLinks(track: LocationTrack): List<LayoutValidationIssue> {
+    val endSwitchesRequired =
+        track.nameStructure.scheme == LocationTrackNamingScheme.CHORD ||
+            track.nameStructure.scheme == LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS
+    val bothEndSwitchesExist = track.startSwitchId != null && track.endSwitchId != null
+
+    return listOfNotNull(
+        validate(!endSwitchesRequired || bothEndSwitchesExist, ERROR) {
             "$VALIDATION_LOCATION_TRACK.switch.missing-both-switches-name"
         }
     )
+}
 
 fun validateSwitchNameShortenability(switch: LayoutSwitch) =
     listOfNotNull(
@@ -226,54 +227,60 @@ fun validateSwitchNameShortenability(switch: LayoutSwitch) =
         }
     )
 
-fun validateDescriptionMandatedSwitchLinks(track: LocationTrack) =
-    listOfNotNull(
-        validate(
-            track.descriptionStructure.suffix != LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ||
-                (track.startSwitchId != null && track.endSwitchId != null)
-        ) {
-            "$VALIDATION_LOCATION_TRACK.switch.missing-both-switches-description"
-        },
-        validate(
-            track.descriptionStructure.suffix == LocationTrackDescriptionSuffix.NONE ||
-                track.descriptionStructure.suffix == LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ||
-                track.startSwitchId != null ||
-                track.endSwitchId != null
-        ) {
-            "$VALIDATION_LOCATION_TRACK.switch.missing-one-switch"
-        },
-        validate(
-            !(track.descriptionStructure.suffix == LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ||
-                track.descriptionStructure.suffix == LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER) ||
-                track.startSwitchId == null ||
-                track.endSwitchId == null
-        ) {
-            "$VALIDATION_LOCATION_TRACK.switch.too-many-switches"
-        },
-    )
+fun validateDescriptionMandatedSwitchLinks(track: LocationTrack): List<LayoutValidationIssue> {
+    val hasBothEndSwitches = track.startSwitchId != null && track.endSwitchId != null
+    val hasOnlyOneEndSwitch = (track.startSwitchId != null || track.endSwitchId != null) && !hasBothEndSwitches
 
-fun validateLocationTrackEndSwitchNames(
+    return when (track.descriptionStructure.suffix) {
+        LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH -> {
+            listOfNotNull(
+                validate(hasBothEndSwitches) { "$VALIDATION_LOCATION_TRACK.switch.missing-both-switches-description" }
+            )
+        }
+
+        LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY,
+        LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER -> {
+            listOfNotNull(
+                validate(hasOnlyOneEndSwitch) { "$VALIDATION_LOCATION_TRACK.switch.missing-one-switch" },
+                validate(!hasBothEndSwitches) { "$VALIDATION_LOCATION_TRACK.switch.too-many-switches" },
+            )
+        }
+
+        LocationTrackDescriptionSuffix.NONE -> {
+            emptyList()
+        }
+    }
+}
+
+fun validateLocationTrackEndSwitchNames(track: LocationTrack, startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?) =
+    validateNameMandatedSwitchLinks(track) +
+        validateDescriptionMandatedSwitchLinks(track) +
+        validateLocationTrackEndSwitchNamingScheme(track, startSwitch, endSwitch)
+
+fun validateLocationTrackEndSwitchNamingScheme(
     track: LocationTrack,
     startSwitch: LayoutSwitch?,
     endSwitch: LayoutSwitch?,
 ): List<LayoutValidationIssue> {
-    val structure = track.nameStructure
-    val descriptionSuffix = track.descriptionStructure.suffix
-    val errorList = mutableListOf<LayoutValidationIssue?>()
+    require(track.startSwitchId == startSwitch?.id) {
+        "start switch id does not match track's start switch id: ${track.startSwitchId} != ${startSwitch?.id}"
+    }
+    require(track.endSwitchId == endSwitch?.id) {
+        "end switch id does not match track's end switch id: ${track.endSwitchId} != ${endSwitch?.id}"
+    }
 
-    errorList.addAll(validateNameMandatedSwitchLinks(track))
-    errorList.addAll(validateDescriptionMandatedSwitchLinks(track))
+    val errorList = mutableListOf<LayoutValidationIssue>()
 
-    if (
-        structure is LocationTrackNameChord ||
-            structure is LocationTrackNameBetweenOperatingPoints ||
-            descriptionSuffix != LocationTrackDescriptionSuffix.NONE
-    ) {
+    val nameHasSwitchNames =
+        track.nameStructure is LocationTrackNameChord || track.nameStructure is LocationTrackNameBetweenOperatingPoints
+    val descriptionHasSwitchNames = track.descriptionStructure.suffix != LocationTrackDescriptionSuffix.NONE
+
+    if (nameHasSwitchNames || descriptionHasSwitchNames) {
         if (startSwitch != null) errorList.addAll(validateSwitchNameShortenability(startSwitch))
         if (endSwitch != null) errorList.addAll(validateSwitchNameShortenability(endSwitch))
     }
 
-    return errorList.filterNotNull()
+    return errorList
 }
 
 fun validateLocationTrackNameDuplication(
@@ -424,13 +431,7 @@ fun validateSwitchTopologicalConnectivity(
     val existingTracks = locationTracksAndGeometries.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(
-                switch.id as IntId,
-                structure,
-                existingTracks,
-                switch.name,
-                validatingTrack,
-            ),
+            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
         )
         .flatten()
 }
@@ -1002,16 +1003,13 @@ fun validateReferenceLineGeometry(alignment: LayoutAlignment): List<LayoutValida
 fun validateLocationTrackGeometry(geometry: LocationTrackGeometry): List<LayoutValidationIssue> =
     validateGeometry(VALIDATION_LOCATION_TRACK, geometry) +
         listOfNotNull(
-            validateWithParams(
-                geometry.length.distance > TOPOLOGY_CALC_DISTANCE,
-                WARNING,
-            ) {
+            validateWithParams(geometry.length.distance > TOPOLOGY_CALC_DISTANCE, WARNING) {
                 "$VALIDATION_LOCATION_TRACK.too-short" to
                     localizationParams(
                         "minLength" to TOPOLOGY_CALC_DISTANCE.toString(),
                         "length" to roundTo3Decimals(geometry.length.distance),
                     )
-            },
+            }
         )
 
 fun validateEdges(

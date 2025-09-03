@@ -564,7 +564,7 @@ constructor(
 
             val startSwitch = track.startSwitchId?.let(validationContext::getSwitch)
             val endSwitch = track.endSwitchId?.let(validationContext::getSwitch)
-            val nameIssues = validateLocationTrackEndSwitchNames(track, startSwitch, endSwitch)
+            val switchNameIssues = validateLocationTrackEndSwitchNames(track, startSwitch, endSwitch)
 
             val tracksWithSameName = validationContext.getLocationTracksByName(track.name)
             val nameDuplicationIssues =
@@ -580,7 +580,7 @@ constructor(
                 duplicateIssues +
                 alignmentIssues +
                 geocodingIssues +
-                nameIssues +
+                switchNameIssues +
                 nameDuplicationIssues +
                 trackNetworkTopologyIssues +
                 switchConnectivityIssues)

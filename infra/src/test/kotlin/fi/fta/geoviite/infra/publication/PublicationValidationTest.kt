@@ -31,6 +31,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
@@ -62,13 +63,17 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackDescriptionStructure
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import kotlin.math.PI
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
 
 class PublicationValidationTest {
 
@@ -543,6 +548,146 @@ class PublicationValidationTest {
             validateSwitchNameShortenability(switch2),
             "$VALIDATION_LOCATION_TRACK.switch.unshortenable-name",
         )
+    }
+
+    @Test
+    fun `Switch name shortenability validation is run for tracks with dynamic names`() {
+        val switch = switch(name = "Unshortenable", id = IntId(0))
+        val baseLocationTrack =
+            locationTrack(IntId(0), nameStructure = trackNameStructure("name"), startSwitch = switch.id as IntId)
+
+        assertEquals(0, validateLocationTrackEndSwitchNamingScheme(baseLocationTrack, switch, null).size)
+        assertEquals(
+            0,
+            validateLocationTrackEndSwitchNamingScheme(
+                    baseLocationTrack.copy(
+                        nameStructure =
+                            trackNameStructure(
+                                scheme = LocationTrackNamingScheme.TRACK_NUMBER_TRACK,
+                                specifier = LocationTrackNameSpecifier.EKR,
+                            )
+                    ),
+                    switch,
+                    null,
+                )
+                .size,
+        )
+        assertEquals(
+            0,
+            validateLocationTrackEndSwitchNamingScheme(
+                    baseLocationTrack.copy(
+                        nameStructure =
+                            trackNameStructure(
+                                scheme = LocationTrackNamingScheme.WITHIN_OPERATING_POINT,
+                                freeText = "name",
+                            )
+                    ),
+                    switch,
+                    null,
+                )
+                .size,
+        )
+        assertContainsError(
+            true,
+            validateLocationTrackEndSwitchNamingScheme(
+                baseLocationTrack.copy(nameStructure = trackNameStructure(scheme = LocationTrackNamingScheme.CHORD)),
+                switch,
+                null,
+            ),
+            "$VALIDATION_LOCATION_TRACK.switch.unshortenable-name",
+        )
+        assertContainsError(
+            true,
+            validateLocationTrackEndSwitchNamingScheme(
+                baseLocationTrack.copy(
+                    nameStructure = trackNameStructure(scheme = LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS)
+                ),
+                switch,
+                null,
+            ),
+            "$VALIDATION_LOCATION_TRACK.switch.unshortenable-name",
+        )
+    }
+
+    @Test
+    fun `Switch name shortenability validation is run for tracks with dynamic descriptions`() {
+        val switch = switch(name = "Unshortenable", id = IntId(0))
+        val baseLocationTrack =
+            locationTrack(
+                IntId(0),
+                descriptionStructure =
+                    trackDescriptionStructure(
+                        descriptionBase = "desc",
+                        descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
+                    ),
+                startSwitch = switch.id as IntId,
+            )
+
+        assertEquals(0, validateLocationTrackEndSwitchNamingScheme(baseLocationTrack, switch, null).size)
+        assertContainsError(
+            true,
+            validateLocationTrackEndSwitchNamingScheme(
+                baseLocationTrack.copy(
+                    descriptionStructure =
+                        baseLocationTrack.descriptionStructure.copy(
+                            suffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH
+                        )
+                ),
+                switch,
+                null,
+            ),
+            "$VALIDATION_LOCATION_TRACK.switch.unshortenable-name",
+        )
+        assertContainsError(
+            true,
+            validateLocationTrackEndSwitchNamingScheme(
+                baseLocationTrack.copy(
+                    descriptionStructure =
+                        baseLocationTrack.descriptionStructure.copy(
+                            suffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER
+                        )
+                ),
+                switch,
+                null,
+            ),
+            "$VALIDATION_LOCATION_TRACK.switch.unshortenable-name",
+        )
+        assertContainsError(
+            true,
+            validateLocationTrackEndSwitchNamingScheme(
+                baseLocationTrack.copy(
+                    descriptionStructure =
+                        baseLocationTrack.descriptionStructure.copy(
+                            suffix = LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY
+                        )
+                ),
+                switch,
+                null,
+            ),
+            "$VALIDATION_LOCATION_TRACK.switch.unshortenable-name",
+        )
+    }
+
+    @Test
+    fun `Switch name form validation throws if not given proper switches`() {
+        val switch = switch(name = "HKI V0001", id = IntId(0))
+        val locationTrack =
+            locationTrack(
+                IntId(0),
+                descriptionStructure =
+                    trackDescriptionStructure(
+                        descriptionBase = "desc",
+                        descriptionSuffix = LocationTrackDescriptionSuffix.NONE,
+                    ),
+                startSwitch = switch.id as IntId,
+            )
+
+        assertThrows<IllegalArgumentException> {
+            validateLocationTrackEndSwitchNamingScheme(locationTrack, null, null)
+            validateLocationTrackEndSwitchNamingScheme(locationTrack, switch, switch)
+            validateLocationTrackEndSwitchNamingScheme(locationTrack, null, switch)
+        }
+        assertDoesNotThrow { validateLocationTrackEndSwitchNamingScheme(locationTrack, switch, null) }
     }
 
     @Test
