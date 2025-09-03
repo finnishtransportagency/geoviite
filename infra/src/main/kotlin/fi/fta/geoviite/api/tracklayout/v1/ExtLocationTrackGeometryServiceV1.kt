@@ -24,7 +24,7 @@ constructor(
         publication: Publication,
         resolution: Resolution,
         coordinateSystem: Srid,
-        trackIntervalFilter: ExtTrackKilometerIntervalV1,
+        trackIntervalFilter: ExtTrackKilometerIntervalFilterV1,
     ): ExtLocationTrackGeometryResponseV1? {
         val locationTrackId =
             locationTrackDao.lookupByExternalId(oid.toString())?.id

@@ -90,13 +90,13 @@ data class ExtCenterLineTrackIntervalV1(
 
 fun <M : AnyM<M>> filteredCenterLineTrackIntervals(
     alignmentAddresses: AlignmentAddresses<M>,
-    trackIntervalFilter: ExtTrackKilometerIntervalV1,
+    trackIntervalFilter: ExtTrackKilometerIntervalFilterV1,
     coordinateSystem: Srid,
 ): List<ExtCenterLineTrackIntervalV1> {
     val extAddressPoints =
         alignmentAddresses.allPoints.mapNotNull { point ->
             point
-                .takeIf { p -> trackIntervalFilter.containsKmEndInclusive(p.address.kmNumber) }
+                .takeIf { p -> trackIntervalFilter.contains(p.address) }
                 ?.let { toExtAddressPoint(point, coordinateSystem) }
         }
 
