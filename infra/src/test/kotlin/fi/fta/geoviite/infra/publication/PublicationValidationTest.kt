@@ -4,12 +4,14 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
@@ -38,6 +40,7 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
@@ -910,6 +913,113 @@ class PublicationValidationTest {
 
         assertEquals(1, connectivityWarnings.size)
         assertContainsConnectivityWarning(connectivityWarnings, "end-switch-missing")
+    }
+
+    @Test
+    fun `should give validation error if edge inner joints aren't consistent`() {
+        assertEquals(
+            listOf(
+                validationError(
+                    "validation.layout.location-track.edge-switch-partial",
+                    localizationParams("switch" to IntId<LayoutSwitch>(1)),
+                )
+            ),
+            validateEdges(
+                geometry =
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 2.0))),
+                            startInnerSwitch = switchLinkYV(IntId(1), 1),
+                        )
+                    ),
+                getSwitchName = { id -> SwitchName("$id") },
+            ),
+        )
+        assertEquals(
+            listOf(
+                validationError(
+                    "validation.layout.location-track.edge-switch-partial",
+                    localizationParams("switch" to IntId<LayoutSwitch>(1)),
+                ),
+                validationError(
+                    "validation.layout.location-track.edge-switch-partial",
+                    localizationParams("switch" to IntId<LayoutSwitch>(2)),
+                ),
+            ),
+            validateEdges(
+                geometry =
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 2.0))),
+                            startInnerSwitch = switchLinkYV(IntId(1), 1),
+                            endInnerSwitch = switchLinkYV(IntId(2), 1),
+                        )
+                    ),
+                getSwitchName = { id -> SwitchName("$id") },
+            ),
+        )
+    }
+
+    @Test
+    fun `should not give validation error if edge inner joints are consistent`() {
+        assertEquals(
+            emptyList(),
+            validateEdges(
+                geometry = trackGeometry(edge(listOf(segment(Point(0.0, 0.0), Point(0.0, 2.0))))),
+                getSwitchName = { id -> SwitchName("$id") },
+            ),
+        )
+        assertEquals(
+            emptyList(),
+            validateEdges(
+                geometry =
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 2.0))),
+                            startInnerSwitch = switchLinkYV(IntId(1), 1),
+                            endInnerSwitch = switchLinkYV(IntId(1), 2),
+                        )
+                    ),
+                getSwitchName = { id -> SwitchName("$id") },
+            ),
+        )
+    }
+
+    @Test
+    fun `should give validation error for double-linked switch`() {
+        assertEquals(
+            listOf(
+                validationError(
+                    "validation.layout.location-track.duplicate-switch",
+                    localizationParams("switch" to IntId<LayoutSwitch>(1)),
+                )
+            ),
+            validateEdges(
+                geometry =
+                    trackGeometry(
+                        combineEdges(
+                            listOf(
+                                edge(
+                                    listOf(segment(Point(0.0, 0.0), Point(0.0, 2.0))),
+                                    startInnerSwitch = switchLinkYV(IntId(1), 1),
+                                    endInnerSwitch = switchLinkYV(IntId(1), 5),
+                                ),
+                                edge(
+                                    listOf(segment(Point(2.0, 0.0), Point(0.0, 4.0))),
+                                    startInnerSwitch = switchLinkYV(IntId(2), 1),
+                                    endInnerSwitch = switchLinkYV(IntId(2), 2),
+                                ),
+                                edge(
+                                    listOf(segment(Point(4.0, 0.0), Point(0.0, 6.0))),
+                                    startInnerSwitch = switchLinkYV(IntId(1), 5),
+                                    endInnerSwitch = switchLinkYV(IntId(1), 2),
+                                ),
+                            )
+                        )
+                    ),
+                getSwitchName = { id -> SwitchName("$id") },
+            ),
+        )
     }
 
     private fun assertContainsConnectivityWarning(warnings: Collection<LayoutValidationIssue>, translationKey: String) {

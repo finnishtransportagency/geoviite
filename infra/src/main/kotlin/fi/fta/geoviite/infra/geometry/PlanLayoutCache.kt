@@ -183,7 +183,7 @@ class PlanLayoutCache(
             planCsName == null -> cs.name
             cs.aliases.contains(planCsName) -> planCsName
             else -> cs.name
-        }.also { println("name resolution: srid=${units.coordinateSystemSrid} planName=$planCsName cs=$cs -> $it") }
+        }
     }
 }
 

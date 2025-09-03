@@ -81,7 +81,8 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
             if (i == edges.lastIndex) {
                 listOf(
                     e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min),
-                    e.endNode.node to e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min)),
+                    e.endNode.node to
+                        e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min)),
                 )
             } else {
                 listOf(e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min))
@@ -259,6 +260,17 @@ fun verifyTrackGeometry(trackId: IntId<LocationTrack>?, edges: List<LayoutEdge>)
             "Track geometry end node must have the correct track ID: trackId=$trackId trackBoundary=$boundary"
         }
     }
+    val nodes = mutableSetOf<NodeHash>()
+    edges
+        .asSequence()
+        .flatMapIndexed { i, edge -> listOfNotNull(edge.startNode.node.takeIf { i == 0 }, edge.endNode.node) }
+        .filter { node -> node !is PlaceholderNode }
+        .forEach { node ->
+            require(!nodes.contains(node.contentHash)) {
+                "Track geometry cannot contain the same node twice: trackId=$trackId node=$node"
+            }
+            nodes.add(node.contentHash)
+        }
 }
 
 data class TmpLocationTrackGeometry
@@ -395,6 +407,8 @@ sealed class LayoutEdge : IAlignment<EdgeM> {
         )
 
     fun withEndNode(newEndNode: LayoutNode) = withEndNode(reconnectNode(endNode, newEndNode))
+
+    fun containsSwitch(id: IntId<LayoutSwitch>) = startNode.containsSwitch(id) || endNode.containsSwitch(id)
 
     fun withoutSwitch(switchId: IntId<LayoutSwitch>): LayoutEdge {
         val start = startNode.withoutSwitch(switchId)
