@@ -45,9 +45,9 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -885,8 +885,8 @@ fun getSplitTargetTrackStartAndEndAddresses(
     val endByTarget =
         requireNotNull(splitTargetGeometry.end?.let { point -> geocodingContext.getAddress(point)?.first })
 
-    val startAddress = listOf(startBySegments, startByTarget).maxOrNull()
-    val endAddress = listOf(endBySegments, endByTarget).minOrNull()
+    val startAddress = listOf(startBySegments, startByTarget).max()
+    val endAddress = listOf(endBySegments, endByTarget).min()
 
     return startAddress to endAddress
 }

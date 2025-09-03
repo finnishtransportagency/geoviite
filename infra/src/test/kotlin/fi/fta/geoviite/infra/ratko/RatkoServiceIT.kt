@@ -111,10 +111,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.queryOne
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -123,6 +119,10 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1909,7 +1909,7 @@ constructor(
     @Test
     fun `Ratko integration creates the split source track if it does not exist in Ratko`() {
         cleanup()
-        val ratkoSplitTest = createRatkoSplitTest(switchAmount = 1, splitSourceTrackOid = null)
+        val ratkoSplitTest = createRatkoSplitTestData(switchAmount = 1, splitSourceTrackOid = null)
 
         val splitSourceTrackOid = someOid<LocationTrack>().toString()
         fakeRatko.acceptsNewLocationTrackGivingItOid(
@@ -1964,7 +1964,7 @@ constructor(
 
     @Test
     fun `Ratko integration sets a split as completed after all push related steps have completed`() {
-        val ratkoSplitTest = createRatkoSplitTest(switchAmount = 1)
+        val ratkoSplitTest = createRatkoSplitTestData(switchAmount = 1)
         fakeRatkoHasAllSplitTestSourceOids(ratkoSplitTest)
 
         val targetTracks =
@@ -1983,8 +1983,8 @@ constructor(
     }
 
     @Test
-    fun `Ratko integration handles a duplicate track within a split`() {
-        val ratkoSplitTest = createRatkoSplitTest(switchAmount = 2)
+    fun `Ratko integration overwrites duplicate track's geometry within a split`() {
+        val ratkoSplitTest = createRatkoSplitTestData(switchAmount = 2)
 
         fakeRatko.hasLocationTrack(ratkoLocationTrack(id = ratkoSplitTest.splitSourceTrackOid.toString()))
         ratkoSplitTest.switchOids.values.map { oid -> fakeRatko.hasSwitch(ratkoSwitch(oid = oid.toString())) }
@@ -2028,7 +2028,7 @@ constructor(
 
     @Test
     fun `Ratko integration sets the source track state to IN_USE when starting a split and to OLD after pushing a split`() {
-        val ratkoSplitTest = createRatkoSplitTest(switchAmount = 1)
+        val ratkoSplitTest = createRatkoSplitTestData(switchAmount = 1)
         fakeRatko.hasRouteNumber(ratkoRouteNumber(ratkoSplitTest.trackNumberOid.toString()))
         ratkoSplitTest.switchOids.values.forEach { oid -> fakeRatko.hasSwitch(ratkoSwitch(oid = oid.toString())) }
 
@@ -2053,8 +2053,8 @@ constructor(
     }
 
     @Test
-    fun `Ratko integration handles a partial duplicate track within a split`() {
-        val ratkoSplitTest = createRatkoSplitTest(switchAmount = 4)
+    fun `Ratko integration partially updates the geometry of a partial duplicate track in a split`() {
+        val ratkoSplitTest = createRatkoSplitTestData(switchAmount = 4)
         fakeRatkoHasAllSplitTestSourceOids(ratkoSplitTest)
 
         val (_, sourceTrackGeometry) =
@@ -2100,8 +2100,8 @@ constructor(
     }
 
     @Test
-    fun `Ratko integration handles a split consisting of new tracks`() {
-        val ratkoSplitTest = createRatkoSplitTest(switchAmount = 2)
+    fun `Ratko integration uses split source track geometry for new tracks created in a split`() {
+        val ratkoSplitTest = createRatkoSplitTestData(switchAmount = 2)
 
         fakeRatko.hasLocationTrack(ratkoLocationTrack(id = ratkoSplitTest.splitSourceTrackOid.toString()))
         ratkoSplitTest.switchOids.values.map { oid -> fakeRatko.hasSwitch(ratkoSwitch(oid = oid.toString())) }
@@ -2206,19 +2206,19 @@ constructor(
         )
     }
 
-    private fun fakeRatkoHasAllSplitTestSourceOids(ratkoSplitTest: RatkoSplitTest) {
-        fakeRatko.hasRouteNumber(ratkoRouteNumber(ratkoSplitTest.trackNumberOid.toString()))
-        fakeRatko.hasLocationTrack(ratkoLocationTrack(ratkoSplitTest.splitSourceTrackOid.toString()))
-        ratkoSplitTest.switchOids.values.forEach { oid -> fakeRatko.hasSwitch(ratkoSwitch(oid = oid.toString())) }
+    private fun fakeRatkoHasAllSplitTestSourceOids(ratkoSplitTestData: RatkoSplitTestData) {
+        fakeRatko.hasRouteNumber(ratkoRouteNumber(ratkoSplitTestData.trackNumberOid.toString()))
+        fakeRatko.hasLocationTrack(ratkoLocationTrack(ratkoSplitTestData.splitSourceTrackOid.toString()))
+        ratkoSplitTestData.switchOids.values.forEach { oid -> fakeRatko.hasSwitch(ratkoSwitch(oid = oid.toString())) }
     }
 
-    private fun createRatkoSplitTest(
+    private fun createRatkoSplitTestData(
         trackNumber: TrackNumber = TrackNumber("123"),
         startPoint: Point = Point(0.0, 0.0),
         switchAmount: Int = 2,
         segmentPointOffset: Double = 10.0,
         splitSourceTrackOid: Oid<LocationTrack>? = someOid(),
-    ): RatkoSplitTest {
+    ): RatkoSplitTestData {
         val branch = LayoutBranch.main
         val layoutContext = mainOfficialContext
 
@@ -2260,7 +2260,7 @@ constructor(
 
         val splitSourceTrackId = layoutContext.save(locationTrack(trackNumberId), straightGeometry).id
 
-        return RatkoSplitTest(
+        return RatkoSplitTestData(
             trackNumberId = trackNumberId,
             trackNumberOid =
                 someOid<LayoutTrackNumber>().also { oid ->
@@ -2281,7 +2281,7 @@ constructor(
     }
 }
 
-private data class RatkoSplitTest(
+private data class RatkoSplitTestData(
     val trackNumberId: IntId<LayoutTrackNumber>,
     val trackNumberOid: Oid<LayoutTrackNumber>,
     val splitSourceTrackId: IntId<LocationTrack>,
