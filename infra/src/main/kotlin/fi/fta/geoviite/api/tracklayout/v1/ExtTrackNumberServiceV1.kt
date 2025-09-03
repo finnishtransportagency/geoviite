@@ -75,7 +75,7 @@ constructor(
             ?.let { assetVersions ->
                 ExtModifiedTrackNumberResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
-                    trackLayoutVersion = publications.to.uuid,
+                    trackLayoutVersionTo = publications.to.uuid,
                     coordinateSystem = coordinateSystem,
                     trackNumber =
                         getExtTrackNumber(
