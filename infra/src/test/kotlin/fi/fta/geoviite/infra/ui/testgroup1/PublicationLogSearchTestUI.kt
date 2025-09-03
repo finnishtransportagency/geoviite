@@ -104,18 +104,13 @@ constructor(
         publicationLog.waitUntilLoaded()
         assertEquals(3, publicationLog.rows.size)
 
-        // Only publications in between start & end dates should be displayed.
-        publicationLog.setSearchEndDate(testPublicationDates[0])
-        publicationLog.waitUntilLoaded()
-        assertContains(publicationLog.rows[0].message, publicationRequests[0].message)
-
-        publicationLog.setSearchEndDate(testPublicationDates[1])
-        publicationLog.waitUntilLoaded()
-        assertContains(publicationLog.rows[1].message, publicationRequests[1].message)
-
+        // Only publications in between start & end dates should be displayed. Publication log shows publications in
+        // descending timestamp order by default, hence the reversed order of indexing publication rows
         publicationLog.setSearchEndDate(testPublicationDates[2])
         publicationLog.waitUntilLoaded()
-        assertContains(publicationLog.rows[2].message, publicationRequests[2].message)
+        assertContains(publicationLog.rows[2].message, publicationRequests[0].message)
+        assertContains(publicationLog.rows[1].message, publicationRequests[1].message)
+        assertContains(publicationLog.rows[0].message, publicationRequests[2].message)
 
         // Same start & end date should display publications on the given date.
         publicationLog.setSearchStartDate(testPublicationDates[1])

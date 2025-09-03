@@ -479,6 +479,10 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
 
     val referenceLineAddresses by lazy { getAddressPoints(referenceLineGeometry) }
 
+    fun getReferenceLineAddressesWithResolution(resolution: Resolution): AlignmentAddresses<M>? {
+        return getAddressPoints(referenceLineGeometry, resolution)
+    }
+
     fun <TargetM : AnyM<TargetM>> toAddressPoint(
         point: AlignmentPoint<TargetM>,
         decimals: Int = DEFAULT_TRACK_METER_DECIMALS,

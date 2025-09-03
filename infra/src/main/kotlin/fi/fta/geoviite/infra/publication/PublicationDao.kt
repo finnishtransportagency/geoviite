@@ -88,11 +88,11 @@ import fi.fta.geoviite.infra.util.getTrackNumberOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -2374,7 +2374,9 @@ class PublicationDao(
             select distinct plt.id as location_track_id
             from publication.location_track plt
               join publication.publication publication on plt.publication_id = publication.id
-            where publication.publication_time > :start_time and publication.publication_time <= :end_time;
+            where design_id is null 
+              and publication.publication_time > :start_time 
+              and publication.publication_time <= :end_time;
         """
 
         val params =
@@ -2383,6 +2385,28 @@ class PublicationDao(
                 "end_time" to Timestamp.from(inclusiveEndMoment),
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("location_track_id") }
+    }
+
+    fun fetchPublishedTrackNumbersAfterMoment(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): List<IntId<LayoutTrackNumber>> {
+        val sql =
+            """
+            select distinct ptn.id as track_number_id
+            from publication.track_number ptn
+              join publication.publication publication on ptn.publication_id = publication.id
+            where design_id is null 
+              and publication.publication_time > :start_time 
+              and publication.publication_time <= :end_time;
+        """
+
+        val params =
+            mapOf(
+                "start_time" to Timestamp.from(exclusiveStartMoment),
+                "end_time" to Timestamp.from(inclusiveEndMoment),
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("track_number_id") }
     }
 }
 

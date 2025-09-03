@@ -14,8 +14,10 @@ export function isEmpty(str: string) {
     return str.length === 0 || isNilOrBlank(str);
 }
 
+const equalsIgnoreCaseCollator = new Intl.Collator(i18next.language, { sensitivity: 'accent' });
+
 export const isEqualIgnoreCase = (str1: string, str2: string): boolean =>
-    str1.localeCompare(str2, i18next.language, { sensitivity: 'accent' }) === 0;
+    equalsIgnoreCaseCollator.compare(str1, str2) === 0;
 
 export function parseFloatOrUndefined(str: string): number | undefined {
     if (!str) {

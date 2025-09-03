@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class ReferenceLineService(
@@ -127,11 +128,8 @@ class ReferenceLineService(
         branch: LayoutBranch,
         trackNumberId: IntId<LayoutTrackNumber>,
     ): LayoutRowVersion<ReferenceLine>? {
-        val referenceLine =
-            requireNotNull(referenceLineDao.getByTrackNumber(branch.draft, trackNumberId)) {
-                "Found Track Number without Reference Line $trackNumberId"
-            }
-        return if (referenceLine.isDraft) deleteDraft(branch, referenceLine.id as IntId) else null
+        val referenceLine = referenceLineDao.getByTrackNumber(branch.draft, trackNumberId)
+        return if (referenceLine?.isDraft == true) deleteDraft(branch, referenceLine.id as IntId) else null
     }
 
     fun getByTrackNumber(layoutContext: LayoutContext, trackNumberId: IntId<LayoutTrackNumber>): ReferenceLine? {
@@ -201,6 +199,26 @@ class ReferenceLineService(
             })
             .let { list -> filterByBoundingBox(list, boundingBox) }
             .let(::associateWithAlignments)
+    }
+
+    fun getStartAndEndAtMoment(
+        context: LayoutContext,
+        ids: List<IntId<ReferenceLine>>,
+        moment: Instant,
+    ): List<AlignmentStartAndEnd<ReferenceLine>> {
+        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(context, moment)
+        val referenceLineData =
+            dao.getManyOfficialAtMoment(context.branch, ids, moment).let(::associateWithAlignments).map {
+                (referenceLine, geometry) ->
+                Triple(referenceLine, geometry, getGeocodingContext(referenceLine.trackNumberId))
+            }
+
+        return referenceLineData
+            .parallelStream()
+            .map { (referenceLine, alignment, ctx) ->
+                AlignmentStartAndEnd.of(referenceLine.id as IntId, alignment, ctx)
+            }
+            .toList()
     }
 
     @Transactional(readOnly = true)

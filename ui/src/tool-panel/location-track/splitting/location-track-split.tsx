@@ -18,6 +18,7 @@ import {
     FirstSplitTargetCandidate,
     PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS,
     SplitTargetCandidate,
+    SplitTargetId,
     SplitTargetOperation,
 } from 'tool-panel/location-track/split-store';
 import {
@@ -36,14 +37,15 @@ import { BoundingBox, Point } from 'model/geometry';
 import { SplitDuplicateTrack } from 'track-layout/layout-location-track-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { RemovalConfirmationMenu } from 'tool-panel/location-track/splitting/removal-confirmation-menu';
+import { useCloneRef } from 'utils/react-utils';
 
 type CommonProps = {
-    addressPoint: AlignmentEndPoint | undefined;
     editingDisabled: boolean;
     showArea: (bbox: BoundingBox) => void;
 };
 
 type EndpointProps = CommonProps & {
+    addressPoint: AlignmentEndPoint | undefined;
     splitPoint: SplitPoint | undefined;
     onSplitPointClick: () => void;
 };
@@ -57,20 +59,17 @@ type SplitProps = CommonProps & {
     nameIssues: FieldValidationIssue<SplitTargetCandidate>[];
     descriptionIssues: FieldValidationIssue<SplitTargetCandidate>[];
     switchIssues: FieldValidationIssue<SplitTargetCandidate>[];
-    nameRef: React.RefObject<HTMLInputElement | null>;
-    descriptionBaseRef: React.RefObject<HTMLInputElement | null>;
+    setNameRef: (key: SplitTargetId, value: HTMLInputElement | null) => void;
+    setDescriptionBaseRef: (key: SplitTargetId, value: HTMLInputElement | null) => void;
     deletingDisabled: boolean;
     allDuplicateLocationTracks: SplitDuplicateTrack[];
     duplicateLocationTrack: LayoutLocationTrack | undefined;
     underlyingAssetExists: boolean;
     showArea: (bbox: BoundingBox) => void;
-    onSplitTrackClicked: () => void;
-    onFocus: () => void;
-    onBlur: () => void;
-    onHighlight: () => void;
-    onReleaseHighlight: () => void;
-    onHighlightSplitPoint: () => void;
-    onReleaseSwitchHighlight: () => void;
+    onSplitTrackClicked: (id: SplitTargetId) => void;
+    setFocusedSplit: (id: undefined | SplitTargetId) => void;
+    setHighlightedSplit: (id: undefined | SplitTargetId) => void;
+    setHighlightedSplitPoint: (splitPoint: undefined | SplitPoint) => void;
 };
 
 export function getShowSwitchOnMapBoundingBox(location: Point): BoundingBox {
@@ -123,10 +122,9 @@ export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
     );
 };
 
-export const LocationTrackSplit: React.FC<SplitProps> = ({
+const LocationTrackSplitM: React.FC<SplitProps> = ({
     locationTrackId,
     split,
-    addressPoint,
     onRemove,
     updateSplit,
     duplicateTrackId,
@@ -135,19 +133,16 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     switchIssues,
     editingDisabled,
     deletingDisabled,
-    nameRef,
-    descriptionBaseRef,
+    setNameRef,
+    setDescriptionBaseRef,
     allDuplicateLocationTracks,
     duplicateLocationTrack,
     underlyingAssetExists,
     showArea,
     onSplitTrackClicked,
-    onFocus,
-    onBlur,
-    onHighlight,
-    onReleaseHighlight,
-    onHighlightSplitPoint,
-    onReleaseSwitchHighlight,
+    setFocusedSplit,
+    setHighlightedSplit,
+    setHighlightedSplitPoint,
 }) => {
     const { t } = useTranslation();
     const [nameCommitted, setNameCommitted] = React.useState(split.name !== '');
@@ -162,15 +157,30 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     );
     const duplicate = allDuplicateLocationTracks.find((d) => d.id === split.duplicateTrackId);
 
-    // TODO: Adding any kind of dependency array causes infinite re-render loops, find out why
     React.useEffect(() => {
         if (!nameIssues.length) {
             setNameCommitted(true);
         }
+    }, [nameIssues.length]);
+    React.useEffect(() => {
         if (!descriptionIssues.length) {
             setDescriptionCommitted(true);
         }
-    });
+    }, [descriptionIssues.length]);
+
+    const nameRef = React.useCallback(
+        (e: HTMLInputElement) => {
+            setNameRef(split.id, e);
+        },
+        [setNameRef],
+    );
+    const localNameRef = useCloneRef(nameRef);
+    const descriptionBaseRef = React.useCallback(
+        (e: HTMLInputElement) => {
+            setDescriptionBaseRef(split.id, e);
+        },
+        [setDescriptionBaseRef],
+    );
 
     const closeButtonRef = React.useRef(null);
 
@@ -191,6 +201,11 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         nonOverlappingDuplicateLength !== undefined &&
         nonOverlappingDuplicateLength <
             PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS;
+
+    const addressPoint = {
+        point: split.splitPoint.location,
+        address: split.splitPoint.address,
+    };
 
     function getOperationTooltip(
         operation: SplitTargetOperation,
@@ -242,6 +257,25 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         }
     };
 
+    const onHighlight = React.useCallback(() => {
+        setHighlightedSplit(split.id);
+    }, [setHighlightedSplit, split]);
+    const onReleaseHighlight = React.useCallback(() => {
+        setHighlightedSplit(undefined);
+    }, [setHighlightedSplit]);
+    const onHighlightSplitPoint = React.useCallback(() => {
+        setHighlightedSplitPoint(split.splitPoint);
+    }, [setHighlightedSplitPoint]);
+    const onReleaseSwitchHighlight = React.useCallback(() => {
+        setHighlightedSplitPoint(undefined);
+    }, [setHighlightedSplitPoint]);
+    const onFocus = React.useCallback(() => {
+        setFocusedSplit(split.id);
+    }, [setFocusedSplit, split]);
+    const onBlur = React.useCallback(() => {
+        setFocusedSplit(undefined);
+    }, [setFocusedSplit]);
+
     return (
         <div
             className={styles['location-track-infobox__split-container']}
@@ -252,7 +286,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                 className={createClassName(
                     styles['location-track-infobox__split-item-line-container'],
                 )}
-                onClick={onSplitTrackClicked}>
+                onClick={() => onSplitTrackClicked(split.id)}>
                 <div
                     className={createClassName(
                         styles['location-track-infobox__split-item-line'],
@@ -344,8 +378,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                     isEqualIgnoreCase(lt.name, e.target.value),
                                 );
 
-                                if (duplicate && nameRef.current) {
-                                    nameRef.current.value = duplicate.name;
+                                if (duplicate && localNameRef.current) {
+                                    localNameRef.current.value = duplicate.name;
                                 }
 
                                 updateSplit({
@@ -505,6 +539,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         </div>
     );
 };
+
+export const LocationTrackSplit = React.memo(LocationTrackSplitM);
 
 type SplitErrorMessageProps = {
     error: FieldValidationIssue<SplitTargetCandidate>;
