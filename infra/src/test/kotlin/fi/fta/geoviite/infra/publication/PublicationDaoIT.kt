@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TEST_USER
 import fi.fta.geoviite.infra.authorization.UserName
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
@@ -10,7 +11,6 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
@@ -108,7 +108,7 @@ constructor(
     @Test
     fun locationTrackPublicationCandidatesAreFound() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
-        val (_, draft) = insertAndCheck(asMainDraft(track).copy(name = LocationTrackName("${track.name} DRAFT")))
+        val (_, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
@@ -142,12 +142,12 @@ constructor(
     @Test
     fun modifyOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
-        val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = LocationTrackName("${track.name} DRAFT")))
+        val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId).let { lt ->
-                lt.copy(name = LocationTrackName("${lt.name} TEST"))
+                lt.copy(name = AlignmentName("${lt.name} TEST"))
             },
             TmpLocationTrackGeometry.empty,
         )
@@ -160,7 +160,7 @@ constructor(
     @Test
     fun deleteOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
-        val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = LocationTrackName("${track.name} DRAFT")))
+        val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
             LayoutBranch.main,
@@ -180,8 +180,7 @@ constructor(
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
         val (version, draft) =
             insertAndCheck(
-                asMainDraft(track)
-                    .copy(name = LocationTrackName("${track.name} DRAFT"), state = LocationTrackState.DELETED)
+                asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT"), state = LocationTrackState.DELETED)
             )
         publishAndCheck(version)
         locationTrackService.saveDraft(

@@ -1,12 +1,12 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -317,7 +317,7 @@ constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getSplitInPublicationCsv(id: IntId<Publication>, lang: LocalizationLanguage): Pair<String, LocationTrackName?> {
+    fun getSplitInPublicationCsv(id: IntId<Publication>, lang: LocalizationLanguage): Pair<String, AlignmentName?> {
         return getSplitInPublication(id).let { splitInPublication ->
             val data = splitInPublication?.targetLocationTracks?.map { lt -> splitInPublication to lt } ?: emptyList()
             printCsv(splitCsvColumns(localizationService.getLocalization(lang)), data) to

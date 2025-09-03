@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -126,7 +126,7 @@ class ValidationContext(
     fun getLocationTrack(id: IntId<LocationTrack>): LocationTrack? =
         getObject(target.baseContext, id, publicationSet.locationTracks, locationTrackDao, locationTrackVersionCache)
 
-    fun getLocationTracksByName(name: LocationTrackName): List<LocationTrack> =
+    fun getLocationTracksByName(name: AlignmentName): List<LocationTrack> =
         trackNameCache.get(name).mapNotNull(::getLocationTrack)
 
     fun getDuplicateTrackIds(trackId: IntId<LocationTrack>): List<IntId<LocationTrack>>? =
@@ -321,7 +321,7 @@ class ValidationContext(
     fun preloadLocationTracksByName(trackIds: List<IntId<LocationTrack>>) =
         trackNameCache.preload(trackIds.mapNotNull(::getLocationTrack).map(LocationTrack::name).distinct())
 
-    fun fetchLocationTracksByName(names: List<LocationTrackName>): Map<LocationTrackName, List<IntId<LocationTrack>>> {
+    fun fetchLocationTracksByName(names: List<AlignmentName>): Map<AlignmentName, List<IntId<LocationTrack>>> {
         val baseVersions = locationTrackDao.findNameDuplicates(target.baseContext, names)
         cacheBaseVersions(baseVersions.values.flatten(), locationTrackVersionCache)
         return mapIdsByField(names, { t -> t.name }, publicationSet.locationTracks, baseVersions, locationTrackDao)

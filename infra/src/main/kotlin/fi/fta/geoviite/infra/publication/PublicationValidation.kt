@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -660,7 +660,7 @@ private fun alignmentLinkingQuality(
 fun validateDuplicateOfState(
     locationTrack: LocationTrack,
     duplicateOfLocationTrack: LocationTrack?,
-    duplicateOfLocationTrackDraftName: LocationTrackName?,
+    duplicateOfLocationTrackDraftName: AlignmentName?,
     duplicateOfLocationTrackIsCancelled: Boolean,
     duplicates: List<LocationTrack>,
 ): List<LayoutValidationIssue> {

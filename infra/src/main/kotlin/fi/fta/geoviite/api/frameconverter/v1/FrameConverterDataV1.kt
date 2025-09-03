@@ -10,7 +10,7 @@ import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometry
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometryPoint
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonProperties
-import fi.fta.geoviite.infra.common.LocationTrackName
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -182,7 +182,7 @@ data class ValidCoordinateToTrackAddressRequestV1(
     val trackNumberOid: Oid<LayoutTrackNumber>?,
     val trackNumberName: TrackNumber?,
     val locationTrackOid: Oid<LocationTrack>?,
-    val locationTrackName: LocationTrackName?,
+    val locationTrackName: AlignmentName?,
     val locationTrackType: LocationTrackType?,
 ) : FrameConverterRequestV1()
 
@@ -222,7 +222,7 @@ data class FeatureMatchBasicV1(
 data class FeatureMatchDetailsV1(
     @JsonProperty("ratanumero") val trackNumber: TrackNumber,
     @JsonProperty("ratanumero_oid") val trackNumberOid: String,
-    @JsonProperty("sijaintiraide") val locationTrackName: LocationTrackName,
+    @JsonProperty("sijaintiraide") val locationTrackName: AlignmentName,
     @JsonProperty("sijaintiraide_kuvaus") val locationTrackDescription: FreeText,
     @JsonProperty("sijaintiraide_tyyppi") val translatedLocationTrackType: String,
     @JsonProperty("sijaintiraide_oid") val locationTrackOid: String,
@@ -261,7 +261,7 @@ data class ValidTrackAddressToCoordinateRequestV1(
     val trackNumber: LayoutTrackNumber,
     val trackAddress: TrackMeter,
     val locationTrackOid: Oid<LocationTrack>?,
-    val locationTrackName: LocationTrackName?,
+    val locationTrackName: AlignmentName?,
     val locationTrackType: LocationTrackType?,
 ) : FrameConverterRequestV1()
 

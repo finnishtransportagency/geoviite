@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.PublicationFailureException
@@ -679,7 +679,7 @@ private fun createSplitTarget(
             descriptionStructure = request.descriptionStructure,
 
             // These will be automatically recalculated upon saving
-            name = LocationTrackName("?"),
+            name = AlignmentName("?"),
             description = FreeText("?"),
 
             // After split, tracks are not duplicates

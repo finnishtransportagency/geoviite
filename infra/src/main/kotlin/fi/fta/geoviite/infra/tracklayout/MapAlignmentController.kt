@@ -4,11 +4,9 @@ import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.AlignmentPolyLine
@@ -67,7 +65,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
-    ): List<AlignmentHeader<LocationTrack, LocationTrackName, LocationTrackState>> {
+    ): List<AlignmentHeader<LocationTrack, LocationTrackState>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return mapAlignmentService.getLocationTrackHeaders(layoutContext, ids)
     }
@@ -78,7 +76,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<ReferenceLine>>,
-    ): List<AlignmentHeader<ReferenceLine, AlignmentName, LayoutState>> {
+    ): List<AlignmentHeader<ReferenceLine, LayoutState>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return mapAlignmentService.getReferenceLineHeaders(layoutContext, ids)
     }

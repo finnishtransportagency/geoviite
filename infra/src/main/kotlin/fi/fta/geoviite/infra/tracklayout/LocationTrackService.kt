@@ -1,13 +1,13 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -117,7 +117,7 @@ class LocationTrackService(
         } catch (dataIntegrityException: DataIntegrityViolationException) {
             throw if (isSplitSourceReferenceError(dataIntegrityException)) {
                 SplitSourceLocationTrackUpdateException(
-                    LocationTrackName(request.nameFreeText?.toString() ?: ""),
+                    AlignmentName(request.nameFreeText?.toString() ?: ""),
                     dataIntegrityException,
                 )
             } else {
@@ -247,7 +247,7 @@ class LocationTrackService(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<LayoutTrackNumber>,
-        names: List<LocationTrackName>,
+        names: List<AlignmentName>,
     ): List<LocationTrack> {
         return dao.list(layoutContext, includeDeleted, trackNumberId, names)
     }

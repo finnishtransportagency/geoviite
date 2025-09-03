@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -125,8 +125,7 @@ constructor(
             )
         val mainDraftLocationTrack =
             mainDraftContext.save(
-                asMainDraft(mainOfficialContext.fetch(locationTrackId)!!)
-                    .copy(name = LocationTrackName("edited in main"))
+                asMainDraft(mainOfficialContext.fetch(locationTrackId)!!).copy(name = AlignmentName("edited in main"))
             )
         val mainDraftSwitch =
             mainDraftContext.save(
@@ -158,7 +157,7 @@ constructor(
         designOfficialContext.moveFrom(
             designDraftContext.save(
                 asDesignDraft(
-                    mainOfficialContext.fetch(locationTrackId)!!.copy(name = LocationTrackName("edited in design")),
+                    mainOfficialContext.fetch(locationTrackId)!!.copy(name = AlignmentName("edited in design")),
                     someDesignBranch.designId,
                 )
             )

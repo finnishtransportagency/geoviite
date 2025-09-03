@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
@@ -147,7 +146,7 @@ constructor(
         assertNotEquals(publicationResponse.rowId, editedVersion.rowId)
 
         val editedDraft = getAndVerifyDraft(publicationResponse.id)
-        assertEquals(LocationTrackName("EDITED1"), editedDraft.name)
+        assertEquals(AlignmentName("EDITED1"), editedDraft.name)
 
         val editedVersion2 =
             locationTrackService.saveDraft(
@@ -159,7 +158,7 @@ constructor(
         assertNotEquals(publicationResponse.rowId, editedVersion2.rowId)
 
         val editedDraft2 = getAndVerifyDraft(publicationResponse.id)
-        assertEquals(LocationTrackName("EDITED2"), editedDraft2.name)
+        assertEquals(AlignmentName("EDITED2"), editedDraft2.name)
     }
 
     @Test
@@ -1024,14 +1023,14 @@ constructor(
                 unlinkedGeometry,
             )
         val trackId = trackOfficialVersion.id
-        assertEquals(LocationTrackName("TST-TRACK-INIT"), getDraftNameAndStructure(trackId).first)
+        assertEquals(AlignmentName("TST-TRACK-INIT"), getDraftNameAndStructure(trackId).first)
         assertEquals(FreeText("Initial description"), getDraftDescriptionAndStructure(trackId).first)
 
         // Linking the track to switches should not change the name or description since we're still set as free-text
         updateDraft(trackId) { t, g -> t to linkedGeometry }
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.FREE_TEXT, structure.scheme)
-            assertEquals(LocationTrackName("TST-TRACK-INIT"), name)
+            assertEquals(AlignmentName("TST-TRACK-INIT"), name)
         }
         assertEquals(FreeText("Initial description"), getDraftDescriptionAndStructure(trackId).first)
 
@@ -1041,7 +1040,7 @@ constructor(
         }
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.WITHIN_OPERATING_POINT, structure.scheme)
-            assertEquals(LocationTrackName("within operating point"), name)
+            assertEquals(AlignmentName("within operating point"), name)
         }
 
         // Track number name gets the name from track number + specifier
@@ -1054,10 +1053,7 @@ constructor(
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.TRACK_NUMBER_TRACK, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.LANHR, structure.specifier)
-            assertEquals(
-                LocationTrackName("$trackNumber ${LocationTrackNameSpecifier.LANHR.properForm} tn-track"),
-                name,
-            )
+            assertEquals(AlignmentName("$trackNumber ${LocationTrackNameSpecifier.LANHR.properForm} tn-track"), name)
         }
 
         // Changing the track number should update the name
@@ -1069,20 +1065,14 @@ constructor(
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.TRACK_NUMBER_TRACK, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.LANHR, structure.specifier)
-            assertEquals(
-                LocationTrackName("$newTrackNumber ${LocationTrackNameSpecifier.LANHR.properForm} tn-track"),
-                name,
-            )
+            assertEquals(AlignmentName("$newTrackNumber ${LocationTrackNameSpecifier.LANHR.properForm} tn-track"), name)
         }
         // Make sure that track number draft revert also reverts the track name
         layoutTrackNumberService.deleteDraft(LayoutBranch.main, trackNumberId)
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.TRACK_NUMBER_TRACK, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.LANHR, structure.specifier)
-            assertEquals(
-                LocationTrackName("$trackNumber ${LocationTrackNameSpecifier.LANHR.properForm} tn-track"),
-                name,
-            )
+            assertEquals(AlignmentName("$trackNumber ${LocationTrackNameSpecifier.LANHR.properForm} tn-track"), name)
         }
 
         // Between operating points the name combines specifier and switches
@@ -1100,7 +1090,7 @@ constructor(
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
-            assertEquals(LocationTrackName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V002"), name)
+            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V002"), name)
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
@@ -1121,7 +1111,7 @@ constructor(
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
-            assertEquals(LocationTrackName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V003"), name)
+            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V003"), name)
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
@@ -1136,7 +1126,7 @@ constructor(
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
-            assertEquals(LocationTrackName("${LocationTrackNameSpecifier.EKR.properForm} ABC V999-ABC V003"), name)
+            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V999-ABC V003"), name)
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
@@ -1147,7 +1137,7 @@ constructor(
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
-            assertEquals(LocationTrackName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V003"), name)
+            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V003"), name)
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
@@ -1158,7 +1148,7 @@ constructor(
         updateDraft(trackId) { t, g -> t.copy(nameStructure = LocationTrackNameChord) to g }
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.CHORD, structure.scheme)
-            assertEquals(LocationTrackName("ABC V001-V003"), name)
+            assertEquals(AlignmentName("ABC V001-V003"), name)
         }
     }
 

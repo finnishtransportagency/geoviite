@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
@@ -482,7 +481,7 @@ fun locationTrack(
     endSwitch: IntId<LayoutSwitch>? = null,
 ) =
     LocationTrack(
-        name = LocationTrackName(name),
+        name = AlignmentName(name),
         nameStructure = nameStructure,
         description = FreeText(description),
         descriptionStructure = descriptionStructure,

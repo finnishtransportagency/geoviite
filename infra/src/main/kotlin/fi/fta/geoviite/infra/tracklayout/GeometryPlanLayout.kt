@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -57,7 +56,7 @@ data class GeometryPlanLayout(
 }
 
 data class PlanLayoutAlignment(
-    val header: AlignmentHeader<GeometryAlignment, AlignmentName, LayoutState>,
+    val header: AlignmentHeader<GeometryAlignment, LayoutState>,
     @JsonIgnore override val segments: List<PlanLayoutSegment>,
     @JsonIgnore val staStart: Double,
     val polyLine: AlignmentPolyLine<GeometryAlignment, PlanLayoutAlignmentM>? = null,

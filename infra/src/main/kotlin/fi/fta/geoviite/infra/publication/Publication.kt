@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.authorization.UserName
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
@@ -11,7 +12,6 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.Oid
@@ -236,7 +236,7 @@ data class PublishedReferenceLine(
 
 data class PublishedLocationTrack(
     val version: LayoutRowVersion<LocationTrack>,
-    val name: LocationTrackName,
+    val name: AlignmentName,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val operation: Operation,
     val changedKmNumbers: Set<KmNumber>,
@@ -572,7 +572,7 @@ data class ReferenceLinePublicationCandidate(
 
 data class LocationTrackPublicationCandidate(
     override val rowVersion: LayoutRowVersion<LocationTrack>,
-    val name: LocationTrackName,
+    val name: AlignmentName,
     val trackNumberId: IntId<LayoutTrackNumber>,
     override val draftChangeTime: Instant,
     val duplicateOf: IntId<LocationTrack>?,
@@ -620,7 +620,7 @@ data class KmPostPublicationCandidate(
 data class SwitchLocationTrack(
     val id: IntId<LocationTrack>,
     val trackNumberId: IntId<LayoutTrackNumber>,
-    val name: LocationTrackName,
+    val name: AlignmentName,
     val joints: List<PublicationSwitchJoint>,
 )
 
@@ -649,7 +649,7 @@ fun <T> Change<T?>.ifHasEndState(): Change<T>? = if (new != null) Change(old, ne
 
 data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
-    val name: Change<LocationTrackName>,
+    val name: Change<AlignmentName>,
     val descriptionBase: Change<LocationTrackDescriptionBase>,
     val descriptionSuffix: Change<LocationTrackDescriptionSuffix>,
     val state: Change<LocationTrackState>,
@@ -679,7 +679,7 @@ data class TrackNumberJointLocationChange(
 
 data class TrackJointChange(
     val id: IntId<LocationTrack>,
-    val name: LocationTrackName,
+    val name: AlignmentName,
     val joints: Change<List<JointNumber>?>,
 )
 
@@ -793,7 +793,7 @@ data class SplitInPublication(
 
 data class SplitTargetInPublication(
     val id: IntId<LocationTrack>,
-    val name: LocationTrackName,
+    val name: AlignmentName,
     val oid: Oid<LocationTrack>?,
     val startAddress: TrackMeter?,
     val endAddress: TrackMeter?,
@@ -938,10 +938,7 @@ data class PublicationResultVersions<T : LayoutAsset<T>>(
     val versionChange: Change<LayoutRowVersion<T>> = Change(base, published)
 }
 
-data class PublicationComparison(
-    val from: Publication,
-    val to: Publication,
-) {
+data class PublicationComparison(val from: Publication, val to: Publication) {
     init {
         if (from.id.intValue > to.id.intValue) {
             throw InvalidTrackLayoutVersionOrder(

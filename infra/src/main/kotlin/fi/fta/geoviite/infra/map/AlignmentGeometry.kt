@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.map
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.geography.bufferedPolygonForLineStringPoints
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.logging.Loggable
@@ -41,7 +40,7 @@ enum class MapAlignmentType {
     REFERENCE_LINE,
 }
 
-sealed class AlignmentHeader<AlignmentType, NameType, StateType> {
+sealed class AlignmentHeader<AlignmentType, StateType> {
     abstract val id: DomainId<AlignmentType>
     abstract val trackNumberId: DomainId<LayoutTrackNumber>?
     abstract val state: StateType
@@ -50,7 +49,7 @@ sealed class AlignmentHeader<AlignmentType, NameType, StateType> {
     abstract val length: LineM<*>
     abstract val boundingBox: BoundingBox?
     abstract val segmentCount: Int
-    abstract val name: NameType
+    abstract val name: AlignmentName
 }
 
 data class GeometryAlignmentHeader(
@@ -62,7 +61,7 @@ data class GeometryAlignmentHeader(
     override val length: LineM<PlanLayoutAlignmentM>,
     override val boundingBox: BoundingBox?,
     override val segmentCount: Int,
-) : AlignmentHeader<GeometryAlignment, AlignmentName, LayoutState>() {
+) : AlignmentHeader<GeometryAlignment, LayoutState>() {
     override val alignmentSource = MapAlignmentSource.GEOMETRY
 }
 
@@ -75,7 +74,7 @@ data class ReferenceLineHeader(
     override val length: LineM<ReferenceLineM>,
     override val boundingBox: BoundingBox?,
     override val segmentCount: Int,
-) : AlignmentHeader<ReferenceLine, AlignmentName, LayoutState>() {
+) : AlignmentHeader<ReferenceLine, LayoutState>() {
     override val alignmentSource = MapAlignmentSource.LAYOUT
     override val alignmentType = MapAlignmentType.REFERENCE_LINE
 }
@@ -85,13 +84,13 @@ data class LocationTrackHeader(
     val version: LayoutRowVersion<LocationTrack>,
     override val trackNumberId: IntId<LayoutTrackNumber>,
     val duplicateOf: IntId<LocationTrack>?,
-    override val name: LocationTrackName,
+    override val name: AlignmentName,
     override val state: LocationTrackState,
     val trackType: LocationTrackType,
     override val length: LineM<LocationTrackM>,
     override val boundingBox: BoundingBox?,
     override val segmentCount: Int,
-) : AlignmentHeader<LocationTrack, LocationTrackName, LocationTrackState>() {
+) : AlignmentHeader<LocationTrack, LocationTrackState>() {
     override val alignmentSource = MapAlignmentSource.LAYOUT
     override val alignmentType = MapAlignmentType.LOCATION_TRACK
 }

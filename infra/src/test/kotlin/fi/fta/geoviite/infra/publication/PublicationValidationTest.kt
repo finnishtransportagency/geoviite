@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -497,7 +497,7 @@ class PublicationValidationTest {
         val lt = locationTrack(IntId(0), duplicateOf = IntId(0), draft = true)
         assertContainsError(
             true,
-            validateDuplicateOfState(lt, lt, LocationTrackName("duplicateof"), false, listOf()),
+            validateDuplicateOfState(lt, lt, AlignmentName("duplicateof"), false, listOf()),
             "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-of-duplicated",
         )
     }

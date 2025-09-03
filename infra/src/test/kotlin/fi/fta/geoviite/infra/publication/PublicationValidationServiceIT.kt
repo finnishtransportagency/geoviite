@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
@@ -240,11 +239,11 @@ constructor(
                 LayoutValidationIssue(
                     LayoutValidationIssueType.FATAL,
                     "validation.layout.location-track.duplicate-name-draft",
-                    mapOf("locationTrack" to LocationTrackName("NLT"), "trackNumber" to TrackNumber("TN")),
+                    mapOf("locationTrack" to AlignmentName("NLT"), "trackNumber" to TrackNumber("TN")),
                 )
             },
             validation.validatedAsPublicationUnit.locationTracks
-                .filter { lt -> lt.name == LocationTrackName("NLT") }
+                .filter { lt -> lt.name == AlignmentName("NLT") }
                 .flatMap { it.issues },
         )
 

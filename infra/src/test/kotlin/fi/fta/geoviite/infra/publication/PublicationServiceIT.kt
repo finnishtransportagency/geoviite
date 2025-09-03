@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
@@ -8,7 +9,6 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -75,6 +75,8 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
+import java.math.BigDecimal
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -90,8 +92,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
-import java.math.BigDecimal
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -864,7 +864,7 @@ constructor(
         val lt1OriginalVersion = locationTrackDao.save(lt1, someGeometry)
         val lt1RenamedDraft =
             locationTrackDao.save(
-                asMainDraft(locationTrackDao.fetch(lt1OriginalVersion).copy(name = LocationTrackName("LT2"))),
+                asMainDraft(locationTrackDao.fetch(lt1OriginalVersion).copy(name = AlignmentName("LT2"))),
                 someGeometry,
             )
 
@@ -872,7 +872,7 @@ constructor(
         val lt2OriginalVersion = locationTrackDao.save(lt2, someGeometry)
         val lt2RenamedDraft =
             locationTrackDao.save(
-                asMainDraft(locationTrackDao.fetch(lt2OriginalVersion).copy(name = LocationTrackName("LT1"))),
+                asMainDraft(locationTrackDao.fetch(lt2OriginalVersion).copy(name = AlignmentName("LT1"))),
                 someGeometry,
             )
 
@@ -1017,7 +1017,7 @@ constructor(
         )
         testDraftContext.save(
             asDesignDraft(
-                mainOfficialContext.fetch(locationTrack)!!.copy(name = LocationTrackName("edited")),
+                mainOfficialContext.fetch(locationTrack)!!.copy(name = AlignmentName("edited")),
                 testBranch.designId,
             )
         )
@@ -1363,7 +1363,7 @@ constructor(
             )
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            targetTrackToModify.copy(name = LocationTrackName("Some other draft name")),
+            targetTrackToModify.copy(name = AlignmentName("Some other draft name")),
             targetAlignment,
         )
 

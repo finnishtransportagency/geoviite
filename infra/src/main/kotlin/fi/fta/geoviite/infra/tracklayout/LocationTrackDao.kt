@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
 import fi.fta.geoviite.infra.geometry.MetaDataName
@@ -32,8 +31,6 @@ import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setForceCustomPlan
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -103,8 +100,8 @@ class LocationTrackDao(
 
     fun findNameDuplicates(
         context: LayoutContext,
-        names: List<LocationTrackName>,
-    ): Map<LocationTrackName, List<LayoutRowVersion<LocationTrack>>> {
+        names: List<AlignmentName>,
+    ): Map<AlignmentName, List<LayoutRowVersion<LocationTrack>>> {
         return if (names.isEmpty()) {
             emptyMap()
         } else {
@@ -123,9 +120,9 @@ class LocationTrackDao(
                     "design_id" to context.branch.designId?.intValue,
                 )
             val found =
-                jdbcTemplate.query<Pair<LocationTrackName, LayoutRowVersion<LocationTrack>>>(sql, params) { rs, _ ->
+                jdbcTemplate.query<Pair<AlignmentName, LayoutRowVersion<LocationTrack>>>(sql, params) { rs, _ ->
                     val daoResponse = rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
-                    val name = rs.getString("name").let(::LocationTrackName)
+                    val name = rs.getString("name").let(::AlignmentName)
                     name to daoResponse
                 }
             // Ensure that the result contains all asked-for names, even if there are no matches
@@ -254,7 +251,7 @@ class LocationTrackDao(
         LocationTrack(
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
-            name = rs.getString("name").let(::LocationTrackName),
+            name = rs.getString("name").let(::AlignmentName),
             nameStructure =
                 LocationTrackNameStructure.of(
                     scheme = rs.getEnum("naming_scheme"),
@@ -279,14 +276,7 @@ class LocationTrackDao(
             ownerId = rs.getIntId("owner_id"),
             switchIds = rs.getIntIdArray("switch_ids"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "design_asset_state",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
 
     @Transactional
@@ -420,14 +410,14 @@ class LocationTrackDao(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
-        names: List<LocationTrackName> = emptyList(),
+        names: List<AlignmentName> = emptyList(),
     ) = fetchVersions(layoutContext, includeDeleted, trackNumberId, names).let(::fetchMany)
 
     fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<LayoutTrackNumber>? = null,
-        names: List<LocationTrackName> = emptyList(),
+        names: List<AlignmentName> = emptyList(),
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """

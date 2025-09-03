@@ -1,11 +1,11 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Uuid
@@ -39,12 +39,12 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
 
 @GeoviiteService
 class PublicationService
@@ -489,7 +489,7 @@ constructor(
                 if (trackNumberVersion != null) {
                     val trackNumber = trackNumberDao.fetch(trackNumberVersion)
                     throw DuplicateLocationTrackNameInPublicationException(
-                        LocationTrackName(nameString),
+                        AlignmentName(nameString),
                         trackNumber.number,
                         exception,
                     )
@@ -533,10 +533,7 @@ constructor(
                     ?: throw TrackLayoutVersionNotFound("trackLayoutVersion=${uuid}")
             } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
 
-        return PublicationComparison(
-            fromPublication,
-            toPublication,
-        )
+        return PublicationComparison(fromPublication, toPublication)
     }
 
     fun getPublicationByUuidOrLatest(branchType: LayoutBranchType, publicationUuid: Uuid<Publication>?): Publication {

@@ -17,7 +17,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.ProjectName
@@ -118,7 +117,6 @@ class WebConfig(
         logger.info("Registering layout name converters")
         registry.addStringConstructorConverter(::TrackNumber)
         registry.addStringConstructorConverter(::AlignmentName)
-        registry.addStringConstructorConverter(::LocationTrackName)
         registry.addStringConstructorConverter(::SwitchName)
         registry.addStringConstructorConverter(::JointNumber)
 

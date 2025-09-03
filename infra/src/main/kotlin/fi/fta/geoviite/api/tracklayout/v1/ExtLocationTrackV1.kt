@@ -1,7 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import fi.fta.geoviite.infra.common.LocationTrackName
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -16,7 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 @Schema(name = "Sijaintiraide")
 data class ExtLocationTrackV1(
     @JsonProperty(LOCATION_TRACK_OID) val locationTrackOid: Oid<LocationTrack>,
-    @JsonProperty(LOCATION_TRACK_NAME) val locationTrackName: LocationTrackName,
+    @JsonProperty(LOCATION_TRACK_NAME) val locationTrackName: AlignmentName,
     @JsonProperty(TRACK_NUMBER) val trackNumberName: TrackNumber,
     @JsonProperty(TRACK_NUMBER_OID) val trackNumberOid: Oid<LayoutTrackNumber>,
     @JsonProperty(TYPE) val locationTrackType: ExtLocationTrackTypeV1,

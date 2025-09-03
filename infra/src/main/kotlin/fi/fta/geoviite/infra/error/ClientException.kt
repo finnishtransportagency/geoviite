@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.error
 
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
@@ -163,7 +163,7 @@ class DuplicateNameInPublicationException(
     )
 
 class DuplicateLocationTrackNameInPublicationException(
-    locationTrackName: LocationTrackName,
+    locationTrackName: AlignmentName,
     trackNumber: TrackNumber,
     cause: Throwable? = null,
 ) :
@@ -175,7 +175,7 @@ class DuplicateLocationTrackNameInPublicationException(
         localizedMessageParams = localizationParams("locationTrack" to locationTrackName, "trackNumber" to trackNumber),
     )
 
-class SplitSourceLocationTrackUpdateException(locationTrackName: LocationTrackName, cause: Throwable? = null) :
+class SplitSourceLocationTrackUpdateException(locationTrackName: AlignmentName, cause: Throwable? = null) :
     ClientException(
         status = BAD_REQUEST,
         message = "Split source location track updates are not allowed",

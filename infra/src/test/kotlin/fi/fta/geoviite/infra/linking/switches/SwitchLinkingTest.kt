@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.asSwitchStructure
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
@@ -1143,14 +1143,14 @@ fun assertTrackAndGeometry(
 
 fun assertTrackAndGeometry(
     tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
-    name: LocationTrackName,
+    name: AlignmentName,
 ): Pair<LocationTrack, LocationTrackGeometry> {
     val trackAndGeometry = tracks.firstOrNull { (locationTrack, _) -> locationTrack.name == name }
     assertNotNull(trackAndGeometry, "Tracks do not contain location track '$name'")
     return trackAndGeometry
 }
 
-fun assertTracksExists(tracks: List<Pair<LocationTrack, LocationTrackGeometry>>, vararg trackNames: LocationTrackName) {
+fun assertTracksExists(tracks: List<Pair<LocationTrack, LocationTrackGeometry>>, vararg trackNames: AlignmentName) {
     trackNames.forEach { name -> assertTrackAndGeometry(tracks, name) }
 }
 

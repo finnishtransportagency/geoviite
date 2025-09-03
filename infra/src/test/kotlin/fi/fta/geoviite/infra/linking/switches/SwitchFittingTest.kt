@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.asSwitchStructure
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
@@ -42,7 +42,7 @@ data class TrackForSwitchFitting(
         // must fake a stored asset ID because the switch linking code implements its own version-based locking
         val contextData =
             MainOfficialContextData(StoredAssetId(LayoutRowVersion(LayoutRowId(newId, LayoutBranch.main.official), 1)))
-        return copy(locationTrack = locationTrack.copy(contextData = contextData, name = LocationTrackName(name)))
+        return copy(locationTrack = locationTrack.copy(contextData = contextData, name = AlignmentName(name)))
     }
 
     fun startPoint(): IPoint {

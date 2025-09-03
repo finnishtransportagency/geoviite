@@ -1,13 +1,13 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.Oid
@@ -99,6 +99,10 @@ import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.queryOne
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -107,10 +111,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -199,7 +199,7 @@ constructor(
         locationTrackDao.insertExternalId(official.id, LayoutBranch.main, oid)
         val draft =
             locationTrackService.getOrThrow(MainLayoutContext.draft, official.id).let { orig ->
-                orig.copy(name = LocationTrackName("${orig.name}-draft"))
+                orig.copy(name = AlignmentName("${orig.name}-draft"))
             }
         locationTrackService.saveDraft(LayoutBranch.main, draft, locationTrackGeometry)
         fakeRatko.hasLocationTrack(ratkoLocationTrack(id = oid.toString()))
@@ -1647,13 +1647,7 @@ constructor(
             )
         val switch =
             designDraftContext.save(
-                switch(
-                    joints =
-                        listOf(
-                            switchJoint(1, Point(4.0, 0.0)),
-                            switchJoint(3, Point(8.0, 0.0)),
-                        )
-                )
+                switch(joints = listOf(switchJoint(1, Point(4.0, 0.0)), switchJoint(3, Point(8.0, 0.0))))
             )
         val locationTrack =
             designDraftContext.save(

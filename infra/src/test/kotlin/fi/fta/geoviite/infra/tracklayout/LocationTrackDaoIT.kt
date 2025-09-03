@@ -1,12 +1,12 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DesignLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.LocationTrackName
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
@@ -125,7 +125,7 @@ constructor(
         assertEquals(insertVersion, locationTrackDao.fetchVersion(MainLayoutContext.draft, id))
         assertMatches(tempGeometry, alignmentDao.fetch(insertVersion))
 
-        val tempDraft1 = asMainDraft(inserted).copy(name = LocationTrackName("test2"))
+        val tempDraft1 = asMainDraft(inserted).copy(name = AlignmentName("test2"))
         val draftVersion1 = locationTrackDao.save(tempDraft1, tempGeometry)
         val draftId1 = draftVersion1.id
         val draft1 = locationTrackDao.fetch(draftVersion1)
@@ -361,14 +361,11 @@ constructor(
         val officialVersion =
             locationTrackDao.save(locationTrack(tnId, name = "official", draft = false), TmpLocationTrackGeometry.empty)
         val official = locationTrackDao.fetch(officialVersion)
-        locationTrackDao.save(
-            asMainDraft(official.copy(name = LocationTrackName("draft"))),
-            TmpLocationTrackGeometry.empty,
-        )
+        locationTrackDao.save(asMainDraft(official.copy(name = AlignmentName("draft"))), TmpLocationTrackGeometry.empty)
         val bothDesign = layoutDesignDao.insert(layoutDesign("both"))
         val bothDesignInitialDesignDraftFromOfficial =
             locationTrackDao.save(
-                asDesignDraft(official.copy(name = LocationTrackName("design-official both")), bothDesign),
+                asDesignDraft(official.copy(name = AlignmentName("design-official both")), bothDesign),
                 TmpLocationTrackGeometry.empty,
             )
         val updatedToDesignOfficial =
@@ -379,14 +376,14 @@ constructor(
         val bothDesignDesignDraftVersion =
             locationTrackDao.save(
                 asDesignDraft(
-                    locationTrackDao.fetch(updatedToDesignOfficial).copy(name = LocationTrackName("design-draft both")),
+                    locationTrackDao.fetch(updatedToDesignOfficial).copy(name = AlignmentName("design-draft both")),
                     bothDesign,
                 ),
                 TmpLocationTrackGeometry.empty,
             )
         val onlyDraftDesign = layoutDesignDao.insert(layoutDesign("onlyDraft"))
         locationTrackDao.save(
-            asDesignDraft(official.copy(name = LocationTrackName("design-draft onlyDraft")), onlyDraftDesign),
+            asDesignDraft(official.copy(name = AlignmentName("design-draft onlyDraft")), onlyDraftDesign),
             TmpLocationTrackGeometry.empty,
         )
 
@@ -437,7 +434,7 @@ constructor(
         val lastDesignDraftVersion =
             locationTrackDao.save(
                 asDesignDraft(
-                    locationTrackDao.fetch(bothDesignNowOfficial).copy(name = LocationTrackName("design-draft")),
+                    locationTrackDao.fetch(bothDesignNowOfficial).copy(name = AlignmentName("design-draft")),
                     bothDesign,
                 ),
                 TmpLocationTrackGeometry.empty,
@@ -521,7 +518,7 @@ constructor(
         val designDraftVersion =
             locationTrackDao.save(
                 asDesignDraft(
-                    locationTrackDao.fetch(official).copy(name = LocationTrackName("design-official")),
+                    locationTrackDao.fetch(official).copy(name = AlignmentName("design-official")),
                     someDesignId,
                 ),
                 TmpLocationTrackGeometry.empty,
