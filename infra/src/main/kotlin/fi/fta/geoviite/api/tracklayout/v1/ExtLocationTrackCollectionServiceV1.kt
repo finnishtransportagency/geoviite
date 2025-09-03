@@ -63,7 +63,7 @@ constructor(
             ?.let { modifiedLocationTracks ->
                 ExtModifiedLocationTrackCollectionResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
-                    trackLayoutVersion = publications.to.uuid,
+                    trackLayoutVersionTo = publications.to.uuid,
                     coordinateSystem = coordinateSystem,
                     locationTrackCollection =
                         extGetLocationTrackCollection(
