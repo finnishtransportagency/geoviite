@@ -2201,7 +2201,7 @@ constructor(
             LayoutBranch.main,
             PublicationRequest(
                 publicationRequestIds(switches = split.relinkedSwitches, locationTracks = split.locationTracks),
-                FreeTextWithNewLines.of(""),
+                PublicationMessage.of(""),
             ),
         )
     }
