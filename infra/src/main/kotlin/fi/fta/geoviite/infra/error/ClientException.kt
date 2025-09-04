@@ -3,11 +3,13 @@ package fi.fta.geoviite.infra.error
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.util.formatForException
 import kotlin.reflect.KClass
 import org.springframework.http.HttpStatus
@@ -39,6 +41,30 @@ open class ClientException(
 
 class GeocodingFailureException(message: String, cause: Throwable? = null) :
     ClientException(BAD_REQUEST, "Geocoding failed: $message", cause, "error.geocoding.generic")
+
+class UnsupportedSridException(srid: Srid, cause: Throwable? = null) :
+    ClientException(
+        status = BAD_REQUEST,
+        message = "Unsupported coordinate reference system: $srid",
+        cause = cause,
+        localizedMessageKey = "error.coordinate-transformation.unsupported-srid",
+        localizedMessageParams = localizationParams("srid" to srid),
+    )
+
+class CoordinateTransformationException(
+    point: IPoint,
+    sourceSrid: Srid,
+    targetSrid: Srid,
+    cause: Throwable? = null,
+) :
+    ClientException(
+        status = BAD_REQUEST,
+        message = "Could not transform coordinate: x=${point.x} y=${point.y} source=$sourceSrid target=$targetSrid",
+        cause = cause,
+        localizedMessageKey = "error.coordinate-transformation.generic",
+        localizedMessageParams =
+            localizationParams("sourceSrid" to sourceSrid, "targetSrid" to targetSrid, "x" to point.x, "y" to point.y),
+    )
 
 class LinkingFailureException(
     message: String,
