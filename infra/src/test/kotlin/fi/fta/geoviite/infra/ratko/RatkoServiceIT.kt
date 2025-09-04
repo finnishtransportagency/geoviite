@@ -83,6 +83,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameFreeTextPart
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
@@ -2400,7 +2401,7 @@ fun testCreateSplitRequestTargets(
             duplicateTrack = targetDuplicate,
             startAtSwitchId = startAtSwitchId,
             namingScheme = LocationTrackNamingScheme.FREE_TEXT,
-            nameFreeText = AlignmentName("split test track $index"),
+            nameFreeText = LocationTrackNameFreeTextPart("split test track $index"),
             nameSpecifier = null,
             descriptionBase = LocationTrackDescriptionBase("test description $index"),
             descriptionSuffix = LocationTrackDescriptionSuffix.NONE,

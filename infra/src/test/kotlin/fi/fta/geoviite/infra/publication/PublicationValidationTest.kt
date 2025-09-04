@@ -671,6 +671,7 @@ class PublicationValidationTest {
     @Test
     fun `Switch name form validation throws if not given proper switches`() {
         val switch = switch(name = "HKI V0001", id = IntId(0))
+        val switch2 = switch(name = "HKI V0002", id = IntId(1))
         val locationTrack =
             locationTrack(
                 IntId(0),
@@ -683,9 +684,10 @@ class PublicationValidationTest {
             )
 
         assertThrows<IllegalArgumentException> {
-            validateLocationTrackEndSwitchNamingScheme(locationTrack, null, null)
-            validateLocationTrackEndSwitchNamingScheme(locationTrack, switch, switch)
-            validateLocationTrackEndSwitchNamingScheme(locationTrack, null, switch)
+            validateLocationTrackEndSwitchNamingScheme(locationTrack, switch2, null)
+        }
+        assertThrows<IllegalArgumentException> {
+            validateLocationTrackEndSwitchNamingScheme(locationTrack, switch, switch2)
         }
         assertDoesNotThrow { validateLocationTrackEndSwitchNamingScheme(locationTrack, switch, null) }
     }

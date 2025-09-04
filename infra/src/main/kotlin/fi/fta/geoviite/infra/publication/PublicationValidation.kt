@@ -262,10 +262,10 @@ fun validateLocationTrackEndSwitchNamingScheme(
     startSwitch: LayoutSwitch?,
     endSwitch: LayoutSwitch?,
 ): List<LayoutValidationIssue> {
-    require(track.startSwitchId == startSwitch?.id) {
+    require(startSwitch == null || track.startSwitchId == startSwitch.id) {
         "start switch id does not match track's start switch id: ${track.startSwitchId} != ${startSwitch?.id}"
     }
-    require(track.endSwitchId == endSwitch?.id) {
+    require(endSwitch == null || track.endSwitchId == endSwitch.id) {
         "end switch id does not match track's end switch id: ${track.endSwitchId} != ${endSwitch?.id}"
     }
 
@@ -275,12 +275,12 @@ fun validateLocationTrackEndSwitchNamingScheme(
         track.nameStructure is LocationTrackNameChord || track.nameStructure is LocationTrackNameBetweenOperatingPoints
     val descriptionHasSwitchNames = track.descriptionStructure.suffix != LocationTrackDescriptionSuffix.NONE
 
-    if (nameHasSwitchNames || descriptionHasSwitchNames) {
-        if (startSwitch != null) errorList.addAll(validateSwitchNameShortenability(startSwitch))
-        if (endSwitch != null) errorList.addAll(validateSwitchNameShortenability(endSwitch))
-    }
+    return if (nameHasSwitchNames || descriptionHasSwitchNames) {
+        val startSwitchErrors = if (startSwitch != null) validateSwitchNameShortenability(startSwitch) else emptyList()
+        val endSwitchErrors = if (endSwitch != null) validateSwitchNameShortenability(endSwitch) else emptyList()
 
-    return errorList
+        startSwitchErrors + endSwitchErrors
+    } else emptyList()
 }
 
 fun validateLocationTrackNameDuplication(
