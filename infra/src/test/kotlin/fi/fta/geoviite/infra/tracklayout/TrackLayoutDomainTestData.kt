@@ -462,7 +462,11 @@ fun trackNameStructure(
     scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT,
     specifier: LocationTrackNameSpecifier? = null,
 ): LocationTrackNameStructure =
-    LocationTrackNameStructure.of(scheme = scheme, freeText = AlignmentName(freeText), specifier = specifier)
+    LocationTrackNameStructure.of(
+        scheme = scheme,
+        freeText = LocationTrackNameFreeTextPart(freeText),
+        specifier = specifier,
+    )
 
 fun locationTrack(
     trackNumberId: IntId<LayoutTrackNumber>,

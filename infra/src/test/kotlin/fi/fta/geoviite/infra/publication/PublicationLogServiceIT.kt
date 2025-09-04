@@ -45,6 +45,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameFreeTextPart
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
@@ -308,7 +309,7 @@ constructor(
                     LayoutBranch.main,
                     LocationTrackSaveRequest(
                         LocationTrackNamingScheme.FREE_TEXT,
-                        AlignmentName("TEST duplicate"),
+                        LocationTrackNameFreeTextPart("TEST duplicate"),
                         null,
                         LocationTrackDescriptionBase("Test"),
                         LocationTrackDescriptionSuffix.NONE,
@@ -328,7 +329,7 @@ constructor(
                     LayoutBranch.main,
                     LocationTrackSaveRequest(
                         LocationTrackNamingScheme.FREE_TEXT,
-                        AlignmentName("TEST duplicate 2"),
+                        LocationTrackNameFreeTextPart("TEST duplicate 2"),
                         null,
                         LocationTrackDescriptionBase("Test"),
                         LocationTrackDescriptionSuffix.NONE,
@@ -348,7 +349,7 @@ constructor(
                     LayoutBranch.main,
                     LocationTrackSaveRequest(
                         LocationTrackNamingScheme.FREE_TEXT,
-                        AlignmentName("TEST"),
+                        LocationTrackNameFreeTextPart("TEST"),
                         null,
                         LocationTrackDescriptionBase("Test"),
                         LocationTrackDescriptionSuffix.NONE,
@@ -373,7 +374,7 @@ constructor(
                     locationTrack.id,
                     LocationTrackSaveRequest(
                         namingScheme = LocationTrackNamingScheme.FREE_TEXT,
-                        nameFreeText = AlignmentName("TEST2"),
+                        nameFreeText = LocationTrackNameFreeTextPart("TEST2"),
                         nameSpecifier = null,
                         descriptionBase = LocationTrackDescriptionBase("Test2"),
                         descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
@@ -419,7 +420,7 @@ constructor(
         val saveReq =
             LocationTrackSaveRequest(
                 LocationTrackNamingScheme.FREE_TEXT,
-                AlignmentName("TEST"),
+                LocationTrackNameFreeTextPart("TEST"),
                 null,
                 LocationTrackDescriptionBase("Test"),
                 LocationTrackDescriptionSuffix.NONE,

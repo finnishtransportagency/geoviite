@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.split
 
-import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
@@ -9,6 +8,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameFreeTextPart
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 
 fun splitRequest(trackId: IntId<LocationTrack>, vararg targets: SplitRequestTarget): SplitRequest =
@@ -26,7 +26,7 @@ fun targetRequest(
         duplicateTrack = duplicateTrackId?.let { id -> SplitRequestTargetDuplicate(id, operation) },
         startAtSwitchId = startAtSwitchId,
         namingScheme = LocationTrackNamingScheme.FREE_TEXT,
-        nameFreeText = AlignmentName(name),
+        nameFreeText = LocationTrackNameFreeTextPart(name),
         nameSpecifier = null,
         descriptionBase = LocationTrackDescriptionBase(descriptionBase),
         descriptionSuffix = descriptionSuffix,
@@ -55,7 +55,7 @@ fun targetParams(
                     },
                 startAtSwitchId = switchId,
                 namingScheme = LocationTrackNamingScheme.FREE_TEXT,
-                nameFreeText = AlignmentName(name),
+                nameFreeText = LocationTrackNameFreeTextPart(name),
                 nameSpecifier = null,
                 descriptionBase = LocationTrackDescriptionBase(descriptionBase),
                 descriptionSuffix = descriptionSuffixType,

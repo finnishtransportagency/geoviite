@@ -788,7 +788,7 @@ constructor(
                 LayoutBranch.main,
                 split.sourceLocationTrackId,
                 LocationTrackSaveRequest(
-                    nameFreeText = AlignmentName("Some other name"),
+                    nameFreeText = LocationTrackNameFreeTextPart("Some other name"),
                     namingScheme = LocationTrackNamingScheme.FREE_TEXT,
                     nameSpecifier = null,
                     descriptionBase = sourceLocationTrack.descriptionStructure.base,
@@ -1036,7 +1036,10 @@ constructor(
 
         // Operating point name is basically just a different free text
         updateDraft(trackId) { t, g ->
-            t.copy(nameStructure = LocationTrackNameWithinOperatingPoint(AlignmentName("within operating point"))) to g
+            t.copy(
+                nameStructure =
+                    LocationTrackNameWithinOperatingPoint(LocationTrackNameFreeTextPart("within operating point"))
+            ) to g
         }
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.WITHIN_OPERATING_POINT, structure.scheme)
@@ -1047,7 +1050,10 @@ constructor(
         updateDraft(trackId) { t, g ->
             t.copy(
                 nameStructure =
-                    LocationTrackNameByTrackNumber(AlignmentName("tn-track"), LocationTrackNameSpecifier.LANHR)
+                    LocationTrackNameByTrackNumber(
+                        LocationTrackNameFreeTextPart("tn-track"),
+                        LocationTrackNameSpecifier.LANHR,
+                    )
             ) to g
         }
         getDraftNameAndStructure(trackId).let { (name, structure) ->
@@ -1271,7 +1277,7 @@ constructor(
     private fun saveRequest(trackNumberId: IntId<LayoutTrackNumber>, seed: Int) =
         LocationTrackSaveRequest(
             namingScheme = LocationTrackNamingScheme.FREE_TEXT,
-            nameFreeText = AlignmentName("TST-TRACK$seed"),
+            nameFreeText = LocationTrackNameFreeTextPart("TST-TRACK$seed"),
             nameSpecifier = null,
             descriptionBase = LocationTrackDescriptionBase("Description - $seed"),
             descriptionSuffix = LocationTrackDescriptionSuffix.NONE,

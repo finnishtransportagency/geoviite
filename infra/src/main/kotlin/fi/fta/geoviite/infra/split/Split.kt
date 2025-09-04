@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameFreeTextPart
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameSpecifier
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
@@ -136,7 +137,7 @@ data class SplitRequestTarget(
     val duplicateTrack: SplitRequestTargetDuplicate?,
     val startAtSwitchId: IntId<LayoutSwitch>?,
     val namingScheme: LocationTrackNamingScheme,
-    val nameFreeText: AlignmentName?,
+    val nameFreeText: LocationTrackNameFreeTextPart?,
     val nameSpecifier: LocationTrackNameSpecifier?,
     val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: LocationTrackDescriptionSuffix,

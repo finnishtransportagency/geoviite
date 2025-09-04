@@ -5,15 +5,14 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.util.StringSanitizer
 
-const val ALLOWED_CHARACTERS = "A-Za-zÄÖÅäöå0-9 \\-_/!?"
-const val ALLOWED_ALIGNMENT_NAME_LENGTH = 150
+const val ALLOWED_ALIGNMENT_NAME_CHARACTERS = "A-Za-zÄÖÅäöå0-9 \\-_/!?"
 
 data class AlignmentName @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
     Comparable<AlignmentName>, CharSequence by value {
 
     companion object {
-        val allowedLength = 1..ALLOWED_ALIGNMENT_NAME_LENGTH
-        val sanitizer = StringSanitizer(AlignmentName::class, ALLOWED_CHARACTERS, allowedLength)
+        val allowedLength = 1..150
+        val sanitizer = StringSanitizer(AlignmentName::class, ALLOWED_ALIGNMENT_NAME_CHARACTERS, allowedLength)
 
         fun ofUnsafe(value: String) = value.trim().let(sanitizer::sanitize).let(::AlignmentName)
     }

@@ -1,6 +1,10 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.common.ALLOWED_ALIGNMENT_NAME_CHARACTERS
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
@@ -16,6 +20,26 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.StringSanitizer
+
+data class LocationTrackNameFreeTextPart @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
+    Comparable<LocationTrackNameFreeTextPart>, CharSequence by value {
+
+    companion object {
+        val allowedLength = 1..50
+        val sanitizer =
+            StringSanitizer(LocationTrackNameFreeTextPart::class, ALLOWED_ALIGNMENT_NAME_CHARACTERS, allowedLength)
+    }
+
+    init {
+        sanitizer.assertSanitized(value)
+        sanitizer.assertTrimmed(value)
+    }
+
+    @JsonValue override fun toString(): String = value
+
+    override fun compareTo(other: LocationTrackNameFreeTextPart): Int = value.compareTo(other.value)
+}
 
 enum class LocationTrackType {
     MAIN, // Pääraide
@@ -93,13 +117,13 @@ private fun getShortName(switch: LayoutSwitch?): String =
 
 sealed class LocationTrackNameStructure {
     abstract val scheme: LocationTrackNamingScheme
-    open val freeText: AlignmentName? = null
+    open val freeText: LocationTrackNameFreeTextPart? = null
     open val specifier: LocationTrackNameSpecifier? = null
 
     companion object {
         fun of(
             scheme: LocationTrackNamingScheme,
-            freeText: AlignmentName? = null,
+            freeText: LocationTrackNameFreeTextPart? = null,
             specifier: LocationTrackNameSpecifier? = null,
         ): LocationTrackNameStructure =
             when (scheme) {
@@ -124,24 +148,26 @@ sealed class LocationTrackNameStructure {
     /** This logic is duplicated in frontend track-layout-model.tsx#formatTrackName */
     fun reify(trackNumber: LayoutTrackNumber, startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName =
         when (this) {
-            is LocationTrackNameFreeText -> freeText
-            is LocationTrackNameWithinOperatingPoint -> freeText
+            is LocationTrackNameFreeText -> AlignmentName(freeText.toString())
+            is LocationTrackNameWithinOperatingPoint -> AlignmentName(freeText.toString())
             is LocationTrackNameBetweenOperatingPoints -> format(startSwitch, endSwitch)
             is LocationTrackNameByTrackNumber -> format(trackNumber.number)
             is LocationTrackNameChord -> format(startSwitch, endSwitch)
         }
 }
 
-data class LocationTrackNameFreeText(override val freeText: AlignmentName) : LocationTrackNameStructure() {
+data class LocationTrackNameFreeText(override val freeText: LocationTrackNameFreeTextPart) :
+    LocationTrackNameStructure() {
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT
 }
 
-data class LocationTrackNameWithinOperatingPoint(override val freeText: AlignmentName) : LocationTrackNameStructure() {
+data class LocationTrackNameWithinOperatingPoint(override val freeText: LocationTrackNameFreeTextPart) :
+    LocationTrackNameStructure() {
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.WITHIN_OPERATING_POINT
 }
 
 data class LocationTrackNameByTrackNumber(
-    override val freeText: AlignmentName?,
+    override val freeText: LocationTrackNameFreeTextPart?,
     override val specifier: LocationTrackNameSpecifier,
 ) : LocationTrackNameStructure() {
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.TRACK_NUMBER_TRACK

@@ -40,6 +40,7 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameFreeTextPart
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
@@ -119,6 +120,7 @@ class WebConfig(
         registry.addStringConstructorConverter(::AlignmentName)
         registry.addStringConstructorConverter(::SwitchName)
         registry.addStringConstructorConverter(::JointNumber)
+        registry.addStringConstructorConverter(::LocationTrackNameFreeTextPart)
 
         logger.info("Registering custom ID converters")
         registry.addStringConstructorConverter { DomainId.parse<Any>(it) }

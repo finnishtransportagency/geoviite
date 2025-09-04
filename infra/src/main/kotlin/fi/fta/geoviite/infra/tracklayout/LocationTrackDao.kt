@@ -255,7 +255,7 @@ class LocationTrackDao(
             nameStructure =
                 LocationTrackNameStructure.of(
                     scheme = rs.getEnum("naming_scheme"),
-                    freeText = rs.getString("name_free_text")?.let(::AlignmentName),
+                    freeText = rs.getString("name_free_text")?.let(::LocationTrackNameFreeTextPart),
                     specifier = rs.getEnumOrNull<LocationTrackNameSpecifier>("name_specifier"),
                 ),
             descriptionStructure =
