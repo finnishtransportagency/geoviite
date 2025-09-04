@@ -4,9 +4,11 @@ import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
 import fi.fta.geoviite.infra.authorization.AUTH_API_SWAGGER
+import fi.fta.geoviite.infra.environmentInfo.EnvironmentInfo
 import io.swagger.v3.oas.annotations.Hidden
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Profile
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
@@ -25,7 +27,11 @@ val allowedApiDefinitionPaths =
 
 @GeoviiteExtApiController([])
 @Hidden // These controller paths are hidden from the dynamically generated OpenApi definitions.
-class SwaggerController {
+class SwaggerController
+@Autowired
+constructor(
+    private val environmentInfo: EnvironmentInfo,
+) {
 
     @PreAuthorize(AUTH_API_GEOMETRY)
     @GetMapping(
@@ -90,7 +96,7 @@ class SwaggerController {
         @PathVariable prefix: String,
         @PathVariable path: String,
     ) {
-        swaggerResourceRequest("/$prefix", request, response)
+        swaggerResourceRequest("/$prefix", request, response, environmentInfo)
     }
 
     @Profile("ext-api-dev-swagger")
@@ -102,7 +108,7 @@ class SwaggerController {
         @PathVariable prefix: String,
         @PathVariable path: String,
     ) {
-        swaggerResourceRequest("/$prefix/dev", request, response)
+        swaggerResourceRequest("/$prefix/dev", request, response, environmentInfo)
     }
 }
 
@@ -110,6 +116,7 @@ private fun swaggerResourceRequest(
     prefixWithLeadingSlash: String,
     request: HttpServletRequest,
     response: HttpServletResponse,
+    environmentInfo: EnvironmentInfo,
 ) {
     val resourcePrefixOk = allowedResourcePrefixes.contains(prefixWithLeadingSlash)
     val apiDefinitionPathOk = request.getParameter("url")?.let(allowedApiDefinitionPaths::contains) ?: true

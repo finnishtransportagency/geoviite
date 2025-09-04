@@ -6,7 +6,7 @@ info:
 
     Geoviitteen yhtenäisen rataverkon vastaavuutta maastoon rakennettuun rataverkkoon ei voida taata, joten viitekehysmuuntimen palauttamia tietoa ei tule käyttää suurta tarkkuutta vaativiin tehtäviin, esim. uusien suunnitelmien pohjatiedoksi.
 
-    Ongelmatilanteessa ota yhteys ylläpitoon: geoviite.support@solita.fi
+    Ongelmatilanteessa ota yhteys ylläpitoon: {GEOVIITE_SUPPORT_EMAIL}
   version: 1.0.0
 
 servers:
