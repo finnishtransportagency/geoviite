@@ -151,7 +151,18 @@ data class SplitRequestTarget(
         LocationTrackDescriptionStructure(base = descriptionBase, suffix = descriptionSuffix)
 }
 
-data class SplitRequest(val sourceTrackId: IntId<LocationTrack>, val targetTracks: List<SplitRequestTarget>)
+data class SplitRequest(val sourceTrackId: IntId<LocationTrack>, val targetTracks: List<SplitRequestTarget>) {
+    init {
+        require(targetTracks.none { target -> target.duplicateTrack?.id == sourceTrackId }) {
+            "Split request target tracks should not contain the source track"
+        }
+
+        val nonNullDuplicates = targetTracks.map { target -> target.duplicateTrack?.id }.filterNotNull()
+        require(nonNullDuplicates.size == nonNullDuplicates.toSet().size) {
+            "Split request target tracks contain non-distinct duplicate track ids. This would lead to geometry validation errors during publication."
+        }
+    }
+}
 
 data class SplittingInitializationParameters(
     val id: IntId<LocationTrack>,

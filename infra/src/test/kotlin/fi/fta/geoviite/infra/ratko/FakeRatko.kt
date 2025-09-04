@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoAssetType
 import fi.fta.geoviite.infra.ratko.model.RatkoCrs
 import fi.fta.geoviite.infra.ratko.model.RatkoGeometryType
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
+import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
 import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
@@ -46,6 +47,8 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
+import org.mockserver.model.Parameter
+import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -58,6 +61,8 @@ class FakeRatkoService @Autowired constructor(@Value("\${geoviite.ratko.test-por
 }
 
 class FakeRatko(port: Int) {
+    private val logger = LoggerFactory.getLogger(this::class.java)
+
     private val mockServer: ClientAndServer =
         ClientAndServer.startClientAndServer(Configuration.configuration().logLevel(Level.ERROR), port)
 
@@ -98,16 +103,120 @@ class FakeRatko(port: Int) {
         }
     }
 
-    fun acceptsNewLocationTrackGivingItOid(oid: String) {
+    fun acceptsNewLocationTrackGivingItOid(
+        oid: String,
+        ratkoLocationTrackAfterCreation: InterfaceRatkoLocationTrack? = null,
+    ) {
         post("/api/infra/v1.0/locationtracks", mapOf<String, String>(), MatchType.STRICT, Times.once())
             .respond(okJson(mapOf("id" to oid)))
         put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
         get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
+        ratkoLocationTrackAfterCreation?.let { ratkoTrack ->
+            get("/api/locations/v1.1/locationtracks/${oid}").respond(okJson(listOf(ratkoTrack)))
+        }
         post("/api/infra/v1.0/points/${oid}").respond(ok())
         patch("/api/infra/v1.0/points/${oid}").respond(ok())
         post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
         post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
+    }
+
+    fun acceptsMultipleNewLocationTracksWithReferencedGeometry(oids: List<String>, locationTrackOidOfGeometry: String) {
+        oids.forEach { oid -> acceptsNewLocationTrackWithReferencedGeometry(oid, locationTrackOidOfGeometry) }
+    }
+
+    fun acceptsNewLocationTrackWithReferencedGeometry(oid: String, locationTrackOidOfGeometry: String) {
+        post("/api/infra/v1.0/locationtracks", mapOf<String, String>(), MatchType.STRICT, Times.once())
+            .respond(okJson(mapOf("id" to oid)))
+        get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
+        post(
+                "/api/infra/v1.0/locationtracks",
+                mapOf("id" to oid),
+                MatchType.ONLY_MATCHING_FIELDS,
+                Times.once(),
+                queryParams = mapOf("locationtrackOidOfGeometry" to locationTrackOidOfGeometry),
+            )
+            .respond(okJson(mapOf("id" to oid)))
+
+        post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        patch("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+            .respond(okJson(listOf(mapOf("id" to oid))))
+    }
+
+    fun acceptsUpdatingLocationTrackWithReferencedGeometry(
+        existingRatkoLocationTrack: InterfaceRatkoLocationTrack,
+        locationTrackOidOfGeometry: String,
+    ) {
+        val oid = existingRatkoLocationTrack.id
+
+        get("/api/locations/v1.1/locationtracks/${oid}", Times.once())
+            .respond(okJson(listOf(existingRatkoLocationTrack)))
+        put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
+        patch(
+                "/api/infra/v1.1/locationtracks/${oid}",
+                mapOf<String, String>(),
+                MatchType.ONLY_MATCHING_FIELDS,
+                Times.once(),
+                queryParams = mapOf("locationtrackOIDOfGeometry" to locationTrackOidOfGeometry),
+            )
+            .respond(ok())
+        post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        patch("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+            .respond(okJson(listOf(mapOf("id" to oid))))
+    }
+
+    fun acceptsUpdatingLocationTrackPartiallyWithReferencedGeometry(
+        existingRatkoLocationTrack: InterfaceRatkoLocationTrack,
+        locationTrackOidOfGeometry: String,
+    ) {
+        val oid = existingRatkoLocationTrack.id
+
+        get("/api/locations/v1.1/locationtracks/${oid}", Times.once())
+            .respond(okJson(listOf(existingRatkoLocationTrack)))
+        put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
+        post(
+                "/api/infra/v1.0/locationtracks",
+                mapOf("id" to oid),
+                MatchType.ONLY_MATCHING_FIELDS,
+                Times.once(),
+                queryParams = mapOf("locationtrackOidOfGeometry" to locationTrackOidOfGeometry),
+            )
+            .respond(okJson(mapOf("id" to oid)))
+        patch(
+                "/api/infra/v1.1/locationtracks/${oid}",
+                mapOf<String, String>(),
+                MatchType.ONLY_MATCHING_FIELDS,
+                Times.once(),
+                queryParams = mapOf("locationtrackOIDOfGeometry" to locationTrackOidOfGeometry),
+            )
+            .respond(ok())
+        patch("/api/infra/v1.0/points/${oid}").respond(ok())
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+            .respond(okJson(listOf(mapOf("id" to oid))))
+    }
+
+    fun expectsLocationTrackStateTransforms(
+        locationTrackAsset: InterfaceRatkoLocationTrack,
+        states: List<RatkoLocationTrackState>,
+    ) {
+        get("/api/locations/v1.1/locationtracks/${locationTrackAsset.id}").respond(okJson(listOf(locationTrackAsset)))
+        patch("/api/infra/v1.0/points/${locationTrackAsset.id}").respond(ok())
+        locationTrackAsset.nodecollection.nodes
+            .map { node -> node.point.km }
+            .distinct()
+            .forEach { km -> delete("/api/infra/v1.0/points/${locationTrackAsset.id}/${km}").respond(ok()) }
+
+        states.forEach { state ->
+            put(
+                    "/api/infra/v1.0/locationtracks",
+                    mapOf("id" to locationTrackAsset.id, "state" to state.value),
+                    MatchType.ONLY_MATCHING_FIELDS,
+                    Times.once(),
+                )
+                .respond(ok())
+        }
     }
 
     fun acceptsNewLocationTrackWithoutPointsGivingItOid(oid: String) {
@@ -156,9 +265,12 @@ class FakeRatko(port: Int) {
             .forEach { km -> delete("/api/infra/v1.0/points/${locationTrackAsset.id}/${km}").respond(ok()) }
     }
 
-    fun hasSwitch(switchAsset: InterfaceRatkoSwitch) {
-        get("/api/assets/v1.2/${switchAsset.id}").respond(okJson(switchAsset))
+    fun hasSwitch(switchAsset: InterfaceRatkoSwitch, locations: List<RatkoAssetLocation>? = null) {
+        val pushedSwitch = if (locations == null) switchAsset else switchAsset.copy(locations = locations)
+        get("/api/assets/v1.2/${switchAsset.id}").respond(okJson(pushedSwitch))
         put("/api/assets/v1.2/${switchAsset.id}/properties").respond(ok())
+        put("/api/assets/v1.2/${switchAsset.id}/locations").respond(ok())
+        put("/api/assets/v1.2/${switchAsset.id}/geoms").respond(ok())
     }
 
     fun getPushedRouteNumber(oid: Oid<LayoutTrackNumber>): List<RatkoRouteNumber> =
@@ -281,7 +393,8 @@ class FakeRatko(port: Int) {
             .lastOrNull()
             ?.bodyAsString
 
-    fun hostPushedSwitch(oid: String) = hasSwitch(getLastPushedSwitch(oid)!!)
+    fun hostPushedSwitch(oid: String) =
+        hasSwitch(getLastPushedSwitch(oid)!!, getPushedSwitchLocations(oid).lastOrNull())
 
     fun getLastPushedSwitch(oid: String): InterfaceRatkoSwitch? = lastPushedSwitchBody(oid)?.let(jsonMapper::readValue)
 
@@ -356,35 +469,39 @@ class FakeRatko(port: Int) {
         }
 
     private fun get(url: String, times: Times? = null): ForwardChainExpectation =
-        expectation(url, "GET", null, null, times)
+        expectation(url, "GET", null, null, times, emptyMap())
 
     private fun put(
         url: String,
         body: Any? = null,
         bodyMatchType: MatchType? = null,
         times: Times? = null,
-    ): ForwardChainExpectation = expectation(url, "PUT", body, bodyMatchType, times)
+        queryParams: Map<String, String> = emptyMap(),
+    ): ForwardChainExpectation = expectation(url, "PUT", body, bodyMatchType, times, queryParams)
 
     private fun post(
         url: String,
         body: Any? = null,
         bodyMatchType: MatchType? = null,
         times: Times? = null,
-    ): ForwardChainExpectation = expectation(url, "POST", body, bodyMatchType, times)
+        queryParams: Map<String, String> = emptyMap(),
+    ): ForwardChainExpectation = expectation(url, "POST", body, bodyMatchType, times, queryParams)
 
     private fun patch(
         url: String,
         body: Any? = null,
         bodyMatchType: MatchType? = null,
         times: Times? = null,
-    ): ForwardChainExpectation = expectation(url, "PATCH", body, bodyMatchType, times)
+        queryParams: Map<String, String> = emptyMap(),
+    ): ForwardChainExpectation = expectation(url, "PATCH", body, bodyMatchType, times, queryParams)
 
     private fun delete(
         url: String,
         body: Any? = null,
         bodyMatchType: MatchType? = null,
         times: Times? = null,
-    ): ForwardChainExpectation = expectation(url, "DELETE", body, bodyMatchType, times)
+        queryParams: Map<String, String> = emptyMap(),
+    ): ForwardChainExpectation = expectation(url, "DELETE", body, bodyMatchType, times, queryParams)
 
     private fun expectation(
         url: String,
@@ -392,15 +509,20 @@ class FakeRatko(port: Int) {
         body: Any?,
         bodyMatchType: MatchType?,
         times: Times?,
+        queryParams: Map<String, String>,
     ): ForwardChainExpectation =
-        mockServer.`when`(
-            request(url).withMethod(method).apply {
-                if (body != null) {
-                    this.withBody(JsonBody.json(body, bodyMatchType ?: MatchType.ONLY_MATCHING_FIELDS))
-                }
-            },
-            times ?: Times.unlimited(),
-        )
+        mockServer
+            .`when`(
+                request(url).withMethod(method).apply {
+                    queryParams.forEach { (name, value) -> this.withQueryStringParameters(Parameter(name, value)) }
+
+                    if (body != null) {
+                        this.withBody(JsonBody.json(body, bodyMatchType ?: MatchType.ONLY_MATCHING_FIELDS))
+                    }
+                },
+                times ?: Times.unlimited(),
+            )
+            .also { logger.info("Binding $method $url, queryParams=$queryParams, body=$body") }
 
     private fun ok() = HttpResponse.response().withStatusCode(200)
 

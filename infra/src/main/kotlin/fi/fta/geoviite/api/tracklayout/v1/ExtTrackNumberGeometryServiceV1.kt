@@ -23,7 +23,7 @@ constructor(
         publication: Publication,
         resolution: Resolution,
         coordinateSystem: Srid,
-        trackIntervalFilter: ExtTrackKilometerIntervalV1,
+        trackIntervalFilter: ExtTrackKilometerIntervalFilterV1,
     ): ExtTrackNumberGeometryResponseV1? {
         val trackNumberId =
             layoutTrackNumberDao.lookupByExternalId(oid.toString())?.id

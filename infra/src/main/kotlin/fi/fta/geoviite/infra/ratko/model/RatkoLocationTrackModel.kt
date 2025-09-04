@@ -2,6 +2,14 @@ package fi.fta.geoviite.infra.ratko.model
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.publication.PublicationDetails
+import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitTarget
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class RatkoLocationTrack(
@@ -34,7 +42,7 @@ enum class RatkoLocationTrackState(@get:JsonValue val value: String) {
     NOT_IN_USE("NOT IN USE"),
     PLANNED("PLANNED"),
     IN_USE("IN USE"),
-    @Suppress("unused") OLD("OLD"),
+    OLD("OLD"),
 }
 
 enum class RatkoTopologicalConnectivityType(@get:JsonValue val value: String) {
@@ -43,3 +51,25 @@ enum class RatkoTopologicalConnectivityType(@get:JsonValue val value: String) {
     END("END"),
     START_AND_END("START_AND_END"),
 }
+
+data class RatkoSplitSourceTrack(
+    val track: LocationTrack,
+    val geometry: DbLocationTrackGeometry,
+    val externalId: MainBranchRatkoExternalId<LocationTrack>,
+    val existingRatkoLocationTrack: RatkoLocationTrack,
+    val geocodingContext: GeocodingContext<ReferenceLineM>,
+)
+
+data class RatkoSplitTargetTrack(
+    val track: LocationTrack,
+    val geometry: DbLocationTrackGeometry,
+    val externalId: MainBranchRatkoExternalId<LocationTrack>,
+    val existingRatkoLocationTrack: RatkoLocationTrack?,
+    val splitTarget: SplitTarget,
+)
+
+data class RatkoSplit(
+    val publication: PublicationDetails,
+    val split: Split,
+    val ratkoSourceTrack: RatkoLocationTrack,
+)

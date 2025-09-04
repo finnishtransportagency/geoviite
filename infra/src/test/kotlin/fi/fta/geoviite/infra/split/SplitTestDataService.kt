@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
@@ -79,9 +80,10 @@ constructor(
         startPoint: IPoint,
         structure: SwitchStructure = getYvStructure(),
         externalId: Oid<LayoutSwitch>? = null,
+        layoutContext: TestLayoutContext = mainOfficialContext,
     ): SwitchAndEdges {
         val switchInsertResponse =
-            mainOfficialContext.save(
+            layoutContext.save(
                 switchFromDbStructure(testDBService.getUnusedSwitchName().toString(), startPoint, structure)
             )
         if (externalId != null) {

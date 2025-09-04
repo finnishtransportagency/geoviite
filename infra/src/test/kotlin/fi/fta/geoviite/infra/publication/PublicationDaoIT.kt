@@ -213,6 +213,7 @@ constructor(
                 Oid("123.456.789"),
                 trackNumberVersion.id,
                 Oid("1.234.567"),
+                locationTrackDeleted = false,
             )
 
         val changes =
