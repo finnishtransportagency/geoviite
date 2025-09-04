@@ -2008,7 +2008,8 @@ class PublicationDao(
                   location_track_id,
                   location_track_external_id, 
                   track_number_id,
-                  track_number_external_id)
+                  track_number_external_id,
+                  location_track_deleted)
                 values (
                   :publication_id,
                   :switch_id,
@@ -2019,7 +2020,8 @@ class PublicationDao(
                   :location_track_id,
                   :location_track_external_id,
                   :track_number_id,
-                  :track_number_external_id
+                  :track_number_external_id,
+                  :location_track_deleted
                 )
             """
                 .trimIndent(),
@@ -2038,6 +2040,7 @@ class PublicationDao(
                             "location_track_external_id" to cj.locationTrackExternalId,
                             "track_number_id" to cj.trackNumberId.intValue,
                             "track_number_external_id" to cj.trackNumberExternalId,
+                            "location_track_deleted" to cj.locationTrackDeleted,
                         )
                     }
                 }
@@ -2250,7 +2253,8 @@ class PublicationDao(
                   location_track_id,
                   location_track_external_id,
                   track_number_id,
-                  track_number_external_id
+                  track_number_external_id,
+                  location_track_deleted
                 from publication.switch_joint
                 where publication_id = any(array[:publication_ids]::int[])
             """
@@ -2268,6 +2272,7 @@ class PublicationDao(
                         locationTrackExternalId = rs.getOidOrNull("location_track_external_id"),
                         trackNumberId = rs.getIntId("track_number_id"),
                         trackNumberExternalId = rs.getOidOrNull("track_number_external_id"),
+                        locationTrackDeleted = rs.getBoolean("location_track_deleted"),
                     )
             }
             .groupBy({ it.first.first }, { it.first.second to it.second })
@@ -2407,6 +2412,32 @@ class PublicationDao(
                 "end_time" to Timestamp.from(inclusiveEndMoment),
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("track_number_id") }
+    }
+
+    fun fetchPublishedSwitchJoints(
+        publicationId: IntId<Publication>,
+        includeRemoved: Boolean,
+    ): Map<IntId<LayoutSwitch>, List<PublishedSwitchJoint>> {
+        val sql =
+            """
+                select switch_id, joint_number, address
+                from publication.switch_joint
+                where publication_id = :publication_id
+                and (:includeRemoved or removed = false)
+            """
+                .trimIndent()
+
+        val params = mapOf("publication_id" to publicationId.intValue, "includeRemoved" to includeRemoved)
+
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                rs.getIntId<LayoutSwitch>("switch_id") to
+                    PublishedSwitchJoint(
+                        jointNumber = rs.getJointNumber("joint_number"),
+                        address = rs.getTrackMeter("address"),
+                    )
+            }
+            .groupBy({ it.first }, { it.second })
     }
 }
 

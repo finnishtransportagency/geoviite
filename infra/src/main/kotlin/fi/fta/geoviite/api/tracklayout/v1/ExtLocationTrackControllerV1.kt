@@ -3,7 +3,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.api.frameconverter.v1.LOCATION_TRACK_OID_PARAM
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
-import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
@@ -325,12 +324,12 @@ class ExtLocationTrackControllerV1(
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid? = null,
-        @Parameter(description = EXT_OPENAPI_TRACK_KILOMETER_START)
-        @RequestParam(TRACK_KILOMETER_START, required = false)
-        trackKmStart: KmNumber? = null,
-        @Parameter(description = EXT_OPENAPI_TRACK_KILOMETER_END)
-        @RequestParam(TRACK_KILOMETER_END, required = false)
-        trackKmEnd: KmNumber? = null,
+        @Parameter(description = EXT_OPENAPI_ADDRESS_POINT_FILTER_START)
+        @RequestParam(ADDRESS_POINT_FILTER_START, required = false)
+        addressPointFilterStart: ExtMaybeTrackKmOrTrackMeterV1? = null,
+        @Parameter(description = EXT_OPENAPI_ADDRESS_POINT_FILTER_END)
+        @RequestParam(ADDRESS_POINT_FILTER_END, required = false)
+        addressPointFilterEnd: ExtMaybeTrackKmOrTrackMeterV1? = null,
     ): ResponseEntity<ExtLocationTrackGeometryResponseV1> {
         return publicationService
             .getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
@@ -340,7 +339,7 @@ class ExtLocationTrackControllerV1(
                     publication,
                     extResolution?.toResolution() ?: Resolution.ONE_METER,
                     coordinateSystem ?: LAYOUT_SRID,
-                    ExtTrackKilometerIntervalV1(trackKmStart, trackKmEnd),
+                    ExtTrackKilometerIntervalFilterV1.of(addressPointFilterStart, addressPointFilterEnd),
                 )
             }
             .let(::toResponse)

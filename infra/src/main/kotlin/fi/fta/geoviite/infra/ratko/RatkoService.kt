@@ -5,6 +5,8 @@ import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.integration.AllOids
@@ -31,6 +33,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
+import fi.fta.geoviite.infra.ratko.model.RatkoSplit
 import fi.fta.geoviite.infra.ratko.model.existingRatkoPlan
 import fi.fta.geoviite.infra.ratko.model.newRatkoPlan
 import fi.fta.geoviite.infra.split.BulkTransferState
@@ -43,12 +46,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import java.time.Duration
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import java.time.Duration
+import java.time.Instant
 
 open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
     RuntimeException(cause)
@@ -299,7 +302,9 @@ constructor(
             val pushableBranch =
                 if (layoutBranch is DesignBranch) {
                     updatePlan(layoutBranch, publications)
-                } else PushableMainBranch
+                } else {
+                    PushableMainBranch
+                }
 
             val pushedRouteNumberOids =
                 ratkoRouteNumberService.pushTrackNumberChangesToRatko(
@@ -308,10 +313,38 @@ constructor(
                     lastPublicationTime,
                 )
 
+            val publicationsToSplits =
+                publications.mapNotNull { publication ->
+                    publication.split?.id?.let { splitId -> publication to splitService.getOrThrow(splitId) }
+                }
+
+            val locationTrackOidsPushedInSplits =
+                publicationsToSplits
+                    .map { (publication, split) ->
+                        RatkoSplit(
+                            publication,
+                            split,
+                            ensureSplitSourceTrackExistsInRatko(
+                                publication.layoutBranch.branch,
+                                split,
+                                lastPublicationTime,
+                            ),
+                        )
+                    }
+                    .let { splitsToPush ->
+                        ratkoLocationTrackService.pushSplits(pushableBranch.branch, splitsToPush, lastPublicationTime)
+                    }
+
+            val locationTrackIdsPushedInSplits = publicationsToSplits.flatMap { (_, split) -> split.locationTracks }
+            val locationTracksToPush =
+                publications
+                    .flatMap { it.allPublishedLocationTracks }
+                    .filter { locationTrack -> locationTrack.id !in locationTrackIdsPushedInSplits }
+
             val pushedLocationTrackOids =
                 ratkoLocationTrackService.pushLocationTrackChangesToRatko(
                     pushableBranch,
-                    publications.flatMap { it.allPublishedLocationTracks },
+                    locationTracksToPush,
                     lastPublicationTime,
                 )
 
@@ -335,10 +368,17 @@ constructor(
 
             try {
                 ratkoLocationTrackService.forceRedraw(
-                    pushedLocationTrackOids.map { RatkoOid<RatkoLocationTrack>(it) }.toSet()
+                    listOf(locationTrackOidsPushedInSplits, pushedLocationTrackOids)
+                        .flatten()
+                        .map { RatkoOid<RatkoLocationTrack>(it) }
+                        .toSet()
                 )
             } catch (_: Exception) {
                 logger.warn("Failed to push M values for location tracks $pushedLocationTrackOids")
+            }
+
+            publicationsToSplits.forEach { (_, split) ->
+                splitService.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
             }
 
             ratkoPushDao.updatePushStatus(ratkoPushId, RatkoPushStatus.SUCCESSFUL)
@@ -492,4 +532,38 @@ constructor(
     private fun createPlanInRatko(lastPublicationDesign: LayoutDesign, designId: IntId<LayoutDesign>): RatkoPlanId =
         requireNotNull(ratkoClient.createPlan(newRatkoPlan(lastPublicationDesign))) { "Expected plan ID from Ratko" }
             .also { ratkoId -> layoutDesignDao.initializeRatkoId(designId, ratkoId) }
+
+    private fun ensureSplitSourceTrackExistsInRatko(
+        branch: LayoutBranch,
+        split: Split,
+        publicationTime: Instant,
+    ): RatkoLocationTrack {
+        val splitSourceTrackOid = locationTrackService.getExternalIdsByBranch(split.sourceLocationTrackId)[branch]
+
+        requireNotNull(splitSourceTrackOid) {
+            "Split source track must have an external id (oid) defined when split of it is being pushed"
+        }
+
+        val existingRatkoLocationTrack = ratkoClient.getLocationTrack(RatkoOid(splitSourceTrackOid))
+        return if (existingRatkoLocationTrack == null) {
+            logger.info(
+                "Split source track unexpectedly not found from Ratko! Source track will be created for splitId=${split.id}, sourceLocationTrackId=${split.sourceLocationTrackId}"
+            )
+
+            val splitSourceLocationTrack =
+                locationTrackService.get(MainLayoutContext.official, split.sourceLocationTrackId).let(::requireNotNull)
+
+            ratkoLocationTrackService.createLocationTrack(
+                branch,
+                splitSourceLocationTrack,
+                MainBranchRatkoExternalId(splitSourceTrackOid),
+                publicationTime,
+            )
+
+            // If the source track is still not found from Ratko, something went really wrong.
+            ratkoClient.getLocationTrack(RatkoOid(splitSourceTrackOid)).let(::requireNotNull)
+        } else {
+            existingRatkoLocationTrack
+        }
+    }
 }

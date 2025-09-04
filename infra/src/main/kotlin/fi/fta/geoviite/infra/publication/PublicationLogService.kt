@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.split.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
@@ -297,13 +298,8 @@ constructor(
                     )
                 )
 
-            val (sourceStart, sourceEnd) = sourceGeometry.getEdgeStartAndEnd(target.edgeIndices)
-            val startBySegments = requireNotNull(ctx.getAddress(sourceStart)).first
-            val endBySegments = requireNotNull(ctx.getAddress(sourceEnd)).first
-            val startByTarget = requireNotNull(geometry.start?.let { point -> ctx.getAddress(point)?.first })
-            val endByTarget = requireNotNull(geometry.end?.let { point -> ctx.getAddress(point)?.first })
-            val startAddress = listOf(startBySegments, startByTarget).maxOrNull()
-            val endAddress = listOf(endBySegments, endByTarget).minOrNull()
+            val (startAddress, endAddress) =
+                getSplitTargetTrackStartAndEndAddresses(ctx, sourceGeometry, target, geometry)
 
             return SplitTargetInPublication(
                 id = track.id,

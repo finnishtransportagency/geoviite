@@ -9,8 +9,8 @@ const val LOCATION_TRACK_OID = "sijaintiraide_oid"
 const val LOCATION_TRACK = "sijaintiraide"
 const val LOCATION_TRACK_NAME = "sijaintiraidetunnus"
 const val LOCATION_TRACK_COLLECTION = "sijaintiraiteet"
-const val TRACK_KILOMETER_START = "ratakilometri_alku"
-const val TRACK_KILOMETER_END = "ratakilometri_loppu"
+const val ADDRESS_POINT_FILTER_START = "osoitepistevali_alku"
+const val ADDRESS_POINT_FILTER_END = "osoitepistevali_loppu"
 const val TRACK_NUMBER = "ratanumero"
 const val TRACK_NUMBER_OID = "ratanumero_oid"
 const val TRACK_NUMBER_COLLECTION = "ratanumerot"
@@ -49,17 +49,11 @@ const val EXT_OPENAPI_COORDINATE_SYSTEM =
 const val EXT_OPENAPI_RESOLUTION =
     "Palautettavien osoitepisteiden metriväli. Oletuksena osoitepisteet palautetaan yhden metrin välein."
 
-const val EXT_OPENAPI_TRACK_KILOMETER_START =
-    "Osoitepisteitä haetaan tästä ratakilometristä lähtien. Oletuksena osoitepisteitä haetaan raiteen alusta lähtien."
+const val EXT_OPENAPI_ADDRESS_POINT_FILTER_START =
+    "Osoitepisteitä haetaan tästä ratakilometristä tai rataosoitteesta lähtien. Välin alku käsitellään suljettuna (alku <= osoitepiste). Oletuksena osoitepisteväliä ei rajoiteta alusta."
 
-const val EXT_OPENAPI_TRACK_KILOMETER_END =
-    "Osoitepisteitä haetaan tähän ratakilometriin asti. Oletuksena osoitepisteitä haetaan raiteen loppuun asti."
-
-const val EXT_OPENAPI_REFERENCE_LINE_KILOMETER_START =
-    "Osoitepisteitä haetaan tästä ratakilometristä lähtien. Oletuksena osoitepisteitä haetaan ratanumeron alusta lähtien."
-
-const val EXT_OPENAPI_REFERENCE_LINE_KILOMETER_END =
-    "Osoitepisteitä haetaan tähän ratakilometriin asti. Oletuksena osoitepisteitä haetaan ratanumeron loppuun asti."
+const val EXT_OPENAPI_ADDRESS_POINT_FILTER_END =
+    "Osoitepisteitä haetaan tähän ratakilometriin tai rataosoitteeseen asti. Välin loppu käsitellään suljettuna (osoitepiste <= loppu). Oletuksena osoitepisteväliä ei rajoiteta lopusta."
 
 const val EXT_OPENAPI_LOCATION_TRACK_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
     "Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa."

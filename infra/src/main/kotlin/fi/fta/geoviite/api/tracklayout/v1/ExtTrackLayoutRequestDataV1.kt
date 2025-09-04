@@ -1,7 +1,10 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.Resolution
 import io.swagger.v3.oas.annotations.media.Schema
 
@@ -30,11 +33,53 @@ enum class ExtResolutionV1(@JsonValue val value: String) {
     }
 }
 
-data class ExtTrackKilometerIntervalV1(val start: KmNumber?, val inclusiveEnd: KmNumber?) {
-    fun containsKmEndInclusive(kmNumber: KmNumber): Boolean {
-        val startsAfterStartKmFilter = start == null || kmNumber >= start
-        val endsBeforeEndKmFilter = inclusiveEnd == null || kmNumber <= inclusiveEnd
+@Schema(type = "String")
+data class ExtMaybeTrackKmOrTrackMeterV1 @JsonCreator(mode = DELEGATING) constructor(val value: String) {
+    init {
+        require(value.length <= MAX_LENGTH) {
+            "Track km or track address field length must be at most $MAX_LENGTH characters"
+        }
+    }
 
-        return startsAfterStartKmFilter && endsBeforeEndKmFilter
+    override fun toString(): String {
+        return value
+    }
+
+    companion object {
+        const val MAX_LENGTH = 13
+    }
+}
+
+data class ExtTrackKilometerIntervalFilterV1(
+    val startAddress: TrackMeter?,
+    val endAddress: TrackMeter?,
+    val startKm: KmNumber?,
+    val endKm: KmNumber?,
+) {
+    fun contains(address: TrackMeter): Boolean {
+        val startAddressOk = startAddress == null || address >= startAddress
+        val endAddressOk = endAddress == null || address <= endAddress
+
+        val startKmOk = startKm == null || address.kmNumber >= startKm
+        val endKmOk = endKm == null || address.kmNumber <= endKm
+
+        return startAddressOk && endAddressOk && startKmOk && endKmOk
+    }
+
+    companion object {
+        fun of(
+            start: ExtMaybeTrackKmOrTrackMeterV1?,
+            end: ExtMaybeTrackKmOrTrackMeterV1?,
+        ): ExtTrackKilometerIntervalFilterV1 {
+            val startAddress = start?.value?.takeIf { it.contains("+") }?.let(::TrackMeter)
+            val endAddress = end?.value?.takeIf { it.contains("+") }?.let(::TrackMeter)
+
+            return ExtTrackKilometerIntervalFilterV1(
+                startAddress = startAddress,
+                endAddress = endAddress,
+                startKm = start?.value?.takeIf { startAddress == null }?.let(::KmNumber),
+                endKm = end?.value?.takeIf { endAddress == null }?.let(::KmNumber),
+            )
+        }
     }
 }
