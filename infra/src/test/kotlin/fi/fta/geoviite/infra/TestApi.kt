@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.error.ApiErrorResponse
-import kotlin.test.assertTrue
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON
@@ -13,6 +12,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.result.isEqualTo
+import kotlin.test.assertTrue
 
 class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
 
@@ -24,7 +24,7 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
         return mockMvc
             .perform(requestBuilder)
             .andExpect(status().isEqualTo(expectedStatus.value()))
-            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
             .andReturn()
             .response
             .getContentAsString(Charsets.UTF_8)
@@ -63,7 +63,7 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
         return mockMvc
             .perform(request)
             .andExpect(status().isEqualTo(expectedStatus.value()))
-            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
             .andReturn()
             .response
             .getContentAsString(Charsets.UTF_8)
@@ -74,7 +74,7 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
         return mockMvc
             .perform(if (body != null) request.content(body) else request)
             .andExpect(status().isEqualTo(expectedStatus.value()))
-            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
             .andReturn()
             .response
             .getContentAsString(Charsets.UTF_8)
@@ -90,7 +90,7 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
         return mockMvc
             .perform(if (body != null) request.content(body) else request)
             .andExpect(status().isEqualTo(expectedStatus.value()))
-            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
             .andReturn()
             .response
             .getContentAsString(Charsets.UTF_8)

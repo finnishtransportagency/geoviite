@@ -33,14 +33,13 @@ fun createExtApiErrorResponseV1(
     status: HttpStatus,
     causeChain: List<Exception>,
     translation: Translation,
-): ResponseEntity<GeoviiteErrorResponse>? {
+): ResponseEntity<GeoviiteErrorResponse> {
     val headers = HttpHeaders()
     headers.contentType = MediaType.APPLICATION_JSON
 
     val errorMessageChain =
         when {
             status.is5xxServerError -> describeHttpStatus(translation, status).let(::listOf)
-
             else -> causeChain.mapNotNull { ex -> describeException(translation, ex) }
         }
 
@@ -62,23 +61,20 @@ private fun describeHttpStatus(translation: Translation, status: HttpStatus): Er
         } else {
             "ext-api.track-layout.v1.error.server-error"
         }
-
-    return ErrorDescription(
-        message = translation.t(errorKey),
-        key = errorKey,
-        params = localizationParams("koodi" to status.value()),
-    )
+    val params = localizationParams("koodi" to status.value())
+    return ErrorDescription(translation.t(errorKey, params), errorKey, params)
 }
 
 private fun describeException(translation: Translation, ex: Exception): ErrorDescription? {
     return when (ex) {
-        is HasLocalizedMessage ->
+        is HasLocalizedMessage -> {
             ErrorDescription(
-                message = ex.message ?: "${ex::class.simpleName}",
+                message = translation.t(ex.localizationKey, ex.localizationParams),
                 localizationKey = ex.localizationKey,
                 localizationParams = ex.localizationParams,
                 priority = ErrorPriority.HIGH,
             )
+        }
 
         is HttpRequestMethodNotSupportedException -> {
             val key = "$ERROR_KEY_BASE.bad-request.invalid-path"

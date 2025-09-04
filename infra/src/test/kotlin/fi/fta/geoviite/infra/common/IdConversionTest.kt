@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.common
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.TestApi
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,6 +11,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.OK
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "nodb", "backend")
 @SpringBootTest
@@ -218,10 +218,10 @@ class IdConversionTest @Autowired constructor(mapper: ObjectMapper, mockMvc: Moc
     @Test
     fun postWithUnparseableIdInBodyIs400() {
         testApi.assertErrorResult(
-            testApi.doPostWithString("$ID_TEST_URL/id-test-body", "{\"id\":\"asdf\"}", HttpStatus.BAD_REQUEST),
+            testApi.doPostWithString("$ID_TEST_URL/id-test-body", "{\"id\": \"asdf\"}", HttpStatus.BAD_REQUEST),
             "Request body not readable",
             "Failed to instantiate Lfi/fta/geoviite/infra/common/DomainId;",
-            "Invalid DomainId: \"asdf\"",
+            "Invalid DomainId: 'asdf'",
         )
     }
 
@@ -231,7 +231,7 @@ class IdConversionTest @Autowired constructor(mapper: ObjectMapper, mockMvc: Moc
             testApi.doPostWithString("$ID_TEST_URL/oid-test-body", "{\"id\":\"1.2.3.a\"}", HttpStatus.BAD_REQUEST),
             "Request body not readable",
             "Failed to instantiate Lfi/fta/geoviite/infra/common/Oid;",
-            "Input validation failed: Invalid characters in Oid: \"1.2.3.a\"",
+            "Input validation failed: Invalid characters in Oid: '1.2.3.a'",
         )
     }
 
@@ -241,7 +241,7 @@ class IdConversionTest @Autowired constructor(mapper: ObjectMapper, mockMvc: Moc
             testApi.doPostWithString("$ID_TEST_URL/srid-test-body", "{\"id\":\"1a\"}", HttpStatus.BAD_REQUEST),
             "Request body not readable",
             "Failed to instantiate Lfi/fta/geoviite/infra/common/Srid;",
-            "Input validation failed: Invalid string prefix: prefix=EPSG: value=\"1a\"",
+            "Input validation failed: Invalid string prefix: prefix=EPSG: value='1a'",
         )
     }
 

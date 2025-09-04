@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.geography
 
 import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.error.CoordinateTransformationException
+import fi.fta.geoviite.infra.error.UnsupportedSridException
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
@@ -97,7 +99,12 @@ fun contains(polygon: Polygon, point: IPoint, srid: Srid): Boolean =
 
 private val crsCache: MutableMap<Srid, CoordinateReferenceSystem> = ConcurrentHashMap()
 
-private fun crs(srid: Srid): CoordinateReferenceSystem = crsCache.getOrPut(srid) { CRS.decode(srid.toString()) }
+private fun crs(srid: Srid): CoordinateReferenceSystem =
+    try {
+        crsCache.getOrPut(srid) { CRS.decode(srid.toString()) }
+    } catch (e: Exception) {
+        throw UnsupportedSridException(srid, e)
+    }
 
 private val geometryFactory = JTSFactoryFinder.getGeometryFactory()
 
@@ -130,27 +137,27 @@ internal fun toJtsPolygon(points: List<IPoint>): JtsPolygon = jtsBuilder.polygon
 
 private fun pointArray(points: List<IPoint>): DoubleArray = points.flatMap { p -> listOf(p.x, p.y) }.toDoubleArray()
 
-private fun toGvtPoint(point: JtsPoint, ref: CoordinateReferenceSystem): Point {
-    return when (val order = CRS.getAxisOrder(ref)) {
+private fun toGvtPoint(point: JtsPoint, crs: CoordinateReferenceSystem): Point {
+    return when (val order = CRS.getAxisOrder(crs)) {
         CRS.AxisOrder.EAST_NORTH -> Point(point.x, point.y)
         CRS.AxisOrder.NORTH_EAST -> Point(point.y, point.x)
-        else -> throw CoordinateTransformationException(order, point.x, point.y, ref.name.code)
+        else -> error("Cannot determine coordinate axis order x=${point.x} y=${point.y} crs=${crs.name} order=$order")
     }
 }
 
-private fun toGvtPoint(coordinate: JtsCoordinate, ref: CoordinateReferenceSystem): Point {
-    return when (val order = CRS.getAxisOrder(ref)) {
-        CRS.AxisOrder.EAST_NORTH -> Point(coordinate.x, coordinate.y)
-        CRS.AxisOrder.NORTH_EAST -> Point(coordinate.y, coordinate.x)
-        else -> throw CoordinateTransformationException(order, coordinate.x, coordinate.y, ref.name.code)
+private fun toGvtPoint(point: JtsCoordinate, crs: CoordinateReferenceSystem): Point {
+    return when (val order = CRS.getAxisOrder(crs)) {
+        CRS.AxisOrder.EAST_NORTH -> Point(point.x, point.y)
+        CRS.AxisOrder.NORTH_EAST -> Point(point.y, point.x)
+        else -> error("Cannot determine coordinate axis order x=${point.x} y=${point.y} crs=${crs.name} order=$order")
     }
 }
 
-private fun toJtsCoordinate(point: IPoint, ref: CoordinateReferenceSystem): JtsCoordinate =
-    when (val order = CRS.getAxisOrder(ref)) {
+private fun toJtsCoordinate(point: IPoint, crs: CoordinateReferenceSystem): JtsCoordinate =
+    when (val order = CRS.getAxisOrder(crs)) {
         CRS.AxisOrder.EAST_NORTH -> JtsCoordinate(point.x, point.y)
         CRS.AxisOrder.NORTH_EAST -> JtsCoordinate(point.y, point.x)
-        else -> throw CoordinateTransformationException(order, point.x, point.y, ref.name.code)
+        else -> error("Cannot determine coordinate axis order x=${point.x} y=${point.y} crs=${crs.name} order=$order")
     }
 
 fun boundingPolygonByConvexHull(points: List<IPoint>, srid: Srid): Polygon =
@@ -175,22 +182,6 @@ fun bufferedPolygonForLineStringPoints(points: List<IPoint>, buffer: Double, sri
     }
 }
 
-class CoordinateTransformationException(message: String, cause: Throwable? = null) : Exception(message, cause) {
-    constructor(
-        point: JtsPoint,
-        sourceSrid: Srid,
-        targetSrid: Srid,
-        cause: Throwable? = null,
-    ) : this("Could not transform coordinate: x=${point.x} y=${point.y} source=$sourceSrid target=$targetSrid", cause)
-
-    constructor(
-        order: CRS.AxisOrder,
-        x: Double,
-        y: Double,
-        crs: String,
-    ) : this("Cannot determine coordinate axis order x=$x y=$y crs=$crs order=$order")
-}
-
 sealed class Transformation {
     abstract val sourceSrid: Srid
     abstract val targetSrid: Srid
@@ -198,14 +189,18 @@ sealed class Transformation {
     protected val targetCrs: CoordinateReferenceSystem by lazy { crs(targetSrid) }
 
     fun transform(point: IPoint): Point =
-        if (sourceSrid == targetSrid) point.toPoint()
-        else toGvtPoint(transformJts(toJtsGeoPoint(point, sourceCrs)), targetCrs)
+        try {
+            if (sourceSrid == targetSrid) point.toPoint()
+            else toGvtPoint(transformJts(toJtsGeoPoint(point, sourceCrs)), targetCrs)
+        } catch (e: Exception) {
+            throw CoordinateTransformationException(point, sourceSrid, targetSrid, e)
+        }
 
     fun transformJts(point: JtsPoint): JtsPoint =
         try {
             if (sourceSrid == targetSrid) point else transformJtsInternal(point)
         } catch (e: Exception) {
-            throw CoordinateTransformationException(point, sourceSrid, targetSrid, e)
+            throw CoordinateTransformationException(Point(point.x, point.y), sourceSrid, targetSrid, e)
         }
 
     protected abstract fun transformJtsInternal(point: JtsPoint): JtsPoint

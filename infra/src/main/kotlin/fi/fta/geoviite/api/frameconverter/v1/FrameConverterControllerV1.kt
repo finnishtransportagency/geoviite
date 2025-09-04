@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.logging.apiResult
 import fi.fta.geoviite.infra.util.Either
 import fi.fta.geoviite.infra.util.processRights
-import java.math.BigDecimal
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,9 +21,12 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
+import java.math.BigDecimal
+
+const val EXT_FRAME_CONVERTER_BASE_PATH = "/rata-vkm"
 
 @PreAuthorize(AUTH_API_FRAME_CONVERTER)
-@GeoviiteExtApiController(["/rata-vkm/v1", "/rata-vkm/dev/v1"])
+@GeoviiteExtApiController(["$EXT_FRAME_CONVERTER_BASE_PATH/v1", "$EXT_FRAME_CONVERTER_BASE_PATH/dev/v1"])
 class FrameConverterControllerV1
 @Autowired
 constructor(
