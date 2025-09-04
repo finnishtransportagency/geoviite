@@ -4,11 +4,9 @@ import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
 import fi.fta.geoviite.infra.authorization.AUTH_API_SWAGGER
-import fi.fta.geoviite.infra.environmentInfo.EnvironmentInfo
 import io.swagger.v3.oas.annotations.Hidden
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Profile
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
@@ -27,11 +25,7 @@ val allowedApiDefinitionPaths =
 
 @GeoviiteExtApiController([])
 @Hidden // These controller paths are hidden from the dynamically generated OpenApi definitions.
-class SwaggerController
-@Autowired
-constructor(
-    private val environmentInfo: EnvironmentInfo,
-) {
+class SwaggerController {
 
     @PreAuthorize(AUTH_API_GEOMETRY)
     @GetMapping(
@@ -96,7 +90,7 @@ constructor(
         @PathVariable prefix: String,
         @PathVariable path: String,
     ) {
-        swaggerResourceRequest("/$prefix", request, response, environmentInfo)
+        swaggerResourceRequest("/$prefix", request, response)
     }
 
     @Profile("ext-api-dev-swagger")
@@ -108,7 +102,7 @@ constructor(
         @PathVariable prefix: String,
         @PathVariable path: String,
     ) {
-        swaggerResourceRequest("/$prefix/dev", request, response, environmentInfo)
+        swaggerResourceRequest("/$prefix/dev", request, response)
     }
 }
 
@@ -116,7 +110,6 @@ private fun swaggerResourceRequest(
     prefixWithLeadingSlash: String,
     request: HttpServletRequest,
     response: HttpServletResponse,
-    environmentInfo: EnvironmentInfo,
 ) {
     val resourcePrefixOk = allowedResourcePrefixes.contains(prefixWithLeadingSlash)
     val apiDefinitionPathOk = request.getParameter("url")?.let(allowedApiDefinitionPaths::contains) ?: true
