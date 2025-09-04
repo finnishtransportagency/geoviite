@@ -10,7 +10,7 @@ alter table layout.location_track
 create function v122__parse_switch_name(name varchar)
   returns table
           (
-            station       text,
+            station      text,
             short_number text
           )
 as
@@ -47,7 +47,7 @@ $$
 
 create function v122__switch_short_number(name varchar) returns text as
 $$
-select short_number
+select case when short_number = '' then '???' else short_number end
   from v122__parse_switch_name(name) p
 $$ language sql;
 
@@ -60,13 +60,13 @@ set
         description_base
       when description_suffix = 'SWITCH_TO_BUFFER' then
         description_base || ' ' ||
-        v122__switch_short_number(coalesce(t.start_switch_name, t.end_switch_name, '???')) || ' - Puskin'
+        v122__switch_short_number(coalesce(t.start_switch_name, t.end_switch_name)) || ' - Puskin'
       when description_suffix = 'SWITCH_TO_OWNERSHIP_BOUNDARY' then
         description_base || ' ' ||
-        v122__switch_short_number(coalesce(t.start_switch_name, t.end_switch_name, '???')) || ' - Omistusraja'
+        v122__switch_short_number(coalesce(t.start_switch_name, t.end_switch_name)) || ' - Omistusraja'
       when description_suffix = 'SWITCH_TO_SWITCH' then
-        description_base || ' ' || v122__switch_short_number(coalesce(t.start_switch_name, '???')) || ' - ' ||
-        v122__switch_short_number(coalesce(t.end_switch_name, '???'))
+        description_base || ' ' || v122__switch_short_number(t.start_switch_name) || ' - ' ||
+        v122__switch_short_number(t.end_switch_name)
     end
   from (
     select
