@@ -24,6 +24,7 @@ import PublicationCard, {
     PublicationCardSection,
     ShowMorePublicationsLink,
 } from 'publication/card/publication-card';
+import { useEnvironmentInfo } from 'environment/environment-info';
 
 type MainPublicationCardProps = {
     publicationChangeTime: TimeStamp;
@@ -31,9 +32,6 @@ type MainPublicationCardProps = {
     splitChangeTime: TimeStamp;
     ratkoStatus: RatkoStatus | undefined;
 };
-
-const RATKO_SUPPORT_EMAIL = 'vayla.asiakkaat.fi@cgi.com';
-export const GEOVIITE_SUPPORT_EMAIL = 'geoviite.support@solita.fi';
 
 type RatkoConnectionErrorProps = {
     errorType: string;
@@ -79,13 +77,15 @@ const RatkoConnectionError: React.FC<RatkoConnectionErrorProps> = ({
     contact,
 }) => {
     const { t } = useTranslation();
+    const environmentInfo = useEnvironmentInfo();
+
     return (
         <span>
             {t(`error-in-ratko-connection.${errorType}`, { code: ratkoStatusCode })}
             <br />
             {t(`error-in-ratko-connection.${contact}`, {
-                geoviiteSupportEmail: GEOVIITE_SUPPORT_EMAIL,
-                ratkoSupportEmail: RATKO_SUPPORT_EMAIL,
+                geoviiteSupportEmail: environmentInfo?.geoviiteSupportEmailAddress,
+                ratkoSupportEmail: environmentInfo?.ratkoSupportEmailAddress,
             })}
         </span>
     );

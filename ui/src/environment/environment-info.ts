@@ -5,6 +5,8 @@ import { asyncCache } from 'cache/cache';
 export type EnvironmentInfo = {
     releaseVersion: string;
     environmentName: Environment;
+    geoviiteSupportEmailAddress: string;
+    ratkoSupportEmailAddress: string;
 };
 
 export type Environment = 'local' | 'dev' | 'test' | 'prod';

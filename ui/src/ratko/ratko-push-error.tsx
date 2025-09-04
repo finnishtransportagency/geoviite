@@ -8,7 +8,7 @@ import { RatkoAssetType, RatkoPushErrorAsset } from 'ratko/ratko-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
-import { GEOVIITE_SUPPORT_EMAIL } from 'publication/card/main-publication-card';
+import { useEnvironmentInfo } from 'environment/environment-info';
 
 type RatkoPushErrorDetailsProps = {
     failedPublication: PublicationDetails;
@@ -43,6 +43,7 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
     failedPublication,
 }) => {
     const { t } = useTranslation();
+    const environmentInfo = useEnvironmentInfo();
     const error = useLoader(() => getRatkoPushError(failedPublication.id), [failedPublication]);
 
     const design = useLayoutDesign(
@@ -76,7 +77,7 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
         errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
         name: assetNameByType(error),
         operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
-        geoviiteSupportEmail: GEOVIITE_SUPPORT_EMAIL,
+        geoviiteSupportEmail: environmentInfo?.environmentName,
     });
 
     const pushErrorString = (): string => {
