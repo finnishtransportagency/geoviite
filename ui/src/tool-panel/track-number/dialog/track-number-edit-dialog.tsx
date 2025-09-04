@@ -25,18 +25,15 @@ import {
 } from './track-number-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { FieldValidationIssueType } from 'utils/validation-utils';
-import {
-    LayoutReferenceLine,
-    LayoutTrackNumber,
-    LayoutTrackNumberId,
-} from 'track-layout/track-layout-model';
+import { LayoutReferenceLine, LayoutTrackNumber, LayoutTrackNumberId, } from 'track-layout/track-layout-model';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
 import styles from 'geoviite-design-lib/dialog/dialog.scss';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import TrackNumberRevertConfirmationDialog from 'tool-panel/track-number/dialog/track-number-revert-confirmation-dialog';
+import TrackNumberRevertConfirmationDialog
+    from 'tool-panel/track-number/dialog/track-number-revert-confirmation-dialog';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { isEqualIgnoreCase } from 'utils/string-utils';
@@ -206,7 +203,10 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                         {inEditTrackNumber && (
                             <div className={styles['dialog__footer-content--left-aligned']}>
                                 <Button
-                                    disabled={!inEditTrackNumber.isDraft}
+                                    disabled={
+                                        !inEditTrackNumber.isDraft &&
+                                        inEditReferenceLine?.isDraft === false
+                                    }
                                     onClick={() => {
                                         inEditTrackNumber && confirmNewDraftDelete();
                                     }}
