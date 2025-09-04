@@ -569,7 +569,7 @@
             "cant-edit-while-linking": "Ratanumeron tietoja ei voi muokata linkitystilassa",
             "revert-dialog": {
                 "revert-draft-confirm": "Hylätäänkö luonnos?",
-                "can-be-reverted": "Luonnoksen hylkääminen palauttaa ratanumeron ja pituusmittauslinjan takaisin uusimpaan viralliseen tilaan. Ratanumero ja pituusmittauslinja poistetaan jos niitä ei ole vielä julkaistu Ratkoon.",
+                "can-be-reverted": "Luonnoksen hylkääminen palauttaa ratanumeron takaisin uusimpaan viralliseen tilaan. Ratanumero poistetaan jos sitä ei ole vielä julkaistu Ratkoon.",
                 "revert-succeeded": "Ratanumeron ja pituusmittauslinjan luonnokset hylätty",
                 "revert-failed": "Luonnosten hylkääminen epäonnistui"
             },
