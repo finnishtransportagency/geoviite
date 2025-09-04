@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Profile
 // Due to the unfortunate nature of the dev-env redirect, some of the mappings are duplicated.
 @Configuration
 @Profile("ext-api")
-class OpenApiConfig
+class OpenApiConfiguration
 @Autowired
 constructor(
     private val environmentInfo: EnvironmentInfo,
