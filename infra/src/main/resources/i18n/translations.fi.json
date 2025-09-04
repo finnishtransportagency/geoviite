@@ -1625,7 +1625,6 @@
                 "deleted-duplicated-by-existing": "Poistettavaan raiteeseen viittaa edelleen duplikaattiraiteita: {{duplicates}}",
                 "empty-segments": "Raiteella ei ole geometriaa",
                 "too-short": "Raiteen pituus on vain {{length}}m. Alle {{minLength}}m pitkille raiteelle ei voida laskea reititystietoja.",
-                "duplicate-switch": "Vaihde {{switch}} on linkitetty raiteelle useampaan eri kohtaan",
                 "edge-switch-partial": "Vaihteen {{switch}} linkitys raiteella on puutteellinen ja se on linkitettävä uudelleen",
                 "points": {
                     "not-continuous": "Raiteen pisteet eivät ole jatkuvia (kulma on liian suuri pisteiden välillä)"
@@ -1646,7 +1645,7 @@
                     "state-category": {
                         "NOT_EXISTING": "Raide viittaa vaihteeseen {{switch}}, joka on tilakategoriassa \"Poistunut kohde\""
                     },
-                    "alignment-not-continuous": "Raide on kytketty vaihteelle {{switch}} useammasta kuin yhdestä kohtaa",
+                    "alignment-not-continuous": "Raide on kytketty vaihteelle {{switch}} useammasta kuin yhdestä kohdasta",
                     "joint-location-mismatch": "Raiteen ja vaihteen {{switch}} vaihdepisteiden sijainnit eivät vastaa toisiaan",
                     "wrong-joint-sequence": "Raiteen vaihdepisteet ({{switchJoints}}) vaihteella {{switch}} ({{switchType}}) eivät vastaa vaihderakenteen linjoja",
                     "wrong-links": "Vaihteen {{switch}} linkitys on puutteellinen ja se täytyy linkittää uudelleen",

@@ -431,7 +431,13 @@ fun validateSwitchTopologicalConnectivity(
     val existingTracks = locationTracksAndGeometries.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
+            validateSwitchAlignmentTopology(
+                switch.id as IntId,
+                structure,
+                existingTracks,
+                switch.name,
+                validatingTrack,
+            ),
         )
         .flatten()
 }
@@ -767,8 +773,6 @@ data class SwitchTrackLinking(
     val switchIsCancelled: Boolean,
 )
 
-data class TopologySwitch(val switch: LayoutSwitch?, val name: SwitchName, val switchIsCancelled: Boolean)
-
 fun validateTrackSwitchReferences(
     locationTrack: LocationTrack,
     switchTrackLinkings: List<SwitchTrackLinking>,
@@ -1015,25 +1019,7 @@ fun validateLocationTrackGeometry(geometry: LocationTrackGeometry): List<LayoutV
 fun validateEdges(
     geometry: LocationTrackGeometry,
     getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
-): List<LayoutValidationIssue> =
-    collectDuplicatedSwitches(geometry).map(getSwitchName).map { name ->
-        validationError("$VALIDATION_LOCATION_TRACK.duplicate-switch", "switch" to name)
-    } + geometry.edges.flatMap { edge -> validateEdge(edge, getSwitchName) }
-
-private fun collectDuplicatedSwitches(geometry: LocationTrackGeometry): Set<IntId<LayoutSwitch>> {
-    val seenSwitches = mutableSetOf<IntId<LayoutSwitch>>()
-    var lastSwitch: IntId<LayoutSwitch>? = null
-    return geometry.trackSwitchLinks
-        .mapNotNull { link ->
-            link.switchId
-                .takeIf { link.switchId != lastSwitch && seenSwitches.contains(link.switchId) }
-                .also {
-                    seenSwitches.add(link.switchId)
-                    lastSwitch = link.switchId
-                }
-        }
-        .toSet()
-}
+): List<LayoutValidationIssue> = geometry.edges.flatMap { edge -> validateEdge(edge, getSwitchName) }
 
 fun validateEdge(edge: LayoutEdge, getSwitchName: (IntId<LayoutSwitch>) -> SwitchName): List<LayoutValidationIssue> =
     getEdgePartialSwitchIds(edge).map { partial ->
