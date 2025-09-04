@@ -77,7 +77,7 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
         errorType: t(`enum.RatkoPushErrorType.${error.errorType}`),
         name: assetNameByType(error),
         operation: t(`enum.RatkoPushErrorOperation.${error.operation}`),
-        geoviiteSupportEmail: environmentInfo?.environmentName,
+        geoviiteSupportEmail: environmentInfo?.geoviiteSupportEmailAddress,
     });
 
     const pushErrorString = (): string => {
