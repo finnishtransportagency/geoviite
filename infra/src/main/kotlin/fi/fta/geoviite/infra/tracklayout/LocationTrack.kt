@@ -230,13 +230,13 @@ data class LocationTrackDescriptionStructure(
                 LocationTrackDescriptionSuffix.NONE -> base.toString()
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER ->
-                    "$base ${getShortName(startSwitch ?: endSwitch)} - ${translation.t(BUFFER_LOCALIZATION_KEY)}"
+                    "$base ${getShortNumber(startSwitch ?: endSwitch)} - ${translation.t(BUFFER_LOCALIZATION_KEY)}"
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY ->
-                    "$base ${getShortName(startSwitch ?: endSwitch)} - ${translation.t(OWNERSHIP_BOUNDARY_LOCALIZATION_KEY)}"
+                    "$base ${getShortNumber(startSwitch ?: endSwitch)} - ${translation.t(OWNERSHIP_BOUNDARY_LOCALIZATION_KEY)}"
 
                 LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH ->
-                    "$base ${getShortName(startSwitch)} - ${getShortName(endSwitch)}"
+                    "$base ${getShortNumber(startSwitch)} - ${getShortNumber(endSwitch)}"
             }
         )
 }

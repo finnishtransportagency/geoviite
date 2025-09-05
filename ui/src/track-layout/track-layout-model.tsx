@@ -605,11 +605,11 @@ export function formatTrackDescription(
         case 'NONE':
             return descriptionBase;
         case 'SWITCH_TO_BUFFER':
-            return `${descriptionBase} ${getShortName(startSwitch ?? endSwitch)} - ${t('location-track-dialog.buffer')}`;
+            return `${descriptionBase} ${getShortNumber(startSwitch ?? endSwitch)} - ${t('location-track-dialog.buffer')}`;
         case 'SWITCH_TO_OWNERSHIP_BOUNDARY':
-            return `${descriptionBase} ${getShortName(startSwitch ?? endSwitch)} - ${t('location-track-dialog.ownership-boundary')}`;
+            return `${descriptionBase} ${getShortNumber(startSwitch ?? endSwitch)} - ${t('location-track-dialog.ownership-boundary')}`;
         case 'SWITCH_TO_SWITCH':
-            return `${descriptionBase} ${getShortName(startSwitch)} - ${getShortName(endSwitch)}`;
+            return `${descriptionBase} ${getShortNumber(startSwitch)} - ${getShortNumber(endSwitch)}`;
         default:
             return exhaustiveMatchingGuard(descriptionSuffix);
     }
