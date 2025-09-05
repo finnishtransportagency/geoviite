@@ -397,11 +397,11 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
     }
 
     const leftmostPviInViewR = geometry.findIndex(
-        (s) => s.point && s.point.station >= coordinates.startM,
+        (s) => s.point && (s.end?.station ?? s.point.station) >= coordinates.startM,
     );
     const leftPviI = leftmostPviInViewR < 1 ? 0 : leftmostPviInViewR - 1;
     const pastRightmostPviInViewR = geometry.findIndex(
-        (s) => s.point && s.point.station >= coordinates.endM,
+        (s) => s.point && (s.start?.station ?? s.point.station) >= coordinates.endM,
     );
     const rightPviI =
         pastRightmostPviInViewR === -1 ? geometry.length - 1 : pastRightmostPviInViewR;
