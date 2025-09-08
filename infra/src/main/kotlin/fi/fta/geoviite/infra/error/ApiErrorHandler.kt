@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
-import org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -31,14 +30,13 @@ class ApiErrorHandler @Autowired constructor(private val localizationService: Lo
     }
 
     @ExceptionHandler(value = [(Exception::class)])
-    fun handleAnyException(exception: Exception, request: WebRequest): ResponseEntity<GeoviiteErrorResponse> {
-        return createErrorResponse(
+    fun handleAnyException(exception: Exception, request: WebRequest): ResponseEntity<GeoviiteErrorResponse> =
+        createErrorResponse(
             logger,
             exception,
             requestType = inferRequestType(request),
             translation = localizationService.getLocalization(LocalizationLanguage.FI),
         )
-    }
 }
 
 fun createErrorResponse(
@@ -48,15 +46,7 @@ fun createErrorResponse(
     translation: Translation,
 ): ResponseEntity<GeoviiteErrorResponse> {
     val correlationId: String = correlationId.getOrNull() ?: "N/A"
-    val response =
-        handleErrorResponseCreation(exception, correlationId, requestType, translation)
-            ?: run {
-                logger.warn(
-                    "Error handling failed. Defaulting to \"Internal server error\": " +
-                        "correlationId=$correlationId exceptionChain=${getCauseChain(exception)}"
-                )
-                createTerseErrorResponse(correlationId, INTERNAL_SERVER_ERROR)
-            }
+    val response = handleErrorResponseCreation(exception, correlationId, requestType, translation)
     when {
         // Log server errors with full stack
         response.statusCode.is5xxServerError ->

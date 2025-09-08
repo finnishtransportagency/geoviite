@@ -56,21 +56,19 @@ fun handleErrorResponseCreation(
     correlationId: String,
     requestType: GeoviiteRequestType,
     translation: Translation,
-): ResponseEntity<GeoviiteErrorResponse>? {
+): ResponseEntity<GeoviiteErrorResponse> {
     val causeChain = getCauseChain(exception)
+    val status = getStatusCode(causeChain) ?: INTERNAL_SERVER_ERROR
+    return when (requestType) {
+        GeoviiteRequestType.EXT_API_V1 -> {
+            createExtApiErrorResponseV1(correlationId, status, causeChain, translation)
+        }
 
-    return getStatusCode(causeChain)?.let { status ->
-        when (requestType) {
-            GeoviiteRequestType.ExtApiV1 -> {
-                createExtApiErrorResponseV1(correlationId, status, causeChain, translation)
-            }
-
-            GeoviiteRequestType.Other -> {
-                if (status.is5xxServerError) {
-                    createTerseErrorResponse(correlationId, status)
-                } else {
-                    createDescriptiveErrorResponse(correlationId, status, causeChain)
-                }
+        GeoviiteRequestType.INTERNAL -> {
+            if (status.is5xxServerError) {
+                createTerseErrorResponse(correlationId, status)
+            } else {
+                createDescriptiveErrorResponse(correlationId, status, causeChain)
             }
         }
     }

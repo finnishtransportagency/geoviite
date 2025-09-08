@@ -23,8 +23,10 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import java.math.BigDecimal
 
+const val EXT_FRAME_CONVERTER_BASE_PATH = "/rata-vkm"
+
 @PreAuthorize(AUTH_API_FRAME_CONVERTER)
-@GeoviiteExtApiController(["/rata-vkm/v1", "/rata-vkm/dev/v1"])
+@GeoviiteExtApiController(["$EXT_FRAME_CONVERTER_BASE_PATH/v1", "$EXT_FRAME_CONVERTER_BASE_PATH/dev/v1"])
 class FrameConverterControllerV1
 @Autowired
 constructor(

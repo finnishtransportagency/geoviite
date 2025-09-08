@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.migration
 
-import fi.fta.geoviite.infra.geography.CoordinateTransformationException
+import fi.fta.geoviite.infra.error.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.Point

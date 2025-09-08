@@ -51,6 +51,10 @@
         }
     },
     "error": {
+        "coordinate-transformation": {
+            "generic": "Koordinaatin ({{x}}, {{y}}) muunnos koordinaattijärjestelmästä {{sourceSrid}} koordinaattijärjestelmään {{targetSrid}} epäonnistui",
+            "unsupported-srid": "Koordinaattijärjestelmä {{srid}} ei ole tuettu"
+        },
         "integration-not-configured": {
             "RATKO": "Ratko-integraatio ei ole käytössä tässä ympäristössä",
             "PROJEKTIVELHO": "Projektivelho-integraatio ei ole käytössä tässä ympäristössä"

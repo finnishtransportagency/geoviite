@@ -12,6 +12,7 @@ import correlationId
 import currentUser
 import currentUserRole
 import fi.fta.geoviite.api.configuration.ExtApiConfiguration
+import fi.fta.geoviite.api.frameconverter.v1.EXT_FRAME_CONVERTER_BASE_PATH
 import fi.fta.geoviite.api.tracklayout.v1.EXT_TRACK_LAYOUT_BASE_PATH
 import fi.fta.geoviite.infra.SpringContextUtility
 import fi.fta.geoviite.infra.authorization.AuthCode
@@ -35,14 +36,6 @@ import fi.fta.geoviite.infra.logging.apiResponse
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import java.net.URL
-import java.security.KeyFactory
-import java.security.interfaces.ECPublicKey
-import java.security.interfaces.RSAPublicKey
-import java.security.spec.X509EncodedKeySpec
-import java.time.Duration
-import java.time.Instant
-import java.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -57,6 +50,14 @@ import org.springframework.stereotype.Component
 import org.springframework.web.context.request.ServletWebRequest
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.filter.OncePerRequestFilter
+import java.net.URL
+import java.security.KeyFactory
+import java.security.interfaces.ECPublicKey
+import java.security.interfaces.RSAPublicKey
+import java.security.spec.X509EncodedKeySpec
+import java.time.Duration
+import java.time.Instant
+import java.util.*
 
 const val HTTP_HEADER_REMOTE_IP = "X-FORWARDED-FOR"
 const val HTTP_HEADER_CORRELATION_ID = "X-Amzn-Trace-Id"
@@ -191,33 +192,33 @@ constructor(
             if (path.startsWith(apiRoot)) {
                 val newPath = path.replace(apiRoot, "")
                 request.getRequestDispatcher(newPath).forward(request, response)
-                return
             } else if (path == "/" && appRoot.isNotBlank()) {
                 // Redirect browser from server root to <url>/$appRoot/
                 // (So that Geoviite UI can open without specifying the /app/ path in the bowser).
                 response.status = HttpServletResponse.SC_FOUND
                 response.setHeader("Location", "$appRoot/")
-                return
             } else if (path == "$appRoot/" && appRoot.isNotBlank()) {
                 // Serve index.html directly from the appRoot.
                 // (So that index.html is not displayed in the browser url bar).
                 request.getRequestDispatcher("$appRoot/index.html").forward(request, response)
-                return
             } else {
                 checkUiRequestVersion(request)
                 chain.doFilter(request, response)
             }
         } catch (ex: Exception) {
+            // Normally, errors handled via Spring error handling (see ApiErrorHandler.kt)
+            // However, if it occurs too early in the request handling or inside the spring structures,
+            // this is the only place to process it
             val errorResponse =
                 createErrorResponse(
                     logger = log,
                     exception = ex,
-                    requestType = (request as? WebRequest)?.let(::inferRequestType) ?: GeoviiteRequestType.Other,
+                    requestType = inferRequestType(request.requestURI),
                     translation = localizationService.getLocalization(LocalizationLanguage.FI),
                 )
-
             response.contentType = errorResponse.headers.contentType?.toString() ?: MediaType.APPLICATION_JSON_VALUE
             response.status = errorResponse.statusCode.value()
+            response.characterEncoding = "UTF-8"
             response.writer.write(objectMapper.writeValueAsString(errorResponse.body))
             response.writer.flush()
         } finally {
@@ -452,20 +453,22 @@ private fun parseAuthCodes(authCodeListing: String): List<AuthCode> {
 }
 
 enum class GeoviiteRequestType {
-    ExtApiV1,
-    Other,
+    EXT_API_V1,
+    INTERNAL,
 }
 
-fun inferRequestType(request: WebRequest): GeoviiteRequestType {
-    val servletRequest = request as? ServletWebRequest
+fun inferRequestType(request: WebRequest): GeoviiteRequestType =
+    (request as? ServletWebRequest)?.request?.requestURI?.let(::inferRequestType) ?: GeoviiteRequestType.INTERNAL
 
-    return when {
-        servletRequest != null && servletRequest.request.requestURI.startsWith(EXT_TRACK_LAYOUT_BASE_PATH) -> {
-            GeoviiteRequestType.ExtApiV1
+fun inferRequestType(requestURI: String): GeoviiteRequestType =
+    when {
+        requestURI.startsWith("$EXT_TRACK_LAYOUT_BASE_PATH/") -> {
+            GeoviiteRequestType.EXT_API_V1
         }
-
+        requestURI.startsWith("$EXT_FRAME_CONVERTER_BASE_PATH/") -> {
+            GeoviiteRequestType.EXT_API_V1
+        }
         else -> {
-            GeoviiteRequestType.Other
+            GeoviiteRequestType.INTERNAL
         }
     }
-}

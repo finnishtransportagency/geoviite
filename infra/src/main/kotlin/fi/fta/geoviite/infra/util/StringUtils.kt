@@ -35,7 +35,7 @@ fun sanitize(input: String, regex: Regex, maxLength: Int?): String =
     input.replace(regex, "").let { s -> if (maxLength != null) s.take(maxLength) else s }
 
 fun formatForLog(input: String, maxLength: Int = DEFAULT_LOG_MAX_LENGTH): String =
-    "\"${limitLength(input, maxLength).let(::removeLogUnsafe).let(::removeLinebreaks)}\""
+    "'${limitLength(input, maxLength).let(::removeLogUnsafe).let(::removeLinebreaks)}'"
 
 fun limitLength(input: String, maxLength: Int) =
     if (input.length <= maxLength) input else "${input.take(maxLength - 2)}.."
