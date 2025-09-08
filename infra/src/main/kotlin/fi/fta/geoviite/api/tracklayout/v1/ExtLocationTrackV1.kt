@@ -1,5 +1,6 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.Oid
@@ -14,6 +15,7 @@ import fi.fta.geoviite.infra.util.FreeText
 import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(name = "Sijaintiraide")
+@JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtLocationTrackV1(
     @JsonProperty(LOCATION_TRACK_OID) val locationTrackOid: Oid<LocationTrack>,
     @JsonProperty(LOCATION_TRACK_NAME) val locationTrackName: AlignmentName,
