@@ -49,7 +49,7 @@
     },
     "error": {
         "coordinate-transformation": {
-            "generic": "Koordinaatin ({{x}}, {{y}}) muunnos järjstelmästä {{sourceSrid}} järjestelmään {{targetSrid}} epäonnistui",
+            "generic": "Koordinaatin ({{x}}, {{y}}) muunnos koordinaattijärjestelmästä {{sourceSrid}} koordinaattijärjestelmään {{targetSrid}} epäonnistui",
             "unsupported-srid": "Koordinaattijärjestelmä {{srid}} ei ole tuettu"
         },
         "integration-not-configured": {

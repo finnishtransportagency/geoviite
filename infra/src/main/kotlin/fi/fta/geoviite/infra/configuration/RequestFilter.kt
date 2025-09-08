@@ -454,11 +454,11 @@ private fun parseAuthCodes(authCodeListing: String): List<AuthCode> {
 
 enum class GeoviiteRequestType {
     EXT_API_V1,
-    INT_API,
+    INTERNAL,
 }
 
 fun inferRequestType(request: WebRequest): GeoviiteRequestType =
-    (request as? ServletWebRequest)?.request?.requestURI?.let(::inferRequestType) ?: GeoviiteRequestType.INT_API
+    (request as? ServletWebRequest)?.request?.requestURI?.let(::inferRequestType) ?: GeoviiteRequestType.INTERNAL
 
 fun inferRequestType(requestURI: String): GeoviiteRequestType =
     when {
@@ -469,6 +469,6 @@ fun inferRequestType(requestURI: String): GeoviiteRequestType =
             GeoviiteRequestType.EXT_API_V1
         }
         else -> {
-            GeoviiteRequestType.INT_API
+            GeoviiteRequestType.INTERNAL
         }
     }

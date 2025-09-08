@@ -64,7 +64,7 @@ fun handleErrorResponseCreation(
             createExtApiErrorResponseV1(correlationId, status, causeChain, translation)
         }
 
-        GeoviiteRequestType.INT_API -> {
+        GeoviiteRequestType.INTERNAL -> {
             if (status.is5xxServerError) {
                 createTerseErrorResponse(correlationId, status)
             } else {
