@@ -41,9 +41,9 @@ import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.all
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.produceIf
+import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
 import java.math.RoundingMode
-import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class FrameConverterServiceV1
@@ -446,9 +446,6 @@ constructor(
     ): Either<List<GeoJsonFeatureErrorResponseV1>, ValidTrackAddressToCoordinateRequestV1> {
         val basicErrors =
             listOfNotNull(
-                produceIf(request.trackNumberName != null && request.trackNumberOid != null) {
-                    FrameConverterErrorV1.BothNameAndOidForTrackNumber
-                },
                 produceIf(request.trackKilometer == null) { FrameConverterErrorV1.MissingTrackKilometer },
                 produceIf(request.trackMeter == null) { FrameConverterErrorV1.MissingTrackMeter },
             )
