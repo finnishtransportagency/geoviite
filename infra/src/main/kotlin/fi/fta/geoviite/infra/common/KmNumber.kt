@@ -27,7 +27,7 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(val number: Int, v
     @JsonCreator(mode = DELEGATING) constructor(value: String) : this(parseKmNumberParts(value))
 
     companion object {
-        private val extensionLength = 1..2
+        val extensionLength = 1..2
         private const val EXTENSION_CHARACTERS = "A-Z"
         private val extensionSanitizer = StringSanitizer(KmNumber::class, EXTENSION_CHARACTERS, extensionLength)
         val ZERO = KmNumber(0)
@@ -49,8 +49,8 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(val number: Int, v
     fun isPrimary(): Boolean = extension?.let { it == "A" } ?: true
 }
 
-private const val METERS_MAX_INTEGER_DIGITS = 4
-private const val METERS_MAX_DECIMAL_DIGITS = 6
+const val METERS_MAX_INTEGER_DIGITS = 4
+const val METERS_MAX_DECIMAL_DIGITS = 6
 
 private fun limitScale(meters: BigDecimal) =
     if (meters.scale() < 0) {
