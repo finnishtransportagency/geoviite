@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.logging.apiResult
 import fi.fta.geoviite.infra.util.Either
 import fi.fta.geoviite.infra.util.processRights
-import java.math.BigDecimal
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,6 +21,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
+import java.math.BigDecimal
 
 @PreAuthorize(AUTH_API_FRAME_CONVERTER)
 @GeoviiteExtApiController(["/rata-vkm/v1", "/rata-vkm/dev/v1"])
@@ -36,9 +36,11 @@ constructor(
     @GetMapping("/koordinaatit", "/koordinaatit/")
     fun trackAddressToCoordinateRequestSingle(
         @RequestParam(TRACK_NUMBER_NAME_PARAM, required = false) trackNumberName: FrameConverterStringV1?,
+        @RequestParam(TRACK_NUMBER_OID_PARAM, required = false) trackNumberOid: FrameConverterStringV1?,
         @RequestParam(TRACK_KILOMETER_PARAM, required = false) trackKilometer: Int?,
         @RequestParam(TRACK_METER_PARAM, required = false) trackMeter: BigDecimal?,
         @RequestParam(LOCATION_TRACK_NAME_PARAM, required = false) locationTrackName: FrameConverterStringV1?,
+        @RequestParam(LOCATION_TRACK_OID_PARAM, required = false) locationTrackOid: FrameConverterStringV1?,
         @RequestParam(LOCATION_TRACK_TYPE_PARAM, required = false)
         locationTrackType: FrameConverterLocationTrackTypeV1?,
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
@@ -49,9 +51,11 @@ constructor(
         val request =
             TrackAddressToCoordinateRequestV1(
                 trackNumberName = trackNumberName,
+                trackNumberOid = trackNumberOid,
                 trackKilometer = trackKilometer,
                 trackMeter = trackMeter,
                 locationTrackName = locationTrackName,
+                locationTrackOid = locationTrackOid,
                 locationTrackType = locationTrackType,
             )
 
