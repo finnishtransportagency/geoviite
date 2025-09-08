@@ -68,10 +68,10 @@ class LayoutSwitchDao(
     ): List<LayoutRowVersion<LayoutSwitch>> {
         val sql =
             """
-            select id, design_id, draft, version
-            from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
-            where (:include_deleted = true or state_category != 'NOT_EXISTING')
-        """
+                select id, design_id, draft, version
+                from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                where (:include_deleted = true or state_category != 'NOT_EXISTING')
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -90,49 +90,49 @@ class LayoutSwitchDao(
     ): List<LayoutSwitchJointConnection> {
         val sql =
             """
-            with
-              track_link as (
-                select distinct
-                  ltve.location_track_id,
-                  ltve.location_track_layout_context_id,
-                  ltve.location_track_version,
-                  np.switch_id,
-                  np.switch_joint_number,
-                  case
-                    when np.node_id = edge.start_node_id then postgis.st_astext(postgis.st_startpoint(start_g.geometry))
-                    when np.node_id = edge.end_node_id then postgis.st_astext(postgis.st_endpoint(end_g.geometry))
-                  end as location
-                  from layout.node_port np
-                    inner join layout.edge edge on np.node_id = edge.start_node_id or np.node_id = edge.end_node_id
-                    inner join layout.edge_segment start_segment on start_segment.edge_id = edge.id and start_segment.segment_index = 0
-                    inner join layout.edge_segment end_segment on end_segment.edge_id = edge.id and end_segment.segment_index = edge.segment_count - 1
-                    inner join layout.segment_geometry start_g on start_segment.geometry_id = start_g.id
-                    inner join layout.segment_geometry end_g on end_segment.geometry_id = end_g.id
-                    inner join layout.location_track_version_edge ltve on ltve.edge_id = edge.id
-                    inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
-                               on ltve.location_track_id = lt.id and
-                                  ltve.location_track_layout_context_id::text =
-                                  lt.layout_context_id::text and ltve.location_track_version = lt.version
-                  where np.switch_id = :switch_id
-                    and (np.node_id = edge.end_node_id or ltve.edge_index = 0)
-                    and lt.state != 'DELETED'
-              )
-            select
-              jv.switch_id,
-              jv.number,
-              jv.location_accuracy,
-              track_link.location_track_id,
-              postgis.st_x(track_link.location) as x,
-              postgis.st_y(track_link.location) as y
-              from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) switch
-                left join layout.switch_version_joint jv
-                left join track_link on track_link.switch_id = jv.switch_id and track_link.switch_joint_number = jv.number
-                     on switch.id = jv.switch_id
-                       and switch.layout_context_id = jv.switch_layout_context_id
-                       and switch.version = jv.switch_version
-              where switch.id = :switch_id
-                and switch.state_category != 'NOT_EXISTING'
-        """
+                with
+                  track_link as (
+                    select distinct
+                      ltve.location_track_id,
+                      ltve.location_track_layout_context_id,
+                      ltve.location_track_version,
+                      np.switch_id,
+                      np.switch_joint_number,
+                      case
+                        when np.node_id = edge.start_node_id then postgis.st_astext(postgis.st_startpoint(start_g.geometry))
+                        when np.node_id = edge.end_node_id then postgis.st_astext(postgis.st_endpoint(end_g.geometry))
+                      end as location
+                      from layout.node_port np
+                        inner join layout.edge edge on np.node_id = edge.start_node_id or np.node_id = edge.end_node_id
+                        inner join layout.edge_segment start_segment on start_segment.edge_id = edge.id and start_segment.segment_index = 0
+                        inner join layout.edge_segment end_segment on end_segment.edge_id = edge.id and end_segment.segment_index = edge.segment_count - 1
+                        inner join layout.segment_geometry start_g on start_segment.geometry_id = start_g.id
+                        inner join layout.segment_geometry end_g on end_segment.geometry_id = end_g.id
+                        inner join layout.location_track_version_edge ltve on ltve.edge_id = edge.id
+                        inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+                                   on ltve.location_track_id = lt.id and
+                                      ltve.location_track_layout_context_id::text =
+                                      lt.layout_context_id::text and ltve.location_track_version = lt.version
+                      where np.switch_id = :switch_id
+                        and (np.node_id = edge.end_node_id or ltve.edge_index = 0)
+                        and lt.state != 'DELETED'
+                  )
+                select
+                  jv.switch_id,
+                  jv.number,
+                  jv.location_accuracy,
+                  track_link.location_track_id,
+                  postgis.st_x(track_link.location) as x,
+                  postgis.st_y(track_link.location) as y
+                  from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) switch
+                    left join layout.switch_version_joint jv
+                    left join track_link on track_link.switch_id = jv.switch_id and track_link.switch_joint_number = jv.number
+                         on switch.id = jv.switch_id
+                           and switch.layout_context_id = jv.switch_layout_context_id
+                           and switch.version = jv.switch_version
+                  where switch.id = :switch_id
+                    and switch.state_category != 'NOT_EXISTING'
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -177,52 +177,52 @@ class LayoutSwitchDao(
 
         val sql =
             """
-            insert into 
-              layout.switch(
-                layout_context_id,
-                id,
-                geometry_switch_id,
-                name,
-                switch_structure_id,
-                state_category,
-                trap_point,
-                owner_id,
-                draft,
-                design_asset_state,
-                design_id,
-                source,
-                draft_oid,
-                origin_design_id
-            )
-            values (
-              :layout_context_id,
-              :id,
-              :geometry_switch_id,
-              :name,
-              :switch_structure_id,
-              :state_category::layout.state_category,
-              :trap_point,
-              :owner_id,
-              :draft,
-              :design_asset_state::layout.design_asset_state,
-              :design_id,
-              :source::layout.geometry_source,
-              :draft_oid,
-              :origin_design_id
-            )
-            on conflict (id, layout_context_id) do update set
-              geometry_switch_id = excluded.geometry_switch_id,
-              name = excluded.name,
-              switch_structure_id = excluded.switch_structure_id,
-              state_category = excluded.state_category,
-              trap_point = excluded.trap_point,
-              owner_id = excluded.owner_id,
-              design_asset_state = excluded.design_asset_state,
-              source = excluded.source,
-              draft_oid = excluded.draft_oid,
-              origin_design_id = excluded.origin_design_id
-            returning id, design_id, draft, version
-        """
+                insert into
+                  layout.switch(
+                    layout_context_id,
+                    id,
+                    geometry_switch_id,
+                    name,
+                    switch_structure_id,
+                    state_category,
+                    trap_point,
+                    owner_id,
+                    draft,
+                    design_asset_state,
+                    design_id,
+                    source,
+                    draft_oid,
+                    origin_design_id
+                )
+                values (
+                  :layout_context_id,
+                  :id,
+                  :geometry_switch_id,
+                  :name,
+                  :switch_structure_id,
+                  :state_category::layout.state_category,
+                  :trap_point,
+                  :owner_id,
+                  :draft,
+                  :design_asset_state::layout.design_asset_state,
+                  :design_id,
+                  :source::layout.geometry_source,
+                  :draft_oid,
+                  :origin_design_id
+                )
+                on conflict (id, layout_context_id) do update set
+                  geometry_switch_id = excluded.geometry_switch_id,
+                  name = excluded.name,
+                  switch_structure_id = excluded.switch_structure_id,
+                  state_category = excluded.state_category,
+                  trap_point = excluded.trap_point,
+                  owner_id = excluded.owner_id,
+                  design_asset_state = excluded.design_asset_state,
+                  source = excluded.source,
+                  draft_oid = excluded.draft_oid,
+                  origin_design_id = excluded.origin_design_id
+                returning id, design_id, draft, version
+            """
                 .trimIndent()
         jdbcTemplate.setUser()
         val response: LayoutRowVersion<LayoutSwitch> =
@@ -256,25 +256,25 @@ class LayoutSwitchDao(
         if (joints.isNotEmpty()) {
             val sql =
                 """
-              insert into layout.switch_version_joint(
-                switch_id,
-                switch_layout_context_id,
-                switch_version,
-                number, 
-                location, 
-                location_accuracy,
-                role
-                )
-              values (
-                :switch_id,
-                :switch_layout_context_id,
-                :switch_version,
-                :number, 
-                postgis.st_setsrid(postgis.st_point(:location_x, :location_y), :srid), 
-                :location_accuracy::common.location_accuracy,
-                :role::common.switch_joint_role
-                )
-          """
+                    insert into layout.switch_version_joint(
+                      switch_id,
+                      switch_layout_context_id,
+                      switch_version,
+                      number,
+                      location,
+                      location_accuracy,
+                      role
+                      )
+                    values (
+                      :switch_id,
+                      :switch_layout_context_id,
+                      :switch_version,
+                      :number,
+                      postgis.st_setsrid(postgis.st_point(:location_x, :location_y), :srid),
+                      :location_accuracy::common.location_accuracy,
+                      :role::common.switch_joint_role
+                      )
+                """
                     .trimIndent()
             val params =
                 joints
@@ -302,48 +302,48 @@ class LayoutSwitchDao(
         if (versions.isEmpty()) return emptyMap()
         val sql =
             """
-            select 
-              sv.id,
-              sv.version,
-              sv.design_id,
-              sv.draft,
-              sv.design_asset_state,
-              sv.geometry_switch_id, 
-              sv.name, 
-              sv.switch_structure_id,
-              sv.state_category,
-              sv.trap_point,
-              sv.owner_id,
-              sv.source,
-              sv.origin_design_id,
-              sv.draft_oid,
-              coalesce(joint_numbers, '{}') as joint_numbers,
-              coalesce(joint_roles, '{}') as joint_roles,
-              coalesce(joint_x_values, '{}') as joint_x_values,
-              coalesce(joint_y_values, '{}') as joint_y_values,
-              coalesce(joint_location_accuracies, '{}') as joint_location_accuracies
-            from layout.switch_version sv
-              inner join lateral
-                (
-                  select
-                    unnest(:ids) id,
-                    unnest(:layout_context_ids) layout_context_id,
-                    unnest(:versions) version
-                ) args on args.id = sv.id and args.layout_context_id = sv.layout_context_id and args.version = sv.version
-              left join lateral (
-                select 
-                  array_agg(jv.number order by jv.number) as joint_numbers,
-                  array_agg(jv.role order by jv.number) as joint_roles,
-                  array_agg(postgis.st_x(jv.location) order by jv.number) as joint_x_values,
-                  array_agg(postgis.st_y(jv.location) order by jv.number) as joint_y_values,
-                  array_agg(jv.location_accuracy order by jv.number) as joint_location_accuracies
-                from layout.switch_version_joint jv
-                  where jv.switch_id = sv.id
-                    and jv.switch_layout_context_id = sv.layout_context_id
-                    and jv.switch_version = sv.version
-              ) jv on (true)
-            where sv.deleted = false
-        """
+                select
+                  sv.id,
+                  sv.version,
+                  sv.design_id,
+                  sv.draft,
+                  sv.design_asset_state,
+                  sv.geometry_switch_id,
+                  sv.name,
+                  sv.switch_structure_id,
+                  sv.state_category,
+                  sv.trap_point,
+                  sv.owner_id,
+                  sv.source,
+                  sv.origin_design_id,
+                  sv.draft_oid,
+                  coalesce(joint_numbers, '{}') as joint_numbers,
+                  coalesce(joint_roles, '{}') as joint_roles,
+                  coalesce(joint_x_values, '{}') as joint_x_values,
+                  coalesce(joint_y_values, '{}') as joint_y_values,
+                  coalesce(joint_location_accuracies, '{}') as joint_location_accuracies
+                from layout.switch_version sv
+                  inner join lateral
+                    (
+                      select
+                        unnest(:ids) id,
+                        unnest(:layout_context_ids) layout_context_id,
+                        unnest(:versions) version
+                    ) args on args.id = sv.id and args.layout_context_id = sv.layout_context_id and args.version = sv.version
+                  left join lateral (
+                    select
+                      array_agg(jv.number order by jv.number) as joint_numbers,
+                      array_agg(jv.role order by jv.number) as joint_roles,
+                      array_agg(postgis.st_x(jv.location) order by jv.number) as joint_x_values,
+                      array_agg(postgis.st_y(jv.location) order by jv.number) as joint_y_values,
+                      array_agg(jv.location_accuracy order by jv.number) as joint_location_accuracies
+                    from layout.switch_version_joint jv
+                      where jv.switch_id = sv.id
+                        and jv.switch_layout_context_id = sv.layout_context_id
+                        and jv.switch_version = sv.version
+                  ) jv on (true)
+                where sv.deleted = false
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -360,39 +360,39 @@ class LayoutSwitchDao(
     override fun preloadCache(): Int {
         val sql =
             """
-            select 
-              s.id,
-              s.version,
-              s.design_id,
-              s.draft,
-              s.design_asset_state,
-              s.geometry_switch_id, 
-              s.name, 
-              s.switch_structure_id,
-              s.state_category,
-              s.trap_point,
-              s.owner_id,
-              s.source,
-              joint_numbers,
-              joint_roles,
-              joint_x_values,
-              joint_y_values,
-              joint_location_accuracies,
-              s.draft_oid,
-              s.origin_design_id
-            from layout.switch s
-              left join lateral
-                (select coalesce(array_agg(jv.number order by jv.number), '{}') as joint_numbers,
-                        coalesce(array_agg(jv.role order by jv.number), '{}') as joint_roles,
-                        coalesce(array_agg(postgis.st_x(jv.location) order by jv.number), '{}') as joint_x_values,
-                        coalesce(array_agg(postgis.st_y(jv.location) order by jv.number), '{}') as joint_y_values,
-                        coalesce(array_agg(jv.location_accuracy order by jv.number), '{}') as joint_location_accuracies
-                 from layout.switch_version_joint jv
-                 where jv.switch_id = s.id
-                   and jv.switch_layout_context_id = s.layout_context_id
-                   and jv.switch_version = s.version
-                ) jv on (true)
-        """
+                select
+                  s.id,
+                  s.version,
+                  s.design_id,
+                  s.draft,
+                  s.design_asset_state,
+                  s.geometry_switch_id,
+                  s.name,
+                  s.switch_structure_id,
+                  s.state_category,
+                  s.trap_point,
+                  s.owner_id,
+                  s.source,
+                  joint_numbers,
+                  joint_roles,
+                  joint_x_values,
+                  joint_y_values,
+                  joint_location_accuracies,
+                  s.draft_oid,
+                  s.origin_design_id
+                from layout.switch s
+                  left join lateral
+                    (select coalesce(array_agg(jv.number order by jv.number), '{}') as joint_numbers,
+                            coalesce(array_agg(jv.role order by jv.number), '{}') as joint_roles,
+                            coalesce(array_agg(postgis.st_x(jv.location) order by jv.number), '{}') as joint_x_values,
+                            coalesce(array_agg(postgis.st_y(jv.location) order by jv.number), '{}') as joint_y_values,
+                            coalesce(array_agg(jv.location_accuracy order by jv.number), '{}') as joint_location_accuracies
+                     from layout.switch_version_joint jv
+                     where jv.switch_id = s.id
+                       and jv.switch_layout_context_id = s.layout_context_id
+                       and jv.switch_version = s.version
+                    ) jv on (true)
+            """
                 .trimIndent()
 
         val switches =
@@ -426,7 +426,14 @@ class LayoutSwitchDao(
             source = rs.getEnum("source"),
             draftOid = rs.getOidOrNull("draft_oid"),
             contextData =
-                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
+                rs.getLayoutContextData(
+                    "id",
+                    "design_id",
+                    "draft",
+                    "version",
+                    "design_asset_state",
+                    "origin_design_id",
+                ),
         )
     }
 
@@ -491,7 +498,8 @@ class LayoutSwitchDao(
                 left join layout.location_track_external_id ext_id
                           on ltv_s.location_track_id = ext_id.id
                             and ext_id.layout_context_id = layout.layout_context_id(:design_id, false)
-              where ltv_s.switch_id in (:switch_ids);
+              where ltv_s.switch_id in (:switch_ids)
+                and lt.state != 'DELETED';
             """
                 .trimIndent()
         val params =
@@ -518,60 +526,60 @@ class LayoutSwitchDao(
         moment: Instant,
     ): List<LocationTrackIdentifiers> {
         val sql =
-            """ 
-            select distinct
-              location_track.id,
-              location_track.design_id,
-              location_track.draft,
-              location_track.version,
-              location_track_external_id.external_id
-              from (
-                select lt.id, lt.layout_context_id, lt.version, lt.design_id, lt.draft
-                  from layout.location_track_version lt
-                  where not lt.draft
-                    and not lt.deleted
-                    and (lt.design_id is null or lt.design_id = :design_id::int)
-                    and change_time <= :moment
-                    and not
-                    (:design_id::int is not null
-                      and lt.design_id is null
-                      and exists
-                       (select *
-                          from layout.location_track_version overrider_lt
-                          where overrider_lt.id = lt.id
-                            and not overrider_lt.draft
-                            and not overrider_lt.deleted
-                            and overrider_lt.design_id = :design_id
-                            and overrider_lt.change_time <= :moment
-                            and not exists
-                            (select *
-                               from layout.location_track_version overrider_deletion
-                               where overrider_deletion.id = lt.id
-                                 and overrider_deletion.layout_context_id = overrider_lt.layout_context_id
-                                 and overrider_deletion.version > overrider_lt.version
-                                 and overrider_deletion.deleted
-                                 and overrider_deletion.change_time <= :moment
-                            )
-                       )
-                      )
-                    and not exists
-                    (select * from layout.location_track_version future_lt
-                              where future_lt.id = lt.id
-                                and future_lt.layout_context_id = lt.layout_context_id
-                                and future_lt.version > lt.version
-                                and future_lt.change_time <= :moment
-                    )
-              ) location_track
-                left join layout.location_track_external_id
-                          on location_track.id = location_track_external_id.id
-                            and location_track.layout_context_id = location_track_external_id.layout_context_id
-                left join layout.location_track_version_switch_view as lt_s
-                          on location_track.id = lt_s.location_track_id
-                            and location_track.layout_context_id = lt_s.location_track_layout_context_id
-                            and location_track.version = lt_s.location_track_version
-              where lt_s.switch_id = :switch_id
-                and (not lt_s.is_outer_link or lt_s.switch_joint_role = 'MAIN')
-        """
+            """
+                select distinct
+                  location_track.id,
+                  location_track.design_id,
+                  location_track.draft,
+                  location_track.version,
+                  location_track_external_id.external_id
+                  from (
+                    select lt.id, lt.layout_context_id, lt.version, lt.design_id, lt.draft
+                      from layout.location_track_version lt
+                      where not lt.draft
+                        and not lt.deleted
+                        and (lt.design_id is null or lt.design_id = :design_id::int)
+                        and change_time <= :moment
+                        and not
+                        (:design_id::int is not null
+                          and lt.design_id is null
+                          and exists
+                           (select *
+                              from layout.location_track_version overrider_lt
+                              where overrider_lt.id = lt.id
+                                and not overrider_lt.draft
+                                and not overrider_lt.deleted
+                                and overrider_lt.design_id = :design_id
+                                and overrider_lt.change_time <= :moment
+                                and not exists
+                                (select *
+                                   from layout.location_track_version overrider_deletion
+                                   where overrider_deletion.id = lt.id
+                                     and overrider_deletion.layout_context_id = overrider_lt.layout_context_id
+                                     and overrider_deletion.version > overrider_lt.version
+                                     and overrider_deletion.deleted
+                                     and overrider_deletion.change_time <= :moment
+                                )
+                           )
+                          )
+                        and not exists
+                        (select * from layout.location_track_version future_lt
+                                  where future_lt.id = lt.id
+                                    and future_lt.layout_context_id = lt.layout_context_id
+                                    and future_lt.version > lt.version
+                                    and future_lt.change_time <= :moment
+                        )
+                  ) location_track
+                    left join layout.location_track_external_id
+                              on location_track.id = location_track_external_id.id
+                                and location_track.layout_context_id = location_track_external_id.layout_context_id
+                    left join layout.location_track_version_switch_view as lt_s
+                              on location_track.id = lt_s.location_track_id
+                                and location_track.layout_context_id = lt_s.location_track_layout_context_id
+                                and location_track.version = lt_s.location_track_version
+                  where lt_s.switch_id = :switch_id
+                    and (not lt_s.is_outer_link or lt_s.switch_joint_role = 'MAIN')
+            """
                 .trimIndent()
 
         val params =
@@ -600,11 +608,11 @@ class LayoutSwitchDao(
         } else {
             val sql =
                 """
-                select id, design_id, draft, version, name
-                from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                where name in (:names)
-                  and state_category != 'NOT_EXISTING'
-            """
+                    select id, design_id, draft, version, name
+                    from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                    where name in (:names)
+                      and state_category != 'NOT_EXISTING'
+                """
                     .trimIndent()
             val params =
                 mapOf(
@@ -632,22 +640,22 @@ class LayoutSwitchDao(
     ): List<IntId<LayoutSwitch>> {
         val sql =
             """
-            select distinct switch.id as switch_id
-              from layout.edge_segment segment
-                inner join layout.location_track_version_edge lt_edge on lt_edge.edge_id = segment.edge_id
-                join layout.segment_geometry on segment.geometry_id = segment_geometry.id
-                join layout.switch_version_joint jv on
-                  postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), jv.location)
-                  and postgis.st_dwithin(segment_geometry.geometry, jv.location, :dist)
-                inner join layout.switch_in_layout_context('DRAFT', :design_id) switch
-                  on jv.switch_id = switch.id
-                    and jv.switch_layout_context_id = switch.layout_context_id
-                    and jv.switch_version = switch.version
-              where lt_edge.location_track_id = :location_track_id
-                and lt_edge.location_track_layout_context_id = :location_track_layout_context_id
-                and lt_edge.location_track_version = :location_track_version
-                and switch.state_category != 'NOT_EXISTING';
-        """
+                select distinct switch.id as switch_id
+                  from layout.edge_segment segment
+                    inner join layout.location_track_version_edge lt_edge on lt_edge.edge_id = segment.edge_id
+                    join layout.segment_geometry on segment.geometry_id = segment_geometry.id
+                    join layout.switch_version_joint jv on
+                      postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), jv.location)
+                      and postgis.st_dwithin(segment_geometry.geometry, jv.location, :dist)
+                    inner join layout.switch_in_layout_context('DRAFT', :design_id) switch
+                      on jv.switch_id = switch.id
+                        and jv.switch_layout_context_id = switch.layout_context_id
+                        and jv.switch_version = switch.version
+                  where lt_edge.location_track_id = :location_track_id
+                    and lt_edge.location_track_layout_context_id = :location_track_layout_context_id
+                    and lt_edge.location_track_version = :location_track_version
+                    and switch.state_category != 'NOT_EXISTING';
+            """
                 .trimIndent()
         val params =
             mapOf(

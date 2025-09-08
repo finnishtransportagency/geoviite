@@ -22,7 +22,6 @@ import fi.fta.geoviite.infra.linking.NodeTrackConnections
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.roundTo6Decimals
@@ -54,15 +53,14 @@ import fi.fta.geoviite.infra.util.measureAndCollect
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
 import fi.fta.geoviite.infra.util.setUser
-import java.math.BigDecimal
-import java.sql.ResultSet
-import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
+import java.sql.ResultSet
+import java.util.stream.Collectors
+import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -81,11 +79,9 @@ class LayoutAlignmentDao(
     @Value("\${geoviite.cache.enabled}") val cacheEnabled: Boolean,
 ) : DaoBase(jdbcTemplateParam) {
 
-    private val nodeIdsByHash: ConcurrentHashMap<NodeHash, IntId<LayoutNode>> = ConcurrentHashMap()
     private val nodesCache: Cache<IntId<LayoutNode>, DbLayoutNode> =
         Caffeine.newBuilder().maximumSize(NODE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
-    private val edgeIdsByHash: ConcurrentHashMap<EdgeHash, IntId<LayoutEdge>> = ConcurrentHashMap()
     private val edgesCache: Cache<IntId<LayoutEdge>, DbLayoutEdge> =
         Caffeine.newBuilder().maximumSize(EDGE_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
@@ -103,38 +99,34 @@ class LayoutAlignmentDao(
     fun getNode(id: IntId<LayoutNode>): DbLayoutNode = requireNotNull(getNodes(listOf(id))[id])
 
     fun getNodes(ids: Iterable<IntId<LayoutNode>>): Map<IntId<LayoutNode>, DbLayoutNode> =
-        nodesCache.getAll(ids) { nonCached -> fetchNodes(nonCached).also(::cacheHashValues) }
+        nodesCache.getAll(ids) { nonCached -> fetchNodes(nonCached) }
 
     fun preloadNodes(): Int {
-        return fetchNodes(ids = null).also(nodesCache::putAll).also(::cacheHashValues).size
-    }
-
-    private fun cacheHashValues(nodes: Map<IntId<LayoutNode>, DbLayoutNode>) {
-        nodeIdsByHash.putAll(nodes.entries.associate { (id, node) -> node.contentHash to id })
+        return fetchNodes(ids = null).also(nodesCache::putAll).size
     }
 
     private fun fetchNodes(ids: Set<IntId<LayoutNode>>?): Map<IntId<LayoutNode>, DbLayoutNode> {
         if (ids?.isEmpty() == true) return emptyMap()
         val sql =
             """
-            select
-              port_a.node_id,
-              port_a.node_type,
-              port_a.switch_id as a_switch_id,
-              port_a.switch_joint_number as a_switch_joint_number,
-              port_a.switch_joint_role as a_switch_joint_role,
-              port_a.boundary_location_track_id as a_boundary_location_track_id,
-              port_a.boundary_type as a_boundary_type,
-              port_b.switch_id as b_switch_id,
-              port_b.switch_joint_number as b_switch_joint_number,
-              port_b.switch_joint_role as b_switch_joint_role,
-              port_b.boundary_location_track_id as b_boundary_location_track_id,
-              port_b.boundary_type as b_boundary_type
-              from layout.node_port port_a
-                left join layout.node_port port_b on port_a.node_id = port_b.node_id and port_b.port = 'B'
-            where port_a.port = 'A'
-              and (:ids::int[] is null or port_a.node_id = any(:ids))
-        """
+                select
+                  port_a.node_id,
+                  port_a.node_type,
+                  port_a.switch_id as a_switch_id,
+                  port_a.switch_joint_number as a_switch_joint_number,
+                  port_a.switch_joint_role as a_switch_joint_role,
+                  port_a.boundary_location_track_id as a_boundary_location_track_id,
+                  port_a.boundary_type as a_boundary_type,
+                  port_b.switch_id as b_switch_id,
+                  port_b.switch_joint_number as b_switch_joint_number,
+                  port_b.switch_joint_role as b_switch_joint_role,
+                  port_b.boundary_location_track_id as b_boundary_location_track_id,
+                  port_b.boundary_type as b_boundary_type
+                  from layout.node_port port_a
+                    left join layout.node_port port_b on port_a.node_id = port_b.node_id and port_b.port = 'B'
+                where port_a.port = 'A'
+                  and (:ids::int[] is null or port_a.node_id = any(:ids))
+            """
                 .trimIndent()
         val params = mapOf("ids" to ids?.map { id -> id.intValue }?.toTypedArray())
 
@@ -179,7 +171,7 @@ class LayoutAlignmentDao(
 
     @Transactional
     fun getOrCreateNode(content: LayoutNode): DbLayoutNode =
-        if (content is DbLayoutNode) content else getNode(nodeIdsByHash[content.contentHash] ?: saveNode(content))
+        if (content is DbLayoutNode) content else getNode(saveNode(content))
 
     private fun saveNode(content: LayoutNode): IntId<LayoutNode> {
         val sql =
@@ -208,7 +200,6 @@ class LayoutAlignmentDao(
     fun getEdge(id: IntId<LayoutEdge>): DbLayoutEdge =
         edgesCache.get(id) {
             val edge = fetchEdges(ids = listOf(id), active = false).values.single()
-            edgeIdsByHash[edge.contentHash] = id
             edge
         }
 
@@ -217,7 +208,6 @@ class LayoutAlignmentDao(
     fun preloadEdges(): Int {
         val edges = fetchEdges(ids = null, active = true)
         edgesCache.putAll(edges)
-        edgeIdsByHash.putAll(edges.values.associate { n -> n.contentHash to n.id })
         return edges.size
     }
 
@@ -225,32 +215,32 @@ class LayoutAlignmentDao(
         logger.info("Fetching edges: ids=$ids active=$active")
         val sql =
             """
-            select
-              e.id,
-              e.start_node_id,
-              e.start_node_port,
-              e.end_node_id,
-              e.end_node_port,
-              array_agg(s.segment_index order by s.segment_index) as indices,
-              array_agg(s.geometry_alignment_id order by s.segment_index) as geometry_alignment_ids,
-              array_agg(s.geometry_element_index order by s.segment_index) as geometry_element_indices,
-              array_agg(s.source_start_m order by s.segment_index) as source_start_m_values,
-              array_agg(s.source order by s.segment_index) as sources,
-              array_agg(s.geometry_id order by s.segment_index) as geometry_ids
-              from layout.edge e
-                left join layout.edge_segment s on e.id = s.edge_id
-              where (:ids::int[] is null or e.id = any(:ids))
-                and (not :active or exists(
-                  select 1 
-                  from layout.location_track_version_edge te 
-                    inner join layout.location_track t 
-                      on te.location_track_id = t.id 
-                        and te.location_track_layout_context_id = t.layout_context_id 
-                        and te.location_track_version = t.version
-                  where e.id = te.edge_id
-                ))
-              group by e.id
-        """
+                select
+                  e.id,
+                  e.start_node_id,
+                  e.start_node_port,
+                  e.end_node_id,
+                  e.end_node_port,
+                  array_agg(s.segment_index order by s.segment_index) as indices,
+                  array_agg(s.geometry_alignment_id order by s.segment_index) as geometry_alignment_ids,
+                  array_agg(s.geometry_element_index order by s.segment_index) as geometry_element_indices,
+                  array_agg(s.source_start_m order by s.segment_index) as source_start_m_values,
+                  array_agg(s.source order by s.segment_index) as sources,
+                  array_agg(s.geometry_id order by s.segment_index) as geometry_ids
+                  from layout.edge e
+                    left join layout.edge_segment s on e.id = s.edge_id
+                  where (:ids::int[] is null or e.id = any(:ids))
+                    and (not :active or exists(
+                      select 1
+                      from layout.location_track_version_edge te
+                        inner join layout.location_track t
+                          on te.location_track_id = t.id
+                            and te.location_track_layout_context_id = t.layout_context_id
+                            and te.location_track_version = t.version
+                      where e.id = te.edge_id
+                    ))
+                  group by e.id
+            """
                 .trimIndent()
         val params = mapOf("ids" to ids?.map { id -> id.intValue }?.toTypedArray(), "active" to active)
 
@@ -312,10 +302,7 @@ class LayoutAlignmentDao(
     fun getOrCreateEdge(content: LayoutEdge): DbLayoutEdge =
         when (content) {
             is DbLayoutEdge -> content
-            is TmpLayoutEdge ->
-                saveContentGeometry(content).let { updatedContent ->
-                    getEdge(edgeIdsByHash[updatedContent.contentHash] ?: saveEdge(updatedContent))
-                }
+            is TmpLayoutEdge -> getEdge(saveEdge(saveContentGeometry(content)))
         }
 
     private fun getOrSaveNodeConnection(node: NodeConnection): IntId<LayoutNode> =
@@ -391,24 +378,24 @@ class LayoutAlignmentDao(
     ): Map<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> {
         val sql =
             """
-            select
-              lt.id,
-              lt.layout_context_id,
-              lt.version,
-              array_agg(edge_id order by edge_index) filter (where edge_id is not null) as edge_ids
-              from layout.location_track_version lt
-                left join layout.location_track_version_edge lt_e
-                          on lt_e.location_track_id = lt.id
-                            and lt_e.location_track_layout_context_id = lt.layout_context_id
-                            and lt_e.location_track_version = lt.version
-              where (:id::int is null or (lt.id = :id and lt.layout_context_id = :layout_context_id and lt.version = :version and deleted = false))
-                and (:active = false or exists(
-                  select 1
-                    from layout.location_track t
-                    where t.id = lt.id and t.layout_context_id = lt.layout_context_id and t.version = lt.version
-                ))
-              group by lt.id, lt.layout_context_id, lt.version
-        """
+                select
+                  lt.id,
+                  lt.layout_context_id,
+                  lt.version,
+                  array_agg(edge_id order by edge_index) filter (where edge_id is not null) as edge_ids
+                  from layout.location_track_version lt
+                    left join layout.location_track_version_edge lt_e
+                              on lt_e.location_track_id = lt.id
+                                and lt_e.location_track_layout_context_id = lt.layout_context_id
+                                and lt_e.location_track_version = lt.version
+                  where (:id::int is null or (lt.id = :id and lt.layout_context_id = :layout_context_id and lt.version = :version and deleted = false))
+                    and (:active = false or exists(
+                      select 1
+                        from layout.location_track t
+                        where t.id = lt.id and t.layout_context_id = lt.layout_context_id and t.version = lt.version
+                    ))
+                  group by lt.id, lt.layout_context_id, lt.version
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -437,16 +424,16 @@ class LayoutAlignmentDao(
 
         val sql =
             """
-            insert into layout.location_track_version_edge(
-                location_track_id,
-                location_track_layout_context_id,
-                location_track_version,
-                edge_id,
-                edge_index,
-                start_m
-            )
-            values(?, ?, ?, ?, ?, ?) 
-        """
+                insert into layout.location_track_version_edge(
+                    location_track_id,
+                    location_track_layout_context_id,
+                    location_track_version,
+                    edge_id,
+                    edge_index,
+                    start_m
+                )
+                values(?, ?, ?, ?, ?, ?)
+            """
                 .trimIndent()
 
         // This uses indexed parameters (rather than named ones),
@@ -484,12 +471,12 @@ class LayoutAlignmentDao(
     private fun fetchInternal(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment {
         val sql =
             """
-            select id, version
-            from layout.alignment_version
-            where id = :id 
-              and version = :version
-              and deleted = false
-        """
+                select id, version
+                from layout.alignment_version
+                where id = :id
+                  and version = :version
+                  and deleted = false
+            """
                 .trimIndent()
         val params = mapOf("id" to alignmentVersion.id.intValue, "version" to alignmentVersion.version)
         return getOne(
@@ -508,20 +495,20 @@ class LayoutAlignmentDao(
     fun preloadAlignmentCache(): Int {
         val sql =
             """
-          select 
-            a.id,
-            a.version,
-            sv.segment_index,
-            sv.start,
-            sv.geometry_alignment_id,
-            sv.geometry_element_index,
-            sv.source_start,
-            sv.source,
-            sv.geometry_id
-          from layout.alignment a
-            left join layout.segment_version sv on sv.alignment_id = a.id and sv.alignment_version = a.version
-          order by a.id, sv.segment_index
-        """
+              select
+                a.id,
+                a.version,
+                sv.segment_index,
+                sv.start,
+                sv.geometry_alignment_id,
+                sv.geometry_element_index,
+                sv.source_start,
+                sv.source,
+                sv.geometry_id
+              from layout.alignment a
+                left join layout.segment_version sv on sv.alignment_id = a.id and sv.alignment_version = a.version
+              order by a.id, sv.segment_index
+            """
                 .trimIndent()
 
         data class AlignmentData(val version: RowVersion<LayoutAlignment>)
@@ -558,18 +545,18 @@ class LayoutAlignmentDao(
     fun insert(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
         val sql =
             """
-            insert into layout.alignment(
-                bounding_box,
-                segment_count,
-                length
-            ) 
-            values (
-                postgis.st_polygonfromtext(:polygon_string, 3067), 
-                :segment_count,
-                :length
-            )
-            returning id, version
-        """
+                insert into layout.alignment(
+                    bounding_box,
+                    segment_count,
+                    length
+                )
+                values (
+                    postgis.st_polygonfromtext(:polygon_string, 3067),
+                    :segment_count,
+                    :length
+                )
+                returning id, version
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -593,14 +580,14 @@ class LayoutAlignmentDao(
             else throw IllegalArgumentException("Cannot update an alignment that isn't in DB already")
         val sql =
             """
-            update layout.alignment 
-            set 
-                bounding_box = postgis.st_polygonfromtext(:polygon_string, 3067),
-                segment_count = :segment_count,
-                length = :length
-            where id = :id
-            returning id, version
-        """
+                update layout.alignment
+                set
+                    bounding_box = postgis.st_polygonfromtext(:polygon_string, 3067),
+                    segment_count = :segment_count,
+                    length = :length
+                where id = :id
+                returning id, version
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -637,40 +624,42 @@ class LayoutAlignmentDao(
             return listOf()
         }
 
-        val sql = """
-            with target as materialized (
-              select
-                postgis.st_setsrid(postgis.st_geomfromtext(target_wkt), :srid) as location,
-                ordinality - 1 as ix
-                from unnest(array [:target_wkts]) with ordinality as t(target_wkt, ordinality)
-            ),
-              target_edge as materialized (
-                (
-                  select e.start_node_id as node_id, e.id as edge_id, target.ix
-                    from target
-                      join layout.edge e on postgis.st_dwithin(start_location, target.location, :distance)
-                )
-                union all
-                (
-                  select e.end_node_id as node_id, e.id as edge_id, target.ix
-                    from target
-                      join layout.edge e on postgis.st_dwithin(end_location, target.location, :distance)
-                )
-              )
-            select
-              lt.id,
-              lt.layout_context_id,
-              lt.version,
-              target_edge.node_id,
-              target_edge.ix
-              from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
-                inner join layout.location_track_version_edge ltve
-                           on ltve.location_track_id = lt.id
-                             and ltve.location_track_layout_context_id = lt.layout_context_id
-                             and ltve.location_track_version = lt.version
-                join target_edge using (edge_id)
-              where lt.state != 'DELETED'
-        """.trimIndent()
+        val sql =
+            """
+                with target as materialized (
+                  select
+                    postgis.st_setsrid(postgis.st_geomfromtext(target_wkt), :srid) as location,
+                    ordinality - 1 as ix
+                    from unnest(array [:target_wkts]) with ordinality as t(target_wkt, ordinality)
+                ),
+                  target_edge as materialized (
+                    (
+                      select e.start_node_id as node_id, e.id as edge_id, target.ix
+                        from target
+                          join layout.edge e on postgis.st_dwithin(start_location, target.location, :distance)
+                    )
+                    union all
+                    (
+                      select e.end_node_id as node_id, e.id as edge_id, target.ix
+                        from target
+                          join layout.edge e on postgis.st_dwithin(end_location, target.location, :distance)
+                    )
+                  )
+                select
+                  lt.id,
+                  lt.layout_context_id,
+                  lt.version,
+                  target_edge.node_id,
+                  target_edge.ix
+                  from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+                    inner join layout.location_track_version_edge ltve
+                               on ltve.location_track_id = lt.id
+                                 and ltve.location_track_layout_context_id = lt.layout_context_id
+                                 and ltve.location_track_version = lt.version
+                    join target_edge using (edge_id)
+                  where lt.state != 'DELETED'
+            """
+                .trimIndent()
 
         val params =
             mapOf(
@@ -709,11 +698,11 @@ class LayoutAlignmentDao(
     fun deleteOrphanedAlignments(): List<IntId<LayoutAlignment>> {
         val sql =
             """
-           delete
-           from layout.alignment alignment
-           where not exists(select 1 from layout.reference_line where reference_line.alignment_id = alignment.id)
-           returning alignment.id
-       """
+                delete
+                from layout.alignment alignment
+                where not exists(select 1 from layout.reference_line where reference_line.alignment_id = alignment.id)
+                returning alignment.id
+            """
                 .trimIndent()
         jdbcTemplate.setUser()
         val deletedAlignments =
@@ -725,17 +714,17 @@ class LayoutAlignmentDao(
     private fun fetchSegments(alignmentVersion: RowVersion<LayoutAlignment>): List<LayoutSegment> {
         val sql =
             """
-            select 
-              geometry_alignment_id,
-              geometry_element_index,
-              source_start,
-              source,
-              geometry_id
-            from layout.segment_version 
-            where alignment_id = :alignment_id
-              and alignment_version = :alignment_version
-            order by alignment_id, segment_index
-        """
+                select
+                  geometry_alignment_id,
+                  geometry_element_index,
+                  source_start,
+                  source,
+                  geometry_id
+                from layout.segment_version
+                where alignment_id = :alignment_id
+                  and alignment_version = :alignment_version
+                order by alignment_id, segment_index
+            """
                 .trimIndent()
         val params =
             mapOf("alignment_id" to alignmentVersion.id.intValue, "alignment_version" to alignmentVersion.version)
@@ -760,131 +749,131 @@ class LayoutAlignmentDao(
     ): List<SegmentGeometryAndMetadata<LocationTrackM>> {
         val sql =
             """
-          with
-            segment_range as (
-              select
-                min(array [ltve.edge_index, s.segment_index]) as min_index,
-                max(array [ltve.edge_index, s.segment_index]) as max_index
-                from layout.location_track_version_edge ltve
-                  inner join layout.edge_segment s on s.edge_id = ltve.edge_id
-                  inner join layout.segment_geometry g on g.id = s.geometry_id
-                          where ltve.location_track_id = :location_track_id
-                  and ltve.location_track_layout_context_id = :location_track_layout_context_id
-                  and ltve.location_track_version = :location_track_version
-                  and (
-                  :use_bounding_box = false or (
-                    postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid), g.geometry)
-                    )
-                  )
-            ),
-            orig_metadata_plan as materialized (
-              select
-                plan.id as plan_id,
-                plan_file.name as file_name
-                from geometry.plan
-                  inner join geometry.plan_file on plan.id = plan_file.plan_id
-                  inner join geometry.plan_version init_version on init_version.id = plan.id
-                -- Ensure that the plan is from initial imports
-                where init_version.source = 'PAIKANNUSPALVELU'
-                  and init_version.version = 1
-                  and init_version.change_user = 'IM_IMPORT'
-            ),
-            orig_metadata as (
-              select
-                current_segment.edge_id as current_edge_id,
-                current_segment.segment_index as current_segment_index,
-                concat(metadata.plan_file_name, '.xml') as plan_file_name,
-                metadata.plan_alignment_name,
-                plan.plan_id
-                from layout.initial_import_metadata metadata
-                  inner join layout.initial_edge_segment_metadata segment_metadata
-                             on metadata.id = segment_metadata.metadata_id
-                  inner join layout.edge_segment orig_segment
-                             on orig_segment.edge_id = segment_metadata.edge_id
-                               and orig_segment.segment_index = segment_metadata.segment_index
-                               and orig_segment.source = 'IMPORTED'
-                  inner join layout.edge_segment current_segment
-                             on current_segment.geometry_id = orig_segment.geometry_id
-                               and current_segment.geometry_alignment_id is null
-                  inner join layout.location_track_version_edge ltve
-                             on ltve.edge_id = current_segment.edge_id
-                               and ltve.location_track_id = :location_track_id
-                               and ltve.location_track_layout_context_id = :location_track_layout_context_id
-                               and ltve.location_track_version = :location_track_version
-                  inner join layout.segment_geometry on orig_segment.geometry_id = segment_geometry.id
-                  left join orig_metadata_plan plan on plan.file_name = concat(metadata.plan_file_name, '.xml')
-                where metadata.alignment_external_id = :external_id
-            ),
-            segments as (
-              select
-                segment.edge_id,
-                ltve.edge_index,
-                segment.segment_index,
-                segment.geometry_id,
-                segment.source,
-                ltve.start_m + segment.start_m as start_m,
-                geom_alignment.id as geom_alignment_id,
-                geom_alignment.id is not null as is_linked,
-                coalesce(plan_file.plan_id, orig_metadata.plan_id) as plan_id,
-                coalesce(plan_file.name, orig_metadata.plan_file_name) as file_name,
-                coalesce(geom_alignment.name, orig_metadata.plan_alignment_name) as alignment_name,
-                (
-                      row_number() over (order by ltve.edge_index, segment.segment_index) - row_number() over (
-                        partition by
-                          geom_alignment.id is not null,
-                          coalesce(plan_file.plan_id, orig_metadata.plan_id),
-                          coalesce(plan_file.name, orig_metadata.plan_file_name),
-                          coalesce(geom_alignment.name, orig_metadata.plan_alignment_name)
-                        order by ltve.edge_index, segment.segment_index
+              with
+                segment_range as (
+                  select
+                    min(array [ltve.edge_index, s.segment_index]) as min_index,
+                    max(array [ltve.edge_index, s.segment_index]) as max_index
+                    from layout.location_track_version_edge ltve
+                      inner join layout.edge_segment s on s.edge_id = ltve.edge_id
+                      inner join layout.segment_geometry g on g.id = s.geometry_id
+                              where ltve.location_track_id = :location_track_id
+                      and ltve.location_track_layout_context_id = :location_track_layout_context_id
+                      and ltve.location_track_version = :location_track_version
+                      and (
+                      :use_bounding_box = false or (
+                        postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid), g.geometry)
                         )
-                  ) as grp
-                from layout.edge_segment segment
-                  inner join layout.location_track_version_edge ltve
-                             on ltve.edge_id = segment.edge_id
-                               and ltve.location_track_id = :location_track_id
-                               and ltve.location_track_layout_context_id = :location_track_layout_context_id
-                               and ltve.location_track_version = :location_track_version
-                  left join geometry.alignment geom_alignment on segment.geometry_alignment_id = geom_alignment.id
-                  left join geometry.plan_file on plan_file.plan_id = geom_alignment.plan_id
-                  left join orig_metadata
-                            on orig_metadata.current_edge_id = segment.edge_id
-                              and orig_metadata.current_segment_index = segment.segment_index
-            ),
-            metadata_segments as (
+                      )
+                ),
+                orig_metadata_plan as materialized (
+                  select
+                    plan.id as plan_id,
+                    plan_file.name as file_name
+                    from geometry.plan
+                      inner join geometry.plan_file on plan.id = plan_file.plan_id
+                      inner join geometry.plan_version init_version on init_version.id = plan.id
+                    -- Ensure that the plan is from initial imports
+                    where init_version.source = 'PAIKANNUSPALVELU'
+                      and init_version.version = 1
+                      and init_version.change_user = 'IM_IMPORT'
+                ),
+                orig_metadata as (
+                  select
+                    current_segment.edge_id as current_edge_id,
+                    current_segment.segment_index as current_segment_index,
+                    concat(metadata.plan_file_name, '.xml') as plan_file_name,
+                    metadata.plan_alignment_name,
+                    plan.plan_id
+                    from layout.initial_import_metadata metadata
+                      inner join layout.initial_edge_segment_metadata segment_metadata
+                                 on metadata.id = segment_metadata.metadata_id
+                      inner join layout.edge_segment orig_segment
+                                 on orig_segment.edge_id = segment_metadata.edge_id
+                                   and orig_segment.segment_index = segment_metadata.segment_index
+                                   and orig_segment.source = 'IMPORTED'
+                      inner join layout.edge_segment current_segment
+                                 on current_segment.geometry_id = orig_segment.geometry_id
+                                   and current_segment.geometry_alignment_id is null
+                      inner join layout.location_track_version_edge ltve
+                                 on ltve.edge_id = current_segment.edge_id
+                                   and ltve.location_track_id = :location_track_id
+                                   and ltve.location_track_layout_context_id = :location_track_layout_context_id
+                                   and ltve.location_track_version = :location_track_version
+                      inner join layout.segment_geometry on orig_segment.geometry_id = segment_geometry.id
+                      left join orig_metadata_plan plan on plan.file_name = concat(metadata.plan_file_name, '.xml')
+                    where metadata.alignment_external_id = :external_id
+                ),
+                segments as (
+                  select
+                    segment.edge_id,
+                    ltve.edge_index,
+                    segment.segment_index,
+                    segment.geometry_id,
+                    segment.source,
+                    ltve.start_m + segment.start_m as start_m,
+                    geom_alignment.id as geom_alignment_id,
+                    geom_alignment.id is not null as is_linked,
+                    coalesce(plan_file.plan_id, orig_metadata.plan_id) as plan_id,
+                    coalesce(plan_file.name, orig_metadata.plan_file_name) as file_name,
+                    coalesce(geom_alignment.name, orig_metadata.plan_alignment_name) as alignment_name,
+                    (
+                          row_number() over (order by ltve.edge_index, segment.segment_index) - row_number() over (
+                            partition by
+                              geom_alignment.id is not null,
+                              coalesce(plan_file.plan_id, orig_metadata.plan_id),
+                              coalesce(plan_file.name, orig_metadata.plan_file_name),
+                              coalesce(geom_alignment.name, orig_metadata.plan_alignment_name)
+                            order by ltve.edge_index, segment.segment_index
+                            )
+                      ) as grp
+                    from layout.edge_segment segment
+                      inner join layout.location_track_version_edge ltve
+                                 on ltve.edge_id = segment.edge_id
+                                   and ltve.location_track_id = :location_track_id
+                                   and ltve.location_track_layout_context_id = :location_track_layout_context_id
+                                   and ltve.location_track_version = :location_track_version
+                      left join geometry.alignment geom_alignment on segment.geometry_alignment_id = geom_alignment.id
+                      left join geometry.plan_file on plan_file.plan_id = geom_alignment.plan_id
+                      left join orig_metadata
+                                on orig_metadata.current_edge_id = segment.edge_id
+                                  and orig_metadata.current_segment_index = segment.segment_index
+                ),
+                metadata_segments as (
+                  select
+                    min(array [edge_index, segment_index]) as min_index,
+                    max(array [edge_index, segment_index]) as max_index,
+                    common.first(geometry_id order by edge_index, segment_index) as from_geom_id,
+                    common.last(geometry_id order by edge_index, segment_index) as to_geom_id,
+                    common.first(start_m order by edge_index, segment_index) as from_start_m,
+                    common.last(start_m order by edge_index, segment_index) as to_start_m,
+                    is_linked,
+                    plan_id,
+                    file_name,
+                    geom_alignment_id,
+                    alignment_name
+                    from segments
+                    group by is_linked, grp, plan_id, file_name, geom_alignment_id, alignment_name
+                )
               select
-                min(array [edge_index, segment_index]) as min_index,
-                max(array [edge_index, segment_index]) as max_index,
-                common.first(geometry_id order by edge_index, segment_index) as from_geom_id,
-                common.last(geometry_id order by edge_index, segment_index) as to_geom_id,
-                common.first(start_m order by edge_index, segment_index) as from_start_m,
-                common.last(start_m order by edge_index, segment_index) as to_start_m,
-                is_linked,
-                plan_id,
-                file_name,
-                geom_alignment_id,
-                alignment_name
-                from segments
-                group by is_linked, grp, plan_id, file_name, geom_alignment_id, alignment_name
-            )
-          select
-            segment.is_linked,
-            segment.plan_id,
-            segment.file_name,
-            segment.geom_alignment_id,
-            segment.alignment_name,
-            concat(array_to_string(segment.min_index, '_'), '_', array_to_string(segment.max_index, '_')) range_id,
-            postgis.st_x(postgis.st_startpoint(start_geom.geometry)) as start_x,
-            postgis.st_y(postgis.st_startpoint(start_geom.geometry)) as start_y,
-            postgis.st_m(postgis.st_startpoint(start_geom.geometry)) + from_start_m as start_m,
-            postgis.st_x(postgis.st_endpoint(end_geom.geometry)) as end_x,
-            postgis.st_y(postgis.st_endpoint(end_geom.geometry)) as end_y,
-            postgis.st_m(postgis.st_endpoint(end_geom.geometry)) + to_start_m as end_m
-            from segment_range range
-              inner join metadata_segments segment on segment.max_index >= range.min_index and segment.min_index <= range.max_index
-              left join layout.segment_geometry start_geom on start_geom.id = from_geom_id
-              left join layout.segment_geometry end_geom on end_geom.id = to_geom_id
-            order by segment.min_index, segment.max_index;
-        """
+                segment.is_linked,
+                segment.plan_id,
+                segment.file_name,
+                segment.geom_alignment_id,
+                segment.alignment_name,
+                concat(array_to_string(segment.min_index, '_'), '_', array_to_string(segment.max_index, '_')) range_id,
+                postgis.st_x(postgis.st_startpoint(start_geom.geometry)) as start_x,
+                postgis.st_y(postgis.st_startpoint(start_geom.geometry)) as start_y,
+                postgis.st_m(postgis.st_startpoint(start_geom.geometry)) + from_start_m as start_m,
+                postgis.st_x(postgis.st_endpoint(end_geom.geometry)) as end_x,
+                postgis.st_y(postgis.st_endpoint(end_geom.geometry)) as end_y,
+                postgis.st_m(postgis.st_endpoint(end_geom.geometry)) + to_start_m as end_m
+                from segment_range range
+                  inner join metadata_segments segment on segment.max_index >= range.min_index and segment.min_index <= range.max_index
+                  left join layout.segment_geometry start_geom on start_geom.id = from_geom_id
+                  left join layout.segment_geometry end_geom on end_geom.id = to_geom_id
+                order by segment.min_index, segment.max_index;
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -925,128 +914,128 @@ class LayoutAlignmentDao(
         // language=SQL
         val sql =
             """
-            with
-              segment_range as (
-                select
-                  alignment_id,
-                  alignment_version,
-                  min(segment_index) as min_index,
-                  max(segment_index) as max_index
-                from layout.segment_version
-                  inner join layout.segment_geometry on segment_geometry.id = segment_version.geometry_id
-                where alignment_id = :alignment_id
-                  and alignment_version = :alignment_version
-                  and (
-                      :use_bounding_box = false or postgis.st_intersects(
-                        postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                        geometry
+                with
+                  segment_range as (
+                    select
+                      alignment_id,
+                      alignment_version,
+                      min(segment_index) as min_index,
+                      max(segment_index) as max_index
+                    from layout.segment_version
+                      inner join layout.segment_geometry on segment_geometry.id = segment_version.geometry_id
+                    where alignment_id = :alignment_id
+                      and alignment_version = :alignment_version
+                      and (
+                          :use_bounding_box = false or postgis.st_intersects(
+                            postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                            geometry
+                          )
                       )
+                    group by alignment_id, alignment_version
+                  ),
+                  orig_metadata_plan as materialized (
+                    select
+                      plan.id as plan_id,
+                      plan_file.name as file_name
+                    from geometry.plan
+                      inner join geometry.plan_file on plan.id = plan_file.plan_id
+                      -- Ensure that the plan is from initial imports
+                      inner join geometry.plan_version init_version
+                              on init_version.id = plan.id and init_version.version = 1 and init_version.change_user = 'IM_IMPORT'
+                    where plan.source = 'PAIKANNUSPALVELU'
+                  ),
+                  orig_metadata as (
+                    select
+                      current_segment.alignment_id as current_alignment_id,
+                      current_segment.alignment_version as current_alignment_version,
+                      current_segment.segment_index as current_segment_index,
+                      concat(metadata.plan_file_name, '.xml') as plan_file_name,
+                      metadata.plan_alignment_name,
+                      plan.plan_id
+
+                    from layout.initial_import_metadata metadata
+                      inner join layout.initial_segment_metadata segment_metadata on
+                        metadata.id = segment_metadata.metadata_id
+                      inner join layout.segment_version segment on
+                        segment.alignment_id = segment_metadata.alignment_id
+                        and segment.alignment_version = 1
+                        and segment.segment_index = segment_metadata.segment_index
+                        and segment.source = 'IMPORTED'
+                      inner join layout.segment_version current_segment on
+                        current_segment.geometry_id = segment.geometry_id
+                        and current_segment.alignment_id = :alignment_id
+                        and current_segment.alignment_version = :alignment_version
+                        and current_segment.geometry_alignment_id is null
+                      left join layout.segment_geometry on segment.geometry_id = segment_geometry.id
+                      left join orig_metadata_plan plan on plan.file_name = concat(metadata.plan_file_name, '.xml')
+
+                    where metadata.alignment_external_id = :external_id
+                  ),
+                  segments as (
+                    select
+                      segment.alignment_id,
+                      segment.alignment_version,
+                      segment.segment_index,
+                      segment.geometry_id,
+                      segment.source,
+                      segment.start,
+                      geom_alignment.id as geom_alignment_id,
+                      geom_alignment.id is not null as is_linked,
+                      coalesce(plan_file.plan_id, orig_metadata.plan_id) as plan_id,
+                      coalesce(plan_file.name, orig_metadata.plan_file_name) as file_name,
+                      coalesce(geom_alignment.name, orig_metadata.plan_alignment_name) as alignment_name,
+                      row_number() over (order by segment.segment_index) - row_number() over (
+                        partition by
+                          geom_alignment.id is not null,
+                          coalesce(plan_file.plan_id, orig_metadata.plan_id),
+                          coalesce(plan_file.name, orig_metadata.plan_file_name),
+                          coalesce(geom_alignment.name, orig_metadata.plan_alignment_name)
+                        order by segment.segment_index
+                      ) as grp
+                    from layout.segment_version segment
+                      left join geometry.alignment geom_alignment on segment.geometry_alignment_id = geom_alignment.id
+                      left join geometry.plan_file on plan_file.plan_id = geom_alignment.plan_id
+                      left join orig_metadata on
+                        orig_metadata.current_alignment_id = segment.alignment_id
+                        and orig_metadata.current_alignment_version = segment.alignment_version
+                        and orig_metadata.current_segment_index = segment.segment_index
+                    where segment.alignment_id = :alignment_id
+                      and segment.alignment_version = :alignment_version
+                  ),
+                  metadata_segments as (
+                    select
+                      alignment_id,
+                      alignment_version,
+                      min(segment_index) as from_segment,
+                      max(segment_index) as to_segment,
+                      common.first(geometry_id order by segment_index) as from_geom_id,
+                      common.last(geometry_id order by segment_index) as to_geom_id,
+                      is_linked,
+                      plan_id,
+                      file_name,
+                      geom_alignment_id,
+                      alignment_name,
+                      min(start) as start
+                    from segments
+                    group by alignment_id, alignment_version, is_linked, grp, plan_id, file_name, geom_alignment_id, alignment_name
                   )
-                group by alignment_id, alignment_version
-              ),
-              orig_metadata_plan as materialized (
                 select
-                  plan.id as plan_id,
-                  plan_file.name as file_name
-                from geometry.plan
-                  inner join geometry.plan_file on plan.id = plan_file.plan_id
-                  -- Ensure that the plan is from initial imports
-                  inner join geometry.plan_version init_version 
-                          on init_version.id = plan.id and init_version.version = 1 and init_version.change_user = 'IM_IMPORT'
-                where plan.source = 'PAIKANNUSPALVELU'
-              ),
-              orig_metadata as (
-                select
-                  current_segment.alignment_id as current_alignment_id,
-                  current_segment.alignment_version as current_alignment_version,
-                  current_segment.segment_index as current_segment_index,
-                  concat(metadata.plan_file_name, '.xml') as plan_file_name,
-                  metadata.plan_alignment_name,
-                  plan.plan_id
-
-                from layout.initial_import_metadata metadata
-                  inner join layout.initial_segment_metadata segment_metadata on
-                    metadata.id = segment_metadata.metadata_id
-                  inner join layout.segment_version segment on
-                    segment.alignment_id = segment_metadata.alignment_id
-                    and segment.alignment_version = 1
-                    and segment.segment_index = segment_metadata.segment_index
-                    and segment.source = 'IMPORTED'
-                  inner join layout.segment_version current_segment on
-                    current_segment.geometry_id = segment.geometry_id
-                    and current_segment.alignment_id = :alignment_id
-                    and current_segment.alignment_version = :alignment_version
-                    and current_segment.geometry_alignment_id is null
-                  left join layout.segment_geometry on segment.geometry_id = segment_geometry.id
-                  left join orig_metadata_plan plan on plan.file_name = concat(metadata.plan_file_name, '.xml')
-
-                where metadata.alignment_external_id = :external_id
-              ),
-              segments as (
-                select
-                  segment.alignment_id,
-                  segment.alignment_version,
-                  segment.segment_index,
-                  segment.geometry_id,
-                  segment.source,
-                  segment.start,
-                  geom_alignment.id as geom_alignment_id,
-                  geom_alignment.id is not null as is_linked,
-                  coalesce(plan_file.plan_id, orig_metadata.plan_id) as plan_id,
-                  coalesce(plan_file.name, orig_metadata.plan_file_name) as file_name,
-                  coalesce(geom_alignment.name, orig_metadata.plan_alignment_name) as alignment_name,
-                  row_number() over (order by segment.segment_index) - row_number() over (
-                    partition by
-                      geom_alignment.id is not null,
-                      coalesce(plan_file.plan_id, orig_metadata.plan_id),
-                      coalesce(plan_file.name, orig_metadata.plan_file_name),
-                      coalesce(geom_alignment.name, orig_metadata.plan_alignment_name)
-                    order by segment.segment_index
-                  ) as grp
-                from layout.segment_version segment
-                  left join geometry.alignment geom_alignment on segment.geometry_alignment_id = geom_alignment.id
-                  left join geometry.plan_file on plan_file.plan_id = geom_alignment.plan_id
-                  left join orig_metadata on
-                    orig_metadata.current_alignment_id = segment.alignment_id
-                    and orig_metadata.current_alignment_version = segment.alignment_version
-                    and orig_metadata.current_segment_index = segment.segment_index
-                where segment.alignment_id = :alignment_id
-                  and segment.alignment_version = :alignment_version
-              ),
-              metadata_segments as (
-                select
-                  alignment_id,
-                  alignment_version,
-                  min(segment_index) as from_segment,
-                  max(segment_index) as to_segment,
-                  common.first(geometry_id order by segment_index) as from_geom_id,
-                  common.last(geometry_id order by segment_index) as to_geom_id,
-                  is_linked,
-                  plan_id,
-                  file_name,
-                  geom_alignment_id,
-                  alignment_name,
-                  min(start) as start
-                from segments
-                group by alignment_id, alignment_version, is_linked, grp, plan_id, file_name, geom_alignment_id, alignment_name
-              )
-            select
-              segment.*,
-              postgis.st_x(postgis.st_startpoint(start_geom.geometry)) as start_x,
-              postgis.st_y(postgis.st_startpoint(start_geom.geometry)) as start_y,
-              postgis.st_m(postgis.st_startpoint(start_geom.geometry)) + segment.start as start_m,
-              postgis.st_x(postgis.st_endpoint(end_geom.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(end_geom.geometry)) as end_y,
-              postgis.st_m(postgis.st_endpoint(end_geom.geometry)) + segment.start as end_m
-            from segment_range range
-              inner join metadata_segments segment on
-                  range.alignment_id = segment.alignment_id and range.alignment_version = segment.alignment_version
-              left join layout.segment_geometry start_geom on start_geom.id = from_geom_id
-              left join layout.segment_geometry end_geom on end_geom.id = to_geom_id
-            where range.max_index >= segment.from_segment
-              and range.min_index <= segment.to_segment
-            order by segment.from_segment, segment.to_segment
-        """
+                  segment.*,
+                  postgis.st_x(postgis.st_startpoint(start_geom.geometry)) as start_x,
+                  postgis.st_y(postgis.st_startpoint(start_geom.geometry)) as start_y,
+                  postgis.st_m(postgis.st_startpoint(start_geom.geometry)) + segment.start as start_m,
+                  postgis.st_x(postgis.st_endpoint(end_geom.geometry)) as end_x,
+                  postgis.st_y(postgis.st_endpoint(end_geom.geometry)) as end_y,
+                  postgis.st_m(postgis.st_endpoint(end_geom.geometry)) + segment.start as end_m
+                from segment_range range
+                  inner join metadata_segments segment on
+                      range.alignment_id = segment.alignment_id and range.alignment_version = segment.alignment_version
+                  left join layout.segment_geometry start_geom on start_geom.id = from_geom_id
+                  left join layout.segment_geometry end_geom on end_geom.id = to_geom_id
+                where range.max_index >= segment.from_segment
+                  and range.min_index <= segment.to_segment
+                order by segment.from_segment, segment.to_segment
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -1083,28 +1072,28 @@ class LayoutAlignmentDao(
         // language=SQL
         val sql =
             """
-            select
-              postgis.st_x(postgis.st_startpoint(segment_geometry.geometry)) as start_point_x,
-              postgis.st_y(postgis.st_startpoint(segment_geometry.geometry)) as start_point_y,
-              postgis.st_x(postgis.st_endpoint(segment_geometry.geometry)) as end_point_x,
-              postgis.st_y(postgis.st_endpoint(segment_geometry.geometry)) as end_point_y,
-              alignment.name as alignment_name,
-              plan.plan_time,
-              plan.measurement_method,
-              plan.srid,
-              plan_file.name as file_name
-            from layout.edge_segment
-              inner join layout.segment_geometry on edge_segment.geometry_id = segment_geometry.id
-              left join layout.edge on edge_segment.edge_id = edge.id
-              left join layout.location_track_version_edge lt_edge on edge.id = lt_edge.edge_id
-              left join geometry.alignment on alignment.id = edge_segment.geometry_alignment_id
-              left join geometry.plan on alignment.plan_id = plan.id
-              left join geometry.plan_file on plan_file.plan_id = plan.id
-            where lt_edge.location_track_id = :location_track_id 
-              and lt_edge.location_track_layout_context_id = :location_track_layout_context_id
-              and lt_edge.location_track_version = :location_track_version
-            order by lt_edge.edge_index, edge_segment.segment_index
-        """
+                select
+                  postgis.st_x(postgis.st_startpoint(segment_geometry.geometry)) as start_point_x,
+                  postgis.st_y(postgis.st_startpoint(segment_geometry.geometry)) as start_point_y,
+                  postgis.st_x(postgis.st_endpoint(segment_geometry.geometry)) as end_point_x,
+                  postgis.st_y(postgis.st_endpoint(segment_geometry.geometry)) as end_point_y,
+                  alignment.name as alignment_name,
+                  plan.plan_time,
+                  plan.measurement_method,
+                  plan.srid,
+                  plan_file.name as file_name
+                from layout.edge_segment
+                  inner join layout.segment_geometry on edge_segment.geometry_id = segment_geometry.id
+                  left join layout.edge on edge_segment.edge_id = edge.id
+                  left join layout.location_track_version_edge lt_edge on edge.id = lt_edge.edge_id
+                  left join geometry.alignment on alignment.id = edge_segment.geometry_alignment_id
+                  left join geometry.plan on alignment.plan_id = plan.id
+                  left join geometry.plan_file on plan_file.plan_id = plan.id
+                where lt_edge.location_track_id = :location_track_id
+                  and lt_edge.location_track_layout_context_id = :location_track_layout_context_id
+                  and lt_edge.location_track_version = :location_track_version
+                order by lt_edge.edge_index, edge_segment.segment_index
+            """
                 .trimIndent()
 
         val params =
@@ -1135,47 +1124,47 @@ class LayoutAlignmentDao(
         // language=SQL
         val sql =
             """
-            select *
-              from (
-                select
-                  location_track.id,
-                  ltve.start_m+edge_segment.start_m as start_m,
-                  postgis.st_m(postgis.st_endpoint(segment_geometry.geometry)) as length,
-                  (plan.vertical_coordinate_system is not null)
-                    and exists(
-                    select *
-                      from geometry.vertical_intersection vi
-                      where vi.alignment_id = alignment.id
-                  ) as has_profile_info
-                  from layout.location_track_in_layout_context(
-                      :publication_state::layout.publication_state,
-                      :design_id) location_track
-                    join layout.location_track_version_edge ltve
-                         on location_track.id = ltve.location_track_id
-                           and location_track.layout_context_id = ltve.location_track_layout_context_id
-                           and location_track.version = ltve.location_track_version
-                    join layout.edge on edge.id = ltve.edge_id
-                    join layout.edge_segment on edge.id = edge_segment.edge_id
-                    join layout.segment_geometry on edge_segment.geometry_id = segment_geometry.id
-                    left join geometry.alignment on alignment.id = edge_segment.geometry_alignment_id
-                    left join geometry.plan on alignment.plan_id = plan.id
-                  where postgis.st_intersects(
-                      postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                      location_track.bounding_box
-                    )
-                    and postgis.st_intersects(
-                      postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                      edge.bounding_box
-                    )
-                    and postgis.st_intersects(
-                      postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                      segment_geometry.bounding_box
-                    )
-                    and location_track.state != 'DELETED'
-              ) s
-              where ((:has_profile_info::boolean is null) or :has_profile_info = has_profile_info)
-              order by id, start_m
-        """
+                select *
+                  from (
+                    select
+                      location_track.id,
+                      ltve.start_m+edge_segment.start_m as start_m,
+                      postgis.st_m(postgis.st_endpoint(segment_geometry.geometry)) as length,
+                      (plan.vertical_coordinate_system is not null)
+                        and exists(
+                        select *
+                          from geometry.vertical_intersection vi
+                          where vi.alignment_id = alignment.id
+                      ) as has_profile_info
+                      from layout.location_track_in_layout_context(
+                          :publication_state::layout.publication_state,
+                          :design_id) location_track
+                        join layout.location_track_version_edge ltve
+                             on location_track.id = ltve.location_track_id
+                               and location_track.layout_context_id = ltve.location_track_layout_context_id
+                               and location_track.version = ltve.location_track_version
+                        join layout.edge on edge.id = ltve.edge_id
+                        join layout.edge_segment on edge.id = edge_segment.edge_id
+                        join layout.segment_geometry on edge_segment.geometry_id = segment_geometry.id
+                        left join geometry.alignment on alignment.id = edge_segment.geometry_alignment_id
+                        left join geometry.plan on alignment.plan_id = plan.id
+                      where postgis.st_intersects(
+                          postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                          location_track.bounding_box
+                        )
+                        and postgis.st_intersects(
+                          postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                          edge.bounding_box
+                        )
+                        and postgis.st_intersects(
+                          postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                          segment_geometry.bounding_box
+                        )
+                        and location_track.state != 'DELETED'
+                  ) s
+                  where ((:has_profile_info::boolean is null) or :has_profile_info = has_profile_info)
+                  order by id, start_m
+            """
                 .trimIndent()
 
         val params =
@@ -1212,19 +1201,19 @@ class LayoutAlignmentDao(
             // language=SQL
             val sqlIndexed =
                 """
-                insert into layout.segment_version(
-                  alignment_id,
-                  alignment_version,
-                  segment_index,
-                  start,
-                  geometry_alignment_id,
-                  geometry_element_index,
-                  source_start,
-                  source,
-                  geometry_id
-                )
-                values(?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?) 
-              """
+                  insert into layout.segment_version(
+                    alignment_id,
+                    alignment_version,
+                    segment_index,
+                    start,
+                    geometry_alignment_id,
+                    geometry_element_index,
+                    source_start,
+                    source,
+                    geometry_id
+                  )
+                  values(?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?)
+                """
                     .trimIndent()
             // This uses indexed parameters (rather than named ones),
             // since named parameter template's batch-method is considerably slower
@@ -1269,22 +1258,22 @@ class LayoutAlignmentDao(
         // language=SQL
         val sql =
             """
-          insert into layout.segment_geometry(
-            resolution,
-            geometry,
-            height_values,
-            cant_values
-          )
-          values(
-            :resolution,
-            postgis.st_setsrid(:line_string::postgis.geometry, :srid),
-            string_to_array(:height_values, ',', 'null')::decimal[],
-            string_to_array(:cant_values, ',', 'null')::decimal[]
-          )
-          on conflict (hash) do update
-          set resolution = segment_geometry.resolution -- no-op update so that returns clause works on conflict as well
-          returning id
-        """
+              insert into layout.segment_geometry(
+                resolution,
+                geometry,
+                height_values,
+                cant_values
+              )
+              values(
+                :resolution,
+                postgis.st_setsrid(:line_string::postgis.geometry, :srid),
+                string_to_array(:height_values, ',', 'null')::decimal[],
+                string_to_array(:cant_values, ',', 'null')::decimal[]
+              )
+              on conflict (hash) do update
+              set resolution = segment_geometry.resolution -- no-op update so that returns clause works on conflict as well
+              returning id
+            """
                 .trimIndent()
         return geometries.associate { geometry ->
             val params =
@@ -1314,17 +1303,17 @@ class LayoutAlignmentDao(
             logger.info("Fetching segment geometries from DB: ${ids.size}")
             val sql =
                 """
-                  select 
+                  select
                     id,
                     postgis.st_astext(geometry) as geometry_wkt,
                     resolution,
-                    case 
-                      when height_values is null then null 
-                      else array_to_string(height_values, ',', 'null') 
+                    case
+                      when height_values is null then null
+                      else array_to_string(height_values, ',', 'null')
                     end as height_values,
-                    case 
-                      when cant_values is null then null 
-                      else array_to_string(cant_values, ',', 'null') 
+                    case
+                      when cant_values is null then null
+                      else array_to_string(cant_values, ',', 'null')
                     end as cant_values
                   from layout.segment_geometry
                   where id in (:ids)
@@ -1395,16 +1384,6 @@ private fun parseGeometry(row: GeometryRowResult): SegmentGeometry =
         segmentPoints = parseSegmentPointsWkt(row.wktString, row.heightString, row.cantString),
         resolution = row.resolution,
     )
-
-private fun getSegmentPointsWkt(
-    rs: ResultSet,
-    geometryColumn: String,
-    heightColumn: String? = null,
-    cantColumn: String? = null,
-): List<SegmentPoint> =
-    rs.getString(geometryColumn)?.let { wktString ->
-        parseSegmentPointsWkt(wktString, heightColumn?.let(rs::getString), cantColumn?.let(rs::getString))
-    } ?: emptyList()
 
 private fun parseSegmentPointsWkt(
     geometryWkt: String,
