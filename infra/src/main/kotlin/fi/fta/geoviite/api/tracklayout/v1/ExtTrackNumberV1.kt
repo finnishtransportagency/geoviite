@@ -1,5 +1,6 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
@@ -11,6 +12,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(name = "Ratanumero")
+@JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtTrackNumberV1(
     @JsonProperty(TRACK_NUMBER_OID) val trackNumberOid: Oid<LayoutTrackNumber>,
     @JsonProperty(TRACK_NUMBER) val trackNumber: TrackNumber,

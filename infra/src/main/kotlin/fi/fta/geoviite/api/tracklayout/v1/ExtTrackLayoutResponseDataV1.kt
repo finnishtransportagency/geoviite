@@ -1,5 +1,6 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.Srid
@@ -74,6 +75,7 @@ enum class ExtTrackNumberStateV1(val value: String) {
 }
 
 @Schema(name = "Osoitepiste")
+@JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataosoite") val trackAddress: String?) {
 
     constructor(x: Double, y: Double, address: TrackMeter?) : this(x, y, address?.formatFixedDecimals(3))
