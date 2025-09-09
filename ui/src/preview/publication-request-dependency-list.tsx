@@ -187,7 +187,7 @@ export const onlyDependencies = (
     const reqType = changesBeingReverted.requestedRevertChange.source.type;
     const reqId = changesBeingReverted.requestedRevertChange.source.id;
 
-    return allChanges.filter((candidate) => candidate.id !== reqId && candidate.type !== reqType);
+    return allChanges.filter((candidate) => candidate.id !== reqId || candidate.type !== reqType);
 };
 
 const filterDisplayedDependencies = (
