@@ -531,34 +531,6 @@ class LocationTrackDao(
         return locationTrackOwners
     }
 
-    fun fetchOnlyDraftVersions(
-        branch: LayoutBranch,
-        includeDeleted: Boolean,
-        trackNumberId: IntId<LayoutTrackNumber>? = null,
-    ): List<LayoutRowVersion<LocationTrack>> {
-        val sql =
-            """
-                select id, design_id, draft, version
-                from layout.location_track
-                where draft
-                  and (:includeDeleted or state != 'DELETED')
-                  and (:trackNumberId::int is null or track_number_id = :trackNumberId)
-                  and design_id is not distinct from :design_id
-            """
-                .trimIndent()
-        val params =
-            mapOf(
-                "includeDeleted" to includeDeleted,
-                "trackNumberId" to trackNumberId?.intValue,
-                "design_id" to branch.designId?.intValue,
-            )
-        return jdbcTemplate
-            .query(sql, params) { rs, _ ->
-                rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
-            }
-            .also { ids -> logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids) }
-    }
-
     fun fetchVersionsForPublication(
         target: ValidationTarget,
         trackNumberIds: List<IntId<LayoutTrackNumber>>,

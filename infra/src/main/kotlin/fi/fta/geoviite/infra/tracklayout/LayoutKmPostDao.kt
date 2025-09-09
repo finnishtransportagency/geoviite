@@ -344,35 +344,6 @@ class LayoutKmPostDao(
         return response
     }
 
-    fun fetchOnlyDraftVersions(
-        branch: LayoutBranch,
-        includeDeleted: Boolean,
-        trackNumberId: IntId<LayoutTrackNumber>? = null,
-    ): List<LayoutRowVersion<LayoutKmPost>> {
-        val sql =
-            """
-            select id, design_id, draft, version
-            from layout.km_post
-            where draft
-              and (:include_deleted or state != 'DELETED')
-              and (:trackNumberId::int is null or track_number_id = :trackNumberId)
-              and design_id is not distinct from :design_id
-        """
-                .trimIndent()
-        return jdbcTemplate
-            .query(
-                sql,
-                mapOf(
-                    "include_deleted" to includeDeleted,
-                    "trackNumberId" to trackNumberId?.intValue,
-                    "design_id" to branch.designId?.intValue,
-                ),
-            ) { rs, _ ->
-                rs.getLayoutRowVersion<LayoutKmPost>("id", "design_id", "draft", "version")
-            }
-            .also { ids -> logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids) }
-    }
-
     fun fetchNextWithLocationAfter(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
