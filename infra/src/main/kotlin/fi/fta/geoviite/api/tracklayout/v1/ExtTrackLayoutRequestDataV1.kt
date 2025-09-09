@@ -44,10 +44,6 @@ data class ExtMaybeTrackKmOrTrackMeterV1 @JsonCreator(mode = DELEGATING) constru
         }
     }
 
-    override fun toString(): String {
-        return value
-    }
-
     companion object {
         private const val MAX_ALLOWED_KM_INTEGERS = 4
         private const val SEPARATOR = 1 // Track address "+" and decimal "."
