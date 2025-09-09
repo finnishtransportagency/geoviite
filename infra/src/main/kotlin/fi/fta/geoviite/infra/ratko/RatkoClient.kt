@@ -62,9 +62,10 @@ private const val INFRA_PATH = "/api/infra/v1.0"
 private const val LOCATIONS_PATH = "/api/locations/v1.1"
 
 private const val LOCATION_TRACK_LOCATIONS_PATH = "$LOCATIONS_PATH/locationtracks"
-private const val LOCATION_TRACK_POINTS_PATH = "$INFRA_PATH/points"
+private const val LOCATION_TRACK_POINTS_PATH_V1_0 = "/api/infra/v1.0/points"
+private const val LOCATION_TRACK_POINTS_PATH_V1_1 = "/api/infra/v1.1/points"
 private const val LOCATION_TRACK_PATH = "$INFRA_PATH/locationtracks"
-private const val LOCATION_TRACK_POINTS_PATCH_PATH = "/api/infra/v1.1/locationtracks"
+private const val LOCATION_TRACK_PATCH_PATH = "/api/infra/v1.1/locationtracks"
 private const val ROUTE_NUMBER_LOCATIONS_PATH = "$LOCATIONS_PATH/routenumber"
 private const val ROUTE_NUMBER_POINTS_PATH = "$INFRA_PATH/routenumber/points"
 private const val ROUTE_NUMBER_PATH = "$INFRA_PATH/routenumbers"
@@ -132,7 +133,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun deleteLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, km: KmNumber?) {
         logger.integrationCall("deleteLocationTrackPoints", "locationTrackOid" to locationTrackOid, "km" to km)
 
-        deletePoints(combinePaths(LOCATION_TRACK_POINTS_PATH, locationTrackOid, km))
+        deletePoints(combinePaths(LOCATION_TRACK_POINTS_PATH_V1_0, locationTrackOid, km))
     }
 
     fun deleteRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, km: KmNumber?) {
@@ -187,18 +188,11 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             "updateLocationTrackPoints",
             "locationTrackOid" to locationTrackOid,
             "points" to "${points.first().kmM}..${points.last().kmM}",
+            "points.size" to points.size,
         )
 
-        points.chunked(1000).mapIndexed { index, chunk ->
-            logger.integrationCall(
-                "updateLocationTrackPoints",
-                "locationTrackOid" to locationTrackOid,
-                "chunk" to index,
-                "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
-            )
-
-            patchWithoutResponseBody(combinePaths(LOCATION_TRACK_POINTS_PATH, locationTrackOid), chunk)
-        }
+        val url = "$LOCATION_TRACK_POINTS_PATH_V1_1/$locationTrackOid?updateKmMvalues=true"
+        patchWithoutResponseBody(url, points)
     }
 
     fun createLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, points: List<RatkoPoint>) {
@@ -216,7 +210,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
             )
 
-            postSpec(combinePaths(LOCATION_TRACK_POINTS_PATH, locationTrackOid), chunk)
+            postSpec(combinePaths(LOCATION_TRACK_POINTS_PATH_V1_0, locationTrackOid), chunk)
                 .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE)
                 .toBodilessEntity()
                 .block(defaultBlockTimeout)
@@ -244,7 +238,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 "locationtrackOIDOfGeometryEndKmM" to endAddress.stripTrailingZeroes(),
             )
 
-        val url = "$LOCATION_TRACK_POINTS_PATCH_PATH/${targetTrackExternalId.oid}"
+        val url = "$LOCATION_TRACK_PATCH_PATH/${targetTrackExternalId.oid}"
 
         client
             .patch()

@@ -601,7 +601,10 @@ constructor(
                     endAddress = endAddress,
                 )
             } else {
-                deleteLocationTrackPoints(changedKmNumbers, locationTrackRatkoOid)
+                val allKms = addresses.allPoints.asSequence().map { point -> point.address.kmNumber }.toSet()
+                val removedKms = changedKmNumbers.filterNot { changedKm -> changedKm in allKms }.toSet()
+
+                deleteLocationTrackPoints(removedKms, locationTrackRatkoOid)
                 updateLocationTrackGeometry(locationTrackOid = locationTrackRatkoOid, newPoints = changedMidPoints)
             }
 

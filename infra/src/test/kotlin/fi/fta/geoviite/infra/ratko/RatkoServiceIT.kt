@@ -112,10 +112,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.queryOne
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -124,6 +120,10 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -402,12 +402,10 @@ constructor(
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
         val createdPoints = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
         val updatedPoints = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
-        val deletedPoints = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
         assertEquals(1, createdPoints.size)
         assertEquals(1, createdPoints[0].size)
         assertEquals(5, createdPoints[0][0].kmM.meters.intValueExact())
         assertEquals((3..7).toList(), updatedPoints[0].map { p -> p.kmM.meters.intValueExact() })
-        assertEquals(listOf("0000"), deletedPoints)
     }
 
     @Test
@@ -441,12 +439,10 @@ constructor(
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
         val createdPoints = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
         val updatedPoints = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
-        val deletedPoints = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
         assertEquals(1, updatedPoints.size)
         assertEquals(1, updatedPoints[0].size)
         assertEquals(5, updatedPoints[0][0].kmM.meters.intValueExact())
         assertEquals((3..7).toList(), createdPoints[0].map { p -> p.kmM.meters.intValueExact() })
-        assertEquals(listOf("0000"), deletedPoints)
     }
 
     @Test
@@ -482,7 +478,6 @@ constructor(
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
         val createdPoints = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
         val updatedPoints = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
-        val deletedPoints = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
         assertEquals(1, updatedPoints.size)
         assertEquals(9, createdPoints[0].size)
         assertEquals(9, updatedPoints[0].size)
@@ -495,7 +490,6 @@ constructor(
         }
         assertTrue(createdPoints[0].subList(1, 8).all { p -> p.geometry!!.coordinates[1] > 0.0 })
         assertEquals(List(9) { 0.0 }, updatedPoints[0].map { p -> p.geometry!!.coordinates[1] })
-        assertEquals(listOf("0000"), deletedPoints)
     }
 
     @Test
@@ -728,7 +722,6 @@ constructor(
             // geometry change
             referenceLines = listOf(originalReferenceLineDaoResponse.id)
         )
-        val deletedOnTrack = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
         val updatedOnTrack = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
         val createdOnTrack = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
         // bump in reference line was after 10 m, so the addresses of the first 9 points (separate
@@ -746,7 +739,6 @@ constructor(
                 updatedOnTrack[0][i].geometry?.coordinates?.get(0),
             )
         }
-        assertEquals(listOf("0000"), deletedOnTrack)
     }
 
     @Test
