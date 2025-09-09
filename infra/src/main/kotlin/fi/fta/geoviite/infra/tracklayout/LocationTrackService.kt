@@ -560,10 +560,10 @@ class LocationTrackService(
             }
 
         val duplicateTracksAndGeometries =
-            (markedDuplicateVersions + tracksLinkedThroughSwitch).distinct().map(::getWithGeometryInternal).filter {
-                (duplicateTrack, _) ->
-                duplicateTrack.id != track.id && duplicateTrack.id != track.duplicateOf
-            }
+            (markedDuplicateVersions + tracksLinkedThroughSwitch)
+                .distinct()
+                .filter { dup -> dup.id != track.id && dup.id != track.duplicateOf }
+                .map(::getWithGeometryInternal)
         return getLocationTrackDuplicatesBySplitPoints(track, geometry, duplicateTracksAndGeometries)
     }
 

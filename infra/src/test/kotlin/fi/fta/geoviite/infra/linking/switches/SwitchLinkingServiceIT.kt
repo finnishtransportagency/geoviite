@@ -122,11 +122,7 @@ constructor(
         val suggestedSwitch =
             matchFittedSwitchToTracks(
                 fittedSwitch,
-                switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
-                    LayoutBranch.main,
-                    fittedSwitch,
-                    insertedSwitch.id as IntId,
-                ),
+                switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
                 insertedSwitch.id as IntId,
             )
         val rowVersion =
@@ -234,11 +230,7 @@ constructor(
             LayoutBranch.main,
             matchFittedSwitchToTracks(
                 fittedSwitch,
-                switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
-                    LayoutBranch.main,
-                    fittedSwitch,
-                    insertedSwitch.id as IntId,
-                ),
+                switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
                 insertedSwitch.id as IntId,
             ),
             insertedSwitch.id as IntId,
@@ -271,12 +263,8 @@ constructor(
                 val suggestedSwitch =
                     matchFittedSwitchToTracks(
                         fittedSwitch,
-                        switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
-                            LayoutBranch.main,
-                            fittedSwitch,
-                            storedSwitch.id as IntId,
-                        ),
-                        storedSwitch.id,
+                        switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
+                        storedSwitch.id as IntId,
                     )
                 switchLinkingService.saveSwitchLinking(
                     LayoutBranch.main,
@@ -1451,11 +1439,7 @@ constructor(
         val suggestedSwitch =
             matchFittedSwitchToTracks(
                 fittedSwitch,
-                switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
-                    LayoutBranch.main,
-                    fittedSwitch,
-                    insertedSwitch.id as IntId,
-                ),
+                switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
                 insertedSwitch.id as IntId,
             )
         val ex =

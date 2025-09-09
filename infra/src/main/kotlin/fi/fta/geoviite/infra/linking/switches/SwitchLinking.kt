@@ -74,7 +74,10 @@ data class FittedSwitchJoint(
 
 data class TopologyLinkFindingSwitch(val joints: List<ISwitchJoint>, val id: IntId<LayoutSwitch>)
 
-data class FittedSwitch(val switchStructure: SwitchStructure, val joints: List<FittedSwitchJoint>)
+data class FittedSwitch(val switchStructure: SwitchStructure, val joints: List<FittedSwitchJoint>) {
+    fun isFittedOn(trackId: IntId<LocationTrack>): Boolean =
+        joints.any { joint -> joint.matches.any { match -> match.locationTrackId == trackId } }
+}
 
 data class SwitchPlacingRequest(val points: SamplingGridPoints, val layoutSwitchId: IntId<LayoutSwitch>)
 
