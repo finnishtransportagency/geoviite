@@ -1017,12 +1017,13 @@ fun validateLocationTrackGeometry(geometry: LocationTrackGeometry): List<LayoutV
 fun validateEdges(
     geometry: LocationTrackGeometry,
     getSwitchName: (IntId<LayoutSwitch>) -> SwitchName,
-): List<LayoutValidationIssue> = geometry.edges.flatMap { edge -> validateEdge(edge, getSwitchName) }
-
-fun validateEdge(edge: LayoutEdge, getSwitchName: (IntId<LayoutSwitch>) -> SwitchName): List<LayoutValidationIssue> =
-    getEdgePartialSwitchIds(edge).map { partial ->
-        validationWarning("$VALIDATION_LOCATION_TRACK.edge-switch-partial", "switch" to getSwitchName(partial))
-    }
+): List<LayoutValidationIssue> =
+    geometry.edges
+        .flatMap { edge -> getEdgePartialSwitchIds(edge) }
+        .distinct()
+        .map { partial ->
+            validationWarning("$VALIDATION_LOCATION_TRACK.edge-switch-partial", "switch" to getSwitchName(partial))
+        }
 
 fun getEdgePartialSwitchIds(edge: LayoutEdge): List<IntId<LayoutSwitch>> =
     (edge.startNode.switchIn?.id to edge.endNode.switchIn?.id).let { (startId, endId) ->
