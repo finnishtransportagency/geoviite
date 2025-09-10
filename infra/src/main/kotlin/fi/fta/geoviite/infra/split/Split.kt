@@ -173,6 +173,7 @@ data class SplittingInitializationParameters(
 data class SplitDuplicateTrack(
     val id: IntId<LocationTrack>,
     val nameStructure: LocationTrackNameStructure,
+    val descriptionStructure: LocationTrackDescriptionStructure,
     val name: AlignmentName,
     val length: LineM<LocationTrackM>,
     val status: DuplicateStatus,

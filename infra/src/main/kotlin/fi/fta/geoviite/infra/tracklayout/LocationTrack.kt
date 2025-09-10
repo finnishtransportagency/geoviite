@@ -302,6 +302,7 @@ data class LocationTrackDuplicate(
     val id: IntId<LocationTrack>,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val nameStructure: LocationTrackNameStructure,
+    val descriptionStructure: LocationTrackDescriptionStructure,
     val name: AlignmentName,
     val start: AlignmentPoint<LocationTrackM>?,
     val end: AlignmentPoint<LocationTrackM>?,
