@@ -17,7 +17,9 @@ export const MainPublicationListRow: React.FC<MainPublicationListRowProps> = ({ 
         <div className={styles['publication-list-item-container']}>
             <div className={styles['publication-list-item']}>
                 <span className={styles['publication-list-item__timestamp']}>
-                    <Spinner size={SpinnerSize.SMALL} />
+                    {ratkoPushInProgress(publication.ratkoPushStatus) && (
+                        <Spinner size={SpinnerSize.SMALL} />
+                    )}
                     {ratkoPushFailed(publication.ratkoPushStatus) && (
                         <span className={styles['publication-list-item--error']}>
                             <Icons.StatusError size={IconSize.SMALL} color={IconColor.INHERIT} />
