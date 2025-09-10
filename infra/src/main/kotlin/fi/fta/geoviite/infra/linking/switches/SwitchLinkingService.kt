@@ -251,14 +251,24 @@ constructor(
     private fun saveLocationTrackChanges(
         branch: LayoutBranch,
         maybeChanged: List<Pair<LocationTrack, LocationTrackGeometry>>,
-        original: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
-    ) =
-        maybeChanged.forEach { (locationTrack, geometry) ->
-            val (_, originalGeometry) = original[locationTrack.id as IntId] ?: (null to null)
-            if (originalGeometry != geometry) {
-                locationTrackService.saveDraft(branch, locationTrack, geometry)
+        original: Map<IntId<LocationTrack>, Pair<LocationTrack, DbLocationTrackGeometry>>,
+    ) {
+        require(maybeChanged.distinctBy { (t, _) -> t.id }.size == maybeChanged.size) {
+            "Duplicate tracks in changes to save: ${maybeChanged.map { (t,_) -> t.id }}"
+        }
+        val originalGeoms = original.map { (_, trackAndGeom) -> trackAndGeom.second }
+        val dbEdges = originalGeoms.flatMap { g -> g.edges }.associateBy { it.contentHash }
+        val dbNodes = originalGeoms.flatMap { g -> g.nodes }.associateBy { it.contentHash }
+
+        maybeChanged.forEach { (track, geometry) ->
+            val id = track.id as IntId
+            val orig = original[id]
+            val normalizedGeom = geometry.withDbComponents(dbNodes, dbEdges)
+            if (orig == null || orig.first != track || orig.second.edges != normalizedGeom.edges) {
+                locationTrackService.saveDraft(branch, track, normalizedGeom)
             }
         }
+    }
 
     fun findLocationTracksNearFittedSwitch(
         branch: LayoutBranch,
@@ -315,9 +325,11 @@ constructor(
                     changedLocationTracks,
                 )
             }
-        changedLocationTracks.values.forEach { (track, geometry) ->
-            locationTrackService.saveDraft(branch, track, geometry)
-        }
+        saveLocationTrackChanges(
+            branch,
+            changedLocationTracks.values.toList(),
+            originallyLinkedLocationTracksByIndex.reduce { acc, map -> acc + map },
+        )
         return relinkingResults
     }
 

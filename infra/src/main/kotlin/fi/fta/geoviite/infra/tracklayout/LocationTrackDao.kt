@@ -402,9 +402,13 @@ class LocationTrackDao(
 
         jdbcTemplate.setUser()
         val response: LayoutRowVersion<LocationTrack> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-                rs.getLayoutRowVersion("id", "design_id", "draft", "version")
-            } ?: throw IllegalStateException("Failed to save Location Track")
+            requireNotNull(
+                jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+                    rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+                }
+            ) {
+                "Failed to save Location Track: ${item.toLog()}"
+            }
         logger.daoAccess(AccessType.INSERT, LocationTrack::class, response)
         alignmentDao.saveLocationTrackGeometry(response, geometry)
         return response
