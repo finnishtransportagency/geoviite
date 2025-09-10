@@ -49,7 +49,6 @@ import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.getPoint3DMOrNull
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getSridOrNull
-import fi.fta.geoviite.infra.util.measureAndCollect
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
 import fi.fta.geoviite.infra.util.setUser
@@ -241,53 +240,45 @@ class LayoutAlignmentDao(
         val params = mapOf("ids" to ids?.map { id -> id.intValue }?.toTypedArray(), "active" to active)
 
         val edges =
-            measureAndCollect("fetch") {
-                jdbcTemplate.query(sql, params) { rs, _ ->
-                    val edgeId = rs.getIntId<LayoutEdge>("id")
-                    val segmentIndices = rs.getIntArray("indices")
-                    val geometryAlignmentIds =
-                        rs.getNullableIntArray("geometry_alignment_ids").also {
-                            require(it.size == segmentIndices.size)
-                        }
-                    val geometryElementIndices =
-                        rs.getNullableIntArray("geometry_element_indices").also {
-                            require(it.size == segmentIndices.size)
-                        }
-                    val sourceStartMValues =
-                        rs.getNullableBigDecimalArray("source_start_m_values").also {
-                            require(it.size == segmentIndices.size)
-                        }
-                    val sources =
-                        rs.getEnumArray<GeometrySource>("sources").also { require(it.size == segmentIndices.size) }
-                    val geometryIds =
-                        rs.getIntIdArray<SegmentGeometry>("geometry_ids").also {
-                            require(it.size == segmentIndices.size)
-                        }
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                val edgeId = rs.getIntId<LayoutEdge>("id")
+                val segmentIndices = rs.getIntArray("indices")
+                val geometryAlignmentIds =
+                    rs.getNullableIntArray("geometry_alignment_ids").also { require(it.size == segmentIndices.size) }
+                val geometryElementIndices =
+                    rs.getNullableIntArray("geometry_element_indices").also { require(it.size == segmentIndices.size) }
+                val sourceStartMValues =
+                    rs.getNullableBigDecimalArray("source_start_m_values").also {
+                        require(it.size == segmentIndices.size)
+                    }
+                val sources =
+                    rs.getEnumArray<GeometrySource>("sources").also { require(it.size == segmentIndices.size) }
+                val geometryIds =
+                    rs.getIntIdArray<SegmentGeometry>("geometry_ids").also { require(it.size == segmentIndices.size) }
 
-                    val startNodeId = rs.getIntId<LayoutNode>("start_node_id")
-                    val startNodePort = rs.getEnum<NodePortType>("start_node_port")
-                    val endNodeId = rs.getIntId<LayoutNode>("end_node_id")
-                    val endNodePort = rs.getEnum<NodePortType>("end_node_port")
+                val startNodeId = rs.getIntId<LayoutNode>("start_node_id")
+                val startNodePort = rs.getEnum<NodePortType>("start_node_port")
+                val endNodeId = rs.getIntId<LayoutNode>("end_node_id")
+                val endNodePort = rs.getEnum<NodePortType>("end_node_port")
 
-                    val segments =
-                        segmentIndices.map { i ->
-                            val geometryAlignmentId = geometryAlignmentIds[i]
-                            val geometryElementIndex = geometryElementIndices[i]
-                            val sourceId: IndexedId<GeometryElement>? =
-                                if (geometryAlignmentId != null) {
-                                    IndexedId(geometryAlignmentId, requireNotNull(geometryElementIndex))
-                                } else {
-                                    null
-                                }
-                            SegmentData(
-                                sourceId = sourceId,
-                                sourceStartM = sourceStartMValues[i],
-                                source = sources[i],
-                                geometryId = geometryIds[i],
-                            )
-                        }
-                    EdgeData(edgeId, startNodeId to startNodePort, endNodeId to endNodePort, segments)
-                }
+                val segments =
+                    segmentIndices.map { i ->
+                        val geometryAlignmentId = geometryAlignmentIds[i]
+                        val geometryElementIndex = geometryElementIndices[i]
+                        val sourceId: IndexedId<GeometryElement>? =
+                            if (geometryAlignmentId != null) {
+                                IndexedId(geometryAlignmentId, requireNotNull(geometryElementIndex))
+                            } else {
+                                null
+                            }
+                        SegmentData(
+                            sourceId = sourceId,
+                            sourceStartM = sourceStartMValues[i],
+                            source = sources[i],
+                            geometryId = geometryIds[i],
+                        )
+                    }
+                EdgeData(edgeId, startNodeId to startNodePort, endNodeId to endNodePort, segments)
             }
         val nodes = getNodes(edges.flatMap { d -> listOf(d.startNode.first, d.endNode.first) }.toSet())
         val geometries = fetchSegmentGeometries(edges.flatMap { d -> d.segments.map { s -> s.geometryId } }.distinct())
@@ -424,16 +415,14 @@ class LayoutAlignmentDao(
 
         // This uses indexed parameters (rather than named ones),
         // since named parameter template's batch-method is considerably slower
-        measureAndCollect("---save-lt-geom") {
-            jdbcTemplate.batchUpdateIndexed(sql, geometry.edgesWithM) { ps, (index, edgeAndM) ->
-                val (edge, m) = edgeAndM
-                ps.setInt(1, trackVersion.id.intValue)
-                ps.setString(2, trackVersion.context.toSqlString())
-                ps.setInt(3, trackVersion.version)
-                ps.setInt(4, ((edge as? DbLayoutEdge)?.id ?: requireNotNull(savedEdges[edge.contentHash])).intValue)
-                ps.setInt(5, index)
-                ps.setBigDecimal(6, roundTo6Decimals(m.min.distance))
-            }
+        jdbcTemplate.batchUpdateIndexed(sql, geometry.edgesWithM) { ps, (index, edgeAndM) ->
+            val (edge, m) = edgeAndM
+            ps.setInt(1, trackVersion.id.intValue)
+            ps.setString(2, trackVersion.context.toSqlString())
+            ps.setInt(3, trackVersion.version)
+            ps.setInt(4, ((edge as? DbLayoutEdge)?.id ?: requireNotNull(savedEdges[edge.contentHash])).intValue)
+            ps.setInt(5, index)
+            ps.setBigDecimal(6, roundTo6Decimals(m.min.distance))
         }
         logger.daoAccess(AccessType.INSERT, LocationTrackGeometry::class, trackVersion)
     }

@@ -20,9 +20,9 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class LayoutSwitchService
@@ -144,20 +144,14 @@ constructor(
             .map { jointConnections -> jointConnections.reduceRight(LayoutSwitchJointConnection::merge) }
     }
 
-    fun getLocationTracksLinkedToSwitches(
-        layoutContext: LayoutContext,
-        switchIds: List<IntId<LayoutSwitch>>,
-    ): List<Pair<LocationTrack, LocationTrackGeometry>> {
-        return dao.findLocationTracksLinkedToSwitches(layoutContext, switchIds)
-            .flatMap { (_, idsList) -> idsList.map { it.rowVersion } }
-            .let(locationTrackService::getManyWithGeometries)
-    }
-
     fun getLocationTracksLinkedToSwitch(
         layoutContext: LayoutContext,
         switchId: IntId<LayoutSwitch>,
-    ): List<Pair<LocationTrack, LocationTrackGeometry>> =
-        getLocationTracksLinkedToSwitches(layoutContext, listOf(switchId))
+    ): List<Pair<LocationTrack, LocationTrackGeometry>> {
+        return dao.findLocationTracksLinkedToSwitch(layoutContext, switchId)
+            .map { ids -> ids.rowVersion }
+            .let(locationTrackService::getManyWithGeometries)
+    }
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
 

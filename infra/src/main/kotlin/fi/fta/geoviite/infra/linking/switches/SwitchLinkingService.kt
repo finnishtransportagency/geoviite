@@ -272,9 +272,7 @@ constructor(
         branch: LayoutBranch,
         switchId: IntId<LayoutSwitch>,
     ): Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>> =
-        switchService.getLocationTracksLinkedToSwitch(branch.draft, switchId).associateBy { trackAndGeom ->
-            trackAndGeom.first.id as IntId
-        }
+        switchService.getLocationTracksLinkedToSwitch(branch.draft, switchId).associateBy { (t, _) -> t.id as IntId }
 
     private fun collectOriginallyLinkedLocationTracks(
         branch: LayoutBranch,
