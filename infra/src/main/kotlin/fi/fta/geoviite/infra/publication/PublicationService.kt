@@ -119,47 +119,54 @@ constructor(
     @Transactional(readOnly = true)
     fun getRevertRequestDependencies(branch: LayoutBranch, requestIds: PublicationRequestIds): PublicationRequestIds {
         val referenceLineTrackNumberIds =
-            referenceLineService.getMany(branch.draft, requestIds.referenceLines).map { rlId -> rlId.trackNumberId }
+            referenceLineDao
+                .fetchCandidateVersions(branch.draft, requestIds.referenceLines)
+                .let(referenceLineDao::fetchMany)
+                .map { rlId -> rlId.trackNumberId }
         val trackNumbers =
-            trackNumberService.getMany(branch.draft, referenceLineTrackNumberIds + requestIds.trackNumbers)
-        val revertTrackNumberIds = trackNumbers.filter(LayoutTrackNumber::isDraft).map { it.id as IntId }
+            trackNumberDao
+                .fetchCandidateVersions(branch.draft, requestIds.trackNumbers + referenceLineTrackNumberIds)
+                .let(trackNumberDao::fetchMany)
+
+        val referenceLineIds =
+            requestIds.referenceLines.toSet() +
+                referenceLineDao
+                    .fetchMany(referenceLineDao.fetchCandidateVersions(branch.draft))
+                    .filter { rl -> trackNumbers.any { tn -> rl.trackNumberId == tn.id } }
+                    .map { it.id as IntId }
+
         // If revert breaks other draft row references, they should be reverted too
         val draftOnlyTrackNumberIds =
             trackNumbers
-                .filter { tn ->
-                    tn.isDraft && trackNumberDao.fetchVersion(tn.layoutContext.branch.official, tn.id as IntId) == null
-                }
+                .filter { tn -> trackNumberDao.fetchVersion(tn.layoutContext.branch.official, tn.id as IntId) == null }
                 .map { it.id as IntId }
+                .toSet()
 
-        val revertLocationTrackIds =
-            requestIds.locationTracks +
-                draftOnlyTrackNumberIds
-                    .flatMap { tnId -> locationTrackDao.fetchOnlyDraftVersions(branch, includeDeleted = true, tnId) }
-                    .map { v -> v.id }
+        val locationTrackIds =
+            requestIds.locationTracks.toSet() +
+                locationTrackDao
+                    .fetchMany(locationTrackDao.fetchCandidateVersions(branch.draft))
+                    .filter { lt -> draftOnlyTrackNumberIds.contains(lt.trackNumberId) }
+                    .map { it.id as IntId }
 
-        val revertSplits = splitService.findUnpublishedSplits(branch, revertLocationTrackIds, requestIds.switches)
+        val kmPostIds =
+            requestIds.kmPosts.toSet() +
+                kmPostDao
+                    .fetchMany(kmPostDao.fetchCandidateVersions(branch.draft))
+                    .filter { kp -> draftOnlyTrackNumberIds.contains(kp.trackNumberId) }
+                    .map { it.id as IntId }
+
+        val revertSplits =
+            splitService.findUnpublishedSplits(branch, locationTrackIds.toList(), requestIds.switches)
         val revertSplitTracks = revertSplits.flatMap { s -> s.locationTracks }.distinct()
         val revertSplitSwitches = revertSplits.flatMap { s -> s.relinkedSwitches }.distinct()
 
-        val revertKmPostIds =
-            requestIds.kmPosts.toSet() +
-                draftOnlyTrackNumberIds
-                    .flatMap { tnId -> kmPostDao.fetchOnlyDraftVersions(branch, includeDeleted = true, tnId) }
-                    .map { v -> v.id }
-
-        val referenceLines =
-            requestIds.referenceLines.toSet() +
-                requestIds.trackNumbers
-                    .mapNotNull { tnId -> referenceLineService.getByTrackNumber(branch.draft, tnId) }
-                    .filter(ReferenceLine::isDraft)
-                    .map { line -> line.id as IntId }
-
         return PublicationRequestIds(
-            trackNumbers = revertTrackNumberIds.toList(),
-            referenceLines = referenceLines.toList(),
-            locationTracks = (revertLocationTrackIds + revertSplitTracks).distinct(),
+            trackNumbers = trackNumbers.map { it.id as IntId },
+            referenceLines = referenceLineIds.toList(),
+            locationTracks = (locationTrackIds + revertSplitTracks).distinct(),
             switches = (requestIds.switches + revertSplitSwitches).distinct(),
-            kmPosts = revertKmPostIds.toList(),
+            kmPosts = kmPostIds.toList(),
         )
     }
 

@@ -821,6 +821,20 @@ constructor(
     }
 
     @Test
+    fun `getRevertRequestDependencies can see cancelled track numbers`() {
+        val branch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
+        val designOfficialContext = testDBService.testContext(branch, DRAFT)
+        val trackNumber = designOfficialContext.save(trackNumber()).id
+        trackNumberService.cancel(branch, trackNumber)
+        val dependencies =
+            publicationService.getRevertRequestDependencies(
+                branch,
+                publicationRequestIds(trackNumbers = listOf(trackNumber)),
+            )
+        assertEquals(publicationRequestIds(trackNumbers = listOf(trackNumber)), dependencies)
+    }
+
+    @Test
     fun `Publication rejects duplicate track number names`() {
         trackNumberDao.save(trackNumber(number = TrackNumber("TN"), draft = false))
         val draftTrackNumberId = trackNumberDao.save(trackNumber(number = TrackNumber("TN"), draft = true)).id
