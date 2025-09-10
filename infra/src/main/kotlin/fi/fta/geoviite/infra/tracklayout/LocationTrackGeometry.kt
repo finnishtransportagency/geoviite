@@ -176,6 +176,17 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
 
     fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = switchIds.contains(switchId)
 
+    fun withDbComponents(
+        dbNodes: Map<NodeHash, DbLayoutNode>,
+        dbEdges: Map<EdgeHash, DbLayoutEdge>,
+    ): LocationTrackGeometry {
+        val newEdges =
+            edges.map { edge ->
+                if (edge is DbLayoutEdge) edge else dbEdges[edge.contentHash] ?: edge.withDbNodes(dbNodes)
+            }
+        return if (newEdges == edges) this else TmpLocationTrackGeometry.of(newEdges, trackId)
+    }
+
     fun withLocationTrackId(id: IntId<LocationTrack>): LocationTrackGeometry =
         when {
             trackId == id -> this
@@ -406,6 +417,20 @@ sealed class LayoutEdge : IAlignment<EdgeM> {
             segments = segments,
         )
 
+    fun withDbNodes(dbNodes: Map<NodeHash, DbLayoutNode>): LayoutEdge {
+        val newStart =
+            startNode.let { it as? TmpNodeConnection }?.let { dbNodes[it.node.contentHash]?.let(it::withDbNode) }
+                ?: startNode
+        val newEnd =
+            endNode.let { it as? TmpNodeConnection }?.let { dbNodes[it.node.contentHash]?.let(it::withDbNode) }
+                ?: endNode
+        return if (newStart == startNode && newEnd == endNode) {
+            this
+        } else {
+            TmpLayoutEdge(newStart, newEnd, segments)
+        }
+    }
+
     fun withEndNode(newEndNode: LayoutNode) = withEndNode(reconnectNode(endNode, newEndNode))
 
     fun containsSwitch(id: IntId<LayoutSwitch>) = startNode.containsSwitch(id) || endNode.containsSwitch(id)
@@ -547,7 +572,9 @@ data class DbNodeConnection(override val portConnection: NodePortType, override 
 }
 
 data class TmpNodeConnection(override val portConnection: NodePortType, override val node: LayoutNode) :
-    NodeConnection()
+    NodeConnection() {
+    fun withDbNode(dbNode: DbLayoutNode) = DbNodeConnection(portConnection, dbNode.also { require(node.isSame(it)) })
+}
 
 data object PlaceHolderNodeConnection : NodeConnection() {
     override val portConnection: NodePortType = A
@@ -606,6 +633,8 @@ sealed class LayoutNode {
     }
 
     @get:JsonIgnore val contentHash: NodeHash by lazy { NodeHash.of(portA, portB) }
+
+    fun isSame(other: LayoutNode): Boolean = other.portA == portA && other.portB == portB
 }
 
 sealed class DbLayoutNode : LayoutNode() {
