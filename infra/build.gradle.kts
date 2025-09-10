@@ -11,11 +11,11 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val geotoolsVersion = "32.2"
+val geotoolsVersion = "33.2"
 val kotlinVersion = "2.1.10"
 
 plugins {
-    id("org.springframework.boot") version "3.4.4"
+    id("org.springframework.boot") version "3.5.5"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "2.9"
     kotlin("jvm") version "2.1.10"
@@ -46,18 +46,21 @@ ktfmt {
 
 configurations { all { exclude("org.springframework.boot", "spring-boot-starter-logging") } }
 
-ext["selenium.version"] = "4.33.0"
+ext["selenium.version"] = "4.35.0"
 
 dependencies {
     // Version overrides for transitive deps (due to known vulnerabilities)
     constraints {
         // org.mock-server:mockserver-netty:5.15.0 has a vulnerable transitive dependency
-        testImplementation("com.nimbusds:nimbus-jose-jwt:10.0.1")
+        testImplementation("com.nimbusds:nimbus-jose-jwt:10.5")
+
+        // org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13 has a vulnerable transitive dependency
+        implementation("org.apache.commons:commons-lang3:3.18.0")
     }
 
     // Actual deps
-    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.780") { exclude("commons-logging", "commons-logging") }
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.80")
+    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.791") { exclude("commons-logging", "commons-logging") }
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.81")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -66,15 +69,15 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.2")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.2")
-    implementation("com.zaxxer:HikariCP:6.2.1")
-    implementation("org.flywaydb:flyway-core:11.3.1")
-    implementation("org.flywaydb:flyway-database-postgresql:11.3.1")
-    implementation("com.github.ben-manes.caffeine:caffeine:3.2.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.20.0")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.20.0")
+    implementation("com.zaxxer:HikariCP:7.0.2")
+    implementation("org.flywaydb:flyway-core:11.12.0")
+    implementation("org.flywaydb:flyway-database-postgresql:11.12.0")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.2.2")
     implementation("org.geotools:gt-main:$geotoolsVersion") {
         // Excluded as the license (JDL or JRL) compatibility is unconfirmed. We don't need this.
         exclude("javax.media", "jai_core")
@@ -87,29 +90,29 @@ dependencies {
         // jgridshift doesn't provide licensing information. We don't need it.
         exclude("it.geosolutions.jgridshift", "jgridshift-core")
     }
-    implementation("org.apache.commons:commons-csv:1.13.0")
-    implementation("commons-io:commons-io:2.18.0")
-    implementation("com.auth0:jwks-rsa:0.22.1")
+    implementation("org.apache.commons:commons-csv:1.14.1")
+    implementation("commons-io:commons-io:2.20.0")
+    implementation("com.auth0:jwks-rsa:0.23.0")
     implementation("com.auth0:java-jwt:4.5.0")
     implementation("io.netty:netty-resolver-dns-native-macos:4.1.117.Final:osx-aarch_64")
-    implementation("org.postgresql:postgresql:42.7.5")
+    implementation("org.postgresql:postgresql:42.7.7")
     implementation("jakarta.activation:jakarta.activation-api:2.1.3")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.2")
     implementation("com.github.davidmoten:rtree2:0.9.3")
-    implementation("commons-validator:commons-validator:1.9.0") {
+    implementation("commons-validator:commons-validator:1.10.0") {
         exclude("commons-logging", "commons-logging")
         exclude("commons-collections", "commons-collections")
     }
-    implementation("org.aspectj:aspectjweaver:1.9.22.1")
+    implementation("org.aspectj:aspectjweaver:1.9.24")
     compileOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.5")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
-    testImplementation("org.seleniumhq.selenium:selenium-java:4.33.0")
+    testImplementation("org.seleniumhq.selenium:selenium-java:4.35.0")
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
-    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.4.2")
-    testImplementation("io.projectreactor:reactor-test:3.7.2")
+    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.5")
+    testImplementation("io.projectreactor:reactor-test:3.7.9")
 }
 
 licenseReport {
