@@ -115,7 +115,7 @@ class FakeRatko(port: Int) {
             get("/api/locations/v1.1/locationtracks/${oid}").respond(okJson(listOf(ratkoTrack)))
         }
         post("/api/infra/v1.0/points/${oid}").respond(ok())
-        patch("/api/infra/v1.0/points/${oid}").respond(ok())
+        patch("/api/infra/v1.1/points/${oid}").respond(ok())
         post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
         post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
@@ -139,7 +139,7 @@ class FakeRatko(port: Int) {
             .respond(okJson(mapOf("id" to oid)))
 
         post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
-        patch("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        patch("/api/infra/v1.1/points/${oid}", times = Times.exactly(0)).respond(ok())
         post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
@@ -162,7 +162,7 @@ class FakeRatko(port: Int) {
             )
             .respond(ok())
         post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
-        patch("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        patch("/api/infra/v1.1/points/${oid}", times = Times.exactly(0)).respond(ok())
         post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
@@ -192,7 +192,7 @@ class FakeRatko(port: Int) {
                 queryParams = mapOf("locationtrackOIDOfGeometry" to locationTrackOidOfGeometry),
             )
             .respond(ok())
-        patch("/api/infra/v1.0/points/${oid}").respond(ok())
+        patch("/api/infra/v1.1/points/${oid}").respond(ok())
         post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
@@ -202,7 +202,7 @@ class FakeRatko(port: Int) {
         states: List<RatkoLocationTrackState>,
     ) {
         get("/api/locations/v1.1/locationtracks/${locationTrackAsset.id}").respond(okJson(listOf(locationTrackAsset)))
-        patch("/api/infra/v1.0/points/${locationTrackAsset.id}").respond(ok())
+        patch("/api/infra/v1.1/points/${locationTrackAsset.id}").respond(ok())
         locationTrackAsset.nodecollection.nodes
             .map { node -> node.point.km }
             .distinct()
@@ -225,7 +225,7 @@ class FakeRatko(port: Int) {
         put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
         get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
         post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
-        patch("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        patch("/api/infra/v1.1/points/${oid}", times = Times.exactly(0)).respond(ok())
         post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
         post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
             .respond(okJson(listOf(mapOf("id" to oid))))
@@ -258,7 +258,7 @@ class FakeRatko(port: Int) {
     fun hasLocationTrack(locationTrackAsset: InterfaceRatkoLocationTrack) {
         put("/api/infra/v1.0/locationtracks", mapOf("id" to locationTrackAsset.id)).respond(ok())
         get("/api/locations/v1.1/locationtracks/${locationTrackAsset.id}").respond(okJson(listOf(locationTrackAsset)))
-        patch("/api/infra/v1.0/points/${locationTrackAsset.id}").respond(ok())
+        patch("/api/infra/v1.1/points/${locationTrackAsset.id}").respond(ok())
         locationTrackAsset.nodecollection.nodes
             .map { node -> node.point.km }
             .distinct()
@@ -339,7 +339,7 @@ class FakeRatko(port: Int) {
 
     fun getCreatedLocationTrackPoints(oid: String) = getPointUpdates(oid, "infra/v1.0/points", "POST")
 
-    fun getUpdatedLocationTrackPoints(oid: String) = getPointUpdates(oid, "infra/v1.0/points", "PATCH")
+    fun getUpdatedLocationTrackPoints(oid: String) = getPointUpdates(oid, "infra/v1.1/points", "PATCH")
 
     private fun metadataFilterOn(pointField: String, oid: String) =
         mapOf(
