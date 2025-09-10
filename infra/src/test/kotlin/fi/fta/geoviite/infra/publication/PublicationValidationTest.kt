@@ -1212,7 +1212,7 @@ class PublicationValidationTest {
     fun `should give validation error if edge inner joints aren't consistent`() {
         assertEquals(
             listOf(
-                validationError(
+                validationWarning(
                     "validation.layout.location-track.edge-switch-partial",
                     localizationParams("switch" to IntId<LayoutSwitch>(1)),
                 )
@@ -1230,11 +1230,11 @@ class PublicationValidationTest {
         )
         assertEquals(
             listOf(
-                validationError(
+                validationWarning(
                     "validation.layout.location-track.edge-switch-partial",
                     localizationParams("switch" to IntId<LayoutSwitch>(1)),
                 ),
-                validationError(
+                validationWarning(
                     "validation.layout.location-track.edge-switch-partial",
                     localizationParams("switch" to IntId<LayoutSwitch>(2)),
                 ),

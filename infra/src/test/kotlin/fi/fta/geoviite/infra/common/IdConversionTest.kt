@@ -221,7 +221,7 @@ class IdConversionTest @Autowired constructor(mapper: ObjectMapper, mockMvc: Moc
             testApi.doPostWithString("$ID_TEST_URL/id-test-body", "{\"id\": \"asdf\"}", HttpStatus.BAD_REQUEST),
             "Request body not readable",
             "Failed to instantiate Lfi/fta/geoviite/infra/common/DomainId;",
-            "Invalid DomainId: 'asdf'",
+            "Invalid DomainId: \"asdf\"",
         )
     }
 
@@ -231,7 +231,7 @@ class IdConversionTest @Autowired constructor(mapper: ObjectMapper, mockMvc: Moc
             testApi.doPostWithString("$ID_TEST_URL/oid-test-body", "{\"id\":\"1.2.3.a\"}", HttpStatus.BAD_REQUEST),
             "Request body not readable",
             "Failed to instantiate Lfi/fta/geoviite/infra/common/Oid;",
-            "Input validation failed: Invalid characters in Oid: '1.2.3.a'",
+            "Input validation failed: Invalid characters in Oid: \"1.2.3.a\"",
         )
     }
 
@@ -241,7 +241,7 @@ class IdConversionTest @Autowired constructor(mapper: ObjectMapper, mockMvc: Moc
             testApi.doPostWithString("$ID_TEST_URL/srid-test-body", "{\"id\":\"1a\"}", HttpStatus.BAD_REQUEST),
             "Request body not readable",
             "Failed to instantiate Lfi/fta/geoviite/infra/common/Srid;",
-            "Input validation failed: Invalid string prefix: prefix=EPSG: value='1a'",
+            "Input validation failed: Invalid string prefix: prefix=EPSG: value=\"1a\"",
         )
     }
 
