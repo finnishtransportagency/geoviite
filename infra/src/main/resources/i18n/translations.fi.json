@@ -1690,7 +1690,7 @@
                     "not-continuous": "Sama raide ({{locationTracks}}) on kytketty vaihteeseen eri kohdista",
                     "joint-location-mismatch": "Vaihteen ja raiteen vaihdepisteiden sijainnit eivät kohtaa: {{locationTracks}}",
                     "wrong-joint-sequence": "Kaikki vaihteeseen kytketyt raiteet ({{locationTracks}}) eivät vastaa vaihderakenteen linjoja",
-                    "partial-linking-edge": "Vaihteen linkitys raiteisiin on puutteellinen ja se on linkitettävä uudelleen"
+                    "partial-linking-edge": "Vaihteen linkitys raiteisiin ({{locationTracks}}) on puutteellinen"
                 },
                 "duplicate-name-official": "Vaihteen nimi {{switch}} on jo käytössä jollain toisella paikannuspohjan vaihteella",
                 "duplicate-name-draft": "Muutosjoukossa on monta vaihdetta nimellä {{switch}}",

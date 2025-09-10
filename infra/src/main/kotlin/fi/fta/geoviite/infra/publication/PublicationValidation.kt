@@ -269,8 +269,6 @@ fun validateLocationTrackEndSwitchNamingScheme(
         "end switch id does not match track's end switch id: ${track.endSwitchId} != ${endSwitch?.id}"
     }
 
-    val errorList = mutableListOf<LayoutValidationIssue>()
-
     val nameHasSwitchNames =
         track.nameStructure is LocationTrackNameChord || track.nameStructure is LocationTrackNameBetweenOperatingPoints
     val descriptionHasSwitchNames = track.descriptionStructure.suffix != LocationTrackDescriptionSuffix.NONE
@@ -1023,7 +1021,7 @@ fun validateEdges(
 
 fun validateEdge(edge: LayoutEdge, getSwitchName: (IntId<LayoutSwitch>) -> SwitchName): List<LayoutValidationIssue> =
     getEdgePartialSwitchIds(edge).map { partial ->
-        validationError("$VALIDATION_LOCATION_TRACK.edge-switch-partial", "switch" to getSwitchName(partial))
+        validationWarning("$VALIDATION_LOCATION_TRACK.edge-switch-partial", "switch" to getSwitchName(partial))
     }
 
 fun getEdgePartialSwitchIds(edge: LayoutEdge): List<IntId<LayoutSwitch>> =
