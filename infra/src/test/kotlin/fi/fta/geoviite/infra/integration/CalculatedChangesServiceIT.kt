@@ -1572,11 +1572,7 @@ constructor(
             LayoutBranch.main,
             matchFittedSwitchToTracks(
                 suggestedFitting,
-                switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
-                    LayoutBranch.main,
-                    suggestedFitting,
-                    switch.id as IntId,
-                ),
+                switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, suggestedFitting),
                 layoutSwitchId = switch.id as IntId,
             ),
             switch.id as IntId,

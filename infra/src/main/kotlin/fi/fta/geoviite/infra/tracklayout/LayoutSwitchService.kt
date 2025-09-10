@@ -146,11 +146,11 @@ constructor(
 
     fun getLocationTracksLinkedToSwitch(
         layoutContext: LayoutContext,
-        layoutSwitchId: IntId<LayoutSwitch>,
+        switchId: IntId<LayoutSwitch>,
     ): List<Pair<LocationTrack, LocationTrackGeometry>> {
-        return dao.findLocationTracksLinkedToSwitch(layoutContext, layoutSwitchId).map { ids ->
-            locationTrackService.getWithGeometry(ids.rowVersion)
-        }
+        return dao.findLocationTracksLinkedToSwitch(layoutContext, switchId)
+            .map { ids -> ids.rowVersion }
+            .let(locationTrackService::getManyWithGeometries)
     }
 
     fun getExternalIdChangeTime(): Instant = dao.getExternalIdChangeTime()
@@ -164,7 +164,11 @@ constructor(
         deleteDraft(branch, id, noUpdateLocationTracks = setOf())
 
     @Transactional
-    fun deleteDraft(branch: LayoutBranch, id: IntId<LayoutSwitch>, noUpdateLocationTracks: Set<IntId<LocationTrack>>): LayoutRowVersion<LayoutSwitch> {
+    fun deleteDraft(
+        branch: LayoutBranch,
+        id: IntId<LayoutSwitch>,
+        noUpdateLocationTracks: Set<IntId<LocationTrack>>,
+    ): LayoutRowVersion<LayoutSwitch> {
         // If removal also breaks references, clear them out first
         if (dao.fetchVersion(branch.official, id) == null) {
             clearSwitchInformationFromTracks(branch, id)
