@@ -36,7 +36,7 @@ import {
     LocationTrackSplit,
     LocationTrackSplittingEndpoint,
 } from 'tool-panel/location-track/splitting/location-track-split';
-import { filterNotEmpty, findById } from 'utils/array-utils';
+import { filterNotEmpty } from 'utils/array-utils';
 import { getChangeTimes, updateAllChangeTimes } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
@@ -265,7 +265,6 @@ const createSplitComponent = (
     removeSplit: (splitPoint: SplitPoint) => void,
     updateSplit: (split: FirstSplitTargetCandidate | SplitTargetCandidate) => void,
     isPostingSplit: boolean,
-    duplicateTracksInCurrentSplits: LayoutLocationTrack[],
     showArea: (bbox: BoundingBox) => void,
     showSplitTrackOnMap: (id: SplitTargetId) => void,
     setFocusedSplit: (id: undefined | SplitTargetId) => void,
@@ -298,11 +297,6 @@ const createSplitComponent = (
                 setNameRef={setNameRef}
                 setDescriptionBaseRef={setDescriptionBaseRef}
                 allDuplicateLocationTracks={splittingState.duplicateTracks}
-                duplicateLocationTrack={
-                    split.duplicateTrackId
-                        ? findById(duplicateTracksInCurrentSplits, split.duplicateTrackId)
-                        : undefined
-                }
                 underlyingAssetExists={splitPointExists}
                 showArea={showArea}
                 onSplitTrackClicked={showSplitTrackOnMap}
@@ -491,7 +485,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 removeSplit,
                 updateSplit,
                 isPostingSplit,
-                duplicateTracksInCurrentSplits,
                 showArea,
                 showSplitTrackOnMap,
                 setFocusedSplit,

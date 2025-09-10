@@ -9,7 +9,6 @@ import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import {
     AlignmentEndPoint,
-    LayoutLocationTrack,
     LocationTrackId,
     LocationTrackNamingScheme,
     SplitPoint,
@@ -63,7 +62,6 @@ type SplitProps = CommonProps & {
     setDescriptionBaseRef: (key: SplitTargetId, value: HTMLInputElement | null) => void;
     deletingDisabled: boolean;
     allDuplicateLocationTracks: SplitDuplicateTrack[];
-    duplicateLocationTrack: LayoutLocationTrack | undefined;
     underlyingAssetExists: boolean;
     showArea: (bbox: BoundingBox) => void;
     onSplitTrackClicked: (id: SplitTargetId) => void;
@@ -136,7 +134,6 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
     setNameRef,
     setDescriptionBaseRef,
     allDuplicateLocationTracks,
-    duplicateLocationTrack,
     underlyingAssetExists,
     showArea,
     onSplitTrackClicked,
@@ -463,8 +460,8 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                         label={t('tool-panel.location-track.splitting.description-base')}>
                         <TextField
                             value={
-                                duplicateLocationTrack
-                                    ? duplicateLocationTrack.descriptionStructure.base
+                                duplicate
+                                    ? duplicate.descriptionStructure.base
                                     : split.descriptionBase
                             }
                             hasError={descriptionErrorsVisible}
@@ -508,9 +505,7 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                         label={t('tool-panel.location-track.splitting.description-suffix')}>
                         <DescriptionSuffixDropdown
                             suffixMode={
-                                duplicateLocationTrack
-                                    ? duplicateLocationTrack.descriptionStructure.suffix
-                                    : split.suffixMode
+                                duplicate ? duplicate.descriptionStructure.suffix : split.suffixMode
                             }
                             onChange={(mode) => {
                                 updateSplit({ ...split, suffixMode: mode });

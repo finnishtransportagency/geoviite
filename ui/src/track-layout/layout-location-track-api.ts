@@ -4,6 +4,7 @@ import {
     DuplicateStatus,
     LayoutLocationTrack,
     LayoutTrackNumberId,
+    LocationTrackDescriptionStructure,
     LocationTrackId,
     LocationTrackInfoboxExtras,
     LocationTrackNameStructure,
@@ -78,6 +79,7 @@ export type AlignmentPlanSection = {
 export type SplitDuplicateTrack = {
     id: LocationTrackId;
     nameStructure: LocationTrackNameStructure;
+    descriptionStructure: LocationTrackDescriptionStructure;
     name: string;
     length: number;
     status: DuplicateStatus;
