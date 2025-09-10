@@ -44,6 +44,7 @@
     &__timestamp {
         grid-column: 1;
         display: inline-flex;
+        align-items: baseline;
 
         .icon,
         .spinner {
@@ -71,6 +72,7 @@
         align-items: center;
         font-size: 12px;
         margin-bottom: 6px;
+        gap: 6px;
     }
 
     &__split-detail-no-icon {
