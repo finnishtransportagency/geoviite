@@ -1793,6 +1793,7 @@
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
+            "location-track-naming-scheme": "Tunnuksen muoto",
             "track-number": "Ratanumero",
             "track-numbers": "Ratanumerot",
             "state": "Tila",

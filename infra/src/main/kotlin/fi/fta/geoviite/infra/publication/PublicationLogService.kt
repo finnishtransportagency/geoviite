@@ -44,12 +44,12 @@ import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
@@ -432,6 +432,13 @@ constructor(
                 PropKey("track-number"),
             ),
             compareChangeValues(locationTrackChanges.name, { it }, PropKey("location-track")),
+            compareChangeValues(
+                locationTrackChanges.namingScheme,
+                { it },
+                PropKey("location-track-naming-scheme"),
+                null,
+                "LocationTrackNamingScheme",
+            ),
             compareChangeValues(locationTrackChanges.state, { it }, PropKey("state"), null, "LocationTrackState"),
             compareChangeValues(
                 locationTrackChanges.type,
@@ -821,7 +828,6 @@ constructor(
         geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
         trackNumberNamesCache: List<TrackNumberAndChangeTime> = trackNumberDao.fetchTrackNumberNames(),
     ): List<PublicationTableItem> {
-        publication.locationTracks
         val publicationLocationTrackChanges =
             if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.LOCATION_TRACK)) {
                 mapOf()
