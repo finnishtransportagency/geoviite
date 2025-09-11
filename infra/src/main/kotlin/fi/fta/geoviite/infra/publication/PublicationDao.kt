@@ -1050,7 +1050,8 @@ class PublicationDao(
                         id,
                         trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
                         name = rs.getChange("name") { rs.getString(it)?.let(::AlignmentName) },
-                        namingScheme = rs.getChange("naming_scheme") { rs.getEnum<LocationTrackNamingScheme>(it) },
+                        namingScheme =
+                            rs.getChange("naming_scheme") { rs.getEnumOrNull<LocationTrackNamingScheme>(it) },
                         descriptionBase =
                             rs.getChange("description_base") { rs.getString(it)?.let(::LocationTrackDescriptionBase) },
                         descriptionSuffix =
