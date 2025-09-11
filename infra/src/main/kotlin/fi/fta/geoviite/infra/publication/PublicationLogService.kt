@@ -799,7 +799,11 @@ constructor(
         type: PublishableObjectType,
     ) =
         if (specificObject == null) false
-        else
+        else if (
+            specificObject.type == PublishableObjectType.TRACK_NUMBER && type == PublishableObjectType.REFERENCE_LINE
+        ) {
+            publication.referenceLines.none { rl -> specificObject.isTrackNumber(rl.trackNumberId) }
+        } else
             type != specificObject.type ||
                 when (specificObject.type) {
                     PublishableObjectType.TRACK_NUMBER ->
@@ -850,7 +854,9 @@ constructor(
             publication.trackNumbers.filter { tn -> specificObjectId == null || specificObjectId.isTrackNumber(tn.id) }
         val referenceLinesToDiff =
             publication.referenceLines.filter { rl ->
-                specificObjectId == null || specificObjectId.isReferenceLine(rl.id)
+                specificObjectId == null ||
+                    specificObjectId.isReferenceLine(rl.id) ||
+                    specificObjectId.isTrackNumber(rl.trackNumberId)
             }
         val kmPostsToDiff =
             publication.kmPosts.filter { kp -> specificObjectId == null || specificObjectId.isKmPost(kp.id) }
