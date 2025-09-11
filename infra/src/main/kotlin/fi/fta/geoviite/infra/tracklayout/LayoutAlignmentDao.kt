@@ -52,14 +52,14 @@ import fi.fta.geoviite.infra.util.getSridOrNull
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
 import fi.fta.geoviite.infra.util.setUser
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.sql.ResultSet
 import java.util.stream.Collectors
 import kotlin.math.abs
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -168,28 +168,57 @@ class LayoutAlignmentDao(
             .associate { it }
     }
 
-    private fun saveNode(content: LayoutNode): IntId<LayoutNode> {
+    private fun saveNodes(nodes: List<LayoutNode>): List<IntId<LayoutNode>> {
+        // language="sql"
         val sql =
             """
-            select layout.get_or_insert_node(
-                :switch_ids::int[],
-                :switch_joint_numbers::int[],
-                :switch_joint_roles::common.switch_joint_role[],
-                :boundary_track_ids::int[],
-                :boundary_types::layout.boundary_type[]
-            ) as id
+            select * from
+              layout.get_or_insert_nodes(:insert_node_ids,
+                                  :ports::layout.node_port_type[],
+                                  :switch_ids,
+                                  :switch_joint_numbers,
+                                  :switch_joint_roles::common.switch_joint_role[],
+                                  :boundary_track_ids,
+                                  :boundary_types::layout.boundary_type[])
         """
-        val switches = content.ports.filterIsInstance<SwitchLink>()
-        val boundaries = content.ports.filterIsInstance<TrackBoundary>()
+                .trimIndent()
+
+        val insertNodeIds: MutableList<Int> = mutableListOf()
+        val ports: MutableList<String> = mutableListOf()
+        val switchIds: MutableList<Int?> = mutableListOf()
+        val switchJointNumbers: MutableList<Int?> = mutableListOf()
+        val switchJointRoles: MutableList<String?> = mutableListOf()
+        val boundaryTrackIds: MutableList<Int?> = mutableListOf()
+        val boundaryTypes: MutableList<String?> = mutableListOf()
+
+        nodes.forEachIndexed { index, node ->
+            node.forEachPort { port, type ->
+                insertNodeIds.add(index)
+                ports.add(type.name)
+                switchIds.add((port as? SwitchLink)?.id?.intValue)
+                switchJointNumbers.add((port as? SwitchLink)?.jointNumber?.intValue)
+                switchJointRoles.add((port as? SwitchLink)?.jointRole?.name)
+                boundaryTrackIds.add((port as? TrackBoundary)?.id?.intValue)
+                boundaryTypes.add((port as? TrackBoundary)?.type?.name)
+            }
+        }
+
         val params =
             mapOf(
-                "switch_ids" to switches.map { s -> s.id.intValue }.toTypedArray(),
-                "switch_joint_numbers" to switches.map { s -> s.jointNumber.intValue }.toTypedArray(),
-                "switch_joint_roles" to switches.map { s -> s.jointRole.name }.toTypedArray(),
-                "boundary_track_ids" to boundaries.map { b -> b.id.intValue }.toTypedArray(),
-                "boundary_types" to boundaries.map { b -> b.type.name }.toTypedArray(),
+                "insert_node_ids" to insertNodeIds.toTypedArray(),
+                "ports" to ports.toTypedArray(),
+                "switch_ids" to switchIds.toTypedArray(),
+                "switch_joint_numbers" to switchJointNumbers.toTypedArray(),
+                "switch_joint_roles" to switchJointRoles.toTypedArray(),
+                "boundary_track_ids" to boundaryTrackIds.toTypedArray(),
+                "boundary_types" to boundaryTypes.toTypedArray(),
             )
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutNode>("id") }.single()
+
+        val results =
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                rs.getInt("insert_node_id") to rs.getIntId<LayoutNode>("node_id")
+            }
+        return results.sortedBy { it.first }.map { it.second }
     }
 
     fun getEdge(id: IntId<LayoutEdge>): DbLayoutEdge =
@@ -392,7 +421,12 @@ class LayoutAlignmentDao(
         val savedNodes =
             tmpEdges
                 .flatMap { e -> listOfNotNull(e.startNode.node as? TmpLayoutNode, e.endNode.node as? TmpLayoutNode) }
-                .associate { it.contentHash to saveNode(it) }
+                .associateBy { it.contentHash }
+                .entries
+                .let { nodesByHash ->
+                    val saved = saveNodes(nodesByHash.map { it.value })
+                    nodesByHash.map { it.key }.zip(saved).associate { it }
+                }
         val savedGeometries =
             tmpEdges
                 .flatMap { e -> e.segments.mapNotNull { s -> if (s.geometry.id is StringId) s.geometry else null } }
