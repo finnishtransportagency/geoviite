@@ -44,6 +44,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -88,11 +89,11 @@ import fi.fta.geoviite.infra.util.getTrackNumberOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -991,6 +992,8 @@ class PublicationDao(
                   location_track.version as location_track_version,
                   ltv.name,
                   old_ltv.name as old_name,
+                  ltv.naming_scheme,
+                  old_ltv.naming_scheme as old_naming_scheme,
                   ltv.description_base,
                   old_ltv.description_base as old_description_base,
                   ltv.description_suffix,
@@ -1047,6 +1050,7 @@ class PublicationDao(
                         id,
                         trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
                         name = rs.getChange("name") { rs.getString(it)?.let(::AlignmentName) },
+                        namingScheme = rs.getChange("naming_scheme") { rs.getEnum<LocationTrackNamingScheme>(it) },
                         descriptionBase =
                             rs.getChange("description_base") { rs.getString(it)?.let(::LocationTrackDescriptionBase) },
                         descriptionSuffix =
@@ -2092,7 +2096,8 @@ class PublicationDao(
                         name = AlignmentName(rs.getString("name")),
                         trackNumberId = rs.getIntId("track_number_id"),
                         operation = rs.getEnum("operation"),
-                        changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
+                        changedKmNumbers =
+                            rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
                     )
             }
             .let { locationTrackRows ->
