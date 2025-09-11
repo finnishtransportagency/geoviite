@@ -835,6 +835,50 @@ constructor(
     }
 
     @Test
+    fun `reference lines and track numbers depend on each other even if no track number draft exists`() {
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val referenceLine =
+            mainOfficialContext
+                .save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0))))
+                .id
+        referenceLineService.saveDraft(LayoutBranch.main, mainOfficialContext.fetch(referenceLine)!!)
+        val revertTrackNumberDeps =
+            publicationService.getRevertRequestDependencies(
+                LayoutBranch.main,
+                publicationRequestIds(trackNumbers = listOf(trackNumber)),
+            )
+        val revertReferenceLineDeps =
+            publicationService.getRevertRequestDependencies(
+                LayoutBranch.main,
+                publicationRequestIds(referenceLines = listOf(referenceLine)),
+            )
+        assertEquals(publicationRequestIds(referenceLines = listOf(referenceLine)), revertTrackNumberDeps)
+        assertEquals(publicationRequestIds(referenceLines = listOf(referenceLine)), revertReferenceLineDeps)
+    }
+
+    @Test
+    fun `reference lines and track numbers depend on each other even if no reference line draft exists`() {
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val referenceLine =
+            mainOfficialContext
+                .save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(0.0, 1.0))))
+                .id
+        trackNumberService.saveDraft(LayoutBranch.main, mainOfficialContext.fetch(trackNumber)!!)
+        val revertTrackNumberDeps =
+            publicationService.getRevertRequestDependencies(
+                LayoutBranch.main,
+                publicationRequestIds(trackNumbers = listOf(trackNumber)),
+            )
+        val revertReferenceLineDeps =
+            publicationService.getRevertRequestDependencies(
+                LayoutBranch.main,
+                publicationRequestIds(referenceLines = listOf(referenceLine)),
+            )
+        assertEquals(publicationRequestIds(trackNumbers = listOf(trackNumber)), revertTrackNumberDeps)
+        assertEquals(publicationRequestIds(trackNumbers = listOf(trackNumber)), revertReferenceLineDeps)
+    }
+
+    @Test
     fun `Publication rejects duplicate track number names`() {
         trackNumberDao.save(trackNumber(number = TrackNumber("TN"), draft = false))
         val draftTrackNumberId = trackNumberDao.save(trackNumber(number = TrackNumber("TN"), draft = true)).id

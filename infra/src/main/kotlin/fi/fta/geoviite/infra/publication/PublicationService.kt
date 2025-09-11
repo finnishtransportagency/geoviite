@@ -118,22 +118,18 @@ constructor(
 
     @Transactional(readOnly = true)
     fun getRevertRequestDependencies(branch: LayoutBranch, requestIds: PublicationRequestIds): PublicationRequestIds {
-        val referenceLineTrackNumberIds =
-            referenceLineDao
-                .fetchCandidateVersions(branch.draft, requestIds.referenceLines)
-                .let(referenceLineDao::fetchMany)
-                .map { rlId -> rlId.trackNumberId }
         val trackNumbers =
-            trackNumberDao
-                .fetchCandidateVersions(branch.draft, requestIds.trackNumbers + referenceLineTrackNumberIds)
-                .let(trackNumberDao::fetchMany)
+            trackNumberDao.fetchCandidateVersions(branch.draft).let(trackNumberDao::fetchMany).filter { tn ->
+                requestIds.trackNumbers.contains(tn.id) || requestIds.referenceLines.contains(tn.referenceLineId)
+            }
 
         val referenceLineIds =
-            requestIds.referenceLines.toSet() +
-                referenceLineDao
-                    .fetchMany(referenceLineDao.fetchCandidateVersions(branch.draft))
-                    .filter { rl -> trackNumbers.any { tn -> rl.trackNumberId == tn.id } }
-                    .map { it.id as IntId }
+            referenceLineDao
+                .fetchMany(referenceLineDao.fetchCandidateVersions(branch.draft))
+                .filter { rl ->
+                    requestIds.trackNumbers.contains(rl.trackNumberId) || requestIds.referenceLines.contains(rl.id)
+                }
+                .map { it.id as IntId }
 
         // If revert breaks other draft row references, they should be reverted too
         val draftOnlyTrackNumberIds =
@@ -143,21 +139,28 @@ constructor(
                 .toSet()
 
         val locationTrackIds =
-            requestIds.locationTracks.toSet() +
-                locationTrackDao
-                    .fetchMany(locationTrackDao.fetchCandidateVersions(branch.draft))
-                    .filter { lt -> draftOnlyTrackNumberIds.contains(lt.trackNumberId) }
-                    .map { it.id as IntId }
+            locationTrackDao
+                .fetchMany(locationTrackDao.fetchCandidateVersions(branch.draft))
+                .filter { lt ->
+                    requestIds.locationTracks.contains(lt.id) || draftOnlyTrackNumberIds.contains(lt.trackNumberId)
+                }
+                .map { it.id as IntId }
 
         val kmPostIds =
-            requestIds.kmPosts.toSet() +
-                kmPostDao
-                    .fetchMany(kmPostDao.fetchCandidateVersions(branch.draft))
-                    .filter { kp -> draftOnlyTrackNumberIds.contains(kp.trackNumberId) }
-                    .map { it.id as IntId }
+            kmPostDao
+                .fetchMany(kmPostDao.fetchCandidateVersions(branch.draft))
+                .filter { kp ->
+                    requestIds.kmPosts.contains(kp.id) || draftOnlyTrackNumberIds.contains(kp.trackNumberId)
+                }
+                .map { it.id as IntId }
 
-        val revertSplits =
-            splitService.findUnpublishedSplits(branch, locationTrackIds.toList(), requestIds.switches)
+        val switchIds =
+            switchDao
+                .fetchCandidateVersions(branch.draft)
+                .map { it.id }
+                .filter { id -> requestIds.switches.contains(id) }
+
+        val revertSplits = splitService.findUnpublishedSplits(branch, locationTrackIds.toList(), requestIds.switches)
         val revertSplitTracks = revertSplits.flatMap { s -> s.locationTracks }.distinct()
         val revertSplitSwitches = revertSplits.flatMap { s -> s.relinkedSwitches }.distinct()
 
@@ -165,7 +168,7 @@ constructor(
             trackNumbers = trackNumbers.map { it.id as IntId },
             referenceLines = referenceLineIds.toList(),
             locationTracks = (locationTrackIds + revertSplitTracks).distinct(),
-            switches = (requestIds.switches + revertSplitSwitches).distinct(),
+            switches = (switchIds + revertSplitSwitches).distinct(),
             kmPosts = kmPostIds.toList(),
         )
     }
