@@ -8,9 +8,9 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.ClientException
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
-import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
-import fi.fta.geoviite.infra.geocoding.KmPostRejectedReason
+import fi.fta.geoviite.infra.geocoding.GeocodingKm
+import fi.fta.geoviite.infra.geocoding.KmValidationIssue
+import fi.fta.geoviite.infra.geocoding.ValidatedGeocodingContext
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -834,7 +834,7 @@ fun noGeocodingContext(validationTargetLocalizationPrefix: String) =
     LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.no-context")
 
 fun validateGeocodingContext(
-    contextCreateResult: GeocodingContextCreateResult<ReferenceLineM>,
+    contextCreateResult: ValidatedGeocodingContext<ReferenceLineM>,
     trackNumber: TrackNumber,
 ): List<LayoutValidationIssue> {
     val context = contextCreateResult.geocodingContext
@@ -845,11 +845,11 @@ fun validateGeocodingContext(
         }
 
     val kmPostsInWrongOrder =
-        context.referencePoints
+        context.kms
             .filter { point -> point.intersectType == WITHIN }
             .filterIndexed { index, point ->
-                val previous = context.referencePoints.getOrNull(index - 1)
-                val next = context.referencePoints.getOrNull(index + 1)
+                val previous = context.kms.getOrNull(index - 1)
+                val next = context.kms.getOrNull(index + 1)
                 !isOrderOk(previous, point) || !isOrderOk(point, next)
             }
             .let { invalidPoints ->
@@ -863,7 +863,7 @@ fun validateGeocodingContext(
             }
 
     val kmPostsFarFromLine =
-        context.referencePoints
+        context.kms
             .filter { point -> point.intersectType == WITHIN }
             .filter { point -> point.kmPostOffset > MAX_KM_POST_OFFSET }
             .let { farAwayPoints ->
@@ -881,34 +881,34 @@ fun validateGeocodingContext(
             val kmPostLocalizationParams = mapOf("trackNumber" to trackNumber, "kmNumber" to kmPost.kmNumber)
 
             when (reason) {
-                KmPostRejectedReason.TOO_FAR_APART ->
+                KmValidationIssue.TOO_FAR_APART ->
                     LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.km-post-too-long", kmPostLocalizationParams)
 
-                KmPostRejectedReason.NO_LOCATION ->
+                KmValidationIssue.NO_LOCATION ->
                     LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.km-post-no-location", kmPostLocalizationParams)
 
-                KmPostRejectedReason.IS_BEFORE_START_ADDRESS ->
+                KmValidationIssue.IS_BEFORE_START_ADDRESS ->
                     LayoutValidationIssue(
                         WARNING,
                         "$VALIDATION_GEOCODING.km-post-smaller-than-track-number-start",
                         kmPostLocalizationParams,
                     )
 
-                KmPostRejectedReason.INTERSECTS_BEFORE_REFERENCE_LINE ->
+                KmValidationIssue.INTERSECTS_BEFORE_REFERENCE_LINE ->
                     LayoutValidationIssue(
                         WARNING,
                         "$VALIDATION_GEOCODING.km-post-outside-line-before",
                         kmPostLocalizationParams,
                     )
 
-                KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE ->
+                KmValidationIssue.INTERSECTS_AFTER_REFERENCE_LINE ->
                     LayoutValidationIssue(
                         WARNING,
                         "$VALIDATION_GEOCODING.km-post-outside-line-after",
                         kmPostLocalizationParams,
                     )
 
-                KmPostRejectedReason.DUPLICATE ->
+                KmValidationIssue.DUPLICATE_KM ->
                     LayoutValidationIssue(FATAL, "$VALIDATION_GEOCODING.duplicate-km-posts", kmPostLocalizationParams)
             }
         }
@@ -917,9 +917,9 @@ fun validateGeocodingContext(
 }
 
 private fun <M : GeocodingAlignmentM<M>> isOrderOk(
-    previous: GeocodingReferencePoint<M>?,
-    next: GeocodingReferencePoint<M>?,
-) = if (previous == null || next == null) true else previous.distance < next.distance
+    previous: GeocodingKm<M>?,
+    next: GeocodingKm<M>?,
+) = if (previous == null || next == null) true else previous.referenceLineM < next.referenceLineM
 
 fun validateAddressPoints(
     trackNumber: LayoutTrackNumber,

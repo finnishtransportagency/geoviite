@@ -61,9 +61,6 @@ private fun limitScale(meters: BigDecimal) =
         meters
     }
 
-private val maxMeter = BigDecimal.valueOf(10.0.pow(METERS_MAX_INTEGER_DIGITS))
-private val metersDecimalsValidRange = 0..METERS_MAX_DECIMAL_DIGITS
-
 interface ITrackMeter : Comparable<ITrackMeter> {
     val kmNumber: KmNumber
     val meters: BigDecimal
@@ -115,7 +112,12 @@ constructor(override val kmNumber: KmNumber, override val meters: BigDecimal) : 
     @JsonCreator(mode = DELEGATING) constructor(value: String) : this(parseTrackMeterParts(value))
 
     companion object {
+        private val maxMeter = BigDecimal.valueOf(10.0.pow(METERS_MAX_INTEGER_DIGITS))
+        private val metersDecimalsValidRange = 0..METERS_MAX_DECIMAL_DIGITS
+
         val ZERO = TrackMeter(KmNumber.ZERO, BigDecimal.ZERO)
+
+        fun capMeters(value: BigDecimal): BigDecimal = maxOf(minOf(value, maxMeter), -maxMeter)
 
         fun isMetersValid(v: BigDecimal): Boolean {
             return -maxMeter <= v && v < maxMeter

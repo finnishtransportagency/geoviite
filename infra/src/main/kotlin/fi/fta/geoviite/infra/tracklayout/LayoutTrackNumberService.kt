@@ -10,7 +10,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
+import fi.fta.geoviite.infra.geocoding.ValidatedGeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateSystem
 import fi.fta.geoviite.infra.geography.GeographyService
@@ -351,7 +351,7 @@ private fun getLocationByPrecision(kmPost: LayoutKmLengthDetails, precision: KmL
 
 private fun extractTrackKmLengths(
     context: GeocodingContext<ReferenceLineM>,
-    contextResult: GeocodingContextCreateResult<ReferenceLineM>,
+    contextResult: ValidatedGeocodingContext<ReferenceLineM>,
     startPoint: AddressPoint<*>,
 ): List<LayoutKmLengthDetails> {
     val distances = getKmPostDistances(context, contextResult.validKmPosts)
@@ -405,8 +405,8 @@ private fun getCropMRange(
     startKm: KmNumber?,
     endKm: KmNumber?,
 ): Range<LineM<ReferenceLineM>>? {
-    val start = startKm?.let { context.referencePoints.find { it.kmNumber >= startKm } }?.distance
-    val end = endKm?.let { context.referencePoints.find { it.kmNumber > endKm } }?.distance
+    val start = startKm?.let { context.kms.find { it.kmNumber >= startKm } }?.referenceLineM
+    val end = endKm?.let { context.kms.find { it.kmNumber > endKm } }?.referenceLineM
     return if (start != null && start >= origRange.max || end != null && end <= origRange.min) {
         null
     } else {

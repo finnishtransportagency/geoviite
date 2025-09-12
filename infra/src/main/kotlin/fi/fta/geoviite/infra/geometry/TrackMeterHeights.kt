@@ -4,7 +4,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
+import fi.fta.geoviite.infra.geocoding.GeocodingKm
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.GeocodingAlignmentM
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -42,7 +42,7 @@ fun <M : AlignmentM<M>> collectTrackMeterTicks(
         getTickTrackLocationsByKm(geocodingContext, alignment, ticksByKm, referencePointIndices)
 
     return referencePointIndices.toList().mapIndexed { kmIndex, referencePointIndex ->
-        val kmNumber = geocodingContext.referencePoints[referencePointIndex].kmNumber
+        val kmNumber = geocodingContext.kms[referencePointIndex].kmNumber
         val kmTicks = ticksByKm[kmIndex]
         val kmTrackLocations = tickTrackLocationsByKm[kmIndex]
         fun getTrackEndEndM() = getLastEndM(geocodingContext, referencePointIndices, alignmentEnd, alignment)
@@ -66,7 +66,7 @@ private fun <M : AlignmentM<M>> getReferencePointIndexRangeCoveringAlignmentMRan
 ): IntRange? =
     alignment.getPointAtM(startDistance)?.let(geocodingContext::getAddress)?.let { (startAddress) ->
         alignment.getPointAtM(endDistance)?.let(geocodingContext::getAddress)?.let { (endAddress) ->
-            getIndexRangeForRangeInOrderedList(geocodingContext.referencePoints, startAddress, endAddress) {
+            getIndexRangeForRangeInOrderedList(geocodingContext.kms, startAddress, endAddress) {
                 referencePoint,
                 address ->
                 referencePoint.kmNumber.compareTo(address.kmNumber)
@@ -94,7 +94,7 @@ private fun <M : AlignmentM<M>, GM: GeocodingAlignmentM<GM>> getTicksToSendByKm(
         locateAlignmentBoundaryAddresses(geometryAlignmentBoundariesInKmRange, alignment, geocodingContext)
 
     return referencePointIndices.map { referencePointIndex ->
-        val referencePoint = geocodingContext.referencePoints[referencePointIndex]
+        val referencePoint = geocodingContext.kms[referencePointIndex]
         val kmNumber = referencePoint.kmNumber
         getTicksToSendForKm(
             tickLength,
@@ -115,10 +115,10 @@ private fun <M : AlignmentM<M>> filterGeometryAlignmentBoundariesWithinKmRange(
     referencePointIndices: IntRange,
     geometryAlignmentBoundaries: List<GeometryAlignmentBoundaryPoint<M>>,
 ): List<GeometryAlignmentBoundaryPoint<M>> {
-    val startAddress = TrackMeter(geocodingContext.referencePoints[referencePointIndices.first].kmNumber, 0)
+    val startAddress = TrackMeter(geocodingContext.kms[referencePointIndices.first].kmNumber, 0)
     val endAddress =
-        if (referencePointIndices.last == geocodingContext.referencePoints.lastIndex) null
-        else TrackMeter(geocodingContext.referencePoints[referencePointIndices.last + 1].kmNumber, 0)
+        if (referencePointIndices.last == geocodingContext.kms.lastIndex) null
+        else TrackMeter(geocodingContext.kms[referencePointIndices.last + 1].kmNumber, 0)
     val rangePoints = geocodingContext.getTrackLocations(alignment, listOfNotNull(startAddress, endAddress))
     // either or both addresses could fail to geocode onto the alignment
     val rangeStart = rangePoints[0]?.point?.m
@@ -149,7 +149,7 @@ private fun <M : AlignmentM<M>> locateAlignmentBoundaryAddresses(
 private fun <M : AlignmentM<M>, GM: GeocodingAlignmentM<GM>> getTicksToSendForKm(
     tickLength: Int,
     alignmentBoundaryTicks: List<TrackMeterHeightTick>,
-    referencePoint: GeocodingReferencePoint<GM>,
+    referencePoint: GeocodingKm<GM>,
     kmLength: LineM<GM>,
     kmNumber: KmNumber,
     alignmentStart: AddressPoint<M>,
@@ -161,14 +161,14 @@ private fun <M : AlignmentM<M>, GM: GeocodingAlignmentM<GM>> getTicksToSendForKm
 
 private fun <GM: GeocodingAlignmentM<GM>> getAllTicksToSendForKm(
     tickLength: Int,
-    referencePoint: GeocodingReferencePoint<GM>,
+    referencePoint: GeocodingKm<GM>,
     kmLength: LineM<GM>,
     alignmentBoundaryTicks: List<TrackMeterHeightTick>,
 ): List<TrackMeterHeightTick> {
     // The choice of a half-tick-length minimum is totally arbitrary
     val minTickSpace = BigDecimal(tickLength).setScale(1) / BigDecimal(2)
     val lastPoint =
-        (referencePoint.meters.toDouble() + kmLength.distance - minTickSpace.toDouble()).toInt().coerceAtLeast(0)
+        (referencePoint.startMeters.toDouble() + kmLength.distance - minTickSpace.toDouble()).toInt().coerceAtLeast(0)
 
     // Ordinary track meter height ticks don't need segment indices because they clearly hit a
     // specific segment; but points on different sides of a segment boundary are often the exact
@@ -235,7 +235,7 @@ private fun <M : AlignmentM<M>> getTickTrackLocationsByKm(
 ): List<List<AddressPoint<M>?>> {
     val trackAddresses =
         ticksByKm.zip(referencePointIndices) { kmTicks, referencePointIndex ->
-            val km = geocodingContext.referencePoints[referencePointIndex].kmNumber
+            val km = geocodingContext.kms[referencePointIndex].kmNumber
             kmTicks.map { tick -> TrackMeter(km, tick.trackMeterInKm) }
         }
     return processFlattened(trackAddresses) { allTrackAddresses ->
@@ -247,11 +247,11 @@ private fun <GM : GeocodingAlignmentM<GM>> getKmLengthAtReferencePointIndex(
     referencePointIndex: Int,
     geocodingContext: GeocodingContext<GM>,
 ): LineM<GM> =
-    if (referencePointIndex == geocodingContext.referencePoints.size - 1) {
-        geocodingContext.referenceLineGeometry.length - geocodingContext.referencePoints[referencePointIndex].distance
+    if (referencePointIndex == geocodingContext.kms.size - 1) {
+        geocodingContext.referenceLineGeometry.length - geocodingContext.kms[referencePointIndex].referenceLineM
     } else {
-        geocodingContext.referencePoints[referencePointIndex + 1].distance -
-            geocodingContext.referencePoints[referencePointIndex].distance
+        geocodingContext.kms[referencePointIndex + 1].referenceLineM -
+            geocodingContext.kms[referencePointIndex].referenceLineM
     }
 
 private fun <M : AlignmentM<M>> getLastEndM(
@@ -260,14 +260,14 @@ private fun <M : AlignmentM<M>> getLastEndM(
     alignmentEnd: AddressPoint<M>,
     alignment: IAlignment<M>,
 ): LineM<M> =
-    if (geocodingContext.referencePoints[referencePointIndices.last].kmNumber == alignmentEnd.address.kmNumber)
+    if (geocodingContext.kms[referencePointIndices.last].kmNumber == alignmentEnd.address.kmNumber)
         alignmentEnd.point.m
     else {
         // indexing and null safety: Here we know we're on a track km before the alignment's end
         // address, so the next track km's start address must both exist on the reference line and
         // be geocodable onto the alignment.
         val nextKmTrackAddress =
-            TrackMeter(geocodingContext.referencePoints[referencePointIndices.last + 1].kmNumber, 0)
+            TrackMeter(geocodingContext.kms[referencePointIndices.last + 1].kmNumber, 0)
         checkNotNull(geocodingContext.getTrackLocation(alignment, nextKmTrackAddress)).point.m
     }
 

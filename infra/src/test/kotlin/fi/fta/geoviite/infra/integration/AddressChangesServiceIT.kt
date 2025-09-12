@@ -811,7 +811,7 @@ constructor(
         val context = geocodingService.getGeocodingContext(geocodingContextCacheKey)!!
         val startKm = context.getAddress(start)!!.first.kmNumber
         val endKm = context.getAddress(end)!!.first.kmNumber
-        return context.referencePoints.map { r -> r.kmNumber }.filter { km -> km in startKm..endKm }.toSet()
+        return context.kms.map { r -> r.kmNumber }.filter { km -> km in startKm..endKm }.toSet()
     }
 
     fun movePoint(point: SegmentPoint, delta: Double) =

@@ -32,15 +32,15 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 import kotlin.math.PI
 import kotlin.math.sqrt
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 
 const val DELTA = 0.000001
 
@@ -95,11 +95,11 @@ val alignment = alignment(segment1, segment2, segment3)
 val startAddress = TrackMeter(KmNumber(2), 150)
 val addressPoints =
     listOf(
-        GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, LineM(0.0), 0.0, WITHIN),
-        GeocodingReferencePoint(KmNumber(3), BigDecimal.ZERO, alignment.length / 5, 0.0, WITHIN),
-        GeocodingReferencePoint(KmNumber(4), BigDecimal.ZERO, alignment.length * 2 / 5, 0.0, WITHIN),
-        GeocodingReferencePoint(KmNumber(5, "A"), BigDecimal.ZERO, alignment.length * 3 / 5, 0.0, WITHIN),
-        GeocodingReferencePoint(KmNumber(5, "B"), BigDecimal.ZERO, alignment.length * 4 / 5, 0.0, WITHIN),
+        GeocodingKm(startAddress.kmNumber, startAddress.meters, LineM(0.0), 0.0, WITHIN),
+        GeocodingKm(KmNumber(3), BigDecimal.ZERO, alignment.length / 5, 0.0, WITHIN),
+        GeocodingKm(KmNumber(4), BigDecimal.ZERO, alignment.length * 2 / 5, 0.0, WITHIN),
+        GeocodingKm(KmNumber(5, "A"), BigDecimal.ZERO, alignment.length * 3 / 5, 0.0, WITHIN),
+        GeocodingKm(KmNumber(5, "B"), BigDecimal.ZERO, alignment.length * 4 / 5, 0.0, WITHIN),
     )
 val trackNumber: TrackNumber = TrackNumber("T001")
 val kmPostLocations =
@@ -202,23 +202,26 @@ class GeocodingTest {
         val lastPoint = addressPoints.last()
         val endLength = alignment.length
         assertEquals(
-            TrackMeter(lastPoint.kmNumber, endLength.distance - lastPoint.distance.distance, 3),
+            TrackMeter(lastPoint.kmNumber, endLength.distance - lastPoint.referenceLineM.distance, 3),
             context.getAddress(endLength, 3),
         )
 
         for (ap in addressPoints) {
-            assertEquals(TrackMeter(ap.kmNumber, ap.meters.toDouble() + 0.0, 3), context.getAddress(ap.distance, 3))
             assertEquals(
-                TrackMeter(ap.kmNumber, ap.meters.toDouble() + 10.0, 3),
-                context.getAddress(ap.distance + 10.0, 3),
+                TrackMeter(ap.kmNumber, ap.startMeters.toDouble() + 0.0, 3),
+                context.getAddress(ap.referenceLineM, 3),
             )
             assertEquals(
-                TrackMeter(ap.kmNumber, ap.meters.toDouble() + 100.0, 3),
-                context.getAddress(ap.distance + 100.0, 3),
+                TrackMeter(ap.kmNumber, ap.startMeters.toDouble() + 10.0, 3),
+                context.getAddress(ap.referenceLineM + 10.0, 3),
             )
             assertEquals(
-                TrackMeter(ap.kmNumber, ap.meters.toDouble() + 300.0, 3),
-                context.getAddress(ap.distance + 300.0, 3),
+                TrackMeter(ap.kmNumber, ap.startMeters.toDouble() + 100.0, 3),
+                context.getAddress(ap.referenceLineM + 100.0, 3),
+            )
+            assertEquals(
+                TrackMeter(ap.kmNumber, ap.startMeters.toDouble() + 300.0, 3),
+                context.getAddress(ap.referenceLineM + 300.0, 3),
             )
         }
     }
@@ -365,10 +368,10 @@ class GeocodingTest {
             GeocodingContext(
                 trackNumber = trackNumber,
                 referenceLineGeometry = alignment,
-                referencePoints =
+                kms =
                     listOf(
-                        GeocodingReferencePoint(KmNumber(2), BigDecimal("100.0"), LineM(0.0), 0.0, WITHIN),
-                        GeocodingReferencePoint(KmNumber(3), BigDecimal("0.0"), LineM(3.0), 0.0, WITHIN),
+                        GeocodingKm(KmNumber(2), BigDecimal("100.0"), LineM(0.0), 0.0, WITHIN),
+                        GeocodingKm(KmNumber(3), BigDecimal("0.0"), LineM(3.0), 0.0, WITHIN),
                     ),
             )
         // As lines go straight up, projections should go 100m to the left from there
@@ -510,20 +513,20 @@ class GeocodingTest {
     ): GeocodingContext<ReferenceLineM> {
         val alignment = alignment(segment(*geometryPoints.toTypedArray()))
         val startRefPoint =
-            GeocodingReferencePoint(
+            GeocodingKm(
                 kmNumber = startAddress.kmNumber,
-                meters = startAddress.meters,
-                distance = LineM<ReferenceLineM>(0.0),
+                startMeters = startAddress.meters,
+                referenceLineM = LineM<ReferenceLineM>(0.0),
                 kmPostOffset = 0.0,
                 intersectType = WITHIN,
             )
         val combinedReferencePoints =
             listOf(startRefPoint) +
                 referencePoints.map { (address, distance) ->
-                    GeocodingReferencePoint(
+                    GeocodingKm(
                         kmNumber = address.kmNumber,
-                        meters = address.meters,
-                        distance = LineM<ReferenceLineM>(distance),
+                        startMeters = address.meters,
+                        referenceLineM = LineM<ReferenceLineM>(distance),
                         kmPostOffset = 0.0,
                         intersectType = WITHIN,
                     )
@@ -532,7 +535,7 @@ class GeocodingTest {
         return GeocodingContext(
             trackNumber = trackNumber,
             referenceLineGeometry = alignment,
-            referencePoints = combinedReferencePoints,
+            kms = combinedReferencePoints,
         )
     }
 
@@ -548,10 +551,10 @@ class GeocodingTest {
                 trackNumber,
                 verticalAlignment,
                 listOf(
-                    GeocodingReferencePoint(
+                    GeocodingKm(
                         kmNumber = startAddress.kmNumber,
-                        meters = startAddress.meters,
-                        distance = LineM<ReferenceLineM>(0.0),
+                        startMeters = startAddress.meters,
+                        referenceLineM = LineM<ReferenceLineM>(0.0),
                         kmPostOffset = 0.0,
                         intersectType = WITHIN,
                     )
@@ -697,7 +700,7 @@ class GeocodingTest {
             GeocodingContext(
                 trackNumber = TrackNumber("T001"),
                 referenceLineGeometry = startAlignment,
-                referencePoints = emptyList(),
+                kms = emptyList(),
             )
         }
     }
@@ -710,7 +713,7 @@ class GeocodingTest {
             GeocodingContext(
                 trackNumber = TrackNumber("T001"),
                 referenceLineGeometry = startAlignment,
-                referencePoints = emptyList(),
+                kms = emptyList(),
             )
         }
     }
@@ -732,7 +735,7 @@ class GeocodingTest {
 
         assertTrue("Km post without location was not rejected") {
             result.rejectedKmPosts.all { kp ->
-                kp.kmPost == kmPost && kp.rejectedReason == KmPostRejectedReason.NO_LOCATION
+                kp.kmPost == kmPost && kp.rejectedReason == KmValidationIssue.NO_LOCATION
             }
         }
 
@@ -756,7 +759,7 @@ class GeocodingTest {
 
         assertTrue("Km post with too small km number was not rejected") {
             result.rejectedKmPosts.all { kp ->
-                kp.kmPost == kmPost && kp.rejectedReason == KmPostRejectedReason.IS_BEFORE_START_ADDRESS
+                kp.kmPost == kmPost && kp.rejectedReason == KmValidationIssue.IS_BEFORE_START_ADDRESS
             }
         }
     }
@@ -778,7 +781,7 @@ class GeocodingTest {
 
         assertTrue("Km post that intersected before reference line was not rejected") {
             result.rejectedKmPosts.all { kp ->
-                kp.kmPost == kmPost && kp.rejectedReason == KmPostRejectedReason.INTERSECTS_BEFORE_REFERENCE_LINE
+                kp.kmPost == kmPost && kp.rejectedReason == KmValidationIssue.INTERSECTS_BEFORE_REFERENCE_LINE
             }
         }
     }
@@ -800,7 +803,7 @@ class GeocodingTest {
 
         assertTrue("Km post that intersected after reference line was not rejected") {
             result.rejectedKmPosts.all { kp ->
-                kp.kmPost == kmPost && kp.rejectedReason == KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE
+                kp.kmPost == kmPost && kp.rejectedReason == KmValidationIssue.INTERSECTS_AFTER_REFERENCE_LINE
             }
         }
     }
@@ -822,7 +825,7 @@ class GeocodingTest {
 
         assertTrue("Km post that had over 10000 m in distance was not rejected") {
             result.rejectedKmPosts.all { kp ->
-                kp.kmPost == kmPost && kp.rejectedReason == KmPostRejectedReason.TOO_FAR_APART
+                kp.kmPost == kmPost && kp.rejectedReason == KmValidationIssue.TOO_FAR_APART
             }
         }
     }
