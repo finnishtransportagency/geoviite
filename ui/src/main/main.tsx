@@ -9,7 +9,7 @@ import { AppBar } from 'app-bar/app-bar';
 import { GeoviiteLibDemo } from 'geoviite-design-lib/demo/demo';
 import { VersionHolderView } from 'version-holder/version-holder-view';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
-import { LayoutMode } from 'common/common-model';
+import { LayoutMode, officialMainLayoutContext } from 'common/common-model';
 import { PreviewContainer } from 'preview/preview-container';
 import { FrontpageContainer } from 'frontpage/frontpage-container';
 import { EnvRestricted } from 'environment/env-restricted';
@@ -52,10 +52,17 @@ const Main: React.FC<MainProps> = (props: MainProps) => {
             <div className={styles.main__content} qa-id="main-content-container">
                 <Routes>
                     <Route path="/" element={<FrontpageContainer />} />
-                    <Route path={'/publications'} element={<PublicationLog />} />
+                    <Route
+                        path={'/publications'}
+                        element={<PublicationLog layoutContext={officialMainLayoutContext()} />}
+                    />
                     <Route
                         path={'/publications/:publicationId'}
-                        element={<PublicationDetailsContainer />}
+                        element={
+                            <PublicationDetailsContainer
+                                layoutContext={officialMainLayoutContext()}
+                            />
+                        }
                     />
                     <Route
                         path="/track-layout"

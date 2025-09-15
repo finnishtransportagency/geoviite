@@ -38,7 +38,7 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SortDirection, TableSorting } from 'utils/table-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'tool-bar/search-dropdown';
-import { officialMainLayoutContext } from 'common/common-model';
+import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { DropdownSize } from 'vayla-design-lib/dropdown/dropdown';
 
 const MAX_SEARCH_DAYS = 180;
@@ -144,7 +144,11 @@ function getSearchableItemName(item: SearchItemValue<SearchablePublicationLogIte
     }
 }
 
-const PublicationLog: React.FC = () => {
+type PublicationLogProps = {
+    layoutContext: LayoutContext;
+};
+
+const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
 
@@ -408,6 +412,7 @@ const PublicationLog: React.FC = () => {
                     )}
                 </div>
                 <PublicationTable
+                    layoutContext={layoutContext}
                     isLoading={isLoading}
                     items={pagedPublications?.items || []}
                     sortInfo={sortInfo}
