@@ -214,7 +214,7 @@ constructor(
                     splitTargetTrack,
                     splitRelinkedSwitches,
                     publicationTime,
-                    publishedSwitchJoints,
+                    splitSourceTrack.geocodingContext,
                 )
             }
 
@@ -238,7 +238,7 @@ constructor(
         splitTargetTrack: RatkoSplitTargetTrack,
         relinkedSwitches: List<IntId<LayoutSwitch>>,
         publicationTime: Instant,
-        publishedSwitchJoints: Map<IntId<LayoutSwitch>, List<PublishedSwitchJoint>>,
+        geocodingContext: GeocodingContext<ReferenceLineM>,
     ) {
         val switchesToUpdate =
             relinkedSwitches.filter { relinkedSwitch -> relinkedSwitch in splitTargetTrack.track.switchIds }
@@ -246,10 +246,9 @@ constructor(
         val trackKmsToUpdate =
             switchesToUpdate
                 .flatMap { switchId ->
-                    publishedSwitchJoints
-                        .getValue(switchId)
-                        .map { joint -> joint.address }
-                        .map { address -> address.kmNumber }
+                    splitTargetTrack.geometry.getSwitchLocations(switchId).mapNotNull { (_, point) ->
+                        geocodingContext.toAddressPoint(point)?.first?.address?.kmNumber
+                    }
                 }
                 .toSet()
 
