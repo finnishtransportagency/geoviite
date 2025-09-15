@@ -155,7 +155,7 @@ constructor(
             mapToPublicationTableItems(
                 translation,
                 publication,
-                specificObjectId = null,
+                publicationLogAsset = null,
                 publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(publication.id),
                 previousPublication?.key ?: publication.publicationTime.minusMillis(1),
                 { trackNumberId: IntId<LayoutTrackNumber>, timestamp: Instant ->
@@ -193,14 +193,22 @@ constructor(
         layoutBranch: LayoutBranch,
         from: Instant? = null,
         to: Instant? = null,
-        specificId: PublishableObjectIdAndType? = null,
+        publicationLogAsset: PublicationLogAsset? = null,
         sortBy: PublicationTableColumn? = null,
         order: SortOrder? = null,
         translation: Translation,
     ): List<PublicationTableItem> {
         val switchLinkChanges =
-            if (specificId != null && specificId.type != PublishableObjectType.LOCATION_TRACK) mapOf()
-            else publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(null, layoutBranch, from, to, specificId)
+            if (publicationLogAsset != null && publicationLogAsset.type != PublicationLogAssetType.LOCATION_TRACK)
+                mapOf()
+            else
+                publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
+                    null,
+                    layoutBranch,
+                    from,
+                    to,
+                    publicationLogAsset,
+                )
 
         return fetchPublicationDetailsBetweenInstants(layoutBranch, from, to)
             .sortedBy { it.publicationTime }
@@ -225,7 +233,7 @@ constructor(
                         mapToPublicationTableItems(
                             translation,
                             publicationDetails,
-                            specificObjectId = specificId,
+                            publicationLogAsset,
                             switchLinkChanges[publicationDetails.id] ?: mapOf(),
                             timeDiff,
                             getGeocodingContextOrNull,
@@ -326,7 +334,7 @@ constructor(
         layoutBranch: LayoutBranch,
         from: Instant? = null,
         to: Instant? = null,
-        specificId: PublishableObjectIdAndType? = null,
+        publicationLogAsset: PublicationLogAsset? = null,
         sortBy: PublicationTableColumn? = null,
         order: SortOrder? = null,
         timeZone: ZoneId? = null,
@@ -337,7 +345,7 @@ constructor(
                 layoutBranch = layoutBranch,
                 from = from,
                 to = to,
-                specificId = specificId,
+                publicationLogAsset = publicationLogAsset,
                 sortBy = sortBy,
                 order = order,
                 translation = translation,
@@ -795,31 +803,31 @@ constructor(
 
     private fun canSkipLoadingChanges(
         publication: PublicationDetails,
-        specificObject: PublishableObjectIdAndType?,
+        publicationLogAsset: PublicationLogAsset?,
         type: PublishableObjectType,
     ) =
-        if (specificObject == null) false
+        if (publicationLogAsset == null) false
         else if (
-            specificObject.type == PublishableObjectType.TRACK_NUMBER && type == PublishableObjectType.REFERENCE_LINE
+            publicationLogAsset.type == PublicationLogAssetType.TRACK_NUMBER &&
+                type == PublishableObjectType.REFERENCE_LINE
         ) {
-            publication.referenceLines.none { rl -> specificObject.isTrackNumber(rl.trackNumberId) }
+            publication.referenceLines.none { rl -> publicationLogAsset.isTrackNumber(rl.trackNumberId) }
         } else
-            type != specificObject.type ||
-                when (specificObject.type) {
-                    PublishableObjectType.TRACK_NUMBER ->
-                        publication.allPublishedTrackNumbers.none { it.id == specificObject.id }
-                    PublishableObjectType.LOCATION_TRACK ->
-                        publication.allPublishedLocationTracks.none { it.id == specificObject.id }
-                    PublishableObjectType.REFERENCE_LINE ->
-                        publication.referenceLines.none { it.id == specificObject.id }
-                    PublishableObjectType.SWITCH -> publication.allPublishedSwitches.none { it.id == specificObject.id }
-                    PublishableObjectType.KM_POST -> publication.kmPosts.none { it.id == specificObject.id }
+            publicationLogAsset.type.publishableObjectType != type ||
+                when (publicationLogAsset.type) {
+                    PublicationLogAssetType.TRACK_NUMBER ->
+                        publication.allPublishedTrackNumbers.none { it.id == publicationLogAsset.id }
+                    PublicationLogAssetType.LOCATION_TRACK ->
+                        publication.allPublishedLocationTracks.none { it.id == publicationLogAsset.id }
+                    PublicationLogAssetType.SWITCH ->
+                        publication.allPublishedSwitches.none { it.id == publicationLogAsset.id }
+                    PublicationLogAssetType.KM_POST -> publication.kmPosts.none { it.id == publicationLogAsset.id }
                 }
 
     private fun mapToPublicationTableItems(
         translation: Translation,
         publication: PublicationDetails,
-        specificObjectId: PublishableObjectIdAndType?,
+        publicationLogAsset: PublicationLogAsset?,
         switchLinkChanges: Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>,
         previousComparisonTime: Instant,
         geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
@@ -827,11 +835,11 @@ constructor(
     ): List<PublicationTableItem> {
         publication.locationTracks
         val publicationLocationTrackChanges =
-            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.LOCATION_TRACK)) {
+            if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.LOCATION_TRACK)) {
                 mapOf()
             } else publicationDao.fetchPublicationLocationTrackChanges(publication.id)
         val publicationTrackNumberChanges =
-            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.TRACK_NUMBER)) {
+            if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.TRACK_NUMBER)) {
                 mapOf()
             } else
                 publicationDao.fetchPublicationTrackNumberChanges(
@@ -840,39 +848,39 @@ constructor(
                     previousComparisonTime,
                 )
         val publicationKmPostChanges =
-            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.KM_POST)) mapOf()
+            if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.KM_POST)) mapOf()
             else publicationDao.fetchPublicationKmPostChanges(publication.id)
 
         val publicationReferenceLineChanges =
-            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.REFERENCE_LINE)) mapOf()
+            if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.REFERENCE_LINE)) mapOf()
             else publicationDao.fetchPublicationReferenceLineChanges(publication.id)
         val publicationSwitchChanges =
-            if (canSkipLoadingChanges(publication, specificObjectId, PublishableObjectType.SWITCH)) mapOf()
+            if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.SWITCH)) mapOf()
             else publicationDao.fetchPublicationSwitchChanges(publication.id)
 
         val trackNumbersToDiff =
-            publication.trackNumbers.filter { tn -> specificObjectId == null || specificObjectId.isTrackNumber(tn.id) }
+            publication.trackNumbers.filter { tn ->
+                publicationLogAsset == null || publicationLogAsset.isTrackNumber(tn.id)
+            }
         val referenceLinesToDiff =
             publication.referenceLines.filter { rl ->
-                specificObjectId == null ||
-                    specificObjectId.isReferenceLine(rl.id) ||
-                    specificObjectId.isTrackNumber(rl.trackNumberId)
+                publicationLogAsset == null || publicationLogAsset.isTrackNumber(rl.trackNumberId)
             }
         val kmPostsToDiff =
-            publication.kmPosts.filter { kp -> specificObjectId == null || specificObjectId.isKmPost(kp.id) }
+            publication.kmPosts.filter { kp -> publicationLogAsset == null || publicationLogAsset.isKmPost(kp.id) }
         val switchesToDiff =
-            publication.switches.filter { sw -> specificObjectId == null || specificObjectId.isSwitch(sw.id) }
+            publication.switches.filter { sw -> publicationLogAsset == null || publicationLogAsset.isSwitch(sw.id) }
         val indirectSwitchesToDiff =
             publication.indirectChanges.switches.filter { s ->
-                specificObjectId == null || specificObjectId.isSwitch(s.id)
+                publicationLogAsset == null || publicationLogAsset.isSwitch(s.id)
             }
         val locationTracksToDiff =
             publication.locationTracks.filter { lt ->
-                specificObjectId == null || specificObjectId.isLocationTrack(lt.id)
+                publicationLogAsset == null || publicationLogAsset.isLocationTrack(lt.id)
             }
         val indirectLocationTracksToDiff =
             publication.indirectChanges.locationTracks.filter { lt ->
-                specificObjectId == null || specificObjectId.isLocationTrack(lt.id)
+                publicationLogAsset == null || publicationLogAsset.isLocationTrack(lt.id)
             }
 
         // Multi-fetch the actual objects to avoid extra round-trips to DB

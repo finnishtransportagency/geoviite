@@ -176,19 +176,19 @@ constructor(
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("timeZone") timeZone: ZoneId?,
         @RequestParam("lang") lang: LocalizationLanguage,
-        @RequestParam("type", required = false) type: PublishableObjectType?,
+        @RequestParam("type", required = false) type: PublicationLogAssetType?,
         @RequestParam("id", required = false) id: IntId<*>?,
         @RequestParam("filenameObjectPart", required = false) filenameObjectPart: FileName?,
     ): ResponseEntity<ByteArray> {
         val translation = localizationService.getLocalization(lang)
-        val specificId = getSpecificObjectId(type, id)
+        val publicationLogAsset = getPublicationLogAssetOrNull(type, id)
 
         val publicationsAsCsv =
             publicationLogService.fetchPublicationsAsCsv(
                 layoutBranch ?: LayoutBranch.main,
                 from,
                 to,
-                specificId = specificId,
+                publicationLogAsset,
                 sortBy,
                 order,
                 timeZone,
@@ -212,20 +212,20 @@ constructor(
         @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
-        @RequestParam("type", required = false) type: PublishableObjectType?,
+        @RequestParam("type", required = false) type: PublicationLogAssetType?,
         @RequestParam("id", required = false) id: IntId<*>?,
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): Page<PublicationTableItem> {
-        val specificId = getSpecificObjectId(type, id)
+        val publicationLogAsset = getPublicationLogAssetOrNull(type, id)
 
         val publications =
             publicationLogService.fetchPublicationDetails(
                 layoutBranch = layoutBranch ?: LayoutBranch.main,
                 from = from,
                 to = to,
-                specificId = specificId,
+                publicationLogAsset = publicationLogAsset,
                 sortBy = sortBy,
                 order = order,
                 translation = localizationService.getLocalization(lang),
@@ -273,8 +273,8 @@ constructor(
         }
     }
 
-    private fun getSpecificObjectId(type: PublishableObjectType?, id: IntId<*>?): PublishableObjectIdAndType? {
+    private fun getPublicationLogAssetOrNull(type: PublicationLogAssetType?, id: IntId<*>?): PublicationLogAsset? {
         require((type == null) == (id == null)) { "Must provide either both or neither of id and type" }
-        return if (type != null) PublishableObjectIdAndType(requireNotNull(id), type) else null
+        return if (type != null) PublicationLogAsset(requireNotNull(id), type) else null
     }
 }

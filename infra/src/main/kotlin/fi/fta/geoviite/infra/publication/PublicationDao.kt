@@ -871,7 +871,7 @@ class PublicationDao(
         layoutBranch: LayoutBranch?,
         from: Instant?,
         to: Instant?,
-        specificObjectId: PublishableObjectIdAndType?,
+        specificObjectId: PublicationLogAsset?,
     ): Map<IntId<Publication>, Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>> {
         require((layoutBranch != null) != (publicationId != null)) {
             """
