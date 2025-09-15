@@ -1202,6 +1202,33 @@ constructor(
     }
 
     @Test
+    fun `should also fetch reference line's publication log rows when fetching track number`() {
+        val trackNumberId = mainDraftContext.getOrCreateLayoutTrackNumber(TrackNumber("1234")).id as IntId
+        val referenceLineId =
+            referenceLineService
+                .saveDraft(
+                    LayoutBranch.main,
+                    referenceLine(trackNumberId, draft = true),
+                    alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                )
+                .id
+
+        publish(publicationService, trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
+
+        val rows =
+            publicationLogService.fetchPublicationDetails(
+                LayoutBranch.main,
+                sortBy = PublicationTableColumn.NAME,
+                translation = localizationService.getLocalization(LocalizationLanguage.FI),
+                publicationLogAsset = PublicationLogAsset(trackNumberId, PublicationLogAssetType.TRACK_NUMBER),
+            )
+
+        assertEquals(2, rows.size)
+        assertTrue { rows.any { it.name.contains("1234") && it.asset.type == PublishableObjectType.TRACK_NUMBER } }
+        assertTrue { rows.any { it.name.contains("1234") && it.asset.type == PublishableObjectType.REFERENCE_LINE } }
+    }
+
+    @Test
     fun `switch diff consistently uses segment point for joint location`() {
         val trackNumber = TrackNumber("1234")
         val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
