@@ -52,14 +52,14 @@ import fi.fta.geoviite.infra.util.getSridOrNull
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
 import fi.fta.geoviite.infra.util.setUser
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.sql.ResultSet
 import java.util.stream.Collectors
 import kotlin.math.abs
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -168,28 +168,57 @@ class LayoutAlignmentDao(
             .associate { it }
     }
 
-    private fun saveNode(content: LayoutNode): IntId<LayoutNode> {
+    private fun saveNodes(nodes: List<LayoutNode>): List<IntId<LayoutNode>> {
+        // language="sql"
         val sql =
             """
-            select layout.get_or_insert_node(
-                :switch_ids::int[],
-                :switch_joint_numbers::int[],
-                :switch_joint_roles::common.switch_joint_role[],
-                :boundary_track_ids::int[],
-                :boundary_types::layout.boundary_type[]
-            ) as id
+            select * from
+              layout.get_or_insert_nodes(:insert_node_ids,
+                                  :ports::layout.node_port_type[],
+                                  :switch_ids,
+                                  :switch_joint_numbers,
+                                  :switch_joint_roles::common.switch_joint_role[],
+                                  :boundary_track_ids,
+                                  :boundary_types::layout.boundary_type[])
         """
-        val switches = content.ports.filterIsInstance<SwitchLink>()
-        val boundaries = content.ports.filterIsInstance<TrackBoundary>()
+                .trimIndent()
+
+        val insertNodeIds: MutableList<Int> = mutableListOf()
+        val ports: MutableList<String> = mutableListOf()
+        val switchIds: MutableList<Int?> = mutableListOf()
+        val switchJointNumbers: MutableList<Int?> = mutableListOf()
+        val switchJointRoles: MutableList<String?> = mutableListOf()
+        val boundaryTrackIds: MutableList<Int?> = mutableListOf()
+        val boundaryTypes: MutableList<String?> = mutableListOf()
+
+        nodes.forEachIndexed { index, node ->
+            node.forEachPort { port, type ->
+                insertNodeIds.add(index)
+                ports.add(type.name)
+                switchIds.add((port as? SwitchLink)?.id?.intValue)
+                switchJointNumbers.add((port as? SwitchLink)?.jointNumber?.intValue)
+                switchJointRoles.add((port as? SwitchLink)?.jointRole?.name)
+                boundaryTrackIds.add((port as? TrackBoundary)?.id?.intValue)
+                boundaryTypes.add((port as? TrackBoundary)?.type?.name)
+            }
+        }
+
         val params =
             mapOf(
-                "switch_ids" to switches.map { s -> s.id.intValue }.toTypedArray(),
-                "switch_joint_numbers" to switches.map { s -> s.jointNumber.intValue }.toTypedArray(),
-                "switch_joint_roles" to switches.map { s -> s.jointRole.name }.toTypedArray(),
-                "boundary_track_ids" to boundaries.map { b -> b.id.intValue }.toTypedArray(),
-                "boundary_types" to boundaries.map { b -> b.type.name }.toTypedArray(),
+                "insert_node_ids" to insertNodeIds.toTypedArray(),
+                "ports" to ports.toTypedArray(),
+                "switch_ids" to switchIds.toTypedArray(),
+                "switch_joint_numbers" to switchJointNumbers.toTypedArray(),
+                "switch_joint_roles" to switchJointRoles.toTypedArray(),
+                "boundary_track_ids" to boundaryTrackIds.toTypedArray(),
+                "boundary_types" to boundaryTypes.toTypedArray(),
             )
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutNode>("id") }.single()
+
+        val results =
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                rs.getInt("insert_node_id") to rs.getIntId<LayoutNode>("node_id")
+            }
+        return results.sortedBy { it.first }.map { it.second }
     }
 
     fun getEdge(id: IntId<LayoutEdge>): DbLayoutEdge =
@@ -285,53 +314,85 @@ class LayoutAlignmentDao(
         return createEdges(edges, nodes, geometries).associateBy { e -> e.id }
     }
 
+    private fun saveEdges(
+        edges: List<TmpLayoutEdge>,
+        savedNodes: Map<NodeHash, IntId<LayoutNode>>,
+        savedGeometries: Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>>,
+    ): List<IntId<LayoutEdge>> {
+        val startNodeIds =
+            edges.map { edge ->
+                (edge.startNode.node as? DbLayoutNode)?.id
+                    ?: requireNotNull(savedNodes[edge.startNode.node.contentHash])
+            }
+        val endNodeIds =
+            edges.map { edge ->
+                (edge.endNode.node as? DbLayoutNode)?.id ?: requireNotNull(savedNodes[edge.endNode.node.contentHash])
+            }
+        val sql =
+            """
+            select * from layout.get_or_insert_edges(
+              :insert_edge_ids,
+              :start_node_ids,
+              :start_node_ports::layout.node_port_type[],
+              :end_node_ids,
+              :end_node_ports::layout.node_port_type[],
+              :geometry_alignment_idss,
+              :geometry_element_indicess,
+              :start_m_valuess,
+              :source_start_m_valuess,
+              :sourcess::layout.geometry_source[],
+              :geometry_idss,
+              (select array_agg(postgis.st_polygonfromtext(polygon_string, 3067)) from unnest(:polygon_strings) ps(polygon_string)),
+              :segment_index_range_starts,
+              :segment_index_range_ends
+            )
+        """
+        val segmentIndexRangeEndpoints = edges.map { it.segments.size }.scan(0) { a, b -> a + b }
+        val params =
+            mapOf(
+                "insert_edge_ids" to edges.indices.toList().toTypedArray(),
+                "start_node_ids" to startNodeIds.map { it.intValue }.toTypedArray(),
+                "start_node_ports" to edges.map { it.startNode.portConnection.name }.toTypedArray(),
+                "end_node_ids" to endNodeIds.map { it.intValue }.toTypedArray(),
+                "end_node_ports" to edges.map { it.endNode.portConnection.name }.toTypedArray(),
+                "geometry_alignment_idss" to
+                    edges.flatMap { edge -> edge.segments.map { s -> s.sourceId?.parentId } }.toTypedArray(),
+                "geometry_element_indicess" to
+                    edges.flatMap { edge -> edge.segments.map { s -> s.sourceId?.index } }.toTypedArray(),
+                "start_m_valuess" to
+                    edges
+                        .flatMap { edge -> edge.segmentMValues.map { m -> roundTo6Decimals(m.min.distance) } }
+                        .toTypedArray(),
+                "source_start_m_valuess" to
+                    edges.flatMap { edge -> edge.segments.map { s -> s.sourceStartM } }.toTypedArray(),
+                "sourcess" to edges.flatMap { edge -> edge.segments.map { s -> s.source.name } }.toTypedArray(),
+                "geometry_idss" to
+                    edges
+                        .flatMap { edge ->
+                            edge.segments.map { s ->
+                                (s.geometry.id as? IntId ?: requireNotNull(savedGeometries[s.geometry.id])).intValue
+                            }
+                        }
+                        .toTypedArray(),
+                "polygon_strings" to edges.map { edge -> edge.boundingBox.polygonFromCorners.toWkt() }.toTypedArray(),
+                "segment_index_range_starts" to
+                    segmentIndexRangeEndpoints.let { it.subList(0, it.size - 1) }.toTypedArray(),
+                "segment_index_range_ends" to
+                    segmentIndexRangeEndpoints.let { it.subList(1, it.size) }.map { it - 1 }.toTypedArray(),
+            )
+
+        val results =
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                rs.getInt("insert_edge_id") to rs.getIntId<LayoutEdge>("edge_id")
+            }
+        return results.sortedBy { it.first }.map { it.second }
+    }
+
     private fun saveEdge(
         content: TmpLayoutEdge,
         savedNodes: Map<NodeHash, IntId<LayoutNode>>,
         savedGeometries: Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>>,
-    ): IntId<LayoutEdge> {
-        val startNodeId =
-            (content.startNode.node as? DbLayoutNode)?.id
-                ?: requireNotNull(savedNodes[content.startNode.node.contentHash])
-        val endNodeId =
-            (content.endNode.node as? DbLayoutNode)?.id ?: requireNotNull(savedNodes[content.endNode.node.contentHash])
-        val sql =
-            """
-            select layout.get_or_insert_edge(
-              :start_node_id,
-              :start_node_port::layout.node_port_type,
-              :end_node_id,
-              :end_node_port::layout.node_port_type,
-              :geometry_alignment_ids,
-              :geometry_element_indices,
-              :start_m_values,
-              :source_start_m_values,
-              :sources,
-              :geometry_ids,
-               postgis.st_polygonfromtext(:polygon_string, 3067)
-            ) as id
-        """
-        val params =
-            mapOf(
-                "start_node_id" to startNodeId.intValue,
-                "start_node_port" to content.startNode.portConnection.name,
-                "end_node_id" to endNodeId.intValue,
-                "end_node_port" to content.endNode.portConnection.name,
-                "geometry_alignment_ids" to content.segments.map { s -> s.sourceId?.parentId }.toTypedArray(),
-                "geometry_element_indices" to content.segments.map { s -> s.sourceId?.index }.toTypedArray(),
-                "start_m_values" to content.segmentMValues.map { m -> roundTo6Decimals(m.min.distance) }.toTypedArray(),
-                "source_start_m_values" to content.segments.map { s -> s.sourceStartM }.toTypedArray(),
-                "sources" to content.segments.map { s -> s.source.name }.toTypedArray(),
-                "geometry_ids" to
-                    content.segments
-                        .map { s ->
-                            (s.geometry.id as? IntId ?: requireNotNull(savedGeometries[s.geometry.id])).intValue
-                        }
-                        .toTypedArray(),
-                "polygon_string" to content.boundingBox.polygonFromCorners.toWkt(),
-            )
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutEdge>("id") }.single()
-    }
+    ): IntId<LayoutEdge> = saveEdges(listOf(content), savedNodes, savedGeometries)[0]
 
     fun fetch(trackVersion: LayoutRowVersion<LocationTrack>): DbLocationTrackGeometry =
         locationTrackGeometryCache.get(trackVersion) { version ->
@@ -392,12 +453,21 @@ class LayoutAlignmentDao(
         val savedNodes =
             tmpEdges
                 .flatMap { e -> listOfNotNull(e.startNode.node as? TmpLayoutNode, e.endNode.node as? TmpLayoutNode) }
-                .associate { it.contentHash to saveNode(it) }
+                .associateBy { it.contentHash }
+                .entries
+                .let { nodesByHash ->
+                    val saved = saveNodes(nodesByHash.map { it.value })
+                    nodesByHash.map { it.key }.zip(saved).associate { it }
+                }
         val savedGeometries =
             tmpEdges
                 .flatMap { e -> e.segments.mapNotNull { s -> if (s.geometry.id is StringId) s.geometry else null } }
                 .let { insertSegmentGeometries(it) }
-        val savedEdges = tmpEdges.associate { e -> e.contentHash to saveEdge(e, savedNodes, savedGeometries) }
+
+        val savedEdges = tmpEdges.associateBy { it.contentHash }.entries.let { edgesByHash ->
+            val saved = saveEdges(edgesByHash.map { it.value }, savedNodes, savedGeometries)
+            edgesByHash.map { it.key }.zip(saved).associate { it}
+        }
 
         val sql =
             """

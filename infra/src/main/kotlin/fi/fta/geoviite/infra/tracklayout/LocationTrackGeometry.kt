@@ -81,8 +81,7 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
             if (i == edges.lastIndex) {
                 listOf(
                     e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min),
-                    e.endNode.node to
-                        e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min)),
+                    e.endNode.node to e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min)),
                 )
             } else {
                 listOf(e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min))
@@ -621,6 +620,15 @@ sealed class LayoutNode {
         ports.any { port -> (port as? SwitchLink)?.matches(switchId, joint) ?: false }
 
     fun containsBoundary(boundary: TrackBoundary): Boolean = ports.any { port -> port == boundary }
+
+    fun forEachPort(onPort: (port: NodePort, type: NodePortType) -> Unit) {
+        onPort(portA, A)
+        if (type == SWITCH && portB == null) {
+            onPort(EmptyPort, B)
+        } else {
+            portB?.let { b -> onPort(b, B) }
+        }
+    }
 
     abstract val type: LayoutNodeType
 
