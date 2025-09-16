@@ -301,34 +301,35 @@ enum class PublishableObjectType {
     KM_POST,
 }
 
-data class PublishableObjectIdAndType(val id: IntId<*>, val type: PublishableObjectType) {
+enum class PublicationLogAssetType(val publishableObjectType: PublishableObjectType) {
+    TRACK_NUMBER(PublishableObjectType.TRACK_NUMBER),
+    LOCATION_TRACK(PublishableObjectType.LOCATION_TRACK),
+    SWITCH(PublishableObjectType.SWITCH),
+    KM_POST(PublishableObjectType.KM_POST),
+}
+
+data class PublicationLogAsset(val id: IntId<*>, val type: PublicationLogAssetType) {
     companion object {
-        fun trackNumber(id: IntId<LayoutTrackNumber>) =
-            PublishableObjectIdAndType(id, PublishableObjectType.TRACK_NUMBER)
+        fun trackNumber(id: IntId<LayoutTrackNumber>) = PublicationLogAsset(id, PublicationLogAssetType.TRACK_NUMBER)
 
         fun locationTrack(id: IntId<LayoutTrackNumber>) =
-            PublishableObjectIdAndType(id, PublishableObjectType.LOCATION_TRACK)
+            PublicationLogAsset(id, PublicationLogAssetType.LOCATION_TRACK)
 
-        fun referenceLine(id: IntId<LayoutTrackNumber>) =
-            PublishableObjectIdAndType(id, PublishableObjectType.REFERENCE_LINE)
+        fun switch(id: IntId<LayoutTrackNumber>) = PublicationLogAsset(id, PublicationLogAssetType.SWITCH)
 
-        fun switch(id: IntId<LayoutTrackNumber>) = PublishableObjectIdAndType(id, PublishableObjectType.SWITCH)
-
-        fun kmPost(id: IntId<LayoutTrackNumber>) = PublishableObjectIdAndType(id, PublishableObjectType.KM_POST)
+        fun kmPost(id: IntId<LayoutTrackNumber>) = PublicationLogAsset(id, PublicationLogAssetType.KM_POST)
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun locationTrackId() = if (type != PublishableObjectType.LOCATION_TRACK) null else id as IntId<LocationTrack>
+    fun locationTrackId() = if (type != PublicationLogAssetType.LOCATION_TRACK) null else id as IntId<LocationTrack>
 
-    fun isTrackNumber(other: IntId<LayoutTrackNumber>) = type == PublishableObjectType.TRACK_NUMBER && id == other
+    fun isTrackNumber(other: IntId<LayoutTrackNumber>) = type == PublicationLogAssetType.TRACK_NUMBER && id == other
 
-    fun isLocationTrack(other: IntId<LocationTrack>) = type == PublishableObjectType.LOCATION_TRACK && id == other
+    fun isLocationTrack(other: IntId<LocationTrack>) = type == PublicationLogAssetType.LOCATION_TRACK && id == other
 
-    fun isReferenceLine(other: IntId<ReferenceLine>) = type == PublishableObjectType.REFERENCE_LINE && id == other
+    fun isSwitch(other: IntId<LayoutSwitch>) = type == PublicationLogAssetType.SWITCH && id == other
 
-    fun isSwitch(other: IntId<LayoutSwitch>) = type == PublishableObjectType.SWITCH && id == other
-
-    fun isKmPost(other: IntId<LayoutKmPost>) = type == PublishableObjectType.KM_POST && id == other
+    fun isKmPost(other: IntId<LayoutKmPost>) = type == PublicationLogAssetType.KM_POST && id == other
 }
 
 enum class Operation(val priority: Int) {
