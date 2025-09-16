@@ -107,6 +107,32 @@ constructor(
     }
 
     @Test
+    fun `free text search should return km posts when their km number matches the search term`() {
+        val trackNumber1 = mainDraftContext.save(trackNumber(TrackNumber("001")))
+        val trackNumber2 = mainDraftContext.save(trackNumber(TrackNumber("002")))
+
+        val kp1 = mainDraftContext.save(kmPost(trackNumberId = trackNumber1.id, KmNumber(1234)))
+        val kp2 = mainDraftContext.save(kmPost(trackNumberId = trackNumber1.id, KmNumber(1234, "AA")))
+        val kp3 = mainDraftContext.save(kmPost(trackNumberId = trackNumber2.id, KmNumber(1234)))
+        val kp4 = mainDraftContext.save(kmPost(trackNumberId = trackNumber1.id, KmNumber(4321)))
+
+        val result = searchService.searchAllKmPosts(MainLayoutContext.draft, FreeText("1234"), 10).map { it.version }
+        assertEquals(3, result.size)
+        assertContains(result, kp1)
+        assertContains(result, kp2)
+        assertContains(result, kp3)
+    }
+
+    @Test
+    fun `free text search should return no km posts if search term is too short`() {
+        val trackNumber1 = mainDraftContext.save(trackNumber(TrackNumber("001")))
+        mainDraftContext.save(kmPost(trackNumberId = trackNumber1.id, KmNumber(1234)))
+
+        val result = searchService.searchAllKmPosts(MainLayoutContext.draft, FreeText("123"), 10).map { it.version }
+        assertEquals(0, result.size)
+    }
+
+    @Test
     fun `free text search using location track as search scope should return only assets relating to search scope`() {
         val trackNumberId =
             saveTrackNumbersWithSaveRequests(listOf(TrackNumber("track number 1")), LayoutState.IN_USE).first()
@@ -241,7 +267,6 @@ constructor(
         assertEquals(listOf(tn), search("1.2.3.4.5", designBranch).trackNumbers)
         assertEquals(listOf(tn), search("2.3.4.5.6", designBranch).trackNumbers)
         assertEquals(listOf(), search("1.1.1.1.1", designBranch).trackNumbers)
-
     }
 
     private fun saveTrackNumbersWithSaveRequests(

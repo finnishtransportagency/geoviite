@@ -33,7 +33,6 @@ const getTrackNumberForReferenceLine = (
         return undefined;
     } else {
         const trackNumber = trackNumbers.find((tn) => tn.id === asset.asset.trackNumberId);
-        console.log(asset, trackNumbers);
 
         return trackNumber ? { trackNumber, type: SearchItemType.TRACK_NUMBER } : undefined;
     }
@@ -52,6 +51,8 @@ const assetToSearchItem = (
             return { locationTrack: asset.asset, type: SearchItemType.LOCATION_TRACK };
         case 'SWITCH':
             return { layoutSwitch: asset.asset, type: SearchItemType.SWITCH };
+        case 'KM_POST':
+            return { kmPost: asset.asset, type: SearchItemType.KM_POST };
         default:
             return undefined;
     }

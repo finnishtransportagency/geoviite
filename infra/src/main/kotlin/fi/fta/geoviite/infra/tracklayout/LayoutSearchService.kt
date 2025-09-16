@@ -14,6 +14,7 @@ constructor(
     private val switchService: LayoutSwitchService,
     private val locationTrackService: LocationTrackService,
     private val trackNumberService: LayoutTrackNumberService,
+    private val kmPostService: LayoutKmPostService,
     private val ratkoLocalService: RatkoLocalService,
 ) {
 
@@ -75,6 +76,22 @@ constructor(
             .take(limit)
     }
 
+    fun searchAllKmPosts(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LayoutKmPost> {
+        val posts =
+            kmPostService
+                .list(layoutContext, true)
+                .let { list ->
+                    kmPostService.filterBySearchTerm(
+                        list,
+                        searchTerm,
+                        kmPostService.idMatches(layoutContext, searchTerm),
+                    )
+                }
+                .sortedBy(LayoutKmPost::kmNumber)
+                .take(limit)
+        return posts
+    }
+
     private fun searchFromEntireRailwayNetwork(
         layoutContext: LayoutContext,
         searchTerm: FreeText,
@@ -93,6 +110,10 @@ constructor(
             trackNumbers =
                 if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.TRACK_NUMBER))
                     searchAllTrackNumbers(layoutContext, searchTerm, limitPerResultType)
+                else emptyList(),
+            kmPosts =
+                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.KM_POST))
+                    searchAllKmPosts(layoutContext, searchTerm, limitPerResultType)
                 else emptyList(),
             operatingPoints =
                 if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.OPERATING_POINT))
@@ -118,11 +139,13 @@ constructor(
                 getLocationTrackAndDuplicatesByScope(layoutContext, locationTrackSearchScope)
             else emptyList()
         val trackNumbers = emptyList<LayoutTrackNumber>()
+        val kmPosts = emptyList<LayoutKmPost>()
 
         val switchIdMatch = switchService.idMatches(layoutContext, searchTerm, switches.map { it.id as IntId })
         val ltIdMatch = locationTrackService.idMatches(layoutContext, searchTerm, locationTracks.map { it.id as IntId })
         val trackNumberIdMatch =
             trackNumberService.idMatches(layoutContext, searchTerm, trackNumbers.map { it.id as IntId })
+        val kmPostIdMatch = kmPostService.idMatches(layoutContext, searchTerm, kmPosts.map { it.id as IntId })
 
         return TrackLayoutSearchResult(
             switches =
@@ -135,6 +158,8 @@ constructor(
                 trackNumbers
                     .let { list -> trackNumberService.filterBySearchTerm(list, searchTerm, trackNumberIdMatch) }
                     .take(limit),
+            kmPosts =
+                kmPosts.let { list -> kmPostService.filterBySearchTerm(list, searchTerm, kmPostIdMatch) }.take(limit),
             operatingPoints =
                 if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.OPERATING_POINT))
                     ratkoLocalService.searchOperatingPoints(searchTerm, limit)

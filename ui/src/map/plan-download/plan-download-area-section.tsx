@@ -129,7 +129,8 @@ export const PlanDownloadAreaSection: React.FC<{
                 });
             case SearchItemType.SWITCH:
             case SearchItemType.OPERATING_POINT:
-                return error(t('plan-download.unsupported-result-type', { type: item.type }));
+            case SearchItemType.KM_POST:
+                return error(t('unsupported-result-type', { type: item.type }));
             default:
                 return exhaustiveMatchingGuard(item);
         }
@@ -156,6 +157,7 @@ export const PlanDownloadAreaSection: React.FC<{
                 return item.locationTrack.name;
             case SearchItemType.SWITCH:
             case SearchItemType.OPERATING_POINT:
+            case SearchItemType.KM_POST:
                 console.error('Unsupported item type', item.type);
                 return '';
             default:

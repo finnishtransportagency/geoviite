@@ -19,6 +19,7 @@ data class TrackLayoutSearchResult(
     val locationTracks: List<LocationTrack>,
     val switches: List<LayoutSwitch>,
     val trackNumbers: List<LayoutTrackNumber>,
+    val kmPosts: List<LayoutKmPost>,
     val operatingPoints: List<RatkoOperatingPoint>,
 )
 
@@ -27,6 +28,7 @@ enum class TrackLayoutSearchedAssetType {
     SWITCH,
     TRACK_NUMBER,
     OPERATING_POINT,
+    KM_POST,
 }
 
 @GeoviiteController("/track-layout/search")

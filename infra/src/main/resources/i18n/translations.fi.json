@@ -183,7 +183,8 @@
         "copy-details-to-clipboard": "Kopioi tiedot leikepöydälle",
         "expected-non-null": "Pyyntö palautti null-arvon",
         "file-size-limit-exceeded": "Tiedosto ylittää suurimman sallitun koon",
-        "request-timed-out": "Pyyntö katkaistiin, koska se kesti liian kauan"
+        "request-timed-out": "Pyyntö katkaistiin, koska se kesti liian kauan",
+        "unsupported-result-type": "Tyyppi {{type}} ei ole tuettu"
     },
     "unauthorized-request": {
         "title": "Istunto on vanhentunut.",
@@ -1452,8 +1453,7 @@
         "invalid-track-meter": "Tarkista ratakilometrin muoto",
         "end-before-start": "Ratakilometrin loppu on ennen alkua",
         "outside-track-number-range": "Ratakilometri ei osu ratanumeron alueelle ({{start}}-{{end}})",
-        "outside-location-track-range": "Ratakilometri ei osu raiteen alueelle ({{start}}-{{end}})",
-        "unsupported-result-type": "Tyyppi {{type}} ei ole tuettu"
+        "outside-location-track-range": "Ratakilometri ei osu raiteen alueelle ({{start}}-{{end}})"
     },
     "preview-view": {
         "unstaged-changes-title": "Muutokset ({{amount}} kpl)",
@@ -2160,6 +2160,9 @@
         "unselected": "Ei valittu",
         "no-options": "Ei vaihtoehtoja",
         "loading": "Ladataan"
+    },
+    "asset-search": {
+        "km-post-on-track-number": "{{kmPost}}, ratanumerolla {{trackNumber}}"
     },
     "privilege": {
         "view-basic": "Geoviitteen käyttö",

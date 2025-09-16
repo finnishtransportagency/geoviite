@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Dropdown, dropdownOption, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
 import {
+    LayoutKmPost,
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutTrackNumber,
@@ -13,6 +14,9 @@ import { ALIGNMENT_DESCRIPTION_REGEX } from 'tool-panel/location-track/dialog/lo
 import { LayoutContext } from 'common/common-model';
 import { debounceAsync } from 'utils/async-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
+import { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 export type LocationTrackItemValue = {
     locationTrack: LayoutLocationTrack;
@@ -53,6 +57,11 @@ export type TrackNumberItemValue = {
     type: SearchItemType.TRACK_NUMBER;
 };
 
+export type KmPostItemValue = {
+    kmPost: LayoutKmPost;
+    type: SearchItemType.KM_POST;
+};
+
 function createTrackNumberOptionItem(
     layoutTrackNumber: LayoutTrackNumber,
 ): Item<TrackNumberItemValue> {
@@ -63,6 +72,24 @@ function createTrackNumberOptionItem(
         } as const,
         layoutTrackNumber.number,
         `track-number-${layoutTrackNumber.id}`,
+    );
+}
+
+function createKmPostOptionItem(
+    layoutKmPost: LayoutKmPost,
+    allTrackNumbers: LayoutTrackNumber[],
+    t: TFunction<'translation', undefined>,
+): Item<KmPostItemValue> {
+    return dropdownOption(
+        {
+            type: SearchItemType.KM_POST,
+            kmPost: layoutKmPost,
+        } as const,
+        t('asset-search.km-post-on-track-number', {
+            kmPost: layoutKmPost.kmNumber,
+            trackNumber: allTrackNumbers.find((tn) => tn.id === layoutKmPost.trackNumberId)?.number,
+        }),
+        `km-post-${layoutKmPost.id}`,
     );
 }
 
@@ -93,6 +120,8 @@ async function getOptions(
     searchTerm: string,
     locationTrackSearchScope: LocationTrackId | undefined,
     searchTypes: SearchItemType[],
+    allTrackNumbers: LayoutTrackNumber[],
+    t: TFunction<'translation', undefined>,
 ): Promise<Item<SearchItemValue<SearchItemType>>[]> {
     if (isNilOrBlank(searchTerm) || !searchTerm.match(SEARCH_REGEX)) {
         return Promise.resolve([]);
@@ -114,6 +143,7 @@ async function getOptions(
         locationTrackOptions,
         searchResult.switches.map(createSwitchOptionItem),
         searchResult.trackNumbers.map(createTrackNumberOptionItem),
+        searchResult.kmPosts.map((kp) => createKmPostOptionItem(kp, allTrackNumbers, t)),
     ].flat();
 }
 
@@ -127,9 +157,11 @@ export type SearchItemValue<SearchTypes extends SearchItemType> =
           ? SwitchItemValue
           : SearchTypes extends 'TRACK_NUMBER'
             ? TrackNumberItemValue
-            : SearchTypes extends 'OPERATING_POINT'
-              ? OperatingPointItemValue
-              : never;
+            : SearchTypes extends 'KM_POST'
+              ? KmPostItemValue
+              : SearchTypes extends 'OPERATING_POINT'
+                ? OperatingPointItemValue
+                : never;
 
 type SearchDropdownProps<SearchTypes extends SearchItemType> = {
     layoutContext: LayoutContext;
@@ -153,6 +185,7 @@ export enum SearchItemType {
     SWITCH = 'SWITCH',
     TRACK_NUMBER = 'TRACK_NUMBER',
     OPERATING_POINT = 'OPERATING_POINT',
+    KM_POST = 'KM_POST',
 }
 
 export const SearchDropdown = <SearchTypes extends SearchItemType>({
@@ -171,6 +204,9 @@ export const SearchDropdown = <SearchTypes extends SearchItemType>({
     useAnchorElementWidth,
     clearable,
 }: SearchDropdownProps<SearchTypes>) => {
+    const { t } = useTranslation();
+    const trackNumbers = useTrackNumbersIncludingDeleted(layoutContext);
+
     // Use memoized function to make debouncing functionality to work when re-rendering
     const memoizedDebouncedGetOptions = React.useCallback(
         (searchTerm: string) =>
@@ -179,8 +215,10 @@ export const SearchDropdown = <SearchTypes extends SearchItemType>({
                 searchTerm,
                 splittingState?.originLocationTrack?.id,
                 searchTypes,
+                trackNumbers ?? [],
+                t,
             ),
-        [layoutContext, splittingState],
+        [layoutContext, splittingState, trackNumbers],
     );
 
     return (

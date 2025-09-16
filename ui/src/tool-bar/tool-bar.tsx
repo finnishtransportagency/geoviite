@@ -59,6 +59,7 @@ import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'tool-bar/search-dropdown';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
+import { error } from 'geoviite-design-lib/snackbar/snackbar';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED = 3;
@@ -229,6 +230,9 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     switches: [],
                 });
                 setToolPanelTab({ id: item.trackNumber.id, type: 'TRACK_NUMBER' });
+                break;
+            case SearchItemType.KM_POST:
+                error(t('unsupported-result-type', { type: item.type }));
                 break;
 
             default:
