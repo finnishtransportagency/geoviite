@@ -1,5 +1,6 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -12,7 +13,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -37,6 +37,7 @@ constructor(
     private val locationTrackDao: LocationTrackDao,
     private val publicationDao: PublicationDao,
     private val publicationTestSupportService: PublicationTestSupportService,
+    private val extTestDataService: ExtApiTestDataServiceV1,
 ) : DBTestBase() {
 
     private val api = ExtTrackLayoutTestApiService(mockMvc)
@@ -50,13 +51,9 @@ constructor(
     fun `Newest location track listing is returned by default`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val (trackNumberId, referenceLineId) =
+            extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
         layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
-
-        val referenceLineId =
-            mainDraftContext
-                .saveReferenceLine(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = listOf(segment)))
-                .id
 
         val tracks =
             listOf(1, 2, 3)

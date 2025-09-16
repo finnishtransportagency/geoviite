@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -64,6 +65,7 @@ constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
+    private val layoutTrackNumberDao: LayoutTrackNumberDao,
 ) : DBTestBase() {
 
     fun insertGeocodableTrack(
@@ -102,5 +104,20 @@ constructor(
             referenceLine = referenceLineDao.get(layoutContext.context, usedReferenceLineId)!!,
             locationTrack = locationTrackDao.get(layoutContext.context, locationTrackId)!!,
         )
+    }
+
+    fun insertTrackNumberAndReferenceLine(
+        layoutContext: TestLayoutContext,
+        trackNumberName: String = testDBService.getUnusedTrackNumber().value,
+        segments: List<LayoutSegment>,
+    ): Pair<IntId<LayoutTrackNumber>, IntId<ReferenceLine>> {
+        val trackNumberId = layoutContext.createLayoutTrackNumber(TrackNumber(trackNumberName)).id
+
+        val referenceLine =
+            layoutContext.saveReferenceLine(
+                referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments)
+            )
+
+        return trackNumberId to referenceLine.id
     }
 }
