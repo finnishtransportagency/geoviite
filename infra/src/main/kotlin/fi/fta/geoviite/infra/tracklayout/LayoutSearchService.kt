@@ -76,21 +76,12 @@ constructor(
             .take(limit)
     }
 
-    fun searchAllKmPosts(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LayoutKmPost> {
-        val posts =
-            kmPostService
-                .list(layoutContext, true)
-                .let { list ->
-                    kmPostService.filterBySearchTerm(
-                        list,
-                        searchTerm,
-                        kmPostService.idMatches(layoutContext, searchTerm),
-                    )
-                }
-                .sortedBy(LayoutKmPost::kmNumber)
-                .take(limit)
-        return posts
-    }
+    fun searchAllKmPosts(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LayoutKmPost> =
+        kmPostService
+            .list(layoutContext, true)
+            .let { list -> kmPostService.filterBySearchTerm(list, searchTerm, kmPostService.idMatches()) }
+            .sortedBy(LayoutKmPost::kmNumber)
+            .take(limit)
 
     private fun searchFromEntireRailwayNetwork(
         layoutContext: LayoutContext,
@@ -145,7 +136,7 @@ constructor(
         val ltIdMatch = locationTrackService.idMatches(layoutContext, searchTerm, locationTracks.map { it.id as IntId })
         val trackNumberIdMatch =
             trackNumberService.idMatches(layoutContext, searchTerm, trackNumbers.map { it.id as IntId })
-        val kmPostIdMatch = kmPostService.idMatches(layoutContext, searchTerm, kmPosts.map { it.id as IntId })
+        val kmPostIdMatch = kmPostService.idMatches(kmPosts.map { it.id as IntId })
 
         return TrackLayoutSearchResult(
             switches =

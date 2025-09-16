@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.linking.LayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.pageToList
 import org.springframework.transaction.annotation.Transactional
 
@@ -136,14 +135,11 @@ class LayoutKmPostService(
             term.length >= KM_POST_SEARCH_TERM_MIN_LENGTH &&
             item.kmNumber.toString().contains(term.trim(), ignoreCase = true)
 
-    fun idMatches(
-        layoutContext: LayoutContext,
-        searchTerm: FreeText,
-        onlyIds: Collection<IntId<LayoutKmPost>>? = null,
-    ): ((term: String, item: LayoutKmPost) -> Boolean) = { term, item ->
-        (onlyIds == null || onlyIds.contains(item.id)) &&
-            (item.id.toString() == term.trim() || item.kmNumber.toString() == term.trim())
-    }
+    fun idMatches(onlyIds: Collection<IntId<LayoutKmPost>>? = null): ((term: String, item: LayoutKmPost) -> Boolean) =
+        { term, item ->
+            (onlyIds == null || onlyIds.contains(item.id)) &&
+                (item.id.toString() == term.trim() || item.kmNumber.toString() == term.trim())
+        }
 }
 
 fun associateByDistance(kmPost: LayoutKmPost, comparisonPoint: Point): Pair<LayoutKmPost, Double?> =
