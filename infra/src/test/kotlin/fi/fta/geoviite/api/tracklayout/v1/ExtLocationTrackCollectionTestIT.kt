@@ -2,13 +2,11 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -50,90 +48,61 @@ constructor(
 
     @Test
     fun `Newest location track listing is returned by default`() {
-        testDBService.clearAllTables()
-
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val segment2 = segment(Point(100.0, 0.0), Point(200.0, 0.0))
 
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+
         val referenceLineId =
-            mainOfficialContext
-                .saveReferenceLine(
-                    referenceLineAndAlignment(trackNumberId = trackNumberId, segments = listOf(segment, segment2))
-                )
+            mainDraftContext
+                .saveReferenceLine(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = listOf(segment)))
                 .id
 
-        //        val trackNumberId = mainDraftContext.createLayoutTrackNumberAndReferenceLine(alignment(segment,
-        // segment2)).id
-        val trackNumberOid =
-            someOid<LayoutTrackNumber>().also { oid ->
-                layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, oid)
-            }
-
-        //        val (track1, geom1) =
-        //            mainDraftContext.saveAndFetchLocationTrack(locationTrackAndGeometry(trackNumberId, segment,
-        // segment2))
-
-        val (track1, geom1) =
-            mainOfficialContext
-                .saveLocationTrack(
-                    locationTrackAndGeometry(
-                        trackNumberId = trackNumberId,
-                        segments = listOf(segment, segment2),
-                    )
-                )
-                .let(locationTrackService::getWithGeometry)
-
-        //        val (track2, geom2) =
-        //            mainDraftContext.saveAndFetchLocationTrack(locationTrackAndGeometry(trackNumberId, segment,
-        // segment2))
-
-        val (track2, geom2) =
-            mainOfficialContext
-                .saveLocationTrack(
-                    locationTrackAndGeometry(
-                        trackNumberId = trackNumberId,
-                        segments = listOf(segment, segment2),
-                    )
-                )
-                .let(locationTrackService::getWithGeometry)
-
-        val trackOids =
-            listOf(track1, track2).map { track ->
-                someOid<LocationTrack>().also { oid ->
-                    locationTrackService.insertExternalId(LayoutBranch.main, track.id as IntId, oid)
+        val tracks =
+            listOf(1, 2, 3)
+                .map { _ -> mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id }
+                .map { trackId ->
+                    trackId to
+                        someOid<LocationTrack>().also { oid ->
+                            locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
+                        }
                 }
+
+        publicationTestSupportService.publish(
+            LayoutBranch.main,
+            publicationRequestIds(
+                trackNumbers = listOf(trackNumberId),
+                referenceLines = listOf(referenceLineId),
+                locationTracks = tracks.map { (id, _) -> id },
+            ),
+        )
+
+        val newestButEmptyPublication =
+            publicationTestSupportService.publish(LayoutBranch.main, publicationRequestIds()).let { result ->
+                publicationDao.getPublication(requireNotNull(result.publicationId))
             }
-
-        //                publicationTestSupportService.publish(
-        //                    LayoutBranch.main,
-        //                    publicationRequestIds(
-        //                        trackNumbers = listOf(trackNumberId),
-        //                        referenceLines = listOf(referenceLineId),
-        //                        locationTracks = listOf(track1.id, track2.id).map { id -> id as IntId },
-        //                    ),
-        //                )
-
-        //        mainDraftContext.saveLocationTrack(track1.copy(description = FreeText("official modified track 1")) to
-        // geom1)
-
-        val newestPublication =
-            publicationTestSupportService
-                //                .publish(LayoutBranch.main, publicationRequestIds(locationTracks = listOf(track1.id as
-                // IntId)))
-                .publish(LayoutBranch.main, publicationRequestIds())
-                .let { result -> publicationDao.getPublication(requireNotNull(result.publicationId)) }
 
         val response = api.getLocationTrackCollection()
 
-        assertEquals(newestPublication.uuid.toString(), response.rataverkon_versio)
-        assertEquals(2, response.sijaintiraiteet.size)
-        trackOids.forEach { oid ->
-            assertTrue(oid.toString() in response.sijaintiraiteet.map { track -> track.sijaintiraide_oid })
-        }
+        assertEquals(newestButEmptyPublication.uuid.toString(), response.rataverkon_versio)
+        assertEquals(tracks.size, response.sijaintiraiteet.size)
+
+        val responseOids = response.sijaintiraiteet.map { track -> track.sijaintiraide_oid }
+        tracks.forEach { (id, oid) -> assertTrue(oid.toString() in responseOids) }
     }
 
-    fun `Newest location track listing does not contain draft tracks`() {}
+    @Test
+    fun `Newest location track listing does not contain draft tracks`() {
+
+        //        val (track1, geom1) =
+        //            mainDraftContext.saveAndFetchLocationTrack(locationTrackAndGeometry(trackNumberId, segment))
+        //
+        //        val (track2, geom2) =
+        //            mainDraftContext.saveAndFetchLocationTrack(locationTrackAndGeometry(trackNumberId, segment))
+
+        //        val modifiedDescription = "official modified track 1"
+        //        mainDraftContext.saveLocationTrack(track1.copy(description = FreeText(modifiedDescription)) to geom1)
+    }
 
     @Test fun `Location track listing respects the given track layout version argument`() {}
 
