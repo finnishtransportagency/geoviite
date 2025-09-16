@@ -153,16 +153,24 @@ class TestDBService(
                     "alignment",
                     "km_post",
                     "location_track",
+                    "location_track_version",
+                    "location_track_version_edge",
                     "location_track_external_id",
                     "reference_line",
+                    "reference_line_version",
                     "switch",
                     "switch_external_id",
                     "switch_version",
                     "switch_version_joint",
                     "track_number",
+                    "track_number_version",
                     "track_number_external_id",
                     "segment_version",
                     "segment_geometry",
+                    "edge",
+                    "edge_segment",
+                    "node",
+                    "node_port",
                 ),
         )
     }
@@ -500,7 +508,8 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
 
     fun saveAndFetchLocationTrack(
         assetAndAlignment: Pair<LocationTrack, LocationTrackGeometry>
-    ): Pair<LocationTrack, LocationTrackGeometry> = saveAndFetch(assetAndAlignment.first, assetAndAlignment.second)
+    ): Pair<LocationTrack, LocationTrackGeometry> =
+        saveAndFetch(testService.updateContext(assetAndAlignment.first, context), assetAndAlignment.second)
 
     fun saveAndFetch(
         asset: LocationTrack,
