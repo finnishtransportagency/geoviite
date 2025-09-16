@@ -17,7 +17,7 @@ import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
 import { cache } from 'cache/cache';
-import { exhaustiveMatchingGuard, expectCoordinate } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, expectCoordinate, expectDefined } from 'utils/type-utils';
 import mapStyles from 'map/map.module.scss';
 
 const tickImageCache = cache<string, RegularShape>();
@@ -100,15 +100,18 @@ export function getTickStyles(
     if (!last || !secondToLast) {
         return [];
     }
+    const coordinates = interpolateCoordinatesAtMs(points, mValues);
     return mValues
-        .map((m) => {
-            const coordinate = getCoordinate(points, m);
-            if (!coordinate) {
+        .map((m, i) => {
+            const interval = coordinates[i];
+            if (!interval) {
                 return undefined;
-            } else if (m >= last.m) {
+            }
+            const { coordinate, nextIndex } = interval;
+            if (m >= last.m) {
                 return getTickStyle(pointToCoords(secondToLast), coordinate, length, 'end', style);
             } else {
-                const next = points.find((p) => p.m > m);
+                const next = points[nextIndex];
                 return next
                     ? getTickStyle(coordinate, pointToCoords(next), length, 'start', style)
                     : undefined;
@@ -117,19 +120,31 @@ export function getTickStyles(
         .filter(filterNotEmpty);
 }
 
-function getCoordinate(points: AlignmentPoint[], m: number): number[] | undefined {
-    const nextIndex = points.findIndex((p) => p.m >= m);
-    const next = points[nextIndex];
-    const prev = points[nextIndex - 1];
-    if (!next) {
-        return undefined;
-    } else if (next?.m === m) {
-        return pointToCoords(next);
-    } else if (!prev) {
-        return undefined;
-    } else {
-        return interpolateXY(prev, next, m);
-    }
+function interpolateCoordinatesAtMs(
+    points: AlignmentPoint[],
+    ms: number[],
+): ({ coordinate: number[]; nextIndex: number } | undefined)[] {
+    let lastPointIndexBeforeM = 0;
+    return ms.map((m) => {
+        while (
+            lastPointIndexBeforeM < points.length &&
+            expectDefined(points[lastPointIndexBeforeM]).m < m
+        ) {
+            lastPointIndexBeforeM++;
+        }
+        const prev = points[lastPointIndexBeforeM];
+        const nextIndex = lastPointIndexBeforeM + 1;
+        const next = points[nextIndex];
+        if (!next) {
+            return undefined;
+        } else if (next.m === m) {
+            return { nextIndex, coordinate: pointToCoords(next) };
+        } else if (!prev) {
+            return undefined;
+        } else {
+            return { nextIndex, coordinate: interpolateXY(prev, next, m) };
+        }
+    });
 }
 
 export function createAlignmentFeature(
