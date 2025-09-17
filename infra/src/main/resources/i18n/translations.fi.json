@@ -936,7 +936,8 @@
             "copy-success": "OID {{oid}} kopioitu leikepöydälle",
             "copy-failed": "OID:n kopiointi leikepöydälle epäonnistui"
         },
-        "show-in-publication-log": "Avaa julkaisuloki"
+        "show-in-publication-log": "Avaa julkaisuloki",
+        "unmodified-in-geoviite": "Ei muokattu Geoviitteessä"
     },
     "data-products": {
         "search": {

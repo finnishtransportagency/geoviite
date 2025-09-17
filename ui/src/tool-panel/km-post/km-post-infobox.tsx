@@ -341,8 +341,9 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             <InfoboxField
                                 label={t('tool-panel.changed')}
                                 value={
-                                    kmPostCreatedAndChangedTime.changed &&
-                                    formatDateShort(kmPostCreatedAndChangedTime.changed)
+                                    kmPostCreatedAndChangedTime.changed
+                                        ? formatDateShort(kmPostCreatedAndChangedTime.changed)
+                                        : t('tool-panel.unmodified-in-geoviite')
                                 }
                             />
                             <Button

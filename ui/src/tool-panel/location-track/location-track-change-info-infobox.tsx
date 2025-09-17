@@ -67,8 +67,9 @@ export const LocationTrackChangeInfoInfobox: React.FC<LocationTrackChangeInfoInf
                         qaId="location-track-changed-date"
                         label={t('tool-panel.changed')}
                         value={
-                            locationTrackChangeInfo.changed &&
-                            formatDateShort(locationTrackChangeInfo.changed)
+                            locationTrackChangeInfo.changed
+                                ? formatDateShort(locationTrackChangeInfo.changed)
+                                : t('tool-panel.unmodified-in-geoviite')
                         }
                     />
                     <div>

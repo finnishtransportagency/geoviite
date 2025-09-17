@@ -62,7 +62,9 @@ export const SwitchChangeInfoInfobox: React.FC<SwitchChangeInfoInfoboxProps> = (
                         qaId="switch-changed-date"
                         label={t('tool-panel.changed')}
                         value={
-                            switchChangeInfo.changed && formatDateShort(switchChangeInfo.changed)
+                            switchChangeInfo.changed
+                                ? formatDateShort(switchChangeInfo.changed)
+                                : t('tool-panel.unmodified-in-geoviite')
                         }
                     />
                     <div>

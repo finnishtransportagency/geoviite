@@ -77,7 +77,11 @@ export const TrackNumberChangeInfoInfobox: React.FC<TrackNumberChangeInfoInfobox
                     <InfoboxField
                         qaId="TrackNumber-changed-date"
                         label={t('tool-panel.changed')}
-                        value={changedTime === undefined ? '' : formatDateShort(changedTime)}
+                        value={
+                            changedTime === undefined
+                                ? t('tool-panel.unmodified-in-geoviite')
+                                : formatDateShort(changedTime)
+                        }
                     />
                     <div>
                         <Button
