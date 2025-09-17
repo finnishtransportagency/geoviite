@@ -3,10 +3,17 @@ package fi.fta.geoviite.api
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.publication.PublicationTestSupportService
+import fi.fta.geoviite.infra.publication.publicationRequestIds
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -66,6 +73,8 @@ constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
+    private val publicationTestSupportService: PublicationTestSupportService,
+    private val publicationDao: PublicationDao,
 ) : DBTestBase() {
 
     fun insertGeocodableTrack(
@@ -119,5 +128,26 @@ constructor(
             )
 
         return trackNumberId to referenceLine.id
+    }
+
+    fun publishInMain(
+        trackNumbers: List<IntId<LayoutTrackNumber>> = emptyList(),
+        referenceLines: List<IntId<ReferenceLine>> = emptyList(),
+        locationTracks: List<IntId<LocationTrack>> = emptyList(),
+        switches: List<IntId<LayoutSwitch>> = emptyList(),
+        kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
+    ): Publication {
+        return publicationTestSupportService
+            .publish(
+                LayoutBranch.main,
+                publicationRequestIds(
+                    trackNumbers = trackNumbers,
+                    referenceLines = referenceLines,
+                    locationTracks = locationTracks,
+                    switches = switches,
+                    kmPosts = kmPosts,
+                ),
+            )
+            .let { summary -> publicationDao.getPublication(requireNotNull(summary.publicationId)) }
     }
 }

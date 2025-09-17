@@ -8,9 +8,9 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
-import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
@@ -35,6 +36,7 @@ constructor(
     mockMvc: MockMvc,
     private val layoutTrackNumberService: LayoutTrackNumberService,
     private val locationTrackService: LocationTrackService,
+    private val locationTrackDao: LocationTrackDao,
     private val publicationDao: PublicationDao,
     private val publicationTestSupportService: PublicationTestSupportService,
     private val extTestDataService: ExtApiTestDataServiceV1,
@@ -66,20 +68,13 @@ constructor(
                         }
                 }
 
-        publicationTestSupportService.publish(
-            LayoutBranch.main,
-            publicationRequestIds(
-                trackNumbers = listOf(trackNumberId),
-                referenceLines = listOf(referenceLineId),
-                locationTracks = tracks.map { (id, _) -> id },
-            ),
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(referenceLineId),
+            locationTracks = tracks.map { (id, _) -> id },
         )
 
-        val newestButEmptyPublication =
-            publicationTestSupportService.publish(LayoutBranch.main, publicationRequestIds()).let { result ->
-                publicationDao.getPublication(requireNotNull(result.publicationId))
-            }
-
+        val newestButEmptyPublication = extTestDataService.publishInMain()
         val response = api.getLocationTrackCollection()
 
         assertEquals(newestButEmptyPublication.uuid.toString(), response.rataverkon_versio)
@@ -119,16 +114,11 @@ constructor(
                 }
 
         val newestPublication =
-            publicationTestSupportService
-                .publish(
-                    LayoutBranch.main,
-                    publicationRequestIds(
-                        trackNumbers = listOf(trackNumberId),
-                        referenceLines = listOf(referenceLineId),
-                        locationTracks = officialTracks.map { (id, _) -> id },
-                    ),
-                )
-                .let { summary -> publicationDao.getPublication(requireNotNull(summary.publicationId)) }
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(trackNumberId),
+                referenceLines = listOf(referenceLineId),
+                locationTracks = officialTracks.map { (id, _) -> id },
+            )
 
         val tracksBeforeModifications =
             officialTracks.map { (id, oid) ->
@@ -170,15 +160,142 @@ constructor(
             }
     }
 
-    @Test fun `Location track listing respects the track layout version argument`() {}
+    @Test
+    fun `Location track listing respects the track layout version argument`() {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-    @Test fun `Location track listing respects the coordinate system argument`() {}
+        val (trackNumberId, referenceLineId) =
+            extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-    @Test fun `Only modified location tracks are returned by the modified location track listing`() {}
+        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(referenceLineId),
+        )
+
+        val tracksToPublications =
+            listOf(1, 2, 3).map { totalAmountOfLocationTracks ->
+                val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
+                val publication =
+                    extTestDataService.publishInMain(
+                        locationTracks = listOf(trackId),
+                    )
+
+                val trackOid =
+                    someOid<LocationTrack>().also { oid ->
+                        locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
+                    }
+
+                Triple(totalAmountOfLocationTracks, trackOid, publication)
+            }
+
+        tracksToPublications.forEach { (amountOfPublishedLocationTracks, trackOid, publication) ->
+            val response =
+                api.getLocationTrackCollection(
+                    "rataverkon_versio" to publication.uuid.toString(),
+                )
+
+            assertEquals(amountOfPublishedLocationTracks, response.sijaintiraiteet.size)
+            assertTrue(response.sijaintiraiteet.any { track -> track.sijaintiraide_oid == trackOid.toString() })
+        }
+    }
+
+    @Test
+    fun `Location track listing respects the coordinate system argument`() {
+        val helsinkiRailwayStationTm35Fin = Point(385782.89, 6672277.83)
+        val helsinkiRailwayStationTm35FinPlus10000 = Point(395782.89, 6682277.83)
+
+        val tests =
+            listOf(
+                Triple("EPSG:3067", helsinkiRailwayStationTm35Fin, helsinkiRailwayStationTm35FinPlus10000),
+
+                // EPSG:4326 == WGS84, converted using https://epsg.io/transform
+                Triple("EPSG:4326", Point(24.9414003, 60.1713788), Point(25.1163757, 60.2637958)),
+            )
+
+        val segment = segment(helsinkiRailwayStationTm35Fin, helsinkiRailwayStationTm35FinPlus10000)
+
+        val (trackNumberId, referenceLineId) =
+            extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
+
+        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+
+        val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
+        val trackOid =
+            someOid<LocationTrack>().also { oid ->
+                locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
+            }
+
+        val publication =
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(trackNumberId),
+                referenceLines = listOf(referenceLineId),
+                locationTracks = listOf(trackId),
+            )
+
+        tests.forEach { (epsgCode, expectedStart, expectedEnd) ->
+            val response =
+                api.getLocationTrackCollection(
+                    "rataverkon_versio" to publication.uuid.toString(),
+                    "koordinaatisto" to epsgCode,
+                )
+
+            val responseTrack =
+                response.sijaintiraiteet
+                    .find { track -> track.sijaintiraide_oid == trackOid.toString() }
+                    .let(::requireNotNull)
+
+            assertEquals(epsgCode, response.koordinaatisto)
+            assertTrackStartAndEnd(expectedStart, expectedEnd, responseTrack)
+        }
+    }
 
     @Test fun `Location track listing contains expected fields for each location track`() {}
 
     @Test fun `Location track listing contains the correct state for a location track`() {}
 
-    @Test fun `Location track listing returns 404 if the track layout version is not found`() {}
+    @Test fun `Location track listing does not contain deleted tracks`() {}
+
+    @Test fun `Only modified location tracks are returned by the modified location track listing`() {}
+
+    @Test
+    fun `Location track listing returns HTTP 400 if the track layout version is invalid format`() {
+        api.getLocationTrackCollectionWithExpectedError(
+            "rataverkon_versio" to "asd",
+            httpStatus = HttpStatus.BAD_REQUEST,
+        )
+    }
+
+    @Test
+    fun `Location track listing returns HTTP 404 if the track layout version is not found`() {
+        api.getLocationTrackCollectionWithExpectedError(
+            "rataverkon_versio" to "00000000-0000-0000-0000-000000000000",
+            httpStatus = HttpStatus.NOT_FOUND,
+        )
+    }
+
+    @Test fun `Location track modification listing also contains deleted tracks`() {}
+
+    @Test fun `Location track modification listing is empty when there are no modifications`() {} // TODO Or 204?
+}
+
+private fun assertTrackStartAndEnd(
+    expectedStart: Point,
+    expectedEnd: Point,
+    responseTrack: ExtTestLocationTrackV1,
+) {
+
+    assertEquals(expectedStart.x, requireNotNull(responseTrack.alkusijainti?.x), 0.0001)
+    assertEquals(expectedStart.y, requireNotNull(responseTrack.alkusijainti.y), 0.0001)
+    assertEquals(
+        expectedEnd.x,
+        requireNotNull(responseTrack.loppusijainti?.x),
+        0.0001,
+    )
+    assertEquals(
+        expectedEnd.y,
+        requireNotNull(responseTrack.loppusijainti.y),
+        0.0001,
+    )
 }
