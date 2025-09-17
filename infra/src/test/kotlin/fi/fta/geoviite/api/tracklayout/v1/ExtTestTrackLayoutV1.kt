@@ -25,6 +25,13 @@ data class ExtTestLocationTrackCollectionV1(
     val sijaintiraiteet: List<ExtTestLocationTrackV1>,
 )
 
+data class ExtTestModifiedLocationTrackCollectionV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val koordinaatisto: String,
+    val sijaintiraiteet: List<ExtTestLocationTrackV1>,
+)
+
 data class ExtTestErrorResponseV1(
     val virheviesti: String,
     val korrelaatiotunnus: String,

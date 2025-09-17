@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
 
 const val LOCATION_TRACK_COLLECTION_URL = "/geoviite/paikannuspohja/v1/sijaintiraiteet"
+const val MODIFIED_LOCATION_TRACK_COLLECTION_URL = "/geoviite/paikannuspohja/v1/sijaintiraiteet/muutokset"
 
 class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
     val mapper = jacksonObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
@@ -18,18 +19,31 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         return get<ExtTestLocationTrackCollectionV1>(LOCATION_TRACK_COLLECTION_URL, params.toMap())
     }
 
-    //    fun getLocationTrackCollectionWithEmptyResponse(
-    //        vararg params: Pair<String, String>,
-    //        httpStatus: HttpStatus,
-    //    ): ExtTestErrorResponseV1 {
-    //        return get<ExtTestErrorResponseV1>(LOCATION_TRACK_COLLECTION_URL, params.toMap(), httpStatus)
-    //    }
-
     fun getLocationTrackCollectionWithExpectedError(
         vararg params: Pair<String, String>,
         httpStatus: HttpStatus,
     ): ExtTestErrorResponseV1 {
         return get<ExtTestErrorResponseV1>(LOCATION_TRACK_COLLECTION_URL, params.toMap(), httpStatus)
+    }
+
+    fun getModifiedLocationTrackCollection(
+        vararg params: Pair<String, String>,
+    ): ExtTestModifiedLocationTrackCollectionV1 {
+        return get<ExtTestModifiedLocationTrackCollectionV1>(MODIFIED_LOCATION_TRACK_COLLECTION_URL, params.toMap())
+    }
+
+    fun getModifiedLocationTrackCollectionWithExpectedError(
+        vararg params: Pair<String, String>,
+        httpStatus: HttpStatus,
+    ): ExtTestErrorResponseV1 {
+        return get<ExtTestErrorResponseV1>(MODIFIED_LOCATION_TRACK_COLLECTION_URL, params.toMap(), httpStatus)
+    }
+
+    fun getModifiedLocationTrackCollectionWithoutResult(
+        vararg params: Pair<String, String>,
+        httpStatus: HttpStatus,
+    ) {
+        return getWithoutResult(MODIFIED_LOCATION_TRACK_COLLECTION_URL, params.toMap(), httpStatus)
     }
 
     inline fun <reified T> get(
@@ -38,5 +52,13 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         httpStatus: HttpStatus = HttpStatus.OK,
     ): T {
         return testApi.doGetWithParams(url, params, httpStatus).let { body -> mapper.readValue(body, T::class.java) }
+    }
+
+    fun getWithoutResult(
+        url: String,
+        params: Map<String, String> = emptyMap(),
+        httpStatus: HttpStatus = HttpStatus.OK,
+    ) {
+        testApi.doGetWithParamsWithoutResponse(url, params, httpStatus)
     }
 }
