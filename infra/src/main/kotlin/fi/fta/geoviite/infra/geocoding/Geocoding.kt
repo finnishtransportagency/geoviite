@@ -194,13 +194,13 @@ data class GeocodingKm<M : GeocodingAlignmentM<M>>(
         return meters.takeIf(TrackMeter::isMetersValid)?.let { m -> TrackMeter(kmNumber, m) }
     }
 
-    private val resolutionMRanges = ConcurrentHashMap<Resolution, ClosedRange<BigDecimal>>()
-
     fun getMetersSequence(resolution: Resolution): Sequence<BigDecimal> {
         val metersRange = getMetersRangeAtResolution(resolution)
         return generateSequence(metersRange.start) { currentMeter -> currentMeter + resolution.meters }
             .takeWhile(metersRange::contains)
     }
+
+    private val resolutionMRanges = ConcurrentHashMap<Resolution, ClosedRange<BigDecimal>>()
 
     fun getMetersRangeAtResolution(resolution: Resolution): ClosedRange<BigDecimal> =
         resolutionMRanges.computeIfAbsent(resolution) {
@@ -513,10 +513,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
 
     fun getM(coordinate: IPoint) = referenceLineGeometry.getClosestPointM(coordinate)
 
-    fun getAddressAndM(
-        coordinate: IPoint,
-        addressDecimals: Int = METERS_DEFAULT_DECIMAL_DIGITS,
-    ): AddressAndM? =
+    fun getAddressAndM(coordinate: IPoint, addressDecimals: Int = METERS_DEFAULT_DECIMAL_DIGITS): AddressAndM? =
         referenceLineGeometry.getClosestPointM(coordinate)?.let { (mValue, type) ->
             getAddress(mValue, addressDecimals)?.let { address -> AddressAndM(address, mValue, type) }
         }
@@ -527,10 +524,8 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     ): Pair<TrackMeter, IntersectType>? =
         getAddressAndM(coordinate, decimals)?.let { (address, _, type) -> address to type }
 
-    fun getAddress(
-        targetDistance: LineM<M>,
-        decimals: Int = METERS_DEFAULT_DECIMAL_DIGITS,
-    ): TrackMeter? = findKm(targetDistance).getAddress(targetDistance, decimals)
+    fun getAddress(targetDistance: LineM<M>, decimals: Int = METERS_DEFAULT_DECIMAL_DIGITS): TrackMeter? =
+        findKm(targetDistance).getAddress(targetDistance, decimals)
 
     fun getReferenceLineAddressesWithResolution(resolution: Resolution): AlignmentAddresses<M>? {
         return getAddressPoints(referenceLineGeometry, resolution)
@@ -623,15 +618,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         val startAddress = alignmentStart?.let(::getAddress)?.first
         val endAddress = alignmentEnd?.let(::getAddress)?.first
         return if (startAddress == null || endAddress == null) addresses.map { null }
-        else
-            getTrackLocations(
-                alignment,
-                addresses,
-                alignmentStart,
-                startAddress,
-                alignmentEnd,
-                endAddress,
-            )
+        else getTrackLocations(alignment, addresses, alignmentStart, startAddress, alignmentEnd, endAddress)
     }
 
     private fun <TargetM : AlignmentM<TargetM>> getTrackLocations(
@@ -752,10 +739,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
      * Returns the inclusive range of addresses in the given range of km-numbers. Note: Since this is inclusive, it does
      * not include decimal meters after the last even meter, even though such addresses can be calculated
      */
-    private fun toAddressRange(
-        kmRange: ClosedRange<KmNumber>,
-        resolution: Resolution,
-    ): ClosedRange<TrackMeter>? {
+    private fun toAddressRange(kmRange: ClosedRange<KmNumber>, resolution: Resolution): ClosedRange<TrackMeter>? {
         val projectionLinesResolution = projectionLines.getValue(resolution).value
         val startAddress = projectionLinesResolution.find { l -> l.address.kmNumber == kmRange.start }?.address
         val endAddress = projectionLinesResolution.findLast { l -> l.address.kmNumber == kmRange.endInclusive }?.address
@@ -763,17 +747,10 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     }
 }
 
-fun splitRange(
-    range: ClosedRange<TrackMeter>,
-    splits: List<ClosedRange<TrackMeter>>,
-): List<ClosedRange<TrackMeter>> =
+fun splitRange(range: ClosedRange<TrackMeter>, splits: List<ClosedRange<TrackMeter>>): List<ClosedRange<TrackMeter>> =
     splits.mapNotNull { allowedRange ->
         if (range.start >= allowedRange.endInclusive || range.endInclusive <= allowedRange.start) null
-        else
-            maxOf(range.start, allowedRange.start)..minOf(
-                    range.endInclusive,
-                    allowedRange.endInclusive,
-                )
+        else maxOf(range.start, allowedRange.start)..minOf(range.endInclusive, allowedRange.endInclusive)
     }
 
 fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
@@ -795,10 +772,7 @@ fun <TargetM : AlignmentM<TargetM>, M : GeocodingAlignmentM<M>> getProjectedAddr
         val segmentEdges = getPolyLineEdges(segment, m, null, null)
         val edgeAndPortion = getIntersection(projection.projection, segmentEdges)
         return edgeAndPortion?.let { (edge, portion) ->
-            AddressPoint(
-                point = edge.interpolateAlignmentPointAtPortion(portion),
-                address = projection.address,
-            )
+            AddressPoint(point = edge.interpolateAlignmentPointAtPortion(portion), address = projection.address)
         }
     }
 }
@@ -808,10 +782,7 @@ private data class AddressPointWalkResult<M : AnyM<M>>(
     val alignmentWalkFinished: Boolean,
 )
 
-private data class AlignmentPointInterval<M : AnyM<M>>(
-    val start: AlignmentPoint<M>,
-    val end: AlignmentPoint<M>,
-) {
+private data class AlignmentPointInterval<M : AnyM<M>>(val start: AlignmentPoint<M>, val end: AlignmentPoint<M>) {
     fun interpolateAlignmentPointAtPortion(proportion: Double): AlignmentPoint<M> =
         interpolateToAlignmentPoint(start, end, proportion)
 
