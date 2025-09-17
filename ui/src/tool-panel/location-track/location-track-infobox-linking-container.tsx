@@ -39,7 +39,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     );
 
     const onVisibilityChange = React.useCallback(
-        () => (visibilities: LocationTrackInfoboxVisibilities) => {
+        (visibilities: LocationTrackInfoboxVisibilities) => {
             onInfoboxVisibilityChange('locationTrack', visibilities);
         },
         [onInfoboxVisibilityChange, visibilities],
