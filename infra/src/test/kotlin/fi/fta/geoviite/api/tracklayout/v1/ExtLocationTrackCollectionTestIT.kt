@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -36,7 +35,6 @@ constructor(
     mockMvc: MockMvc,
     private val layoutTrackNumberService: LayoutTrackNumberService,
     private val locationTrackService: LocationTrackService,
-    private val locationTrackDao: LocationTrackDao,
     private val publicationDao: PublicationDao,
     private val publicationTestSupportService: PublicationTestSupportService,
     private val extTestDataService: ExtApiTestDataServiceV1,
@@ -100,7 +98,7 @@ constructor(
 
         layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
 
-        val tracks =
+        val officialTracks =
             listOf(1, 2, 3)
                 .map { index ->
                     mainDraftContext
@@ -120,22 +118,20 @@ constructor(
                         }
                 }
 
-        publicationTestSupportService.publish(
-            LayoutBranch.main,
-            publicationRequestIds(
-                trackNumbers = listOf(trackNumberId),
-                referenceLines = listOf(referenceLineId),
-                locationTracks = tracks.map { (id, _) -> id },
-            ),
-        )
-
-        val newestButEmptyPublication =
-            publicationTestSupportService.publish(LayoutBranch.main, publicationRequestIds()).let { result ->
-                publicationDao.getPublication(requireNotNull(result.publicationId))
-            }
+        val newestPublication =
+            publicationTestSupportService
+                .publish(
+                    LayoutBranch.main,
+                    publicationRequestIds(
+                        trackNumbers = listOf(trackNumberId),
+                        referenceLines = listOf(referenceLineId),
+                        locationTracks = officialTracks.map { (id, _) -> id },
+                    ),
+                )
+                .let { summary -> publicationDao.getPublication(requireNotNull(summary.publicationId)) }
 
         val tracksBeforeModifications =
-            tracks.map { (id, oid) ->
+            officialTracks.map { (id, oid) ->
                 oid to locationTrackService.getWithGeometryOrThrow(MainLayoutContext.official, id)
             }
 
@@ -151,26 +147,32 @@ constructor(
                 )
             }
 
+        mainDraftContext
+            .saveLocationTrack(
+                locationTrackAndGeometry(trackNumberId, segment, description = "some draft-only track description")
+            )
+            .id
+
         val response = api.getLocationTrackCollection()
 
-        assertEquals(newestButEmptyPublication.uuid.toString(), response.rataverkon_versio)
-        assertEquals(tracks.size, response.sijaintiraiteet.size)
+        assertEquals(newestPublication.uuid.toString(), response.rataverkon_versio)
+        assertEquals(officialTracks.size, response.sijaintiraiteet.size)
 
         tracksBeforeModifications
             .map { (oid, trackAndGeometry) -> oid to trackAndGeometry.first }
-            .forEach { (oid, dbTrack) ->
+            .forEach { (oid, officialTrack) ->
                 val responseTrack =
                     response.sijaintiraiteet
                         .find { responseTrack -> responseTrack.sijaintiraide_oid == oid.toString() }
                         .let(::requireNotNull)
 
-                assertEquals(dbTrack.description.toString(), responseTrack.kuvaus)
+                assertEquals(officialTrack.description.toString(), responseTrack.kuvaus)
             }
     }
 
-    @Test fun `Location track listing respects the given track layout version argument`() {}
+    @Test fun `Location track listing respects the track layout version argument`() {}
 
-    @Test fun `Location track listing respects the given coordinate system argument`() {}
+    @Test fun `Location track listing respects the coordinate system argument`() {}
 
     @Test fun `Only modified location tracks are returned by the modified location track listing`() {}
 
@@ -178,6 +180,5 @@ constructor(
 
     @Test fun `Location track listing contains the correct state for a location track`() {}
 
-    //
     @Test fun `Location track listing returns 404 if the track layout version is not found`() {}
 }
