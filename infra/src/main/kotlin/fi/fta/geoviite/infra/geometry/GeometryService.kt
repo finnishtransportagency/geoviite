@@ -60,7 +60,6 @@ import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.processFlattened
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
 import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
@@ -449,7 +448,7 @@ constructor(
                     "locationTrackName" to locationTrack.name,
                     "startAddress" to startAddress?.format(),
                     "endAddress" to endAddress?.format(),
-                    "date" to LocalDate.now().format(FILENAME_DATE_FORMATTER),
+                    "date" to FILENAME_DATE_FORMATTER.format(Instant.now()),
                 ),
             )
 
