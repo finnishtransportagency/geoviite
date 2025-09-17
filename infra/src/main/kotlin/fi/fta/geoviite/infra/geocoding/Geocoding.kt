@@ -179,6 +179,13 @@ data class GeocodingKm<M : GeocodingAlignmentM<M>>(
 
     fun isTooLong(): Boolean = !TrackMeter.isMetersValid(startMeters + round(length, METERS_MAX_DECIMAL_DIGITS))
 
+    fun getReferenceLineM(address: TrackMeter): LineM<M>? {
+        require(address.kmNumber == kmNumber) {
+            "Can only calculate ReferenceLine m within the kilometer: km=$kmNumber address=$address"
+        }
+        return minOf(referenceLineM.max, referenceLineM.min + (address.meters.toDouble() - startMeters.toDouble()))
+    }
+
     fun getAddress(
         targetDistance: LineM<M>,
         decimals: Int = METERS_DEFAULT_DECIMAL_DIGITS,
@@ -355,21 +362,14 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         return if (address.decimalCount() == 0 || address <= startAddress || address >= endAddress) {
             findCachedProjectionLine(address, resolution)
         } else {
-            // TODO: GVT-3293 Fix this to resolve the distance from km: no need to go through projection lines
-            val prevLineAddress = address.floor().takeIf { it >= startAddress } ?: startAddress
-            findCachedProjectionLine(prevLineAddress, resolution)?.let { prev ->
-                val distance = prev.referenceLineM + (address.meters.toDouble() - prev.address.meters.toDouble())
-                findEdge(distance, polyLineEdges)?.let { edge ->
-                    ProjectionLine(address, edge.crossSectionAt(distance), distance, edge.referenceDirection)
+            kms.find { it.kmNumber == address.kmNumber }
+                ?.getReferenceLineM(address)
+                ?.let { m ->
+                    findEdge(m, polyLineEdges)?.let { edge ->
+                        ProjectionLine(address, edge.crossSectionAt(m), m, edge.referenceDirection)
+                    }
                 }
-            }
         }
-    }
-
-    private fun previousProjectionLineAddress(address: TrackMeter): TrackMeter {
-        val startProjection = startProjection
-        val floor = address.floor()
-        return if (startProjection != null && floor < startProjection.address) startProjection.address else floor
     }
 
     private fun findCachedProjectionLine(
