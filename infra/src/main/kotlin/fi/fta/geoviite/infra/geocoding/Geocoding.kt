@@ -592,7 +592,6 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     ): AlignmentAddresses<TargetM>? {
         return getStartAndEnd(alignment, addressFilter)?.let { (startPoint, endPoint) ->
             val pointRange = (startPoint.first.address + minMeterLength)..(endPoint.first.address - minMeterLength)
-            println("start=${startPoint.first.address} end=${endPoint.first.address} range=$pointRange")
             val midPoints = getMidPoints(alignment, pointRange, resolution)
             AlignmentAddresses(
                 startPoint = startPoint.first,
@@ -697,13 +696,8 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
 
     private fun getProjectionLinesForRange(range: ClosedRange<TrackMeter>, resolution: Resolution) =
         getSublistForRangeInOrderedList(projectionLines.getValue(resolution).value, range) { p, e ->
-                p.address.compareTo(e)
-            }
-            .also {
-                println(
-                    "range=$range first=${it.firstOrNull()?.address} last=${it.lastOrNull()?.address} size=${it.size}"
-                )
-            }
+            p.address.compareTo(e)
+        }
 
     fun getSwitchPoints(geometry: LocationTrackGeometry): List<AddressPoint<LocationTrackM>> =
         geometry.trackSwitchLinks
