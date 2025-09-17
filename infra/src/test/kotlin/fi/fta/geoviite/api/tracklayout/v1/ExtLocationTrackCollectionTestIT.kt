@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
@@ -251,11 +252,72 @@ constructor(
         }
     }
 
-    @Test fun `Location track listing contains expected fields for each location track`() {}
+    @Test
+    fun `Location track listing should not contain deleted tracks`() {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-    @Test fun `Location track listing contains the correct state for a location track`() {}
+        val (trackNumberId, referenceLineId) =
+            extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-    @Test fun `Location track listing does not contain deleted tracks`() {}
+        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+
+        val deletedTrackId =
+            mainDraftContext
+                .saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment, state = LocationTrackState.DELETED))
+                .id
+
+        locationTrackService.insertExternalId(LayoutBranch.main, deletedTrackId, someOid())
+
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(referenceLineId),
+            locationTracks = listOf(deletedTrackId),
+        )
+
+        val response = api.getLocationTrackCollection()
+        assertEquals(0, response.sijaintiraiteet.size)
+    }
+
+    @Test
+    fun `Location track listing should contain all but deleted tracks`() {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+
+        val (trackNumberId, referenceLineId) =
+            extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
+
+        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+
+        val tracks =
+            LocationTrackState.entries
+                .filter { it != LocationTrackState.DELETED }
+                .map { state ->
+                    val trackId =
+                        mainDraftContext
+                            .saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment, state = state))
+                            .id
+                    val trackOid =
+                        someOid<LocationTrack>().also { oid ->
+                            locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
+                        }
+
+                    trackOid to trackId
+                }
+
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(referenceLineId),
+            locationTracks = tracks.map { (_, id) -> id },
+        )
+
+        val response = api.getLocationTrackCollection()
+        assertEquals(tracks.size, response.sijaintiraiteet.size)
+
+        tracks.forEach { (oid, _) ->
+            assertTrue(
+                response.sijaintiraiteet.any { responseTrack -> responseTrack.sijaintiraide_oid == oid.toString() }
+            )
+        }
+    }
 
     @Test fun `Only modified location tracks are returned by the modified location track listing`() {}
 
@@ -275,7 +337,7 @@ constructor(
         )
     }
 
-    @Test fun `Location track modification listing also contains deleted tracks`() {}
+    @Test fun `Location track modification listing contains tracks in all states (including deleted)`() {}
 
     @Test fun `Location track modification listing is empty when there are no modifications`() {} // TODO Or 204?
 }
