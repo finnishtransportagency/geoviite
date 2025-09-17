@@ -977,7 +977,7 @@ fun <M : AlignmentM<M>> cropAlignment(
     segmentsWithM: List<Pair<LayoutSegment, Range<LineM<M>>>>,
     cropRange: Range<LineM<M>>,
 ): CroppedAlignment<M> {
-    @Suppress("UNCHECKED_CAST") if (segmentsWithM.isEmpty()) return CroppedAlignment.empty as CroppedAlignment<M>
+    if (segmentsWithM.isEmpty()) return CroppedAlignment.empty as CroppedAlignment<M>
     val origRange = Range(segmentsWithM.first().second.min, segmentsWithM.last().second.max)
     val newSegments =
         when {
