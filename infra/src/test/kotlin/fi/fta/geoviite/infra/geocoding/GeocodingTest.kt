@@ -581,6 +581,121 @@ class GeocodingTest {
     }
 
     @Test
+    fun `Address point generation with address filtering works with different combos`() {
+        // Straight horizontal reference line for understandable calc
+        val context =
+            createContext(
+                geometryPoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
+                startAddress = TrackMeter(1, "12.345"),
+                //                startAddress = TrackMeter(1, "0"),
+                kmPoints =
+                    listOf(
+                        TrackMeter(2, 0) to 20.0,
+                        TrackMeter(3, 0) to 40.0,
+                        TrackMeter(5, 0) to 60.0,
+                        TrackMeter(6, 0) to 80.0,
+                    ),
+            )
+
+        // A parallel geometry to geocode:
+        // The address (after 1st km) m-values should match the x-coordinate minus KM start (20,40,60)
+        //        val trackAlignment = alignment(segment(Point(0.0, 1.0), Point(65.3, 1.0)))
+        val trackAlignment = alignment(segment(Point(5.1, 1.0), Point(65.3, 1.0)))
+        fun getAddressPoints(filter: AddressFilter?) =
+            context.getAddressPoints(trackAlignment, addressFilter = filter).let { assertNotNull(it) }
+        fun assertMidPoints(midPoints: List<AddressPoint<*>>, km: KmNumber, count: Int) {
+            val kmPoints = midPoints.filter { point -> point.address.kmNumber == km }
+            assertEquals(
+                count,
+                kmPoints.size,
+                "Midpoint count mismatch: expected=$count actual=${kmPoints.size} addresses=${kmPoints.firstOrNull()?.address}..${kmPoints.lastOrNull()?.address}",
+            )
+            kmPoints.zipWithNext().forEach { (prev, next) ->
+                assertEquals(prev.address.meters + BigDecimal.ONE, next.address.meters)
+                assertEquals(prev.point.x + 1.0, next.point.x, DELTA)
+                assertEquals(prev.point.y, next.point.y, DELTA)
+            }
+        }
+
+        // Unfiltered addresses should be the whole line
+        getAddressPoints(filter = null).let { points ->
+            assertAddressPoint(points.startPoint, TrackMeter(1, "17.445"), trackAlignment.start!!)
+            assertAddressPoint(points.endPoint, TrackMeter(5, "5.300"), trackAlignment.end!!)
+            assertMidPoints(points.midPoints, KmNumber(1), 15) // 18..23
+            assertMidPoints(points.midPoints, KmNumber(2), 20) // 0..19
+            assertMidPoints(points.midPoints, KmNumber(3), 20) // 0..19
+            assertMidPoints(points.midPoints, KmNumber(4), 0) // missing km
+            assertMidPoints(points.midPoints, KmNumber(5), 6) // 0..5
+        }
+
+        // Filtering by start km
+        getAddressPoints(AddressFilter(start = KmLimit(KmNumber(2)))).let { points ->
+            assertAddressPoint(points.startPoint, TrackMeter(2, "0.000"), Point(20.0, 1.0))
+            assertAddressPoint(points.endPoint, TrackMeter(5, "5.300"), trackAlignment.end!!)
+            assertMidPoints(points.midPoints, KmNumber(1), 0) // filtered out
+            assertMidPoints(points.midPoints, KmNumber(2), 19) // 1..19 as the first is the range-start
+            assertMidPoints(points.midPoints, KmNumber(3), 20) // 0..19
+            assertMidPoints(points.midPoints, KmNumber(4), 0) // missing km
+            assertMidPoints(points.midPoints, KmNumber(5), 6) // 0..5
+        }
+
+        // Filtering by end km
+        getAddressPoints(AddressFilter(end = KmLimit(KmNumber(3)))).let { points ->
+            assertAddressPoint(points.startPoint, TrackMeter(1, "17.445"), trackAlignment.start!!)
+            assertAddressPoint(points.endPoint, TrackMeter(3, "20.000"), Point(60.0, 1.0))
+            assertMidPoints(points.midPoints, KmNumber(1), 15) // 18..23
+            assertMidPoints(points.midPoints, KmNumber(2), 20) // 0..19
+            assertMidPoints(points.midPoints, KmNumber(3), 20) // 0..19
+            assertMidPoints(points.midPoints, KmNumber(4), 0) // missing km
+            assertMidPoints(points.midPoints, KmNumber(5), 0) // filtered out
+        }
+
+        // Filtering by start address
+        getAddressPoints(AddressFilter(start = TrackMeterLimit(TrackMeter(2, 4)))).let { points ->
+            assertAddressPoint(points.startPoint, TrackMeter(2, "4.000"), Point(24.0, 1.0))
+            assertAddressPoint(points.endPoint, TrackMeter(5, "5.300"), trackAlignment.end!!)
+            assertMidPoints(points.midPoints, KmNumber(1), 0) // filtered out
+            assertMidPoints(points.midPoints, KmNumber(2), 15) // 5..19
+            assertMidPoints(points.midPoints, KmNumber(3), 20) // 0..19
+            assertMidPoints(points.midPoints, KmNumber(4), 0) // missing km
+            assertMidPoints(points.midPoints, KmNumber(5), 6) // 0..5
+        }
+
+        // Filtering by end address
+        getAddressPoints(AddressFilter(end = TrackMeterLimit(TrackMeter(3, 6)))).let { points ->
+            assertAddressPoint(points.startPoint, TrackMeter(1, "17.445"), trackAlignment.start!!)
+            assertAddressPoint(points.endPoint, TrackMeter(3, "6.000"), Point(46.0, 1.0))
+            assertMidPoints(points.midPoints, KmNumber(1), 15) // 18..23
+            assertMidPoints(points.midPoints, KmNumber(2), 20) // 0..19
+            assertMidPoints(points.midPoints, KmNumber(3), 6) // 0..5
+            assertMidPoints(points.midPoints, KmNumber(4), 0) // missing km
+            assertMidPoints(points.midPoints, KmNumber(5), 0) // filtered out
+        }
+
+        // Start filter by missing address
+        getAddressPoints(AddressFilter(start = TrackMeterLimit(TrackMeter(4, 10)))).let { points ->
+            assertAddressPoint(points.startPoint, TrackMeter(5, "0.000"), Point(60.0, 1.0))
+            assertAddressPoint(points.endPoint, TrackMeter(5, "5.300"), trackAlignment.end!!)
+            assertMidPoints(points.midPoints, KmNumber(1), 0) // filtered out
+            assertMidPoints(points.midPoints, KmNumber(2), 0) // filtered out
+            assertMidPoints(points.midPoints, KmNumber(3), 0) // filtered out
+            assertMidPoints(points.midPoints, KmNumber(4), 0) // missing km (filter)
+            assertMidPoints(points.midPoints, KmNumber(5), 5) // 1..5
+        }
+
+        // End filter by missing address
+        getAddressPoints(AddressFilter(end = TrackMeterLimit(TrackMeter(4, 10)))).let { points ->
+            assertAddressPoint(points.startPoint, TrackMeter(1, "17.445"), trackAlignment.start!!)
+            assertAddressPoint(points.endPoint, TrackMeter(3, "20.000"), Point(60.0, 1.0))
+            assertMidPoints(points.midPoints, KmNumber(1), 15) // 18..23
+            assertMidPoints(points.midPoints, KmNumber(2), 20) // 0..19
+            assertMidPoints(points.midPoints, KmNumber(3), 20) // 0..19
+            assertMidPoints(points.midPoints, KmNumber(4), 0) // missing km (filter)
+            assertMidPoints(points.midPoints, KmNumber(5), 0) // filtered out
+        }
+    }
+
+    @Test
     fun `Location track zigzag doesn't prevent calculating address points`() {
         val context =
             createContext(

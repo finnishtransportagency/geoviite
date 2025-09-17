@@ -205,7 +205,7 @@ data class GeocodingKm<M : GeocodingAlignmentM<M>>(
     fun getMetersRangeAtResolution(resolution: Resolution): ClosedRange<BigDecimal> =
         resolutionMRanges.computeIfAbsent(resolution) {
             val start = roundToResolution(startMeters, resolution.meters, true)
-            val adjustedEnd = if (endInclusive) endMeters else endMeters - MIN_METER_LENGTH.toBigDecimal()
+            val adjustedEnd = if (endInclusive) endMeters else endMeters - minMeterLength
             val end = roundToResolution(adjustedEnd, resolution.meters, false)
             start..end
         }
@@ -226,7 +226,7 @@ data class AddressAndM(
  * Don't generate a meter that is shorter than this. Prevents an extra projection being generated when the KM changes on
  * an exact meter.
  */
-private const val MIN_METER_LENGTH = 0.001
+private val minMeterLength = BigDecimal("0.001")
 
 /**
  * Projection line validation parameter. They should be 1m apart from each other along reference line by definition.
@@ -552,12 +552,14 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
                     trackStart.takeIf { p -> addressFilter.acceptInclusive(p.first.address) }
                         ?: addressFilter.start
                             ?.let(::getFirstAddressAtOrAfter)
+                            ?.round(METERS_DEFAULT_DECIMAL_DIGITS)
                             ?.let { a -> getTrackLocation(alignment, a) }
                             ?.let { it to WITHIN }
                 val filteredEnd =
                     trackEnd.takeIf { p -> addressFilter.acceptInclusive(p.first.address) }
-                        ?: addressFilter.start
+                        ?: addressFilter.end
                             ?.let(::getLastAddressAtOrBefore)
+                            ?.round(METERS_DEFAULT_DECIMAL_DIGITS)
                             ?.let { a -> getTrackLocation(alignment, a) }
                             ?.let { it to WITHIN }
                 if (filteredStart != null && filteredEnd != null) filteredStart to filteredEnd else null
@@ -589,7 +591,8 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         addressFilter: AddressFilter? = null,
     ): AlignmentAddresses<TargetM>? {
         return getStartAndEnd(alignment, addressFilter)?.let { (startPoint, endPoint) ->
-            val pointRange = (startPoint.first.address + MIN_METER_LENGTH)..(endPoint.first.address - MIN_METER_LENGTH)
+            val pointRange = (startPoint.first.address + minMeterLength)..(endPoint.first.address - minMeterLength)
+            println("start=${startPoint.first.address} end=${endPoint.first.address} range=$pointRange")
             val midPoints = getMidPoints(alignment, pointRange, resolution)
             AlignmentAddresses(
                 startPoint = startPoint.first,
@@ -667,7 +670,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
                     // add some extra projection lines to make sure we don't go out of sync when the
                     // track and reference line loop in on themselves
                     getProjectionLinesForRange(
-                            (alignmentStartAddress + MIN_METER_LENGTH)..(alignmentEndAddress - MIN_METER_LENGTH),
+                            (alignmentStartAddress + minMeterLength)..(alignmentEndAddress - minMeterLength),
                             resolution,
                         )
                         .filterIndexed { index, _ -> index % 10 == 0 },
@@ -694,8 +697,13 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
 
     private fun getProjectionLinesForRange(range: ClosedRange<TrackMeter>, resolution: Resolution) =
         getSublistForRangeInOrderedList(projectionLines.getValue(resolution).value, range) { p, e ->
-            p.address.compareTo(e)
-        }
+                p.address.compareTo(e)
+            }
+            .also {
+                println(
+                    "range=$range first=${it.firstOrNull()?.address} last=${it.lastOrNull()?.address} size=${it.size}"
+                )
+            }
 
     fun getSwitchPoints(geometry: LocationTrackGeometry): List<AddressPoint<LocationTrackM>> =
         geometry.trackSwitchLinks
