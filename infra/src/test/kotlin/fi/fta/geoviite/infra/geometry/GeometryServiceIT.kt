@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
@@ -56,6 +57,8 @@ constructor(
     private val geometryService: GeometryService,
     private val coordinateTransformationService: CoordinateTransformationService,
 ) : DBTestBase() {
+
+    @Autowired private lateinit var geocodingService: GeocodingService
 
     @BeforeEach
     fun setup() {
@@ -356,6 +359,7 @@ constructor(
                 5,
             )!!
         assertEquals(3, actual.size)
+        println(actual)
         assertEquals(2, actual[0].trackMeterHeights.size)
         assertEquals(1, actual[1].trackMeterHeights.size)
         assertEquals(2, actual[2].trackMeterHeights.size)

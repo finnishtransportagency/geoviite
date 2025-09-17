@@ -52,9 +52,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.tracklayout.toSegmentM
-import kotlin.math.max
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import kotlin.math.max
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
 const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
@@ -977,7 +977,7 @@ fun <M : AlignmentM<M>> cropAlignment(
     segmentsWithM: List<Pair<LayoutSegment, Range<LineM<M>>>>,
     cropRange: Range<LineM<M>>,
 ): CroppedAlignment<M> {
-    if (segmentsWithM.isEmpty()) return CroppedAlignment.empty as CroppedAlignment<M>
+    @Suppress("UNCHECKED_CAST") if (segmentsWithM.isEmpty()) return CroppedAlignment.empty as CroppedAlignment<M>
     val origRange = Range(segmentsWithM.first().second.min, segmentsWithM.last().second.max)
     val newSegments =
         when {
