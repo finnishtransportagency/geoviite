@@ -26,6 +26,7 @@ const KilometerLengthsTable = ({
     const amount = kmLengths.length;
     const headings: ElementHeading[] = [
         nonNumericHeading('track-number'),
+        nonNumericHeading('track-number-oid'),
         nonNumericHeading('kilometer'),
         numericHeading('station-start', 'station-start'),
         numericHeading('station-end'),
@@ -56,7 +57,7 @@ const KilometerLengthsTable = ({
                                             : ''
                                     }
                                     qa-id={heading.qaId && `km-length-header-${heading.qaId}`}>
-                                    {t(`data-products.km-lengths.table.${heading.name}`)}
+                                    {t(`data-products.km-lengths.data.${heading.name}`)}
                                 </Th>
                             ))}
                         </tr>
@@ -67,6 +68,7 @@ const KilometerLengthsTable = ({
                                 <KilometerLengthTableItem
                                     locationPrecision={locationPrecision}
                                     trackNumber={item.trackNumber}
+                                    trackNumberOid={item.trackNumberOid}
                                     length={item.length}
                                     kilometer={item.kmNumber}
                                     startM={item.startM}

@@ -407,6 +407,7 @@ export type KmPostGkLocationSource = 'FROM_GEOMETRY' | 'FROM_LAYOUT' | 'MANUAL';
 
 export type LayoutKmLengthDetails = {
     trackNumber: TrackNumber;
+    trackNumberOid: Oid | undefined;
     kmNumber: KmNumber;
     length: number;
     startM: number;

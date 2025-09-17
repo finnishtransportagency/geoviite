@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
@@ -63,6 +64,7 @@ enum class KmPostGkLocationSource {
 
 data class LayoutKmLengthDetails(
     val trackNumber: TrackNumber,
+    val trackNumberOid: Oid<LayoutTrackNumber>?,
     val kmNumber: KmNumber,
     val startM: BigDecimal,
     val endM: BigDecimal,

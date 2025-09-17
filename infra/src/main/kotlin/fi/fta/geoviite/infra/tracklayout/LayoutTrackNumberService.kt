@@ -35,7 +35,7 @@ import java.time.Instant
 import java.util.stream.Collectors
 import org.springframework.transaction.annotation.Transactional
 
-const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
+const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.data"
 
 enum class KmLengthsLocationPrecision {
     PRECISE_LOCATION,
@@ -113,9 +113,11 @@ class LayoutTrackNumberService(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
     ): List<LayoutKmLengthDetails>? {
+        val oid = getExternalIdsByBranch(trackNumberId).get(layoutContext.branch)
+
         return geocodingService.getGeocodingContextCreateResult(layoutContext, trackNumberId)?.let { contextResult ->
             contextResult.geocodingContext.referenceLineAddresses?.startPoint?.let { startPoint ->
-                extractTrackKmLengths(contextResult.geocodingContext, contextResult, startPoint)
+                extractTrackKmLengths(contextResult.geocodingContext, contextResult, startPoint, oid)
             }
         }
     }
@@ -255,6 +257,7 @@ private fun asCsvFile(
     val columns =
         mapOf<String, (item: LayoutKmLengthDetails) -> Any?>(
                 "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.track-number" to { it.trackNumber },
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.track-number-oid" to { it.trackNumberOid },
                 "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.kilometer" to { it.kmNumber },
                 "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-start" to { it.startM },
                 "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-end" to { it.endM },
@@ -353,6 +356,7 @@ private fun extractTrackKmLengths(
     context: GeocodingContext<ReferenceLineM>,
     contextResult: GeocodingContextCreateResult<ReferenceLineM>,
     startPoint: AddressPoint<*>,
+    oid: Oid<LayoutTrackNumber>?,
 ): List<LayoutKmLengthDetails> {
     val distances = getKmPostDistances(context, contextResult.validKmPosts)
     val referenceLineLength = context.referenceLineGeometry.length
@@ -362,6 +366,7 @@ private fun extractTrackKmLengths(
     return listOf(
         LayoutKmLengthDetails(
             trackNumber = trackNumber,
+            trackNumberOid = oid,
             kmNumber = startPoint.address.kmNumber,
             startM = roundTo3Decimals(context.startAddress.meters.negate()),
             endM = roundTo3Decimals(distances.firstOrNull()?.second ?: referenceLineLength),
@@ -376,6 +381,7 @@ private fun extractTrackKmLengths(
 
             LayoutKmLengthDetails(
                 trackNumber = trackNumber,
+                trackNumberOid = oid,
                 kmNumber = kmPost.kmNumber,
                 startM = roundTo3Decimals(startM),
                 endM = roundTo3Decimals(endM),

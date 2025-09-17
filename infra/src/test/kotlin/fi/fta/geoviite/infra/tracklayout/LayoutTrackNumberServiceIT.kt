@@ -96,6 +96,9 @@ constructor(
     fun `should return correct lengths for km posts`() {
         val trackNumber =
             trackNumberDao.fetch(trackNumberDao.save(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)))
+        val trackOid = externalIdForTrackNumber()
+        trackNumberService.insertExternalId(LayoutBranch.main, trackNumber.id as IntId, trackOid)
+
         referenceLineAndAlignment(
                 trackNumberId = trackNumber.id as IntId,
                 segments =
@@ -135,6 +138,7 @@ constructor(
         assertEquals(
             LayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
+                trackNumberOid = trackOid,
                 kmNumber = KmNumber(1),
                 startM = BigDecimal(-0.5).setScale(3),
                 endM = BigDecimal(1).setScale(3),
@@ -150,6 +154,7 @@ constructor(
         assertEquals(
             LayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
+                trackNumberOid = trackOid,
                 kmNumber = KmNumber(2),
                 startM = BigDecimal(1).setScale(3),
                 endM = BigDecimal(3).setScale(3),
@@ -169,6 +174,7 @@ constructor(
         val kmPostLocation2 = kmPostDao.fetch(kmPostVersions[1]).layoutLocation
         assertEquals(
             LayoutKmLengthDetails(
+                trackNumberOid = trackOid,
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(3),
                 startM = BigDecimal(3).setScale(3),
@@ -227,6 +233,7 @@ constructor(
         assertEquals(
             LayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
+                trackNumberOid = null,
                 kmNumber = KmNumber(1),
                 startM = BigDecimal(-0.5).setScale(3),
                 endM = BigDecimal(1).setScale(3),
@@ -242,6 +249,7 @@ constructor(
         assertEquals(
             LayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
+                trackNumberOid = null,
                 kmNumber = KmNumber(2),
                 startM = BigDecimal(1).setScale(3),
                 endM = BigDecimal(4).setScale(3),
