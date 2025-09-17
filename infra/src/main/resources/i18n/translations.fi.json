@@ -2173,7 +2173,9 @@
     "filename": {
         "unreliable-plan-file": "PAIKANNUSPALVELU EPÄLUOTETTAVA {{originalFileName}}",
         "km-lengths-csv-precise": "Ratakilometrien pituudet {{trackNumber}}.csv",
+        "km-lengths-csv-precise-with-kms": "Ratakilometrien pituudet {{trackNumber}} {{startKm}}-{{endKm}}.csv",
         "km-lengths-csv-approximation": "Ratakilometrien pituudet (paikannuspohjan tarkkuus) {{trackNumber}}.csv",
+        "km-lengths-csv-approximation-with-kms": "Ratakilometrien pituudet (paikannuspohjan tarkkuus) {{trackNumber}} {{startKm}}-{{endKm}}.csv",
         "km-lengths-entire-track-network": "Ratakilometrien pituudet (koko rataverkko) {{date}}.csv",
         "element-list-csv": "Elementtiluettelo {{locationTrackName}}.csv",
         "element-list-plan-csv": "Elementtiluettelo {{planFileName}}.csv",

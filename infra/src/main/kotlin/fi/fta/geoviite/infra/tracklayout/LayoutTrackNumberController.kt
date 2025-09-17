@@ -183,14 +183,22 @@ class LayoutTrackNumberController(
 
         val fileName =
             localizationService.getLocalization(lang).let { translation ->
-                val params = localizationParams("trackNumber" to trackNumber.number)
+                val params =
+                    localizationParams(
+                        "trackNumber" to trackNumber.number,
+                        "startKm" to startKmNumber,
+                        "endKm" to endKmNumber,
+                    )
+                val hasKms = startKmNumber != null || endKmNumber != null
 
                 when (precision) {
                     KmLengthsLocationPrecision.PRECISE_LOCATION ->
-                        translation.filename("km-lengths-csv-precise", params)
+                        if (hasKms) translation.filename("km-lengths-csv-precise-with-kms", params)
+                        else translation.filename("km-lengths-csv-precise", params)
 
                     KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT ->
-                        translation.filename("km-lengths-csv-approximation", params)
+                        if (hasKms) translation.filename("km-lengths-csv-approximation-with-kms", params)
+                        else translation.filename("km-lengths-csv-approximation", params)
                 }
             }
 
