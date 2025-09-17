@@ -18,7 +18,6 @@ import java.text.DecimalFormatSymbols
 import kotlin.math.pow
 
 const val TRACK_METER_SEPARATOR = "+"
-const val DEFAULT_TRACK_METER_DECIMALS = 3
 
 data class KmNumber @JsonCreator(mode = DISABLED) constructor(val number: Int, val extension: String? = null) :
     Comparable<KmNumber> {
@@ -51,6 +50,7 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(val number: Int, v
 
 const val METERS_MAX_INTEGER_DIGITS = 4
 const val METERS_MAX_DECIMAL_DIGITS = 6
+const val METERS_DEFAULT_DECIMAL_DIGITS = 3
 
 private fun limitScale(meters: BigDecimal) =
     if (meters.scale() < 0) {
@@ -60,9 +60,6 @@ private fun limitScale(meters: BigDecimal) =
     } else {
         meters
     }
-
-private val maxMeter = BigDecimal.valueOf(10.0.pow(METERS_MAX_INTEGER_DIGITS))
-private val metersDecimalsValidRange = 0..METERS_MAX_DECIMAL_DIGITS
 
 interface ITrackMeter : Comparable<ITrackMeter> {
     val kmNumber: KmNumber
@@ -115,11 +112,17 @@ constructor(override val kmNumber: KmNumber, override val meters: BigDecimal) : 
     @JsonCreator(mode = DELEGATING) constructor(value: String) : this(parseTrackMeterParts(value))
 
     companion object {
+        private val maxMeterExclusive = BigDecimal.valueOf(10.0.pow(METERS_MAX_INTEGER_DIGITS))
+        private val maxMeterInclusive =
+            maxMeterExclusive -
+                BigDecimal.valueOf(10.0.pow(-METERS_MAX_DECIMAL_DIGITS)).setScale(METERS_MAX_DECIMAL_DIGITS)
+        private val metersDecimalsValidRange = 0..METERS_MAX_DECIMAL_DIGITS
+
         val ZERO = TrackMeter(KmNumber.ZERO, BigDecimal.ZERO)
 
-        fun isMetersValid(v: BigDecimal): Boolean {
-            return -maxMeter <= v && v < maxMeter
-        }
+        fun capMeters(value: BigDecimal): BigDecimal = maxOf(minOf(value, maxMeterInclusive), -maxMeterInclusive)
+
+        fun isMetersValid(v: BigDecimal): Boolean = -maxMeterExclusive < v && v < maxMeterExclusive
 
         fun isMetersValid(v: LineM<*>) = isMetersValid(v.distance)
 

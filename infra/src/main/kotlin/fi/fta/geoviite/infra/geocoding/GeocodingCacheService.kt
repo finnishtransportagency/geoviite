@@ -77,16 +77,16 @@ class GeocodingCacheService(
     @Transactional(readOnly = true)
     fun getGeocodingContextWithReasons(
         key: LayoutGeocodingContextCacheKey
-    ): GeocodingContextCreateResult<ReferenceLineM>? = geocodingCacheService.getLayoutGeocodingContext(key)
+    ): ValidatedGeocodingContext<ReferenceLineM>? = geocodingCacheService.getLayoutGeocodingContext(key)
 
     @Transactional(readOnly = true)
     fun getGeocodingContextWithReasons(
         key: GeometryGeocodingContextCacheKey
-    ): GeocodingContextCreateResult<PlanLayoutAlignmentM>? = geocodingCacheService.getGeometryGeocodingContext(key)
+    ): ValidatedGeocodingContext<PlanLayoutAlignmentM>? = geocodingCacheService.getGeometryGeocodingContext(key)
 
     @Transactional(readOnly = true)
     @Cacheable(CACHE_GEOCODING_CONTEXTS, sync = true)
-    fun getLayoutGeocodingContext(key: LayoutGeocodingContextCacheKey): GeocodingContextCreateResult<ReferenceLineM>? {
+    fun getLayoutGeocodingContext(key: LayoutGeocodingContextCacheKey): ValidatedGeocodingContext<ReferenceLineM>? {
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
         val referenceLine = referenceLineDao.fetch(key.referenceLineVersion)
         val alignment =
@@ -102,7 +102,7 @@ class GeocodingCacheService(
     @Cacheable(CACHE_PLAN_GEOCODING_CONTEXTS, sync = true)
     fun getGeometryGeocodingContext(
         key: GeometryGeocodingContextCacheKey
-    ): GeocodingContextCreateResult<PlanLayoutAlignmentM>? {
+    ): ValidatedGeocodingContext<PlanLayoutAlignmentM>? {
         val plan = planLayoutService.getLayoutPlan(key.planVersion).first
         val startAddress = plan?.startAddress
         val referenceLine = plan?.let(::getGeometryGeocodingContextReferenceLine)
@@ -124,7 +124,7 @@ class GeocodingCacheService(
     fun getGeocodingContextCreateResult(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
-    ): GeocodingContextCreateResult<ReferenceLineM>? =
+    ): ValidatedGeocodingContext<ReferenceLineM>? =
         geocodingDao
             .getLayoutGeocodingContextCacheKey(layoutContext, trackNumberId)
             ?.let(geocodingCacheService::getGeocodingContextWithReasons)

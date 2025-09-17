@@ -434,11 +434,11 @@ class LocationTrackService(
     ): Range<TrackMeter>? {
         val rangeStart =
             startKm
-                ?.let { km -> geocodingContext.referencePoints.find { it.kmNumber >= km }?.address ?: trackEnd }
+                ?.let { km -> geocodingContext.kms.find { it.kmNumber >= km }?.startAddress ?: trackEnd }
                 ?.coerceAtLeast(trackStart) ?: trackStart
         val rangeEnd =
             endKm
-                ?.let { km -> geocodingContext.referencePoints.find { it.kmNumber > km }?.address }
+                ?.let { km -> geocodingContext.kms.find { it.kmNumber > km }?.startAddress }
                 ?.coerceAtMost(trackEnd) ?: trackEnd
         return if (rangeStart < rangeEnd) Range(rangeStart, rangeEnd) else null
     }

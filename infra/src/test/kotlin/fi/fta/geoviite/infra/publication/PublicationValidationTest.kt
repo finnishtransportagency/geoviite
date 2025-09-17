@@ -10,7 +10,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
+import fi.fta.geoviite.infra.geocoding.ValidatedGeocodingContext
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
@@ -1447,7 +1447,7 @@ class PublicationValidationTest {
     private fun geocodingContext(
         referenceLinePoints: List<SegmentPoint>,
         kmPosts: List<LayoutKmPost>,
-    ): GeocodingContextCreateResult<ReferenceLineM> {
+    ): ValidatedGeocodingContext<ReferenceLineM> {
         val (referenceLine, alignment) =
             referenceLineAndAlignment(
                 trackNumberId = IntId(1),

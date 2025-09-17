@@ -137,7 +137,7 @@ class GeocodingService(
     fun getGeocodingContextCreateResult(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
-    ): GeocodingContextCreateResult<ReferenceLineM>? =
+    ): ValidatedGeocodingContext<ReferenceLineM>? =
         geocodingCacheService.getGeocodingContextCreateResult(layoutContext, trackNumberId)
 
     fun getGeocodingContextAtMoment(

@@ -618,7 +618,7 @@ constructor(
                 geometry,
                 tickLength,
                 geometryAlignmentBoundaryPoints = alignmentBoundaryAddresses,
-            ) ?: listOf()
+            )
         val boundingBox = requireNotNull(geometry.boundingBox)
         val heightTriangles = heightTriangleDao.fetchTriangles(boundingBox.polygonFromCorners)
 
@@ -671,8 +671,7 @@ constructor(
         val verticalCoordinateSystem = plan.units.verticalCoordinateSystem ?: return null
 
         val startStation = geometryAlignment.staStart.toDouble()
-        val kmTicks =
-            collectTrackMeterTicks(startDistance, endDistance, geocodingContext, alignment, tickLength) ?: listOf()
+        val kmTicks = collectTrackMeterTicks(startDistance, endDistance, geocodingContext, alignment, tickLength)
         return kmTicks.map { kmTick ->
             val heights =
                 kmTick.ticks.map { tick ->
