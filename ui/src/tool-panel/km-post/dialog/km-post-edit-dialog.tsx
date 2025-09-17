@@ -403,7 +403,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                 isProcessing={state.isSaving}
                                 variant={ButtonVariant.PRIMARY_WARNING}
                                 onClick={save}>
-                                {t('button.revert-draft')}
+                                {t('button.delete')}
                             </Button>
                         </div>
                     }>

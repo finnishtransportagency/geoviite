@@ -3,12 +3,16 @@ package fi.fta.geoviite.infra.util
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import org.springframework.web.multipart.MultipartFile
 
 enum class KnownFileSuffix {
     CSV,
     XML,
 }
+
+val FILENAME_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.of("Europe/Helsinki"))
 
 data class FileName @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
     Comparable<FileName>, CharSequence by value {

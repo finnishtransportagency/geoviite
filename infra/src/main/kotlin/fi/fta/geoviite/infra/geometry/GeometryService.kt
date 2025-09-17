@@ -52,19 +52,19 @@ import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.toAlignmentHeader
 import fi.fta.geoviite.infra.tracklayout.toLayoutSwitch
+import fi.fta.geoviite.infra.util.FILENAME_DATE_FORMATTER
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
 import fi.fta.geoviite.infra.util.processFlattened
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 import withUser
-import java.time.Duration
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.stream.Collectors
 
 val unknownSwitchName = SwitchName("-")
 
@@ -329,7 +329,19 @@ constructor(
         val elementListing = getElementListing(layoutContext, trackId, elementTypes, startAddress, endAddress)
         val translation = localizationService.getLocalization(lang)
         val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
-        val filename = translation.filename("element-list-csv", localizationParams("locationTrackName" to track.name))
+        val filenameKey =
+            if (startAddress != null || endAddress != null) "element-list-with-kms-csv" else "element-list-csv"
+
+        val filename =
+            translation.filename(
+                filenameKey,
+                localizationParams(
+                    "locationTrackName" to track.name,
+                    "startAddress" to startAddress?.format(),
+                    "endAddress" to endAddress?.format(),
+                    "date" to FILENAME_DATE_FORMATTER.format(Instant.now()),
+                ),
+            )
 
         return ElementListingFile(filename, csvFileContent)
     }
@@ -352,14 +364,13 @@ constructor(
                         getElementListing(track, alignment, trackNumber, geocodingContexts[track.trackNumberId])
                     }
             val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
-            val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
             elementListingFileDao.upsertElementListingFile(
                 ElementListingFile(
                     name =
                         translation.filename(
                             "element-list-entire-track-network",
-                            localizationParams("date" to dateFormatter.format(Instant.now())),
+                            localizationParams("date" to FILENAME_DATE_FORMATTER.format(Instant.now())),
                         ),
                     content = csvFileContent,
                 )
@@ -427,10 +438,19 @@ constructor(
             getVerticalGeometryListing(MainLayoutContext.official, locationTrackId, startAddress, endAddress)
         val translation = localizationService.getLocalization(lang)
         val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing, translation)
+        val filenameKey =
+            if (startAddress != null || endAddress != null) "vertical-geometry-list-with-kms-csv"
+            else "vertical-geometry-list-csv"
+
         val filename =
             translation.filename(
-                "vertical-geometry-list-csv",
-                localizationParams("locationTrackName" to locationTrack.name),
+                filenameKey,
+                localizationParams(
+                    "locationTrackName" to locationTrack.name,
+                    "startAddress" to startAddress?.format(),
+                    "endAddress" to endAddress?.format(),
+                    "date" to LocalDate.now().format(FILENAME_DATE_FORMATTER),
+                ),
             )
 
         return filename to csvFileContent.toByteArray()
@@ -461,14 +481,13 @@ constructor(
         val translation = localizationService.getLocalization(LocalizationLanguage.FI)
         val csvFileContent =
             entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers, translation)
-        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
         verticalGeometryListingFileDao.upsertVerticalGeometryListingFile(
             VerticalGeometryListingFile(
                 name =
                     translation.filename(
                         "vertical-geometry-list-entire-track-network",
-                        localizationParams("date" to dateFormatter.format(Instant.now())),
+                        localizationParams("date" to FILENAME_DATE_FORMATTER.format(Instant.now())),
                     ),
                 content = csvFileContent,
             )
