@@ -14,8 +14,11 @@ import { useAppNavigate } from 'common/navigate';
 import { SearchablePublicationLogItem } from 'publication/log/publication-log';
 import { SearchItemValue } from 'tool-bar/search-dropdown';
 import { SortableTableHeader } from 'vayla-design-lib/table/sortable-table-header';
+import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
+import { LayoutContext } from 'common/common-model';
 
 export type PublicationTableProps = {
+    layoutContext: LayoutContext;
     items: PublicationTableItem[];
     sortInfo: TableSorting<SortablePublicationTableProps>;
     onSortChange: (sortInfo: TableSorting<SortablePublicationTableProps>) => void;
@@ -26,6 +29,7 @@ export type PublicationTableProps = {
 };
 
 const PublicationTable: React.FC<PublicationTableProps> = ({
+    layoutContext,
     items,
     onSortChange,
     sortInfo,
@@ -78,6 +82,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         },
         [delegates],
     );
+    const trackNumbers = useTrackNumbersIncludingDeleted(layoutContext) ?? [];
 
     return (
         <div className={styles['publication-table']}>
@@ -164,6 +169,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                             changedKmNumbers={entry.changedKmNumbers}
                             message={entry.message}
                             propChanges={entry.propChanges}
+                            allLayoutTrackNumbers={trackNumbers}
                             detailsVisible={itemDetailsVisible.includes(entry.id)}
                             detailsVisibleToggle={publicationItemDetailsVisibilityToggle}
                             displayItemHistory={displaySingleItemHistory}

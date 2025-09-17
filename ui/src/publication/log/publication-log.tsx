@@ -38,8 +38,11 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SortDirection, TableSorting } from 'utils/table-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'tool-bar/search-dropdown';
-import { officialMainLayoutContext } from 'common/common-model';
+import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { DropdownSize } from 'vayla-design-lib/dropdown/dropdown';
+import { LayoutTrackNumber } from 'track-layout/track-layout-model';
+import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
+import { TFunction } from 'i18next';
 
 const MAX_SEARCH_DAYS = 180;
 
@@ -114,7 +117,8 @@ const PublicationLogTableHeading: React.FC<PublicationLogTableHeadingProps> = ({
 export type SearchablePublicationLogItem =
     | SearchItemType.LOCATION_TRACK
     | SearchItemType.TRACK_NUMBER
-    | SearchItemType.SWITCH;
+    | SearchItemType.SWITCH
+    | SearchItemType.KM_POST;
 
 function searchableItemIdAndType(
     item: SearchItemValue<SearchablePublicationLogItem>,
@@ -126,12 +130,18 @@ function searchableItemIdAndType(
             return { type: item.type, id: item.trackNumber.id };
         case SearchItemType.SWITCH:
             return { type: item.type, id: item.layoutSwitch.id };
+        case SearchItemType.KM_POST:
+            return { type: item.type, id: item.kmPost.id };
         default:
             return exhaustiveMatchingGuard(item);
     }
 }
 
-function getSearchableItemName(item: SearchItemValue<SearchablePublicationLogItem>): string {
+function getSearchableItemName(
+    item: SearchItemValue<SearchablePublicationLogItem>,
+    trackNumbers: LayoutTrackNumber[],
+    t: TFunction<'translation', undefined>,
+): string {
     switch (item.type) {
         case SearchItemType.LOCATION_TRACK:
             return item.locationTrack.name;
@@ -139,14 +149,24 @@ function getSearchableItemName(item: SearchItemValue<SearchablePublicationLogIte
             return item.trackNumber.number;
         case SearchItemType.SWITCH:
             return item.layoutSwitch.name;
+        case SearchItemType.KM_POST:
+            return t('asset-search.km-post-on-track-number', {
+                kmPost: item.kmPost.kmNumber,
+                trackNumber: trackNumbers.find((tn) => tn.id === item.kmPost.trackNumberId)?.number,
+            });
         default:
             return exhaustiveMatchingGuard(item);
     }
 }
 
-const PublicationLog: React.FC = () => {
+type PublicationLogProps = {
+    layoutContext: LayoutContext;
+};
+
+const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
+    const trackNumbers = useTrackNumbersIncludingDeleted(layoutContext) ?? [];
 
     const selectedPublicationSearch = useTrackLayoutAppSelector(
         (state) => state.selection.publicationSearch,
@@ -346,13 +366,14 @@ const PublicationLog: React.FC = () => {
                                 placeholder={t('publication-log.search-specific-object')}
                                 onItemSelected={setSpecificItem}
                                 value={storedSpecificItem}
-                                getName={getSearchableItemName}
+                                getName={(name) => getSearchableItemName(name, trackNumbers, t)}
                                 disabled={false}
                                 size={DropdownSize.LARGE}
                                 searchTypes={[
                                     SearchItemType.LOCATION_TRACK,
                                     SearchItemType.SWITCH,
                                     SearchItemType.TRACK_NUMBER,
+                                    SearchItemType.KM_POST,
                                 ]}
                                 wide={false}
                                 useAnchorElementWidth={true}
@@ -381,7 +402,11 @@ const PublicationLog: React.FC = () => {
                                             : {
                                                   idAndType:
                                                       searchableItemIdAndType(storedSpecificItem),
-                                                  name: getSearchableItemName(storedSpecificItem),
+                                                  name: getSearchableItemName(
+                                                      storedSpecificItem,
+                                                      trackNumbers,
+                                                      t,
+                                                  ),
                                               },
                                         sortInfo?.propName,
                                         sortInfo?.direction,
@@ -408,6 +433,7 @@ const PublicationLog: React.FC = () => {
                     )}
                 </div>
                 <PublicationTable
+                    layoutContext={layoutContext}
                     isLoading={isLoading}
                     items={pagedPublications?.items || []}
                     sortInfo={sortInfo}

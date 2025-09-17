@@ -1,4 +1,5 @@
 import {
+    LayoutKmPost,
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutTrackNumber,
@@ -14,6 +15,7 @@ export interface LayoutSearchResult {
     switches: LayoutSwitch[];
     locationTracks: LayoutLocationTrack[];
     trackNumbers: LayoutTrackNumber[];
+    kmPosts: LayoutKmPost[];
     operatingPoints: OperatingPoint[];
 }
 

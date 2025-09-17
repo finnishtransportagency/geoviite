@@ -13,6 +13,8 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.util.pageToList
 import org.springframework.transaction.annotation.Transactional
 
+const val KM_POST_SEARCH_TERM_MIN_LENGTH = 4
+
 @GeoviiteService
 class LayoutKmPostService(
     dao: LayoutKmPostDao,
@@ -127,6 +129,17 @@ class LayoutKmPostService(
     @Transactional
     fun saveDraft(branch: LayoutBranch, draftAsset: LayoutKmPost): LayoutRowVersion<LayoutKmPost> =
         saveDraftInternal(branch, draftAsset, NoParams.instance)
+
+    override fun contentMatches(term: String, item: LayoutKmPost): Boolean =
+        item.exists &&
+            term.length >= KM_POST_SEARCH_TERM_MIN_LENGTH &&
+            item.kmNumber.toString().contains(term.trim(), ignoreCase = true)
+
+    fun idMatches(onlyIds: Collection<IntId<LayoutKmPost>>? = null): ((term: String, item: LayoutKmPost) -> Boolean) =
+        { term, item ->
+            (onlyIds == null || onlyIds.contains(item.id)) &&
+                (item.id.toString() == term.trim() || item.kmNumber.toString() == term.trim())
+        }
 }
 
 fun associateByDistance(kmPost: LayoutKmPost, comparisonPoint: Point): Pair<LayoutKmPost, Double?> =

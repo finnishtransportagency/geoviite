@@ -41,6 +41,8 @@ import styles from './km-post-infobox.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { GK_FIN_COORDINATE_SYSTEMS } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import { SearchItemType } from 'tool-bar/search-dropdown';
+import { useAppNavigate } from 'common/navigate';
 
 type KmPostInfoboxProps = {
     layoutContext: LayoutContext;
@@ -100,6 +102,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     changeTimes,
 }: KmPostInfoboxProps) => {
     const { t } = useTranslation();
+    const navigate = useAppNavigate();
     const kmPostCreatedAndChangedTime = useKmPostChangeTimes(kmPost.id, layoutContext);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
@@ -152,12 +155,26 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         onUnselect,
     );
 
+    const openPublicationLog = React.useCallback(() => {
+        if (kmPostCreatedAndChangedTime) {
+            delegates.setSelectedPublicationSearchStartDate(kmPostCreatedAndChangedTime.created);
+            if (kmPostCreatedAndChangedTime.changed) {
+                delegates.setSelectedPublicationSearchEndDate(kmPostCreatedAndChangedTime.changed);
+            }
+            delegates.setSelectedPublicationSearchSearchableItem({
+                type: SearchItemType.KM_POST,
+                kmPost,
+            });
+            navigate('publication-search');
+        }
+    }, [kmPost, kmPostChangeTime, kmPostCreatedAndChangedTime]);
+
     const kmPostLengthText =
         infoboxExtras?.kmLength === undefined
             ? t('tool-panel.km-post.layout.no-kilometer-length')
             : infoboxExtras.kmLength < 0
-            ? t('tool-panel.km-post.layout.negative-kilometer-length')
-            : `${roundToPrecision(infoboxExtras.kmLength, 3)} m`;
+              ? t('tool-panel.km-post.layout.negative-kilometer-length')
+              : `${roundToPrecision(infoboxExtras.kmLength, 3)} m`;
 
     return (
         <React.Fragment>
@@ -328,6 +345,12 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                     formatDateShort(kmPostCreatedAndChangedTime.changed)
                                 }
                             />
+                            <Button
+                                size={ButtonSize.SMALL}
+                                variant={ButtonVariant.SECONDARY}
+                                onClick={openPublicationLog}>
+                                {t('tool-panel.show-in-publication-log')}
+                            </Button>
                         </React.Fragment>
                     )}
                 </InfoboxContent>
