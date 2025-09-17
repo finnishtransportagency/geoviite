@@ -587,7 +587,6 @@ class GeocodingTest {
             createContext(
                 geometryPoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
                 startAddress = TrackMeter(1, "12.345"),
-                //                startAddress = TrackMeter(1, "0"),
                 kmPoints =
                     listOf(
                         TrackMeter(2, 0) to 20.0,
@@ -599,10 +598,9 @@ class GeocodingTest {
 
         // A parallel geometry to geocode:
         // The address (after 1st km) m-values should match the x-coordinate minus KM start (20,40,60)
-        //        val trackAlignment = alignment(segment(Point(0.0, 1.0), Point(65.3, 1.0)))
         val trackAlignment = alignment(segment(Point(5.1, 1.0), Point(65.3, 1.0)))
         fun getAddressPoints(filter: AddressFilter?) =
-            context.getAddressPoints(trackAlignment, addressFilter = filter).let { assertNotNull(it) }
+            assertNotNull(context.getAddressPoints(trackAlignment, addressFilter = filter))
         fun assertMidPoints(midPoints: List<AddressPoint<*>>, km: KmNumber, count: Int) {
             val kmPoints = midPoints.filter { point -> point.address.kmNumber == km }
             assertEquals(
