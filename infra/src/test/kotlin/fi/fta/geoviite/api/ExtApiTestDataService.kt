@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
@@ -26,6 +27,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.someOid
 import org.junit.jupiter.api.Assertions.assertNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -70,9 +72,9 @@ class ExtApiTestDataServiceV1
 @Autowired
 constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
+    private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
-    private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val publicationTestSupportService: PublicationTestSupportService,
     private val publicationDao: PublicationDao,
 ) : DBTestBase() {
@@ -128,6 +130,21 @@ constructor(
             )
 
         return trackNumberId to referenceLine.id
+    }
+
+    fun insertTrackNumberAndReferenceWithOid(
+        layoutContext: TestLayoutContext,
+        trackNumberName: String = testDBService.getUnusedTrackNumber().value,
+        segments: List<LayoutSegment>,
+    ): Triple<IntId<LayoutTrackNumber>, IntId<ReferenceLine>, Oid<LayoutTrackNumber>> {
+        val (trackNumberId, referenceLineId) =
+            insertTrackNumberAndReferenceLine(layoutContext, trackNumberName, segments)
+        val oid =
+            someOid<LayoutTrackNumber>().also { oid ->
+                layoutTrackNumberDao.insertExternalId(trackNumberId, layoutContext.context.branch, oid)
+            }
+
+        return Triple(trackNumberId, referenceLineId, oid)
     }
 
     fun publishInMain(
