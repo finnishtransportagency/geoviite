@@ -150,18 +150,15 @@ async function getOptions(
 // Use debounced function to collect keystrokes before triggering a search
 const debouncedGetOptions = debounceAsync(getOptions, 250);
 
-export type SearchItemValue<SearchTypes extends SearchItemType> =
-    SearchTypes extends 'LOCATION_TRACK'
-        ? LocationTrackItemValue
-        : SearchTypes extends 'SWITCH'
-          ? SwitchItemValue
-          : SearchTypes extends 'TRACK_NUMBER'
-            ? TrackNumberItemValue
-            : SearchTypes extends 'KM_POST'
-              ? KmPostItemValue
-              : SearchTypes extends 'OPERATING_POINT'
-                ? OperatingPointItemValue
-                : never;
+type SearchItemMap = {
+    [SearchItemType.LOCATION_TRACK]: LocationTrackItemValue;
+    [SearchItemType.SWITCH]: SwitchItemValue;
+    [SearchItemType.TRACK_NUMBER]: TrackNumberItemValue;
+    [SearchItemType.OPERATING_POINT]: OperatingPointItemValue;
+    [SearchItemType.KM_POST]: KmPostItemValue;
+};
+
+export type SearchItemValue<T extends SearchItemType> = SearchItemMap[T];
 
 type SearchDropdownProps<SearchTypes extends SearchItemType> = {
     layoutContext: LayoutContext;
