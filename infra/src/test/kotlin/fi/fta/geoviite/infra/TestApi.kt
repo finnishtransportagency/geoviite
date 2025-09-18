@@ -43,7 +43,7 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
         return doGet(request, expectedStatus)
     }
 
-    fun doGetWithParamsWithoutResponse(
+    fun doGetWithParamsWithoutBody(
         url: String,
         params: Map<String, String>,
         expectedStatus: HttpStatus,

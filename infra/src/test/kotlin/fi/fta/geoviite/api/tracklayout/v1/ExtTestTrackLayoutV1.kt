@@ -1,39 +1,48 @@
-package fi.fta.geoviite.api.tracklayout.v1
+import fi.fta.geoviite.api.ExtApiTestDataServiceV1
+import fi.fta.geoviite.api.tracklayout.v1.ExtTrackLayoutTestApiService
+import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.InfraApplication
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpStatus
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.web.servlet.MockMvc
 
-data class ExtTestAddressPointV1(
-    val x: Double,
-    val y: Double,
-    val rataosoite: String?,
-)
+@ActiveProfiles("dev", "test", "ext-api")
+@SpringBootTest(classes = [InfraApplication::class])
+@AutoConfigureMockMvc
+class ExtTestTrackLayoutV1
+@Autowired
+constructor(
+    mockMvc: MockMvc,
+    private val locationTrackService: LocationTrackService,
+    private val extTestDataService: ExtApiTestDataServiceV1,
+) : DBTestBase() {
 
-data class ExtTestLocationTrackV1(
-    val sijaintiraide_oid: String,
-    val sijaintiraidetunnus: String,
-    val ratanumero: String,
-    val ratanumero_oid: String,
-    val tyyppi: String,
-    val tila: String,
-    val kuvaus: String,
-    val omistaja: String,
-    val alkusijainti: ExtTestAddressPointV1?,
-    val loppusijainti: ExtTestAddressPointV1?,
-)
+    private val api = ExtTrackLayoutTestApiService(mockMvc)
 
-data class ExtTestLocationTrackCollectionV1(
-    val rataverkon_versio: String,
-    val koordinaatisto: String,
-    val sijaintiraiteet: List<ExtTestLocationTrackV1>,
-)
+    private val assetEndpoints =
+        listOf(
+            api.locationTracks::getWithExpectedError,
+            api.locationTracks::getGeometryWithExpectedError,
+            api.locationTracks::getModifiedWithExpectedError,
+        )
 
-data class ExtTestModifiedLocationTrackCollectionV1(
-    val alkuversio: String,
-    val loppuversio: String,
-    val koordinaatisto: String,
-    val sijaintiraiteet: List<ExtTestLocationTrackV1>,
-)
+    @Test
+    fun `Ext api asset endpoints should return HTTP 400 if the OID is invalid format`() {
+        val invalidOid = "asd"
+        val expectedStatus = HttpStatus.BAD_REQUEST
 
-data class ExtTestErrorResponseV1(
-    val virheviesti: String,
-    val korrelaatiotunnus: String,
-    val aikaleima: String,
-)
+        assetEndpoints.forEach { apiCall -> apiCall(invalidOid, emptyArray(), expectedStatus) }
+    }
+
+    @Test
+    fun `Ext api asset endpoints return HTTP 404 if the track layout version is not found`() {
+        val expectedStatus = HttpStatus.NOT_FOUND
+
+        assetEndpoints.forEach { apiCall -> apiCall(invalidOid, emptyArray(), expectedStatus) }
+    }
+}

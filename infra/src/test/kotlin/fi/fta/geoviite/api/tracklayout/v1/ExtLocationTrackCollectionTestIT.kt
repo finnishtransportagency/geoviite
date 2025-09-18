@@ -37,7 +37,6 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val extTestDataService: ExtApiTestDataServiceV1,
 ) : DBTestBase() {
-
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -243,7 +242,7 @@ constructor(
                     .let(::requireNotNull)
 
             assertEquals(epsgCode, response.koordinaatisto)
-            assertTrackStartAndEnd(expectedStart, expectedEnd, responseTrack)
+            assertExtStartAndEnd(expectedStart, expectedEnd, responseTrack)
         }
     }
 
@@ -447,13 +446,13 @@ constructor(
         // meaningful changes.
         val anotherPublication = extTestDataService.publishInMain()
 
-        api.getModifiedLocationTrackCollectionWithoutResult(
+        api.getModifiedLocationTrackCollectionWithoutBody(
             "alkuversio" to startPublication.uuid.toString(),
             "loppuversio" to startPublication.uuid.toString(), // Purposefully the same exact version.
             httpStatus = HttpStatus.NO_CONTENT,
         )
 
-        api.getModifiedLocationTrackCollectionWithoutResult(
+        api.getModifiedLocationTrackCollectionWithoutBody(
             "alkuversio" to anotherPublication.uuid.toString(),
             // This should use the "last track layout version" (although it also does not contain meaningful changes)
             httpStatus = HttpStatus.NO_CONTENT,
@@ -626,24 +625,4 @@ constructor(
             httpStatus = HttpStatus.BAD_REQUEST,
         )
     }
-}
-
-private fun assertTrackStartAndEnd(
-    expectedStart: Point,
-    expectedEnd: Point,
-    responseTrack: ExtTestLocationTrackV1,
-) {
-
-    assertEquals(expectedStart.x, requireNotNull(responseTrack.alkusijainti?.x), 0.0001)
-    assertEquals(expectedStart.y, requireNotNull(responseTrack.alkusijainti.y), 0.0001)
-    assertEquals(
-        expectedEnd.x,
-        requireNotNull(responseTrack.loppusijainti?.x),
-        0.0001,
-    )
-    assertEquals(
-        expectedEnd.y,
-        requireNotNull(responseTrack.loppusijainti.y),
-        0.0001,
-    )
 }
