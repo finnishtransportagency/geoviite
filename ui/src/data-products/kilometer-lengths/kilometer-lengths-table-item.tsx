@@ -7,14 +7,15 @@ import {
     LayoutKmPostGkLocation,
 } from 'track-layout/track-layout-model';
 import { useTranslation } from 'react-i18next';
-import { CoordinateSystem } from 'common/common-model';
+import { CoordinateSystem, Oid } from 'common/common-model';
 import { Point } from 'model/geometry';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { useCoordinateSystem } from 'track-layout/track-layout-react-utils';
 import { KmLengthsLocationPrecision } from 'data-products/data-products-slice';
 
 export type KilometerLengthsTableItemProps = {
-    trackNumber: string | undefined;
+    trackNumber: string;
+    trackNumberOid: Oid | undefined;
     kilometer: string;
     length: number;
     startM: number;
@@ -29,6 +30,7 @@ export type KilometerLengthsTableItemProps = {
 
 export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> = ({
     trackNumber,
+    trackNumberOid,
     kilometer,
     length,
     startM,
@@ -59,8 +61,8 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
             ? t(`enum.KmPostGkLocationSource.${gkLocation.source}`)
             : '';
         const layoutLocationSourceString = linkedFromGeometry
-            ? t('data-products.km-lengths.table.from-geometry')
-            : t('data-products.km-lengths.table.from-ratko');
+            ? t('data-products.km-lengths.data.from-geometry')
+            : t('data-products.km-lengths.data.from-ratko');
 
         locationSourceString = showingPreciseLocation
             ? gkLocationSourceString
@@ -70,9 +72,9 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     let locationPrecisionString = '';
     if (!generatedRow) {
         const gkLocationConfirmationString = gkLocation?.confirmed
-            ? t('data-products.km-lengths.table.confirmed')
-            : t('data-products.km-lengths.table.not-confirmed');
-        const layoutLocationConfirmationString = t('data-products.km-lengths.table.not-confirmed');
+            ? t('data-products.km-lengths.data.confirmed')
+            : t('data-products.km-lengths.data.not-confirmed');
+        const layoutLocationConfirmationString = t('data-products.km-lengths.data.not-confirmed');
 
         locationPrecisionString = showingPreciseLocation
             ? gkLocationConfirmationString
@@ -83,6 +85,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
         <React.Fragment>
             <tr>
                 <td>{trackNumber}</td>
+                <td>{trackNumberOid}</td>
                 <td>{kilometer}</td>
                 <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(startM, Precision.measurementMeterDistance)}
@@ -108,14 +111,14 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
                     {!showingPreciseLocation &&
                         hasLayoutLocation &&
                         layoutGeometrySource === 'IMPORTED' &&
-                        t('data-products.km-lengths.table.imported-warning')}
+                        t('data-products.km-lengths.data.imported-warning')}
                     {showingPreciseLocation &&
                         gkLocation?.source === 'FROM_LAYOUT' &&
-                        t('data-products.km-lengths.table.imported-warning')}
+                        t('data-products.km-lengths.data.imported-warning')}
 
                     {hasLayoutLocation &&
                         layoutGeometrySource === 'GENERATED' &&
-                        t('data-products.km-lengths.table.generated-warning')}
+                        t('data-products.km-lengths.data.generated-warning')}
                 </td>
             </tr>
         </React.Fragment>
