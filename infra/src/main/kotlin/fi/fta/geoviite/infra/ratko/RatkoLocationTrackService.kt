@@ -48,11 +48,11 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import java.time.Instant
 
 @GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -214,7 +214,7 @@ constructor(
                     splitTargetTrack,
                     splitRelinkedSwitches,
                     publicationTime,
-                    publishedSwitchJoints,
+                    splitSourceTrack.geocodingContext,
                 )
             }
 
@@ -238,7 +238,7 @@ constructor(
         splitTargetTrack: RatkoSplitTargetTrack,
         relinkedSwitches: List<IntId<LayoutSwitch>>,
         publicationTime: Instant,
-        publishedSwitchJoints: Map<IntId<LayoutSwitch>, List<PublishedSwitchJoint>>,
+        geocodingContext: GeocodingContext<ReferenceLineM>,
     ) {
         val switchesToUpdate =
             relinkedSwitches.filter { relinkedSwitch -> relinkedSwitch in splitTargetTrack.track.switchIds }
@@ -246,10 +246,9 @@ constructor(
         val trackKmsToUpdate =
             switchesToUpdate
                 .flatMap { switchId ->
-                    publishedSwitchJoints
-                        .getValue(switchId)
-                        .map { joint -> joint.address }
-                        .map { address -> address.kmNumber }
+                    splitTargetTrack.geometry.getSwitchLocations(switchId).mapNotNull { (_, point) ->
+                        geocodingContext.toAddressPoint(point)?.first?.address?.kmNumber
+                    }
                 }
                 .toSet()
 
@@ -602,9 +601,17 @@ constructor(
                 )
             } else {
                 val allKms = addresses.allPoints.asSequence().map { point -> point.address.kmNumber }.toSet()
-                val removedKms = changedKmNumbers.filterNot { changedKm -> changedKm in allKms }.toSet()
+                val minTrackKm = allKms.min()
+                val maxTrackKm = allKms.max()
 
-                deleteLocationTrackPoints(removedKms, locationTrackRatkoOid)
+                // This happens for example when a km-post has been removed in the "middle" of a track.
+                val removedKmsWithinTrackBoundaries =
+                    changedKmNumbers
+                        .filterNot { changedKm -> changedKm in allKms }
+                        .filter { kmNumber -> kmNumber > minTrackKm && kmNumber < maxTrackKm }
+                        .toSet()
+
+                deleteLocationTrackPoints(removedKmsWithinTrackBoundaries, locationTrackRatkoOid)
                 updateLocationTrackGeometry(locationTrackOid = locationTrackRatkoOid, newPoints = changedMidPoints)
             }
 
