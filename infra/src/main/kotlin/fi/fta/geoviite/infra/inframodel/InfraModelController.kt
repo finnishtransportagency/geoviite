@@ -19,20 +19,18 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.util.FILENAME_DATE_FORMATTER
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.GvtZipEntry
 import fi.fta.geoviite.infra.util.toFileDownloadResponse
 import fi.fta.geoviite.infra.util.zip
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
-
-private val ZIP_TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
 @GeoviiteController("/inframodel")
 class InfraModelController
@@ -234,7 +232,7 @@ private fun getInfraModelBatchFilenameLocalizationParams(
         mutableMapOf(
                 "applicability" to translation.t("enum.PlanApplicability.${applicability?.name ?: "UNKNOWN"}"),
                 "alignmentName" to alignmentName,
-                "date" to LocalDate.now().format(ZIP_TIMESTAMP_FORMATTER),
+                "date" to FILENAME_DATE_FORMATTER.format(Instant.now()),
             )
             .let { paramMap ->
                 startKmNumber?.let { paramMap.put(START_KM_PARAM_KEY, it.toString()) }

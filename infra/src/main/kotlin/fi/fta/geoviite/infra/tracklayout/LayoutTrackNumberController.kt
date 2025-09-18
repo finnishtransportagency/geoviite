@@ -25,11 +25,10 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
+import fi.fta.geoviite.infra.util.FILENAME_DATE_FORMATTER
 import fi.fta.geoviite.infra.util.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.toResponse
 import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -188,6 +187,7 @@ class LayoutTrackNumberController(
                         "trackNumber" to trackNumber.number,
                         "startKm" to startKmNumber,
                         "endKm" to endKmNumber,
+                        "date" to FILENAME_DATE_FORMATTER.format(Instant.now()),
                     )
                 val hasKms = startKmNumber != null || endKmNumber != null
 
@@ -222,12 +222,10 @@ class LayoutTrackNumberController(
             )
 
         val localization = localizationService.getLocalization(lang)
-        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
-
         val filename =
             localization.filename(
                 "km-lengths-entire-track-network",
-                localizationParams("date" to dateFormatter.format(Instant.now())),
+                localizationParams("date" to FILENAME_DATE_FORMATTER.format(Instant.now())),
             )
 
         return getCsvResponseEntity(csv, filename)
