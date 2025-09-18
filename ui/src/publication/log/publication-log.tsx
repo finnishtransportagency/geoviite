@@ -1,14 +1,9 @@
 import * as React from 'react';
 import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
-import {
-    DatePicker,
-    DatePickerDateSource,
-    END_OF_CENTURY,
-    START_OF_2022,
-} from 'vayla-design-lib/datepicker/datepicker';
+import { DatePicker, END_OF_CENTURY, START_OF_2022 } from 'vayla-design-lib/datepicker/datepicker';
 import { daysBetween, parseISOOrUndefined } from 'utils/date-utils';
-import { endOfDay, startOfDay } from 'date-fns';
+import { endOfDay } from 'date-fns';
 import {
     getPublicationsAsTableItems,
     getPublicationsCsvUri,
@@ -30,12 +25,10 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { useAppNavigate } from 'common/navigate';
-import { defaultPublicationSearch } from 'publication/publication-utils';
 import { DOWNLOAD_PUBLICATION } from 'user/user-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import { debounceAsync } from 'utils/async-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { SortDirection, TableSorting } from 'utils/table-utils';
+import { TableSorting } from 'utils/table-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'tool-bar/search-dropdown';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
@@ -43,36 +36,9 @@ import { DropdownSize } from 'vayla-design-lib/dropdown/dropdown';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
 import { TFunction } from 'i18next';
+import { useMemoizedDate, useRateLimitedTwoPartEffect } from 'utils/react-utils';
 
 const MAX_SEARCH_DAYS = 180;
-
-type TableFetchFn = (
-    from?: Date,
-    to?: Date,
-    specificItem?: PublishableObjectIdAndType,
-    sortBy?: keyof SortablePublicationTableProps,
-    order?: SortDirection,
-) => Promise<Page<PublicationTableItem>>;
-
-let fetchId = 0;
-const debouncedGetPublicationsAsTableItems = debounceAsync(getPublicationsAsTableItems, 500);
-
-type DataSourceChangeMethod = DatePickerDateSource | 'SORTING_CHANGED';
-
-const publicationTableFetchFunctionByChangeMethod = (
-    changeMethod: DataSourceChangeMethod,
-): TableFetchFn => {
-    switch (changeMethod) {
-        case 'TEXT':
-            return debouncedGetPublicationsAsTableItems;
-        case 'PICKER':
-            return getPublicationsAsTableItems;
-        case 'SORTING_CHANGED':
-            return getPublicationsAsTableItems;
-        default:
-            return exhaustiveMatchingGuard(changeMethod);
-    }
-};
 
 type PublicationLogTableHeadingProps = {
     isLoading: boolean;
@@ -159,10 +125,84 @@ function getSearchableItemName(
     }
 }
 
+const isValidPublicationLogSearchRange = (
+    specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
+    start: Date | undefined,
+    end: Date | undefined,
+): boolean => {
+    return (
+        specificItem !== undefined || // go nuts with single-item searches, they're cheap
+        (start !== undefined && daysBetween(start, end ?? new Date()) < MAX_SEARCH_DAYS)
+    );
+};
+
+function usePublicationLogSearch(
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+    specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
+    sortInfo: TableSorting<SortablePublicationTableProps>,
+): { pagedPublications: Page<PublicationTableItem> | undefined; isLoading: boolean } {
+    const [isLoading, setIsLoading] = React.useState(false);
+    const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
+    const displayedSearchResultParams = React.useRef<
+        | {
+              startDate: Date | undefined;
+              endDate: Date | undefined;
+              specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined;
+              sortInfo: TableSorting<SortablePublicationTableProps>;
+          }
+        | undefined
+    >(undefined);
+
+    const clearPublicationsTable = () => {
+        setPagedPublications({
+            totalCount: 0,
+            items: [],
+            start: 0,
+        });
+    };
+
+    useRateLimitedTwoPartEffect(
+        () => {
+            const lastSearch = displayedSearchResultParams.current;
+            if (!isValidPublicationLogSearchRange(specificItem, startDate, endDate)) {
+                clearPublicationsTable();
+                return undefined;
+            } else if (
+                lastSearch !== undefined &&
+                lastSearch.startDate === startDate &&
+                lastSearch.endDate === endDate &&
+                lastSearch.specificItem === specificItem &&
+                (pagedPublications?.items.length ?? 0) < MAX_RETURNED_PUBLICATION_LOG_ROWS
+            ) {
+                // only sort order changed, but we're displaying every displayable row: elide search call
+                return undefined;
+            } else {
+                setIsLoading(true);
+                return getPublicationsAsTableItems(
+                    startDate,
+                    endDate,
+                    specificItem === undefined ? undefined : searchableItemIdAndType(specificItem),
+                    sortInfo.propName,
+                    sortInfo.direction,
+                );
+            }
+        },
+        (results) => {
+            setPagedPublications(results);
+            setIsLoading(false);
+            displayedSearchResultParams.current = { startDate, endDate, specificItem, sortInfo };
+        },
+        500,
+        [startDate, endDate, specificItem, sortInfo],
+    );
+
+    return { isLoading, pagedPublications };
+}
+
 type PublicationLogProps = {
     layoutContext: LayoutContext;
 };
-
 const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -177,140 +217,46 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
         [],
     );
 
-    const storedStartDate = parseISOOrUndefined(selectedPublicationSearch?.startDate);
-    const storedEndDate = parseISOOrUndefined(selectedPublicationSearch?.endDate);
-    const storedSpecificItem = selectedPublicationSearch?.specificItem;
+    const specificItem = selectedPublicationSearch?.specificItem;
+    const startDate = useMemoizedDate(
+        parseISOOrUndefined(
+            specificItem === undefined
+                ? selectedPublicationSearch?.globalStartDate
+                : selectedPublicationSearch?.specificItemStartDate,
+        ),
+    );
+    const endDate = useMemoizedDate(
+        parseISOOrUndefined(
+            specificItem === undefined
+                ? selectedPublicationSearch?.globalEndDate
+                : selectedPublicationSearch?.specificItemEndDate,
+        ),
+    );
 
     const [sortInfo, setSortInfo] =
         React.useState<TableSorting<SortablePublicationTableProps>>(SortedByTimeDesc);
-    const [isLoading, setIsLoading] = React.useState(false);
-    const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
 
-    React.useEffect(() => {
-        if (!selectedPublicationSearch) {
-            trackLayoutActionDelegates.setSelectedPublicationSearch(defaultPublicationSearch);
-        }
+    const { isLoading, pagedPublications } = usePublicationLogSearch(
+        startDate,
+        endDate,
+        specificItem,
+        sortInfo,
+    );
 
-        updatePublicationsTable(
-            storedStartDate ?? parseISOOrUndefined(defaultPublicationSearch.startDate),
-            storedEndDate ?? parseISOOrUndefined(defaultPublicationSearch.endDate),
-            storedSpecificItem,
-            sortInfo,
-            getPublicationsAsTableItems,
-        );
-    }, []);
-
-    const updateTableSorting = (updatedSort: TableSorting<SortablePublicationTableProps>) => {
-        if (pagedPublications?.items.length === MAX_RETURNED_PUBLICATION_LOG_ROWS) {
-            updatePublicationsTable(
-                storedStartDate,
-                storedEndDate,
-                storedSpecificItem,
-                updatedSort,
-                publicationTableFetchFunctionByChangeMethod('SORTING_CHANGED'),
-            ).then(() => setSortInfo(updatedSort));
-        } else {
-            setSortInfo(updatedSort);
-        }
-    };
-
-    const setSpecificItem = (
-        newSpecificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
-    ) => {
-        trackLayoutActionDelegates.setSelectedPublicationSearchSearchableItem(newSpecificItem);
-        updatePublicationsTable(
-            storedStartDate,
-            storedEndDate,
-            newSpecificItem,
-            sortInfo,
-            publicationTableFetchFunctionByChangeMethod('PICKER'),
-        );
-    };
-
-    const setStartDate = (newStartDate: Date | undefined, source: DataSourceChangeMethod) => {
+    const setStartDate = (newStartDate: Date | undefined) => {
         trackLayoutActionDelegates.setSelectedPublicationSearchStartDate(
             newStartDate?.toISOString(),
         );
-        updatePublicationsTable(
-            newStartDate,
-            storedEndDate,
-            storedSpecificItem,
-            sortInfo,
-            publicationTableFetchFunctionByChangeMethod(source),
-        );
     };
 
-    const setEndDate = (newEndDate: Date | undefined, source: DataSourceChangeMethod) => {
+    const setEndDate = (newEndDate: Date | undefined) => {
         trackLayoutActionDelegates.setSelectedPublicationSearchEndDate(newEndDate?.toISOString());
-        updatePublicationsTable(
-            storedStartDate,
-            newEndDate,
-            storedSpecificItem,
-            sortInfo,
-            publicationTableFetchFunctionByChangeMethod(source),
-        );
     };
 
-    const isValidPublicationLogSearchRange = (
-        specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
-        start: Date | undefined,
-        end: Date | undefined,
-    ): boolean => {
-        return (
-            specificItem !== undefined || // go nuts with single-item searches, they're cheap
-            (start !== undefined && end !== undefined && daysBetween(start, end) < MAX_SEARCH_DAYS)
-        );
-    };
-
-    const isStoredSearchRangeValid = isValidPublicationLogSearchRange(
-        storedSpecificItem,
-        storedStartDate,
-        storedEndDate,
-    );
-
-    const updatePublicationsTable = (
-        startDate: Date | undefined,
-        endDate: Date | undefined,
-        specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
-        sortInfo: TableSorting<SortablePublicationTableProps>,
-        fetchFn: TableFetchFn,
-    ): Promise<Page<PublicationTableItem> | undefined> => {
-        if (!isValidPublicationLogSearchRange(specificItem, startDate, endDate)) {
-            clearPublicationsTable();
-            return Promise.resolve(undefined);
-        }
-
-        setIsLoading(true);
-        const currentFetchId = ++fetchId;
-
-        return fetchFn(
-            startDate && startOfDay(startDate),
-            endDate && endOfDay(endDate),
-            specificItem === undefined ? undefined : searchableItemIdAndType(specificItem),
-            sortInfo.propName,
-            sortInfo.direction,
-        ).then((r) => {
-            if (fetchId === currentFetchId) {
-                r && setPagedPublications(r);
-                setIsLoading(false);
-            }
-
-            return r;
-        });
-    };
-
-    const clearPublicationsTable = () => {
-        setPagedPublications({
-            totalCount: 0,
-            items: [],
-            start: 0,
-        });
-    };
+    const isSearchRangeValid = isValidPublicationLogSearchRange(specificItem, startDate, endDate);
 
     const endDateErrors =
-        storedStartDate && storedEndDate && storedStartDate > storedEndDate
-            ? [t('publication-log.end-before-start')]
-            : [];
+        startDate && endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
 
     const isTruncated =
         pagedPublications !== undefined &&
@@ -333,26 +279,36 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
             <div className={styles['publication-log__content']}>
                 <div className={styles['publication-log__actions']}>
                     <FieldLayout
-                        label={t('publication-log.start-date')}
+                        label={
+                            specificItem === undefined
+                                ? t('publication-log.start-date')
+                                : t('publication-log.start-date-with-specific-object')
+                        }
                         value={
                             <DatePicker
-                                value={storedStartDate}
-                                onChange={(date, source) => setStartDate(date, source)}
+                                value={startDate}
+                                onChange={setStartDate}
                                 minDate={START_OF_2022}
                                 maxDate={END_OF_CENTURY}
                                 qa-id={'publication-log-start-date-input'}
+                                isClearable
                             />
                         }
                     />
                     <FieldLayout
-                        label={t('publication-log.end-date')}
+                        label={
+                            specificItem === undefined
+                                ? t('publication-log.end-date')
+                                : t('publication-log.end-date-with-specific-object')
+                        }
                         value={
                             <DatePicker
-                                value={storedEndDate}
-                                onChange={(date, source) => setEndDate(date, source)}
+                                value={endDate}
+                                onChange={setEndDate}
                                 minDate={START_OF_2022}
                                 maxDate={END_OF_CENTURY}
                                 qa-id={'publication-log-end-date-input'}
+                                isClearable
                             />
                         }
                         errors={endDateErrors}
@@ -364,8 +320,10 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                                 layoutContext={officialMainLayoutContext()}
                                 splittingState={undefined}
                                 placeholder={t('publication-log.search-specific-object')}
-                                onItemSelected={setSpecificItem}
-                                value={storedSpecificItem}
+                                onItemSelected={
+                                    trackLayoutActionDelegates.setSelectedPublicationSearchSearchableItem
+                                }
+                                value={specificItem}
                                 getName={(name) => getSearchableItemName(name, trackNumbers, t)}
                                 disabled={false}
                                 size={DropdownSize.LARGE}
@@ -385,9 +343,9 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                         <div className={styles['publication-log__export_button']}>
                             <Button
                                 icon={Icons.Download}
-                                disabled={!isStoredSearchRangeValid}
+                                disabled={!isSearchRangeValid}
                                 title={
-                                    isStoredSearchRangeValid
+                                    isSearchRangeValid
                                         ? undefined
                                         : t('publication-log.search-range-too-long', {
                                               maxDays: MAX_SEARCH_DAYS,
@@ -395,15 +353,14 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                                 }
                                 onClick={() =>
                                     (location.href = getPublicationsCsvUri(
-                                        storedStartDate,
-                                        storedEndDate && endOfDay(storedEndDate),
-                                        storedSpecificItem === undefined
+                                        startDate,
+                                        endDate && endOfDay(endDate),
+                                        specificItem === undefined
                                             ? undefined
                                             : {
-                                                  idAndType:
-                                                      searchableItemIdAndType(storedSpecificItem),
+                                                  idAndType: searchableItemIdAndType(specificItem),
                                                   name: getSearchableItemName(
-                                                      storedSpecificItem,
+                                                      specificItem,
                                                       trackNumbers,
                                                       t,
                                                   ),
@@ -418,7 +375,7 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                     </PrivilegeRequired>
                 </div>
                 <div className={styles['publication-log__count-header']}>
-                    {isStoredSearchRangeValid ? (
+                    {isSearchRangeValid ? (
                         <PublicationLogTableHeading
                             isLoading={isLoading}
                             isTruncated={isTruncated}
@@ -437,8 +394,10 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                     isLoading={isLoading}
                     items={pagedPublications?.items || []}
                     sortInfo={sortInfo}
-                    onSortChange={updateTableSorting}
-                    displaySingleItemHistory={setSpecificItem}
+                    onSortChange={setSortInfo}
+                    displaySingleItemHistory={
+                        trackLayoutActionDelegates.startFreshSpecificItemPublicationLogSearch
+                    }
                 />
             </div>
         </div>
