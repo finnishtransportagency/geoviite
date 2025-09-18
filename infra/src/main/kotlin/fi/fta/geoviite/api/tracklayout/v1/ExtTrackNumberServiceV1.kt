@@ -57,13 +57,10 @@ constructor(
 
     fun createTrackNumberModificationResponse(
         oid: Oid<LayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         publications: PublicationComparison,
         coordinateSystem: Srid,
     ): ExtModifiedTrackNumberResponseV1? {
-        val trackNumberId =
-            layoutTrackNumberDao.lookupByExternalId(oid.toString())?.id
-                ?: throw ExtOidNotFoundExceptionV1("track number lookup failed, oid=$oid")
-
         return layoutTrackNumberDao
             .fetchOfficialVersionComparison(
                 LayoutBranch.main,

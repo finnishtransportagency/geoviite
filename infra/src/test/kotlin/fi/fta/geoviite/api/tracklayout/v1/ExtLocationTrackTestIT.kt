@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -257,8 +256,8 @@ constructor(
 
     @Test
     fun `Location track api endpoints return HTTP 400 if the OID is invalid format`() { // todo abstract this to even
-                                                                                        // larger scale (not location
-                                                                                        // track specific)
+        // larger scale (not location
+        // track specific)
         val invalidOid = "asd"
         val expectedStatus = HttpStatus.BAD_REQUEST
 
@@ -270,115 +269,6 @@ constructor(
             )
 
         tests.forEach { apiCall -> apiCall(invalidOid, emptyArray(), expectedStatus) }
-    }
-
-    @Test
-    fun `Location track api endpoints return HTTP 400 if the track layout version is invalid format`() { // TODO
-                                                                                                         // Abstract
-                                                                                                         // this to even
-                                                                                                         // larger scale
-                                                                                                         // (not
-                                                                                                         // location
-                                                                                                         // track
-                                                                                                         // specific)
-        val oid = publishSimpleValidLocationTrack().toString()
-        val invalidTrackLayoutVersion = "asd"
-        val expectedErrorStatus = HttpStatus.BAD_REQUEST
-
-        val tests =
-            listOf(
-                api.locationTracks::getWithExpectedError,
-                api.locationTracks::getGeometryWithExpectedError,
-            )
-
-        tests.forEach { apiCall ->
-            apiCall(oid, arrayOf("rataverkon_versio" to invalidTrackLayoutVersion), expectedErrorStatus)
-        }
-    }
-
-    @Test
-    fun `Location track modifications api returns HTTP 400 if either the start or end track layout version is invalid format`() { // TODO Abstract this to even larger scale (not location track specific)
-        val oid = publishSimpleValidLocationTrack().toString()
-        val invalidUuid = "asd"
-        val validButNonExistingUuid = "00000000-0000-0000-0000-000000000000"
-
-        api.locationTracks.getModifiedWithExpectedError(
-            oid,
-            "alkuversio" to invalidUuid,
-            httpStatus = HttpStatus.BAD_REQUEST,
-        )
-
-        api.locationTracks.getModifiedWithExpectedError(
-            oid,
-            "alkuversio" to validButNonExistingUuid,
-            "loppuversio" to invalidUuid,
-            httpStatus = HttpStatus.BAD_REQUEST,
-        )
-    }
-
-    @Test
-    fun `Location track api endpoints return HTTP 404 if the given OID is not found`() {
-        // A publication is created so that the call won't fail due to zero available publications.
-        extTestDataService.publishInMain()
-
-        val nonExistingOid = someOid<LocationTrack>().toString()
-        val expectedHttpStatus = HttpStatus.NOT_FOUND
-
-        val tests =
-            listOf(
-                api.locationTracks::getWithExpectedError,
-                api.locationTracks::getGeometryWithExpectedError,
-                api.locationTracks::getModifiedWithExpectedError,
-            )
-
-        tests.forEach { apiCall -> apiCall(nonExistingOid, emptyArray(), expectedHttpStatus) }
-    }
-
-    @Test
-    fun `Location track api endpoints return HTTP 404 if the track layout version is not found`() {
-
-        val validButNonExistingUuid = "00000000-0000-0000-0000-000000000000"
-        val expectedErrorStatus = HttpStatus.NOT_FOUND
-
-        val tests =
-            listOf(
-                api.locationTracks::getWithExpectedError,
-                api.locationTracks::getGeometryWithExpectedError,
-            )
-
-        tests.forEach { apiCall ->
-            apiCall(oid.toString(), arrayOf("rataverkon_versio" to validButNonExistingUuid), expectedErrorStatus)
-        }
-    }
-
-    @Test
-    fun `Location track geometry api returns HTTP 404 if the track layout version is not found`() {
-        val validButNonExistingUuid = "00000000-0000-0000-0000-000000000000"
-
-        api.locationTracks.getGeometryWithExpectedError(
-            someOid<LocationTrack>().toString(),
-            "rataverkon_versio" to validButNonExistingUuid,
-            httpStatus = HttpStatus.NOT_FOUND,
-        )
-    }
-
-    @Test
-    fun `Location track modifications api returns HTTP 404 if either the start or end track layout version is not found`() {
-        val validButNonExistingUuid = "00000000-0000-0000-0000-000000000000"
-        val emptyButExistingPublication = extTestDataService.publishInMain()
-
-        api.locationTracks.getModifiedWithExpectedError(
-            someOid<LocationTrack>().toString(),
-            "alkuversio" to validButNonExistingUuid,
-            httpStatus = HttpStatus.NOT_FOUND,
-        )
-
-        api.locationTracks.getModifiedWithExpectedError(
-            someOid<LocationTrack>().toString(),
-            "alkuversio" to emptyButExistingPublication.uuid.toString(),
-            "loppuversio" to validButNonExistingUuid,
-            httpStatus = HttpStatus.NOT_FOUND,
-        )
     }
 
     @Test
@@ -402,31 +292,4 @@ constructor(
     @Test fun `Location track geometry api respects the track layout version argument`() {}
 
     @Test fun `Location track geometry api respects the coordinate system argument`() {}
-
-    private fun publishSimpleValidLocationTrack(): Oid<LocationTrack> {
-        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceWithOid(
-                mainDraftContext,
-                segments = listOf(segment),
-            )
-
-        val (track, geometry) =
-            mainDraftContext
-                .saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment))
-                .let(locationTrackService::getWithGeometry)
-
-        val oid =
-            someOid<LocationTrack>().also { oid ->
-                locationTrackService.insertExternalId(LayoutBranch.main, track.id as IntId, oid)
-            }
-
-        extTestDataService.publishInMain(
-            trackNumbers = listOf(trackNumberId),
-            referenceLines = listOf(referenceLineId),
-            locationTracks = listOf(track.id as IntId),
-        )
-
-        return oid
-    }
 }
