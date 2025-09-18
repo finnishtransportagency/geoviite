@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import org.springframework.beans.factory.annotation.Autowired
 import java.time.Instant
 
@@ -36,7 +37,9 @@ constructor(
             locationTrackCollection =
                 extGetLocationTrackCollection(
                     LayoutContext.of(publication.layoutBranch.branch, PublicationState.OFFICIAL),
-                    locationTrackDao.listOfficialAtMoment(publication.layoutBranch.branch, publication.publicationTime),
+                    locationTrackDao
+                        .listOfficialAtMoment(publication.layoutBranch.branch, publication.publicationTime)
+                        .filter { track -> track.state != LocationTrackState.DELETED },
                     coordinateSystem,
                     publication.publicationTime,
                 ),

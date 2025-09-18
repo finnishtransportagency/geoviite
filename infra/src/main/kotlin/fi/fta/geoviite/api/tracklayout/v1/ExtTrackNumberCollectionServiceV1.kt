@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
@@ -34,10 +35,12 @@ constructor(
             trackNumberCollection =
                 extGetTrackNumberCollection(
                     LayoutContext.of(publication.layoutBranch.branch, PublicationState.OFFICIAL),
-                    layoutTrackNumberDao.listOfficialAtMoment(
-                        publication.layoutBranch.branch,
-                        publication.publicationTime,
-                    ),
+                    layoutTrackNumberDao
+                        .listOfficialAtMoment(
+                            publication.layoutBranch.branch,
+                            publication.publicationTime,
+                        )
+                        .filter { trackNumber -> trackNumber.state != LayoutState.DELETED },
                     coordinateSystem,
                     publication.publicationTime,
                 ),

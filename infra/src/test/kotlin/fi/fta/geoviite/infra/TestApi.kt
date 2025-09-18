@@ -43,6 +43,19 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
         return doGet(request, expectedStatus)
     }
 
+    fun doGetWithParamsWithoutResponse(
+        url: String,
+        params: Map<String, String>,
+        expectedStatus: HttpStatus,
+        headers: HttpHeaders = HttpHeaders(),
+    ) {
+        val request = MockMvcRequestBuilders.get(url)
+        params.forEach { (key, value) -> request.param(key, value) }
+        request.headers(headers)
+
+        mockMvc.perform(request).andExpect(status().isEqualTo(expectedStatus.value())).andReturn()
+    }
+
     fun doPost(url: String, body: Any?, expectedStatus: HttpStatus): String {
         val bodyString = body?.let { b -> mapper.writeValueAsString(b) }
         return doPostWithString(url, bodyString, expectedStatus)
