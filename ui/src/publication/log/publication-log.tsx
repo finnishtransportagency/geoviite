@@ -143,7 +143,11 @@ type SearchParams = {
     sortInfo: TableSorting<SortablePublicationTableProps>;
 };
 
-function searchParamsDiffer(a: SearchParams | undefined, b: SearchParams | undefined) {
+function searchParamsAffectingVisibleRowsDiffer(
+    pagedPublications: Page<PublicationTableItem> | undefined,
+    a: SearchParams | undefined,
+    b: SearchParams | undefined,
+) {
     return (
         (a === undefined) !== (b === undefined) ||
         (a !== undefined &&
@@ -151,7 +155,8 @@ function searchParamsDiffer(a: SearchParams | undefined, b: SearchParams | undef
             (a.startDate !== b.startDate ||
                 a.endDate !== b.endDate ||
                 a.specificItem !== b.specificItem ||
-                a.sortInfo !== b.sortInfo))
+                ((pagedPublications?.items.length ?? 0) >= MAX_RETURNED_PUBLICATION_LOG_ROWS &&
+                    a.sortInfo !== b.sortInfo)))
     );
 }
 
@@ -172,44 +177,44 @@ function usePublicationLogSearch(
         });
     };
 
+    const search = {
+        startDate,
+        endDate,
+        specificItem,
+        sortInfo,
+    };
+
     useRateLimitedTwoPartEffect(
         () => {
             if (!isValidPublicationLogSearchRange(specificItem, startDate, endDate)) {
                 clearPublicationsTable();
+                setLastSearch(search);
+                return undefined;
+            } else if (
+                !searchParamsAffectingVisibleRowsDiffer(pagedPublications, lastSearch, search)
+            ) {
+                setLastSearch(search);
                 return undefined;
             } else {
-                if (
-                    lastSearch !== undefined &&
-                    lastSearch.startDate === startDate &&
-                    lastSearch.endDate === endDate &&
-                    lastSearch.specificItem === specificItem &&
-                    (pagedPublications?.items.length ?? 0) < MAX_RETURNED_PUBLICATION_LOG_ROWS
-                ) {
-                    // only sort order changed, but we're displaying every displayable row: elide search call
-                    return undefined;
-                } else {
-                    return getPublicationsAsTableItems(
-                        startDate && startOfDay(startDate),
-                        endDate && endOfDay(endDate),
-                        specificItem === undefined
-                            ? undefined
-                            : searchableItemIdAndType(specificItem),
-                        sortInfo.propName,
-                        sortInfo.direction,
-                    );
-                }
+                return getPublicationsAsTableItems(
+                    startDate && startOfDay(startDate),
+                    endDate && endOfDay(endDate),
+                    specificItem === undefined ? undefined : searchableItemIdAndType(specificItem),
+                    sortInfo.propName,
+                    sortInfo.direction,
+                );
             }
         },
         (results) => {
             setPagedPublications(results);
-            setLastSearch({ startDate, endDate, specificItem, sortInfo });
+            setLastSearch(search);
         },
         500,
         [startDate, endDate, specificItem, sortInfo],
     );
 
     return {
-        isLoading: searchParamsDiffer({ startDate, endDate, specificItem, sortInfo }, lastSearch),
+        isLoading: searchParamsAffectingVisibleRowsDiffer(pagedPublications, search, lastSearch),
         pagedPublications,
     };
 }
