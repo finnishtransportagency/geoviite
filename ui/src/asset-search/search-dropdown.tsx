@@ -17,6 +17,12 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
 import { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
+import {
+    kmPostSearchItemName,
+    locationTrackSearchItemName,
+    switchSearchItemName,
+    trackNumberSearchItemName,
+} from 'asset-search/search-utils';
 
 export type LocationTrackItemValue = {
     locationTrack: LayoutLocationTrack;
@@ -25,13 +31,14 @@ export type LocationTrackItemValue = {
 
 function createLocationTrackOptionItem(
     locationTrack: LayoutLocationTrack,
+    t: TFunction<'translation', undefined>,
 ): Item<LocationTrackItemValue> {
     return dropdownOption(
         {
             type: SearchItemType.LOCATION_TRACK,
             locationTrack: locationTrack,
         } as const,
-        `${locationTrack.name}, ${locationTrack.description}`,
+        locationTrackSearchItemName(locationTrack, t),
         `location-track-${locationTrack.id}`,
     );
 }
@@ -41,13 +48,16 @@ type SwitchItemValue = {
     type: SearchItemType.SWITCH;
 };
 
-function createSwitchOptionItem(layoutSwitch: LayoutSwitch): Item<SwitchItemValue> {
+function createSwitchOptionItem(
+    layoutSwitch: LayoutSwitch,
+    t: TFunction<'translation', undefined>,
+): Item<SwitchItemValue> {
     return dropdownOption(
         {
             type: SearchItemType.SWITCH,
             layoutSwitch: layoutSwitch,
         } as const,
-        layoutSwitch.name,
+        switchSearchItemName(layoutSwitch, t),
         `switch-${layoutSwitch.id}`,
     );
 }
@@ -64,13 +74,14 @@ export type KmPostItemValue = {
 
 function createTrackNumberOptionItem(
     layoutTrackNumber: LayoutTrackNumber,
+    t: TFunction<'translation', undefined>,
 ): Item<TrackNumberItemValue> {
     return dropdownOption(
         {
             type: SearchItemType.TRACK_NUMBER,
             trackNumber: layoutTrackNumber,
         } as const,
-        layoutTrackNumber.number,
+        trackNumberSearchItemName(layoutTrackNumber, t),
         `track-number-${layoutTrackNumber.id}`,
     );
 }
@@ -85,10 +96,7 @@ function createKmPostOptionItem(
             type: SearchItemType.KM_POST,
             kmPost: layoutKmPost,
         } as const,
-        t('asset-search.km-post-on-track-number', {
-            kmPost: layoutKmPost.kmNumber,
-            trackNumber: allTrackNumbers.find((tn) => tn.id === layoutKmPost.trackNumberId)?.number,
-        }),
+        kmPostSearchItemName(layoutKmPost, allTrackNumbers, t),
         `km-post-${layoutKmPost.id}`,
     );
 }
@@ -122,6 +130,7 @@ async function getOptions(
     searchTypes: SearchItemType[],
     allTrackNumbers: LayoutTrackNumber[],
     t: TFunction<'translation', undefined>,
+    includeDeleted: boolean,
 ): Promise<Item<SearchItemValue<SearchItemType>>[]> {
     if (isNilOrBlank(searchTerm) || !searchTerm.match(SEARCH_REGEX)) {
         return Promise.resolve([]);
@@ -131,18 +140,19 @@ async function getOptions(
         searchTerm,
         layoutContext,
         searchTypes,
+        includeDeleted,
         locationTrackSearchScope,
     );
 
     const locationTrackOptions = searchResult.locationTracks.map((locationTrack) => {
-        return createLocationTrackOptionItem(locationTrack);
+        return createLocationTrackOptionItem(locationTrack, t);
     });
 
     return [
         searchResult.operatingPoints.map(createOperatingPointOptionItem),
         locationTrackOptions,
-        searchResult.switches.map(createSwitchOptionItem),
-        searchResult.trackNumbers.map(createTrackNumberOptionItem),
+        searchResult.switches.map((sw) => createSwitchOptionItem(sw, t)),
+        searchResult.trackNumbers.map((tn) => createTrackNumberOptionItem(tn, t)),
         searchResult.kmPosts.map((kp) => createKmPostOptionItem(kp, allTrackNumbers, t)),
     ].flat();
 }
@@ -167,6 +177,7 @@ type SearchDropdownProps<SearchTypes extends SearchItemType> = {
     disabled?: boolean;
     onItemSelected: (item: SearchItemValue<SearchTypes> | undefined) => void;
     searchTypes: SearchTypes[];
+    includeDeletedAssets: boolean;
     onBlur?: () => void;
     hasError?: boolean;
     value?: SearchItemValue<SearchTypes>;
@@ -192,6 +203,7 @@ export const SearchDropdown = <SearchTypes extends SearchItemType>({
     onItemSelected,
     splittingState,
     searchTypes,
+    includeDeletedAssets,
     onBlur,
     hasError,
     value,
@@ -214,6 +226,7 @@ export const SearchDropdown = <SearchTypes extends SearchItemType>({
                 searchTypes,
                 trackNumbers ?? [],
                 t,
+                includeDeletedAssets,
             ),
         [layoutContext, splittingState, trackNumbers],
     );

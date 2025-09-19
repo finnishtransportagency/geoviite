@@ -130,15 +130,14 @@ class LayoutKmPostService(
     fun saveDraft(branch: LayoutBranch, draftAsset: LayoutKmPost): LayoutRowVersion<LayoutKmPost> =
         saveDraftInternal(branch, draftAsset, NoParams.instance)
 
-    override fun contentMatches(term: String, item: LayoutKmPost): Boolean =
-        item.exists &&
+    override fun contentMatches(term: String, item: LayoutKmPost, includeDeleted: Boolean): Boolean =
+        (includeDeleted || item.exists) &&
             term.length >= KM_POST_SEARCH_TERM_MIN_LENGTH &&
             item.kmNumber.toString().contains(term.trim(), ignoreCase = true)
 
     fun idMatches(onlyIds: Collection<IntId<LayoutKmPost>>? = null): ((term: String, item: LayoutKmPost) -> Boolean) =
         { term, item ->
-            (onlyIds == null || onlyIds.contains(item.id)) &&
-                (item.id.toString() == term.trim() || item.kmNumber.toString() == term.trim())
+            (onlyIds == null || onlyIds.contains(item.id)) && item.id.toString() == term.trim()
         }
 }
 

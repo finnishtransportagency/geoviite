@@ -14,7 +14,7 @@ import {
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { createDelegates } from 'store/store-utils';
 import { useAppNavigate } from 'common/navigate';
-import { SearchItemType } from 'tool-bar/search-dropdown';
+import { SearchItemType } from 'asset-search/search-dropdown';
 
 type LocationTrackChangeInfoInfoboxProps = {
     locationTrack: LayoutLocationTrack;

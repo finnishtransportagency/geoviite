@@ -25,7 +25,7 @@ import { PublicationId, PublicationSearch } from 'publication/publication-model'
 import { defaultPublicationSearch } from 'publication/publication-utils';
 import { TimeStamp } from 'common/common-model';
 import { SearchablePublicationLogItem } from 'publication/log/publication-log';
-import { SearchItemValue } from 'tool-bar/search-dropdown';
+import { SearchItemValue } from 'asset-search/search-dropdown';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {

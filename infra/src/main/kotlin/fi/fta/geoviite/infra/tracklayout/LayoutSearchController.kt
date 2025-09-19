@@ -43,6 +43,7 @@ class LayoutSearchController(private val searchService: LayoutSearchService) {
         @RequestParam("limitPerResultType", required = true) limitPerResultType: Int,
         @RequestParam("locationTrackSearchScope", required = false) locationTrackSearchScope: IntId<LocationTrack>?,
         @RequestParam("types", required = true) types: List<TrackLayoutSearchedAssetType>,
+        @RequestParam("includeDeleted", required = false) includeDeleted: Boolean = false,
     ): TrackLayoutSearchResult {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return searchService.searchAssets(
@@ -51,6 +52,7 @@ class LayoutSearchController(private val searchService: LayoutSearchService) {
             limitPerResultType,
             locationTrackSearchScope,
             types,
+            includeDeleted,
         )
     }
 }

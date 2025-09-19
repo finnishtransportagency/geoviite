@@ -12,7 +12,7 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { useAppNavigate } from 'common/navigate';
 import { SearchablePublicationLogItem } from 'publication/log/publication-log';
-import { SearchItemValue } from 'tool-bar/search-dropdown';
+import { SearchItemValue } from 'asset-search/search-dropdown';
 import { SortableTableHeader } from 'vayla-design-lib/table/sortable-table-header';
 import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
 import { LayoutContext } from 'common/common-model';

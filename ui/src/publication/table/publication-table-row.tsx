@@ -10,7 +10,7 @@ import styles from './publication-table.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { PublicationTableDetails } from 'publication/table/publication-table-details';
-import { SearchItemType, SearchItemValue } from 'tool-bar/search-dropdown';
+import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { SearchablePublicationLogItem } from 'publication/log/publication-log';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { PublishedAsset } from 'publication/publication-api';

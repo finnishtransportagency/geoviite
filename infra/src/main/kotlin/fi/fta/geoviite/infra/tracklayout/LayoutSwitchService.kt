@@ -20,9 +20,9 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class LayoutSwitchService
@@ -123,8 +123,8 @@ constructor(
         onlyIds: Collection<IntId<LayoutSwitch>>? = null,
     ): ((term: String, item: LayoutSwitch) -> Boolean) = idMatches(dao, layoutContext, searchTerm, onlyIds)
 
-    override fun contentMatches(term: String, item: LayoutSwitch) =
-        item.exists && item.name.toString().replace("  ", " ").contains(term, true)
+    override fun contentMatches(term: String, item: LayoutSwitch, includeDeleted: Boolean) =
+        (includeDeleted || item.exists) && item.name.toString().replace("  ", " ").contains(term, true)
 
     @Transactional
     fun insertExternalIdForSwitch(branch: LayoutBranch, id: IntId<LayoutSwitch>, oid: Oid<LayoutSwitch>) =
