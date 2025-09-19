@@ -136,23 +136,33 @@ const isValidPublicationLogSearchRange = (
     );
 };
 
+type SearchParams = {
+    startDate: Date | undefined;
+    endDate: Date | undefined;
+    specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined;
+    sortInfo: TableSorting<SortablePublicationTableProps>;
+};
+
+function searchParamsDiffer(a: SearchParams | undefined, b: SearchParams | undefined) {
+    return (
+        (a === undefined) !== (b === undefined) ||
+        (a !== undefined &&
+            b !== undefined &&
+            (a.startDate !== b.startDate ||
+                a.endDate !== b.endDate ||
+                a.specificItem !== b.specificItem ||
+                a.sortInfo !== b.sortInfo))
+    );
+}
+
 function usePublicationLogSearch(
     startDate: Date | undefined,
     endDate: Date | undefined,
     specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
     sortInfo: TableSorting<SortablePublicationTableProps>,
 ): { pagedPublications: Page<PublicationTableItem> | undefined; isLoading: boolean } {
-    const [isLoading, setIsLoading] = React.useState(false);
     const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
-    const displayedSearchResultParams = React.useRef<
-        | {
-              startDate: Date | undefined;
-              endDate: Date | undefined;
-              specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined;
-              sortInfo: TableSorting<SortablePublicationTableProps>;
-          }
-        | undefined
-    >(undefined);
+    const [lastSearch, setLastSearch] = React.useState<SearchParams | undefined>(undefined);
 
     const clearPublicationsTable = () => {
         setPagedPublications({
@@ -164,40 +174,44 @@ function usePublicationLogSearch(
 
     useRateLimitedTwoPartEffect(
         () => {
-            const lastSearch = displayedSearchResultParams.current;
             if (!isValidPublicationLogSearchRange(specificItem, startDate, endDate)) {
                 clearPublicationsTable();
                 return undefined;
-            } else if (
-                lastSearch !== undefined &&
-                lastSearch.startDate === startDate &&
-                lastSearch.endDate === endDate &&
-                lastSearch.specificItem === specificItem &&
-                (pagedPublications?.items.length ?? 0) < MAX_RETURNED_PUBLICATION_LOG_ROWS
-            ) {
-                // only sort order changed, but we're displaying every displayable row: elide search call
-                return undefined;
             } else {
-                setIsLoading(true);
-                return getPublicationsAsTableItems(
-                    startDate,
-                    endDate,
-                    specificItem === undefined ? undefined : searchableItemIdAndType(specificItem),
-                    sortInfo.propName,
-                    sortInfo.direction,
-                );
+                if (
+                    lastSearch !== undefined &&
+                    lastSearch.startDate === startDate &&
+                    lastSearch.endDate === endDate &&
+                    lastSearch.specificItem === specificItem &&
+                    (pagedPublications?.items.length ?? 0) < MAX_RETURNED_PUBLICATION_LOG_ROWS
+                ) {
+                    // only sort order changed, but we're displaying every displayable row: elide search call
+                    return undefined;
+                } else {
+                    return getPublicationsAsTableItems(
+                        startDate,
+                        endDate,
+                        specificItem === undefined
+                            ? undefined
+                            : searchableItemIdAndType(specificItem),
+                        sortInfo.propName,
+                        sortInfo.direction,
+                    );
+                }
             }
         },
         (results) => {
             setPagedPublications(results);
-            setIsLoading(false);
-            displayedSearchResultParams.current = { startDate, endDate, specificItem, sortInfo };
+            setLastSearch({ startDate, endDate, specificItem, sortInfo });
         },
         500,
         [startDate, endDate, specificItem, sortInfo],
     );
 
-    return { isLoading, pagedPublications };
+    return {
+        isLoading: searchParamsDiffer({ startDate, endDate, specificItem, sortInfo }, lastSearch),
+        pagedPublications,
+    };
 }
 
 type PublicationLogProps = {
