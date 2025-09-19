@@ -7,12 +7,12 @@ import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -31,8 +31,7 @@ constructor(
     mockMvc: MockMvc,
     private val locationTrackService: LocationTrackService,
     private val extTestDataService: ExtApiTestDataServiceV1,
-    @Autowired private val publicationService: PublicationService,
-    service: PublicationService,
+    private val publicationService: PublicationService,
 ) : DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
@@ -40,25 +39,35 @@ constructor(
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getWithExpectedError,
             ::setupValidLocationTrack to api.locationTracks::getGeometryWithExpectedError,
+            ::setupValidTrackNumber to api.trackNumbers::getWithExpectedError,
+            ::setupValidTrackNumber to api.trackNumbers::getGeometryWithExpectedError,
         )
 
     private val modificationErrorTests =
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getModifiedWithExpectedError,
+            ::setupValidTrackNumber to api.trackNumbers::getModifiedWithExpectedError,
         )
 
     private val noContentTests =
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getWithEmptyBody,
             ::setupValidLocationTrack to api.locationTracks::getGeometryWithEmptyBody,
+            ::setupValidTrackNumber to api.trackNumbers::getWithEmptyBody,
+            ::setupValidTrackNumber to api.trackNumbers::getGeometryWithEmptyBody,
         )
 
     private val noContentModificationTests =
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getModifiedWithEmptyBody,
+            ::setupValidTrackNumber to api.trackNumbers::getModifiedWithEmptyBody,
         )
 
-    private val modificationSuccessTests = listOf(::setupValidLocationTrack to api.locationTracks::getModified)
+    private val modificationSuccessTests =
+        listOf(
+            ::setupValidLocationTrack to api.locationTracks::getModified,
+            ::setupValidTrackNumber to api.trackNumbers::getModified,
+        )
 
     @BeforeEach
     fun cleanup() {
@@ -119,16 +128,16 @@ constructor(
         val validButNonExistingUuid = "00000000-0000-0000-0000-000000000000"
         val expectedStatus = HttpStatus.BAD_REQUEST
 
-        modificationErrorTests.forEach { (oidSetup, apiCall) ->
-            val oid = oidSetup().toString()
-
-            apiCall(oid, arrayOf("alkuversio" to invalidTrackLayoutVersion), expectedStatus)
-            apiCall(
-                oid,
-                arrayOf("alkuversio" to validButNonExistingUuid, "loppuversio" to invalidTrackLayoutVersion),
-                expectedStatus,
-            )
-        }
+        modificationErrorTests
+            .map { (oidSetup, apiCall) -> oidSetup().toString() to apiCall }
+            .forEach { (oid, apiCall) ->
+                apiCall(oid, arrayOf("alkuversio" to invalidTrackLayoutVersion), expectedStatus)
+                apiCall(
+                    oid,
+                    arrayOf("alkuversio" to validButNonExistingUuid, "loppuversio" to invalidTrackLayoutVersion),
+                    expectedStatus,
+                )
+            }
     }
 
     @Test
@@ -138,19 +147,19 @@ constructor(
 
         val expectedStatus = HttpStatus.NOT_FOUND
 
-        modificationErrorTests.forEach { (oidSetup, apiCall) ->
-            val oid = oidSetup().toString()
-
-            apiCall(oid, arrayOf("alkuversio" to validButNonExistingUuid), expectedStatus)
-            apiCall(
-                oid,
-                arrayOf(
-                    "alkuversio" to emptyButExistingPublication.uuid.toString(),
-                    "loppuversio" to validButNonExistingUuid,
-                ),
-                expectedStatus,
-            )
-        }
+        modificationErrorTests
+            .map { (oidSetup, apiCall) -> oidSetup().toString() to apiCall }
+            .forEach { (oid, apiCall) ->
+                apiCall(oid, arrayOf("alkuversio" to validButNonExistingUuid), expectedStatus)
+                apiCall(
+                    oid,
+                    arrayOf(
+                        "alkuversio" to emptyButExistingPublication.uuid.toString(),
+                        "loppuversio" to validButNonExistingUuid,
+                    ),
+                    expectedStatus,
+                )
+            }
     }
 
     @Test
@@ -208,9 +217,24 @@ constructor(
         modificationSuccessTests
             .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
             .forEach { (oid, apiCall) ->
-                val response = apiCall(oid, arrayOf("alkuversio" to validButEmptyPublication.uuid.toString()))
-                assertEquals(oid.toString(), response.sijaintiraide.sijaintiraide_oid)
+                apiCall(oid, arrayOf("alkuversio" to validButEmptyPublication.uuid.toString()))
             }
+    }
+
+    private fun setupValidTrackNumber(): Oid<LayoutTrackNumber> {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+        val (trackNumberId, referenceLineId, oid) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                segments = listOf(segment),
+            )
+
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(referenceLineId),
+        )
+
+        return oid
     }
 
     private fun setupValidLocationTrack(): Oid<LocationTrack> {
