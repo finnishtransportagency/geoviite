@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -42,6 +43,7 @@ constructor(
     private val extTrackNumberGeometryService: ExtTrackNumberGeometryServiceV1,
     private val extTrackNumberCollectionService: ExtTrackNumberCollectionServiceV1,
     private val publicationService: PublicationService,
+    private val layoutTrackNumberDao: LayoutTrackNumberDao,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -86,7 +88,7 @@ constructor(
         }
     }
 
-    @GetMapping("/ratanumerot/muutokset", params = [TRACK_LAYOUT_VERSION_FROM])
+    @GetMapping("/ratanumerot/muutokset")
     @Tag(name = EXT_TRACK_NUMBER_COLLECTION_TAG_V1)
     @Operation(summary = "Ratanumerokokoelman muutosten haku")
     @ApiResponses(
@@ -201,7 +203,7 @@ constructor(
             .let(::toResponse)
     }
 
-    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset", params = [TRACK_LAYOUT_VERSION_FROM])
+    @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset")
     @Tag(name = EXT_TRACK_NUMBER_TAG_V1)
     @Operation(
         summary = "Yksittäisen ratanumeron muutosten haku OID-tunnuksella",
@@ -265,9 +267,14 @@ constructor(
         return publicationService
             .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
+                val trackNumberId =
+                    layoutTrackNumberDao.lookupByExternalId(trackNumberOid.toString())?.id
+                        ?: throw ExtOidNotFoundExceptionV1("track number lookup failed, oid=$trackNumberOid")
+
                 if (publications.areDifferent()) {
                     extTrackNumberService.createTrackNumberModificationResponse(
                         trackNumberOid,
+                        trackNumberId,
                         publications,
                         coordinateSystem ?: LAYOUT_SRID,
                     )

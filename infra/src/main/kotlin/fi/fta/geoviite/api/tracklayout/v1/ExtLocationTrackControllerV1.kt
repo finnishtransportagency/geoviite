@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -40,6 +41,7 @@ class ExtLocationTrackControllerV1(
     private val extLocationTrackGeometryService: ExtLocationTrackGeometryServiceV1,
     private val extLocationTrackCollectionService: ExtLocationTrackCollectionServiceV1,
     private val publicationService: PublicationService,
+    private val locationTrackDao: LocationTrackDao,
 ) {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -85,7 +87,7 @@ class ExtLocationTrackControllerV1(
         }
     }
 
-    @GetMapping("/sijaintiraiteet/muutokset", params = [TRACK_LAYOUT_VERSION_FROM])
+    @GetMapping("/sijaintiraiteet/muutokset")
     @Tag(name = EXT_LOCATION_TRACK_COLLECTION_TAG_V1)
     @Operation(summary = "Sijaintiraidekokoelman muutosten haku")
     @ApiResponses(
@@ -204,7 +206,7 @@ class ExtLocationTrackControllerV1(
             .let(::toResponse)
     }
 
-    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset", params = [TRACK_LAYOUT_VERSION_FROM])
+    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/muutokset")
     @Tag(name = EXT_LOCATION_TRACK_TAG_V1)
     @Operation(
         summary = "Yksittäisen sijaintiraiteen muutosten haku OID-tunnuksella",
@@ -268,9 +270,14 @@ class ExtLocationTrackControllerV1(
         return publicationService
             .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
+                val locationTrackId =
+                    locationTrackDao.lookupByExternalId(locationTrackOid.toString())?.id
+                        ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$locationTrackOid")
+
                 if (publications.areDifferent()) {
                     extLocationTrackService.createLocationTrackModificationResponse(
                         locationTrackOid,
+                        locationTrackId,
                         publications,
                         coordinateSystem ?: LAYOUT_SRID,
                     )
