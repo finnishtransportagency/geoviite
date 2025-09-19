@@ -1652,7 +1652,8 @@
                     "switch-alignment-not-connected": "Joitakin vaihteen {{switch}} linjoja ei ole liitetty raiteelle: {{alignments}}",
                     "switch-alignment-only-connected-to-duplicate": "Joitakin vaihteen {{switch}} linjoja on liitetty ainoastaan duplikaatiksi merkityille raiteille: {{locationTracks}}",
                     "switch-alignment-partially-connected": "Jotkin vaihteen {{switch}} linjoista on liitetty raiteelle vain yhdellä vaihdepisteellä: {{locationTracks}}",
-                    "switch-alignment-multiply-connected": "Jotkin vaihteen {{switch}} linjoista on liitetty useammalle kuin yhdelle raiteelle: {{locationTracks}}"
+                    "switch-alignment-multiply-connected": "Jotkin vaihteen {{switch}} linjoista on liitetty useammalle kuin yhdelle raiteelle: {{locationTracks}}",
+                    "multiple-outer-without-inner-links": "Vaihteen {{switch}} pisteeltä {{joint}} jatkuu enemmän kuin yksi raide, ilman omaa risteyskohdan vaihdetta: {{locationTracks}}"
                 },
                 "duplicate-name-official": "Raiteen nimi {{locationTrack}} on jo käytössä toisella ratanumeron {{trackNumber}} raiteella",
                 "duplicate-name-draft": "Muutosjoukossa on monta raidetta nimellä {{locationTrack}} ratanumerolla {{trackNumber}}",
@@ -1687,6 +1688,7 @@
                     "switch-alignment-only-connected-to-duplicate": "Joitakin vaihteen linjoja on liitetty ainoastaan duplikaatiksi merkityille raiteille: {{locationTracks}}",
                     "switch-alignment-partially-connected": "Jotkin vaihteen linjoista on liitetty raiteelle vain yhdellä vaihdepisteellä: {{locationTracks}}",
                     "switch-alignment-multiply-connected": "Jotkin vaihteen linjoista on liitetty useammalle kuin yhdelle raiteelle: {{locationTracks}}",
+                    "multiple-outer-without-inner-links": "Vaihteen pisteeltä {{joint}} jatkuu enemmän kuin yksi raide, ilman omaa risteyskohdan vaihdetta: {{locationTracks}}",
                     "relinking-failed": "Vaihteen {{switch}} uudelleenlinkitys epäonnistui"
                 }
             },

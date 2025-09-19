@@ -121,6 +121,10 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
         }
     }
 
+    @get:JsonIgnore
+    val nodeConnections: List<NodeConnection>
+        get() = edges.flatMap { listOf(it.startNode, it.endNode) }
+
     fun getSwitchLocation(switchId: IntId<LayoutSwitch>, jointNumber: JointNumber) =
         trackSwitchLinks.firstOrNull { tsl -> tsl.link.matches(switchId, jointNumber) }?.location
 

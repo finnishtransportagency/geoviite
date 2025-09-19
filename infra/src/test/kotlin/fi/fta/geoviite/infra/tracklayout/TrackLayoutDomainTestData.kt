@@ -532,6 +532,52 @@ fun trackGeometryOfSegments(segments: List<LayoutSegment>): TmpLocationTrackGeom
             )
         )
 
+class BuildTrackTopology {
+    constructor() {
+        edges = listOf()
+    }
+
+    private constructor(edges: List<BuildTrackTopologyEdge>) {
+        this.edges = edges
+    }
+
+    private val edges: List<BuildTrackTopologyEdge>
+
+    fun edge(
+        startInnerSwitch: SwitchLink? = null,
+        startOuterSwitch: SwitchLink? = null,
+        endInnerSwitch: SwitchLink? = null,
+        endOuterSwitch: SwitchLink? = null,
+    ) =
+        BuildTrackTopology(
+            edges = edges + BuildTrackTopologyEdge(startInnerSwitch, startOuterSwitch, endInnerSwitch, endOuterSwitch)
+        )
+
+    fun build(trackId: IntId<LocationTrack>? = null): TmpLocationTrackGeometry {
+        var x = 0.0
+        return TmpLocationTrackGeometry.of(
+            edges.map { edgeInfo ->
+                x += 2.0
+                edge(
+                    listOf(segment(Point(x, 0.0), Point(x + 2.0, 0.0))),
+                    edgeInfo.startInnerSwitch,
+                    edgeInfo.startOuterSwitch,
+                    edgeInfo.endInnerSwitch,
+                    edgeInfo.endOuterSwitch,
+                )
+            },
+            trackId,
+        )
+    }
+}
+
+private data class BuildTrackTopologyEdge(
+    val startInnerSwitch: SwitchLink?,
+    val startOuterSwitch: SwitchLink?,
+    val endInnerSwitch: SwitchLink?,
+    val endOuterSwitch: SwitchLink?,
+)
+
 fun trackGeometry(vararg edges: LayoutEdge, trackId: IntId<LocationTrack>? = null): TmpLocationTrackGeometry =
     trackGeometry(edges.toList(), trackId)
 

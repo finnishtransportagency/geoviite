@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.SwitchName
@@ -429,13 +430,7 @@ fun validateSwitchTopologicalConnectivity(
     val existingTracks = locationTracksAndGeometries.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(
-                switch.id as IntId,
-                structure,
-                existingTracks,
-                switch.name,
-                validatingTrack,
-            ),
+            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
         )
         .flatten()
 }
@@ -598,8 +593,52 @@ fun validateSwitchAlignmentTopology(
                     "locationTracks" to summarizeSwitchAlignmentLocationTrackLinks(linkedMultiply),
                 )
         },
-    )
+    ) +
+        validateSwitchOuterLinkUniqueness(
+            switchId,
+            switchName,
+            locationTracksAndGeometries,
+            linkingQuality
+                .flatMap { quality -> quality.nonDuplicateTracks.takeIf { it.size > 1 } ?: listOf() }
+                .map { track -> track.id }
+                .toSet(),
+            validatingTrack,
+        )
 }
+
+fun validateSwitchOuterLinkUniqueness(
+    switchId: IntId<LayoutSwitch>,
+    switchName: SwitchName,
+    locationTracksAndGeometries: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    multiplyLinkedTracks: Set<DomainId<LocationTrack>>,
+    validatingTrack: LocationTrack?,
+): List<LayoutValidationIssue> =
+    locationTracksAndGeometries
+        // we already get plenty enough warnings about unmarked duplicates; don't add extra noise about them
+        .filterNot { (track) -> multiplyLinkedTracks.contains(track.id) || track.duplicateOf != null }
+        .flatMap { (track, geometry) ->
+            geometry.nodeConnections.mapNotNull { connection ->
+                connection.switchOut
+                    ?.let { switchOut -> switchOut.jointNumber.takeIf { switchOut.id == switchId } }
+                    ?.let { outerLinkJoint -> outerLinkJoint to (track to connection) }
+            }
+        }
+        .groupBy({ it.first }, { it.second })
+        .mapNotNull { (jointNumber, tracksAndConnections) ->
+            validateWithParams(
+                (validatingTrack != null && tracksAndConnections.none { (track) -> track.id == validatingTrack.id }) ||
+                    tracksAndConnections.count { (_, c) -> c.switchIn == null } <= 1,
+                WARNING,
+            ) {
+                "${switchOrTrackLinkageKey(validatingTrack)}.multiple-outer-without-inner-links" to
+                    localizationParams(
+                        "switch" to switchName.toString(),
+                        "joint" to jointNumber.intValue,
+                        "locationTracks" to
+                            tracksAndConnections.map { (track) -> track.name.toString() }.sorted().joinToString(),
+                    )
+            }
+        }
 
 private data class SwitchAlignmentLinkingQuality(
     val switchAlignment: LinkableSwitchStructureAlignment,
