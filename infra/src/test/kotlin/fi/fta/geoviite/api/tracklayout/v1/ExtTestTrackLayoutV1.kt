@@ -3,13 +3,16 @@ import fi.fta.geoviite.api.tracklayout.v1.ExtTrackLayoutTestApiService
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -28,6 +31,8 @@ constructor(
     mockMvc: MockMvc,
     private val locationTrackService: LocationTrackService,
     private val extTestDataService: ExtApiTestDataServiceV1,
+    @Autowired private val publicationService: PublicationService,
+    service: PublicationService,
 ) : DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
@@ -52,6 +57,8 @@ constructor(
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getModifiedWithEmptyBody,
         )
+
+    private val modificationSuccessTests = listOf(::setupValidLocationTrack to api.locationTracks::getModified)
 
     @BeforeEach
     fun cleanup() {
@@ -144,6 +151,66 @@ constructor(
                 expectedStatus,
             )
         }
+    }
+
+    @Test
+    fun `Ext api asset endpoints should return HTTP 204 when the asset does not exist in the specified track layout version`() {
+        val expectedStatus = HttpStatus.NO_CONTENT
+        val validButEmptyPublication = extTestDataService.publishInMain()
+
+        noContentTests
+            .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
+            .forEach { (oid, apiCall) ->
+                apiCall(oid, arrayOf("rataverkon_versio" to validButEmptyPublication.uuid.toString()), expectedStatus)
+            }
+    }
+
+    @Test
+    fun `Ext api asset modification endpoints should return HTTP 204 when the asset has no modifications`() {
+        val expectedStatus = HttpStatus.NO_CONTENT
+
+        noContentModificationTests
+            .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
+            .forEach { (oid, apiCall) ->
+                val newestPublication =
+                    publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, publicationUuid = null)
+
+                apiCall(oid, arrayOf("alkuversio" to newestPublication.uuid.toString()), expectedStatus)
+            }
+    }
+
+    @Test
+    fun `Ext api asset modification endpoints should return HTTP 204 when the asset does not exist between track layout versions`() {
+        val expectedStatus = HttpStatus.NO_CONTENT
+        val firstPublication = extTestDataService.publishInMain()
+        val secondPublication = extTestDataService.publishInMain()
+
+        noContentModificationTests
+            .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
+            .forEach { (oid, apiCall) ->
+                // oidSetup call has added the asset and created a new publication: the asset exists, but not within the
+                // publications before it.
+                apiCall(
+                    oid,
+                    arrayOf(
+                        "alkuversio" to firstPublication.uuid.toString(),
+                        "loppuversio" to secondPublication.uuid.toString(),
+                    ),
+                    expectedStatus,
+                )
+            }
+    }
+
+    @Test
+    fun `Ext api asset modification endpoints should return HTTP 200 when the asset has been created after the start track layout version`() {
+        val validButEmptyPublication = extTestDataService.publishInMain()
+
+        modificationSuccessTests
+            .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
+            .forEach { (oid, apiCall) ->
+                val response = apiCall(oid, arrayOf("alkuversio" to validButEmptyPublication.uuid.toString()))
+                assertEquals(oid.toString(), response.sijaintiraide.sijaintiraide_oid)
+            }
     }
 
     private fun setupValidLocationTrack(): Oid<LocationTrack> {

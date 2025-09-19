@@ -252,42 +252,4 @@ constructor(
             assertExtLocationTrackState(track.state, response.sijaintiraide.tila)
         }
     }
-
-    @Test
-    fun `Location track api endpoints return HTTP 400 if the OID is invalid format`() { // todo abstract this to even
-        //        // larger scale (not location
-        //        // track specific)
-        //        val invalidOid = "asd"
-        //        val expectedStatus = HttpStatus.BAD_REQUEST
-        //
-        //        val tests =
-        //            listOf(
-        //                api.locationTracks::getWithExpectedError,
-        //                api.locationTracks::getGeometryWithExpectedError,
-        //                api.locationTracks::getModifiedWithExpectedError,
-        //            )
-        //
-        //        tests.forEach { apiCall -> apiCall(invalidOid, emptyArray(), expectedStatus) }
-        //
-        ////        val asd = api.locationTracks.g
-        //        val asd = api.locationTracks.get<>()
-    }
-
-    @Test
-    fun `Location track api returns HTTP 204 when the given track does not exist in the specified track layout version`() {
-        // TODO Generalize
-    }
-
-    @Test
-    fun `Location track modifications api returns HTTP 204 if there are no modifications`() {
-        // TODO Generalize
-    }
-
-    @Test
-    fun `Location track modifications api returns HTTP 200 when the track has been created between track layout versions`() {}
-
-    @Test
-    fun `Location track modifications api returns HTTP 204 when the given track does not exist between the track layout versions`() {}
-
-    @Test fun `Location track geometry api respects the coordinate system argument`() {}
 }
