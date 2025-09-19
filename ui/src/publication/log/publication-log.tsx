@@ -3,7 +3,6 @@ import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
 import { DatePicker, END_OF_CENTURY, START_OF_2022 } from 'vayla-design-lib/datepicker/datepicker';
 import { daysBetween, parseISOOrUndefined } from 'utils/date-utils';
-import { endOfDay } from 'date-fns';
 import {
     getPublicationsAsTableItems,
     getPublicationsCsvUri,
@@ -37,6 +36,7 @@ import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
 import { TFunction } from 'i18next';
 import { useMemoizedDate, useRateLimitedTwoPartEffect } from 'utils/react-utils';
+import { endOfDay, startOfDay } from 'date-fns';
 
 const MAX_SEARCH_DAYS = 180;
 
@@ -189,8 +189,8 @@ function usePublicationLogSearch(
                     return undefined;
                 } else {
                     return getPublicationsAsTableItems(
-                        startDate,
-                        endDate,
+                        startDate && startOfDay(startDate),
+                        endDate && endOfDay(endDate),
                         specificItem === undefined
                             ? undefined
                             : searchableItemIdAndType(specificItem),
