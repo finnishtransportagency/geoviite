@@ -23,7 +23,6 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { SearchItemValue } from 'tool-bar/search-dropdown';
 import { SearchablePublicationLogItem } from 'publication/log/publication-log';
-import { START_OF_2022 } from 'vayla-design-lib/datepicker/datepicker';
 import { TableSorting } from 'utils/table-utils';
 
 export type PublicationDetailsViewProps = {
@@ -65,11 +64,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     const displaySingleItemHistory = (
         item: SearchItemValue<SearchablePublicationLogItem> | undefined,
     ) => {
-        trackLayoutActionDelegates.setSelectedPublicationSearchStartDate(
-            START_OF_2022.toISOString(),
-        );
-        trackLayoutActionDelegates.setSelectedPublicationSearchEndDate(new Date().toISOString());
-        trackLayoutActionDelegates.setSelectedPublicationSearchSearchableItem(item);
+        trackLayoutActionDelegates.startFreshSpecificItemPublicationLogSearch(item);
         navigate('publication-search');
     };
 

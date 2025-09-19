@@ -301,7 +301,6 @@ export const selectionReducers = {
         { payload: publicationId }: PayloadAction<PublicationId | undefined>,
     ) => {
         state.publicationId = publicationId;
-        state.publicationSearch = undefined;
     },
     setSelectedPublicationSearch: (
         state: Selection,
@@ -317,7 +316,11 @@ export const selectionReducers = {
         if (!state.publicationSearch) {
             state.publicationSearch = { ...defaultPublicationSearch };
         }
-        state.publicationSearch.startDate = newStartDate;
+        if (state.publicationSearch.specificItem === undefined) {
+            state.publicationSearch.globalStartDate = newStartDate;
+        } else {
+            state.publicationSearch.specificItemStartDate = newStartDate;
+        }
     },
     setSelectedPublicationSearchEndDate: (
         state: Selection,
@@ -326,7 +329,24 @@ export const selectionReducers = {
         if (!state.publicationSearch) {
             state.publicationSearch = { ...defaultPublicationSearch };
         }
-        state.publicationSearch.endDate = newEndDate;
+        if (state.publicationSearch.specificItem === undefined) {
+            state.publicationSearch.globalEndDate = newEndDate;
+        } else {
+            state.publicationSearch.specificItemEndDate = newEndDate;
+        }
+    },
+    startFreshSpecificItemPublicationLogSearch: (
+        state: Selection,
+        {
+            payload: newSearchItem,
+        }: PayloadAction<SearchItemValue<SearchablePublicationLogItem> | undefined>,
+    ) => {
+        if (!state.publicationSearch) {
+            state.publicationSearch = { ...defaultPublicationSearch };
+        }
+        state.publicationSearch.specificItemStartDate = undefined;
+        state.publicationSearch.specificItemEndDate = undefined;
+        state.publicationSearch.specificItem = newSearchItem;
     },
     setSelectedPublicationSearchSearchableItem: (
         state: Selection,
@@ -336,6 +356,10 @@ export const selectionReducers = {
     ) => {
         if (!state.publicationSearch) {
             state.publicationSearch = { ...defaultPublicationSearch };
+        }
+        if (state.publicationSearch.specificItem === undefined && newSearchItem !== undefined) {
+            state.publicationSearch.specificItemStartDate = undefined;
+            state.publicationSearch.specificItemEndDate = undefined;
         }
         state.publicationSearch.specificItem = newSearchItem;
     },

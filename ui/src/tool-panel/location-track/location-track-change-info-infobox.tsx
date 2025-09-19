@@ -37,13 +37,7 @@ export const LocationTrackChangeInfoInfobox: React.FC<LocationTrackChangeInfoInf
     const navigate = useAppNavigate();
 
     const openPublicationLog = React.useCallback(() => {
-        if (locationTrackChangeInfo?.created) {
-            delegates.setSelectedPublicationSearchStartDate(locationTrackChangeInfo.created);
-        }
-        if (locationTrackChangeInfo?.changed) {
-            delegates.setSelectedPublicationSearchEndDate(locationTrackChangeInfo.changed);
-        }
-        delegates.setSelectedPublicationSearchSearchableItem({
+        delegates.startFreshSpecificItemPublicationLogSearch({
             type: SearchItemType.LOCATION_TRACK,
             locationTrack,
         });

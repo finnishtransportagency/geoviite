@@ -1818,6 +1818,8 @@
         "start-date": "Alkupvm.",
         "end-date": "Loppupvm.",
         "specific-object": "Muutoskohde",
+        "start-date-with-specific-object": "Alkupvm. (muutoskohde)",
+        "end-date-with-specific-object": "Loppupvm. (muutoskohde)",
         "search-specific-object": "Hae...",
         "export-csv": "Lataa CSV",
         "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää",
