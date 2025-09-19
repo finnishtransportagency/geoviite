@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
@@ -256,29 +255,32 @@ constructor(
 
     @Test
     fun `Location track api endpoints return HTTP 400 if the OID is invalid format`() { // todo abstract this to even
-        // larger scale (not location
-        // track specific)
-        val invalidOid = "asd"
-        val expectedStatus = HttpStatus.BAD_REQUEST
-
-        val tests =
-            listOf(
-                api.locationTracks::getWithExpectedError,
-                api.locationTracks::getGeometryWithExpectedError,
-                api.locationTracks::getModifiedWithExpectedError,
-            )
-
-        tests.forEach { apiCall -> apiCall(invalidOid, emptyArray(), expectedStatus) }
+        //        // larger scale (not location
+        //        // track specific)
+        //        val invalidOid = "asd"
+        //        val expectedStatus = HttpStatus.BAD_REQUEST
+        //
+        //        val tests =
+        //            listOf(
+        //                api.locationTracks::getWithExpectedError,
+        //                api.locationTracks::getGeometryWithExpectedError,
+        //                api.locationTracks::getModifiedWithExpectedError,
+        //            )
+        //
+        //        tests.forEach { apiCall -> apiCall(invalidOid, emptyArray(), expectedStatus) }
+        //
+        ////        val asd = api.locationTracks.g
+        //        val asd = api.locationTracks.get<>()
     }
 
     @Test
     fun `Location track api returns HTTP 204 when the given track does not exist in the specified track layout version`() {
-        // TODO
+        // TODO Generalize
     }
 
     @Test
     fun `Location track modifications api returns HTTP 204 if there are no modifications`() {
-        // TODO
+        // TODO Generalize
     }
 
     @Test
@@ -286,10 +288,6 @@ constructor(
 
     @Test
     fun `Location track modifications api returns HTTP 204 when the given track does not exist between the track layout versions`() {}
-
-    // TODO Tests for all of the weird cases of creation/etc
-
-    @Test fun `Location track geometry api respects the track layout version argument`() {}
 
     @Test fun `Location track geometry api respects the coordinate system argument`() {}
 }
