@@ -222,16 +222,40 @@ function getSelectedKmPostRenderer(
     return getRenderer(kmPost, 14, dFunctions);
 }
 
+const kmPostIconCache: Map<number, ImageBitmap> = new Map();
+
+const drawKmPostBitmap = (size: number, iconType: KmPostIconType): ImageBitmap => {
+    const icon = iconType === 'NORMAL' ? kmPostImg : deletedKmPostImg;
+    const canvas = new OffscreenCanvas(size, size);
+    canvas.getContext('2d')?.drawImage(icon, 0, 0, size, size);
+    return canvas.transferToImageBitmap();
+};
+
+const getKmPostBitmap = (pixelSize: number, iconType: KmPostIconType): ImageBitmap => {
+    if (iconType === 'NORMAL') {
+        const cachedBitmap = kmPostIconCache.get(pixelSize);
+        if (cachedBitmap === undefined) {
+            const bm = drawKmPostBitmap(pixelSize, iconType);
+            kmPostIconCache.set(pixelSize, bm);
+            return bm;
+        } else {
+            return cachedBitmap;
+        }
+    } else {
+        return drawKmPostBitmap(pixelSize, iconType);
+    }
+};
+
 const kmPostIconDrawFunction =
     (iconRadius: number, iconSize: number, iconType: KmPostIconType = 'NORMAL') =>
     (_: LayoutKmPost, coord: Coordinate, ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
+        const pixelSize = iconSize * pixelRatio;
+
         const [x, y] = expectCoordinate(coord);
         ctx.drawImage(
-            iconType === 'NORMAL' ? kmPostImg : deletedKmPostImg,
+            getKmPostBitmap(pixelSize, iconType),
             x - iconRadius * pixelRatio,
             y - iconRadius * pixelRatio,
-            iconSize * pixelRatio,
-            iconSize * pixelRatio,
         );
     };
 
