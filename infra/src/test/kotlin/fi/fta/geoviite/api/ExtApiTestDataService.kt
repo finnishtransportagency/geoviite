@@ -132,7 +132,7 @@ constructor(
         return trackNumberId to referenceLine.id
     }
 
-    fun insertTrackNumberAndReferenceWithOid(
+    fun insertTrackNumberAndReferenceLineWithOid(
         layoutContext: TestLayoutContext,
         trackNumberName: String = testDBService.getUnusedTrackNumber().value,
         segments: List<LayoutSegment>,

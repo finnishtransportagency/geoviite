@@ -216,7 +216,7 @@ constructor(
     private fun setupValidLocationTrack(): Oid<LocationTrack> {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceWithOid(
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
                 mainDraftContext,
                 segments = listOf(segment),
             )

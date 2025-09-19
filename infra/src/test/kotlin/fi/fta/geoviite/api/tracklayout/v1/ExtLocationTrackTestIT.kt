@@ -38,7 +38,7 @@ constructor(
     fun `Newest official location track is returned by default`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceWithOid(
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
                 mainDraftContext,
                 segments = listOf(segment),
             )
@@ -78,7 +78,7 @@ constructor(
     fun `Location track api respects the track layout version argument`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceWithOid(
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
                 mainDraftContext,
                 segments = listOf(segment),
             )
@@ -136,7 +136,7 @@ constructor(
         val segment = segment(helsinkiRailwayStationTm35Fin, helsinkiRailwayStationTm35FinPlus10000)
 
         val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceWithOid(mainDraftContext, segments = listOf(segment))
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
         val oid =
@@ -162,7 +162,7 @@ constructor(
     fun `Location track api should return track information regardless of its state`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceWithOid(mainDraftContext, segments = listOf(segment))
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val tracks =
             LocationTrackState.entries.map { state ->
@@ -197,7 +197,7 @@ constructor(
     fun `Location track modifications api should return track information regardless of its state`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceWithOid(mainDraftContext, segments = listOf(segment))
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val tracks =
             LocationTrackState.entries.map { state ->
