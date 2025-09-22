@@ -3,7 +3,6 @@ import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
 import { DatePicker, END_OF_CENTURY, START_OF_2022 } from 'vayla-design-lib/datepicker/datepicker';
 import { daysBetween, parseISOOrUndefined } from 'utils/date-utils';
-import { endOfDay } from 'date-fns';
 import {
     getPublicationsAsTableItems,
     getPublicationsCsvUri,
@@ -37,6 +36,7 @@ import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
 import { TFunction } from 'i18next';
 import { useMemoizedDate, useRateLimitedTwoPartEffect } from 'utils/react-utils';
+import { endOfDay, startOfDay } from 'date-fns';
 
 const MAX_SEARCH_DAYS = 180;
 
@@ -136,23 +136,38 @@ const isValidPublicationLogSearchRange = (
     );
 };
 
+type SearchParams = {
+    startDate: Date | undefined;
+    endDate: Date | undefined;
+    specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined;
+    sortInfo: TableSorting<SortablePublicationTableProps>;
+};
+
+function searchParamsAffectingVisibleRowsDiffer(
+    pagedPublications: Page<PublicationTableItem> | undefined,
+    a: SearchParams | undefined,
+    b: SearchParams | undefined,
+) {
+    return (
+        (a === undefined) !== (b === undefined) ||
+        (a !== undefined &&
+            b !== undefined &&
+            (a.startDate !== b.startDate ||
+                a.endDate !== b.endDate ||
+                a.specificItem !== b.specificItem ||
+                ((pagedPublications?.items.length ?? 0) >= MAX_RETURNED_PUBLICATION_LOG_ROWS &&
+                    a.sortInfo !== b.sortInfo)))
+    );
+}
+
 function usePublicationLogSearch(
     startDate: Date | undefined,
     endDate: Date | undefined,
     specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
     sortInfo: TableSorting<SortablePublicationTableProps>,
 ): { pagedPublications: Page<PublicationTableItem> | undefined; isLoading: boolean } {
-    const [isLoading, setIsLoading] = React.useState(false);
     const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
-    const displayedSearchResultParams = React.useRef<
-        | {
-              startDate: Date | undefined;
-              endDate: Date | undefined;
-              specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined;
-              sortInfo: TableSorting<SortablePublicationTableProps>;
-          }
-        | undefined
-    >(undefined);
+    const [lastSearch, setLastSearch] = React.useState<SearchParams | undefined>(undefined);
 
     const clearPublicationsTable = () => {
         setPagedPublications({
@@ -162,26 +177,28 @@ function usePublicationLogSearch(
         });
     };
 
+    const search = {
+        startDate,
+        endDate,
+        specificItem,
+        sortInfo,
+    };
+
     useRateLimitedTwoPartEffect(
         () => {
-            const lastSearch = displayedSearchResultParams.current;
             if (!isValidPublicationLogSearchRange(specificItem, startDate, endDate)) {
                 clearPublicationsTable();
+                setLastSearch(search);
                 return undefined;
             } else if (
-                lastSearch !== undefined &&
-                lastSearch.startDate === startDate &&
-                lastSearch.endDate === endDate &&
-                lastSearch.specificItem === specificItem &&
-                (pagedPublications?.items.length ?? 0) < MAX_RETURNED_PUBLICATION_LOG_ROWS
+                !searchParamsAffectingVisibleRowsDiffer(pagedPublications, lastSearch, search)
             ) {
-                // only sort order changed, but we're displaying every displayable row: elide search call
+                setLastSearch(search);
                 return undefined;
             } else {
-                setIsLoading(true);
                 return getPublicationsAsTableItems(
-                    startDate,
-                    endDate,
+                    startDate && startOfDay(startDate),
+                    endDate && endOfDay(endDate),
                     specificItem === undefined ? undefined : searchableItemIdAndType(specificItem),
                     sortInfo.propName,
                     sortInfo.direction,
@@ -190,14 +207,16 @@ function usePublicationLogSearch(
         },
         (results) => {
             setPagedPublications(results);
-            setIsLoading(false);
-            displayedSearchResultParams.current = { startDate, endDate, specificItem, sortInfo };
+            setLastSearch(search);
         },
         500,
         [startDate, endDate, specificItem, sortInfo],
     );
 
-    return { isLoading, pagedPublications };
+    return {
+        isLoading: searchParamsAffectingVisibleRowsDiffer(pagedPublications, search, lastSearch),
+        pagedPublications,
+    };
 }
 
 type PublicationLogProps = {
