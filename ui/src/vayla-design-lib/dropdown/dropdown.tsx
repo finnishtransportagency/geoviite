@@ -15,6 +15,7 @@ const MARGIN_BETWEEN_INPUT_AND_POPUP = 2;
 export type DropdownOption<TValue> = {
     type: 'VALUE';
     name: string;
+    component?: React.ReactNode;
     value: TValue;
 } & OptionBase;
 
@@ -22,12 +23,14 @@ export const dropdownOption = <TValue,>(
     value: TValue,
     name: string,
     qaId: string,
+    component: React.ReactNode = undefined,
     disabled: boolean = false,
 ): DropdownOption<TValue> => ({
     type: 'VALUE',
     name,
     value,
     disabled,
+    component,
     qaId,
 });
 
@@ -41,6 +44,7 @@ export enum DropdownSize {
 
 export type Item<TItemValue> = {
     name: string;
+    component?: React.ReactNode;
     value: TItemValue;
     disabled?: boolean;
     qaId: string;
@@ -399,7 +403,7 @@ export const Dropdown = function <TItemValue>({
                                     <Icons.Selected size={IconSize.SMALL} />
                                 </span>
                                 <span className={styles['dropdown__list-item-text']}>
-                                    {item.name}
+                                    {item.component ?? item.name}
                                 </span>
                             </li>
                         ))}

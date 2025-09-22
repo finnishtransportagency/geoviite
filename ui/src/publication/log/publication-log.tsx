@@ -38,9 +38,7 @@ import { TFunction } from 'i18next';
 import {
     kmPostSearchItemName,
     locationTrackSearchItemName,
-    switchSearchItemName,
-    trackNumberSearchItemName,
-} from 'asset-search/search-utils';
+} from 'asset-search/search-dropdown-item';
 import { useMemoizedDate, useRateLimitedTwoPartEffect } from 'utils/react-utils';
 import { endOfDay, startOfDay } from 'date-fns';
 
@@ -118,9 +116,9 @@ function getSearchableItemName(
         case SearchItemType.LOCATION_TRACK:
             return locationTrackSearchItemName(item.locationTrack, t);
         case SearchItemType.TRACK_NUMBER:
-            return trackNumberSearchItemName(item.trackNumber, t);
+            return item.trackNumber.number;
         case SearchItemType.SWITCH:
-            return switchSearchItemName(item.layoutSwitch, t);
+            return item.layoutSwitch.name;
         case SearchItemType.KM_POST:
             return kmPostSearchItemName(item.kmPost, trackNumbers, t);
         default:
