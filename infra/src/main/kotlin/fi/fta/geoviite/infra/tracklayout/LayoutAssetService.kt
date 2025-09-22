@@ -7,10 +7,10 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.util.FreeText
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 abstract class LayoutAssetService<
@@ -53,9 +53,10 @@ abstract class LayoutAssetService<
         list: List<ObjectType>,
         searchTerm: FreeText,
         idMatches: (String, ObjectType) -> Boolean,
+        includeDeleted: Boolean,
     ): List<ObjectType> =
         searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
-            list.filter { item -> idMatches(term, item) || contentMatches(term, item) }
+            list.filter { item -> idMatches(term, item) || contentMatches(term, item, includeDeleted) }
         } ?: listOf()
 
     @Transactional
@@ -67,7 +68,7 @@ abstract class LayoutAssetService<
     protected fun cancelInternal(asset: ObjectType, designBranch: DesignBranch) =
         cancelled(asset, designBranch.designId)
 
-    protected fun contentMatches(term: String, item: ObjectType): Boolean = false
+    protected fun contentMatches(term: String, item: ObjectType, includeDeleted: Boolean): Boolean = false
 
     protected fun saveDraftInternal(
         branch: LayoutBranch,

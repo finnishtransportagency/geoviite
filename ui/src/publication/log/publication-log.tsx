@@ -29,12 +29,18 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { TableSorting } from 'utils/table-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
-import { SearchDropdown, SearchItemType, SearchItemValue } from 'tool-bar/search-dropdown';
+import { SearchDropdown, SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { DropdownSize } from 'vayla-design-lib/dropdown/dropdown';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
 import { TFunction } from 'i18next';
+import {
+    kmPostSearchItemName,
+    locationTrackSearchItemName,
+    switchSearchItemName,
+    trackNumberSearchItemName,
+} from 'asset-search/search-utils';
 import { useMemoizedDate, useRateLimitedTwoPartEffect } from 'utils/react-utils';
 import { endOfDay, startOfDay } from 'date-fns';
 
@@ -110,16 +116,13 @@ function getSearchableItemName(
 ): string {
     switch (item.type) {
         case SearchItemType.LOCATION_TRACK:
-            return item.locationTrack.name;
+            return locationTrackSearchItemName(item.locationTrack, t);
         case SearchItemType.TRACK_NUMBER:
-            return item.trackNumber.number;
+            return trackNumberSearchItemName(item.trackNumber, t);
         case SearchItemType.SWITCH:
-            return item.layoutSwitch.name;
+            return switchSearchItemName(item.layoutSwitch, t);
         case SearchItemType.KM_POST:
-            return t('asset-search.km-post-on-track-number', {
-                kmPost: item.kmPost.kmNumber,
-                trackNumber: trackNumbers.find((tn) => tn.id === item.kmPost.trackNumberId)?.number,
-            });
+            return kmPostSearchItemName(item.kmPost, trackNumbers, t);
         default:
             return exhaustiveMatchingGuard(item);
     }
@@ -355,6 +358,7 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                                 wide={false}
                                 useAnchorElementWidth={true}
                                 clearable
+                                includeDeletedAssets={true}
                             />
                         }
                     />

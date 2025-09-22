@@ -57,7 +57,7 @@ import {
 import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
-import { SearchDropdown, SearchItemType, SearchItemValue } from 'tool-bar/search-dropdown';
+import { SearchDropdown, SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { error } from 'geoviite-design-lib/snackbar/snackbar';
 
@@ -492,6 +492,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             SearchItemType.TRACK_NUMBER,
                             SearchItemType.OPERATING_POINT,
                         ]}
+                        includeDeletedAssets={false}
                     />
                 </div>
             </div>

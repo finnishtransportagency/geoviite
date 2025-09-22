@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
+import fi.fta.geoviite.infra.geocoding.trackNumber
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.util.FreeText
@@ -50,10 +51,10 @@ constructor(
 
         assertEquals(
             2,
-            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("tRaCk number"), 100).size,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("tRaCk number"), 100, false).size,
         )
-        assertEquals(3, searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("11"), 100).size)
-        assertEquals(4, searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("1"), 100).size)
+        assertEquals(3, searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("11"), 100, false).size)
+        assertEquals(4, searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("1"), 100, false).size)
     }
 
     @Test
@@ -62,9 +63,18 @@ constructor(
 
         saveTrackNumbersWithSaveRequests(trackNumbers, LayoutState.IN_USE)
 
-        assertEquals(5, searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("some track"), 5).size)
-        assertEquals(10, searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("some track"), 10).size)
-        assertEquals(15, searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("some track"), 15).size)
+        assertEquals(
+            5,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("some track"), 5, false).size,
+        )
+        assertEquals(
+            10,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("some track"), 10, false).size,
+        )
+        assertEquals(
+            15,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("some track"), 15, false).size,
+        )
     }
 
     @Test
@@ -74,7 +84,7 @@ constructor(
         saveTrackNumbersWithSaveRequests(trackNumbers, LayoutState.DELETED)
         assertEquals(
             0,
-            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("tRaCk number"), 100).size,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("tRaCk number"), 100, false).size,
         )
     }
 
@@ -88,12 +98,12 @@ constructor(
 
             assertEquals(
                 1,
-                searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText(oid.toString()), 100).size,
+                searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText(oid.toString()), 100, false).size,
             )
             assertEquals(
                 1,
                 searchService
-                    .searchAllTrackNumbers(MainLayoutContext.draft, FreeText(trackNumberId.toString()), 100)
+                    .searchAllTrackNumbers(MainLayoutContext.draft, FreeText(trackNumberId.toString()), 100, false)
                     .size,
             )
         }
@@ -102,7 +112,7 @@ constructor(
         // free text.
         assertEquals(
             0,
-            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("tRaCk number"), 100).size,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("tRaCk number"), 100, false).size,
         )
     }
 
@@ -116,7 +126,8 @@ constructor(
         val kp3 = mainDraftContext.save(kmPost(trackNumberId = trackNumber2.id, KmNumber(1234)))
         val kp4 = mainDraftContext.save(kmPost(trackNumberId = trackNumber1.id, KmNumber(4321)))
 
-        val result = searchService.searchAllKmPosts(MainLayoutContext.draft, FreeText("1234"), 10).map { it.version }
+        val result =
+            searchService.searchAllKmPosts(MainLayoutContext.draft, FreeText("1234"), 10, false).map { it.version }
         assertEquals(3, result.size)
         assertContains(result, kp1)
         assertContains(result, kp2)
@@ -128,7 +139,8 @@ constructor(
         val trackNumber1 = mainDraftContext.save(trackNumber(TrackNumber("001")))
         mainDraftContext.save(kmPost(trackNumberId = trackNumber1.id, KmNumber(1234)))
 
-        val result = searchService.searchAllKmPosts(MainLayoutContext.draft, FreeText("123"), 10).map { it.version }
+        val result =
+            searchService.searchAllKmPosts(MainLayoutContext.draft, FreeText("123"), 10, false).map { it.version }
         assertEquals(0, result.size)
     }
 
@@ -222,6 +234,7 @@ constructor(
                     TrackLayoutSearchedAssetType.SWITCH,
                     TrackLayoutSearchedAssetType.TRACK_NUMBER,
                 ),
+                false,
             )
 
         assertEquals(3, searchResults.locationTracks.size)
@@ -256,6 +269,7 @@ constructor(
                         TrackLayoutSearchedAssetType.SWITCH,
                         TrackLayoutSearchedAssetType.TRACK_NUMBER,
                     ),
+                false,
             )
 
         val tn = testDBService.fetch(trackNumberVersion)
@@ -267,6 +281,64 @@ constructor(
         assertEquals(listOf(tn), search("1.2.3.4.5", designBranch).trackNumbers)
         assertEquals(listOf(tn), search("2.3.4.5.6", designBranch).trackNumbers)
         assertEquals(listOf(), search("1.1.1.1.1", designBranch).trackNumbers)
+    }
+
+    @Test
+    fun `free text search finds deleted assets if includeDeleted is set to true`() {
+        val trackNumber =
+            mainOfficialContext.save(trackNumber(number = TrackNumber("0001"), state = LayoutState.DELETED))
+        val locationTrack =
+            mainOfficialContext.save(
+                locationTrack(
+                    trackNumberId = trackNumber.id,
+                    geometry = someTrackGeometry(),
+                    name = "0001",
+                    state = LocationTrackState.DELETED,
+                )
+            )
+        val sw =
+            mainOfficialContext.save(
+                switch(name = "0001", draft = false, stateCategory = LayoutStateCategory.NOT_EXISTING)
+            )
+        val kmPost =
+            mainOfficialContext.save(
+                kmPost(trackNumberId = trackNumber.id, km = KmNumber(1), state = LayoutState.DELETED)
+            )
+
+        fun search(includeDeleted: Boolean) =
+            searchService.searchAssets(
+                MainLayoutContext.official,
+                FreeText("0001"),
+                100,
+                locationTrackSearchScope = null,
+                listOf(
+                    TrackLayoutSearchedAssetType.LOCATION_TRACK,
+                    TrackLayoutSearchedAssetType.SWITCH,
+                    TrackLayoutSearchedAssetType.TRACK_NUMBER,
+                    TrackLayoutSearchedAssetType.KM_POST,
+                ),
+                includeDeleted,
+            )
+
+        val undeletedSearchResults = search(false)
+        val deletedSearchResults = search(true)
+
+        assertEquals(0, undeletedSearchResults.trackNumbers.size)
+        assertEquals(0, undeletedSearchResults.locationTracks.size)
+        assertEquals(0, undeletedSearchResults.switches.size)
+        assertEquals(0, undeletedSearchResults.kmPosts.size)
+
+        assertEquals(1, deletedSearchResults.locationTracks.size)
+        assertEquals(locationTrack.id, deletedSearchResults.locationTracks.first().id)
+
+        assertEquals(1, deletedSearchResults.trackNumbers.size)
+        assertEquals(trackNumber.id, deletedSearchResults.trackNumbers.first().id)
+
+        assertEquals(1, deletedSearchResults.switches.size)
+        assertEquals(sw.id, deletedSearchResults.switches.first().id)
+
+        assertEquals(1, deletedSearchResults.kmPosts.size)
+        assertEquals(kmPost.id, deletedSearchResults.kmPosts.first().id)
     }
 
     private fun saveTrackNumbersWithSaveRequests(

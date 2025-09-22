@@ -99,8 +99,8 @@ class LayoutTrackNumberService(
         onlyIds: Collection<IntId<LayoutTrackNumber>>? = null,
     ): ((term: String, item: LayoutTrackNumber) -> Boolean) = idMatches(dao, layoutContext, searchTerm, onlyIds)
 
-    override fun contentMatches(term: String, item: LayoutTrackNumber) =
-        item.exists && item.number.toString().replace("  ", " ").contains(term, true)
+    override fun contentMatches(term: String, item: LayoutTrackNumber, includeDeleted: Boolean) =
+        (includeDeleted || item.exists) && item.number.toString().replace("  ", " ").contains(term, true)
 
     fun mapById(context: LayoutContext): Map<IntId<LayoutTrackNumber>, LayoutTrackNumber> =
         list(context).associateBy { tn -> tn.id as IntId }

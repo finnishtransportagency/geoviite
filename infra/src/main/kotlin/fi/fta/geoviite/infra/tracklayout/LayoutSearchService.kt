@@ -24,6 +24,7 @@ constructor(
         limitPerResultType: Int,
         locationTrackSearchScope: IntId<LocationTrack>?,
         searchedAssetTypes: List<TrackLayoutSearchedAssetType>,
+        includeDeleted: Boolean,
     ): TrackLayoutSearchResult {
         return if (locationTrackSearchScope != null) {
             searchByLocationTrackSearchScope(
@@ -32,13 +33,25 @@ constructor(
                 searchTerm,
                 limitPerResultType,
                 searchedAssetTypes,
+                includeDeleted,
             )
         } else {
-            searchFromEntireRailwayNetwork(layoutContext, searchTerm, limitPerResultType, searchedAssetTypes)
+            searchFromEntireRailwayNetwork(
+                layoutContext,
+                searchTerm,
+                limitPerResultType,
+                searchedAssetTypes,
+                includeDeleted,
+            )
         }
     }
 
-    fun searchAllLocationTracks(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LocationTrack> {
+    fun searchAllLocationTracks(
+        layoutContext: LayoutContext,
+        searchTerm: FreeText,
+        limit: Int,
+        includeDeleted: Boolean,
+    ): List<LocationTrack> {
         return locationTrackService
             .list(layoutContext, true)
             .let { list ->
@@ -46,23 +59,39 @@ constructor(
                     list,
                     searchTerm,
                     locationTrackService.idMatches(layoutContext, searchTerm),
+                    includeDeleted,
                 )
             }
             .sortedBy(LocationTrack::name)
             .take(limit)
     }
 
-    fun searchAllSwitches(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LayoutSwitch> {
+    fun searchAllSwitches(
+        layoutContext: LayoutContext,
+        searchTerm: FreeText,
+        limit: Int,
+        includeDeleted: Boolean,
+    ): List<LayoutSwitch> {
         return switchService
             .list(layoutContext, true)
             .let { list ->
-                switchService.filterBySearchTerm(list, searchTerm, switchService.idMatches(layoutContext, searchTerm))
+                switchService.filterBySearchTerm(
+                    list,
+                    searchTerm,
+                    switchService.idMatches(layoutContext, searchTerm),
+                    includeDeleted,
+                )
             }
             .sortedBy(LayoutSwitch::name)
             .take(limit)
     }
 
-    fun searchAllTrackNumbers(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LayoutTrackNumber> {
+    fun searchAllTrackNumbers(
+        layoutContext: LayoutContext,
+        searchTerm: FreeText,
+        limit: Int,
+        includeDeleted: Boolean,
+    ): List<LayoutTrackNumber> {
         return trackNumberService
             .list(layoutContext, true)
             .let { list ->
@@ -70,16 +99,24 @@ constructor(
                     list,
                     searchTerm,
                     trackNumberService.idMatches(layoutContext, searchTerm),
+                    includeDeleted,
                 )
             }
             .sortedBy(LayoutTrackNumber::number)
             .take(limit)
     }
 
-    fun searchAllKmPosts(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LayoutKmPost> =
+    fun searchAllKmPosts(
+        layoutContext: LayoutContext,
+        searchTerm: FreeText,
+        limit: Int,
+        includeDeleted: Boolean,
+    ): List<LayoutKmPost> =
         kmPostService
             .list(layoutContext, true)
-            .let { list -> kmPostService.filterBySearchTerm(list, searchTerm, kmPostService.idMatches()) }
+            .let { list ->
+                kmPostService.filterBySearchTerm(list, searchTerm, kmPostService.idMatches(), includeDeleted)
+            }
             .sortedBy(LayoutKmPost::kmNumber)
             .take(limit)
 
@@ -88,23 +125,24 @@ constructor(
         searchTerm: FreeText,
         limitPerResultType: Int,
         searchedAssetTypes: List<TrackLayoutSearchedAssetType>,
+        includeDeleted: Boolean,
     ) =
         TrackLayoutSearchResult(
             switches =
                 if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.SWITCH))
-                    searchAllSwitches(layoutContext, searchTerm, limitPerResultType)
+                    searchAllSwitches(layoutContext, searchTerm, limitPerResultType, includeDeleted)
                 else emptyList(),
             locationTracks =
                 if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.LOCATION_TRACK))
-                    searchAllLocationTracks(layoutContext, searchTerm, limitPerResultType)
+                    searchAllLocationTracks(layoutContext, searchTerm, limitPerResultType, includeDeleted)
                 else emptyList(),
             trackNumbers =
                 if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.TRACK_NUMBER))
-                    searchAllTrackNumbers(layoutContext, searchTerm, limitPerResultType)
+                    searchAllTrackNumbers(layoutContext, searchTerm, limitPerResultType, includeDeleted)
                 else emptyList(),
             kmPosts =
                 if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.KM_POST))
-                    searchAllKmPosts(layoutContext, searchTerm, limitPerResultType)
+                    searchAllKmPosts(layoutContext, searchTerm, limitPerResultType, includeDeleted)
                 else emptyList(),
             operatingPoints =
                 if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.OPERATING_POINT))
@@ -118,6 +156,7 @@ constructor(
         searchTerm: FreeText,
         limit: Int,
         searchedAssetTypes: List<TrackLayoutSearchedAssetType>,
+        includeDeleted: Boolean,
     ): TrackLayoutSearchResult {
         val switches =
             if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.SWITCH))
@@ -135,10 +174,14 @@ constructor(
 
         return TrackLayoutSearchResult(
             switches =
-                switches.let { list -> switchService.filterBySearchTerm(list, searchTerm, switchIdMatch) }.take(limit),
+                switches
+                    .let { list -> switchService.filterBySearchTerm(list, searchTerm, switchIdMatch, includeDeleted) }
+                    .take(limit),
             locationTracks =
                 locationTracks
-                    .let { list -> locationTrackService.filterBySearchTerm(list, searchTerm, ltIdMatch) }
+                    .let { list ->
+                        locationTrackService.filterBySearchTerm(list, searchTerm, ltIdMatch, includeDeleted)
+                    }
                     .take(limit),
             trackNumbers = emptyList(),
             kmPosts = emptyList(),

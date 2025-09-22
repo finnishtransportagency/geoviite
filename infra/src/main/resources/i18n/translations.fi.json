@@ -2150,7 +2150,12 @@
         "loading": "Ladataan"
     },
     "asset-search": {
-        "km-post-on-track-number": "{{kmPost}}, ratanumerolla {{trackNumber}}"
+        "location-track": "{{locationTrack}}, {{description}}",
+        "location-track-deleted": "{{locationTrack}} (Poistettu), {{description}}",
+        "km-post": "{{kmPost}}, ratanumerolla {{trackNumber}}",
+        "km-post-deleted": "{{kmPost}} (Poistettu), ratanumerolla {{trackNumber}}",
+        "switch-deleted": "{{switch}} (Poistunut kohde)",
+        "track-number-deleted": "{{trackNumber}} (Poistettu)"
     },
     "privilege": {
         "view-basic": "Geoviitteen käyttö",

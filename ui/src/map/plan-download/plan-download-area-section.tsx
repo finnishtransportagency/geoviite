@@ -6,7 +6,7 @@ import {
     SearchItemValue,
     SearchItemType,
     TrackNumberItemValue,
-} from 'tool-bar/search-dropdown';
+} from 'asset-search/search-dropdown';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import {
     AreaSelection,
@@ -199,6 +199,7 @@ export const PlanDownloadAreaSection: React.FC<{
                                         hasError={hasErrors(state.committedFields, errors, 'asset')}
                                         value={selectedDropdownValue}
                                         getName={getName}
+                                        includeDeletedAssets={false}
                                     />
                                 </div>
                             }

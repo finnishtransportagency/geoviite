@@ -258,8 +258,8 @@ class LocationTrackService(
         onlyIds: Collection<IntId<LocationTrack>>? = null,
     ): ((term: String, item: LocationTrack) -> Boolean) = idMatches(dao, layoutContext, searchTerm, onlyIds)
 
-    override fun contentMatches(term: String, item: LocationTrack) =
-        item.exists && (item.name.contains(term, true) || item.description.contains(term, true))
+    override fun contentMatches(term: String, item: LocationTrack, includeDeleted: Boolean) =
+        (includeDeleted || item.exists) && (item.name.contains(term, true) || item.description.contains(term, true))
 
     fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<LocationTrack> {
         return dao.listNear(layoutContext, bbox).filter(LocationTrack::exists)

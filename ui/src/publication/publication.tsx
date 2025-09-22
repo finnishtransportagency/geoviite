@@ -21,7 +21,7 @@ import {
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
-import { SearchItemValue } from 'tool-bar/search-dropdown';
+import { SearchItemValue } from 'asset-search/search-dropdown';
 import { SearchablePublicationLogItem } from 'publication/log/publication-log';
 import { TableSorting } from 'utils/table-utils';
 

@@ -41,7 +41,7 @@ import styles from './km-post-infobox.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { GK_FIN_COORDINATE_SYSTEMS } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
-import { SearchItemType } from 'tool-bar/search-dropdown';
+import { SearchItemType } from 'asset-search/search-dropdown';
 import { useAppNavigate } from 'common/navigate';
 
 type KmPostInfoboxProps = {
