@@ -35,6 +35,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
@@ -2054,6 +2056,60 @@ constructor(
                 ),
             )
         }
+    }
+
+    @Test
+    fun `location track deletion causes warnings for switches getting disconnected only`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        val switch =
+            mainOfficialContext
+                .save(
+                    switch(
+                        name = "impossiboru switch name",
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(20.0, 0.0), null)),
+                    )
+                )
+                .id
+        val locationTrack =
+            mainOfficialContext
+                .save(
+                    locationTrack(
+                        trackNumber,
+                        nameStructure = LocationTrackNameStructure.of(LocationTrackNamingScheme.CHORD),
+                    ),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(1.0, 0.0))),
+                            endOuterSwitch = switchLinkYV(switch, 1),
+                        )
+                    ),
+                )
+                .id
+
+        locationTrackService.updateState(LayoutBranch.main, locationTrack, LocationTrackState.DELETED)
+        val validatedDeleted =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(locationTracks = listOf(locationTrack)),
+            )
+        // linking was deliberately terrible, including bad switch name on the end, but the track was deleted, so we
+        // only care about topology issues
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "$VALIDATION_LOCATION_TRACK.switch-linkage.front-joint-not-connected",
+                    mapOf("switch" to "impossiboru switch name"),
+                ),
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.ERROR,
+                    "$VALIDATION_LOCATION_TRACK.switch-linkage.switch-no-alignments-connected",
+                    mapOf("switch" to "impossiboru switch name"),
+                )
+            ),
+            validatedDeleted.validatedAsPublicationUnit.locationTracks[0].issues
+        )
     }
 
     private fun getTopologicalSwitchConnectionTestCases(
