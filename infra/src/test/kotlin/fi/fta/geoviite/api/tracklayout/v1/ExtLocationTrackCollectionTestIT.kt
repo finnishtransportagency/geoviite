@@ -242,7 +242,12 @@ constructor(
                     .let(::requireNotNull)
 
             assertEquals(epsgCode, response.koordinaatisto)
-            assertExtStartAndEnd(expectedStart, expectedEnd, responseTrack)
+            assertExtStartAndEnd(
+                expectedStart,
+                expectedEnd,
+                requireNotNull(responseTrack.alkusijainti),
+                requireNotNull(responseTrack.loppusijainti),
+            )
         }
     }
 

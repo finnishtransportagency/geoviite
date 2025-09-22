@@ -73,10 +73,10 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.transaction.support.TransactionTemplate
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -426,10 +426,13 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         testService.save(testService.updateContext(asset, context), geometry)
 
     fun saveReferenceLine(asset: Pair<ReferenceLine, LayoutAlignment>): LayoutRowVersion<ReferenceLine> =
-        save(asset.first, asset.second)
+        save(testService.updateContext(asset.first, context), asset.second)
 
     fun save(asset: ReferenceLine, alignment: LayoutAlignment): LayoutRowVersion<ReferenceLine> =
         testService.save(testService.updateContext(asset, context), alignment)
+
+    fun saveTrackNumber(asset: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> =
+        testService.save(testService.updateContext(asset, context))
 
     /**
      * Copies the asset identified by [rowVersion] to the current context. Note, that this does not create linking to
