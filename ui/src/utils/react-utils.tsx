@@ -448,6 +448,20 @@ export function dispatchPrevIfObjectsEqual<T>(next: T) {
 
 type PropsType = Record<string, unknown>;
 
+function useMemoBy<T>(value: T, same: (a: T, b: T) => boolean): T {
+    const store = useRef(value);
+    if (same(store.current, value)) {
+        return store.current;
+    } else {
+        store.current = value;
+        return value;
+    }
+}
+
+export function useMemoizedDate(value: Date | undefined) {
+    return useMemoBy(value, (a, b) => a?.getTime() === b?.getTime());
+}
+
 export function useTraceProps(componentName: string, props: PropsType) {
     const prev = useRef(props);
 
