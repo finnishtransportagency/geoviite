@@ -43,7 +43,10 @@ import { DropdownSize } from 'vayla-design-lib/dropdown/dropdown';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
 import { TFunction } from 'i18next';
-import { kmPostSearchItemName, locationTrackSearchItemName } from 'asset-search/search-utils';
+import {
+    kmPostSearchItemName,
+    locationTrackSearchItemName,
+} from 'asset-search/search-dropdown-item';
 
 const MAX_SEARCH_DAYS = 180;
 

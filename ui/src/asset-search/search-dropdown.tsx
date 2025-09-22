@@ -21,7 +21,7 @@ import {
     kmPostSearchItemName,
     locationTrackSearchItemName,
     SearchDropdownItem,
-} from 'asset-search/search-utils';
+} from 'asset-search/search-dropdown-item';
 
 export type LocationTrackItemValue = {
     locationTrack: LayoutLocationTrack;
