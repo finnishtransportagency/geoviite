@@ -7,6 +7,13 @@ import fi.fta.geoviite.infra.ratko.RatkoLocalService
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.beans.factory.annotation.Autowired
 
+data class AssetSearchParameters(
+    val layoutContext: LayoutContext,
+    val searchTerm: FreeText,
+    val limitPerResultType: Int,
+    val includeDeleted: Boolean = false,
+)
+
 @GeoviiteService
 class LayoutSearchService
 @Autowired
@@ -19,175 +26,146 @@ constructor(
 ) {
 
     fun searchAssets(
-        layoutContext: LayoutContext,
-        searchTerm: FreeText,
-        limitPerResultType: Int,
         locationTrackSearchScope: IntId<LocationTrack>?,
-        searchedAssetTypes: List<TrackLayoutSearchedAssetType>,
-        includeDeleted: Boolean,
+        types: List<TrackLayoutSearchedAssetType>,
+        params: AssetSearchParameters,
     ): TrackLayoutSearchResult {
         return if (locationTrackSearchScope != null) {
-            searchByLocationTrackSearchScope(
-                layoutContext,
-                locationTrackSearchScope,
-                searchTerm,
-                limitPerResultType,
-                searchedAssetTypes,
-                includeDeleted,
-            )
+            searchByLocationTrackSearchScope(locationTrackSearchScope, types, params)
         } else {
-            searchFromEntireRailwayNetwork(
-                layoutContext,
-                searchTerm,
-                limitPerResultType,
-                searchedAssetTypes,
-                includeDeleted,
-            )
+            searchFromEntireRailwayNetwork(types, params)
         }
     }
 
-    fun searchAllLocationTracks(
-        layoutContext: LayoutContext,
-        searchTerm: FreeText,
-        limit: Int,
-        includeDeleted: Boolean,
-    ): List<LocationTrack> {
+    fun searchAllLocationTracks(params: AssetSearchParameters): List<LocationTrack> {
         return locationTrackService
-            .list(layoutContext, true)
+            .list(params.layoutContext, true)
             .let { list ->
                 locationTrackService.filterBySearchTerm(
                     list,
-                    searchTerm,
-                    locationTrackService.idMatches(layoutContext, searchTerm),
-                    includeDeleted,
+                    params.searchTerm,
+                    locationTrackService.idMatches(params.layoutContext, params.searchTerm),
+                    params.includeDeleted,
                 )
             }
             .sortedBy(LocationTrack::name)
-            .take(limit)
+            .take(params.limitPerResultType)
     }
 
-    fun searchAllSwitches(
-        layoutContext: LayoutContext,
-        searchTerm: FreeText,
-        limit: Int,
-        includeDeleted: Boolean,
-    ): List<LayoutSwitch> {
+    fun searchAllSwitches(params: AssetSearchParameters): List<LayoutSwitch> {
         return switchService
-            .list(layoutContext, true)
+            .list(params.layoutContext, true)
             .let { list ->
                 switchService.filterBySearchTerm(
                     list,
-                    searchTerm,
-                    switchService.idMatches(layoutContext, searchTerm),
-                    includeDeleted,
+                    params.searchTerm,
+                    switchService.idMatches(params.layoutContext, params.searchTerm),
+                    params.includeDeleted,
                 )
             }
             .sortedBy(LayoutSwitch::name)
-            .take(limit)
+            .take(params.limitPerResultType)
     }
 
-    fun searchAllTrackNumbers(
-        layoutContext: LayoutContext,
-        searchTerm: FreeText,
-        limit: Int,
-        includeDeleted: Boolean,
-    ): List<LayoutTrackNumber> {
+    fun searchAllTrackNumbers(params: AssetSearchParameters): List<LayoutTrackNumber> {
         return trackNumberService
-            .list(layoutContext, true)
+            .list(params.layoutContext, true)
             .let { list ->
                 trackNumberService.filterBySearchTerm(
                     list,
-                    searchTerm,
-                    trackNumberService.idMatches(layoutContext, searchTerm),
-                    includeDeleted,
+                    params.searchTerm,
+                    trackNumberService.idMatches(params.layoutContext, params.searchTerm),
+                    params.includeDeleted,
                 )
             }
             .sortedBy(LayoutTrackNumber::number)
-            .take(limit)
+            .take(params.limitPerResultType)
     }
 
-    fun searchAllKmPosts(
-        layoutContext: LayoutContext,
-        searchTerm: FreeText,
-        limit: Int,
-        includeDeleted: Boolean,
-    ): List<LayoutKmPost> =
+    fun searchAllKmPosts(params: AssetSearchParameters): List<LayoutKmPost> =
         kmPostService
-            .list(layoutContext, true)
+            .list(params.layoutContext, true)
             .let { list ->
-                kmPostService.filterBySearchTerm(list, searchTerm, kmPostService.idMatches(), includeDeleted)
+                kmPostService.filterBySearchTerm(
+                    list,
+                    params.searchTerm,
+                    kmPostService.idMatches(),
+                    params.includeDeleted,
+                )
             }
             .sortedBy(LayoutKmPost::kmNumber)
-            .take(limit)
+            .take(params.limitPerResultType)
 
     private fun searchFromEntireRailwayNetwork(
-        layoutContext: LayoutContext,
-        searchTerm: FreeText,
-        limitPerResultType: Int,
-        searchedAssetTypes: List<TrackLayoutSearchedAssetType>,
-        includeDeleted: Boolean,
+        types: List<TrackLayoutSearchedAssetType>,
+        params: AssetSearchParameters,
     ) =
         TrackLayoutSearchResult(
             switches =
-                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.SWITCH))
-                    searchAllSwitches(layoutContext, searchTerm, limitPerResultType, includeDeleted)
-                else emptyList(),
+                if (types.contains(TrackLayoutSearchedAssetType.SWITCH)) searchAllSwitches(params) else emptyList(),
             locationTracks =
-                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.LOCATION_TRACK))
-                    searchAllLocationTracks(layoutContext, searchTerm, limitPerResultType, includeDeleted)
+                if (types.contains(TrackLayoutSearchedAssetType.LOCATION_TRACK)) searchAllLocationTracks(params)
                 else emptyList(),
             trackNumbers =
-                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.TRACK_NUMBER))
-                    searchAllTrackNumbers(layoutContext, searchTerm, limitPerResultType, includeDeleted)
+                if (types.contains(TrackLayoutSearchedAssetType.TRACK_NUMBER)) searchAllTrackNumbers(params)
                 else emptyList(),
             kmPosts =
-                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.KM_POST))
-                    searchAllKmPosts(layoutContext, searchTerm, limitPerResultType, includeDeleted)
-                else emptyList(),
+                if (types.contains(TrackLayoutSearchedAssetType.KM_POST)) searchAllKmPosts(params) else emptyList(),
             operatingPoints =
-                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.OPERATING_POINT))
-                    ratkoLocalService.searchOperatingPoints(searchTerm, limitPerResultType)
+                if (types.contains(TrackLayoutSearchedAssetType.OPERATING_POINT))
+                    ratkoLocalService.searchOperatingPoints(params.searchTerm, params.limitPerResultType)
                 else emptyList(),
         )
 
     private fun searchByLocationTrackSearchScope(
-        layoutContext: LayoutContext,
         locationTrackSearchScope: IntId<LocationTrack>,
-        searchTerm: FreeText,
-        limit: Int,
-        searchedAssetTypes: List<TrackLayoutSearchedAssetType>,
-        includeDeleted: Boolean,
+        types: List<TrackLayoutSearchedAssetType>,
+        params: AssetSearchParameters,
     ): TrackLayoutSearchResult {
         val switches =
-            if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.SWITCH))
-                locationTrackService.getSwitchesForLocationTrack(layoutContext, locationTrackSearchScope).let { ids ->
-                    switchService.getMany(layoutContext, ids)
+            if (types.contains(TrackLayoutSearchedAssetType.SWITCH))
+                locationTrackService.getSwitchesForLocationTrack(params.layoutContext, locationTrackSearchScope).let {
+                    ids ->
+                    switchService.getMany(params.layoutContext, ids)
                 }
             else emptyList()
         val locationTracks =
-            if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.LOCATION_TRACK))
-                getLocationTrackAndDuplicatesByScope(layoutContext, locationTrackSearchScope)
+            if (types.contains(TrackLayoutSearchedAssetType.LOCATION_TRACK))
+                getLocationTrackAndDuplicatesByScope(params.layoutContext, locationTrackSearchScope)
             else emptyList()
 
-        val switchIdMatch = switchService.idMatches(layoutContext, searchTerm, switches.map { it.id as IntId })
-        val ltIdMatch = locationTrackService.idMatches(layoutContext, searchTerm, locationTracks.map { it.id as IntId })
+        val switchIdMatch =
+            switchService.idMatches(params.layoutContext, params.searchTerm, switches.map { it.id as IntId })
+        val ltIdMatch =
+            locationTrackService.idMatches(
+                params.layoutContext,
+                params.searchTerm,
+                locationTracks.map { it.id as IntId },
+            )
 
         return TrackLayoutSearchResult(
             switches =
                 switches
-                    .let { list -> switchService.filterBySearchTerm(list, searchTerm, switchIdMatch, includeDeleted) }
-                    .take(limit),
+                    .let { list ->
+                        switchService.filterBySearchTerm(list, params.searchTerm, switchIdMatch, params.includeDeleted)
+                    }
+                    .take(params.limitPerResultType),
             locationTracks =
                 locationTracks
                     .let { list ->
-                        locationTrackService.filterBySearchTerm(list, searchTerm, ltIdMatch, includeDeleted)
+                        locationTrackService.filterBySearchTerm(
+                            list,
+                            params.searchTerm,
+                            ltIdMatch,
+                            params.includeDeleted,
+                        )
                     }
-                    .take(limit),
+                    .take(params.limitPerResultType),
             trackNumbers = emptyList(),
             kmPosts = emptyList(),
             operatingPoints =
-                if (searchedAssetTypes.contains(TrackLayoutSearchedAssetType.OPERATING_POINT))
-                    ratkoLocalService.searchOperatingPoints(searchTerm, limit)
+                if (types.contains(TrackLayoutSearchedAssetType.OPERATING_POINT))
+                    ratkoLocalService.searchOperatingPoints(params.searchTerm, params.limitPerResultType)
                 else emptyList(),
         )
     }
