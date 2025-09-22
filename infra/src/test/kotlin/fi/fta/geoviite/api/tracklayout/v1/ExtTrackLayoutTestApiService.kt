@@ -40,6 +40,14 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             ExtTestModifiedLocationTrackCollectionResponseV1::class,
         )
 
+    val trackNumberCollection =
+        AssetCollectionApi(
+            assetCollectionUrl = { "/geoviite/paikannuspohja/v1/ratanumerot" },
+            ExtTestTrackNumberCollectionResponseV1::class,
+            modifiedAssetCollectionUrl = { "/geoviite/paikannuspohja/v1/ratanumerot/muutokset" },
+            ExtTestModifiedTrackNumberCollectionResponseV1::class,
+        )
+
     inner class AssetApi<
         AssetResponse : Any,
         AssetModificationResponse : Any,
