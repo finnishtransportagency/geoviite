@@ -71,7 +71,10 @@ constructor(
         val trackNumbers = listOf(TrackNumber("track number 1"), TrackNumber("track number 11"))
 
         saveTrackNumbersWithSaveRequests(trackNumbers, LayoutState.DELETED)
-        assertEquals(0, searchService.searchAllTrackNumbers(searchParameters("tRaCk number", includeDeleted = false)).size)
+        assertEquals(
+            0,
+            searchService.searchAllTrackNumbers(searchParameters("tRaCk number", includeDeleted = false)).size,
+        )
     }
 
     @Test
@@ -82,16 +85,24 @@ constructor(
             val oid = Oid<LayoutTrackNumber>("1.2.3.4.5.6.$index")
             trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, oid)
 
-            assertEquals(1, searchService.searchAllTrackNumbers(searchParameters(oid.toString(), includeDeleted = false)).size)
             assertEquals(
                 1,
-                searchService.searchAllTrackNumbers(searchParameters(trackNumberId.toString(), includeDeleted = false)).size,
+                searchService.searchAllTrackNumbers(searchParameters(oid.toString(), includeDeleted = false)).size,
+            )
+            assertEquals(
+                1,
+                searchService
+                    .searchAllTrackNumbers(searchParameters(trackNumberId.toString(), includeDeleted = false))
+                    .size,
             )
         }
 
         // LayoutState was set to DELETED, meaning that these track numbers should not be found by
         // free text.
-        assertEquals(0, searchService.searchAllTrackNumbers(searchParameters("tRaCk number", includeDeleted = false)).size)
+        assertEquals(
+            0,
+            searchService.searchAllTrackNumbers(searchParameters("tRaCk number", includeDeleted = false)).size,
+        )
     }
 
     @Test
@@ -286,25 +297,25 @@ constructor(
                 searchParameters("0001", includeDeleted = includeDeleted),
             )
 
-        val undeletedSearchResults = search(false)
-        val deletedSearchResults = search(true)
+        val searchResultsWithoutDeleted = search(false)
+        val searchResultsIncludingDeleted = search(true)
 
-        assertEquals(0, undeletedSearchResults.trackNumbers.size)
-        assertEquals(0, undeletedSearchResults.locationTracks.size)
-        assertEquals(0, undeletedSearchResults.switches.size)
-        assertEquals(0, undeletedSearchResults.kmPosts.size)
+        assertEquals(0, searchResultsWithoutDeleted.trackNumbers.size)
+        assertEquals(0, searchResultsWithoutDeleted.locationTracks.size)
+        assertEquals(0, searchResultsWithoutDeleted.switches.size)
+        assertEquals(0, searchResultsWithoutDeleted.kmPosts.size)
 
-        assertEquals(1, deletedSearchResults.locationTracks.size)
-        assertEquals(locationTrack.id, deletedSearchResults.locationTracks.first().id)
+        assertEquals(1, searchResultsIncludingDeleted.locationTracks.size)
+        assertEquals(locationTrack.id, searchResultsIncludingDeleted.locationTracks.first().id)
 
-        assertEquals(1, deletedSearchResults.trackNumbers.size)
-        assertEquals(trackNumber.id, deletedSearchResults.trackNumbers.first().id)
+        assertEquals(1, searchResultsIncludingDeleted.trackNumbers.size)
+        assertEquals(trackNumber.id, searchResultsIncludingDeleted.trackNumbers.first().id)
 
-        assertEquals(1, deletedSearchResults.switches.size)
-        assertEquals(sw.id, deletedSearchResults.switches.first().id)
+        assertEquals(1, searchResultsIncludingDeleted.switches.size)
+        assertEquals(sw.id, searchResultsIncludingDeleted.switches.first().id)
 
-        assertEquals(1, deletedSearchResults.kmPosts.size)
-        assertEquals(kmPost.id, deletedSearchResults.kmPosts.first().id)
+        assertEquals(1, searchResultsIncludingDeleted.kmPosts.size)
+        assertEquals(kmPost.id, searchResultsIncludingDeleted.kmPosts.first().id)
     }
 
     private fun saveTrackNumbersWithSaveRequests(
