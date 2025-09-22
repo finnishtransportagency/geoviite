@@ -1,0 +1,17 @@
+@use '../vayla-design-lib/colors';
+
+.search-dropdown-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.search-dropdown-item__name {
+    line-height: 16px;
+}
+
+.search-dropdown-item__deleted {
+    color: colors.$color-black-lighter;
+    font-size: 8pt;
+    line-height: 8pt;
+}

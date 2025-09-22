@@ -43,12 +43,7 @@ import { DropdownSize } from 'vayla-design-lib/dropdown/dropdown';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
 import { TFunction } from 'i18next';
-import {
-    kmPostSearchItemName,
-    locationTrackSearchItemName,
-    switchSearchItemName,
-    trackNumberSearchItemName,
-} from 'asset-search/search-utils';
+import { kmPostSearchItemName, locationTrackSearchItemName } from 'asset-search/search-utils';
 
 const MAX_SEARCH_DAYS = 180;
 
@@ -152,9 +147,9 @@ function getSearchableItemName(
         case SearchItemType.LOCATION_TRACK:
             return locationTrackSearchItemName(item.locationTrack, t);
         case SearchItemType.TRACK_NUMBER:
-            return trackNumberSearchItemName(item.trackNumber, t);
+            return item.trackNumber.number;
         case SearchItemType.SWITCH:
-            return switchSearchItemName(item.layoutSwitch, t);
+            return item.layoutSwitch.name;
         case SearchItemType.KM_POST:
             return kmPostSearchItemName(item.kmPost, trackNumbers, t);
         default:

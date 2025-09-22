@@ -20,8 +20,7 @@ import { useTranslation } from 'react-i18next';
 import {
     kmPostSearchItemName,
     locationTrackSearchItemName,
-    switchSearchItemName,
-    trackNumberSearchItemName,
+    SearchDropdownItem,
 } from 'asset-search/search-utils';
 
 export type LocationTrackItemValue = {
@@ -40,6 +39,11 @@ function createLocationTrackOptionItem(
         } as const,
         locationTrackSearchItemName(locationTrack, t),
         `location-track-${locationTrack.id}`,
+        <SearchDropdownItem
+            name={locationTrackSearchItemName(locationTrack, t)}
+            isDeleted={locationTrack.state === 'DELETED'}
+            deletedPhrase={t('enum.LocationTrackState.DELETED')}
+        />,
     );
 }
 
@@ -57,8 +61,13 @@ function createSwitchOptionItem(
             type: SearchItemType.SWITCH,
             layoutSwitch: layoutSwitch,
         } as const,
-        switchSearchItemName(layoutSwitch, t),
+        layoutSwitch.name,
         `switch-${layoutSwitch.id}`,
+        <SearchDropdownItem
+            name={layoutSwitch.name}
+            isDeleted={layoutSwitch.stateCategory === 'NOT_EXISTING'}
+            deletedPhrase={t('enum.LayoutStateCategory.NOT_EXISTING')}
+        />,
     );
 }
 
@@ -81,8 +90,13 @@ function createTrackNumberOptionItem(
             type: SearchItemType.TRACK_NUMBER,
             trackNumber: layoutTrackNumber,
         } as const,
-        trackNumberSearchItemName(layoutTrackNumber, t),
+        layoutTrackNumber.number,
         `track-number-${layoutTrackNumber.id}`,
+        <SearchDropdownItem
+            name={layoutTrackNumber.number}
+            isDeleted={layoutTrackNumber.state === 'DELETED'}
+            deletedPhrase={t('enum.LayoutState.DELETED')}
+        />,
     );
 }
 
@@ -98,6 +112,11 @@ function createKmPostOptionItem(
         } as const,
         kmPostSearchItemName(layoutKmPost, allTrackNumbers, t),
         `km-post-${layoutKmPost.id}`,
+        <SearchDropdownItem
+            name={kmPostSearchItemName(layoutKmPost, allTrackNumbers, t)}
+            isDeleted={layoutKmPost.state === 'DELETED'}
+            deletedPhrase={t('enum.LayoutState.DELETED')}
+        />,
     );
 }
 
