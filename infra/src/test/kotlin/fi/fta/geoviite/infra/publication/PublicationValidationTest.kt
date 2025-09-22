@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.BuildTrackTopology
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
@@ -1275,6 +1276,70 @@ class PublicationValidationTest {
                     ),
                 getSwitchName = { id -> SwitchName("$id") },
             ),
+        )
+    }
+
+    @Test
+    fun `multiple outer links without inner links are reported`() {
+        val switchId: IntId<LayoutSwitch> = IntId(1)
+        val switchName = SwitchName.ofUnsafe("ABC V123")
+
+        val tracks =
+            listOf(
+                // tracks to connect the switch as usual
+                locationTrack(IntId(1)) to
+                    BuildTrackTopology()
+                        .edge(endOuterSwitch = switchLinkYV(switchId, 1))
+                        .edge(startInnerSwitch = switchLinkYV(switchId, 1), endInnerSwitch = switchLinkYV(switchId, 2))
+                        .build(),
+                locationTrack(IntId(1)) to
+                    BuildTrackTopology()
+                        .edge(startInnerSwitch = switchLinkYV(switchId, 1), endInnerSwitch = switchLinkYV(switchId, 3))
+                        .build(),
+                // branching tracks
+                locationTrack(IntId(1), name = "brancher 1") to
+                    BuildTrackTopology().edge(endOuterSwitch = switchLinkYV(switchId, 3)).build(),
+                locationTrack(IntId(1), name = "brancher 2") to
+                    BuildTrackTopology().edge(endOuterSwitch = switchLinkYV(switchId, 3)).build(),
+            )
+        val validation =
+            validateSwitchAlignmentTopology(switchId, switchStructureYV60_300_1_9(), tracks, switchName, null)
+        assertContains(
+            validation,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.WARNING,
+                "validation.layout.switch.track-linkage.multiple-outer-without-inner-links",
+                mapOf("switch" to "ABC V123", "joint" to 3, "locationTracks" to "brancher 1, brancher 2"),
+            ),
+        )
+    }
+
+    @Test
+    fun `multiple outer links without inner links are ok if marked duplicate`() {
+        val switchId: IntId<LayoutSwitch> = IntId(1)
+        val switchName = SwitchName.ofUnsafe("ABC V123")
+
+        val tracks =
+            listOf(
+                // tracks to connect the switch as usual
+                locationTrack(IntId(1)) to
+                    BuildTrackTopology()
+                        .edge(endOuterSwitch = switchLinkYV(switchId, 1))
+                        .edge(startInnerSwitch = switchLinkYV(switchId, 1), endInnerSwitch = switchLinkYV(switchId, 2))
+                        .build(),
+                locationTrack(IntId(1)) to
+                    BuildTrackTopology()
+                        .edge(startInnerSwitch = switchLinkYV(switchId, 1), endInnerSwitch = switchLinkYV(switchId, 3))
+                        .build(),
+                // branching tracks
+                locationTrack(IntId(1)) to
+                    BuildTrackTopology().edge(endOuterSwitch = switchLinkYV(switchId, 3)).build(),
+                locationTrack(IntId(1), duplicateOf = IntId(123)) to
+                    BuildTrackTopology().edge(endOuterSwitch = switchLinkYV(switchId, 3)).build(),
+            )
+        assertEquals(
+            listOf(),
+            validateSwitchAlignmentTopology(switchId, switchStructureYV60_300_1_9(), tracks, switchName, null),
         )
     }
 
