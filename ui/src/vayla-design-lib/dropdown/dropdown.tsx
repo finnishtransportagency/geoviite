@@ -295,7 +295,6 @@ export const Dropdown = function <TItemValue>({
                         earlySelect.current = true;
                     } else {
                         const item = filteredOptions[optionFocusIndex];
-                        console.log(props.value, item, optionFocusIndex, filteredOptions);
                         if (!item?.disabled) {
                             select(item?.value || undefined);
                         }
