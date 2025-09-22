@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -33,6 +34,7 @@ constructor(
     private val extTestDataService: ExtApiTestDataServiceV1,
     private val publicationService: PublicationService,
 ) : DBTestBase() {
+
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     private val errorTests =
@@ -43,10 +45,22 @@ constructor(
             ::setupValidTrackNumber to api.trackNumbers::getGeometryWithExpectedError,
         )
 
+    private val collectionErrorTests =
+        listOf(
+            api.locationTrackCollection::getWithExpectedError,
+            api.trackNumberCollection::getWithExpectedError,
+        )
+
     private val modificationErrorTests =
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getModifiedWithExpectedError,
             ::setupValidTrackNumber to api.trackNumbers::getModifiedWithExpectedError,
+        )
+
+    private val collectionModificationErrorTests =
+        listOf(
+            api.locationTrackCollection::getModifiedWithExpectedError,
+            api.trackNumberCollection::getModifiedWithExpectedError,
         )
 
     private val noContentTests =
@@ -55,6 +69,12 @@ constructor(
             ::setupValidLocationTrack to api.locationTracks::getGeometryWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumbers::getWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumbers::getGeometryWithEmptyBody,
+        )
+
+    private val collectionNoContentTests =
+        listOf(
+            ::setupValidLocationTrackCollection to api.locationTrackCollection::getModifiedWithEmptyBody,
+            ::setupValidTrackNumberCollection to api.trackNumberCollection::getModifiedWithEmptyBody,
         )
 
     private val noContentModificationTests =
@@ -141,6 +161,26 @@ constructor(
     }
 
     @Test
+    fun `Ext api asset modification endpoints should return HTTP 400 if the start and end track layout versions are in the incorrect order`() {
+        val startPublication = extTestDataService.publishInMain()
+        val endPublication = extTestDataService.publishInMain()
+        val expectedStatus = HttpStatus.BAD_REQUEST
+
+        modificationErrorTests
+            .map { (oidSetup, apiCall) -> oidSetup().toString() to apiCall }
+            .forEach { (oid, apiCall) ->
+                apiCall(
+                    oid,
+                    arrayOf(
+                        "alkuversio" to endPublication.uuid.toString(),
+                        "loppuversio" to startPublication.uuid.toString(),
+                    ),
+                    expectedStatus,
+                )
+            }
+    }
+
+    @Test
     fun `Ext api asset modification endpoints should return HTTP 404 if either the start or end track layout version is not found`() {
         val emptyButExistingPublication = extTestDataService.publishInMain()
         val validButNonExistingUuid = "00000000-0000-0000-0000-000000000000"
@@ -221,6 +261,136 @@ constructor(
             }
     }
 
+    @Test
+    fun `Ext api asset collection modification endpoints should return HTTP 404 if either start or end track layout version is not found`() {
+        val nonExistingTrackLayoutVersion = "00000000-0000-0000-0000-000000000000"
+        val emptyButRealPublication = extTestDataService.publishInMain()
+
+        collectionModificationErrorTests.forEach { apiCall ->
+            apiCall(
+                arrayOf("alkuversio" to nonExistingTrackLayoutVersion),
+                HttpStatus.NOT_FOUND,
+            )
+
+            apiCall(
+                arrayOf("alkuversio" to nonExistingTrackLayoutVersion, "loppuversio" to nonExistingTrackLayoutVersion),
+                HttpStatus.NOT_FOUND,
+            )
+
+            apiCall(
+                arrayOf(
+                    "alkuversio" to emptyButRealPublication.uuid.toString(),
+                    "loppuversio" to nonExistingTrackLayoutVersion,
+                ),
+                HttpStatus.NOT_FOUND,
+            )
+
+            apiCall(
+                arrayOf("alkuversio" to nonExistingTrackLayoutVersion, "loppuversio" to nonExistingTrackLayoutVersion),
+                HttpStatus.NOT_FOUND,
+            )
+        }
+    }
+
+    @Test
+    fun `Ext api asset collection modification endpoints should return HTTP 400 if the start or end track layout versions is in invalid format`() {
+        val invalidTrackLayoutVersion = "asd"
+        val emptyButRealPublication = extTestDataService.publishInMain()
+
+        collectionModificationErrorTests.forEach { apiCall ->
+            apiCall(
+                arrayOf("alkuversio" to invalidTrackLayoutVersion),
+                HttpStatus.BAD_REQUEST,
+            )
+
+            apiCall(
+                arrayOf("alkuversio" to invalidTrackLayoutVersion, "loppuversio" to invalidTrackLayoutVersion),
+                HttpStatus.BAD_REQUEST,
+            )
+
+            apiCall(
+                arrayOf(
+                    "alkuversio" to emptyButRealPublication.uuid.toString(),
+                    "loppuversio" to invalidTrackLayoutVersion,
+                ),
+                HttpStatus.BAD_REQUEST,
+            )
+
+            apiCall(
+                arrayOf("alkuversio" to invalidTrackLayoutVersion, "loppuversio" to invalidTrackLayoutVersion),
+                HttpStatus.BAD_REQUEST,
+            )
+        }
+    }
+
+    @Test
+    fun `Ext api asset collection modification endpoints should return HTTP 400 if the start and end track layout versions are in the incorrect order`() {
+        val startPublication = extTestDataService.publishInMain()
+        val endPublication = extTestDataService.publishInMain()
+
+        collectionModificationErrorTests.forEach { apiCall ->
+            apiCall(
+                arrayOf(
+                    "alkuversio" to endPublication.uuid.toString(),
+                    "loppuversio" to startPublication.uuid.toString(),
+                ),
+                HttpStatus.BAD_REQUEST,
+            )
+        }
+    }
+
+    @Test
+    fun `Ext api asset collection endpoints should return HTTP 400 if the track layout version is invalid format`() {
+        collectionErrorTests.forEach { apiCall ->
+            apiCall(arrayOf("rataverkon_versio" to "asd"), HttpStatus.BAD_REQUEST)
+        }
+    }
+
+    @Test
+    fun `Ext api asset collection endpoints should return HTTP 404 if the track layout version is not found`() {
+        extTestDataService.publishInMain() // Purposefully a publication so that it does not answer based on this
+
+        collectionErrorTests.forEach { apiCall ->
+            apiCall(
+                arrayOf("rataverkon_versio" to "00000000-0000-0000-0000-000000000000"),
+                HttpStatus.NOT_FOUND,
+            )
+        }
+    }
+
+    @Test
+    fun `Ext api asset collection modification endpoints should return HTTP 204 when there are no modifications`() {
+        val lastContentPublication = collectionNoContentTests.map { (setupCollection, _) -> setupCollection() }.last()
+        val lastButEmptyPublication = extTestDataService.publishInMain()
+
+        collectionNoContentTests.forEach { (_, apiCall) ->
+            apiCall(
+                arrayOf(
+                    "alkuversio" to lastContentPublication.uuid.toString(),
+                    "loppuversio" to lastContentPublication.uuid.toString(), // Purposefully the same exact version
+                ),
+                HttpStatus.NO_CONTENT,
+            )
+
+            apiCall(
+                arrayOf(
+                    "alkuversio" to lastContentPublication.uuid.toString(),
+                    // This should implicitly use the last available track layout version which does not contain any
+                    // meaningful changes
+                ),
+                HttpStatus.NO_CONTENT,
+            )
+
+            apiCall(
+                arrayOf(
+                    "alkuversio" to lastContentPublication.uuid.toString(),
+                    "loppuversio" to lastButEmptyPublication.uuid.toString(),
+                ),
+                HttpStatus.NO_CONTENT,
+            )
+        }
+    }
+
     private fun setupValidTrackNumber(): Oid<LayoutTrackNumber> {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, oid) =
@@ -235,6 +405,26 @@ constructor(
         )
 
         return oid
+    }
+
+    private fun setupValidTrackNumberCollection(): Publication {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+
+        val trackNumbersAndReferenceLines =
+            listOf(1, 2, 3).map { _ ->
+                val (trackNumberId, referenceLineId, _) =
+                    extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                        mainDraftContext,
+                        segments = listOf(segment),
+                    )
+
+                trackNumberId to referenceLineId
+            }
+
+        return extTestDataService.publishInMain(
+            trackNumbers = trackNumbersAndReferenceLines.map { it.first },
+            referenceLines = trackNumbersAndReferenceLines.map { it.second },
+        )
     }
 
     private fun setupValidLocationTrack(): Oid<LocationTrack> {
@@ -259,5 +449,26 @@ constructor(
         )
 
         return oid
+    }
+
+    private fun setupValidLocationTrackCollection(): Publication {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+
+        val (trackNumberId, referenceLineId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+
+        val tracks =
+            listOf(1, 2, 3).map { _ ->
+                val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
+                locationTrackService.insertExternalId(LayoutBranch.main, trackId, someOid())
+
+                trackId
+            }
+
+        return extTestDataService.publishInMain(
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(referenceLineId),
+            locationTracks = tracks,
+        )
     }
 }
