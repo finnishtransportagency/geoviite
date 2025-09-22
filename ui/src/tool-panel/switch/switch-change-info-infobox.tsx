@@ -34,15 +34,11 @@ export const SwitchChangeInfoInfobox: React.FC<SwitchChangeInfoInfoboxProps> = (
     const navigate = useAppNavigate();
 
     const openPublicationLog = React.useCallback(() => {
-        if (switchChangeInfo) {
-            delegates.setSelectedPublicationSearchStartDate(switchChangeInfo.created);
-            delegates.setSelectedPublicationSearchEndDate(switchChangeInfo.changed);
-            delegates.setSelectedPublicationSearchSearchableItem({
-                type: SearchItemType.SWITCH,
-                layoutSwitch,
-            });
-            navigate('publication-search');
-        }
+        delegates.startFreshSpecificItemPublicationLogSearch({
+            type: SearchItemType.SWITCH,
+            layoutSwitch,
+        });
+        navigate('publication-search');
     }, [layoutSwitch, switchChangeInfo]);
 
     return (

@@ -395,8 +395,10 @@ export type PublicationTableItem = {
 };
 
 export type PublicationSearch = {
-    startDate: TimeStamp | undefined;
-    endDate: TimeStamp | undefined;
+    globalStartDate: TimeStamp | undefined;
+    globalEndDate: TimeStamp | undefined;
+    specificItemStartDate: TimeStamp | undefined;
+    specificItemEndDate: TimeStamp | undefined;
     specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined;
 };
 

@@ -172,25 +172,27 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
                     value={<TrackNumberLinkContainer trackNumberId={trackNumber?.id} />}
                 />
                 <InfoboxText value={trackNumber?.description} />
-                <InfoboxField
-                    label={
-                        locationTrack.duplicateOf
-                            ? t('tool-panel.location-track.duplicate-of')
-                            : (extraInfo?.duplicates?.length ?? 0 > 0)
-                              ? t('tool-panel.location-track.has-duplicates')
-                              : t('tool-panel.location-track.not-a-duplicate')
-                    }
-                    value={
-                        <LocationTrackInfoboxDuplicateOf
-                            targetLocationTrack={locationTrack}
-                            existingDuplicate={extraInfo?.duplicateOf}
-                            duplicatesOfLocationTrack={extraInfo?.duplicates ?? []}
-                            layoutContext={layoutContext}
-                            changeTime={changeTimes.layoutLocationTrack}
-                            currentTrackNumberId={trackNumber?.id}
-                        />
-                    }
-                />
+                {extraInfoLoadingStatus === LoaderStatus.Ready && (
+                    <InfoboxField
+                        label={
+                            locationTrack.duplicateOf
+                                ? t('tool-panel.location-track.duplicate-of')
+                                : (extraInfo?.duplicates?.length ?? 0 > 0)
+                                  ? t('tool-panel.location-track.has-duplicates')
+                                  : t('tool-panel.location-track.not-a-duplicate')
+                        }
+                        value={
+                            <LocationTrackInfoboxDuplicateOf
+                                targetLocationTrack={locationTrack}
+                                existingDuplicate={extraInfo?.duplicateOf}
+                                duplicatesOfLocationTrack={extraInfo?.duplicates ?? []}
+                                layoutContext={layoutContext}
+                                changeTime={changeTimes.layoutLocationTrack}
+                                currentTrackNumberId={trackNumber?.id}
+                            />
+                        }
+                    />
+                )}
                 <InfoboxField
                     label={t('tool-panel.location-track.topological-connectivity')}
                     value={

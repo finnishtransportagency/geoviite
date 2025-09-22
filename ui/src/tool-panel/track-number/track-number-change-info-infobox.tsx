@@ -48,13 +48,7 @@ export const TrackNumberChangeInfoInfobox: React.FC<TrackNumberChangeInfoInfobox
     const navigate = useAppNavigate();
 
     const openPublicationLog = React.useCallback(() => {
-        if (createdTime) {
-            delegates.setSelectedPublicationSearchStartDate(createdTime);
-        }
-        if (changedTime) {
-            delegates.setSelectedPublicationSearchEndDate(changedTime);
-        }
-        delegates.setSelectedPublicationSearchSearchableItem({
+        delegates.startFreshSpecificItemPublicationLogSearch({
             type: SearchItemType.TRACK_NUMBER,
             trackNumber,
         });

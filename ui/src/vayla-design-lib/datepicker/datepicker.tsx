@@ -18,6 +18,7 @@ type DatePickerProps = {
     wide?: boolean;
     minDate?: Date;
     maxDate?: Date;
+    isClearable?: boolean;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 
 type DatePickerInputProps = {
@@ -27,6 +28,7 @@ type DatePickerInputProps = {
     wide: boolean | undefined;
     minDate?: Date;
     maxDate?: Date;
+    isClearable: boolean;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 
 const DATE_FORMAT = 'dd.MM.yyyy';
@@ -47,7 +49,7 @@ const clampDateToRange = (date: Date, minDate?: Date, maxDate?: Date): Date => {
 };
 
 const DatePickerInput = React.forwardRef<HTMLInputElement, DatePickerInputProps>(
-    ({ openDatePicker, date, setDate, wide, minDate, maxDate, ...props }, ref) => {
+    ({ openDatePicker, date, setDate, wide, minDate, maxDate, isClearable, ...props }, ref) => {
         const [value, setValue] = React.useState<string>('');
         const localRef = useCloneRef<HTMLInputElement>(ref);
         React.useEffect(() => {
@@ -66,13 +68,18 @@ const DatePickerInput = React.forwardRef<HTMLInputElement, DatePickerInputProps>
         }
 
         function setDateOrResetIfInvalid(e: React.FocusEvent<HTMLInputElement>): void {
-            const newDate = parse(e.target.value, DATE_FORMAT, new Date());
-            if (!isValid(newDate)) {
-                setValue(date ? formatDateShort(date) : '');
-            } else if (!date || !isSameDay(date, newDate)) {
-                const clampedDate = clampDateToRange(newDate, minDate, maxDate);
-                setValue(formatDateShort(clampedDate));
-                setDate(clampedDate);
+            if (e.target.value === '' && isClearable) {
+                setValue('');
+                setDate(undefined);
+            } else {
+                const newDate = parse(e.target.value, DATE_FORMAT, new Date());
+                if (!isValid(newDate)) {
+                    setValue(date ? formatDateShort(date) : '');
+                } else if (!date || !isSameDay(date, newDate)) {
+                    const clampedDate = clampDateToRange(newDate, minDate, maxDate);
+                    setValue(formatDateShort(clampedDate));
+                    setDate(clampedDate);
+                }
             }
         }
 
@@ -140,7 +147,13 @@ function getHeaderElement({
     );
 }
 
-export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, ...props }) => {
+export const DatePicker: React.FC<DatePickerProps> = ({
+    onChange,
+    value,
+    wide,
+    isClearable,
+    ...props
+}) => {
     const [open, setOpen] = React.useState(false);
     const ref = React.useRef<HTMLInputElement>(null);
     const iconRef = React.useRef<SVGSVGElement>(null);
@@ -154,6 +167,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
                 setDate={(date) => onChange(date, 'TEXT')}
                 wide={wide}
                 ref={ref}
+                isClearable={isClearable ?? false}
                 {...props}
             />
             {open && (
@@ -187,6 +201,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
                                 }),
                             },
                         ]}
+                        {...{ isClearable }}
                     />
                 </CloseableModal>
             )}

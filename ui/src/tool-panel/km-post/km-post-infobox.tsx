@@ -156,17 +156,11 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     );
 
     const openPublicationLog = React.useCallback(() => {
-        if (kmPostCreatedAndChangedTime) {
-            delegates.setSelectedPublicationSearchStartDate(kmPostCreatedAndChangedTime.created);
-            if (kmPostCreatedAndChangedTime.changed) {
-                delegates.setSelectedPublicationSearchEndDate(kmPostCreatedAndChangedTime.changed);
-            }
-            delegates.setSelectedPublicationSearchSearchableItem({
-                type: SearchItemType.KM_POST,
-                kmPost,
-            });
-            navigate('publication-search');
-        }
+        delegates.startFreshSpecificItemPublicationLogSearch({
+            type: SearchItemType.KM_POST,
+            kmPost,
+        });
+        navigate('publication-search');
     }, [kmPost, kmPostChangeTime, kmPostCreatedAndChangedTime]);
 
     const kmPostLengthText =

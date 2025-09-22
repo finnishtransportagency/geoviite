@@ -16,8 +16,10 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { mapLazy } from 'utils/array-utils';
 
 export const defaultPublicationSearch: PublicationSearch = {
-    startDate: subMonths(currentDay, 1).toISOString(),
-    endDate: currentDay.toISOString(),
+    globalStartDate: subMonths(currentDay, 1).toISOString(),
+    globalEndDate: currentDay.toISOString(),
+    specificItemStartDate: undefined,
+    specificItemEndDate: undefined,
     specificItem: undefined,
 };
 
