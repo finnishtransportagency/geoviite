@@ -58,6 +58,34 @@ data class ExtTestModifiedLocationTrackCollectionResponseV1(
     val sijaintiraiteet: List<ExtTestLocationTrackV1>,
 )
 
+data class ExtTestTrackNumberV1(
+    val ratanumero_oid: String,
+    val ratanumero: String,
+    val kuvaus: String,
+    val tila: String,
+    val alkusijainti: ExtTestAddressPointV1?,
+    val loppusijainti: ExtTestAddressPointV1?,
+)
+
+data class ExtTestTrackNumberResponseV1(
+    val rataverkon_versio: String,
+    val koordinaatisto: String,
+    val ratanumero: ExtTestTrackNumberV1,
+)
+
+data class ExtTestModifiedTrackNumberResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val koordinaatisto: String,
+    val ratanumero: ExtTestTrackNumberV1,
+)
+
+data class ExtTestTrackNumberGeometryResponseV1(
+    val rataverkon_versio: String,
+    val koordinaatisto: String,
+    val osoitevalit: List<ExtTestGeometryIntervalV1>,
+)
+
 data class ExtTestErrorResponseV1(
     val virheviesti: String,
     val korrelaatiotunnus: String,
