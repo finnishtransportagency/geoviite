@@ -76,8 +76,9 @@ class LocationTrackController(
         @RequestParam("limit", required = true) limit: Int,
         @RequestParam("includeDeleted", required = false) includeDeleted: Boolean = false,
     ): List<LocationTrack> {
-        val context = LayoutContext.of(layoutBranch, publicationState)
-        return searchService.searchAllLocationTracks(context, searchTerm, limit, includeDeleted)
+        val params =
+            AssetSearchParameters(LayoutContext.of(layoutBranch, publicationState), searchTerm, limit, includeDeleted)
+        return searchService.searchAllLocationTracks(params)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
