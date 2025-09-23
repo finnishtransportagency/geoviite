@@ -44,14 +44,14 @@ function oidComponent<Id>(
     apiGetter: (id: Id, changeTime: TimeStamp) => Promise<{ [key in LayoutBranch]?: Oid }>,
     changeTimeGetter: (changeTimes: ChangeTimes) => TimeStamp,
 ): (props: OidProps<Id>) => React.JSX.Element {
-    return ({ id, branch, changeTimes, getFallbackTextIfNoOid }) => {
+    return ({ id, changeTimes, getFallbackTextIfNoOid }) => {
         const { t } = useTranslation();
 
         const changeTime = changeTimeGetter(changeTimes);
-        const oids = useLoader(() => apiGetter(id, changeTime), [id, branch, changeTime]);
+        const oids = useLoader(() => apiGetter(id, changeTime), [id, changeTime]);
 
-        const oidExists = oids !== undefined && branch in oids;
-        const oidToDisplay = oidExists ? (oids[branch] ?? '') : (getFallbackTextIfNoOid?.() ?? '');
+        const oidExists = oids !== undefined && 'MAIN' in oids;
+        const oidToDisplay = oidExists ? (oids['MAIN'] ?? '') : (getFallbackTextIfNoOid?.() ?? '');
 
         return oidExists ? (
             <span className={styles['oid-container']}>
