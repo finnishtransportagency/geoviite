@@ -18,7 +18,6 @@ import { LocationTrackVerticalGeometryInfobox } from 'tool-panel/location-track/
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { LocationTrackSplittingInfoboxContainer } from 'tool-panel/location-track/splitting/location-track-splitting-infobox';
 import { SplittingState } from 'tool-panel/location-track/split-store';
-import { EnvRestricted } from 'environment/env-restricted';
 import { ChangeTimes } from 'common/common-slice';
 import { LocationTrackValidationInfoboxContainer } from 'tool-panel/location-track/location-track-validation-infobox-container';
 import { LocationTrackSwitchRelinkingDialogContainer } from 'tool-panel/location-track/dialog/location-track-switch-relinking-dialog';
@@ -122,13 +121,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 openEditLocationTrackDialog={openEditLocationTrackDialog}
             />
             {splittingState && (
-                <EnvRestricted restrictTo="test">
-                    <LocationTrackSplittingInfoboxContainer
-                        visibilities={visibilities}
-                        visibilityChange={visibilityChange}
-                        layoutContext={layoutContext}
-                    />
-                </EnvRestricted>
+                <LocationTrackSplittingInfoboxContainer
+                    visibilities={visibilities}
+                    visibilityChange={visibilityChange}
+                    layoutContext={layoutContext}
+                />
             )}
             <LocationTrackLocationInfoboxContainer
                 locationTrack={locationTrack}
