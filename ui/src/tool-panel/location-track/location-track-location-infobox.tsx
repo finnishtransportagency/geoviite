@@ -14,7 +14,6 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
-import { EnvRestricted } from 'environment/env-restricted';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { formatToTM35FINString } from 'utils/geography-utils';
 import Infobox from 'tool-panel/infobox/infobox';
@@ -479,69 +478,67 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                     </InfoboxButtons>
                                 </React.Fragment>
                             )}
-                            <EnvRestricted restrictTo="test">
-                                <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {isMainDraft && !linkingState && (
-                                        <React.Fragment>
-                                            {locationTrack.isDraft &&
-                                                !extraInfo?.partOfUnfinishedSplit && (
-                                                    <InfoboxContentSpread>
-                                                        <MessageBox>
-                                                            {t(
-                                                                'tool-panel.location-track.splitting.validation.track-draft-exists',
-                                                            )}
-                                                        </MessageBox>
-                                                    </InfoboxContentSpread>
-                                                )}
-                                            {duplicatesOnOtherTrackNumbers &&
-                                                !extraInfo?.partOfUnfinishedSplit && (
-                                                    <InfoboxContentSpread>
-                                                        <MessageBox>
-                                                            {t(
-                                                                'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
-                                                            )}
-                                                        </MessageBox>
-                                                    </InfoboxContentSpread>
-                                                )}
-                                            {duplicatesOnOtherLocationTracks &&
-                                                !extraInfo?.partOfUnfinishedSplit && (
-                                                    <InfoboxContentSpread>
-                                                        <MessageBox>
-                                                            {t(
-                                                                'tool-panel.location-track.splitting.validation.duplicates-on-different-location-track',
-                                                            )}
-                                                        </MessageBox>
-                                                    </InfoboxContentSpread>
-                                                )}
-                                        </React.Fragment>
-                                    )}
-                                    <InfoboxButtons>
-                                        {!linkingState && !splittingState && (
-                                            <SplitButton
-                                                variant={ButtonVariant.SECONDARY}
-                                                size={ButtonSize.SMALL}
-                                                disabled={splittingDisabled}
-                                                isProcessing={startingSplitting}
-                                                title={getSplittingDisabledReasonsTranslated()}
-                                                onClick={() => startSplitting('NO_PREFILL')}
-                                                qa-id="start-splitting"
-                                                menuItems={[
-                                                    menuOption(
-                                                        () => {
-                                                            startSplitting('PREFILL');
-                                                        },
-                                                        t(
-                                                            'tool-panel.location-track.start-splitting-prefilled',
-                                                        ),
-                                                        'start-splitting-prefilled',
+                            <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                                {isMainDraft && !linkingState && (
+                                    <React.Fragment>
+                                        {locationTrack.isDraft &&
+                                            !extraInfo?.partOfUnfinishedSplit && (
+                                                <InfoboxContentSpread>
+                                                    <MessageBox>
+                                                        {t(
+                                                            'tool-panel.location-track.splitting.validation.track-draft-exists',
+                                                        )}
+                                                    </MessageBox>
+                                                </InfoboxContentSpread>
+                                            )}
+                                        {duplicatesOnOtherTrackNumbers &&
+                                            !extraInfo?.partOfUnfinishedSplit && (
+                                                <InfoboxContentSpread>
+                                                    <MessageBox>
+                                                        {t(
+                                                            'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
+                                                        )}
+                                                    </MessageBox>
+                                                </InfoboxContentSpread>
+                                            )}
+                                        {duplicatesOnOtherLocationTracks &&
+                                            !extraInfo?.partOfUnfinishedSplit && (
+                                                <InfoboxContentSpread>
+                                                    <MessageBox>
+                                                        {t(
+                                                            'tool-panel.location-track.splitting.validation.duplicates-on-different-location-track',
+                                                        )}
+                                                    </MessageBox>
+                                                </InfoboxContentSpread>
+                                            )}
+                                    </React.Fragment>
+                                )}
+                                <InfoboxButtons>
+                                    {!linkingState && !splittingState && (
+                                        <SplitButton
+                                            variant={ButtonVariant.SECONDARY}
+                                            size={ButtonSize.SMALL}
+                                            disabled={splittingDisabled}
+                                            isProcessing={startingSplitting}
+                                            title={getSplittingDisabledReasonsTranslated()}
+                                            onClick={() => startSplitting('NO_PREFILL')}
+                                            qa-id="start-splitting"
+                                            menuItems={[
+                                                menuOption(
+                                                    () => {
+                                                        startSplitting('PREFILL');
+                                                    },
+                                                    t(
+                                                        'tool-panel.location-track.start-splitting-prefilled',
                                                     ),
-                                                ]}>
-                                                {t('tool-panel.location-track.start-splitting')}
-                                            </SplitButton>
-                                        )}
-                                    </InfoboxButtons>
-                                </PrivilegeRequired>
-                            </EnvRestricted>
+                                                    'start-splitting-prefilled',
+                                                ),
+                                            ]}>
+                                            {t('tool-panel.location-track.start-splitting')}
+                                        </SplitButton>
+                                    )}
+                                </InfoboxButtons>
+                            </PrivilegeRequired>
 
                             <InfoboxField
                                 qaId="location-track-true-length"
