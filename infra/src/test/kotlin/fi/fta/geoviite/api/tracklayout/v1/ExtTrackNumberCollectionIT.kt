@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
-import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.segment
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -24,12 +23,11 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtTrackNumberCollectionTestIT
+class ExtTrackNumberCollectionIT
 @Autowired
 constructor(
     mockMvc: MockMvc,
     private val layoutTrackNumberService: LayoutTrackNumberService,
-    private val locationTrackService: LocationTrackService,
     private val extTestDataService: ExtApiTestDataServiceV1,
 ) : DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
