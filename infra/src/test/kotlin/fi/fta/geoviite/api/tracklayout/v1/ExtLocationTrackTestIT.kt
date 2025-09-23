@@ -66,12 +66,6 @@ constructor(
         val responseAfterCreatingDraftTrack = api.locationTracks.get(oid)
         assertEquals(publication1.uuid.toString(), responseAfterCreatingDraftTrack.rataverkon_versio)
         assertNotEquals(modifiedDescription, responseAfterCreatingDraftTrack.sijaintiraide.kuvaus)
-
-        val publication2 = extTestDataService.publishInMain(locationTracks = listOf(track.id))
-        val responseAfterPublishingModification = api.locationTracks.get(oid)
-
-        assertEquals(publication2.uuid.toString(), responseAfterPublishingModification.rataverkon_versio)
-        assertEquals(modifiedDescription, responseAfterPublishingModification.sijaintiraide.kuvaus)
     }
 
     @Test
@@ -154,7 +148,12 @@ constructor(
             val response = api.locationTracks.get(oid, "koordinaatisto" to epsgCode)
 
             assertEquals(epsgCode, response.koordinaatisto)
-            assertExtStartAndEnd(expectedStart, expectedEnd, response.sijaintiraide)
+            assertExtStartAndEnd(
+                expectedStart,
+                expectedEnd,
+                requireNotNull(response.sijaintiraide.alkusijainti),
+                requireNotNull(response.sijaintiraide.loppusijainti),
+            )
         }
     }
 

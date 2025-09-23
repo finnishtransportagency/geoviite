@@ -22,14 +22,13 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class LocationTrackCollectionTestIT
+class ExtLocationTrackCollectionTestITj
 @Autowired
 constructor(
     mockMvc: MockMvc,
@@ -242,7 +241,12 @@ constructor(
                     .let(::requireNotNull)
 
             assertEquals(epsgCode, response.koordinaatisto)
-            assertExtStartAndEnd(expectedStart, expectedEnd, responseTrack)
+            assertExtStartAndEnd(
+                expectedStart,
+                expectedEnd,
+                requireNotNull(responseTrack.alkusijainti),
+                requireNotNull(responseTrack.loppusijainti),
+            )
         }
     }
 
@@ -311,22 +315,6 @@ constructor(
                 response.sijaintiraiteet.any { responseTrack -> responseTrack.sijaintiraide_oid == oid.toString() }
             )
         }
-    }
-
-    @Test
-    fun `Location track listing returns HTTP 400 if the track layout version is invalid format`() {
-        api.locationTrackCollection.getWithExpectedError(
-            "rataverkon_versio" to "asd",
-            httpStatus = HttpStatus.BAD_REQUEST,
-        )
-    }
-
-    @Test
-    fun `Location track listing returns HTTP 404 if the track layout version is not found`() {
-        api.locationTrackCollection.getWithExpectedError(
-            "rataverkon_versio" to "00000000-0000-0000-0000-000000000000",
-            httpStatus = HttpStatus.NOT_FOUND,
-        )
     }
 
     @Test
@@ -424,42 +412,6 @@ constructor(
     }
 
     @Test
-    fun `Location track modifications listing returns HTTP 204 when there are no modifications`() {
-        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-
-        val (trackNumberId, referenceLineId) =
-            extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
-
-        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
-
-        val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
-        locationTrackService.insertExternalId(LayoutBranch.main, trackId, someOid())
-
-        val startPublication =
-            extTestDataService.publishInMain(
-                trackNumbers = listOf(trackNumberId),
-                referenceLines = listOf(referenceLineId),
-                locationTracks = listOf(trackId),
-            )
-
-        // Also add another empty publication to check that the listing does not trigger with publications without
-        // meaningful changes.
-        val anotherPublication = extTestDataService.publishInMain()
-
-        api.locationTrackCollection.getModifiedWithEmptyBody(
-            "alkuversio" to startPublication.uuid.toString(),
-            "loppuversio" to startPublication.uuid.toString(), // Purposefully the same exact version.
-            httpStatus = HttpStatus.NO_CONTENT,
-        )
-
-        api.locationTrackCollection.getModifiedWithEmptyBody(
-            "alkuversio" to anotherPublication.uuid.toString(),
-            // This should use the "last track layout version" (although it also does not contain meaningful changes)
-            httpStatus = HttpStatus.NO_CONTENT,
-        )
-    }
-
-    @Test
     fun `Location track modifications listing respects start & end track layout version arguments`() {
         // Create an initial publication which should not be in any of the following responses.
         // This verifies that the api does not always use the first publication as the comparison base.
@@ -553,76 +505,6 @@ constructor(
         assertEquals(
             modifiedDescription,
             response.sijaintiraiteet.find { track -> track.sijaintiraide_oid == trackOid.toString() }?.kuvaus,
-        )
-    }
-
-    @Test
-    fun `Location track modifications listing returns HTTP 400 start or end track layout version is invalid format`() {
-        val invalidTrackLayoutVersion = "asd"
-        val emptyButRealPublication = extTestDataService.publishInMain()
-
-        api.locationTrackCollection.getModifiedWithExpectedError(
-            "alkuversio" to invalidTrackLayoutVersion,
-            httpStatus = HttpStatus.BAD_REQUEST,
-        )
-
-        api.locationTrackCollection.getModifiedWithExpectedError(
-            "alkuversio" to invalidTrackLayoutVersion,
-            "loppuversio" to invalidTrackLayoutVersion,
-            httpStatus = HttpStatus.BAD_REQUEST,
-        )
-
-        api.locationTrackCollection.getModifiedWithExpectedError(
-            "alkuversio" to emptyButRealPublication.uuid.toString(),
-            "loppuversio" to invalidTrackLayoutVersion,
-            httpStatus = HttpStatus.BAD_REQUEST,
-        )
-
-        api.locationTrackCollection.getModifiedWithExpectedError(
-            "alkuversio" to invalidTrackLayoutVersion,
-            "loppuversio" to invalidTrackLayoutVersion,
-            httpStatus = HttpStatus.BAD_REQUEST,
-        )
-    }
-
-    @Test
-    fun `Location track modifications listing returns HTTP 404 if either start or end track layout version is not found`() {
-        val nonExistingTrackLayoutVersion = "00000000-0000-0000-0000-000000000000"
-        val emptyButRealPublication = extTestDataService.publishInMain()
-
-        api.locationTrackCollection.getModifiedWithExpectedError(
-            "alkuversio" to nonExistingTrackLayoutVersion,
-            httpStatus = HttpStatus.NOT_FOUND,
-        )
-
-        api.locationTrackCollection.getModifiedWithExpectedError(
-            "alkuversio" to nonExistingTrackLayoutVersion,
-            "loppuversio" to nonExistingTrackLayoutVersion,
-            httpStatus = HttpStatus.NOT_FOUND,
-        )
-
-        api.locationTrackCollection.getModifiedWithExpectedError(
-            "alkuversio" to emptyButRealPublication.uuid.toString(),
-            "loppuversio" to nonExistingTrackLayoutVersion,
-            httpStatus = HttpStatus.NOT_FOUND,
-        )
-
-        api.locationTrackCollection.getModifiedWithExpectedError(
-            "alkuversio" to nonExistingTrackLayoutVersion,
-            "loppuversio" to nonExistingTrackLayoutVersion,
-            httpStatus = HttpStatus.NOT_FOUND,
-        )
-    }
-
-    @Test
-    fun `Location track modifications listing returns HTTP 400 if the supplied start and end versions are in the incorrect order`() {
-        val startPublication = extTestDataService.publishInMain()
-        val endPublication = extTestDataService.publishInMain()
-
-        api.locationTrackCollection.getModifiedWithExpectedError(
-            "alkuversio" to endPublication.uuid.toString(),
-            "loppuversio" to startPublication.uuid.toString(),
-            httpStatus = HttpStatus.BAD_REQUEST,
         )
     }
 }

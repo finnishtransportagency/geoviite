@@ -1,27 +1,31 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import org.junit.jupiter.api.Assertions.assertEquals
 
 fun assertExtStartAndEnd(
     expectedStart: Point,
     expectedEnd: Point,
-    responseTrack: ExtTestLocationTrackV1,
+    responseStart: ExtTestAddressPointV1,
+    responseEnd: ExtTestAddressPointV1,
 ) {
+    assertEquals(expectedStart.x, responseStart.x, 0.0001)
+    assertEquals(expectedStart.y, responseStart.y, 0.0001)
+    assertEquals(expectedEnd.x, responseEnd.x, 0.0001)
+    assertEquals(expectedEnd.y, responseEnd.y, 0.0001)
+}
 
-    assertEquals(expectedStart.x, requireNotNull(responseTrack.alkusijainti?.x), 0.0001)
-    assertEquals(expectedStart.y, requireNotNull(responseTrack.alkusijainti.y), 0.0001)
-    assertEquals(
-        expectedEnd.x,
-        requireNotNull(responseTrack.loppusijainti?.x),
-        0.0001,
-    )
-    assertEquals(
-        expectedEnd.y,
-        requireNotNull(responseTrack.loppusijainti.y),
-        0.0001,
-    )
+fun assertExtLayoutState(expectedState: LayoutState, stateName: String) {
+    val expectedStateName =
+        when (expectedState) {
+            LayoutState.IN_USE -> "käytössä"
+            LayoutState.NOT_IN_USE -> "käytöstä poistettu"
+            LayoutState.DELETED -> "poistettu"
+        }
+
+    assertEquals(expectedStateName, stateName)
 }
 
 fun assertExtLocationTrackState(expectedState: LocationTrackState, stateName: String) {
