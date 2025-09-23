@@ -53,6 +53,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.math.RoundingMode.CEILING
+import java.math.RoundingMode.FLOOR
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.PI
 
@@ -204,14 +206,14 @@ data class GeocodingKm<M : GeocodingAlignmentM<M>>(
 
     fun getMetersRangeAtResolution(resolution: Resolution): ClosedRange<BigDecimal> =
         resolutionMRanges.computeIfAbsent(resolution) {
-            val start = roundToResolution(startMeters, resolution.meters, true)
+            val start = roundToResolution(startMeters, resolution.meters, CEILING)
             val adjustedEnd = if (endInclusive) endMeters else endMeters - minMeterLength
-            val end = roundToResolution(adjustedEnd, resolution.meters, false)
+            val end = roundToResolution(adjustedEnd, resolution.meters, FLOOR)
             start..end
         }
 
-    private fun roundToResolution(value: BigDecimal, resolution: BigDecimal, roundUp: Boolean): BigDecimal {
-        val scaled = value.divide(resolution, 0, if (roundUp) RoundingMode.CEILING else RoundingMode.FLOOR)
+    private fun roundToResolution(value: BigDecimal, resolution: BigDecimal, roundingMode: RoundingMode): BigDecimal {
+        val scaled = value.divide(resolution, 0, roundingMode)
         return scaled.multiply(resolution).setScale(resolution.scale())
     }
 }
@@ -472,7 +474,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
                     requireNotNull(post.layoutLocation) { "A validated KM Post must have a location: ${post.toLog()}" }
                 val closestPoint =
                     requireNotNull(referenceLineGeometry.getClosestPointM(location)) {
-                        "Could not resolve closes point on reference line for km post: ${post.toLog()}"
+                        "Could not resolve closest point on reference line for km post: ${post.toLog()}"
                     }
                 when {
                     closestPoint.second == BEFORE ->
@@ -547,21 +549,15 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         return if (addressFilter == null) {
             trackStartAndEnd
         } else {
+            fun asTrackAddressPoint(address: TrackMeter): Pair<AddressPoint<TargetM>, IntersectType>? =
+                getTrackLocation(alignment, address.round(METERS_DEFAULT_DECIMAL_DIGITS))?.let { it to WITHIN }
             trackStartAndEnd?.let { (trackStart, trackEnd) ->
                 val filteredStart =
-                    trackStart.takeIf { p -> addressFilter.acceptInclusive(p.first.address) }
-                        ?: addressFilter.start
-                            ?.let(::getFirstAddressAtOrAfter)
-                            ?.round(METERS_DEFAULT_DECIMAL_DIGITS)
-                            ?.let { a -> getTrackLocation(alignment, a) }
-                            ?.let { it to WITHIN }
+                    trackStart.takeIf { (p, _) -> addressFilter.acceptInclusive(p.address) }
+                        ?: addressFilter.start?.let(::getFirstAddressAtOrAfter)?.let(::asTrackAddressPoint)
                 val filteredEnd =
-                    trackEnd.takeIf { p -> addressFilter.acceptInclusive(p.first.address) }
-                        ?: addressFilter.end
-                            ?.let(::getLastAddressAtOrBefore)
-                            ?.round(METERS_DEFAULT_DECIMAL_DIGITS)
-                            ?.let { a -> getTrackLocation(alignment, a) }
-                            ?.let { it to WITHIN }
+                    trackEnd.takeIf { (p, _) -> addressFilter.acceptInclusive(p.address) }
+                        ?: addressFilter.end?.let(::getLastAddressAtOrBefore)?.let(::asTrackAddressPoint)
                 if (filteredStart != null && filteredEnd != null) filteredStart to filteredEnd else null
             }
         }
