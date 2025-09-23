@@ -81,7 +81,8 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
             if (i == edges.lastIndex) {
                 listOf(
                     e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min),
-                    e.endNode.node to e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min)),
+                    e.endNode.node to
+                        e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min)),
                 )
             } else {
                 listOf(e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min))
@@ -182,13 +183,10 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
     fun withDbComponents(
         dbNodes: Map<NodeHash, DbLayoutNode>,
         dbEdges: Map<EdgeHash, DbLayoutEdge>,
-    ): LocationTrackGeometry {
-        val newEdges =
-            edges.map { edge ->
-                if (edge is DbLayoutEdge) edge else dbEdges[edge.contentHash] ?: edge.withDbNodes(dbNodes)
-            }
-        return if (newEdges == edges) this else TmpLocationTrackGeometry.of(newEdges, trackId)
-    }
+    ): LocationTrackGeometry =
+        edges
+            .map { edge -> (edge as? DbLayoutEdge) ?: dbEdges[edge.contentHash] ?: edge.withDbNodes(dbNodes) }
+            .let { newEdges -> if (newEdges == edges) this else TmpLocationTrackGeometry.of(newEdges, trackId) }
 
     fun withLocationTrackId(id: IntId<LocationTrack>): LocationTrackGeometry =
         when {
