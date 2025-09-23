@@ -9,9 +9,8 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.ClientException
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
-import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
-import fi.fta.geoviite.infra.geocoding.KmPostRejectedReason
+import fi.fta.geoviite.infra.geocoding.KmValidationIssue
+import fi.fta.geoviite.infra.geocoding.ValidatedGeocodingContext
 import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -28,7 +27,6 @@ import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
-import fi.fta.geoviite.infra.tracklayout.GeocodingAlignmentM
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
@@ -873,92 +871,110 @@ fun noGeocodingContext(validationTargetLocalizationPrefix: String) =
     LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.no-context")
 
 fun validateGeocodingContext(
-    contextCreateResult: GeocodingContextCreateResult<ReferenceLineM>,
+    validatedContext: ValidatedGeocodingContext<ReferenceLineM>,
     trackNumber: TrackNumber,
 ): List<LayoutValidationIssue> {
-    val context = contextCreateResult.geocodingContext
+    val context = validatedContext.geocodingContext
 
-    val badStartPoint =
-        validateWithParams(contextCreateResult.startPointRejectedReason == null) {
-            "$VALIDATION_GEOCODING.start-km-too-long" to localizationParams()
+    val startKm = context.kms.first()
+    val kmLengthErrors: List<LayoutValidationIssue> =
+        context.kms.mapIndexedNotNull { index, km ->
+            if (km.isTooLong()) {
+                validationError(
+                    key =
+                        when (index) {
+                            0 -> "$VALIDATION_GEOCODING.start-km-too-long"
+                            context.kms.lastIndex -> "$VALIDATION_GEOCODING.end-km-too-long"
+                            else -> "$VALIDATION_GEOCODING.km-too-long"
+                        },
+                    params =
+                        localizationParams(
+                            "trackNumber" to trackNumber,
+                            "kmNumber" to startKm.kmNumber,
+                            "nextKmNumber" to context.kmNumbers.getOrNull(index + 1),
+                        ),
+                )
+            } else {
+                null
+            }
         }
 
-    val kmPostsInWrongOrder =
-        context.referencePoints
-            .filter { point -> point.intersectType == WITHIN }
-            .filterIndexed { index, point ->
-                val previous = context.referencePoints.getOrNull(index - 1)
-                val next = context.referencePoints.getOrNull(index + 1)
-                !isOrderOk(previous, point) || !isOrderOk(point, next)
-            }
-            .let { invalidPoints ->
-                validateWithParams(invalidPoints.isEmpty()) {
-                    "$VALIDATION_GEOCODING.km-posts-invalid" to
-                        localizationParams(
-                            "trackNumber" to context.trackNumber,
-                            "kmNumbers" to invalidPoints.joinToString(", ") { point -> point.kmNumber.toString() },
-                        )
-                }
+    val kmPostsInWrongOrder: LayoutValidationIssue? =
+        validatedContext.kmErrors
+            .filter { (_, error) -> error == KmValidationIssue.INCORRECT_ORDER }
+            .map { (km, _) -> km }
+            .takeIf { it.isNotEmpty() }
+            ?.let { kms ->
+                validationError(
+                    "$VALIDATION_GEOCODING.km-posts-wrong-order",
+                    localizationParams(
+                        "trackNumber" to context.trackNumber,
+                        "kmNumbers" to kms.joinToString(", "),
+                    ),
+                )
             }
 
-    val kmPostsFarFromLine =
-        context.referencePoints
-            .filter { point -> point.intersectType == WITHIN }
-            .filter { point -> point.kmPostOffset > MAX_KM_POST_OFFSET }
-            .let { farAwayPoints ->
-                validateWithParams(farAwayPoints.isEmpty(), WARNING) {
+    val kmPostsFarFromLine: LayoutValidationIssue? =
+        context.kms
+            .filter { km -> km.kmPostOffset > MAX_KM_POST_OFFSET }
+            .let { kmsWithFarawayPoints ->
+                validateWithParams(kmsWithFarawayPoints.isEmpty(), WARNING) {
                     "$VALIDATION_GEOCODING.km-posts-far-from-line" to
                         localizationParams(
                             "trackNumber" to context.trackNumber,
-                            "kmNumbers" to farAwayPoints.joinToString(",") { point -> point.kmNumber.toString() },
+                            "kmNumbers" to
+                                kmsWithFarawayPoints.joinToString(",") { point -> point.kmNumber.toString() },
                         )
                 }
             }
 
-    val kmPostsRejected =
-        contextCreateResult.rejectedKmPosts.map { (kmPost, reason) ->
-            val kmPostLocalizationParams = mapOf("trackNumber" to trackNumber, "kmNumber" to kmPost.kmNumber)
+    val kmPostsRejected: List<LayoutValidationIssue> =
+        validatedContext.kmErrors.map { (kmNumber, issue) ->
+            val kmPostLocalizationParams = mapOf("trackNumber" to trackNumber, "kmNumber" to kmNumber)
 
-            when (reason) {
-                KmPostRejectedReason.TOO_FAR_APART ->
-                    LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.km-post-too-long", kmPostLocalizationParams)
+            when (issue) {
+                KmValidationIssue.NO_LOCATION ->
+                    LayoutValidationIssue(
+                        ERROR,
+                        "$VALIDATION_GEOCODING.km-post-no-location",
+                        kmPostLocalizationParams,
+                    )
 
-                KmPostRejectedReason.NO_LOCATION ->
-                    LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.km-post-no-location", kmPostLocalizationParams)
-
-                KmPostRejectedReason.IS_BEFORE_START_ADDRESS ->
+                KmValidationIssue.IS_BEFORE_START_ADDRESS ->
                     LayoutValidationIssue(
                         WARNING,
                         "$VALIDATION_GEOCODING.km-post-smaller-than-track-number-start",
                         kmPostLocalizationParams,
                     )
 
-                KmPostRejectedReason.INTERSECTS_BEFORE_REFERENCE_LINE ->
+                KmValidationIssue.INTERSECTS_BEFORE_REFERENCE_LINE ->
                     LayoutValidationIssue(
                         WARNING,
                         "$VALIDATION_GEOCODING.km-post-outside-line-before",
                         kmPostLocalizationParams,
                     )
 
-                KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE ->
+                KmValidationIssue.INTERSECTS_AFTER_REFERENCE_LINE ->
                     LayoutValidationIssue(
                         WARNING,
                         "$VALIDATION_GEOCODING.km-post-outside-line-after",
                         kmPostLocalizationParams,
                     )
 
-                KmPostRejectedReason.DUPLICATE ->
-                    LayoutValidationIssue(FATAL, "$VALIDATION_GEOCODING.duplicate-km-posts", kmPostLocalizationParams)
+                KmValidationIssue.DUPLICATE_KM ->
+                    LayoutValidationIssue(
+                        FATAL,
+                        "$VALIDATION_GEOCODING.duplicate-km-posts",
+                        kmPostLocalizationParams,
+                    )
+
+                KmValidationIssue.INCORRECT_ORDER ->
+                    LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.km-posts-invalid", kmPostLocalizationParams)
             }
         }
 
-    return kmPostsRejected + listOfNotNull(kmPostsFarFromLine, kmPostsInWrongOrder, badStartPoint)
+    return kmPostsRejected + listOfNotNull(kmPostsFarFromLine, kmPostsInWrongOrder) + kmLengthErrors
 }
-
-private fun <M : GeocodingAlignmentM<M>> isOrderOk(
-    previous: GeocodingReferencePoint<M>?,
-    next: GeocodingReferencePoint<M>?,
-) = if (previous == null || next == null) true else previous.distance < next.distance
 
 fun validateAddressPoints(
     trackNumber: LayoutTrackNumber,

@@ -64,7 +64,6 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -78,6 +77,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1031,7 +1031,10 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.WARNING,
                 "validation.layout.switch.track-linkage.switch-alignment-multiply-connected",
-                mapOf("locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})", "switch" to "TV123"),
+                mapOf(
+                    "locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})",
+                    "switch" to "TV123",
+                ),
             ),
         )
     }
@@ -2165,7 +2168,6 @@ constructor(
                 switchLinkYV(topologyStartSwitchId, 1) to Point(0.0, 0.0),
                 switchLinkYV(topologyEndSwitchId, 3) to Point(3.0, 0.0),
             )
-        println(locationTracksUnderTest.map { (t, g) -> t.id to g.nodesWithLocation })
 
         val locationTrackIdsUnderTest =
             locationTracksUnderTest

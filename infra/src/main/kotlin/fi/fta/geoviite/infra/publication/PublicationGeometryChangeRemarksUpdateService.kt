@@ -148,8 +148,8 @@ private fun summarizeChangedRange(
     val rangeStartAddress = oldPoints.first().address
     val rangeEndAddress = oldPoints.last().address
     val rangeStartMOnReferenceLine =
-        requireNotNull(geocodingContext.getProjectionLine(rangeStartAddress)).distance.distance
-    val rangeEndMOnReferenceLine = requireNotNull(geocodingContext.getProjectionLine(rangeEndAddress)).distance.distance
+        requireNotNull(geocodingContext.getProjectionLine(rangeStartAddress)).referenceLineM.distance
+    val rangeEndMOnReferenceLine = requireNotNull(geocodingContext.getProjectionLine(rangeEndAddress)).referenceLineM.distance
     val changeLengthM = rangeEndMOnReferenceLine - rangeStartMOnReferenceLine
 
     val maxDistance =
