@@ -25,7 +25,7 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtLocationTrackTestIT
+class ExtLocationTrackIT
 @Autowired
 constructor(
     mockMvc: MockMvc,
