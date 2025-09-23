@@ -52,8 +52,8 @@ constructor(
             }
 
         extTestDataService.publishInMain(
-            trackNumbers = trackNumbers.map { it.first },
-            referenceLines = trackNumbers.map { it.second },
+            trackNumbers = trackNumbers.map { (trackNumberId, _, _) -> trackNumberId },
+            referenceLines = trackNumbers.map { (_, referenceLineId, _) -> referenceLineId },
         )
 
         val newestButEmptyPublication = extTestDataService.publishInMain()
