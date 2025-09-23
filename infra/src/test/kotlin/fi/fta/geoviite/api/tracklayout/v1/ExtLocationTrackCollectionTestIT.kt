@@ -37,7 +37,6 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val extTestDataService: ExtApiTestDataServiceV1,
 ) : DBTestBase() {
-
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -71,7 +70,7 @@ constructor(
         )
 
         val newestButEmptyPublication = extTestDataService.publishInMain()
-        val response = api.getLocationTrackCollection()
+        val response = api.locationTrackCollection.get()
 
         assertEquals(newestButEmptyPublication.uuid.toString(), response.rataverkon_versio)
         assertEquals(tracks.size, response.sijaintiraiteet.size)
@@ -139,7 +138,7 @@ constructor(
             )
             .id
 
-        val response = api.getLocationTrackCollection()
+        val response = api.locationTrackCollection.get()
 
         assertEquals(newestPublication.uuid.toString(), response.rataverkon_versio)
         assertEquals(officialTracks.size, response.sijaintiraiteet.size)
@@ -188,7 +187,7 @@ constructor(
 
         tracksToPublications.forEach { (amountOfPublishedLocationTracks, trackOid, publication) ->
             val response =
-                api.getLocationTrackCollection(
+                api.locationTrackCollection.get(
                     "rataverkon_versio" to publication.uuid.toString(),
                 )
 
@@ -232,7 +231,7 @@ constructor(
 
         tests.forEach { (epsgCode, expectedStart, expectedEnd) ->
             val response =
-                api.getLocationTrackCollection(
+                api.locationTrackCollection.get(
                     "rataverkon_versio" to publication.uuid.toString(),
                     "koordinaatisto" to epsgCode,
                 )
@@ -243,7 +242,7 @@ constructor(
                     .let(::requireNotNull)
 
             assertEquals(epsgCode, response.koordinaatisto)
-            assertTrackStartAndEnd(expectedStart, expectedEnd, responseTrack)
+            assertExtStartAndEnd(expectedStart, expectedEnd, responseTrack)
         }
     }
 
@@ -269,7 +268,7 @@ constructor(
             locationTracks = listOf(deletedTrackId),
         )
 
-        val response = api.getLocationTrackCollection()
+        val response = api.locationTrackCollection.get()
         assertEquals(0, response.sijaintiraiteet.size)
     }
 
@@ -304,7 +303,7 @@ constructor(
             locationTracks = tracks.map { (_, id) -> id },
         )
 
-        val response = api.getLocationTrackCollection()
+        val response = api.locationTrackCollection.get()
         assertEquals(tracks.size, response.sijaintiraiteet.size)
 
         tracks.forEach { (oid, _) ->
@@ -316,7 +315,7 @@ constructor(
 
     @Test
     fun `Location track listing returns HTTP 400 if the track layout version is invalid format`() {
-        api.getLocationTrackCollectionWithExpectedError(
+        api.locationTrackCollection.getWithExpectedError(
             "rataverkon_versio" to "asd",
             httpStatus = HttpStatus.BAD_REQUEST,
         )
@@ -324,7 +323,7 @@ constructor(
 
     @Test
     fun `Location track listing returns HTTP 404 if the track layout version is not found`() {
-        api.getLocationTrackCollectionWithExpectedError(
+        api.locationTrackCollection.getWithExpectedError(
             "rataverkon_versio" to "00000000-0000-0000-0000-000000000000",
             httpStatus = HttpStatus.NOT_FOUND,
         )
@@ -369,7 +368,7 @@ constructor(
             }
 
         val secondPublication = extTestDataService.publishInMain(locationTracks = modifiedTracks.map { (_, id) -> id })
-        val response = api.getModifiedLocationTrackCollection("alkuversio" to initialPublication.uuid.toString())
+        val response = api.locationTrackCollection.getModified("alkuversio" to initialPublication.uuid.toString())
 
         assertEquals(modifiedTracks.size, response.sijaintiraiteet.size)
         response.sijaintiraiteet.forEach { track -> assertEquals(modifiedDescription, track.kuvaus) }
@@ -415,7 +414,7 @@ constructor(
         val secondPublication = extTestDataService.publishInMain(locationTracks = modifiedTracks.map { (_, id) -> id })
 
         val response =
-            api.getModifiedLocationTrackCollection(
+            api.locationTrackCollection.getModified(
                 "alkuversio" to initialPublication.uuid.toString(),
                 "loppuversio" to secondPublication.uuid.toString(),
             )
@@ -447,13 +446,13 @@ constructor(
         // meaningful changes.
         val anotherPublication = extTestDataService.publishInMain()
 
-        api.getModifiedLocationTrackCollectionWithoutResult(
+        api.locationTrackCollection.getModifiedWithEmptyBody(
             "alkuversio" to startPublication.uuid.toString(),
             "loppuversio" to startPublication.uuid.toString(), // Purposefully the same exact version.
             httpStatus = HttpStatus.NO_CONTENT,
         )
 
-        api.getModifiedLocationTrackCollectionWithoutResult(
+        api.locationTrackCollection.getModifiedWithEmptyBody(
             "alkuversio" to anotherPublication.uuid.toString(),
             // This should use the "last track layout version" (although it also does not contain meaningful changes)
             httpStatus = HttpStatus.NO_CONTENT,
@@ -499,7 +498,7 @@ constructor(
         extTestDataService.publishInMain()
 
         val response =
-            api.getModifiedLocationTrackCollection(
+            api.locationTrackCollection.getModified(
                 "alkuversio" to publicationStart.uuid.toString(),
                 "loppuversio" to publicationEnd.uuid.toString(),
             )
@@ -544,7 +543,7 @@ constructor(
         val publicationEnd = extTestDataService.publishInMain(locationTracks = listOf(trackId))
 
         val response =
-            api.getModifiedLocationTrackCollection(
+            api.locationTrackCollection.getModified(
                 "alkuversio" to publicationStart.uuid.toString(),
             )
 
@@ -562,24 +561,24 @@ constructor(
         val invalidTrackLayoutVersion = "asd"
         val emptyButRealPublication = extTestDataService.publishInMain()
 
-        api.getModifiedLocationTrackCollectionWithExpectedError(
+        api.locationTrackCollection.getModifiedWithExpectedError(
             "alkuversio" to invalidTrackLayoutVersion,
             httpStatus = HttpStatus.BAD_REQUEST,
         )
 
-        api.getModifiedLocationTrackCollectionWithExpectedError(
+        api.locationTrackCollection.getModifiedWithExpectedError(
             "alkuversio" to invalidTrackLayoutVersion,
             "loppuversio" to invalidTrackLayoutVersion,
             httpStatus = HttpStatus.BAD_REQUEST,
         )
 
-        api.getModifiedLocationTrackCollectionWithExpectedError(
+        api.locationTrackCollection.getModifiedWithExpectedError(
             "alkuversio" to emptyButRealPublication.uuid.toString(),
             "loppuversio" to invalidTrackLayoutVersion,
             httpStatus = HttpStatus.BAD_REQUEST,
         )
 
-        api.getModifiedLocationTrackCollectionWithExpectedError(
+        api.locationTrackCollection.getModifiedWithExpectedError(
             "alkuversio" to invalidTrackLayoutVersion,
             "loppuversio" to invalidTrackLayoutVersion,
             httpStatus = HttpStatus.BAD_REQUEST,
@@ -591,24 +590,24 @@ constructor(
         val nonExistingTrackLayoutVersion = "00000000-0000-0000-0000-000000000000"
         val emptyButRealPublication = extTestDataService.publishInMain()
 
-        api.getModifiedLocationTrackCollectionWithExpectedError(
+        api.locationTrackCollection.getModifiedWithExpectedError(
             "alkuversio" to nonExistingTrackLayoutVersion,
             httpStatus = HttpStatus.NOT_FOUND,
         )
 
-        api.getModifiedLocationTrackCollectionWithExpectedError(
+        api.locationTrackCollection.getModifiedWithExpectedError(
             "alkuversio" to nonExistingTrackLayoutVersion,
             "loppuversio" to nonExistingTrackLayoutVersion,
             httpStatus = HttpStatus.NOT_FOUND,
         )
 
-        api.getModifiedLocationTrackCollectionWithExpectedError(
+        api.locationTrackCollection.getModifiedWithExpectedError(
             "alkuversio" to emptyButRealPublication.uuid.toString(),
             "loppuversio" to nonExistingTrackLayoutVersion,
             httpStatus = HttpStatus.NOT_FOUND,
         )
 
-        api.getModifiedLocationTrackCollectionWithExpectedError(
+        api.locationTrackCollection.getModifiedWithExpectedError(
             "alkuversio" to nonExistingTrackLayoutVersion,
             "loppuversio" to nonExistingTrackLayoutVersion,
             httpStatus = HttpStatus.NOT_FOUND,
@@ -620,30 +619,10 @@ constructor(
         val startPublication = extTestDataService.publishInMain()
         val endPublication = extTestDataService.publishInMain()
 
-        api.getModifiedLocationTrackCollectionWithExpectedError(
+        api.locationTrackCollection.getModifiedWithExpectedError(
             "alkuversio" to endPublication.uuid.toString(),
             "loppuversio" to startPublication.uuid.toString(),
             httpStatus = HttpStatus.BAD_REQUEST,
         )
     }
-}
-
-private fun assertTrackStartAndEnd(
-    expectedStart: Point,
-    expectedEnd: Point,
-    responseTrack: ExtTestLocationTrackV1,
-) {
-
-    assertEquals(expectedStart.x, requireNotNull(responseTrack.alkusijainti?.x), 0.0001)
-    assertEquals(expectedStart.y, requireNotNull(responseTrack.alkusijainti.y), 0.0001)
-    assertEquals(
-        expectedEnd.x,
-        requireNotNull(responseTrack.loppusijainti?.x),
-        0.0001,
-    )
-    assertEquals(
-        expectedEnd.y,
-        requireNotNull(responseTrack.loppusijainti.y),
-        0.0001,
-    )
 }
