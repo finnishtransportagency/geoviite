@@ -7,12 +7,10 @@ import fi.fta.geoviite.api.assertNullDetailedProperties
 import fi.fta.geoviite.api.assertNullSimpleProperties
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
-import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -21,7 +19,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
@@ -60,7 +57,7 @@ class TrackAddressToCoordinateIT
 @Autowired
 constructor(
     mockMvc: MockMvc,
-    val frameConverterTestDataService: ExtApiTestDataServiceV1,
+    val extTestDataService: ExtApiTestDataServiceV1,
     val layoutTrackNumberDao: LayoutTrackNumberDao,
     val locationTrackDao: LocationTrackDao,
     val locationTrackService: LocationTrackService,
@@ -103,7 +100,7 @@ constructor(
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
-        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
+        extTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
 
         val request = TestTrackAddressToCoordinateRequest(ratametri = 0, ratanumero = trackNumberName)
         val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
@@ -175,7 +172,7 @@ constructor(
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
-        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
+        extTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
 
         val request = TestTrackAddressToCoordinateRequest(ratakilometri = 123, ratanumero = trackNumberName)
 
@@ -198,7 +195,7 @@ constructor(
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
-        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
+        extTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
 
         val request =
             TestTrackAddressToCoordinateRequest(ratakilometri = 123, ratametri = -10001, ratanumero = trackNumberName)
@@ -222,7 +219,7 @@ constructor(
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
-        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
+        extTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
 
         val request =
             TestTrackAddressToCoordinateRequest(ratakilometri = 123, ratametri = 10000, ratanumero = trackNumberName)
@@ -256,7 +253,7 @@ constructor(
 
         val tracksUnderTest =
             (0..3).map { _ ->
-                frameConverterTestDataService.insertGeocodableTrack(
+                extTestDataService.insertGeocodableTrack(
                     trackNumberId = trackNumber.id as IntId,
                     referenceLineId = referenceLineId,
                     segments = segments,
@@ -308,7 +305,7 @@ constructor(
                 )
                 .map { (locationTrackTypeName, locationTrackType) ->
                     val track =
-                        frameConverterTestDataService.insertGeocodableTrack(
+                        extTestDataService.insertGeocodableTrack(
                             trackNumberId = trackNumber.id as IntId,
                             referenceLineId = referenceLineId,
                             locationTrackType = locationTrackType,
@@ -398,7 +395,7 @@ constructor(
 
         val tracksUnderTest =
             positionedTrackSegments.map { trackSegments ->
-                frameConverterTestDataService.insertGeocodableTrack(
+                extTestDataService.insertGeocodableTrack(
                     layoutContext = layoutContext,
                     trackNumberId = trackNumber.id as IntId,
                     referenceLineId = referenceLineId,
@@ -451,7 +448,7 @@ constructor(
                     listOf(segment(Point(100.0, 0.0), Point(501.0, 0.0))), // Should be in the response
                 )
                 .map { trackSegments ->
-                    frameConverterTestDataService.insertGeocodableTrack(
+                    extTestDataService.insertGeocodableTrack(
                         layoutContext = layoutContext,
                         trackNumberId = trackNumber.id as IntId,
                         referenceLineId = referenceLineId,
@@ -501,13 +498,13 @@ constructor(
                 )
                 .id
 
-        frameConverterTestDataService.insertGeocodableTrack(
+        extTestDataService.insertGeocodableTrack(
             trackNumberId = trackNumber.id as IntId,
             referenceLineId = referenceLineId,
             segments = segments,
         )
 
-        frameConverterTestDataService.insertGeocodableTrack(
+        extTestDataService.insertGeocodableTrack(
             trackNumberId = trackNumber.id as IntId,
             referenceLineId = referenceLineId,
             segments = segments2,
@@ -576,7 +573,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        frameConverterTestDataService.insertGeocodableTrack(
+        extTestDataService.insertGeocodableTrack(
             trackNumberId = trackNumber.id as IntId,
             segments = segments,
         )
@@ -632,7 +629,7 @@ constructor(
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
         val geocodableTrack =
-            frameConverterTestDataService.insertGeocodableTrack(
+            extTestDataService.insertGeocodableTrack(
                 trackNumberId = trackNumber.id as IntId,
                 segments = segments,
                 locationTrackType = LocationTrackType.SIDE,
@@ -681,7 +678,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        frameConverterTestDataService.insertGeocodableTrack(
+        extTestDataService.insertGeocodableTrack(
             trackNumberId = trackNumber.id as IntId,
             segments = segments,
         )
@@ -720,7 +717,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        frameConverterTestDataService.insertGeocodableTrack(
+        extTestDataService.insertGeocodableTrack(
             trackNumberId = trackNumber.id as IntId,
             segments = segments,
         )
@@ -758,7 +755,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        frameConverterTestDataService.insertGeocodableTrack(
+        extTestDataService.insertGeocodableTrack(
             trackNumberId = trackNumber.id as IntId,
             segments = segments,
         )
@@ -805,7 +802,7 @@ constructor(
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
         val geocodableTrack =
-            frameConverterTestDataService.insertGeocodableTrack(
+            extTestDataService.insertGeocodableTrack(
                 trackNumberId = trackNumber.id as IntId,
                 locationTrackType = LocationTrackType.CHORD,
                 segments = segments,
@@ -849,7 +846,7 @@ constructor(
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
         val geocodableTrack =
-            frameConverterTestDataService.insertGeocodableTrack(
+            extTestDataService.insertGeocodableTrack(
                 trackNumberId = trackNumber.id as IntId,
                 locationTrackType = LocationTrackType.TRAP,
                 segments = segments,
@@ -905,7 +902,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        frameConverterTestDataService.insertGeocodableTrack(
+        extTestDataService.insertGeocodableTrack(
             trackNumberId = trackNumber.id as IntId,
             locationTrackType = LocationTrackType.CHORD,
             segments = segments,
@@ -941,7 +938,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        frameConverterTestDataService.insertGeocodableTrack(
+        extTestDataService.insertGeocodableTrack(
             trackNumberId = trackNumber.id as IntId,
             locationTrackType = LocationTrackType.CHORD,
             segments = segments,
@@ -974,7 +971,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        frameConverterTestDataService.insertGeocodableTrack(
+        extTestDataService.insertGeocodableTrack(
             trackNumberId = trackNumber.id as IntId,
             locationTrackType = LocationTrackType.CHORD,
             segments = segments,
@@ -1007,7 +1004,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        frameConverterTestDataService.insertGeocodableTrack(
+        extTestDataService.insertGeocodableTrack(
             trackNumberId = trackNumber.id as IntId,
             locationTrackType = LocationTrackType.CHORD,
             segments = segments,
@@ -1036,7 +1033,7 @@ constructor(
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
         val locationTrack =
-            frameConverterTestDataService.insertGeocodableTrack(
+            extTestDataService.insertGeocodableTrack(
                 trackNumberId = trackNumber.id as IntId,
                 locationTrackType = LocationTrackType.CHORD,
                 segments = segments,
@@ -1085,7 +1082,7 @@ constructor(
                 // different numbers of overlapping location tracks on each track number, including
                 // 0
                 (0 until trackNumberIndex).map { i ->
-                    frameConverterTestDataService.insertGeocodableTrack(
+                    extTestDataService.insertGeocodableTrack(
                         trackNumberId = trackNumber.id as IntId,
                         referenceLineId = referenceLineId,
                         segments = segments,
@@ -1133,9 +1130,9 @@ constructor(
 
         val trackNumberName = testDBService.getUnusedTrackNumber().value
         val (trackNumberId, referenceLineId) =
-            insertTrackNumberAndReferenceLine(layoutContext, trackNumberName, segments)
+            extTestDataService.insertTrackNumberAndReferenceLine(layoutContext, trackNumberName, segments)
 
-        frameConverterTestDataService
+        extTestDataService
             .insertGeocodableTrack(
                 layoutContext = layoutContext,
                 trackNumberId = trackNumberId,
@@ -1176,10 +1173,10 @@ constructor(
 
         val trackNumberName = testDBService.getUnusedTrackNumber().value
         val (trackNumberId, referenceLineId) =
-            insertTrackNumberAndReferenceLine(layoutContext, trackNumberName, segments)
+            extTestDataService.insertTrackNumberAndReferenceLine(layoutContext, trackNumberName, segments)
 
         testOids.forEach { oid ->
-            frameConverterTestDataService
+            extTestDataService
                 .insertGeocodableTrack(
                     layoutContext = layoutContext,
                     trackNumberId = trackNumberId,
@@ -1225,7 +1222,7 @@ constructor(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
                 )
 
-            frameConverterTestDataService.insertGeocodableTrack(
+            extTestDataService.insertGeocodableTrack(
                 layoutContext = layoutContext,
                 trackNumberId = trackNumber.id,
                 referenceLineId = referenceLine.id,
@@ -1263,7 +1260,7 @@ constructor(
                     referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
                 )
 
-            frameConverterTestDataService.insertGeocodableTrack(
+            extTestDataService.insertGeocodableTrack(
                 layoutContext = layoutContext,
                 trackNumberId = trackNumber.id,
                 referenceLineId = referenceLine.id,
@@ -1299,7 +1296,7 @@ constructor(
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
-        frameConverterTestDataService.insertGeocodableTrack(
+        extTestDataService.insertGeocodableTrack(
             trackNumberId = trackNumber.id as IntId,
             segments = segments,
         )
@@ -1385,23 +1382,5 @@ constructor(
 
         assertEquals(1, featureCollection.features.size)
         assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
-    }
-
-    fun insertTrackNumberAndReferenceLine(
-        layoutContext: TestLayoutContext,
-        trackNumberName: String,
-        segments: List<LayoutSegment>,
-    ): Pair<IntId<LayoutTrackNumber>, IntId<ReferenceLine>> {
-        val trackNumber =
-            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
-                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
-            }
-
-        val referenceLine =
-            layoutContext.saveReferenceLine(
-                referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
-            )
-
-        return trackNumber.id as IntId to referenceLine.id
     }
 }
