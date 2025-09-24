@@ -133,9 +133,9 @@ enum class RatkoAssetType(@get:JsonValue val value: String) {
     RAILWAY_TRAFFIC_OPERATING_POINT("railway_traffic_operating_point"),
 }
 
-data class RatkoOperatingPointAssetsResponse(val assets: List<RatkoOperatingPointAsset>)
+data class RatkoOperatingPointAssetsResponse(val assets: List<RatkoOperationalPointAsset>)
 
-data class RatkoOperatingPointAsset(
+data class RatkoOperationalPointAsset(
     val id: String,
     val properties: Collection<RatkoAssetProperty>,
     val locations: List<IncomingRatkoAssetLocation>?,
