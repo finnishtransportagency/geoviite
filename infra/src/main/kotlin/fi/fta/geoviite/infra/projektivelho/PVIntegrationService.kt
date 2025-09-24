@@ -22,13 +22,13 @@ import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.FINISHED
 import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.WAITING
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.formatForLog
-import java.time.Duration
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import withUser
+import java.time.Duration
+import java.time.Instant
 
 val PROJEKTIVELHO_INTEGRATION_USERNAME = UserName.of("PROJEKTIVELHO_IMPORT")
 val PREFETCH_TIME_RANGE = Duration.ofDays(365)
@@ -149,16 +149,25 @@ constructor(
         else fetch(oid).also { value -> known[oid] = value }?.also { value -> store(value) }
 
     private fun fetchFileMetadataAndContent(oid: Oid<PVDocument>): PVFileHolder {
-        val metadataResponse = pvClient.fetchFileMetadata(oid)
-        val content =
-            if (metadataResponse.metadata.containsPersonalInfo == true) null
-            else pvClient.fetchFileContent(oid, metadataResponse.latestVersion.version)
-
+        val metaData= pvClient.fetchFileMetadata(oid)
+        val content = when {
+            metaData.metadata.containsPersonalInfo == true -> {
+                logger.warn("Not downloading file as it contains personal info: oid=$oid metaData=$metaData")
+                null
+            }
+            metaData.latestVersion.size >= MAX_FILE_SIZE -> {
+                logger.warn("Not downloading file as it exceeds max size ($MAX_FILE_SIZE): oid=$oid metaData=$metaData")
+                null
+            }
+            else -> {
+                pvClient.fetchFileContent(oid, metaData.latestVersion.version)
+            }
+        }
         return PVFileHolder(
             oid = oid,
             content = content,
-            metadata = metadataResponse.metadata,
-            latestVersion = metadataResponse.latestVersion,
+            metadata = metaData.metadata,
+            latestVersion = metaData.latestVersion,
         )
     }
 

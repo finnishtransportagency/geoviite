@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.projektivelho
 
 import fi.fta.geoviite.infra.logging.integrationCall
-import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -10,17 +9,21 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders.CONTENT_TYPE
-import org.springframework.http.MediaType.*
-import org.springframework.http.client.reactive.*
+import org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE
+import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
+import java.time.Duration
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
 
-const val MAX_FILE_SIZE: Int = 100 * 1024 * 1024
+const val BYTES_PER_MEGABYTE: Int = 1024 * 1024
+const val MAX_FILE_SIZE: Int = 100 * BYTES_PER_MEGABYTE
+const val MAX_FILE_BUFFER_SIZE: Int = MAX_FILE_SIZE + 1 * BYTES_PER_MEGABYTE
 
 class PVWebClient(val client: WebClient) : WebClient by client
 
@@ -67,7 +70,7 @@ constructor(
                 .filter(logRequest())
                 .filter(logResponse())
                 .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-                .codecs { codecs -> codecs.defaultCodecs().maxInMemorySize(MAX_FILE_SIZE) }
+                .codecs { codecs -> codecs.defaultCodecs().maxInMemorySize(MAX_FILE_BUFFER_SIZE) }
 
         return PVWebClient(webClientBuilder.build())
     }
