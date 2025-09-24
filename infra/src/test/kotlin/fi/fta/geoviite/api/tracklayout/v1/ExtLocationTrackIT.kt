@@ -4,6 +4,7 @@ import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.Resolution
@@ -155,10 +156,23 @@ constructor(
     }
 
     @Test
-    fun `Location track geometry api respects the resolution argument`() {
-        val segment = segment(HelsinkiTestData.HKI_BASE_POINT, HelsinkiTestData.HKI_BASE_POINT + Point(1500.0, 0.0))
+    fun `Location track geometry api returns points at addresses divisible by resolution`() {
+        // Purposefully chosen to not be exactly divisible by any resolution
+        val startM = 0.125
+        val endM = 225.780
+
+        val segment =
+            segment(
+                HelsinkiTestData.HKI_BASE_POINT,
+                HelsinkiTestData.HKI_BASE_POINT + Point(0.0, endM - startM),
+                startM,
+            )
         val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                segments = listOf(segment),
+                startAddress = TrackMeter(KmNumber("0000"), startM.toBigDecimal()),
+            )
 
         val track = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment))
         val oid =
@@ -176,13 +190,55 @@ constructor(
             .map { it.meters }
             .forEach { resolution ->
                 val response = api.locationTracks.getGeometry(oid, "osoitepistevali" to resolution.toString())
-
-                val points = response.osoitevalit.flatMap { it.pisteet.mapNotNull { it.rataosoite?.let(::TrackMeter) } }
-                points.forEachIndexed { i, address ->
-                    if (i > 1) {
-                        assertEquals((address.meters - points[i - 1].meters).toDouble(), resolution.toDouble(), 0.001)
-                    }
+                response.osoitevalit.forEach { it ->
+                    assertGeometryIntervalAddressResolution(it, resolution, startM, endM)
                 }
+            }
+    }
+
+    @Test
+    fun `Location track geometry api only returns start and end points if track is shorter than resolution`() {
+        val startKmNumber = KmNumber("0000")
+
+        val startM = 0.1
+        val endM = 0.2
+        val intervalStartAddress = TrackMeter(startKmNumber, startM.toBigDecimal().setScale(3))
+        val intervalEndAddress = TrackMeter(startKmNumber, endM.toBigDecimal().setScale(3))
+
+        val segment =
+            segment(
+                HelsinkiTestData.HKI_BASE_POINT,
+                HelsinkiTestData.HKI_BASE_POINT + Point(0.0, endM - startM),
+                startM,
+            )
+        val (trackNumberId, referenceLineId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                segments = listOf(segment),
+                startAddress = TrackMeter(KmNumber("0000"), startM.toBigDecimal()),
+            )
+
+        val track = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment))
+        val oid =
+            someOid<LocationTrack>().also { oid ->
+                locationTrackService.insertExternalId(LayoutBranch.main, track.id, oid)
+            }
+
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(referenceLineId),
+            locationTracks = listOf(track.id),
+        )
+
+        Resolution.entries
+            .map { it.meters }
+            .forEach { resolution ->
+                val response = api.locationTracks.getGeometry(oid, "osoitepistevali" to resolution.toString())
+                assertEquals(1, response.osoitevalit.size)
+                assertEquals(
+                    listOf(intervalStartAddress, intervalEndAddress),
+                    response.osoitevalit[0].pisteet.map { TrackMeter(it.rataosoite!!) },
+                )
             }
     }
 
