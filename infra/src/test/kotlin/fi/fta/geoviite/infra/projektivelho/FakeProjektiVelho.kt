@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.TESTFILE_CLOTHOID_AND_PARABOLA
 import fi.fta.geoviite.infra.inframodel.classpathResourceToString
 import fi.fta.geoviite.infra.util.UnsafeString
-import java.time.Instant
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.MatchType
@@ -18,6 +17,7 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
+import java.time.Instant
 
 const val SAMPLE_TOKEN =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
@@ -117,7 +117,7 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper) : AutoCloseable
             .respond(
                 okJsonSerialized(
                     PVApiDocument(
-                        latestVersion = PVApiLatestVersion(version, UnsafeString("test.xml"), Instant.now()),
+                        latestVersion = PVApiLatestVersion(version, UnsafeString("test.xml"), Instant.now(), 1000),
                         metadata =
                             PVApiDocumentMetadata(
                                 description = UnsafeString(description),
