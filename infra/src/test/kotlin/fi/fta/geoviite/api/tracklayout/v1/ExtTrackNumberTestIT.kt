@@ -6,8 +6,10 @@ import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
+import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -17,6 +19,7 @@ import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
@@ -49,10 +52,7 @@ constructor(
     fun `Newest official track number is returned by default`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                segments = listOf(segment),
-            )
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val publication1 =
             extTestDataService.publishInMain(
@@ -73,10 +73,7 @@ constructor(
     fun `Track number api respects the track layout version argument`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                segments = listOf(segment),
-            )
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val publication1 =
             extTestDataService.publishInMain(
@@ -123,10 +120,7 @@ constructor(
         val (trackNumberId, referenceLineId, oid) =
             extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
-        extTestDataService.publishInMain(
-            trackNumbers = listOf(trackNumberId),
-            referenceLines = listOf(referenceLineId),
-        )
+        extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
         tests.forEach { (epsgCode, expectedStart, expectedEnd) ->
             val response = api.trackNumbers.get(oid, "koordinaatisto" to epsgCode)
@@ -189,9 +183,7 @@ constructor(
                 val referenceLineId =
                     mainDraftContext.saveReferenceLine(referenceLineAndAlignment(trackNumber.id as IntId, segment)).id
 
-                extTestDataService.publishInMain(
-                    referenceLines = listOf(referenceLineId),
-                )
+                extTestDataService.publishInMain(referenceLines = listOf(referenceLineId))
 
                 val oid =
                     someOid<LayoutTrackNumber>().also { oid ->
@@ -230,5 +222,27 @@ constructor(
             assertEquals(modifiedDescription, response.ratanumero.kuvaus)
             assertExtLayoutState(trackNumber.state, response.ratanumero.tila)
         }
+    }
+
+    @Test
+    fun `Track number geometry api respects the resolution argument`() {
+        val segment = segment(HelsinkiTestData.HKI_BASE_POINT, HelsinkiTestData.HKI_BASE_POINT + Point(1500.0, 0.0))
+        val (trackNumberId, referenceLineId, oid) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+
+        extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
+
+        Resolution.entries
+            .map { it.meters }
+            .forEach { resolution ->
+                val response = api.trackNumbers.getGeometry(oid, "osoitepistevali" to resolution.toString())
+
+                val points = response.osoitevalit.flatMap { it.pisteet.mapNotNull { it.rataosoite?.let(::TrackMeter) } }
+                points.forEachIndexed { i, address ->
+                    if (i > 1) {
+                        assertEquals((address.meters - points[i - 1].meters).toDouble(), resolution.toDouble(), 0.001)
+                    }
+                }
+            }
     }
 }

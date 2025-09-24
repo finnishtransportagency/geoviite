@@ -5,6 +5,8 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -12,6 +14,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -38,10 +41,7 @@ constructor(
     fun `Newest official location track is returned by default`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                segments = listOf(segment),
-            )
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val (track, geometry) =
             mainDraftContext
@@ -72,10 +72,7 @@ constructor(
     fun `Location track api respects the track layout version argument`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                segments = listOf(segment),
-            )
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val (track, geometry) =
             mainDraftContext
@@ -155,6 +152,38 @@ constructor(
                 requireNotNull(response.sijaintiraide.loppusijainti),
             )
         }
+    }
+
+    @Test
+    fun `Location track geometry api respects the resolution argument`() {
+        val segment = segment(HelsinkiTestData.HKI_BASE_POINT, HelsinkiTestData.HKI_BASE_POINT + Point(1500.0, 0.0))
+        val (trackNumberId, referenceLineId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+
+        val track = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment))
+        val oid =
+            someOid<LocationTrack>().also { oid ->
+                locationTrackService.insertExternalId(LayoutBranch.main, track.id, oid)
+            }
+
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(referenceLineId),
+            locationTracks = listOf(track.id),
+        )
+
+        Resolution.entries
+            .map { it.meters }
+            .forEach { resolution ->
+                val response = api.locationTracks.getGeometry(oid, "osoitepistevali" to resolution.toString())
+
+                val points = response.osoitevalit.flatMap { it.pisteet.mapNotNull { it.rataosoite?.let(::TrackMeter) } }
+                points.forEachIndexed { i, address ->
+                    if (i > 1) {
+                        assertEquals((address.meters - points[i - 1].meters).toDouble(), resolution.toDouble(), 0.001)
+                    }
+                }
+            }
     }
 
     @Test
