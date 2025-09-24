@@ -33,7 +33,7 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtTrackNumberTestIT
+class ExtTrackNumberIT
 @Autowired
 constructor(
     mockMvc: MockMvc,
