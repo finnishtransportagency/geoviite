@@ -48,6 +48,9 @@ with temp(role_code, privilege_code) as (
       ('operator', 'view-geometry-file'),
       ('operator', 'view-publication'),
       ('operator', 'download-publication'),
+      ('operator', 'api-frame-converter'),
+      ('operator', 'api-geometry'),
+      ('operator', 'api-swagger'),
 
       ('team', 'view-basic'),
       ('team', 'view-layout'),
@@ -58,6 +61,9 @@ with temp(role_code, privilege_code) as (
       ('team', 'download-geometry'),
       ('team', 'view-pv-documents'),
       ('team', 'view-geometry-file'),
+      ('team', 'api-frame-converter'),
+      ('team', 'api-geometry'),
+      ('team', 'api-swagger'),
 
       ('browser', 'view-basic'),
       ('browser', 'view-layout'),
@@ -65,6 +71,9 @@ with temp(role_code, privilege_code) as (
       ('browser', 'view-geometry-file'),
       ('browser', 'view-publication'),
       ('browser', 'download-publication'),
+      ('browser', 'api-frame-converter'),
+      ('browser', 'api-geometry'),
+      ('browser', 'api-swagger'),
 
       ('authority', 'view-basic'),
       ('authority', 'view-layout'),
@@ -72,11 +81,17 @@ with temp(role_code, privilege_code) as (
       ('authority', 'view-geometry-file'),
       ('authority', 'view-publication'),
       ('authority', 'download-publication'),
+      ('authority', 'api-frame-converter'),
+      ('authority', 'api-geometry'),
+      ('authority', 'api-swagger'),
 
       ('consultant', 'view-basic'),
       ('consultant', 'view-publication'),
       ('consultant', 'download-publication'),
       ('consultant', 'view-layout'),
+      ('consultant', 'api-frame-converter'),
+      ('consultant', 'api-geometry'),
+      ('consultant', 'api-swagger'),
 
       ('api-public', 'api-frame-converter'),
       ('api-public', 'api-swagger'),
