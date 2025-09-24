@@ -428,7 +428,13 @@ fun validateSwitchTopologicalConnectivity(
     val existingTracks = locationTracksAndGeometries.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
+            validateSwitchAlignmentTopology(
+                switch.id as IntId,
+                structure,
+                existingTracks,
+                switch.name,
+                validatingTrack,
+            ),
         )
         .flatten()
 }
@@ -984,7 +990,13 @@ fun validateAddressPoints(
 ): List<LayoutValidationIssue> =
     try {
         geocode()?.let { addresses -> validateAddressPoints(trackNumber, locationTrack, addresses) }
-            ?: listOf(LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.no-context", emptyMap()))
+            ?: listOf(
+                LayoutValidationIssue(
+                    ERROR,
+                    "$validationTargetLocalizationPrefix.no-addresses",
+                    mapOf("trackNumber" to trackNumber.number, "locationTrack" to locationTrack.name),
+                )
+            )
     } catch (e: ClientException) {
         listOf(LayoutValidationIssue(ERROR, e.localizationKey))
     }
@@ -1060,7 +1072,7 @@ fun validateReferenceLineGeometry(alignment: LayoutAlignment): List<LayoutValida
 fun validateLocationTrackGeometry(geometry: LocationTrackGeometry): List<LayoutValidationIssue> =
     validateGeometry(VALIDATION_LOCATION_TRACK, geometry) +
         listOfNotNull(
-            validateWithParams(geometry.length.distance > TOPOLOGY_CALC_DISTANCE, WARNING) {
+            validateWithParams(geometry.isEmpty || geometry.length.distance > TOPOLOGY_CALC_DISTANCE, WARNING) {
                 "$VALIDATION_LOCATION_TRACK.too-short" to
                     localizationParams(
                         "minLength" to TOPOLOGY_CALC_DISTANCE.toString(),
