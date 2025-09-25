@@ -37,6 +37,11 @@
 - Frontend packages, files and folders `kebab-case`
 - Backend packages `camelCase`
 
+## Code Formatting
+
+- Use automatic tools to force project-wide style, formatting code on save: prettier on frontend and ktfmt on backend
+- See setup instructions in `doc/koodin_formatointi.md` (in Finnish)
+
 ## Backend Structure
 
 - Create own package for each domain area / API
@@ -91,15 +96,7 @@
 - Try to "Make illegal states unrepresentable" rather than creating separate validation and checks
     - = Use the type system to define your objects so that they cannot be built with invalid or partial values
 
-### JavaScript/TypeScript
-
-- For a unified style, use prettier and configure it to format on-save
-
 ### Kotlin
-
-#### Formatting
-
-- Use Ktfmt to format Kotlin code, for instructions see `doc/ktfmt.md` (in Finnish)
 
 #### Coding
 
