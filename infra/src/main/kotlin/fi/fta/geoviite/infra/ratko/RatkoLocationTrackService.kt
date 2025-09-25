@@ -48,11 +48,15 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import java.time.Instant
+
+data class LocationTrackKilometers(
+    val id:IntId<LocationTrack>, val oid:Oid<LocationTrack>, val kilometers: Set<KmNumber>
+)
 
 @GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -74,7 +78,7 @@ constructor(
         branch: LayoutBranch,
         ratkoSplits: List<RatkoSplit>,
         lastPublicationTime: Instant,
-    ): List<Oid<LocationTrack>> {
+    ): List<LocationTrackKilometers> {
         val oidMapping =
             locationTrackDao.fetchExternalIds(
                 branch,
@@ -107,9 +111,9 @@ constructor(
         splitSourceTrack: RatkoSplitSourceTrack,
         oidMapping: Map<IntId<LocationTrack>, RatkoExternalId<LocationTrack>>,
         publicationTime: Instant,
-    ): List<Oid<LocationTrack>> {
         // The state of the source track is refreshed before pushing any split target tracks as the geometry is being
         // referenced for target tracks from the source track (which may not be up-to-date within Ratko).
+    ): List<LocationTrackKilometers> {
         updateLocationTrack(
             branch = branch,
             locationTrack = splitSourceTrack.track,
@@ -129,7 +133,7 @@ constructor(
         val publishedSwitchJoints =
             publicationDao.fetchPublishedSwitchJoints(ratkoSplit.publication.id, includeRemoved = false)
 
-        val pushedTargetLocationTrackOids =
+        val pushedTargetLocationTrackKilometers =
             ratkoSplit.split.targetLocationTracks
                 .map { splitTarget ->
                     val (targetLocationTrack, targetGeometry) =
@@ -171,7 +175,7 @@ constructor(
             locationTrackStateOverride = RatkoLocationTrackState.OLD,
         )
 
-        return pushedTargetLocationTrackOids
+        return pushedTargetLocationTrackKilometers
     }
 
     private fun pushSplitTarget(
@@ -181,7 +185,7 @@ constructor(
         splitRelinkedSwitches: List<IntId<LayoutSwitch>>,
         publishedSwitchJoints: Map<IntId<LayoutSwitch>, List<PublishedSwitchJoint>>,
         publicationTime: Instant,
-    ): Oid<LocationTrack> {
+    ): LocationTrackKilometers {
         // The split target is required to be using the same TrackNumber as the split source track,
         // meaning that the split source track geocoding context can also be used when geocoding the target.
         val targetStartAndEnd =
@@ -230,7 +234,7 @@ constructor(
             )
         }
 
-        return splitTargetTrack.externalId.oid
+        return LocationTrackKilometers( splitTargetTrack.track.id as IntId, splitTargetTrack.externalId.oid, targetKmNumbers)
     }
 
     private fun pushSwitchKmsForSplitTransferTarget(
