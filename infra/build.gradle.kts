@@ -1,3 +1,4 @@
+import com.diffplug.spotless.kotlin.KtfmtStep
 import com.github.jk1.license.filter.DependencyFilter
 import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.InventoryHtmlReportRenderer
@@ -20,7 +21,7 @@ plugins {
     id("com.github.jk1.dependency-license-report") version "2.9"
     kotlin("jvm") version "2.1.10"
     kotlin("plugin.spring") version "2.1.10"
-    id("com.ncorti.ktfmt.gradle") version "0.22.0"
+    id("com.diffplug.spotless") version "8.0.0"
 }
 
 group = "fi.fta.geoviite"
@@ -37,11 +38,16 @@ repositories {
     mavenCentral()
 }
 
-ktfmt {
-    blockIndent = 4
-    continuationIndent = 4
-    maxWidth = 120
-    manageTrailingCommas = true
+configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+    kotlin {
+        ktfmt("0.58").kotlinlangStyle().configure {
+            it.setMaxWidth(120)
+            it.setBlockIndent(4)
+            it.setContinuationIndent(4)
+            it.setRemoveUnusedImports(true)
+            it.setTrailingCommaManagementStrategy(KtfmtStep.TrailingCommaManagementStrategy.COMPLETE)
+        }
+    }
 }
 
 configurations { all { exclude("org.springframework.boot", "spring-boot-starter-logging") } }
@@ -59,7 +65,9 @@ dependencies {
     }
 
     // Actual deps
-    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.791") { exclude("commons-logging", "commons-logging") }
+    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.791") {
+        exclude("commons-logging", "commons-logging")
+    }
     implementation("org.bouncycastle:bcpkix-jdk18on:1.81")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -117,11 +125,10 @@ dependencies {
 
 licenseReport {
     renderers = arrayOf<ReportRenderer>(InventoryHtmlReportRenderer("report.html", "Backend"))
-    filters =
-        arrayOf<DependencyFilter>(
-            LicenseBundleNormalizer()
-            // ExcludeTransitiveDependenciesFilter(),
-        )
+    filters = arrayOf<DependencyFilter>(
+        LicenseBundleNormalizer()
+        // ExcludeTransitiveDependenciesFilter(),
+    )
     allowedLicensesFile = File("$projectDir/allowed-licenses.json")
 }
 
