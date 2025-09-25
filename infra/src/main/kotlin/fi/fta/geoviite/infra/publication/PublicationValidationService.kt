@@ -556,9 +556,9 @@ constructor(
                         validateEdges(geometry) { id -> requireNotNull(validationContext.getSwitch(id)).name }
                 } else listOf()
             val geocodingIssues =
-                if (track.exists && trackNumber != null) {
+                if (track.exists && trackNumber != null && geometry.isNotEmpty) {
                     validationContext.getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
-                        validateAddressPoints(trackNumber, key, track, VALIDATION_REFERENCE_LINE)
+                        validateAddressPoints(trackNumber, key, track, VALIDATION_LOCATION_TRACK)
                     } ?: listOf(noGeocodingContext(VALIDATION_LOCATION_TRACK))
                 } else listOf()
 
@@ -606,7 +606,7 @@ constructor(
         track: LocationTrack,
         validationTargetLocalizationPrefix: String,
     ): List<LayoutValidationIssue> =
-        if (!track.exists) {
+        if (!track.exists || track.length.distance == 0.0) {
             listOf()
         } else {
             validateAddressPoints(trackNumber, track, validationTargetLocalizationPrefix) {
