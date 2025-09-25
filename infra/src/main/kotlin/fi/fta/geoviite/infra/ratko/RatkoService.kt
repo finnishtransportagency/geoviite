@@ -356,7 +356,7 @@ constructor(
             pushSwitchChanges(
                 layoutBranch = pushableBranch,
                 publishedSwitches =
-                    publications.flatMap { it.allPublishedSwitches }.filter { s -> s.id.intValue == 1950 },
+                    publications.flatMap { it.allPublishedSwitches },
                 publishedLocationTracks = publications.flatMap { it.allPublishedLocationTracks },
                 publicationTime = lastPublicationTime,
                 extIds = extIds,
