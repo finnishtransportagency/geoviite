@@ -58,6 +58,7 @@ export type InfoboxVisibilities = {
     switch: SwitchInfoboxVisibilities;
     locationTrack: LocationTrackInfoboxVisibilities;
     kmPost: KmPostInfoboxVisibilities;
+    operatingPoint: OperatingPointInfoboxVisibilities;
     geometryAlignment: GeometryAlignmentInfoboxVisibilities;
     geometryPlan: GeometryPlanInfoboxVisibilities;
     geometryKmPost: GeometryKmPostInfoboxVisibilities;
@@ -97,6 +98,12 @@ export type KmPostInfoboxVisibilities = {
     location: boolean;
     log: boolean;
     validation: boolean;
+};
+
+export type OperatingPointInfoboxVisibilities = {
+    basic: boolean;
+    location: boolean;
+    log: boolean;
 };
 
 export type GeometryAlignmentInfoboxVisibilities = {
@@ -157,6 +164,11 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
         location: true,
         log: true,
         validation: true,
+    },
+    operatingPoint: {
+        basic: true,
+        location: true,
+        log: true,
     },
     geometryAlignment: {
         basic: true,
@@ -699,6 +711,7 @@ export const getFirstOfTypeInSelection = (
         KM_POST: () => first(selectedItems.kmPosts),
         GEOMETRY_KM_POST: () => first(selectedItems.geometryKmPostIds)?.geometryId,
         SWITCH: () => first(selectedItems.switches),
+        OPERATING_POINT: () => undefined,
         SUGGESTED_SWITCH: () =>
             switchLinkingActive ? SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID : undefined,
         GEOMETRY_SWITCH: () => first(selectedItems.switches),

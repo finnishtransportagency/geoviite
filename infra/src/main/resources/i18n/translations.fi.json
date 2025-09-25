@@ -907,6 +907,23 @@
             "cant-edit-while-splitting": "Raiteen tietoja ei voi muokata koska sen jakaminen on kesken",
             "cant-edit-while-linking": "Raiteen tietoja ei voi muokata linkitystilassa"
         },
+        "operating-point": {
+            "basic-info-heading": "Toiminnallisen pisteen perustiedot",
+            "location-heading": "Sijainti",
+            "log-heading": "Lokitiedot",
+            "identifier": "OID",
+            "name": "Nimi",
+            "state": "Tila",
+            "type-raide": "Tyyppi (RAIDE)",
+            "type-rinf": "Tyyppi (RINF)",
+            "uic-code": "UIC-koodi",
+            "location": "Sijainti",
+            "focus-on-map": "Kohdista kartalla",
+            "set-location": "Aseta sijainti kartalla",
+            "set-area": "Aseta alue kartalla",
+            "created": "Luotu",
+            "modified": "Muokattu"
+        },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
         },
@@ -2133,6 +2150,18 @@
             "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
             "save-in-progress": "Tallennetaan"
         }
+    },
+    "operating-point-dialog": {
+        "title-new": "Uusi toiminnallinen piste",
+        "title-edit": "Muokkaa pisteen tietoja",
+        "basic-info": "Perustiedot",
+        "oid": "OID",
+        "name": "Nimi",
+        "abbreviation": "Lyhenne",
+        "state": "Tila",
+        "type-rinf": "Tyyppi (RINF)",
+        "type-raide": "Tyyppi (RAIDE)",
+        "uic-code": "UIC-koodi"
     },
     "licenses-page": {
         "title": "Lisenssitiedot",

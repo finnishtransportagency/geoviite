@@ -48,6 +48,7 @@ import { TabHeader, TabHeaderSize } from 'geoviite-design-lib/tab-header/tab-hea
 import { LayoutContext } from 'common/common-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { LayoutSwitchLinkingInfoboxContainer } from 'tool-panel/switch/layout-switch-linking-infobox-container';
+import { OperatingPointInfoboxContainer } from './operating-point/operating-point-infobox-container';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -81,7 +82,8 @@ export type ToolPanelAssetType =
     | 'GEOMETRY_PLAN'
     | 'GEOMETRY_KM_POST'
     | 'GEOMETRY_SWITCH'
-    | 'SUGGESTED_SWITCH';
+    | 'SUGGESTED_SWITCH'
+    | 'OPERATING_POINT';
 export type ToolPanelAsset = {
     id: string;
     type: ToolPanelAssetType;
@@ -406,6 +408,21 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             },
         );
 
+        const operatingPointTabs: ToolPanelTab[] = [
+            {
+                asset: { type: 'OPERATING_POINT', id: 'OPERATING_POINT_1' },
+                title: 'OP1',
+                element: (
+                    <OperatingPointInfoboxContainer
+                        visibilities={infoboxVisibilities.operatingPoint}
+                        onVisiblityChange={(visibilities) =>
+                            infoboxVisibilityChange('operatingPoint', visibilities)
+                        }
+                    />
+                ),
+            },
+        ]; // Placeholder for future Operating Point tabs
+
         const allTabs = [
             ...geometryKmPostTabs,
             ...layoutKmPostTabs,
@@ -416,6 +433,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             ...locationTrackTabs,
             ...trackNumberTabs,
             ...planTabs,
+            ...operatingPointTabs,
         ].toSorted((t1, t2) =>
             compareByField(t1, t2, (t) => TOOL_PANEL_ASSET_ORDER.indexOf(t.asset.type)),
         );
