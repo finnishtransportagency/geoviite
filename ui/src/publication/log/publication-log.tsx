@@ -149,16 +149,20 @@ function searchParamsAffectingVisibleRowsDiffer(
     a: SearchParams | undefined,
     b: SearchParams | undefined,
 ) {
-    return (
-        (a === undefined) !== (b === undefined) ||
-        (a !== undefined &&
-            b !== undefined &&
-            (a.startDate !== b.startDate ||
-                a.endDate !== b.endDate ||
-                a.specificItem !== b.specificItem ||
-                ((pagedPublications?.items.length ?? 0) >= MAX_RETURNED_PUBLICATION_LOG_ROWS &&
-                    a.sortInfo !== b.sortInfo)))
-    );
+    if ((a === undefined) !== (b === undefined)) {
+        return true;
+    } else if (a === undefined || b === undefined) {
+        return false;
+    } else {
+        const searchPredicateDiffers =
+            a.startDate !== b.startDate ||
+            a.endDate !== b.endDate ||
+            a.specificItem !== b.specificItem;
+        const sortDiffersAndCanAffectVisibleRows =
+            (pagedPublications?.items.length ?? 0) >= MAX_RETURNED_PUBLICATION_LOG_ROWS &&
+            a.sortInfo !== b.sortInfo;
+        return searchPredicateDiffers || sortDiffersAndCanAffectVisibleRows;
+    }
 }
 
 function usePublicationLogSearch(
