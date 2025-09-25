@@ -421,7 +421,6 @@ constructor(
         }
     }
 
-    // TODO: This appears to fail randomly. Is the result ordering guaranteed?
     @Test
     fun `Request matching the address of some location tracks should succeed and return data only for the matches`() {
         val layoutContext = mainOfficialContext
@@ -450,7 +449,7 @@ constructor(
                 .map { trackSegments ->
                     extTestDataService.insertGeocodableTrack(
                         layoutContext = layoutContext,
-                        trackNumberId = trackNumber.id as IntId,
+                        trackNumberId = trackNumber.id,
                         referenceLineId = referenceLineId,
                         segments = trackSegments,
                     )
@@ -463,18 +462,11 @@ constructor(
         assertEquals(3, featureCollection.features.size)
 
         assertEquals(
-            tracksUnderTest[0].locationTrack.name.toString(),
-            featureCollection.features[0].properties?.get("sijaintiraide"),
-        )
-
-        assertEquals(
-            tracksUnderTest[1].locationTrack.name.toString(),
-            featureCollection.features[1].properties?.get("sijaintiraide"),
-        )
-
-        assertEquals(
-            tracksUnderTest[4].locationTrack.name.toString(),
-            featureCollection.features[2].properties?.get("sijaintiraide"),
+            expected =
+                listOf(tracksUnderTest[0], tracksUnderTest[1], tracksUnderTest[4])
+                    .map { track -> track.locationTrack.name.toString() }
+                    .toSet(),
+            actual = featureCollection.features.map { f -> f.properties?.get("sijaintiraide") }.toSet(),
         )
     }
 
