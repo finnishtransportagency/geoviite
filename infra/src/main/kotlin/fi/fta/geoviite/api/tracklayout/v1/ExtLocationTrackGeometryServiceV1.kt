@@ -51,6 +51,7 @@ constructor(
                 ExtLocationTrackGeometryResponseV1(
                     trackLayoutVersion = publication.uuid,
                     locationTrackOid = oid,
+                    coordinateSystem = coordinateSystem,
                     trackIntervals =
                         filteredCenterLineTrackIntervals(alignmentAddresses, trackIntervalFilter, coordinateSystem),
                 )

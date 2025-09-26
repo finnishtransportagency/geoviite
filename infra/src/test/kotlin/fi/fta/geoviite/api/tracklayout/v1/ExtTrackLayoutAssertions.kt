@@ -1,8 +1,10 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 
 fun assertExtStartAndEnd(
@@ -38,4 +40,23 @@ fun assertExtLocationTrackState(expectedState: LocationTrackState, stateName: St
         }
 
     assertEquals(expectedStateName, stateName)
+}
+
+fun assertGeometryIntervalAddressResolution(
+    interval: ExtTestGeometryIntervalV1,
+    resolution: BigDecimal,
+    startM: Double,
+    endM: Double,
+) {
+    interval.pisteet.forEachIndexed { i, point ->
+        val address = TrackMeter(point.rataosoite!!)
+
+        if (i == 0) { // Start point should be exactly at startM
+            assertEquals(startM, address.meters.toDouble(), 0.0001)
+        } else if (i > 0 && i < interval.pisteet.size - 1) { // Middle points should be exactly divisible by resolution
+            assertEquals(0.0, (address.meters % resolution).toDouble(), 0.0001)
+        } else { // End point should be exactly at endM
+            assertEquals(endM, address.meters.toDouble(), 0.0001)
+        }
+    }
 }

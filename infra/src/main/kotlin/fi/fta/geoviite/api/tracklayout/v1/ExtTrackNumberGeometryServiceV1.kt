@@ -14,10 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired
 @GeoviiteService
 class ExtTrackNumberGeometryServiceV1
 @Autowired
-constructor(
-    private val geocodingService: GeocodingService,
-    private val layoutTrackNumberDao: LayoutTrackNumberDao,
-) {
+constructor(private val geocodingService: GeocodingService, private val layoutTrackNumberDao: LayoutTrackNumberDao) {
     fun createGeometryResponse(
         oid: Oid<LayoutTrackNumber>,
         publication: Publication,
@@ -46,6 +43,7 @@ constructor(
                 ExtTrackNumberGeometryResponseV1(
                     trackLayoutVersion = publication.uuid,
                     trackNumberOid = oid,
+                    coordinateSystem = coordinateSystem,
                     trackIntervals =
                         filteredCenterLineTrackIntervals(alignmentAddresses, trackIntervalFilter, coordinateSystem),
                 )
