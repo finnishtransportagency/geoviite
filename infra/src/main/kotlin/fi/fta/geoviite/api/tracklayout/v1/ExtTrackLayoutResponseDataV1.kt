@@ -3,11 +3,8 @@ package fi.fta.geoviite.api.tracklayout.v1
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
-import fi.fta.geoviite.infra.tracklayout.AnyM
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -85,28 +82,7 @@ data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataos
 
 @Schema(name = "Osoiteväli")
 data class ExtCenterLineTrackIntervalV1(
-    @JsonProperty("alku") val startAddress: String,
-    @JsonProperty("loppu") val endAddress: String,
+    @JsonProperty("alku") val startAddress: ExtAddressPointV1,
+    @JsonProperty("loppu") val endAddress: ExtAddressPointV1,
     @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
 )
-
-fun <M : AnyM<M>> filteredCenterLineTrackIntervals(
-    alignmentAddresses: AlignmentAddresses<M>,
-    trackIntervalFilter: ExtTrackKilometerIntervalFilterV1,
-    coordinateSystem: Srid,
-): List<ExtCenterLineTrackIntervalV1> {
-    val extAddressPoints =
-        alignmentAddresses.allPoints.mapNotNull { point ->
-            point
-                .takeIf { p -> trackIntervalFilter.contains(p.address) }
-                ?.let { toExtAddressPoint(point, coordinateSystem) }
-        }
-
-    return listOf(
-        ExtCenterLineTrackIntervalV1(
-            startAddress = alignmentAddresses.startPoint.address.toString(),
-            endAddress = alignmentAddresses.endPoint.address.toString(),
-            addressPoints = extAddressPoints,
-        )
-    )
-}

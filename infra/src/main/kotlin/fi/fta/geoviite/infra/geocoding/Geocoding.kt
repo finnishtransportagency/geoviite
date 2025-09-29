@@ -49,14 +49,14 @@ import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.getIndexRangeForRangeInOrderedList
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.processSortedBy
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.math.RoundingMode.CEILING
 import java.math.RoundingMode.FLOOR
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.PI
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 data class AddressFilter(val start: AddressLimit? = null, val end: AddressLimit? = null) {
 
@@ -79,14 +79,14 @@ sealed class AddressLimit : Comparable<TrackMeter> {
 }
 
 data class KmLimit(override val kmNumber: KmNumber) : AddressLimit() {
-    override fun compareTo(other: TrackMeter): Int = kmNumber.compareTo(other.kmNumber)
+        override fun compareTo(other: TrackMeter): Int = kmNumber.compareTo(other.kmNumber)
 }
 
 data class TrackMeterLimit(val address: TrackMeter) : AddressLimit() {
     override val kmNumber: KmNumber
         get() = address.kmNumber
 
-    override fun compareTo(other: TrackMeter): Int = address.compareTo(other)
+        override fun compareTo(other: TrackMeter): Int = address.compareTo(other)
 }
 
 data class AddressPoint<M : AnyM<M>>(val point: AlignmentPoint<M>, val address: TrackMeter) {
@@ -505,8 +505,11 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     fun getAddress(targetDistance: LineM<M>, decimals: Int = METERS_DEFAULT_DECIMAL_DIGITS): TrackMeter? =
         findKm(targetDistance).getAddress(targetDistance, decimals)
 
-    fun getReferenceLineAddressesWithResolution(resolution: Resolution): AlignmentAddresses<M>? {
-        return getAddressPoints(referenceLineGeometry, resolution)
+    fun getReferenceLineAddressesWithResolution(
+        resolution: Resolution,
+        addressFilter: AddressFilter? = null,
+    ): AlignmentAddresses<M>? {
+        return getAddressPoints(referenceLineGeometry, resolution, addressFilter)
     }
 
     fun <TargetM : AnyM<TargetM>> toAddressPoint(

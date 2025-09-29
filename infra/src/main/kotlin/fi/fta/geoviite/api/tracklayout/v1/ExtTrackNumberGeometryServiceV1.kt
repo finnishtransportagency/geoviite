@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.geocoding.AddressFilter
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
@@ -20,7 +21,7 @@ constructor(private val geocodingService: GeocodingService, private val layoutTr
         publication: Publication,
         resolution: Resolution,
         coordinateSystem: Srid,
-        trackIntervalFilter: ExtTrackKilometerIntervalFilterV1,
+        addressFilter: AddressFilter,
     ): ExtTrackNumberGeometryResponseV1? {
         val trackNumberId =
             layoutTrackNumberDao.lookupByExternalId(oid.toString())?.id
@@ -30,22 +31,32 @@ constructor(private val geocodingService: GeocodingService, private val layoutTr
             .fetchOfficialVersionAtMoment(publication.layoutBranch.branch, trackNumberId, publication.publicationTime)
             ?.let(layoutTrackNumberDao::fetch)
             ?.let { trackNumber ->
-                val alignmentAddresses =
+                val filteredAddressPoints =
                     geocodingService
                         .getGeocodingContextAtMoment(
                             publication.layoutBranch.branch,
                             trackNumber.id as IntId,
                             publication.publicationTime,
                         )
-                        ?.getReferenceLineAddressesWithResolution(resolution)
-                        ?: throw ExtGeocodingFailedV1("could not get reference line address points")
+                        ?.getReferenceLineAddressesWithResolution(resolution, addressFilter)
 
                 ExtTrackNumberGeometryResponseV1(
                     trackLayoutVersion = publication.uuid,
                     trackNumberOid = oid,
                     coordinateSystem = coordinateSystem,
-                    trackIntervals =
-                        filteredCenterLineTrackIntervals(alignmentAddresses, trackIntervalFilter, coordinateSystem),
+                    trackInterval =
+                        // Address points are null for example in case when the user provided
+                        // address filter is outside the track boundaries.
+                        filteredAddressPoints?.let { addressPoints ->
+                            ExtCenterLineTrackIntervalV1(
+                                startAddress = toExtAddressPoint(addressPoints.startPoint, coordinateSystem),
+                                endAddress = toExtAddressPoint(addressPoints.endPoint, coordinateSystem),
+                                addressPoints =
+                                    filteredAddressPoints.midPoints.map { point ->
+                                        toExtAddressPoint(point, coordinateSystem)
+                                    },
+                            )
+                        },
                 )
             }
     }

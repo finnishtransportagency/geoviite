@@ -8,7 +8,11 @@ import fi.fta.geoviite.infra.common.METERS_MAX_DECIMAL_DIGITS
 import fi.fta.geoviite.infra.common.METERS_MAX_INTEGER_DIGITS
 import fi.fta.geoviite.infra.common.TRACK_METER_SEPARATOR
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.AddressFilter
+import fi.fta.geoviite.infra.geocoding.AddressLimit
+import fi.fta.geoviite.infra.geocoding.KmLimit
 import fi.fta.geoviite.infra.geocoding.Resolution
+import fi.fta.geoviite.infra.geocoding.TrackMeterLimit
 import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(type = "String", allowableValues = ["0.25", "1", "10", "100"], defaultValue = "1")
@@ -62,56 +66,24 @@ data class ExtMaybeTrackKmOrTrackMeterV1 @JsonCreator(mode = DELEGATING) constru
     }
 }
 
-data class ExtTrackKilometerIntervalFilterV1(
-    val startAddress: TrackMeter?,
-    val endAddress: TrackMeter?,
-    val startKm: KmNumber?,
-    val endKm: KmNumber?,
-) {
-    init {
-        if (startAddress != null && endAddress != null && startAddress > endAddress) {
-            throw ExtInvalidAddressPointFilterOrderV1("start track address was after end track address")
-        }
+fun createAddressFilter(start: ExtMaybeTrackKmOrTrackMeterV1?, end: ExtMaybeTrackKmOrTrackMeterV1?): AddressFilter {
+    val startLimit =
+        start?.value?.takeIf { it.contains(TRACK_METER_SEPARATOR) }?.let(::trackMeterOrThrow)?.let(::TrackMeterLimit)
+            ?: start?.value?.let(::kmNumberOrThrow)?.let(::KmLimit)
 
-        if (startAddress != null && endKm != null && startAddress.kmNumber > endKm) {
-            throw ExtInvalidAddressPointFilterOrderV1("start track address was after end track km")
-        }
+    val endLimit =
+        end?.value?.takeIf { it.contains(TRACK_METER_SEPARATOR) }?.let(::trackMeterOrThrow)?.let(::TrackMeterLimit)
+            ?: end?.value?.let(::kmNumberOrThrow)?.let(::KmLimit)
 
-        if (startKm != null && endAddress != null && startKm > endAddress.kmNumber) {
-            throw ExtInvalidAddressPointFilterOrderV1("start km was after end track address")
-        }
+    val startAfterEnd =
+        startLimit is TrackMeterLimit && endLimit is TrackMeterLimit && startLimit > endLimit.address ||
+            startLimit is AddressLimit && endLimit is AddressLimit && startLimit.kmNumber > endLimit.kmNumber
 
-        if (startKm != null && endKm != null && startKm > endKm) {
-            throw ExtInvalidAddressPointFilterOrderV1("start km was after end km")
-        }
+    if (startAfterEnd) {
+        throw ExtInvalidAddressPointFilterOrderV1("start was strictly after end (start > end)")
     }
 
-    fun contains(address: TrackMeter): Boolean {
-        val startAddressOk = startAddress == null || address >= startAddress
-        val endAddressOk = endAddress == null || address <= endAddress
-
-        val startKmOk = startKm == null || address.kmNumber >= startKm
-        val endKmOk = endKm == null || address.kmNumber <= endKm
-
-        return startAddressOk && endAddressOk && startKmOk && endKmOk
-    }
-
-    companion object {
-        fun of(
-            start: ExtMaybeTrackKmOrTrackMeterV1?,
-            end: ExtMaybeTrackKmOrTrackMeterV1?,
-        ): ExtTrackKilometerIntervalFilterV1 {
-            val startAddress = start?.value?.takeIf { it.contains(TRACK_METER_SEPARATOR) }?.let(::trackMeterOrThrow)
-            val endAddress = end?.value?.takeIf { it.contains(TRACK_METER_SEPARATOR) }?.let(::trackMeterOrThrow)
-
-            return ExtTrackKilometerIntervalFilterV1(
-                startAddress = startAddress,
-                endAddress = endAddress,
-                startKm = start?.value?.takeIf { startAddress == null }?.let(::kmNumberOrThrow),
-                endKm = end?.value?.takeIf { endAddress == null }?.let(::kmNumberOrThrow),
-            )
-        }
-    }
+    return AddressFilter(start = startLimit, end = endLimit)
 }
 
 private fun kmNumberOrThrow(input: String): KmNumber {

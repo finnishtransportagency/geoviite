@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -250,9 +251,7 @@ constructor(
             .map { it.meters }
             .forEach { resolution ->
                 val response = api.trackNumbers.getGeometry(oid, "osoitepistevali" to resolution.toString())
-                response.osoitevalit.forEach { it ->
-                    assertGeometryIntervalAddressResolution(it, resolution, startM, endM)
-                }
+                assertGeometryIntervalAddressResolution(requireNotNull(response.osoitevali), resolution, startM, endM)
             }
     }
 
@@ -284,11 +283,10 @@ constructor(
             .map { it.meters }
             .forEach { resolution ->
                 val response = api.trackNumbers.getGeometry(oid, "osoitepistevali" to resolution.toString())
-                assertEquals(1, response.osoitevalit.size)
-                assertEquals(
-                    listOf(intervalStartAddress, intervalEndAddress),
-                    response.osoitevalit[0].pisteet.map { TrackMeter(it.rataosoite!!) },
-                )
+                assertNotNull(response.osoitevali)
+                assertEquals(intervalStartAddress, response.osoitevali.alku.rataosoite!!.let(::TrackMeter))
+                assertEquals(intervalEndAddress, response.osoitevali.loppu.rataosoite!!.let(::TrackMeter))
+                assertEquals(emptyList<ExtTestAddressPointV1>(), response.osoitevali.pisteet)
             }
     }
 }

@@ -330,10 +330,10 @@ constructor(
         coordinateSystem: Srid? = null,
         @Parameter(description = EXT_OPENAPI_ADDRESS_POINT_FILTER_START)
         @RequestParam(ADDRESS_POINT_FILTER_START, required = false)
-        addressPointFilterStart: ExtMaybeTrackKmOrTrackMeterV1? = null,
+        addressFilterStart: ExtMaybeTrackKmOrTrackMeterV1? = null,
         @Parameter(description = EXT_OPENAPI_ADDRESS_POINT_FILTER_END)
         @RequestParam(ADDRESS_POINT_FILTER_END, required = false)
-        addressPointFilterEnd: ExtMaybeTrackKmOrTrackMeterV1? = null,
+        addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1? = null,
     ): ResponseEntity<ExtTrackNumberGeometryResponseV1> {
         return publicationService
             .getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
@@ -341,9 +341,9 @@ constructor(
                 extTrackNumberGeometryService.createGeometryResponse(
                     oid,
                     publication,
-                    extResolution?.toResolution() ?: Resolution.ONE_METER,
-                    coordinateSystem ?: LAYOUT_SRID,
-                    ExtTrackKilometerIntervalFilterV1.of(addressPointFilterStart, addressPointFilterEnd),
+                    resolution = extResolution?.toResolution() ?: Resolution.ONE_METER,
+                    coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
+                    addressFilter = createAddressFilter(addressFilterStart, addressFilterEnd),
                 )
             }
             .let(::toResponse)

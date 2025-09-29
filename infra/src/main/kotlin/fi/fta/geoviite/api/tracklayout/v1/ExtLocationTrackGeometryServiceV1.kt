@@ -3,10 +3,12 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.geocoding.AddressFilter
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import org.springframework.beans.factory.annotation.Autowired
@@ -18,13 +20,14 @@ constructor(
     private val geocodingService: GeocodingService,
     private val geocodingDao: GeocodingDao,
     private val locationTrackDao: LocationTrackDao,
+    private val alignmentDao: LayoutAlignmentDao,
 ) {
     fun createGeometryResponse(
         oid: Oid<LocationTrack>,
         publication: Publication,
         resolution: Resolution,
         coordinateSystem: Srid,
-        trackIntervalFilter: ExtTrackKilometerIntervalFilterV1,
+        addressFilter: AddressFilter,
     ): ExtLocationTrackGeometryResponseV1? {
         val locationTrackId =
             locationTrackDao.lookupByExternalId(oid.toString())?.id
@@ -34,26 +37,52 @@ constructor(
             .fetchOfficialVersionAtMoment(publication.layoutBranch.branch, locationTrackId, publication.publicationTime)
             ?.let(locationTrackDao::fetch)
             ?.let { locationTrack ->
-                val geocodingContextCacheKey =
-                    geocodingDao.getLayoutGeocodingContextCacheKey(
-                        publication.layoutBranch.branch,
-                        locationTrack.trackNumberId,
-                        publication.publicationTime,
-                    ) ?: throw ExtGeocodingFailedV1("could not get geocoding context cache key")
+                val filteredAddressPoints =
+                    if (addressFilter.start == null && addressFilter.end == null) {
+                        // Prefer using cache when address filter is unassigned
+                        val geocodingContextCacheKey =
+                            geocodingDao.getLayoutGeocodingContextCacheKey(
+                                publication.layoutBranch.branch,
+                                locationTrack.trackNumberId,
+                                publication.publicationTime,
+                            ) ?: throw ExtGeocodingFailedV1("could not get geocoding context cache key")
 
-                val alignmentAddresses =
-                    geocodingService.getAddressPoints(
-                        geocodingContextCacheKey,
-                        locationTrack.getVersionOrThrow(),
-                        resolution,
-                    ) ?: throw ExtGeocodingFailedV1("could not get address points")
+                        geocodingService.getAddressPoints(
+                            geocodingContextCacheKey,
+                            locationTrack.getVersionOrThrow(),
+                            resolution,
+                        )
+                    } else {
+                        geocodingService
+                            .getGeocodingContextAtMoment(
+                                publication.layoutBranch.branch,
+                                locationTrack.trackNumberId,
+                                publication.publicationTime,
+                            )
+                            ?.getAddressPoints(
+                                alignmentDao.fetch(requireNotNull(locationTrack.version)),
+                                resolution,
+                                addressFilter,
+                            )
+                    }
 
                 ExtLocationTrackGeometryResponseV1(
                     trackLayoutVersion = publication.uuid,
                     locationTrackOid = oid,
                     coordinateSystem = coordinateSystem,
-                    trackIntervals =
-                        filteredCenterLineTrackIntervals(alignmentAddresses, trackIntervalFilter, coordinateSystem),
+                    trackInterval =
+                        // Address points are null for example in case when the user provided
+                        // address filter is outside the track boundaries.
+                        filteredAddressPoints?.let { addressPoints ->
+                            ExtCenterLineTrackIntervalV1(
+                                startAddress = toExtAddressPoint(addressPoints.startPoint, coordinateSystem),
+                                endAddress = toExtAddressPoint(addressPoints.endPoint, coordinateSystem),
+                                addressPoints =
+                                    filteredAddressPoints.midPoints.map { point ->
+                                        toExtAddressPoint(point, coordinateSystem)
+                                    },
+                            )
+                        },
                 )
             }
     }
