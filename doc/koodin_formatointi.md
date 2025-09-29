@@ -8,11 +8,12 @@ formatterit konfiguroidaan ajettavaksi aina tiedoston tallennuksen yhteydessä.
 
 Frontend-puolella on käytössä autoformatterina Prettier-työkalu (https://prettier.io/). Se asentuun NPM:n kautta ja
 sitä hyödyntävä Idea-plugarikin on bundlattuna Idean normaalissa asennuksessa. Jos frontin koodia käsittelee jossain
-muussa editorissa, prettierin automatti-ajoon löytynee helposti keinot, sillä se on hyvin yleisesti käytetty.
+muussa editorissa, prettierin automaattiseen ajoon löytynee helposti keinot, sillä se on hyvin yleisesti käytetty.
 
 ### Konfigurointi
 
-Prettierin konfiguraatio löytyy työkalun standardimuotoisesta konfiguraatiotiedostosta `geoviite/.prettierrc.json`.
+Prettierin konfiguraatio löytyy projekti juuresta, työkalun standardimuotoisesta konfiguraatiotiedostosta
+`.prettierrc.json`.
 
 ### IntelliJ Idea
 
@@ -40,7 +41,7 @@ Jos formatoinnin haluaa ajaa kaikille tiedostoille kerralla, tämän voi tehdä 
 ./gradlew spotlessApply
 ```
 
-Vaihtoehtoisesti, jos haluat käsitellä vain jotkut tiedostot, tällä muodolla voi valita niitä joustavasti:
+Vaihtoehtoisesti, jos halutaan käsitellä vain jotkut tiedostot, tällä muodolla voi valita niitä joustavasti:
 
 ```
 ./gradlew spotlessApply -PspotlessFiles=my/file/pattern.java,more/generic/.*-pattern.java
@@ -50,7 +51,7 @@ Vaihtoehtoisesti, jos haluat käsitellä vain jotkut tiedostot, tällä muodolla
 
 Geoviitteessä käytetään myös Idea-plugaria "Spotless Applier", joka voidaan asentaa idean marketplacesta:
 https://plugins.jetbrains.com/plugin/22455-spotless-applier. Sen avulla Spotless/ktfmt saadaan ajettua aina tallennuksen
-yhteydessä. Plugarin asetukset pitäisi tulla projektin asetusten mukana env-reposta, mutta tuo ei välttämättä toimi aina
+yhteydessä. Pluginin asetukset pitäisi tulla projektin asetusten mukana env-reposta, mutta tuo ei välttämättä toimi aina
 oikein. Varmista siis seuraavat asetukset:
 
 - Spotlessin oma config
@@ -62,9 +63,9 @@ oikein. Varmista siis seuraavat asetukset:
     - Valitse "Run spotless" ja aseta se formatoimaan kotlin-tiedostot
       ![](images/spotless_on_save_kotlin.png)
 
-Voit koestaa plugarin toiminnan tekemällä jonkun formatointivirheen haluamaasi .kt tiedostoon. Sen pitäisi korjaantua
-automaattisesti tallennuksen yhteydessä. Jos haluat testata samaa komennon muotoa jonka Idea-plugari ajaa tallennuksen
-yhteydessä, voit ajaa sen myös komentoriviltä:
+Pluginin toimintaa voi kokeilla tekemällä jonkun formatointivirheen haluttuun .kt tiedostoon. Sen pitäisi korjaantua
+automaattisesti tallennuksen yhteydessä. Jos samaa Idea-pluginin ajaman komennon muotoa haluaa testata komentoriviltä,
+sen voi tehdä näin:
 
 ```
 ./gradlew spotlessApply -PspotlessIdeHook="/<absoluuttinen-polku-koodiin>/src/main/kotlin/fi/fta/geoviite/infra/InfraApplication.kt"
