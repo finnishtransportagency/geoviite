@@ -1,7 +1,10 @@
 package fi.fta.geoviite.infra.common
 
 import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.common.LayoutBranchType.DESIGN
+import fi.fta.geoviite.infra.common.LayoutBranchType.MAIN
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.util.formatForException
 import java.util.concurrent.ConcurrentHashMap
@@ -39,6 +42,14 @@ sealed class LayoutBranch {
                 "Value is not a ${LayoutBranch::class.simpleName}: ${formatForException(value)}"
             }
     }
+
+    @get:JsonIgnore
+    val type: LayoutBranchType
+        get() =
+            when (this) {
+                is MainBranch -> MAIN
+                is DesignBranch -> DESIGN
+            }
 
     val draft by lazy { LayoutContext.of(this, PublicationState.DRAFT) }
 

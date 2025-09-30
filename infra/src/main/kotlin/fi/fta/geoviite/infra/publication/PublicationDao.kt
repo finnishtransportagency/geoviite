@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.configuration.staticDataCacheDuration
+import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.LocationTrackChange
@@ -2370,9 +2371,8 @@ class PublicationDao(
         }
     }
 
-    fun fetchPublicationByUuid(uuid: Uuid<Publication>): Publication? {
-        return fetchPublicationIdByUuid(uuid)?.let(::getPublication)
-    }
+    fun fetchPublicationByUuid(uuid: Uuid<Publication>): Publication =
+        fetchPublicationIdByUuid(uuid)?.let(::getPublication) ?: throw TrackLayoutVersionNotFound(uuid)
 
     fun fetchPublishedLocationTrackBetween(
         trackId: IntId<LocationTrack>,
