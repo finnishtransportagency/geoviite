@@ -139,7 +139,7 @@ class ExtLocationTrackControllerV1(
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackCollectionResponseV1> {
         return publicationService
-            .getMainPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
+            .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
                 if (publications.areDifferent()) {
                     extLocationTrackCollectionService.createLocationTrackCollectionModificationResponse(
@@ -264,7 +264,7 @@ class ExtLocationTrackControllerV1(
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedLocationTrackResponseV1> {
         return publicationService
-            .getMainPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
+            .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
                 val locationTrackId =
                     locationTrackDao.lookupByExternalId(locationTrackOid.toString())?.id

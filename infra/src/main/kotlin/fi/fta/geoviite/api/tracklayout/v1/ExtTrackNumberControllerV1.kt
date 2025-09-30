@@ -140,7 +140,7 @@ constructor(
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedTrackNumberCollectionResponseV1> {
         return publicationService
-            .getMainPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
+            .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
                 if (publications.areDifferent()) {
                     extTrackNumberCollectionService.createTrackNumberCollectionModificationResponse(
@@ -265,7 +265,7 @@ constructor(
         coordinateSystem: Srid?,
     ): ResponseEntity<ExtModifiedTrackNumberResponseV1> {
         return publicationService
-            .getMainPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
+            .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
                 val trackNumberId =
                     layoutTrackNumberDao.lookupByExternalId(trackNumberOid.toString())?.id
