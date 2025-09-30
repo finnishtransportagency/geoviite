@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
@@ -28,10 +29,10 @@ import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
+import java.util.*
 import org.junit.jupiter.api.Assertions.assertNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.util.*
 
 data class GeocodableTrack(
     val layoutContext: LayoutContext,
@@ -121,12 +122,17 @@ constructor(
         layoutContext: TestLayoutContext,
         trackNumberName: String = testDBService.getUnusedTrackNumber().value,
         segments: List<LayoutSegment>,
+        startAddress: TrackMeter = TrackMeter.ZERO,
     ): Pair<IntId<LayoutTrackNumber>, IntId<ReferenceLine>> {
         val trackNumberId = layoutContext.createLayoutTrackNumber(TrackNumber(trackNumberName)).id
 
         val referenceLine =
             layoutContext.saveReferenceLine(
-                referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments)
+                referenceLineAndAlignment(
+                    trackNumberId = trackNumberId,
+                    segments = segments,
+                    startAddress = startAddress,
+                )
             )
 
         return trackNumberId to referenceLine.id
@@ -136,9 +142,10 @@ constructor(
         layoutContext: TestLayoutContext,
         trackNumberName: String = testDBService.getUnusedTrackNumber().value,
         segments: List<LayoutSegment>,
+        startAddress: TrackMeter = TrackMeter.ZERO,
     ): Triple<IntId<LayoutTrackNumber>, IntId<ReferenceLine>, Oid<LayoutTrackNumber>> {
         val (trackNumberId, referenceLineId) =
-            insertTrackNumberAndReferenceLine(layoutContext, trackNumberName, segments)
+            insertTrackNumberAndReferenceLine(layoutContext, trackNumberName, segments, startAddress)
         val oid =
             someOid<LayoutTrackNumber>().also { oid ->
                 layoutTrackNumberDao.insertExternalId(trackNumberId, layoutContext.context.branch, oid)

@@ -432,24 +432,11 @@ class GeocodingTest {
                 kmPoints = listOf(TrackMeter(2, "0.0") to 5.0),
             )
         assertEquals(
-            expected =
-                listOf(
-                    GeocodingKm<ReferenceLineM>(
-                        kmNumber = KmNumber(1),
-                        startMeters = BigDecimal("51.4"),
-                        referenceLineM = Range(LineM(0.0), LineM(5.0)),
-                        kmPostOffset = 0.0,
-                        endInclusive = false,
-                    ),
-                    GeocodingKm<ReferenceLineM>(
-                        kmNumber = KmNumber(2),
-                        startMeters = BigDecimal("0.0"),
-                        referenceLineM = Range(LineM(5.0), LineM(10.0)),
-                        kmPostOffset = 0.0,
-                        endInclusive = true,
-                    ),
-                ),
-            actual = context.kms,
+            listOf(
+                GeocodingKm<ReferenceLineM>(KmNumber(1), BigDecimal("51.4"), Range(LineM(0.0), LineM(5.0)), 0.0, false),
+                GeocodingKm<ReferenceLineM>(KmNumber(2), BigDecimal("0.0"), Range(LineM(5.0), LineM(10.0)), 0.0, true),
+            ),
+            context.kms,
         )
         assertEquals(
             listOf(
