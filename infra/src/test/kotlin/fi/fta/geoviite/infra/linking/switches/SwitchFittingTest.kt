@@ -99,7 +99,7 @@ data class TrackForSwitchFitting(
         val jointsByEdgeIndex =
             joints
                 .map { joint ->
-                    val mOnTrack =
+                    val mOnTrack: LineM<LocationTrackM> =
                         when (joint.location) {
                             is PlaceInnerJointAtTrackStart,
                             is PlaceTopologicalJointAtTrackStart -> LineM(0.0)
