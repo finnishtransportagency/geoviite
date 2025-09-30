@@ -377,6 +377,23 @@
             "LKR": "LKR (Läntinen keskiraide)",
             "ITHR": "ItHR (Itäinen huoltoraide (Helsinki-Ilmala)",
             "LANHR": "LänHR (Läntinen huoltoraide (Helsinki-Ilmala)"
+        },
+        "RinfOperationalPointType": {
+            "10": "Asema",
+            "20": "Asema (pieni)",
+            "30": "Matkustaja-asema",
+            "40": "Tavara-asema",
+            "50": "Varikko",
+            "60": "Tekninen ratapiha",
+            "70": "Seisake",
+            "80": "Kohtauspaikka",
+            "90": "Valtakunnan raja",
+            "100": "Vaihtotyöratapiha",
+            "110": "Raideleveydenvaihtolaitteisto",
+            "120": "Vaihde",
+            "130": "Yksityinen",
+            "140": "Omistusraja",
+            "150": "Ylikulku"
         }
     },
     "environment": {
@@ -2161,7 +2178,14 @@
         "state": "Tila",
         "type-rinf": "Tyyppi (RINF)",
         "type-raide": "Tyyppi (RAIDE)",
-        "uic-code": "UIC-koodi"
+        "uic-code": "UIC-koodi",
+        "confirm-revert": "Hylätäänkö luonnos?",
+        "revert-info": "Luonnoksen hylkääminen palauttaa toiminnallisen pisteen takaisin uusimpaan viralliseen tilaan. Toiminnallinen piste poistetaan jos sitä ei ole vielä julkaistu.",
+        "delete-confirm-dialog": {
+            "title": "Toiminnallisen pisteen poistaminen paikannuspohjasta",
+            "deleted-op-not-allowed": "Poistettu-tilainen toiminnallinen piste ei voi olla osa paikannuspohjaa.",
+            "confirm": "Haluatko poistaa toiminnallisen pisteen paikannuspohjasta?"
+        }
     },
     "licenses-page": {
         "title": "Lisenssitiedot",

@@ -175,12 +175,16 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
         switch (item.type) {
             case SearchItemType.OPERATING_POINT: {
-                const operatingPointArea = calculateBoundingBoxToShowAroundLocation(
-                    item.operatingPoint.location,
-                    MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
-                );
+                const operatingPointArea = item.operatingPoint.location
+                    ? calculateBoundingBoxToShowAroundLocation(
+                          item.operatingPoint.location,
+                          MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
+                      )
+                    : undefined;
 
-                showArea(operatingPointArea);
+                if (operatingPointArea) {
+                    showArea(operatingPointArea);
+                }
                 break;
             }
 

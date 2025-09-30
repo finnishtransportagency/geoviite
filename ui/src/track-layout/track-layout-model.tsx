@@ -419,6 +419,19 @@ export type LayoutKmLengthDetails = {
     gkLocationLinkedFromGeometry: boolean;
 };
 
+export type UICCode = string;
+export type OperationalPointState = 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
+
+export type OperationalPoint = {
+    name: string;
+    abbreviation: string;
+    uicCode: UICCode;
+    rinfType: number;
+    raideType: OperationalPointType;
+    location?: Point;
+    state: OperationalPointState;
+};
+
 export type PlanArea = {
     id: GeometryPlanId;
     name: string;
@@ -505,15 +518,6 @@ export type OperationalPointType =
     | 'OLP' // Osiin jaettu liikennepaikka
     | 'SEIS' // Seisake
     | 'LVH'; // Linjavaihde
-
-export type OperatingPoint = {
-    externalId: Oid;
-    name: string;
-    abbreviation: string;
-    uicCode: string;
-    type: OperationalPointType;
-    location: Point;
-};
 
 export type KmPostInfoboxExtras = {
     kmLength: number | undefined;

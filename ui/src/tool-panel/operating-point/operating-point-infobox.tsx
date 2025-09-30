@@ -28,7 +28,7 @@ export const OperatingPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
     };
 
     const [editDialogOpen, setEditDialogOpen] = React.useState(true);
-    const isExternal = false;
+    const isExternal = true;
 
     return (
         <React.Fragment>
