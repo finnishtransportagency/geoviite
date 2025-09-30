@@ -12,7 +12,7 @@ muussa editorissa, prettierin automaattiseen ajoon löytynee helposti keinot, si
 
 ### Konfigurointi
 
-Prettierin konfiguraatio löytyy projekti juuresta, työkalun standardimuotoisesta konfiguraatiotiedostosta
+Prettierin konfiguraatio löytyy projektin juuresta, työkalun standardimuotoisesta konfiguraatiotiedostosta
 `.prettierrc.json`.
 
 ### IntelliJ Idea
