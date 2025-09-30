@@ -529,7 +529,7 @@ constructor(
             }
     }
 
-    fun getMainPublicationsToCompare(
+    fun getPublicationsToCompare(
         trackLayoutVersionFrom: Uuid<Publication>,
         trackLayoutVersionTo: Uuid<Publication>?,
         branchType: LayoutBranchType = LayoutBranchType.MAIN,
