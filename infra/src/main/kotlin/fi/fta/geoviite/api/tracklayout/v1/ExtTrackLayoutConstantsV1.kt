@@ -15,6 +15,7 @@ const val TRACK_NUMBER = "ratanumero"
 const val TRACK_NUMBER_OID = "ratanumero_oid"
 const val TRACK_NUMBER_COLLECTION = "ratanumerot"
 const val COORDINATE_SYSTEM = "koordinaatisto"
+const val COORDINATE_LOCATION = "sijainti"
 const val ADDRESS_POINT_RESOLUTION = "osoitepistevali"
 const val TRACK_INTERVAL = "osoitevali"
 const val TRACK_INTERVALS = "osoitevalit"
@@ -24,6 +25,12 @@ const val DESCRIPTION = "kuvaus"
 const val OWNER = "omistaja"
 const val START_LOCATION = "alkusijainti"
 const val END_LOCATION = "loppusijainti"
+const val KM_POST_OID = "tasakilometripiste_oid"
+const val KM_POST = "tasakilometripiste"
+const val KM_POST_COLLECTION = "tasakilometripisteet"
+const val KM_NUMBER = "km_tunnus"
+const val KM_LENGTH = "ratakilometrin_pituus"
+const val OFFICIAL_LOCATION = "virallinen_sijainti"
 
 const val EXT_OPENAPI_INVALID_ARGUMENTS = "Yhden tai useamman hakuargumentin muoto oli virheellinen."
 
@@ -44,6 +51,8 @@ const val EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION = "Sijaintiraiteen OID-tunn
 
 const val EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION = "Ratanumeron OID-tunnus."
 
+const val EXT_OPENAPI_KM_POST_OID_DESCRIPTION = "Tasakilometripisteen OID-tunnus."
+
 const val EXT_OPENAPI_COORDINATE_SYSTEM =
     "Hyödynnettävän koordinaattijärjestelmän EPSG-tunnus. Oletuksena käytetään paikannuspohjan koordinaatistoa EPSG:3067 (ETRS-TM35FIN)."
 
@@ -61,6 +70,9 @@ const val EXT_OPENAPI_LOCATION_TRACK_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
 
 const val EXT_OPENAPI_TRACK_NUMBER_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
     "Ratanumeroa ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa."
+
+const val EXT_OPENAPI_KM_POST_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
+    "Tasakilometripistettä ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa."
 
 const val EXT_OPENAPI_TRACK_LAYOUT_VERSION_NOT_FOUND = "Annettua rataverkon versiota ei ole olemassa."
 
