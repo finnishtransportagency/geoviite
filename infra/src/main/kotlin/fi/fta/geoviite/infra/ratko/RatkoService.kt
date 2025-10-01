@@ -318,7 +318,7 @@ constructor(
                     publication.split?.id?.let { splitId -> publication to splitService.getOrThrow(splitId) }
                 }
 
-            val locationTrackOidsPushedInSplits =
+            val locationTrackKilometersPushedInSplits =
                 publicationsToSplits
                     .map { (publication, split) ->
                         RatkoSplit(
@@ -348,12 +348,19 @@ constructor(
                     lastPublicationTime,
                 )
 
+            val changedKilometersOverride =
+                locationTrackKilometersPushedInSplits
+                    .map { locationTrackKilometers -> locationTrackKilometers.id to locationTrackKilometers.kilometers }
+                    .toMap()
+
             pushSwitchChanges(
                 layoutBranch = pushableBranch,
-                publishedSwitches = publications.flatMap { it.allPublishedSwitches },
+                publishedSwitches =
+                    publications.flatMap { it.allPublishedSwitches },
                 publishedLocationTracks = publications.flatMap { it.allPublishedLocationTracks },
                 publicationTime = lastPublicationTime,
                 extIds = extIds,
+                changedKilometersOverride = changedKilometersOverride,
             )
 
             ratkoPushDao.updatePushStatus(ratkoPushId, RatkoPushStatus.IN_PROGRESS_M_VALUES)
@@ -366,6 +373,8 @@ constructor(
                 logger.warn("Failed to push M values for route numbers $pushedRouteNumberOids")
             }
 
+            val locationTrackOidsPushedInSplits =
+                locationTrackKilometersPushedInSplits.map { locationTrackKilometers -> locationTrackKilometers.oid }
             try {
                 ratkoLocationTrackService.forceRedraw(
                     listOf(locationTrackOidsPushedInSplits, pushedLocationTrackOids)
@@ -430,6 +439,7 @@ constructor(
         publishedLocationTracks: List<PublishedLocationTrack>,
         publicationTime: Instant,
         extIds: AllOids,
+        changedKilometersOverride: Map<IntId<LocationTrack>, Set<KmNumber>>,
     ) {
         // Location track points are always removed per kilometre.
         // However, there is a slight chance that points used by switches (according to Geoviite)
@@ -438,10 +448,12 @@ constructor(
         val locationTrackSwitchChanges =
             publishedLocationTracks
                 .flatMap { locationTrack ->
+                    val filterByKmNumbers =
+                        changedKilometersOverride.getOrDefault(locationTrack.id, locationTrack.changedKmNumbers)
                     getSwitchChangesByLocationTrack(
                         layoutBranch = layoutBranch.branch,
                         locationTrackId = locationTrack.id,
-                        filterByKmNumbers = locationTrack.changedKmNumbers,
+                        filterByKmNumbers = filterByKmNumbers,
                         moment = publicationTime,
                         extIds = extIds,
                     )
