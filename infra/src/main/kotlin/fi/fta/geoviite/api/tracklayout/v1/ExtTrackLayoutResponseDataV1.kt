@@ -71,6 +71,36 @@ enum class ExtTrackNumberStateV1(val value: String) {
     }
 }
 
+@Schema(name = "Tasakilometripisteen tila", type = "string")
+enum class ExtKmPostStateV1(val value: String) {
+    IN_USE("käytössä"),
+    NOT_IN_USE("käytöstä poistettu"),
+    DELETED("poistettu");
+
+    @JsonValue fun jsonValue() = value
+
+    companion object {
+        fun of(kmPostState: LayoutState): ExtKmPostStateV1 {
+            return when (kmPostState) {
+                LayoutState.IN_USE -> IN_USE
+                LayoutState.NOT_IN_USE -> NOT_IN_USE
+                LayoutState.DELETED -> DELETED
+            }
+        }
+    }
+}
+
+@Schema(name = "Koordinaattipiste")
+@JsonInclude(JsonInclude.Include.ALWAYS)
+data class ExtSridCoordinateV1(
+    @JsonProperty(COORDINATE_SYSTEM) val srid: Srid,
+    @JsonProperty(COORDINATE_LOCATION) val location: ExtCoordinateV1,
+)
+
+@Schema(name = "Koordinaattipiste")
+@JsonInclude(JsonInclude.Include.ALWAYS)
+data class ExtCoordinateV1(val x: Double, val y: Double)
+
 @Schema(name = "Osoitepiste")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataosoite") val trackAddress: String?) {
