@@ -16,6 +16,7 @@ import OlView from 'ol/View';
 import { ChangeTimes } from 'common/common-slice';
 import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
+import { LayoutContext } from 'common/common-model';
 
 const layerName: MapLayerName = 'operating-points-layer';
 
@@ -45,6 +46,7 @@ export function createOperatingPointLayer(
     mapTiles: MapTile[],
     existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     olView: OlView,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer, true, true);
@@ -55,7 +57,9 @@ export function createOperatingPointLayer(
     const getOperatingPointsFromApi = async () => {
         return (
             await Promise.all(
-                mapTiles.map((tile) => getOperationalPoints(tile, changeTimes.operatingPoints)),
+                mapTiles.map((tile) =>
+                    getOperationalPoints(tile, layoutContext, changeTimes.operatingPoints),
+                ),
             )
         ).flat();
     };

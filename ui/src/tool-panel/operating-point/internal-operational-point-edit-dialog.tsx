@@ -5,31 +5,75 @@ import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/fo
 import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
-import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { layoutStates } from 'utils/enum-localization-utils';
+import { Dropdown, dropdownOption, DropdownOption } from 'vayla-design-lib/dropdown/dropdown';
+import { operationalPointStates, rinfTypes } from 'utils/enum-localization-utils';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { OperatingPointDeleteDraftConfirmDialog } from 'tool-panel/operating-point/operating-point-delete-draft-confirm-dialog';
+import { OperationalPoint, RinfType } from 'track-layout/track-layout-model';
+import {
+    actions,
+    initialInternalOperationalPointEditState,
+    InternalOperationalPointEditState,
+    InternalOperationalPointSaveRequest,
+    reducer,
+} from 'tool-panel/operating-point/internal-operational-point-edit-store';
+import { createDelegatesWithDispatcher } from 'store/store-utils';
+import { UnknownAction } from 'redux';
+import {
+    hasErrors as hasErrorsGeneric,
+    getVisibleErrorsByProp as getVisibleErrorsByPropGeneric,
+} from 'utils/validation-utils';
 
-type ExternalOperatingPointEditDialogProps = {
+type InternalOperationalPointEditDialogProps = {
+    operationalPoint: OperationalPoint | undefined;
     onSave: () => void;
     onClose: () => void;
 };
 
-export const ExternalOperatingPointEditDialog: React.FC<ExternalOperatingPointEditDialogProps> = ({
-    onClose,
-    onSave: _s,
-}) => {
+export const InternalOperationalPointEditDialog: React.FC<
+    InternalOperationalPointEditDialogProps
+> = ({ operationalPoint, onClose, onSave: _s }) => {
     const { t } = useTranslation();
+
+    const [state, dispatcher] = React.useReducer<
+        InternalOperationalPointEditState,
+        [action: UnknownAction]
+    >(reducer, initialInternalOperationalPointEditState);
+    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
+
+    React.useEffect(() => {
+        if (operationalPoint) stateActions.onOperationalPointLoaded(operationalPoint);
+    }, [operationalPoint]);
+
     const [deleteDraftConfirmDialogOpen, setShowDeleteDraftConfirmDialog] = React.useState(false);
     const [deleteOperatingPointConfirmDialogOpen, setShowDeleteOperatingPointConfirmDialog] =
         React.useState(false);
 
-    const isNew = true;
+    const isNew = !operationalPoint;
 
-    const stateOptions = layoutStates.map((s) =>
+    const stateOptions = operationalPointStates.map((s) =>
         s.value !== 'DELETED' || !isNew ? s : { ...s, disabled: true },
     );
+    const rinfTypeOptions: DropdownOption<RinfType>[] = rinfTypes.map((value) =>
+        dropdownOption(value.value, value.name, `rinf-type-option-${value}`),
+    );
+
+    function updateProp<TKey extends keyof InternalOperationalPointSaveRequest>(
+        key: TKey,
+        value: InternalOperationalPointSaveRequest[TKey],
+    ) {
+        stateActions.onUpdateProp({
+            key: key,
+            value: value,
+            editingExistingValue: !!state.operationalPoint,
+        });
+    }
+
+    const hasErrors = (fieldName: keyof InternalOperationalPointSaveRequest) =>
+        hasErrorsGeneric(state.committedFields, state.validationIssues, fieldName);
+    const getVisibleErrorsByProp = (prop: keyof InternalOperationalPointSaveRequest) =>
+        getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop);
 
     return (
         <React.Fragment>
@@ -44,7 +88,7 @@ export const ExternalOperatingPointEditDialog: React.FC<ExternalOperatingPointEd
                     <React.Fragment>
                         {!isNew && (
                             <Button
-                                /*disabled={!existingSwitch?.isDraft}*/
+                                disabled={!operationalPoint?.isDraft}
                                 onClick={() => setShowDeleteDraftConfirmDialog(true)}
                                 variant={ButtonVariant.WARNING}>
                                 {t('button.revert-draft')}
@@ -84,23 +128,74 @@ export const ExternalOperatingPointEditDialog: React.FC<ExternalOperatingPointEd
                         </Heading>
                         <FieldLayout
                             label={`${t('operating-point-dialog.name')} *`}
-                            value={<TextField value={'Nimi lol'} wide />}
+                            value={
+                                <TextField
+                                    value={state.operationalPoint.name}
+                                    onChange={(e) => updateProp('name', e.target.value)}
+                                    onBlur={() => stateActions.onCommitField('name')}
+                                    hasError={hasErrors('name')}
+                                    wide
+                                />
+                            }
+                            errors={getVisibleErrorsByProp('name')}
                         />
                         <FieldLayout
                             label={`${t('operating-point-dialog.abbreviation')} *`}
-                            value={<TextField value={'Nimi lol'} wide />}
+                            value={
+                                <TextField
+                                    value={state.operationalPoint.abbreviation}
+                                    onChange={(e) => updateProp('abbreviation', e.target.value)}
+                                    onBlur={() => stateActions.onCommitField('abbreviation')}
+                                    hasError={hasErrors('abbreviation')}
+                                    wide
+                                />
+                            }
+                            errors={getVisibleErrorsByProp('abbreviation')}
                         />
                         <FieldLayout
                             label={`${t('operating-point-dialog.type-rinf')} *`}
-                            value={<Dropdown value={'Nimi lol'} wide />}
+                            value={
+                                <Dropdown
+                                    options={rinfTypeOptions}
+                                    value={
+                                        rinfTypeOptions.find(
+                                            (o) => o.value === state.operationalPoint.rinfType,
+                                        )?.value
+                                    }
+                                    onChange={(value) => value && updateProp('rinfType', value)}
+                                    onBlur={() => stateActions.onCommitField('rinfType')}
+                                    hasError={hasErrors('rinfType')}
+                                    wide
+                                />
+                            }
+                            errors={getVisibleErrorsByProp('rinfType')}
                         />
                         <FieldLayout
                             label={`${t('operating-point-dialog.state')} *`}
-                            value={<Dropdown options={stateOptions} value={'Nimi lol'} wide />}
+                            value={
+                                <Dropdown
+                                    options={stateOptions}
+                                    value={state.operationalPoint.state}
+                                    onChange={(value) => value && updateProp('state', value)}
+                                    onBlur={() => stateActions.onCommitField('state')}
+                                    hasError={hasErrors('state')}
+                                    wide
+                                />
+                            }
+                            errors={getVisibleErrorsByProp('state')}
                         />
                         <FieldLayout
                             label={`${t('operating-point-dialog.uic-code')} *`}
-                            value={<TextField value={'1337'} wide />}
+                            value={
+                                <TextField
+                                    value={state.operationalPoint.uicCode}
+                                    onChange={(e) => updateProp('uicCode', e.target.value)}
+                                    onBlur={() => stateActions.onCommitField('uicCode')}
+                                    hasError={hasErrors('uicCode')}
+                                    wide
+                                />
+                            }
+                            errors={getVisibleErrorsByProp('uicCode')}
                         />
                     </FormLayoutColumn>
                 </FormLayout>

@@ -8,16 +8,21 @@ import { OperatingPointOid } from 'track-layout/oid';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LayoutContext } from 'common/common-model';
-import { ExternalOperatingPointEditDialog } from 'tool-panel/operating-point/external-operating-point-edit-dialog';
-import { InternalOperatingPointEditDialog } from 'tool-panel/operating-point/internal-operating-point-edit-dialog';
+import { InternalOperationalPointEditDialog } from 'tool-panel/operating-point/internal-operational-point-edit-dialog';
+import { ExternalOperationalPointEditDialog } from 'tool-panel/operating-point/external-operational-point-edit-dialog';
+import { OperationalPoint } from 'track-layout/track-layout-model';
+import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
+import { formatToTM35FINString } from 'utils/geography-utils';
 
 type OperatingPointInfoboxProps = {
+    operationalPoint: OperationalPoint;
     layoutContext: LayoutContext;
     visibilities: OperatingPointInfoboxVisibilities;
     onVisibilityChange: (visibilities: OperatingPointInfoboxVisibilities) => void;
 };
 
-export const OperatingPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
+export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
+    operationalPoint,
     visibilities,
     onVisibilityChange,
     layoutContext,
@@ -27,8 +32,8 @@ export const OperatingPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
 
-    const [editDialogOpen, setEditDialogOpen] = React.useState(true);
-    const isExternal = true;
+    const [editDialogOpen, setEditDialogOpen] = React.useState(false);
+    const isExternal = operationalPoint.raideType !== undefined;
 
     return (
         <React.Fragment>
@@ -38,27 +43,45 @@ export const OperatingPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
                 title={t('tool-panel.operating-point.basic-info-heading')}
                 qa-id="operating-point-infobox"
                 onEdit={() => setEditDialogOpen(true)}
-                iconDisabled={layoutContext.publicationState === 'OFFICIAL'}
-                disabledReason={''}>
+                iconDisabled={layoutContext.publicationState === 'OFFICIAL'}>
                 <InfoboxContent>
+                    <InfoboxField
+                        label={t('tool-panel.operating-point.source')}
+                        value={isExternal ? 'Ratko' : 'Geoviite'}
+                    />
                     <InfoboxField
                         label={t('tool-panel.operating-point.identifier')}
                         value={<OperatingPointOid />}
                     />
-                    <InfoboxField label={t('tool-panel.operating-point.name')} value={'Nimi lol'} />
+                    <InfoboxField
+                        label={t('tool-panel.operating-point.name')}
+                        value={operationalPoint.name}
+                    />
+                    <InfoboxField
+                        label={t('tool-panel.operating-point.abbreviation')}
+                        value={operationalPoint.abbreviation}
+                    />
                     <InfoboxField
                         label={t('tool-panel.operating-point.state')}
-                        value={'Käytössä lol'}
+                        value={<LayoutState state={operationalPoint.state} />}
                     />
-                    <InfoboxField
-                        label={t('tool-panel.operating-point.type-raide')}
-                        value={'AAAAAA'}
-                    />
+                    {isExternal && (
+                        <InfoboxField
+                            label={t('tool-panel.operating-point.type-raide')}
+                            value={t(`enum.RaideType.${operationalPoint.raideType}`)}
+                        />
+                    )}
                     <InfoboxField
                         label={t('tool-panel.operating-point.type-rinf')}
-                        value={'AAAAAAA'}
+                        value={t('enum.rinf-type-full', {
+                            rinfType: t(`enum.RinfType.${operationalPoint.rinfType}`),
+                            rinfCode: operationalPoint.rinfType,
+                        })}
                     />
-                    <InfoboxField label={t('tool-panel.operating-point.uic-code')} value={'1337'} />
+                    <InfoboxField
+                        label={t('tool-panel.operating-point.uic-code')}
+                        value={operationalPoint.uicCode}
+                    />
                 </InfoboxContent>
             </Infobox>
             <Infobox
@@ -69,15 +92,32 @@ export const OperatingPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
                 <InfoboxContent>
                     <InfoboxField
                         label={t('tool-panel.operating-point.location')}
-                        value={'1337 E, 666 N'}
+                        value={
+                            operationalPoint.location
+                                ? formatToTM35FINString(operationalPoint.location)
+                                : '-'
+                        }
                     />
                     <InfoboxButtons>
-                        <Button variant={ButtonVariant.SECONDARY} size={ButtonSize.SMALL}>
+                        <Button
+                            variant={ButtonVariant.SECONDARY}
+                            size={ButtonSize.SMALL}
+                            disabled={!operationalPoint.location}>
                             {t('tool-panel.operating-point.focus-on-map')}
                         </Button>
                     </InfoboxButtons>
                     <InfoboxButtons>
-                        <Button variant={ButtonVariant.SECONDARY} size={ButtonSize.SMALL}>
+                        <Button
+                            variant={ButtonVariant.SECONDARY}
+                            size={ButtonSize.SMALL}
+                            disabled={isExternal}
+                            title={
+                                isExternal
+                                    ? t(
+                                          'tool-panel.operating-point.cannot-set-location-for-external',
+                                      )
+                                    : undefined
+                            }>
                             {t('tool-panel.operating-point.set-location')}
                         </Button>
                     </InfoboxButtons>
@@ -94,16 +134,13 @@ export const OperatingPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
                 title={t('tool-panel.operating-point.log-heading')}
                 qa-id="operating-point-infobox">
                 <InfoboxContent>
-                    <InfoboxField
-                        label={t('tool-panel.operating-point.created')}
-                        value={'19.11.2022'}
-                    />
-                    <InfoboxField
-                        label={t('tool-panel.operating-point.modified')}
-                        value={'24.12.2024'}
-                    />
+                    <InfoboxField label={t('tool-panel.operating-point.created')} value={'TODO'} />
+                    <InfoboxField label={t('tool-panel.operating-point.modified')} value={'TODO'} />
                     <InfoboxButtons>
-                        <Button variant={ButtonVariant.SECONDARY} size={ButtonSize.SMALL}>
+                        <Button
+                            variant={ButtonVariant.SECONDARY}
+                            size={ButtonSize.SMALL}
+                            disabled={true}>
                             {t('tool-panel.show-in-publication-log')}
                         </Button>
                     </InfoboxButtons>
@@ -111,12 +148,14 @@ export const OperatingPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
             </Infobox>
             {editDialogOpen &&
                 (isExternal ? (
-                    <ExternalOperatingPointEditDialog
+                    <ExternalOperationalPointEditDialog
+                        operationalPoint={operationalPoint}
                         onSave={() => setEditDialogOpen(false)}
                         onClose={() => setEditDialogOpen(false)}
                     />
                 ) : (
-                    <InternalOperatingPointEditDialog
+                    <InternalOperationalPointEditDialog
+                        operationalPoint={operationalPoint}
                         onSave={() => setEditDialogOpen(false)}
                         onClose={() => setEditDialogOpen(false)}
                     />

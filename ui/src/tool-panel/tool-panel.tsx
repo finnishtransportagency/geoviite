@@ -14,6 +14,7 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     MapAlignmentType,
+    OperationalPointId,
 } from 'track-layout/track-layout-model';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { SelectedGeometryItem } from 'selection/selection-model';
@@ -49,6 +50,7 @@ import { LayoutContext } from 'common/common-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { LayoutSwitchLinkingInfoboxContainer } from 'tool-panel/switch/layout-switch-linking-infobox-container';
 import { OperatingPointInfoboxContainer } from './operating-point/operating-point-infobox-container';
+import { getManyOperationalPoints } from 'track-layout/layout-operating-point-api';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -59,6 +61,7 @@ type ToolPanelProps = {
     geometrySwitchIds: SelectedGeometryItem<GeometrySwitchId>[];
     locationTrackIds: LocationTrackId[];
     geometryAlignmentIds: SelectedGeometryItem<GeometryAlignmentId>[];
+    operationalPointIds: OperationalPointId[];
     linkingState?: LinkingState;
     splittingState?: SplittingState;
     changeTimes: ChangeTimes;
@@ -118,6 +121,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     geometrySwitchIds,
     locationTrackIds,
     geometryAlignmentIds,
+    operationalPointIds,
     linkingState,
     splittingState,
     changeTimes,
@@ -133,7 +137,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 }: ToolPanelProps) => {
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
 
-    const tracksSwitchesKmPostsPlans = useLoader(() => {
+    const tracksSwitchesKmPostsPlansOperationalPoints = useLoader(() => {
         const trackNumbersPromise = getTrackNumbers(
             layoutContext,
             changeTimes.layoutTrackNumber,
@@ -153,6 +157,11 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             changeTimes.geometryPlan,
             false,
         );
+        const operationalPointsPromise = getManyOperationalPoints(
+            operationalPointIds,
+            layoutContext,
+            changeTimes.operatingPoints,
+        );
 
         return Promise.all([
             // TODO: GVT-2014 Check the nullability in these api-calls/caches
@@ -165,6 +174,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             trackNumbersPromise.then((l) => l.filter(filterNotEmpty)),
             plansPromise.then((l) => l.filter(filterNotEmpty)),
             elementPlansPromise,
+            operationalPointsPromise,
         ]);
     }, [
         locationTrackIds,
@@ -183,15 +193,34 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         geometryAlignmentIds,
     ]);
 
-    const locationTracks = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[0]) || [];
-    const switches = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[1]) || [];
-    const kmPosts = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[2]) || [];
-    const trackNumbers = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[3]) || [];
-    const planHeaders = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[4]) || [];
+    const locationTracks =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[0]) ||
+        [];
+    const switches =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[1]) ||
+        [];
+    const kmPosts =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[2]) ||
+        [];
+    const trackNumbers =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[3]) ||
+        [];
+    const planHeaders =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[4]) ||
+        [];
 
     const getPlan = (id: GeometryPlanId) =>
-        tracksSwitchesKmPostsPlans &&
-        tracksSwitchesKmPostsPlans[5].find((p) => p.layout?.id === id);
+        tracksSwitchesKmPostsPlansOperationalPoints &&
+        tracksSwitchesKmPostsPlansOperationalPoints[5].find((p) => p.layout?.id === id);
+    const operationalPoints =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[6]) ||
+        [];
 
     const infoboxVisibilityChange = React.useCallback(
         (
@@ -207,7 +236,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     );
 
     React.useEffect(() => {
-        if (tracksSwitchesKmPostsPlans === undefined) {
+        if (tracksSwitchesKmPostsPlansOperationalPoints === undefined) {
             return;
         }
         const planTabs = planHeaders.map((p: GeometryPlanHeader) => {
@@ -408,20 +437,24 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             },
         );
 
-        const operatingPointTabs: ToolPanelTab[] = [
-            {
-                asset: { type: 'OPERATING_POINT', id: 'OPERATING_POINT_1' },
-                title: 'OP1',
+        const operatingPointTabs: ToolPanelTab[] = operationalPoints.map((op) => {
+            return {
+                asset: {
+                    type: 'OPERATING_POINT',
+                    id: op.id,
+                },
+                title: op.name,
                 element: (
                     <OperatingPointInfoboxContainer
+                        operationalPointId={op.id}
                         visibilities={infoboxVisibilities.operatingPoint}
                         onVisiblityChange={(visibilities) =>
                             infoboxVisibilityChange('operatingPoint', visibilities)
                         }
                     />
                 ),
-            },
-        ]; // Placeholder for future Operating Point tabs
+            };
+        });
 
         const allTabs = [
             ...geometryKmPostTabs,
