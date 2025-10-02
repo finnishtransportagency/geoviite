@@ -2,7 +2,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -10,14 +9,15 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.time.Instant
 
 @GeoviiteService
 class ExtLocationTrackServiceV1
@@ -26,6 +26,7 @@ constructor(
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
+    private val publicationDao: PublicationDao,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -59,21 +60,14 @@ constructor(
 
     fun createLocationTrackModificationResponse(
         oid: Oid<LocationTrack>,
-        locationTrackId: IntId<LocationTrack>,
+        id: IntId<LocationTrack>,
         publications: PublicationComparison,
         coordinateSystem: Srid,
     ): ExtModifiedLocationTrackResponseV1? {
-
-
-        return locationTrackDao
-            .fetchOfficialVersionComparison(
-                LayoutBranch.main,
-                locationTrackId,
-                publications.from.publicationTime,
-                publications.to.publicationTime,
-            )
-            .takeIf { assetVersions -> assetVersions.areDifferent() }
-            ?.let { assetVersions ->
+        return publicationDao
+            .fetchPublishedLocationTrackBetween(id, publications.from.publicationTime, publications.to.publicationTime)
+            ?.let(locationTrackDao::fetch)
+            ?.let { track ->
                 ExtModifiedLocationTrackResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
@@ -81,13 +75,13 @@ constructor(
                     locationTrack =
                         getExtLocationTrack(
                             oid,
-                            locationTrackDao.fetch(assetVersions.toVersion.let(::requireNotNull)),
+                            track,
                             MainLayoutContext.official,
                             publications.to.publicationTime,
                             coordinateSystem,
                         ),
                 )
-            } ?: layoutAssetVersionsAreTheSame(locationTrackId, publications)
+            } ?: layoutAssetVersionsAreTheSame(id, publications)
     }
 
     fun getExtLocationTrack(

@@ -64,6 +64,7 @@ import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
@@ -401,6 +402,15 @@ class TestDBService(
         val targetContext = testContext(targetBranch ?: original.branch, DRAFT)
         return targetContext.copyFrom(officialVersion, mutate = mutate)
     }
+
+    fun generateTrackNumberOid(id: IntId<LayoutTrackNumber>, branch: LayoutBranch): Oid<LayoutTrackNumber> =
+        someOid<LayoutTrackNumber>().also { oid -> trackNumberDao.insertExternalId(id, branch, oid) }
+
+    fun generateLocationTrackOid(id: IntId<LocationTrack>, branch: LayoutBranch): Oid<LocationTrack> =
+        someOid<LocationTrack>().also { oid -> locationTrackDao.insertExternalId(id, branch, oid) }
+
+    fun generateSwitchOid(id: IntId<LayoutSwitch>, branch: LayoutBranch): Oid<LayoutSwitch> =
+        someOid<LayoutSwitch>().also { oid -> switchDao.insertExternalId(id, branch, oid) }
 }
 
 data class TestLayoutContext(val context: LayoutContext, val testService: TestDBService) : TestDB by testService {

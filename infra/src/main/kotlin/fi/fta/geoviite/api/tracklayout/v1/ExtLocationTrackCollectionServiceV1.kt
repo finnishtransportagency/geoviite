@@ -2,7 +2,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Srid
@@ -51,18 +50,9 @@ constructor(
         coordinateSystem: Srid,
     ): ExtModifiedLocationTrackCollectionResponseV1? {
         return publicationDao
-            .fetchPublishedLocationTracksAfterMoment(
-                publications.from.publicationTime,
-                publications.to.publicationTime,
-            )
-            .let { changedIds ->
-                locationTrackDao.getManyOfficialAtMoment(
-                    LayoutBranch.main,
-                    changedIds,
-                    publications.to.publicationTime,
-                )
-            }
-            .takeIf { modifiedLocationTracks -> modifiedLocationTracks.isNotEmpty() }
+            .fetchPublishedLocationTracksBetween(publications.from.publicationTime, publications.to.publicationTime)
+            .takeIf { versions -> versions.isNotEmpty() }
+            ?.let(locationTrackDao::fetchMany)
             ?.let { modifiedLocationTracks ->
                 ExtModifiedLocationTrackCollectionResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
