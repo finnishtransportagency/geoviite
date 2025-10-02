@@ -42,6 +42,10 @@ geoviite:
     url-path-prefixes:
       - /geoviite
       - /rata-vkm
+    public-hosts:
+      - 'avoinapi.example.com'
+    private-hosts:
+      - 'api.example.com'
 
 springdoc:
   enable-default-api-docs: false
