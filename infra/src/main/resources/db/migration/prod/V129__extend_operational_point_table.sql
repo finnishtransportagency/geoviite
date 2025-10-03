@@ -69,7 +69,6 @@ create table layout.operational_point
   uic_code           varchar(20)                    not null,
   type               layout.operational_point_type,
   location           postgis.geometry(Point, 3067),
-  track_number_id    integer                        not null,
   state              layout.operational_point_state not null,
   rinf_type_code     int,
   polygon            postgis.geometry(Polygon, 3067),
@@ -102,7 +101,7 @@ insert into layout.operational_point_id (
 );
 
 insert into layout.operational_point
-  (id, draft, design_id, layout_context_id, name, abbreviation, uic_code, type, location, track_number_id,
+  (id, draft, design_id, layout_context_id, name, abbreviation, uic_code, type, location,
    state, rinf_type_code, polygon, origin)
   (
     select
@@ -115,7 +114,6 @@ insert into layout.operational_point
       uic_code,
       type,
       location,
-      track_number_id,
       'IN_USE',
       null,
       null,
