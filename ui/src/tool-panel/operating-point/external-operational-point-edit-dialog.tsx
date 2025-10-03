@@ -8,7 +8,7 @@ import { Dropdown, DropdownOption, dropdownOption } from 'vayla-design-lib/dropd
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { OperatingPointDeleteDraftConfirmDialog } from 'tool-panel/operating-point/operating-point-delete-draft-confirm-dialog';
-import { OperationalPoint, RinfType } from 'track-layout/track-layout-model';
+import { OperationalPoint, OperationalPointId, RinfType } from 'track-layout/track-layout-model';
 import { rinfTypes } from 'utils/enum-localization-utils';
 import { OperationalPointState } from 'geoviite-design-lib/operational-point-state/operational-point-state';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
@@ -24,16 +24,23 @@ import {
     hasErrors,
     getVisibleErrorsByProp as getVisibleErrorsByPropGeneric,
 } from 'utils/validation-utils';
+import { LayoutContext } from 'common/common-model';
+import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
+import {
+    deleteDraftOperationalPoint,
+    updateExternalOperationalPoint,
+} from 'track-layout/layout-operating-point-api';
 
 type ExternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint;
-    onSave: () => void;
+    layoutContext: LayoutContext;
+    onSave: (id: OperationalPointId) => void;
     onClose: () => void;
 };
 
 export const ExternalOperationalPointEditDialog: React.FC<
     ExternalOperationalPointEditDialogProps
-> = ({ operationalPoint, onClose, onSave: _s }) => {
+> = ({ operationalPoint, layoutContext, onClose, onSave }) => {
     const { t } = useTranslation();
 
     const [state, dispatcher] = React.useReducer<
@@ -47,6 +54,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
     }, [operationalPoint]);
 
     const [deleteDraftConfirmDialogOpen, setShowDeleteDraftConfirmDialog] = React.useState(false);
+    const [isSaving, setIsSaving] = React.useState(false);
 
     const rinfTypeOptions: DropdownOption<RinfType>[] = rinfTypes.map((value) =>
         dropdownOption(value.value, value.name, `rinf-type-option-${value}`),
@@ -54,6 +62,36 @@ export const ExternalOperationalPointEditDialog: React.FC<
 
     const getVisibleErrorsByProp = (prop: keyof ExternalOperationalPointSaveRequest) =>
         getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop);
+
+    const updateRinfType = (value: RinfType | undefined) =>
+        value &&
+        stateActions.onUpdateProp({
+            key: 'rinfType',
+            value: value,
+            editingExistingValue: !!state.operationalPoint,
+        });
+
+    function saveUpdatedOperationalPoint(
+        id: OperationalPointId,
+        updatedOperationalPoint: ExternalOperationalPointSaveRequest,
+    ) {
+        setIsSaving(true);
+        updateExternalOperationalPoint(id, updatedOperationalPoint, layoutContext)
+            .then(
+                () => {
+                    onSave(id);
+                    onClose();
+                    Snackbar.success('operating-point-dialog.modified-successfully');
+                },
+                () => Snackbar.error('operating-point-dialog.modify-failed'),
+            )
+            .finally(() => setIsSaving(false));
+    }
+
+    const revertDraft = () => {
+        deleteDraftOperationalPoint(layoutContext, operationalPoint.id);
+        setShowDeleteDraftConfirmDialog(true);
+    };
 
     return (
         <React.Fragment>
@@ -76,17 +114,15 @@ export const ExternalOperationalPointEditDialog: React.FC<
                                 {t('button.cancel')}
                             </Button>
                             <Button
+                                isProcessing={isSaving}
+                                disabled={isSaving}
                                 qa-id="save-switch-changes"
-                                /*disabled={!canSave}
-                            isProcessing={isSaving}
-                            onClick={saveOrConfirm}
-                            title={getSaveDisabledReasons(
-                                validationIssues.map((e) => e.reason),
-                                isSaving,
-                            )
-                                .map((reason) => t(`switch-dialog.${reason}`))
-                                .join(', ')}*/
-                            >
+                                onClick={() =>
+                                    saveUpdatedOperationalPoint(
+                                        operationalPoint.id,
+                                        state.operationalPoint,
+                                    )
+                                }>
                                 {t('button.save')}
                             </Button>
                         </div>
@@ -122,14 +158,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                                             (o) => o.value === state.operationalPoint.rinfType,
                                         )?.value
                                     }
-                                    onChange={(value) =>
-                                        value &&
-                                        stateActions.onUpdateProp({
-                                            key: 'rinfType',
-                                            value: value,
-                                            editingExistingValue: !!state.operationalPoint,
-                                        })
-                                    }
+                                    onChange={updateRinfType}
                                     onBlur={() => stateActions.onCommitField('rinfType')}
                                     hasError={hasErrors(
                                         state.committedFields,
@@ -161,7 +190,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
             {deleteDraftConfirmDialogOpen && (
                 <OperatingPointDeleteDraftConfirmDialog
                     onClose={() => setShowDeleteDraftConfirmDialog(false)}
-                    onRevert={() => setShowDeleteDraftConfirmDialog(false)}
+                    onRevert={revertDraft}
                 />
             )}
         </React.Fragment>

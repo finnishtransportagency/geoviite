@@ -165,6 +165,9 @@ const commonSlice = createSlice({
         setLayoutDesignChangeTime: function ({ changeTimes }, { payload }) {
             updateChangeTime(changeTimes, 'layoutDesign', payload);
         },
+        setOperationalPointsChangeTime: function ({ changeTimes }, { payload }) {
+            updateChangeTime(changeTimes, 'operatingPoints', payload);
+        },
         setUser: (state: CommonState, { payload: user }: PayloadAction<User>): void => {
             state.user = user;
         },

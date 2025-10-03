@@ -2196,6 +2196,10 @@
         "uic-code": "UIC-koodi",
         "confirm-revert": "Hylätäänkö luonnos?",
         "revert-info": "Luonnoksen hylkääminen palauttaa toiminnallisen pisteen takaisin uusimpaan viralliseen tilaan. Toiminnallinen piste poistetaan jos sitä ei ole vielä julkaistu.",
+        "new-added": "Uusi toiminnallinen piste lisätty rekisteriin",
+        "adding-failed": "Toiminnallisen pisteen lisäys epäonnistui",
+        "modified-successfully": "Toiminnallisen pisteen tiedot päivitetty",
+        "modify-failed": "Toiminnallisen pisteen päivittäminen epäonnistui",
         "delete-confirm-dialog": {
             "title": "Toiminnallisen pisteen poistaminen paikannuspohjasta",
             "deleted-op-not-allowed": "Poistettu-tilainen toiminnallinen piste ei voi olla osa paikannuspohjaa.",

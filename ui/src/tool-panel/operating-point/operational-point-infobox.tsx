@@ -175,13 +175,15 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
                 (isExternal ? (
                     <ExternalOperationalPointEditDialog
                         operationalPoint={operationalPoint}
-                        onSave={() => setEditDialogOpen(false)}
+                        layoutContext={layoutContext}
+                        onSave={() => setEditDialogOpen(false)} // TODO
                         onClose={() => setEditDialogOpen(false)}
                     />
                 ) : (
                     <InternalOperationalPointEditDialog
                         operationalPoint={operationalPoint}
-                        onSave={() => setEditDialogOpen(false)}
+                        layoutContext={layoutContext}
+                        onSave={() => setEditDialogOpen(false)} // TODO
                         onClose={() => setEditDialogOpen(false)}
                     />
                 ))}

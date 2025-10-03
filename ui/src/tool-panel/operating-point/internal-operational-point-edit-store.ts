@@ -17,10 +17,6 @@ export type InternalOperationalPointSaveRequest = {
     uicCode?: UICCode;
 };
 
-export type ExternalOperationalPointSaveRequest = {
-    rinfType?: number;
-};
-
 export type InternalOperationalPointEditState = {
     isNewOperationalPoint: boolean;
     existingOperationalPoint?: OperationalPoint;
@@ -29,12 +25,6 @@ export type InternalOperationalPointEditState = {
     validationIssues: FieldValidationIssue<InternalOperationalPointSaveRequest>[];
     committedFields: (keyof InternalOperationalPointSaveRequest)[];
     allFieldsCommitted: boolean;
-};
-
-export type ExternalOperationalPointEditState = {
-    existingOperationalPoint?: OperationalPoint;
-    isSaving: boolean;
-    operationalPoint: ExternalOperationalPointSaveRequest;
 };
 
 function validateInternalOperationalPoint(
@@ -58,6 +48,7 @@ function validateInternalOperationalPoint(
                       }
                     : undefined,
         ),
+        // TODO: Add more specific validation
     ].filter(filterNotEmpty);
 
     return errors;

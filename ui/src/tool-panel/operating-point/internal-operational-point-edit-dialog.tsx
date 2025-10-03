@@ -10,7 +10,7 @@ import { operationalPointStates, rinfTypes } from 'utils/enum-localization-utils
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { OperatingPointDeleteDraftConfirmDialog } from 'tool-panel/operating-point/operating-point-delete-draft-confirm-dialog';
-import { OperationalPoint, RinfType } from 'track-layout/track-layout-model';
+import { OperationalPoint, OperationalPointId, RinfType } from 'track-layout/track-layout-model';
 import {
     actions,
     initialInternalOperationalPointEditState,
@@ -24,16 +24,24 @@ import {
     hasErrors as hasErrorsGeneric,
     getVisibleErrorsByProp as getVisibleErrorsByPropGeneric,
 } from 'utils/validation-utils';
+import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
+import {
+    deleteDraftOperationalPoint,
+    insertOperationalPoint,
+    updateInternalOperationalPoint,
+} from 'track-layout/layout-operating-point-api';
+import { LayoutContext } from 'common/common-model';
 
 type InternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint | undefined;
-    onSave: () => void;
+    layoutContext: LayoutContext;
+    onSave: (id: OperationalPointId) => void;
     onClose: () => void;
 };
 
 export const InternalOperationalPointEditDialog: React.FC<
     InternalOperationalPointEditDialogProps
-> = ({ operationalPoint, onClose, onSave: _s }) => {
+> = ({ operationalPoint, layoutContext, onClose, onSave }) => {
     const { t } = useTranslation();
 
     const [state, dispatcher] = React.useReducer<
@@ -49,6 +57,7 @@ export const InternalOperationalPointEditDialog: React.FC<
     const [deleteDraftConfirmDialogOpen, setShowDeleteDraftConfirmDialog] = React.useState(false);
     const [deleteOperatingPointConfirmDialogOpen, setShowDeleteOperatingPointConfirmDialog] =
         React.useState(false);
+    const [isSaving, setIsSaving] = React.useState(false);
 
     const isNew = !operationalPoint;
 
@@ -74,6 +83,61 @@ export const InternalOperationalPointEditDialog: React.FC<
         hasErrorsGeneric(state.committedFields, state.validationIssues, fieldName);
     const getVisibleErrorsByProp = (prop: keyof InternalOperationalPointSaveRequest) =>
         getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop);
+
+    function saveNewOperationalPoint(newOperationalPoint: InternalOperationalPointSaveRequest) {
+        setIsSaving(true);
+        insertOperationalPoint(newOperationalPoint, layoutContext)
+            .then(
+                (opId) => {
+                    onSave(opId);
+                    onClose();
+                    Snackbar.success('operating-point-dialog.new-added');
+                },
+                () => Snackbar.error('operating-point-dialog.adding-failed'),
+            )
+            .finally(() => setIsSaving(false));
+    }
+
+    function saveUpdatedOperationalPoint(
+        id: OperationalPointId,
+        updatedOperationalPoint: InternalOperationalPointSaveRequest,
+    ) {
+        setIsSaving(true);
+        updateInternalOperationalPoint(id, updatedOperationalPoint, layoutContext)
+            .then(
+                () => {
+                    onSave(id);
+                    onClose();
+                    Snackbar.success('operating-point-dialog.modified-successfully');
+                },
+                () => Snackbar.error('operating-point-dialog.modify-failed'),
+            )
+            .finally(() => setIsSaving(false));
+    }
+
+    const save = () =>
+        isNew
+            ? saveNewOperationalPoint(state.operationalPoint)
+            : saveUpdatedOperationalPoint(operationalPoint.id, state.operationalPoint);
+
+    const saveOrConfirm = () =>
+        state.operationalPoint.state === 'DELETED'
+            ? setShowDeleteOperatingPointConfirmDialog(true)
+            : save();
+
+    const deleteOperatingPoint = () => {
+        save();
+        setShowDeleteOperatingPointConfirmDialog(false);
+    };
+
+    const revertDraft = () => {
+        if (operationalPoint) {
+            deleteDraftOperationalPoint(layoutContext, operationalPoint.id);
+            setShowDeleteDraftConfirmDialog(true);
+        }
+    };
+
+    const canSave = !isSaving;
 
     return (
         <React.Fragment>
@@ -105,17 +169,9 @@ export const InternalOperationalPointEditDialog: React.FC<
                             </Button>
                             <Button
                                 qa-id="save-switch-changes"
-                                onClick={() => setShowDeleteOperatingPointConfirmDialog(true)}
-                                /*disabled={!canSave}
-                        isProcessing={isSaving}
-                        onClick={saveOrConfirm}
-                        title={getSaveDisabledReasons(
-                            validationIssues.map((e) => e.reason),
-                            isSaving,
-                        )
-                            .map((reason) => t(`switch-dialog.${reason}`))
-                            .join(', ')}*/
-                            >
+                                onClick={saveOrConfirm}
+                                disabled={!canSave}
+                                isProcessing={isSaving}>
                                 {t('button.save')}
                             </Button>
                         </div>
@@ -203,7 +259,7 @@ export const InternalOperationalPointEditDialog: React.FC<
             {deleteDraftConfirmDialogOpen && (
                 <OperatingPointDeleteDraftConfirmDialog
                     onClose={() => setShowDeleteDraftConfirmDialog(false)}
-                    onRevert={() => setShowDeleteDraftConfirmDialog(true)}
+                    onRevert={revertDraft}
                 />
             )}
             {deleteOperatingPointConfirmDialogOpen && (
@@ -221,7 +277,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                             </Button>
                             <Button
                                 variant={ButtonVariant.PRIMARY_WARNING}
-                                onClick={() => setShowDeleteOperatingPointConfirmDialog(false)}>
+                                onClick={deleteOperatingPoint}>
                                 {t('button.delete')}
                             </Button>
                         </div>
