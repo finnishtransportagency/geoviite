@@ -13,10 +13,15 @@ import { ExternalOperationalPointEditDialog } from 'tool-panel/operating-point/e
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { formatToTM35FINString } from 'utils/geography-utils';
+import { useLoader } from 'utils/react-utils';
+import { getOperationalPointChangeTimes } from 'track-layout/layout-operating-point-api';
+import { ChangeTimes } from 'common/common-slice';
+import { formatDateShort } from 'utils/date-utils';
 
 type OperatingPointInfoboxProps = {
     operationalPoint: OperationalPoint;
     layoutContext: LayoutContext;
+    changeTimes: ChangeTimes;
     visibilities: OperatingPointInfoboxVisibilities;
     onVisibilityChange: (visibilities: OperatingPointInfoboxVisibilities) => void;
 };
@@ -24,6 +29,7 @@ type OperatingPointInfoboxProps = {
 export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
     operationalPoint,
     visibilities,
+    changeTimes,
     onVisibilityChange,
     layoutContext,
 }) => {
@@ -32,8 +38,13 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
 
+    const changeInfo = useLoader(
+        () => getOperationalPointChangeTimes(operationalPoint.id, layoutContext),
+        [operationalPoint.id, changeTimes.operatingPoints],
+    );
+
     const [editDialogOpen, setEditDialogOpen] = React.useState(false);
-    const isExternal = operationalPoint.raideType !== undefined;
+    const isExternal = operationalPoint.origin === 'RATKO';
 
     return (
         <React.Fragment>
@@ -134,16 +145,30 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
                 title={t('tool-panel.operating-point.log-heading')}
                 qa-id="operating-point-infobox">
                 <InfoboxContent>
-                    <InfoboxField label={t('tool-panel.operating-point.created')} value={'TODO'} />
-                    <InfoboxField label={t('tool-panel.operating-point.modified')} value={'TODO'} />
-                    <InfoboxButtons>
-                        <Button
-                            variant={ButtonVariant.SECONDARY}
-                            size={ButtonSize.SMALL}
-                            disabled={true}>
-                            {t('tool-panel.show-in-publication-log')}
-                        </Button>
-                    </InfoboxButtons>
+                    {changeInfo && (
+                        <React.Fragment>
+                            <InfoboxField
+                                label={t('tool-panel.operating-point.created')}
+                                value={formatDateShort(changeInfo.created)}
+                            />
+                            <InfoboxField
+                                label={t('tool-panel.operating-point.modified')}
+                                value={
+                                    changeInfo?.changed
+                                        ? formatDateShort(changeInfo?.changed)
+                                        : t('tool-panel.unmodified-in-geoviite')
+                                }
+                            />
+                            <InfoboxButtons>
+                                <Button
+                                    variant={ButtonVariant.SECONDARY}
+                                    size={ButtonSize.SMALL}
+                                    disabled={true}>
+                                    {t('tool-panel.show-in-publication-log')}
+                                </Button>
+                            </InfoboxButtons>
+                        </React.Fragment>
+                    )}
                 </InfoboxContent>
             </Infobox>
             {editDialogOpen &&

@@ -41,6 +41,7 @@ export const OperatingPointInfoboxContainer: React.FC<OperatingPointInfoboxConta
                 <OperationalPointInfobox
                     operationalPoint={operationalPoint}
                     layoutContext={trackLayoutState.layoutContext}
+                    changeTimes={changeTimes}
                     visibilities={visibilities}
                     onVisibilityChange={onVisiblityChange}
                 />

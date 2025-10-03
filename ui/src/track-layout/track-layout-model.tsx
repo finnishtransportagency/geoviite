@@ -439,9 +439,11 @@ export type UICCode = string;
 export type OperationalPointState = 'IN_USE' | 'DELETED';
 
 export type OperationalPointId = Brand<string, 'OperationalPointId'>;
+export type OperationalPointOrigin = 'GEOVIITE' | 'RATKO';
 
 export type OperationalPoint = {
     id: OperationalPointId;
+    origin: OperationalPointOrigin;
     name: string;
     abbreviation: string;
     uicCode: UICCode;

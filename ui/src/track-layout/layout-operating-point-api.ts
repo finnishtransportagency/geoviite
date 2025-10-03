@@ -3,7 +3,7 @@ import { API_URI, getNonNull, queryParams } from 'api/api-fetch';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { bboxString } from 'common/common-api';
-import { LayoutContext, TimeStamp } from 'common/common-model';
+import { LayoutAssetChangeInfo, LayoutContext, TimeStamp } from 'common/common-model';
 import { brand } from 'common/brand';
 
 const cacheKey = (id: OperationalPointId, layoutContext: LayoutContext) =>
@@ -21,7 +21,7 @@ export async function getOperationalPoints(
         const params = queryParams({ bbox: bboxString(mapTile.area) });
 
         // New url once it works:
-        //return getNonNull<OperationalPoint[]>(`${API_URI}/operational-points/${layoutContext.branch}/${layoutContext.publicationState}/${params}`);
+        //return getNonNull<OperationalPoint[]>(`${API_URI}/operational-points/${contextInUri(layoutContext)}/${params}`);
         return getNonNull<OperationalPoint[]>(`${API_URI}/ratko/operational-points${params}`);
     });
 }
@@ -37,6 +37,7 @@ export const getOperationalPoint = async (
         () =>
             Promise.resolve({
                 id: brand('INT_1'),
+                origin: 'RATKO',
                 name: 'Helsinki Asema',
                 abbreviation: 'HKI',
                 uicCode: '0000001',
@@ -49,7 +50,7 @@ export const getOperationalPoint = async (
             }),
 
         /*getNonNull<OperationalPoint>(
-            `${API_URI}/operational-points/${layoutContext.branch}/${layoutContext.publicationState}/${id}`,
+            `${API_URI}/operational-points/${contextInUri(layoutContext)}/${id}`,
         ),*/
     );
 
@@ -59,3 +60,15 @@ export const getManyOperationalPoints = async (
     changeTime: TimeStamp,
 ): Promise<OperationalPoint[]> =>
     Promise.all(ids.map((id) => getOperationalPoint(id, layoutContext, changeTime)));
+
+export const getOperationalPointChangeTimes = (
+    _id: OperationalPointId,
+    _layoutContext: LayoutContext,
+): Promise<LayoutAssetChangeInfo | undefined> =>
+    Promise.resolve({
+        created: '2023-10-10T12:00:00Z',
+        changed: '2023-10-15T12:00:00Z',
+    });
+/*getNonNull<LayoutAssetChangeInfo>(
+    `${API_URI}/operational-points/${contextInUri(layoutContext)}/${id}/change-info`,
+);*/
