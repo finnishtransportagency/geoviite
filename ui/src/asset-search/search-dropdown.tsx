@@ -6,7 +6,7 @@ import {
     LayoutSwitch,
     LayoutTrackNumber,
     LocationTrackId,
-    OperatingPoint,
+    OperationalPoint,
 } from 'track-layout/track-layout-model';
 import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { isNilOrBlank } from 'utils/string-utils';
@@ -121,12 +121,12 @@ function createKmPostOptionItem(
 }
 
 type OperatingPointItemValue = {
-    operatingPoint: OperatingPoint;
+    operatingPoint: OperationalPoint;
     type: SearchItemType.OPERATING_POINT;
 };
 
 function createOperatingPointOptionItem(
-    operatingPoint: OperatingPoint,
+    operatingPoint: OperationalPoint,
 ): Item<OperatingPointItemValue> {
     return dropdownOption(
         {

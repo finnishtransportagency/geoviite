@@ -12,6 +12,8 @@ import {
     LocationTrackNamingScheme,
     LocationTrackState,
     LocationTrackType,
+    OperationalPointState,
+    RinfType,
     TopologicalConnectivityType,
     TrapPoint,
 } from 'track-layout/track-layout-model';
@@ -43,6 +45,20 @@ function values<T>(keyBase: string, enumValues: T[]): LocalizedEnum<T>[] {
     }));
 }
 
+function rinfTypeValues(keyBase: string): LocalizedEnum<RinfType>[] {
+    const enumValues: RinfType[] = [
+        10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150,
+    ];
+    return enumValues.map((v) => ({
+        value: v,
+        get name() {
+            const rinfType = i18n.t(`enum.${keyBase}.${v}`);
+            return i18n.t(`enum.rinf-type-full`, { rinfType, rinfCode: v });
+        },
+        qaId: `${keyBase}-${v}`,
+    }));
+}
+
 export const planSources: LocalizedEnum<PlanSource>[] = values('PlanSource', [
     'GEOMETRIAPALVELU',
     'PAIKANNUSPALVELU',
@@ -62,6 +78,11 @@ export const locationTrackStates: LocalizedEnum<LocationTrackState>[] = values(
 export const layoutStateCategories: LocalizedEnum<LayoutStateCategory>[] = values(
     'LayoutStateCategory',
     ['EXISTING', 'NOT_EXISTING'],
+);
+
+export const operationalPointStates: LocalizedEnum<OperationalPointState>[] = values(
+    'OperationalPointState',
+    ['IN_USE', 'DELETED'],
 );
 
 export const locationTrackTypes: LocalizedEnum<LocationTrackType>[] = values('LocationTrackType', [
@@ -199,6 +220,8 @@ export const locationTrackNameSpecifiers: LocalizedEnum<LocationTrackNameSpecifi
         LocationTrackNameSpecifier.LANHR,
     ],
 );
+
+export const rinfTypes: LocalizedEnum<RinfType>[] = rinfTypeValues('RinfType');
 
 export const translateSwitchTrapPoint = (trapPoint: TrapPoint) =>
     switchTrapPoints.find((option) => option.value === trapPoint)?.name;

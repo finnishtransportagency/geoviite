@@ -4,6 +4,7 @@ import {
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
+    OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
@@ -31,6 +32,7 @@ export type ItemCollections = {
     geometryLinkPoints: LinkPoint[];
     clusterPoints: ClusterPoint[];
     geometryPlans: GeometryPlanId[];
+    operationalPoints: OperationalPointId[];
 };
 
 export type UnselectableItemCollections = {
@@ -47,6 +49,7 @@ export type UnselectableItemCollections = {
     layoutLinkPoints: LinkPointId[];
     geometryLinkPoints: LinkPointId[];
     geometryPlans: GeometryPlanId[];
+    operationalPoints: OperationalPointId[];
 };
 
 export type OptionalUnselectableItemCollections = Partial<UnselectableItemCollections>;
@@ -71,6 +74,7 @@ export const allSelectableItemTypes: SelectableItemType[] = ensureAllKeys<Select
     'geometryLinkPoints',
     'clusterPoints',
     'geometryPlans',
+    'operationalPoints',
 ]);
 
 export type OptionalItemCollections = Partial<ItemCollections>;

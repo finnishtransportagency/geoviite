@@ -10,6 +10,7 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     LocationTrackInfoboxExtras,
+    OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { LoaderStatus, useLoader, useLoaderWithStatus, useOptionalLoader } from 'utils/react-utils';
@@ -54,6 +55,7 @@ import {
     updateAllChangeTimes,
     updateKmPostChangeTime,
     updateLocationTrackChangeTime,
+    updateOperationalPointsChangeTime,
     updateSwitchChangeTime,
 } from 'common/change-time-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
@@ -62,6 +64,7 @@ import { validateLocationTrackName } from 'tool-panel/location-track/dialog/loca
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { getLayoutDesignByBranch, LayoutDesign } from 'track-layout/layout-design-api';
+import { getOperationalPoint } from 'track-layout/layout-operating-point-api';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -422,6 +425,21 @@ export function refereshKmPostSelection(
             getKmPost(id, layoutContext, ts).then((kmp) => {
                 if (kmp) onSelect({ kmPosts: [id] });
                 else onUnselect({ kmPosts: [id] });
+            });
+        });
+    };
+}
+
+export function refreshOperationalPointSelection(
+    layoutContext: LayoutContext,
+    onSelect: OnSelectFunction,
+    onUnselect: (items: OptionalUnselectableItemCollections) => void,
+): (id: OperationalPointId) => void {
+    return (id) => {
+        updateOperationalPointsChangeTime().then((ts) => {
+            getOperationalPoint(id, layoutContext, ts).then((s) => {
+                if (s) onSelect({ operationalPoints: [id] });
+                else onUnselect({ operationalPoints: [id] });
             });
         });
     };

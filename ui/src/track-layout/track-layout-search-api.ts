@@ -4,7 +4,7 @@ import {
     LayoutSwitch,
     LayoutTrackNumber,
     LocationTrackId,
-    OperatingPoint,
+    OperationalPoint,
 } from 'track-layout/track-layout-model';
 import { getNonNull, queryParams } from 'api/api-fetch';
 import { TRACK_LAYOUT_URI, contextInUri } from 'track-layout/track-layout-api';
@@ -16,7 +16,7 @@ export interface LayoutSearchResult {
     locationTracks: LayoutLocationTrack[];
     trackNumbers: LayoutTrackNumber[];
     kmPosts: LayoutKmPost[];
-    operatingPoints: OperatingPoint[];
+    operatingPoints: OperationalPoint[];
 }
 
 export async function getBySearchTerm(
