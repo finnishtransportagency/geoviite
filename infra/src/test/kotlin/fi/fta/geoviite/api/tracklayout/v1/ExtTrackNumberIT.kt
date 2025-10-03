@@ -284,9 +284,13 @@ constructor(
             .forEach { resolution ->
                 val response = api.trackNumbers.getGeometry(oid, "osoitepistevali" to resolution.toString())
                 assertNotNull(response.osoitevali)
-                assertEquals(intervalStartAddress, response.osoitevali.alku.rataosoite!!.let(::TrackMeter))
-                assertEquals(intervalEndAddress, response.osoitevali.loppu.rataosoite!!.let(::TrackMeter))
-                assertEquals(emptyList<ExtTestAddressPointV1>(), response.osoitevali.pisteet)
+                assertEquals(intervalStartAddress, response.osoitevali.alkuosoite.let(::TrackMeter))
+                assertEquals(intervalEndAddress, response.osoitevali.loppuosoite.let(::TrackMeter))
+
+                listOf(intervalStartAddress, intervalEndAddress)
+                    .map { address -> address.toString() }
+                    .zip(response.osoitevali.pisteet)
+                    .forEach { (expected, response) -> assertEquals(expected, response.rataosoite) }
             }
     }
 }

@@ -100,7 +100,7 @@ data class ExtTestModifiedTrackNumberCollectionResponseV1(
 data class ExtTestErrorResponseV1(val virheviesti: String, val korrelaatiotunnus: String, val aikaleima: String)
 
 data class ExtTestGeometryIntervalV1(
-    val alku: ExtTestAddressPointV1,
-    val loppu: ExtTestAddressPointV1,
+    val alkuosoite: String,
+    val loppuosoite: String,
     val pisteet: List<ExtTestAddressPointV1>,
 )

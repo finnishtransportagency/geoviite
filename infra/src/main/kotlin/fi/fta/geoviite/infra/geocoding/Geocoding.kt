@@ -49,29 +49,35 @@ import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.getIndexRangeForRangeInOrderedList
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.processSortedBy
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.math.RoundingMode.CEILING
 import java.math.RoundingMode.FLOOR
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.PI
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 data class AddressFilter(val start: AddressLimit? = null, val end: AddressLimit? = null) {
 
     init {
-        if (start != null && end != null) {
-            if (start is TrackMeterLimit && end is TrackMeterLimit) {
-                require(start.address <= end.address) { "Invalid AddressFilter: $this" }
-            } else {
-                require(start.kmNumber <= end.kmNumber) { "Invalid AddressFilter: $this" }
-            }
-        }
+        require(limitsAreInOrder(start, end)) { "Invalid AddressFilter: $this" }
     }
 
     fun acceptInclusive(address: TrackMeter): Boolean =
         (start == null || start <= address) && (end == null || end >= address)
+
+    companion object {
+        fun limitsAreInOrder(start: AddressLimit?, end: AddressLimit?): Boolean {
+            return if (start == null || end == null) {
+                true
+            } else if (start is TrackMeterLimit && end is TrackMeterLimit) {
+                start.address <= end.address
+            } else {
+                start.kmNumber <= end.kmNumber
+            }
+        }
+    }
 }
 
 sealed class AddressLimit : Comparable<TrackMeter> {
@@ -79,14 +85,14 @@ sealed class AddressLimit : Comparable<TrackMeter> {
 }
 
 data class KmLimit(override val kmNumber: KmNumber) : AddressLimit() {
-        override fun compareTo(other: TrackMeter): Int = kmNumber.compareTo(other.kmNumber)
+    override fun compareTo(other: TrackMeter): Int = kmNumber.compareTo(other.kmNumber)
 }
 
 data class TrackMeterLimit(val address: TrackMeter) : AddressLimit() {
     override val kmNumber: KmNumber
         get() = address.kmNumber
 
-        override fun compareTo(other: TrackMeter): Int = address.compareTo(other)
+    override fun compareTo(other: TrackMeter): Int = address.compareTo(other)
 }
 
 data class AddressPoint<M : AnyM<M>>(val point: AlignmentPoint<M>, val address: TrackMeter) {

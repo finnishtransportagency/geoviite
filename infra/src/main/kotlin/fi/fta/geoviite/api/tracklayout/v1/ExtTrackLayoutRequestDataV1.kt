@@ -67,19 +67,10 @@ data class ExtMaybeTrackKmOrTrackMeterV1 @JsonCreator(mode = DELEGATING) constru
 }
 
 fun createAddressFilter(start: ExtMaybeTrackKmOrTrackMeterV1?, end: ExtMaybeTrackKmOrTrackMeterV1?): AddressFilter {
-    val startLimit =
-        start?.value?.takeIf { it.contains(TRACK_METER_SEPARATOR) }?.let(::trackMeterOrThrow)?.let(::TrackMeterLimit)
-            ?: start?.value?.let(::kmNumberOrThrow)?.let(::KmLimit)
+    val startLimit = start?.value?.let(::toAddressLimit)
+    val endLimit = end?.value?.let(::toAddressLimit)
 
-    val endLimit =
-        end?.value?.takeIf { it.contains(TRACK_METER_SEPARATOR) }?.let(::trackMeterOrThrow)?.let(::TrackMeterLimit)
-            ?: end?.value?.let(::kmNumberOrThrow)?.let(::KmLimit)
-
-    val startAfterEnd =
-        startLimit is TrackMeterLimit && endLimit is TrackMeterLimit && startLimit > endLimit.address ||
-            startLimit is AddressLimit && endLimit is AddressLimit && startLimit.kmNumber > endLimit.kmNumber
-
-    if (startAfterEnd) {
+    if (!AddressFilter.limitsAreInOrder(startLimit, endLimit)) {
         throw ExtInvalidAddressPointFilterOrderV1("start was strictly after end (start > end)")
     }
 
@@ -100,4 +91,11 @@ private fun trackMeterOrThrow(input: String): TrackMeter {
     } catch (e: IllegalArgumentException) {
         throw ExtInvalidTrackMeterV1("could not create track meter", e)
     }
+}
+
+private fun toAddressLimit(rawAddressLimit: String): AddressLimit {
+    return rawAddressLimit
+        .takeIf { it.contains(TRACK_METER_SEPARATOR) }
+        ?.let(::trackMeterOrThrow)
+        ?.let(::TrackMeterLimit) ?: rawAddressLimit.let(::kmNumberOrThrow).let(::KmLimit)
 }

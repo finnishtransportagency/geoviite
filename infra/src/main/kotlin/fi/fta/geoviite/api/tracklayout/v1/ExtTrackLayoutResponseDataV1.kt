@@ -82,7 +82,7 @@ data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataos
 
 @Schema(name = "Osoiteväli")
 data class ExtCenterLineTrackIntervalV1(
-    @JsonProperty("alku") val startAddress: ExtAddressPointV1,
-    @JsonProperty("loppu") val endAddress: ExtAddressPointV1,
+    @JsonProperty("alkuosoite") val startAddress: String,
+    @JsonProperty("loppuosoite") val endAddress: String,
     @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
 )

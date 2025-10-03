@@ -49,10 +49,10 @@ constructor(private val geocodingService: GeocodingService, private val layoutTr
                         // address filter is outside the track boundaries.
                         filteredAddressPoints?.let { addressPoints ->
                             ExtCenterLineTrackIntervalV1(
-                                startAddress = toExtAddressPoint(addressPoints.startPoint, coordinateSystem),
-                                endAddress = toExtAddressPoint(addressPoints.endPoint, coordinateSystem),
+                                startAddress = addressPoints.startPoint.address.toString(),
+                                endAddress = addressPoints.endPoint.address.toString(),
                                 addressPoints =
-                                    filteredAddressPoints.midPoints.map { point ->
+                                    filteredAddressPoints.allPoints.map { point ->
                                         toExtAddressPoint(point, coordinateSystem)
                                     },
                             )
