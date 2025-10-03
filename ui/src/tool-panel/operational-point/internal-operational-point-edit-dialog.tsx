@@ -9,7 +9,7 @@ import { Dropdown, dropdownOption, DropdownOption } from 'vayla-design-lib/dropd
 import { operationalPointStates, rinfTypes } from 'utils/enum-localization-utils';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { OperatingPointDeleteDraftConfirmDialog } from 'tool-panel/operating-point/operating-point-delete-draft-confirm-dialog';
+import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
 import { OperationalPoint, OperationalPointId, RinfType } from 'track-layout/track-layout-model';
 import {
     actions,
@@ -17,7 +17,7 @@ import {
     InternalOperationalPointEditState,
     InternalOperationalPointSaveRequest,
     reducer,
-} from 'tool-panel/operating-point/internal-operational-point-edit-store';
+} from 'tool-panel/operational-point/internal-operational-point-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { UnknownAction } from 'redux';
 import {
@@ -91,9 +91,9 @@ export const InternalOperationalPointEditDialog: React.FC<
                 (opId) => {
                     onSave(opId);
                     onClose();
-                    Snackbar.success('operating-point-dialog.new-added');
+                    Snackbar.success('operational-point-dialog.new-added');
                 },
-                () => Snackbar.error('operating-point-dialog.adding-failed'),
+                () => Snackbar.error('operational-point-dialog.adding-failed'),
             )
             .finally(() => setIsSaving(false));
     }
@@ -108,9 +108,9 @@ export const InternalOperationalPointEditDialog: React.FC<
                 () => {
                     onSave(id);
                     onClose();
-                    Snackbar.success('operating-point-dialog.modified-successfully');
+                    Snackbar.success('operational-point-dialog.modified-successfully');
                 },
-                () => Snackbar.error('operating-point-dialog.modify-failed'),
+                () => Snackbar.error('operational-point-dialog.modify-failed'),
             )
             .finally(() => setIsSaving(false));
     }
@@ -144,8 +144,8 @@ export const InternalOperationalPointEditDialog: React.FC<
             <Dialog
                 title={
                     isNew
-                        ? t('operating-point-dialog.title-new')
-                        : t('operating-point-dialog.title-edit')
+                        ? t('operational-point-dialog.title-new')
+                        : t('operational-point-dialog.title-edit')
                 }
                 onClose={onClose}
                 footerContent={
@@ -180,10 +180,10 @@ export const InternalOperationalPointEditDialog: React.FC<
                 <FormLayout>
                     <FormLayoutColumn>
                         <Heading size={HeadingSize.SUB}>
-                            {t('operating-point-dialog.basic-info')}
+                            {t('operational-point-dialog.basic-info')}
                         </Heading>
                         <FieldLayout
-                            label={`${t('operating-point-dialog.name')} *`}
+                            label={`${t('operational-point-dialog.name')} *`}
                             value={
                                 <TextField
                                     value={state.operationalPoint.name}
@@ -196,7 +196,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                             errors={getVisibleErrorsByProp('name')}
                         />
                         <FieldLayout
-                            label={`${t('operating-point-dialog.abbreviation')} *`}
+                            label={`${t('operational-point-dialog.abbreviation')} *`}
                             value={
                                 <TextField
                                     value={state.operationalPoint.abbreviation}
@@ -209,7 +209,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                             errors={getVisibleErrorsByProp('abbreviation')}
                         />
                         <FieldLayout
-                            label={`${t('operating-point-dialog.type-rinf')} *`}
+                            label={`${t('operational-point-dialog.type-rinf')} *`}
                             value={
                                 <Dropdown
                                     options={rinfTypeOptions}
@@ -227,7 +227,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                             errors={getVisibleErrorsByProp('rinfType')}
                         />
                         <FieldLayout
-                            label={`${t('operating-point-dialog.state')} *`}
+                            label={`${t('operational-point-dialog.state')} *`}
                             value={
                                 <Dropdown
                                     options={stateOptions}
@@ -241,7 +241,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                             errors={getVisibleErrorsByProp('state')}
                         />
                         <FieldLayout
-                            label={`${t('operating-point-dialog.uic-code')} *`}
+                            label={`${t('operational-point-dialog.uic-code')} *`}
                             value={
                                 <TextField
                                     value={state.operationalPoint.uicCode}
@@ -257,14 +257,14 @@ export const InternalOperationalPointEditDialog: React.FC<
                 </FormLayout>
             </Dialog>
             {deleteDraftConfirmDialogOpen && (
-                <OperatingPointDeleteDraftConfirmDialog
+                <OperationalPointDeleteDraftConfirmDialog
                     onClose={() => setShowDeleteDraftConfirmDialog(false)}
                     onRevert={revertDraft}
                 />
             )}
             {deleteOperatingPointConfirmDialogOpen && (
                 <Dialog
-                    title={t('operating-point-dialog.delete-confirm-dialog.title')}
+                    title={t('operational-point-dialog.delete-confirm-dialog.title')}
                     onClose={() => setShowDeleteOperatingPointConfirmDialog(false)}
                     variant={DialogVariant.DARK}
                     allowClose={false}
@@ -283,10 +283,10 @@ export const InternalOperationalPointEditDialog: React.FC<
                         </div>
                     }>
                     <div className={dialogStyles['dialog__text']}>
-                        {t('operating-point-dialog.delete-confirm-dialog.deleted-op-not-allowed')}
+                        {t('operational-point-dialog.delete-confirm-dialog.deleted-op-not-allowed')}
                     </div>
                     <div className={dialogStyles['dialog__text']}>
-                        {t('operating-point-dialog.delete-confirm-dialog.confirm')}
+                        {t('operational-point-dialog.delete-confirm-dialog.confirm')}
                     </div>
                 </Dialog>
             )}

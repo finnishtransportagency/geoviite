@@ -49,7 +49,7 @@ import { TabHeader, TabHeaderSize } from 'geoviite-design-lib/tab-header/tab-hea
 import { LayoutContext } from 'common/common-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { LayoutSwitchLinkingInfoboxContainer } from 'tool-panel/switch/layout-switch-linking-infobox-container';
-import { OperatingPointInfoboxContainer } from './operating-point/operating-point-infobox-container';
+import { OperationalPointInfoboxContainer } from './operational-point/operational-point-infobox-container';
 import { getManyOperationalPoints } from 'track-layout/layout-operating-point-api';
 
 type ToolPanelProps = {
@@ -445,11 +445,11 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 },
                 title: op.name,
                 element: (
-                    <OperatingPointInfoboxContainer
+                    <OperationalPointInfoboxContainer
                         operationalPointId={op.id}
-                        visibilities={infoboxVisibilities.operatingPoint}
+                        visibilities={infoboxVisibilities.operationalPoint}
                         onVisiblityChange={(visibilities) =>
-                            infoboxVisibilityChange('operatingPoint', visibilities)
+                            infoboxVisibilityChange('operationalPoint', visibilities)
                         }
                     />
                 ),

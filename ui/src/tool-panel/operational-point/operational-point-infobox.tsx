@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import Infobox from 'tool-panel/infobox/infobox';
-import { OperatingPointInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import { OperationalPointInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { OperatingPointOid } from 'track-layout/oid';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LayoutContext } from 'common/common-model';
-import { InternalOperationalPointEditDialog } from 'tool-panel/operating-point/internal-operational-point-edit-dialog';
-import { ExternalOperationalPointEditDialog } from 'tool-panel/operating-point/external-operational-point-edit-dialog';
+import { InternalOperationalPointEditDialog } from 'tool-panel/operational-point/internal-operational-point-edit-dialog';
+import { ExternalOperationalPointEditDialog } from 'tool-panel/operational-point/external-operational-point-edit-dialog';
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { formatToTM35FINString } from 'utils/geography-utils';
@@ -22,8 +22,8 @@ type OperatingPointInfoboxProps = {
     operationalPoint: OperationalPoint;
     layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
-    visibilities: OperatingPointInfoboxVisibilities;
-    onVisibilityChange: (visibilities: OperatingPointInfoboxVisibilities) => void;
+    visibilities: OperationalPointInfoboxVisibilities;
+    onVisibilityChange: (visibilities: OperationalPointInfoboxVisibilities) => void;
 };
 
 export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
@@ -34,7 +34,7 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
     layoutContext,
 }) => {
     const { t } = useTranslation();
-    const visibilityChange = (key: keyof OperatingPointInfoboxVisibilities) => {
+    const visibilityChange = (key: keyof OperationalPointInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
 

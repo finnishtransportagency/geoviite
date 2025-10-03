@@ -7,8 +7,8 @@ import { LayoutAssetChangeInfo, LayoutContext, TimeStamp } from 'common/common-m
 import { brand } from 'common/brand';
 import { contextInUri, layoutUri, TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { updateOperationalPointsChangeTime } from 'common/change-time-api';
-import { InternalOperationalPointSaveRequest } from 'tool-panel/operating-point/internal-operational-point-edit-store';
-import { ExternalOperationalPointSaveRequest } from 'tool-panel/operating-point/external-operational-point-edit-store';
+import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/internal-operational-point-edit-store';
+import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
 
 type OriginInUri = 'INTERNAL' | 'EXTERNAL';
 type OperationalPointSaveRequest =

@@ -1,22 +1,22 @@
 import * as React from 'react';
 import {
-    OperatingPointInfoboxVisibilities,
+    OperationalPointInfoboxVisibilities,
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
-import { OperationalPointInfobox } from 'tool-panel/operating-point/operational-point-infobox';
+import { OperationalPointInfobox } from 'tool-panel/operational-point/operational-point-infobox';
 import { OperationalPointId } from 'track-layout/track-layout-model';
 import { useLoader } from 'utils/react-utils';
 import { getOperationalPoint } from 'track-layout/layout-operating-point-api';
 
 type OperatingPointInfoboxContainerProps = {
     operationalPointId: OperationalPointId;
-    visibilities: OperatingPointInfoboxVisibilities;
-    onVisiblityChange: (visibilites: OperatingPointInfoboxVisibilities) => void;
+    visibilities: OperationalPointInfoboxVisibilities;
+    onVisiblityChange: (visibilites: OperationalPointInfoboxVisibilities) => void;
 };
 
-export const OperatingPointInfoboxContainer: React.FC<OperatingPointInfoboxContainerProps> = ({
+export const OperationalPointInfoboxContainer: React.FC<OperatingPointInfoboxContainerProps> = ({
     operationalPointId,
     visibilities,
     onVisiblityChange,

@@ -58,7 +58,7 @@ export type InfoboxVisibilities = {
     switch: SwitchInfoboxVisibilities;
     locationTrack: LocationTrackInfoboxVisibilities;
     kmPost: KmPostInfoboxVisibilities;
-    operatingPoint: OperatingPointInfoboxVisibilities;
+    operationalPoint: OperationalPointInfoboxVisibilities;
     geometryAlignment: GeometryAlignmentInfoboxVisibilities;
     geometryPlan: GeometryPlanInfoboxVisibilities;
     geometryKmPost: GeometryKmPostInfoboxVisibilities;
@@ -100,7 +100,7 @@ export type KmPostInfoboxVisibilities = {
     validation: boolean;
 };
 
-export type OperatingPointInfoboxVisibilities = {
+export type OperationalPointInfoboxVisibilities = {
     basic: boolean;
     location: boolean;
     log: boolean;
@@ -165,7 +165,7 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
         log: true,
         validation: true,
     },
-    operatingPoint: {
+    operationalPoint: {
         basic: true,
         location: true,
         log: true,

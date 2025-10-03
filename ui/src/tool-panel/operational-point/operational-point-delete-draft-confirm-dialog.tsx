@@ -9,14 +9,14 @@ type OperatingPointDeleteDraftConfirmDialogProps = {
     onRevert: () => void;
 };
 
-export const OperatingPointDeleteDraftConfirmDialog: React.FC<
+export const OperationalPointDeleteDraftConfirmDialog: React.FC<
     OperatingPointDeleteDraftConfirmDialogProps
 > = ({ onClose, onRevert }) => {
     const { t } = useTranslation();
 
     return (
         <Dialog
-            title={t('operating-point-dialog.confirm-revert')}
+            title={t('operational-point-dialog.confirm-revert')}
             onClose={onClose}
             variant={DialogVariant.DARK}
             allowClose={false}
@@ -30,7 +30,7 @@ export const OperatingPointDeleteDraftConfirmDialog: React.FC<
                     </Button>
                 </div>
             }>
-            {t('operating-point-dialog.revert-info')}
+            {t('operational-point-dialog.revert-info')}
         </Dialog>
     );
 };

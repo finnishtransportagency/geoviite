@@ -7,7 +7,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown, DropdownOption, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { OperatingPointDeleteDraftConfirmDialog } from 'tool-panel/operating-point/operating-point-delete-draft-confirm-dialog';
+import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
 import { OperationalPoint, OperationalPointId, RinfType } from 'track-layout/track-layout-model';
 import { rinfTypes } from 'utils/enum-localization-utils';
 import { OperationalPointState } from 'geoviite-design-lib/operational-point-state/operational-point-state';
@@ -18,7 +18,7 @@ import {
     ExternalOperationalPointSaveRequest,
     initialExternalOperationalPointEditState,
     reducer,
-} from 'tool-panel/operating-point/external-operational-point-edit-store';
+} from 'tool-panel/operational-point/external-operational-point-edit-store';
 import { UnknownAction } from 'redux';
 import {
     hasErrors,
@@ -81,9 +81,9 @@ export const ExternalOperationalPointEditDialog: React.FC<
                 () => {
                     onSave(id);
                     onClose();
-                    Snackbar.success('operating-point-dialog.modified-successfully');
+                    Snackbar.success('operational-point-dialog.modified-successfully');
                 },
-                () => Snackbar.error('operating-point-dialog.modify-failed'),
+                () => Snackbar.error('operational-point-dialog.modify-failed'),
             )
             .finally(() => setIsSaving(false));
     }
@@ -96,7 +96,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
     return (
         <React.Fragment>
             <Dialog
-                title={t('operating-point-dialog.title-edit')}
+                title={t('operational-point-dialog.title-edit')}
                 onClose={onClose}
                 footerContent={
                     <React.Fragment>
@@ -131,25 +131,25 @@ export const ExternalOperationalPointEditDialog: React.FC<
                 <FormLayout>
                     <FormLayoutColumn>
                         <Heading size={HeadingSize.SUB}>
-                            {t('operating-point-dialog.basic-info')}
+                            {t('operational-point-dialog.basic-info')}
                         </Heading>
                         <FieldLayout
-                            label={`${t('operating-point-dialog.name')} *`}
+                            label={`${t('operational-point-dialog.name')} *`}
                             value={state.existingOperationalPoint?.name}
                         />
                         <FieldLayout
-                            label={`${t('operating-point-dialog.abbreviation')} *`}
+                            label={`${t('operational-point-dialog.abbreviation')} *`}
                             value={state.existingOperationalPoint?.abbreviation}
                         />
                         <FieldLayout
-                            label={`${t('operating-point-dialog.type-raide')} *`}
+                            label={`${t('operational-point-dialog.type-raide')} *`}
                             value={
                                 state.existingOperationalPoint &&
                                 t(`enum.RaideType.${state.existingOperationalPoint.raideType}`)
                             }
                         />
                         <FieldLayout
-                            label={`${t('operating-point-dialog.type-rinf')} *`}
+                            label={`${t('operational-point-dialog.type-rinf')} *`}
                             value={
                                 <Dropdown
                                     options={rinfTypeOptions}
@@ -171,7 +171,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             errors={getVisibleErrorsByProp('rinfType')}
                         />
                         <FieldLayout
-                            label={`${t('operating-point-dialog.state')} *`}
+                            label={`${t('operational-point-dialog.state')} *`}
                             value={
                                 state.existingOperationalPoint && (
                                     <OperationalPointState
@@ -181,14 +181,14 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             }
                         />
                         <FieldLayout
-                            label={`${t('operating-point-dialog.uic-code')} *`}
+                            label={`${t('operational-point-dialog.uic-code')} *`}
                             value={state.existingOperationalPoint?.uicCode}
                         />
                     </FormLayoutColumn>
                 </FormLayout>
             </Dialog>
             {deleteDraftConfirmDialogOpen && (
-                <OperatingPointDeleteDraftConfirmDialog
+                <OperationalPointDeleteDraftConfirmDialog
                     onClose={() => setShowDeleteDraftConfirmDialog(false)}
                     onRevert={revertDraft}
                 />
