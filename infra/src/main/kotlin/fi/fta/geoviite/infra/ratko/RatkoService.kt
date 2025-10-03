@@ -46,12 +46,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import java.time.Duration
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import java.time.Duration
-import java.time.Instant
 
 open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
     RuntimeException(cause)
@@ -81,7 +81,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
     private val lockDao: LockDao,
-    private val ratkoOperatingPointDao: RatkoOperatingPointDao,
+    private val ratkoOperationalPointDao: RatkoOperationalPointDao,
     private val splitService: SplitService,
     private val publicationDao: PublicationDao,
     private val layoutDesignDao: LayoutDesignDao,
@@ -89,10 +89,10 @@ constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(120)
 
-    fun updateOperatingPointsFromRatko() {
+    fun updateOperationalPointsFromRatko() {
         lockDao.runWithLock(DatabaseLock.RATKO_OPERATING_POINTS_FETCH, databaseLockDuration) {
-            val points = ratkoClient.fetchOperatingPoints()
-            ratkoOperatingPointDao.updateOperatingPoints(points)
+            val points = ratkoClient.fetchOperationalPoints()
+            ratkoOperationalPointDao.updateOperationalPoints(points)
         }
     }
 

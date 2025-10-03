@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.ratko.RatkoClient.RatkoStatus
-import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -28,7 +28,7 @@ class RatkoLocalService
 constructor(
     private val ratkoClient: RatkoClient?,
     private val ratkoPushDao: RatkoPushDao,
-    private val ratkoOperatingPointDao: RatkoOperatingPointDao,
+    private val ratkoOperationalPointDao: RatkoOperationalPointDao,
     private val trackNumberService: LayoutTrackNumberService,
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
@@ -65,11 +65,11 @@ constructor(
         }
     }
 
-    fun getOperatingPoints(bbox: BoundingBox): List<RatkoOperatingPoint> {
-        return ratkoOperatingPointDao.getOperatingPoints(bbox)
+    fun getOperationalPoints(bbox: BoundingBox): List<RatkoOperationalPoint> {
+        return ratkoOperationalPointDao.getOperationalPoints(bbox)
     }
 
-    fun searchOperatingPoints(searchTerm: FreeText, resultLimit: Int = 10): List<RatkoOperatingPoint> {
-        return ratkoOperatingPointDao.searchOperatingPoints(searchTerm, resultLimit)
+    fun searchOperationalPoints(searchTerm: FreeText, resultLimit: Int = 10): List<RatkoOperationalPoint> {
+        return ratkoOperationalPointDao.searchOperationalPoints(searchTerm, resultLimit)
     }
 }

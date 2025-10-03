@@ -27,9 +27,9 @@ import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
 import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
-import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAsset
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
-import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItem
 import fi.fta.geoviite.infra.ratko.model.RatkoPoint
@@ -451,7 +451,7 @@ class FakeRatko(port: Int) {
             .retrieveRecordedRequests(request().withPath("/api/assets/v1.2/${oid}/geoms").withMethod("PUT"))
             .map { request -> jsonMapper.readValue(request.bodyAsString) }
 
-    fun hasOperatingPoints(points: List<RatkoOperatingPointParse>) =
+    fun hasOperationalPoints(points: List<RatkoOperationalPointParse>) =
         post("/api/assets/v1.2/search", mapOf("assetType" to "railway_traffic_operating_point"), times = Times.once())
             .respond(okJson(RatkoOperatingPointAssetsResponse(points.map(::marshallOperatingPoint))))
 
@@ -532,8 +532,8 @@ class FakeRatko(port: Int) {
             .withContentType(MediaType.APPLICATION_JSON)
 }
 
-private fun marshallOperatingPoint(point: RatkoOperatingPointParse): RatkoOperatingPointAsset =
-    RatkoOperatingPointAsset(
+private fun marshallOperatingPoint(point: RatkoOperationalPointParse): RatkoOperationalPointAsset =
+    RatkoOperationalPointAsset(
         id = point.externalId.toString(),
         properties =
             listOf(

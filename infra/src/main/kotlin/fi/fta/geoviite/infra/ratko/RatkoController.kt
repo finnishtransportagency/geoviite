@@ -12,7 +12,7 @@ import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -65,14 +65,14 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/update-operating-points-from-ratko")
     fun updateOperatingPointsFromRatko(): HttpStatus {
-        ratkoService.updateOperatingPointsFromRatko()
+        ratkoService.updateOperationalPointsFromRatko()
 
         return HttpStatus.NO_CONTENT
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/operating-points")
-    fun getOperatingPoints(@RequestParam bbox: BoundingBox): List<RatkoOperatingPoint> {
-        return ratkoLocalService.getOperatingPoints(bbox)
+    fun getOperatingPoints(@RequestParam bbox: BoundingBox): List<RatkoOperationalPoint> {
+        return ratkoLocalService.getOperationalPoints(bbox)
     }
 }

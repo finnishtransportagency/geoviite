@@ -25,7 +25,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
-import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItem
@@ -474,9 +474,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         putWithoutResponseBody(ROUTE_NUMBER_PATH, routeNumber)
     }
 
-    fun fetchOperatingPoints(): List<RatkoOperatingPointParse> {
+    fun fetchOperationalPoints(): List<RatkoOperationalPointParse> {
         logger.integrationCall("fetchOperatingPoints")
-        val allPoints = mutableListOf<RatkoOperatingPointParse>()
+        val allPoints = mutableListOf<RatkoOperationalPointParse>()
         var pageNumber = 0
         do {
             logger.info("fetching operating points for page $pageNumber")

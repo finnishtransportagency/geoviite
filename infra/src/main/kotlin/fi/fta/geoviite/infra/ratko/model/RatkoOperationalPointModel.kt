@@ -14,7 +14,7 @@ enum class OperationalPointType {
     // Linjavaihde
 }
 
-abstract class AbstractRatkoOperatingPoint(
+abstract class AbstractRatkoOperationalPoint(
     open val name: String,
     open val abbreviation: String,
     open val uicCode: String,
@@ -22,28 +22,28 @@ abstract class AbstractRatkoOperatingPoint(
     open val location: Point,
 )
 
-data class RatkoOperatingPointParse(
-    val externalId: Oid<RatkoOperatingPoint>,
+data class RatkoOperationalPointParse(
+    val externalId: Oid<RatkoOperationalPoint>,
     override val name: String,
     override val abbreviation: String,
     override val uicCode: String,
     override val type: OperationalPointType,
     override val location: Point,
     val trackNumberExternalId: Oid<RatkoRouteNumber>,
-) : AbstractRatkoOperatingPoint(name, abbreviation, uicCode, type, location)
+) : AbstractRatkoOperationalPoint(name, abbreviation, uicCode, type, location)
 
-data class RatkoOperatingPoint(
-    val externalId: Oid<RatkoOperatingPoint>,
+data class RatkoOperationalPoint(
+    val externalId: Oid<RatkoOperationalPoint>,
     override val name: String,
     override val abbreviation: String,
     override val uicCode: String,
     override val type: OperationalPointType,
     override val location: Point,
     val trackNumberId: IntId<LayoutTrackNumber>,
-) : AbstractRatkoOperatingPoint(name, abbreviation, uicCode, type, location)
+) : AbstractRatkoOperationalPoint(name, abbreviation, uicCode, type, location)
 
-fun parseAsset(asset: RatkoOperatingPointAsset): RatkoOperatingPointParse? {
-    val externalId = Oid<RatkoOperatingPoint>(asset.id)
+fun parseAsset(asset: RatkoOperationalPointAsset): RatkoOperationalPointParse? {
+    val externalId = Oid<RatkoOperationalPoint>(asset.id)
     val type = asset.getEnumProperty<OperationalPointType>("operational_point_type")
     val soloPoint =
         asset.locations
@@ -56,7 +56,7 @@ fun parseAsset(asset: RatkoOperatingPointAsset): RatkoOperatingPointParse? {
     val trackNumberExternalId: Oid<RatkoRouteNumber>? = soloPoint?.routenumber?.toString()?.let(::Oid)
     return if (type == null || location == null || trackNumberExternalId == null) null
     else
-        RatkoOperatingPointParse(
+        RatkoOperationalPointParse(
             externalId = externalId,
             name = asset.getStringProperty("name") ?: "",
             abbreviation = asset.getStringProperty("operational_point_abbreviation") ?: "",

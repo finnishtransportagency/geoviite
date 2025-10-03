@@ -13,14 +13,14 @@ import withUser
     havingValue = "true",
     matchIfMissing = false,
 )
-class RatkoOperatingPointsFetchTask @Autowired constructor(private val ratkoService: RatkoService) {
+class RatkoOperationalPointsFetchTask @Autowired constructor(private val ratkoService: RatkoService) {
 
     companion object {
-        private val ratkoOperatingPointTaskUserName = UserName.of("RATKO_FETCH")
+        private val ratkoOperationalPointTaskUserName = UserName.of("RATKO_FETCH")
     }
 
     @Scheduled(cron = "\${geoviite.ratko.tasks.operating-points-fetch.cron}")
-    fun scheduledRatkoOperatingPointsFetch() {
-        withUser(ratkoOperatingPointTaskUserName, ratkoService::updateOperatingPointsFromRatko)
+    fun scheduledRatkoOperationalPointsFetch() {
+        withUser(ratkoOperationalPointTaskUserName, ratkoService::updateOperationalPointsFromRatko)
     }
 }

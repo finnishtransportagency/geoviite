@@ -35,7 +35,7 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
-import fi.fta.geoviite.infra.ratko.RatkoOperatingPointDao
+import fi.fta.geoviite.infra.ratko.RatkoOperationalPointDao
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitDuplicateTrack
@@ -53,7 +53,7 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
-const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
+const val OPERATIONAL_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
 const val TOPOLOGY_CALC_DISTANCE = 1.0
 
 @GeoviiteService
@@ -65,7 +65,7 @@ class LocationTrackService(
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val splitDao: SplitDao,
-    private val ratkoOperatingPointDao: RatkoOperatingPointDao,
+    private val ratkoOperationalPointDao: RatkoOperationalPointDao,
     private val localizationService: LocalizationService,
     private val transactionTemplate: TransactionTemplate,
     private val trackNumberDao: LayoutTrackNumberDao,
@@ -437,9 +437,8 @@ class LocationTrackService(
                 ?.let { km -> geocodingContext.kms.find { it.kmNumber >= km }?.startAddress ?: trackEnd }
                 ?.coerceAtLeast(trackStart) ?: trackStart
         val rangeEnd =
-            endKm
-                ?.let { km -> geocodingContext.kms.find { it.kmNumber > km }?.startAddress }
-                ?.coerceAtMost(trackEnd) ?: trackEnd
+            endKm?.let { km -> geocodingContext.kms.find { it.kmNumber > km }?.startAddress }?.coerceAtMost(trackEnd)
+                ?: trackEnd
         return if (rangeStart < rangeEnd) Range(rangeStart, rangeEnd) else null
     }
 
@@ -693,7 +692,7 @@ class LocationTrackService(
                             address?.address,
                             location,
                             mAlongAlignment,
-                            getNearestOperatingPoint(location),
+                            getNearestOperationalPoint(location),
                         )
                     }
 
@@ -713,9 +712,9 @@ class LocationTrackService(
         }
     }
 
-    private fun getNearestOperatingPoint(location: Point) =
-        ratkoOperatingPointDao
-            .getOperatingPoints(boundingBoxAroundPoint(location, OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE))
+    private fun getNearestOperationalPoint(location: Point) =
+        ratkoOperationalPointDao
+            .getOperationalPoints(boundingBoxAroundPoint(location, OPERATIONAL_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE))
             .filter { op -> op.type == OperationalPointType.LPO || op.type == OperationalPointType.LP }
             .minByOrNull { operatingPoint -> lineLength(operatingPoint.location, location) }
 

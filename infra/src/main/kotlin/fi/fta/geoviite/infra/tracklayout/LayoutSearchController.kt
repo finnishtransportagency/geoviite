@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
@@ -20,7 +20,7 @@ data class TrackLayoutSearchResult(
     val switches: List<LayoutSwitch>,
     val trackNumbers: List<LayoutTrackNumber>,
     val kmPosts: List<LayoutKmPost>,
-    val operatingPoints: List<RatkoOperatingPoint>,
+    val operatingPoints: List<RatkoOperationalPoint>,
 )
 
 enum class TrackLayoutSearchedAssetType {
