@@ -61,17 +61,23 @@ import org.slf4j.LoggerFactory
 data class AddressFilter(val start: AddressLimit? = null, val end: AddressLimit? = null) {
 
     init {
-        if (start != null && end != null) {
-            if (start is TrackMeterLimit && end is TrackMeterLimit) {
-                require(start.address <= end.address) { "Invalid AddressFilter: $this" }
-            } else {
-                require(start.kmNumber <= end.kmNumber) { "Invalid AddressFilter: $this" }
-            }
-        }
+        require(limitsAreInOrder(start, end)) { "Invalid AddressFilter: $this" }
     }
 
     fun acceptInclusive(address: TrackMeter): Boolean =
         (start == null || start <= address) && (end == null || end >= address)
+
+    companion object {
+        fun limitsAreInOrder(start: AddressLimit?, end: AddressLimit?): Boolean {
+            return if (start == null || end == null) {
+                true
+            } else if (start is TrackMeterLimit && end is TrackMeterLimit) {
+                start.address <= end.address
+            } else {
+                start.kmNumber <= end.kmNumber
+            }
+        }
+    }
 }
 
 sealed class AddressLimit : Comparable<TrackMeter> {
@@ -505,8 +511,11 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     fun getAddress(targetDistance: LineM<M>, decimals: Int = METERS_DEFAULT_DECIMAL_DIGITS): TrackMeter? =
         findKm(targetDistance).getAddress(targetDistance, decimals)
 
-    fun getReferenceLineAddressesWithResolution(resolution: Resolution): AlignmentAddresses<M>? {
-        return getAddressPoints(referenceLineGeometry, resolution)
+    fun getReferenceLineAddressesWithResolution(
+        resolution: Resolution,
+        addressFilter: AddressFilter? = null,
+    ): AlignmentAddresses<M>? {
+        return getAddressPoints(referenceLineGeometry, resolution, addressFilter)
     }
 
     fun <TargetM : AnyM<TargetM>> toAddressPoint(

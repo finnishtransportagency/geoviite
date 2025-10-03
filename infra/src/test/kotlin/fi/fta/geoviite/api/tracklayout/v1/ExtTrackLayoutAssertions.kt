@@ -48,15 +48,20 @@ fun assertGeometryIntervalAddressResolution(
     startM: Double,
     endM: Double,
 ) {
-    interval.pisteet.forEachIndexed { i, point ->
-        val address = TrackMeter(point.rataosoite!!)
+    val delta = 0.0001
 
-        if (i == 0) { // Start point should be exactly at startM
-            assertEquals(startM, address.meters.toDouble(), 0.0001)
-        } else if (i > 0 && i < interval.pisteet.size - 1) { // Middle points should be exactly divisible by resolution
-            assertEquals(0.0, (address.meters % resolution).toDouble(), 0.0001)
-        } else { // End point should be exactly at endM
-            assertEquals(endM, address.meters.toDouble(), 0.0001)
-        }
+    val responseStart = TrackMeter(interval.alkuosoite).meters.toDouble()
+    val responseEnd = TrackMeter(interval.loppuosoite).meters.toDouble()
+
+    assertEquals(startM, responseStart, delta)
+    assertEquals(endM, responseEnd, delta)
+
+    // Also check that the start/end points are included in the response's address point list as well.
+    assertEquals(startM, interval.pisteet.first().rataosoite!!.let(::TrackMeter).meters.toDouble(), delta)
+    assertEquals(endM, interval.pisteet.last().rataosoite!!.let(::TrackMeter).meters.toDouble(), delta)
+
+    interval.pisteet.drop(1).dropLast(1).forEach { point ->
+        // Middle points should be exactly divisible by resolution
+        assertEquals(0.0, (TrackMeter(point.rataosoite!!).meters % resolution).toDouble(), delta)
     }
 }
