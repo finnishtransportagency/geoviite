@@ -55,7 +55,7 @@ export const InternalOperationalPointEditDialog: React.FC<
     }, [operationalPoint]);
 
     const [deleteDraftConfirmDialogOpen, setShowDeleteDraftConfirmDialog] = React.useState(false);
-    const [deleteOperatingPointConfirmDialogOpen, setShowDeleteOperatingPointConfirmDialog] =
+    const [deleteOperationalPointConfirmDialogOpen, setDeleteOperationalPointConfirmDialogOpen] =
         React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
 
@@ -122,12 +122,12 @@ export const InternalOperationalPointEditDialog: React.FC<
 
     const saveOrConfirm = () =>
         state.operationalPoint.state === 'DELETED'
-            ? setShowDeleteOperatingPointConfirmDialog(true)
+            ? setDeleteOperationalPointConfirmDialogOpen(true)
             : save();
 
-    const deleteOperatingPoint = () => {
+    const deleteOperationalPoint = () => {
         save();
-        setShowDeleteOperatingPointConfirmDialog(false);
+        setDeleteOperationalPointConfirmDialogOpen(false);
     };
 
     const revertDraft = () => {
@@ -262,22 +262,22 @@ export const InternalOperationalPointEditDialog: React.FC<
                     onRevert={revertDraft}
                 />
             )}
-            {deleteOperatingPointConfirmDialogOpen && (
+            {deleteOperationalPointConfirmDialogOpen && (
                 <Dialog
                     title={t('operational-point-dialog.delete-confirm-dialog.title')}
-                    onClose={() => setShowDeleteOperatingPointConfirmDialog(false)}
+                    onClose={() => setDeleteOperationalPointConfirmDialogOpen(false)}
                     variant={DialogVariant.DARK}
                     allowClose={false}
                     footerContent={
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
-                                onClick={() => setShowDeleteOperatingPointConfirmDialog(false)}>
+                                onClick={() => setDeleteOperationalPointConfirmDialogOpen(false)}>
                                 {t('button.cancel')}
                             </Button>
                             <Button
                                 variant={ButtonVariant.PRIMARY_WARNING}
-                                onClick={deleteOperatingPoint}>
+                                onClick={deleteOperationalPoint}>
                                 {t('button.delete')}
                             </Button>
                         </div>

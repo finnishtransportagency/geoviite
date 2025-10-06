@@ -4,7 +4,7 @@ import Infobox from 'tool-panel/infobox/infobox';
 import { OperationalPointInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
-import { OperatingPointOid } from 'track-layout/oid';
+import { OperationalPointOid } from 'track-layout/oid';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LayoutContext } from 'common/common-model';
@@ -18,7 +18,7 @@ import { getOperationalPointChangeTimes } from 'track-layout/layout-operational-
 import { ChangeTimes } from 'common/common-slice';
 import { formatDateShort } from 'utils/date-utils';
 
-type OperatingPointInfoboxProps = {
+type OperationalPointInfoboxProps = {
     operationalPoint: OperationalPoint;
     layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
@@ -26,7 +26,7 @@ type OperatingPointInfoboxProps = {
     onVisibilityChange: (visibilities: OperationalPointInfoboxVisibilities) => void;
 };
 
-export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
+export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = ({
     operationalPoint,
     visibilities,
     changeTimes,
@@ -62,7 +62,7 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
                     />
                     <InfoboxField
                         label={t('tool-panel.operational-point.identifier')}
-                        value={<OperatingPointOid />}
+                        value={<OperationalPointOid />}
                     />
                     <InfoboxField
                         label={t('tool-panel.operational-point.name')}

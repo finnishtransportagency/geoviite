@@ -437,7 +437,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             },
         );
 
-        const operatingPointTabs: ToolPanelTab[] = operationalPoints.map((op) => {
+        const operationalPointTabs: ToolPanelTab[] = operationalPoints.map((op) => {
             return {
                 asset: {
                     type: 'OPERATING_POINT',
@@ -466,7 +466,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             ...locationTrackTabs,
             ...trackNumberTabs,
             ...planTabs,
-            ...operatingPointTabs,
+            ...operationalPointTabs,
         ].toSorted((t1, t2) =>
             compareByField(t1, t2, (t) => TOOL_PANEL_ASSET_ORDER.indexOf(t.asset.type)),
         );

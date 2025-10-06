@@ -83,7 +83,7 @@ export const SwitchOid: React.FC<SwitchOidProps> = oidComponent(
     (changeTimes) => changeTimes.layoutSwitchExtId,
 );
 
-export const OperatingPointOid: React.FC = oidComponent(
+export const OperationalPointOid: React.FC = oidComponent(
     (_id, _changeTime) => Promise.resolve({ MAIN: 'Oiderooni' }),
     (_changeTimes) => new Date().toISOString(),
 );

@@ -10,13 +10,13 @@ import { OperationalPointId } from 'track-layout/track-layout-model';
 import { useLoader } from 'utils/react-utils';
 import { getOperationalPoint } from 'track-layout/layout-operational-point-api';
 
-type OperatingPointInfoboxContainerProps = {
+type OperationalPointInfoboxContainerProps = {
     operationalPointId: OperationalPointId;
     visibilities: OperationalPointInfoboxVisibilities;
     onVisiblityChange: (visibilites: OperationalPointInfoboxVisibilities) => void;
 };
 
-export const OperationalPointInfoboxContainer: React.FC<OperatingPointInfoboxContainerProps> = ({
+export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxContainerProps> = ({
     operationalPointId,
     visibilities,
     onVisiblityChange,

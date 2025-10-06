@@ -4,13 +4,13 @@ import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 
-type OperatingPointDeleteDraftConfirmDialogProps = {
+type OperationalPointDeleteDraftConfirmDialogProps = {
     onClose: () => void;
     onRevert: () => void;
 };
 
 export const OperationalPointDeleteDraftConfirmDialog: React.FC<
-    OperatingPointDeleteDraftConfirmDialogProps
+    OperationalPointDeleteDraftConfirmDialogProps
 > = ({ onClose, onRevert }) => {
     const { t } = useTranslation();
 
