@@ -67,7 +67,7 @@ constructor(
         return publicationDao
             .fetchPublishedLocationTrackBetween(id, publications.from.publicationTime, publications.to.publicationTime)
             ?.let(locationTrackDao::fetch)
-            ?.let { track ->
+            ?.let { locationTrack ->
                 ExtModifiedLocationTrackResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
@@ -75,7 +75,7 @@ constructor(
                     locationTrack =
                         getExtLocationTrack(
                             oid,
-                            track,
+                            locationTrack,
                             MainLayoutContext.official,
                             publications.to.publicationTime,
                             coordinateSystem,

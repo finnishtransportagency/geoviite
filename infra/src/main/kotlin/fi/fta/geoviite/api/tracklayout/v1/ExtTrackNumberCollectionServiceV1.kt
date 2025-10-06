@@ -2,7 +2,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
@@ -14,8 +13,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import org.springframework.beans.factory.annotation.Autowired
 import java.time.Instant
+import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class ExtTrackNumberCollectionServiceV1
@@ -36,10 +35,7 @@ constructor(
                 extGetTrackNumberCollection(
                     LayoutContext.of(publication.layoutBranch.branch, PublicationState.OFFICIAL),
                     layoutTrackNumberDao
-                        .listOfficialAtMoment(
-                            publication.layoutBranch.branch,
-                            publication.publicationTime,
-                        )
+                        .listOfficialAtMoment(publication.layoutBranch.branch, publication.publicationTime)
                         .filter { trackNumber -> trackNumber.state != LayoutState.DELETED },
                     coordinateSystem,
                     publication.publicationTime,
@@ -52,18 +48,9 @@ constructor(
         coordinateSystem: Srid,
     ): ExtModifiedTrackNumberCollectionResponseV1? {
         return publicationDao
-            .fetchPublishedTrackNumbersAfterMoment(
-                publications.from.publicationTime,
-                publications.to.publicationTime,
-            )
-            .let { changedIds ->
-                layoutTrackNumberDao.getManyOfficialAtMoment(
-                    LayoutBranch.main,
-                    changedIds,
-                    publications.to.publicationTime,
-                )
-            }
-            .takeIf { modifiedTrackNumbers -> modifiedTrackNumbers.isNotEmpty() }
+            .fetchPublishedTrackNumbersBetween(publications.from.publicationTime, publications.to.publicationTime)
+            .takeIf { versions -> versions.isNotEmpty() }
+            ?.let(layoutTrackNumberDao::fetchMany)
             ?.let { modifiedTrackNumbers ->
                 ExtModifiedTrackNumberCollectionResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,

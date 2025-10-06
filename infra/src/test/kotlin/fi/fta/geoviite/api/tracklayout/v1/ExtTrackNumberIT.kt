@@ -7,20 +7,27 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
+import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
@@ -28,6 +35,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
@@ -250,8 +258,8 @@ constructor(
             .map { it.meters }
             .forEach { resolution ->
                 val response = api.trackNumbers.getGeometry(oid, "osoitepistevali" to resolution.toString())
-                response.osoitevalit.forEach { it ->
-                    assertGeometryIntervalAddressResolution(it, resolution, startM, endM)
+                response.osoitevalit.forEach { interval ->
+                    assertGeometryIntervalAddressResolution(interval, resolution, startM, endM)
                 }
             }
     }
@@ -291,4 +299,91 @@ constructor(
                 )
             }
     }
+
+    @Test
+    fun `Track number modification API should show modifications for calculated change`() {
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val trackNumberOid = testDBService.generateTrackNumberOid(trackNumberId, LayoutBranch.main)
+        val referenceLineGeom = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeom).id
+
+        val basePublication =
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(trackNumberId),
+                referenceLines = listOf(referenceLineId),
+            )
+        assertEquals("0000+0000.000", getExtTrackNumber(trackNumberOid).alkusijainti?.rataosoite)
+        assertEquals("0000+0010.000", getExtTrackNumber(trackNumberOid).loppusijainti?.rataosoite)
+
+        mainDraftContext.save(
+            mainOfficialContext
+                .fetch(referenceLineId)!!
+                .copy(startAddress = TrackMeter(KmNumber("0001"), BigDecimal.TEN)),
+            referenceLineGeom,
+        )
+        val updateRlPublication = extTestDataService.publishInMain(referenceLines = listOf(referenceLineId))
+        assertEquals("0001+0010.000", getExtTrackNumber(trackNumberOid).alkusijainti?.rataosoite)
+        assertEquals("0001+0020.000", getExtTrackNumber(trackNumberOid).loppusijainti?.rataosoite)
+
+        assertEquals("0000+0000.000", getExtTrackNumber(trackNumberOid, basePublication).alkusijainti?.rataosoite)
+        assertEquals("0000+0010.000", getExtTrackNumber(trackNumberOid, basePublication).loppusijainti?.rataosoite)
+
+        assertEquals("0001+0010.000", getExtTrackNumber(trackNumberOid, updateRlPublication).alkusijainti?.rataosoite)
+        assertEquals("0001+0020.000", getExtTrackNumber(trackNumberOid, updateRlPublication).loppusijainti?.rataosoite)
+
+        getTrackNumberModified(trackNumberOid, basePublication, updateRlPublication).also { modificationResponse ->
+            assertEquals("0001+0010.000", modificationResponse.ratanumero.alkusijainti?.rataosoite)
+            assertEquals("0001+0020.000", modificationResponse.ratanumero.loppusijainti?.rataosoite)
+        }
+        verifyNoModificationSince(trackNumberOid, updateRlPublication)
+
+        val kmpId =
+            mainDraftContext.save(kmPost(trackNumberId, KmNumber(4), gkLocation = kmPostGkLocation(5.0, 0.0))).id
+        val updateKmpPublication = extTestDataService.publishInMain(kmPosts = listOf(kmpId))
+        assertEquals("0001+0010.000", getExtTrackNumber(trackNumberOid).alkusijainti?.rataosoite)
+        assertEquals("0004+0005.000", getExtTrackNumber(trackNumberOid).loppusijainti?.rataosoite)
+
+        assertEquals("0000+0000.000", getExtTrackNumber(trackNumberOid, basePublication).alkusijainti?.rataosoite)
+        assertEquals("0000+0010.000", getExtTrackNumber(trackNumberOid, basePublication).loppusijainti?.rataosoite)
+
+        assertEquals("0001+0010.000", getExtTrackNumber(trackNumberOid, updateRlPublication).alkusijainti?.rataosoite)
+        assertEquals("0001+0020.000", getExtTrackNumber(trackNumberOid, updateRlPublication).loppusijainti?.rataosoite)
+
+        assertEquals("0001+0010.000", getExtTrackNumber(trackNumberOid, updateKmpPublication).alkusijainti?.rataosoite)
+        assertEquals("0004+0005.000", getExtTrackNumber(trackNumberOid, updateKmpPublication).loppusijainti?.rataosoite)
+
+        getTrackNumberModified(trackNumberOid, updateRlPublication, updateKmpPublication).also { modificationResponse ->
+            assertEquals("0001+0010.000", modificationResponse.ratanumero.alkusijainti?.rataosoite)
+            assertEquals("0004+0005.000", modificationResponse.ratanumero.loppusijainti?.rataosoite)
+        }
+        verifyNoModificationSince(trackNumberOid, updateKmpPublication)
+    }
+
+    private fun verifyNoModificationSince(oid: Oid<LayoutTrackNumber>, from: Publication) =
+        api.trackNumbers
+            .getModifiedWithEmptyBody(
+                oid,
+                TRACK_LAYOUT_VERSION_FROM to from.uuid.toString(),
+                httpStatus = HttpStatus.NO_CONTENT,
+            )
+            .also { initUser() }
+
+    private fun getTrackNumberModified(
+        oid: Oid<LayoutTrackNumber>,
+        from: Publication,
+        to: Publication,
+    ): ExtTestModifiedTrackNumberResponseV1 =
+        api.trackNumbers
+            .getModified(
+                oid,
+                TRACK_LAYOUT_VERSION_FROM to from.uuid.toString(),
+                TRACK_LAYOUT_VERSION_TO to to.uuid.toString(),
+            )
+            .also { initUser() }
+
+    private fun getExtTrackNumber(oid: Oid<LayoutTrackNumber>): ExtTestTrackNumberV1 =
+        api.trackNumbers.get(oid).ratanumero.also { initUser() }
+
+    private fun getExtTrackNumber(oid: Oid<LayoutTrackNumber>, publication: Publication): ExtTestTrackNumberV1 =
+        api.trackNumbers.get(oid, TRACK_LAYOUT_VERSION to publication.uuid.toString()).ratanumero.also { initUser() }
 }

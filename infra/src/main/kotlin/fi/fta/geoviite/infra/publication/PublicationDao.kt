@@ -2416,26 +2416,46 @@ class PublicationDao(
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
     }
 
-    fun fetchPublishedTrackNumbersAfterMoment(
+    fun fetchPublishedTrackNumberBetween(
+        id: IntId<LayoutTrackNumber>,
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
-    ): List<IntId<LayoutTrackNumber>> {
+    ): LayoutRowVersion<LayoutTrackNumber>? =
+        fetchPublishedTrackNumbersBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id).singleOrNull()
+
+    fun fetchPublishedTrackNumbersBetween(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): List<LayoutRowVersion<LayoutTrackNumber>> =
+        fetchPublishedTrackNumbersBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id = null)
+
+    private fun fetchPublishedTrackNumbersBetweenInternal(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+        id: IntId<LayoutTrackNumber>?,
+    ): List<LayoutRowVersion<LayoutTrackNumber>> {
         val sql =
             """
-            select distinct ptn.id as track_number_id
+            select distinct on (ptn.id)
+              ptn.id,
+              ptn.layout_context_id,
+              ptn.version
             from publication.track_number ptn
               join publication.publication publication on ptn.publication_id = publication.id
-            where design_id is null 
+            where design_id is null
+              and (:tn_id::int is null or ptn.id = :tn_id)
               and publication.publication_time > :start_time 
-              and publication.publication_time <= :end_time;
+              and publication.publication_time <= :end_time
+            order by ptn.id, publication.publication_time desc
         """
 
         val params =
             mapOf(
                 "start_time" to Timestamp.from(exclusiveStartMoment),
                 "end_time" to Timestamp.from(inclusiveEndMoment),
+                "tn_id" to id?.intValue,
             )
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("track_number_id") }
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
     }
 
     fun fetchPublishedSwitchJoints(

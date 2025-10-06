@@ -338,7 +338,7 @@ constructor(
     }
 
     @Test
-    fun `Location track modification API should show modification for calculated change`() {
+    fun `Location track modification API should show modifications for calculated change`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         testDBService.generateTrackNumberOid(trackNumberId, LayoutBranch.main)
         val referenceLineGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
@@ -398,7 +398,11 @@ constructor(
             )
             .also { initUser() }
 
-    private fun getLocationTrackModified(oid: Oid<LocationTrack>, from: Publication, to: Publication) =
+    private fun getLocationTrackModified(
+        oid: Oid<LocationTrack>,
+        from: Publication,
+        to: Publication,
+    ): ExtTestModifiedLocationTrackResponseV1 =
         api.locationTracks
             .getModified(
                 oid,
