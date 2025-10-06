@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
@@ -26,7 +25,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
@@ -350,54 +348,46 @@ constructor(
                 trackNumbers = listOf(trackNumberId1, trackNumberId2),
                 referenceLines = listOf(referenceLineId1, referenceLineId2),
             )
-        assertEquals("0000+0000.000", getExtTrackNumberInCollection(trackNumberOid1)?.alkusijainti?.rataosoite)
-        assertEquals("0000+0010.000", getExtTrackNumberInCollection(trackNumberOid1)?.loppusijainti?.rataosoite)
-        assertEquals("0000+0000.000", getExtTrackNumberInCollection(trackNumberOid2)?.alkusijainti?.rataosoite)
-        assertEquals("0000+0010.000", getExtTrackNumberInCollection(trackNumberOid2)?.loppusijainti?.rataosoite)
-        verifyNoModificationSince(basePublication)
+        assertAddressRange(getExtTrackNumberInCollection(trackNumberOid1)!!, "0000+0000.000", "0000+0010.000")
+        api.trackNumberCollection.verifyNoModificationSince(basePublication.uuid)
 
+        initUser()
         mainDraftContext.save(
             mainOfficialContext
                 .fetch(referenceLineId1)!!
                 .copy(startAddress = TrackMeter(KmNumber("0001"), BigDecimal.TEN)),
             alignment(segment),
         )
-        val updateRlPublication = extTestDataService.publishInMain(referenceLines = listOf(referenceLineId1))
-        assertEquals("0001+0010.000", getExtTrackNumberInCollection(trackNumberOid1)?.alkusijainti?.rataosoite)
-        assertEquals("0001+0020.000", getExtTrackNumberInCollection(trackNumberOid1)?.loppusijainti?.rataosoite)
-        assertEquals("0000+0000.000", getExtTrackNumberInCollection(trackNumberOid2)?.alkusijainti?.rataosoite)
-        assertEquals("0000+0010.000", getExtTrackNumberInCollection(trackNumberOid2)?.loppusijainti?.rataosoite)
-        getModificationsSince(basePublication).let { mods ->
-            assertEquals(listOf(trackNumberOid1.toString()), mods.map { it.ratanumero_oid })
-            assertEquals("0001+0010.000", mods[0].alkusijainti?.rataosoite)
-            assertEquals("0001+0020.000", mods[0].loppusijainti?.rataosoite)
+        val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(referenceLineId1))
+        assertAddressRange(getExtTrackNumberInCollection(trackNumberOid1)!!, "0001+0010.000", "0001+0020.000")
+        api.trackNumberCollection.getModifiedBetween(basePublication.uuid, rlPublication.uuid).let { mods ->
+            assertEquals(listOf(trackNumberOid1.toString()), mods.ratanumerot.map { it.ratanumero_oid })
+            assertAddressRange(mods.ratanumerot[0], "0001+0010.000", "0001+0020.000")
         }
-        verifyNoModificationSince(updateRlPublication)
+        api.trackNumberCollection.verifyNoModificationSince(rlPublication.uuid)
 
+        initUser()
         val kmpId =
             mainDraftContext.save(kmPost(trackNumberId1, KmNumber(4), gkLocation = kmPostGkLocation(5.0, 0.0))).id
-        val updateKmpPublication = extTestDataService.publishInMain(kmPosts = listOf(kmpId))
-        assertEquals("0001+0010.000", getExtTrackNumberInCollection(trackNumberOid1)?.alkusijainti?.rataosoite)
-        assertEquals("0004+0005.000", getExtTrackNumberInCollection(trackNumberOid1)?.loppusijainti?.rataosoite)
-        assertEquals("0000+0000.000", getExtTrackNumberInCollection(trackNumberOid2)?.alkusijainti?.rataosoite)
-        assertEquals("0000+0010.000", getExtTrackNumberInCollection(trackNumberOid2)?.loppusijainti?.rataosoite)
-        verifyNoModificationSince(updateKmpPublication)
+        val kmpPublication = extTestDataService.publishInMain(kmPosts = listOf(kmpId))
+        assertAddressRange(getExtTrackNumberInCollection(trackNumberOid1)!!, "0001+0010.000", "0004+0005.000")
+        api.trackNumberCollection.getModifiedBetween(rlPublication.uuid, kmpPublication.uuid).let { mods ->
+            assertEquals(listOf(trackNumberOid1.toString()), mods.ratanumerot.map { it.ratanumero_oid })
+            assertAddressRange(mods.ratanumerot[0], "0001+0010.000", "0004+0005.000")
+        }
+        api.trackNumberCollection.getModifiedBetween(basePublication.uuid, kmpPublication.uuid).let { mods ->
+            assertEquals(listOf(trackNumberOid1.toString()), mods.ratanumerot.map { it.ratanumero_oid })
+            assertAddressRange(mods.ratanumerot[0], "0001+0010.000", "0004+0005.000")
+        }
+        api.trackNumberCollection.getModifiedBetween(basePublication.uuid, rlPublication.uuid).let { mods ->
+            assertEquals(listOf(trackNumberOid1.toString()), mods.ratanumerot.map { it.ratanumero_oid })
+            assertAddressRange(mods.ratanumerot[0], "0001+0010.000", "0001+0020.000")
+        }
+        api.trackNumberCollection.verifyNoModificationSince(kmpPublication.uuid)
+
+        assertAddressRange(getExtTrackNumberInCollection(trackNumberOid2)!!, "0000+0000.000", "0000+0010.000")
     }
 
     private fun getExtTrackNumberInCollection(oid: Oid<LayoutTrackNumber>): ExtTestTrackNumberV1? =
-        api.trackNumberCollection.get().ratanumerot.find { it.ratanumero_oid == oid.toString() }.also { initUser() }
-
-    private fun getModificationsSince(publication: Publication): List<ExtTestTrackNumberV1> =
-        api.trackNumberCollection
-            .getModified(TRACK_LAYOUT_VERSION_FROM to publication.uuid.toString())
-            .ratanumerot
-            .also { initUser() }
-
-    private fun verifyNoModificationSince(publication: Publication) =
-        api.trackNumberCollection
-            .getModifiedWithEmptyBody(
-                TRACK_LAYOUT_VERSION_FROM to publication.uuid.toString(),
-                httpStatus = HttpStatus.NO_CONTENT,
-            )
-            .also { initUser() }
+        api.trackNumberCollection.get().ratanumerot.find { it.ratanumero_oid == oid.toString() }
 }

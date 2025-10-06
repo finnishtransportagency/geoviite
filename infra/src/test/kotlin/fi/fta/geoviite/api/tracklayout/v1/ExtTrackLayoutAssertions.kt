@@ -4,8 +4,8 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
+import java.math.BigDecimal
 
 fun assertExtStartAndEnd(
     expectedStart: Point,
@@ -59,4 +59,9 @@ fun assertGeometryIntervalAddressResolution(
             assertEquals(endM, address.meters.toDouble(), 0.0001)
         }
     }
+}
+
+fun assertAddressRange(trackNumber: ExtTestTrackNumberV1, start: String, end: String) {
+    assertEquals(start, trackNumber.alkusijainti?.rataosoite)
+    assertEquals(end, trackNumber.loppusijainti?.rataosoite)
 }
