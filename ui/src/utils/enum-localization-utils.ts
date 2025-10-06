@@ -52,7 +52,7 @@ function rinfTypeValues(keyBase: string): LocalizedEnum<RinfType>[] {
     return enumValues.map((v) => ({
         value: v,
         get name() {
-            return i18n.t(`enum.rinf-type-full`, { rinfCode: v });
+            return i18n.t(`enum.rinf-type-full`, { rinfType: v });
         },
         qaId: `${keyBase}-${v}`,
     }));
