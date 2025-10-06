@@ -406,7 +406,7 @@
             "140": "Omistusraja",
             "150": "Ylikulku"
         },
-        "rinf-type-full": "{{rinfType}} (koodi {{rinfCode}})",
+        "rinf-type-full": "$t(enum.RinfType.{{rinfCode}}) (koodi {{rinfCode}})",
         "OperationalPointOrigin": {
             "RATKO": "Ratko",
             "GEOVIITE": "Geoviite"
