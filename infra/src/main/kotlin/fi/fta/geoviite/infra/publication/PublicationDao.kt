@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.configuration.staticDataCacheDuration
+import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.LocationTrackChange
@@ -89,11 +90,11 @@ import fi.fta.geoviite.infra.util.getTrackNumberOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -2097,8 +2098,7 @@ class PublicationDao(
                         name = AlignmentName(rs.getString("name")),
                         trackNumberId = rs.getIntId("track_number_id"),
                         operation = rs.getEnum("operation"),
-                        changedKmNumbers =
-                            rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
+                        changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
                     )
             }
             .let { locationTrackRows ->
@@ -2372,9 +2372,8 @@ class PublicationDao(
         }
     }
 
-    fun fetchPublicationByUuid(uuid: Uuid<Publication>): Publication? {
-        return fetchPublicationIdByUuid(uuid)?.let(::getPublication)
-    }
+    fun fetchPublicationByUuid(uuid: Uuid<Publication>): Publication =
+        fetchPublicationIdByUuid(uuid)?.let(::getPublication) ?: throw TrackLayoutVersionNotFound(uuid)
 
     fun fetchPublishedLocationTracksAfterMoment(
         exclusiveStartMoment: Instant,
