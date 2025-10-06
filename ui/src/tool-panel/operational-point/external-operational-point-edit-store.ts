@@ -4,6 +4,7 @@ import {
     FieldValidationIssueType,
     isPropEditFieldCommitted,
     PropEdit,
+    validate,
 } from 'utils/validation-utils';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -34,18 +35,20 @@ export const initialExternalOperationalPointEditState: ExternalOperationalPointE
     allFieldsCommitted: false,
 };
 
-const validateInternalOperationalPoint = (
+const validateExternalOperationalPoint = (
     saveRequest: ExternalOperationalPointSaveRequest,
-): FieldValidationIssue<ExternalOperationalPointSaveRequest>[] =>
-    [
-        saveRequest.rinfType === undefined
-            ? {
-                  field: 'rinfType' as keyof ExternalOperationalPointSaveRequest,
-                  reason: 'mandatory-field',
-                  type: FieldValidationIssueType.ERROR,
-              }
-            : undefined,
-    ].filter(filterNotEmpty);
+): FieldValidationIssue<ExternalOperationalPointSaveRequest>[] => {
+    const rinfTypeMissing = validate<ExternalOperationalPointSaveRequest>(
+        saveRequest.rinfType !== undefined,
+        {
+            field: 'rinfType',
+            reason: 'mandatory-field',
+            type: FieldValidationIssueType.ERROR,
+        },
+    );
+
+    return [rinfTypeMissing].filter(filterNotEmpty);
+};
 
 const internalOperationalPointEditSlice = createSlice({
     name: 'operationalPointEdit',
@@ -59,7 +62,7 @@ const internalOperationalPointEditSlice = createSlice({
             state.operationalPoint = {
                 rinfType: existingOperationalPoint.rinfType,
             };
-            state.validationIssues = validateInternalOperationalPoint(state.operationalPoint);
+            state.validationIssues = validateExternalOperationalPoint(state.operationalPoint);
         },
         onUpdateProp: function <TKey extends keyof ExternalOperationalPointSaveRequest>(
             state: ExternalOperationalPointEditState,
@@ -69,7 +72,7 @@ const internalOperationalPointEditSlice = createSlice({
         ) {
             if (state.operationalPoint) {
                 state.operationalPoint[propEdit.key] = propEdit.value;
-                state.validationIssues = validateInternalOperationalPoint(state.operationalPoint);
+                state.validationIssues = validateExternalOperationalPoint(state.operationalPoint);
 
                 if (
                     isPropEditFieldCommitted(
@@ -91,7 +94,7 @@ const internalOperationalPointEditSlice = createSlice({
         },
         validate: (state: ExternalOperationalPointEditState): void => {
             if (state.operationalPoint) {
-                state.validationIssues = validateInternalOperationalPoint(state.operationalPoint);
+                state.validationIssues = validateExternalOperationalPoint(state.operationalPoint);
                 state.allFieldsCommitted = true;
             }
         },
