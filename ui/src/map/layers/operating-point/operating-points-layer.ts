@@ -7,7 +7,7 @@ import {
     loadLayerData,
     pointToCoords,
 } from 'map/layers/utils/layer-utils';
-import { getOperationalPoints } from 'track-layout/layout-operating-point-api';
+import { getOperationalPoints } from 'track-layout/layout-operational-point-api';
 import Feature from 'ol/Feature';
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import Style from 'ol/style/Style';
@@ -58,7 +58,7 @@ export function createOperatingPointLayer(
         return (
             await Promise.all(
                 mapTiles.map((tile) =>
-                    getOperationalPoints(tile, layoutContext, changeTimes.operatingPoints),
+                    getOperationalPoints(tile, layoutContext, changeTimes.operationalPoints),
                 ),
             )
         ).flat();

@@ -8,7 +8,7 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 import { OperationalPointInfobox } from 'tool-panel/operational-point/operational-point-infobox';
 import { OperationalPointId } from 'track-layout/track-layout-model';
 import { useLoader } from 'utils/react-utils';
-import { getOperationalPoint } from 'track-layout/layout-operating-point-api';
+import { getOperationalPoint } from 'track-layout/layout-operational-point-api';
 
 type OperatingPointInfoboxContainerProps = {
     operationalPointId: OperationalPointId;
@@ -30,9 +30,9 @@ export const OperationalPointInfoboxContainer: React.FC<OperatingPointInfoboxCon
             getOperationalPoint(
                 operationalPointId,
                 trackLayoutState.layoutContext,
-                changeTimes.operatingPoints,
+                changeTimes.operationalPoints,
             ),
-        [changeTimes.operatingPoints],
+        [changeTimes.operationalPoints],
     );
 
     return (

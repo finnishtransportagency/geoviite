@@ -20,7 +20,7 @@ export type ChangeTimes = {
     ratkoPush: TimeStamp;
     pvDocument: TimeStamp;
     split: TimeStamp;
-    operatingPoints: TimeStamp;
+    operationalPoints: TimeStamp;
     layoutDesign: TimeStamp;
 };
 
@@ -41,7 +41,7 @@ export const initialChangeTimes: ChangeTimes = {
     ratkoPush: initialChangeTime,
     pvDocument: initialChangeTime,
     split: initialChangeTime,
-    operatingPoints: initialChangeTime,
+    operationalPoints: initialChangeTime,
     layoutDesign: initialChangeTime,
 };
 
@@ -166,7 +166,7 @@ const commonSlice = createSlice({
             updateChangeTime(changeTimes, 'layoutDesign', payload);
         },
         setOperationalPointsChangeTime: function ({ changeTimes }, { payload }) {
-            updateChangeTime(changeTimes, 'operatingPoints', payload);
+            updateChangeTime(changeTimes, 'operationalPoints', payload);
         },
         setUser: (state: CommonState, { payload: user }: PayloadAction<User>): void => {
             state.user = user;

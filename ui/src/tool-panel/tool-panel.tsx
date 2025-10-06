@@ -50,7 +50,7 @@ import { LayoutContext } from 'common/common-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { LayoutSwitchLinkingInfoboxContainer } from 'tool-panel/switch/layout-switch-linking-infobox-container';
 import { OperationalPointInfoboxContainer } from './operational-point/operational-point-infobox-container';
-import { getManyOperationalPoints } from 'track-layout/layout-operating-point-api';
+import { getManyOperationalPoints } from 'track-layout/layout-operational-point-api';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -160,7 +160,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const operationalPointsPromise = getManyOperationalPoints(
             operationalPointIds,
             layoutContext,
-            changeTimes.operatingPoints,
+            changeTimes.operationalPoints,
         );
 
         return Promise.all([

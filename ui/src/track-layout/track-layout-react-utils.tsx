@@ -64,7 +64,7 @@ import { validateLocationTrackName } from 'tool-panel/location-track/dialog/loca
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { getLayoutDesignByBranch, LayoutDesign } from 'track-layout/layout-design-api';
-import { getOperationalPoint } from 'track-layout/layout-operating-point-api';
+import { getOperationalPoint } from 'track-layout/layout-operational-point-api';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,

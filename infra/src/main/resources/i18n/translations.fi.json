@@ -936,7 +936,7 @@
             "cant-edit-while-splitting": "Raiteen tietoja ei voi muokata koska sen jakaminen on kesken",
             "cant-edit-while-linking": "Raiteen tietoja ei voi muokata linkitystilassa"
         },
-        "operating-point": {
+        "operational-point": {
             "basic-info-heading": "Toiminnallisen pisteen perustiedot",
             "location-heading": "Sijainti",
             "log-heading": "Lokitiedot",

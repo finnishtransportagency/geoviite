@@ -29,7 +29,7 @@ import {
     deleteDraftOperationalPoint,
     insertOperationalPoint,
     updateInternalOperationalPoint,
-} from 'track-layout/layout-operating-point-api';
+} from 'track-layout/layout-operational-point-api';
 import { LayoutContext } from 'common/common-model';
 
 type InternalOperationalPointEditDialogProps = {

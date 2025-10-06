@@ -14,7 +14,7 @@ import { OperationalPoint } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { formatToTM35FINString } from 'utils/geography-utils';
 import { useLoader } from 'utils/react-utils';
-import { getOperationalPointChangeTimes } from 'track-layout/layout-operating-point-api';
+import { getOperationalPointChangeTimes } from 'track-layout/layout-operational-point-api';
 import { ChangeTimes } from 'common/common-slice';
 import { formatDateShort } from 'utils/date-utils';
 
@@ -40,7 +40,7 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
 
     const changeInfo = useLoader(
         () => getOperationalPointChangeTimes(operationalPoint.id, layoutContext),
-        [operationalPoint.id, changeTimes.operatingPoints],
+        [operationalPoint.id, changeTimes.operationalPoints],
     );
 
     const [editDialogOpen, setEditDialogOpen] = React.useState(false);
@@ -51,46 +51,46 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
             <Infobox
                 contentVisible={visibilities.basic}
                 onContentVisibilityChange={() => visibilityChange('basic')}
-                title={t('tool-panel.operating-point.basic-info-heading')}
-                qa-id="operating-point-infobox"
+                title={t('tool-panel.operational-point.basic-info-heading')}
+                qa-id="operational-point-infobox-basic"
                 onEdit={() => setEditDialogOpen(true)}
                 iconDisabled={layoutContext.publicationState === 'OFFICIAL'}>
                 <InfoboxContent>
                     <InfoboxField
-                        label={t('tool-panel.operating-point.source')}
+                        label={t('tool-panel.operational-point.source')}
                         value={isExternal ? 'Ratko' : 'Geoviite'}
                     />
                     <InfoboxField
-                        label={t('tool-panel.operating-point.identifier')}
+                        label={t('tool-panel.operational-point.identifier')}
                         value={<OperatingPointOid />}
                     />
                     <InfoboxField
-                        label={t('tool-panel.operating-point.name')}
+                        label={t('tool-panel.operational-point.name')}
                         value={operationalPoint.name}
                     />
                     <InfoboxField
-                        label={t('tool-panel.operating-point.abbreviation')}
+                        label={t('tool-panel.operational-point.abbreviation')}
                         value={operationalPoint.abbreviation}
                     />
                     <InfoboxField
-                        label={t('tool-panel.operating-point.state')}
+                        label={t('tool-panel.operational-point.state')}
                         value={<LayoutState state={operationalPoint.state} />}
                     />
                     {isExternal && (
                         <InfoboxField
-                            label={t('tool-panel.operating-point.type-raide')}
+                            label={t('tool-panel.operational-point.type-raide')}
                             value={t(`enum.RaideType.${operationalPoint.raideType}`)}
                         />
                     )}
                     <InfoboxField
-                        label={t('tool-panel.operating-point.type-rinf')}
+                        label={t('tool-panel.operational-point.type-rinf')}
                         value={t('enum.rinf-type-full', {
                             rinfType: t(`enum.RinfType.${operationalPoint.rinfType}`),
                             rinfCode: operationalPoint.rinfType,
                         })}
                     />
                     <InfoboxField
-                        label={t('tool-panel.operating-point.uic-code')}
+                        label={t('tool-panel.operational-point.uic-code')}
                         value={operationalPoint.uicCode}
                     />
                 </InfoboxContent>
@@ -98,11 +98,11 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
             <Infobox
                 contentVisible={visibilities.location}
                 onContentVisibilityChange={() => visibilityChange('location')}
-                title={t('tool-panel.operating-point.location-heading')}
-                qa-id="operating-point-infobox">
+                title={t('tool-panel.operational-point.location-heading')}
+                qa-id="operational-point-infobox-location">
                 <InfoboxContent>
                     <InfoboxField
-                        label={t('tool-panel.operating-point.location')}
+                        label={t('tool-panel.operational-point.location')}
                         value={
                             operationalPoint.location
                                 ? formatToTM35FINString(operationalPoint.location)
@@ -114,7 +114,7 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
                             variant={ButtonVariant.SECONDARY}
                             size={ButtonSize.SMALL}
                             disabled={!operationalPoint.location}>
-                            {t('tool-panel.operating-point.focus-on-map')}
+                            {t('tool-panel.operational-point.focus-on-map')}
                         </Button>
                     </InfoboxButtons>
                     <InfoboxButtons>
@@ -125,16 +125,16 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
                             title={
                                 isExternal
                                     ? t(
-                                          'tool-panel.operating-point.cannot-set-location-for-external',
+                                          'tool-panel.operational-point.cannot-set-location-for-external',
                                       )
                                     : undefined
                             }>
-                            {t('tool-panel.operating-point.set-location')}
+                            {t('tool-panel.operational-point.set-location')}
                         </Button>
                     </InfoboxButtons>
                     <InfoboxButtons>
                         <Button variant={ButtonVariant.SECONDARY} size={ButtonSize.SMALL}>
-                            {t('tool-panel.operating-point.set-area')}
+                            {t('tool-panel.operational-point.set-area')}
                         </Button>
                     </InfoboxButtons>
                 </InfoboxContent>
@@ -142,17 +142,17 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
             <Infobox
                 contentVisible={visibilities.log}
                 onContentVisibilityChange={() => visibilityChange('log')}
-                title={t('tool-panel.operating-point.log-heading')}
-                qa-id="operating-point-infobox">
+                title={t('tool-panel.operational-point.log-heading')}
+                qa-id="operational-point-infobox-log">
                 <InfoboxContent>
                     {changeInfo && (
                         <React.Fragment>
                             <InfoboxField
-                                label={t('tool-panel.operating-point.created')}
+                                label={t('tool-panel.operational-point.created')}
                                 value={formatDateShort(changeInfo.created)}
                             />
                             <InfoboxField
-                                label={t('tool-panel.operating-point.modified')}
+                                label={t('tool-panel.operational-point.modified')}
                                 value={
                                     changeInfo?.changed
                                         ? formatDateShort(changeInfo?.changed)

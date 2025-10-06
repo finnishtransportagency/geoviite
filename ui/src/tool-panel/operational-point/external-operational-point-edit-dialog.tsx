@@ -29,7 +29,7 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import {
     deleteDraftOperationalPoint,
     updateExternalOperationalPoint,
-} from 'track-layout/layout-operating-point-api';
+} from 'track-layout/layout-operational-point-api';
 
 type ExternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint;
