@@ -11,7 +11,7 @@ export const ALIGNMENT_NAME_MAX_LENGTH = 50;
 
 const MANDATORY_FREE_TEXT_SCHEMES: LocationTrackNamingScheme[] = [
     LocationTrackNamingScheme.FREE_TEXT,
-    LocationTrackNamingScheme.WITHIN_OPERATING_POINT,
+    LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT,
 ] as const;
 const ALL_FREE_TEXT_SCHEMES: LocationTrackNamingScheme[] = [
     LocationTrackNamingScheme.TRACK_NUMBER_TRACK,
@@ -82,7 +82,7 @@ export const validateLocationTrackNameStructure = (
                       field: 'nameFreeText',
                       reason:
                           saveRequest.namingScheme === 'TRACK_NUMBER_TRACK'
-                              ? 'invalid-operating-point-range-name'
+                              ? 'invalid-operational-point-range-name'
                               : 'invalid-name',
                       type: FieldValidationIssueType.ERROR,
                   }

@@ -37,7 +37,7 @@ const mapLayerOrder: MapLayerName[] = [
     'location-track-duplicate-endpoint-address-layer',
     'location-track-split-location-layer',
     'plan-area-layer',
-    'operating-points-layer',
+    'operational-points-layer',
     'debug-1m-points-layer',
     'debug-layer',
     'debug-geometry-graph-layer',
@@ -84,6 +84,6 @@ export const SUGGESTED_SWITCH_SHOW = 100.0;
 export const MAP_RESOLUTION_MULTIPLIER = 10;
 export const ALIGNMENT_MIN_LENGTH_IN_PIXELS = 10;
 
-export const OPERATING_POINTS_LARGE = SWITCH_SHOW;
-export const OPERATING_POINTS_MEDIUM = 10;
-export const OPERATING_POINTS_SMALL = 500;
+export const OPERATIONAL_POINTS_LARGE = SWITCH_SHOW;
+export const OPERATIONAL_POINTS_MEDIUM = 10;
+export const OPERATIONAL_POINTS_SMALL = 500;

@@ -128,7 +128,7 @@ export const PlanDownloadAreaSection: React.FC<{
                     type: PlanDownloadAssetType.LOCATION_TRACK,
                 });
             case SearchItemType.SWITCH:
-            case SearchItemType.OPERATING_POINT:
+            case SearchItemType.OPERATIONAL_POINT:
             case SearchItemType.KM_POST:
                 return error(t('unsupported-result-type', { type: item.type }));
             default:
@@ -156,7 +156,7 @@ export const PlanDownloadAreaSection: React.FC<{
             case SearchItemType.LOCATION_TRACK:
                 return item.locationTrack.name;
             case SearchItemType.SWITCH:
-            case SearchItemType.OPERATING_POINT:
+            case SearchItemType.OPERATIONAL_POINT:
             case SearchItemType.KM_POST:
                 console.error('Unsupported item type', item.type);
                 return '';

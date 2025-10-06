@@ -16,7 +16,7 @@ export interface LayoutSearchResult {
     locationTracks: LayoutLocationTrack[];
     trackNumbers: LayoutTrackNumber[];
     kmPosts: LayoutKmPost[];
-    operatingPoints: OperationalPoint[];
+    operationalPoints: OperationalPoint[];
 }
 
 export async function getBySearchTerm(

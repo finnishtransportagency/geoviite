@@ -80,7 +80,7 @@ import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/l
 import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/location-track-selected-alignment-layer';
 import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
-import { createOperatingPointLayer } from 'map/layers/operating-point/operating-points-layer';
+import { createOperationalPointLayer } from 'map/layers/operational-point/operational-points-layer';
 import { layersCoveringLayers } from 'map/map-store';
 import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
@@ -697,8 +697,8 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
                         );
-                    case 'operating-points-layer':
-                        return createOperatingPointLayer(
+                    case 'operational-points-layer':
+                        return createOperationalPointLayer(
                             mapTiles,
                             existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             olView,

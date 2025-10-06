@@ -9,7 +9,7 @@ import { first } from 'utils/array-utils';
 export const MAP_POINT_DEFAULT_BBOX_OFFSET = 178;
 export const MAP_POINT_NEAR_BBOX_OFFSET = 78;
 export const MAP_POINT_CLOSEUP_BBOX_OFFSET = 38;
-export const MAP_POINT_OPERATING_POINT_BBOX_OFFSET = 500;
+export const MAP_POINT_OPERATIONAL_POINT_BBOX_OFFSET = 500;
 
 const LAST_RESOLUTION_INDEX = 21;
 
