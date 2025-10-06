@@ -58,7 +58,7 @@ export const OperationalPointInfobox: React.FC<OperatingPointInfoboxProps> = ({
                 <InfoboxContent>
                     <InfoboxField
                         label={t('tool-panel.operational-point.source')}
-                        value={isExternal ? 'Ratko' : 'Geoviite'}
+                        value={t(`enum.OperationalPointOrigin.${operationalPoint.origin}`)}
                     />
                     <InfoboxField
                         label={t('tool-panel.operational-point.identifier')}
