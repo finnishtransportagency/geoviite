@@ -40,7 +40,10 @@ fun KRV54_200_1_9() =
                         ),
                 ),
                 SwitchStructureAlignment(
-                    jointNumbers = listOf(JointNumber(1), JointNumber(3)),
+                    // The center line of this alignment does not actually go through the math point
+                    // (number 5), but alignment is modelled this way to make handling simpler.
+                    // Usually this is modelled the same way in infra model files.
+                    jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(3)),
                     elements =
                         listOf(
                             SwitchStructureLine(start = Point(0.0, 0.0), end = Point(6.15, 0.0)),
@@ -49,7 +52,10 @@ fun KRV54_200_1_9() =
                         ),
                 ),
                 SwitchStructureAlignment(
-                    jointNumbers = listOf(JointNumber(4), JointNumber(2)),
+                    // The center line of this alignment does not actually go through the math point
+                    // (number 5), but alignment is modelled this way to make handling simpler.
+                    // Usually this is modelled the same way in infra model files.
+                    jointNumbers = listOf(JointNumber(4), JointNumber(5), JointNumber(2)),
                     elements =
                         listOf(
                             SwitchStructureLine(start = Point(0.105, 1.902), end = Point(6.214, 1.223)),
