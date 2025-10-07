@@ -65,7 +65,7 @@ create table layout.operational_point
   design_asset_state layout.design_asset_state,
   origin_design_id   int,
   name               varchar(150)                   not null,
-  abbreviation       varchar(20)                    not null,
+  abbreviation       varchar(20),
   uic_code           varchar(20)                    not null,
   type               layout.operational_point_type,
   location           postgis.geometry(Point, 3067),

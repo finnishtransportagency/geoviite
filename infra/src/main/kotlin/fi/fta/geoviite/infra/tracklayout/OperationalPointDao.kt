@@ -204,7 +204,7 @@ class OperationalPointDao(
                     "design_id" to item.contextData.designId?.intValue,
                     "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
                     "name" to item.name.toString(),
-                    "abbreviation" to item.abbreviation.toString(),
+                    "abbreviation" to item.abbreviation?.toString(),
                     "uic_code" to item.uicCode.toString(),
                     "type" to item.raideType.name,
                     "location_x" to item.location?.x,
@@ -227,7 +227,7 @@ class OperationalPointDao(
     private fun getOperationalPoint(rs: ResultSet): OperationalPoint =
         OperationalPoint(
             name = rs.getString("name").let(::OperationalPointName),
-            abbreviation = rs.getString("abbreviation").let(::OperationalPointAbbreviation),
+            abbreviation = rs.getString("abbreviation")?.let(::OperationalPointAbbreviation),
             uicCode = rs.getString("uic_code").let(::UicCode),
             location = rs.getPointOrNull("location_x", "location_y"),
             raideType = rs.getEnum("type"),

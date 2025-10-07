@@ -13,7 +13,7 @@ import fi.fta.geoviite.infra.util.StringSanitizer
 
 data class OperationalPoint(
     val name: OperationalPointName,
-    val abbreviation: OperationalPointAbbreviation,
+    val abbreviation: OperationalPointAbbreviation?,
     val uicCode: UicCode,
     val rinfType: Int?,
     val raideType: OperationalPointType,
