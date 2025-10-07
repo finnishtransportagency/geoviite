@@ -11,9 +11,9 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.util.StringSanitizer
 import fi.fta.geoviite.infra.util.UnsafeString
 import fi.fta.geoviite.infra.util.assertLength
-import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
+import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger(PVClient::class.java)
 
@@ -64,7 +64,7 @@ data class PVApiLatestVersion(
     @JsonProperty("versio") val version: PVId,
     @JsonProperty("nimi") val name: UnsafeString,
     @JsonProperty("muokattu") val changeTime: Instant,
-    @JsonProperty("koko") val size: Int,
+    @JsonProperty("koko") val size: Long,
 )
 
 data class PVApiDocumentMetadata(
