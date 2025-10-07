@@ -96,6 +96,11 @@ create table layout.operational_point_external_id
 select common.add_table_metadata('layout', 'operational_point');
 select common.add_table_metadata('layout', 'operational_point_external_id');
 
+insert into layout.operational_point_id (
+  select
+    from integrations.ratko_operational_point
+);
+
 insert into layout.operational_point
   (id, draft, design_id, layout_context_id, name, abbreviation, uic_code, type, location, track_number_id,
    state, rinf_type_code, polygon, origin)
@@ -124,11 +129,6 @@ insert into layout.operational_point_external_id
     select row_number() over (order by external_id), 'main_official', null, external_id
       from integrations.ratko_operational_point
   );
-
-insert into layout.operational_point_id (
-  select
-    from layout.operational_point
-);
 
 alter table layout.operational_point
   add constraint operational_point_id_fk foreign key (id) references layout.operational_point_id (id);
