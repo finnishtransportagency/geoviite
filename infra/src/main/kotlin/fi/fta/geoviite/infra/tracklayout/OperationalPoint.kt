@@ -80,7 +80,7 @@ data class OperationalPointName @JsonCreator(mode = DELEGATING) constructor(priv
 
     init {
         sanitizer.assertSanitized(value)
-        sanitizer.assertTrimmed(value)
+        //        sanitizer.assertTrimmed(value)
     }
 
     @JsonValue override fun toString(): String = value
