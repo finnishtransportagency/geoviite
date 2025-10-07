@@ -8,12 +8,12 @@ import fi.fta.geoviite.infra.logging.AccessType.VERSION_FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.FetchType.MULTI
 import fi.fta.geoviite.infra.util.FetchType.SINGLE
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 
 enum class FetchType {
     SINGLE,
@@ -45,7 +45,12 @@ enum class LayoutAssetTable(val dbTable: DbTable, val idTable: String, layoutCon
         "location_track_in_layout_context",
     ),
     LAYOUT_ASSET_SWITCH(DbTable.LAYOUT_SWITCH, "layout.switch_id", "switch_in_layout_context"),
-    LAYOUT_ASSET_KM_POST(DbTable.LAYOUT_KM_POST, "layout.km_post_id", "km_post_in_layout_context");
+    LAYOUT_ASSET_KM_POST(DbTable.LAYOUT_KM_POST, "layout.km_post_id", "km_post_in_layout_context"),
+    LAYOUT_ASSET_OPERATIONAL_POINT(
+        DbTable.LAYOUT_OPERATIONAL_POINT,
+        "layout.operational_point_id",
+        "operational_point_in_layout_context",
+    );
 
     val fullLayoutContextFunction: String = "layout.${layoutContextFunction}"
     val fullName: String = dbTable.fullName
@@ -60,8 +65,9 @@ enum class DbTable(schema: String, val table: String, sortColumns: List<String> 
     LAYOUT_SWITCH("layout", "switch"),
     LAYOUT_KM_POST("layout", "km_post", listOf("track_number_id", "km_number")),
     LAYOUT_TRACK_NUMBER("layout", "track_number"),
+    LAYOUT_OPERATIONAL_POINT("layout", "operational_point"),
     LAYOUT_DESIGN("layout", "design"),
-    OPERATING_POINT("layout", "operating_point"),
+    RATKO_OPERATIONAL_POINT("integrations", "ratko_operational_point"),
     GEOMETRY_PLAN("geometry", "plan"),
     GEOMETRY_PLAN_PROJECT("geometry", "plan_project"),
     GEOMETRY_PLAN_AUTHOR("geometry", "plan_author"),

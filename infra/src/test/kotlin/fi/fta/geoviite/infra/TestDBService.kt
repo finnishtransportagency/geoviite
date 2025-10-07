@@ -52,6 +52,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
@@ -87,6 +89,7 @@ interface TestDB {
     val kmPostDao: LayoutKmPostDao
     val alignmentDao: LayoutAlignmentDao
     val geometryDao: GeometryDao
+    val operationalPointDao: OperationalPointDao
 
     fun getDbTime(): Instant =
         requireNotNull(
@@ -101,6 +104,7 @@ interface TestDB {
             LayoutTrackNumber::class -> trackNumberDao
             ReferenceLine::class -> referenceLineDao
             LayoutKmPost::class -> kmPostDao
+            OperationalPoint::class -> operationalPointDao
             else -> error("Unsupported asset type: ${clazz.simpleName}")
         }
             as LayoutAssetReader<T>
@@ -113,6 +117,7 @@ interface TestDB {
             is LayoutTrackNumber -> trackNumberDao
             is ReferenceLine -> referenceLineDao
             is LayoutKmPost -> kmPostDao
+            is OperationalPoint -> operationalPointDao
         }
             as LayoutAssetReader<T>
 }
@@ -128,6 +133,7 @@ class TestDBService(
     override val kmPostDao: LayoutKmPostDao,
     override val alignmentDao: LayoutAlignmentDao,
     override val geometryDao: GeometryDao,
+    override val operationalPointDao: OperationalPointDao,
     private val layoutDesignDao: LayoutDesignDao,
 ) : TestDB {
 
@@ -347,6 +353,7 @@ class TestDBService(
                 )
             is LayoutKmPost -> kmPostDao.save(asset)
             is LayoutSwitch -> switchDao.save(asset)
+            is OperationalPoint -> operationalPointDao.save(asset)
         }
             as LayoutRowVersion<T>
 
@@ -369,6 +376,7 @@ class TestDBService(
             LayoutSwitch::class -> switchDao.deleteRow(asset.rowId as LayoutRowId<LayoutSwitch>)
             LayoutKmPost::class -> kmPostDao.deleteRow(asset.rowId as LayoutRowId<LayoutKmPost>)
             LayoutTrackNumber::class -> trackNumberDao.deleteRow(asset.rowId as LayoutRowId<LayoutTrackNumber>)
+            OperationalPoint::class -> operationalPointDao.deleteRow(asset.rowId as LayoutRowId<OperationalPoint>)
             else -> error("Unknown asset type: ${T::class.simpleName}")
         }
 
