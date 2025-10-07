@@ -57,7 +57,7 @@ data class SearchOperationalPointsByLocation(override val bbox: BoundingBox) : O
 
 data class UicCode @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
     companion object {
-        val allowedLength = 0..150
+        val allowedLength = 0..20
         val sanitizer = StringSanitizer(UicCode::class, "0-9", allowedLength)
     }
 
@@ -88,7 +88,7 @@ data class OperationalPointName @JsonCreator(mode = DELEGATING) constructor(priv
 
 data class OperationalPointAbbreviation @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
     companion object {
-        val allowedLength = 1..150
+        val allowedLength = 0..20
         val sanitizer =
             StringSanitizer(
                 OperationalPointAbbreviation::class,
