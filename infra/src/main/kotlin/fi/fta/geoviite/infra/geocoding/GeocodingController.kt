@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -38,6 +39,23 @@ class GeocodingController(
     ): ResponseEntity<TrackMeter> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return toResponse(geocodingService.getAddressIfWithin(layoutContext, trackNumberId, coordinate))
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/projection-lines/{trackNumberId}")
+    fun getMeterProjectionLines(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
+    ): ResponseEntity<List<ProjectionLine<ReferenceLineM>>> {
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        return toResponse(
+            geocodingService
+                .getGeocodingContext(layoutContext, trackNumberId)
+                ?.projectionLines
+                ?.getValue(Resolution.ONE_METER)
+                ?.value
+        )
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

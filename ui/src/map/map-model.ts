@@ -46,6 +46,7 @@ export type MapLayerName =
     | 'plan-area-layer'
     | 'operating-points-layer'
     | 'debug-1m-points-layer'
+    | 'debug-projection-lines-layer'
     | 'debug-layer'
     | 'virtual-km-post-linking-layer'
     | 'virtual-hide-geometry-layer'
@@ -112,6 +113,7 @@ export type MapLayerMenuItemName =
     | 'geometry-km-post'
     | 'operating-points'
     | 'debug-1m'
+    | 'debug-projection-lines'
     | 'debug'
     | 'debug-layout-graph'
     | 'debug-layout-graph-nano';

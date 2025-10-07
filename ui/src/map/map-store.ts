@@ -109,6 +109,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'geometry-km-post': ['geometry-km-post-layer'],
     'operating-points': ['operating-points-layer'],
     'debug-1m': ['debug-1m-points-layer'],
+    'debug-projection-lines': ['debug-projection-lines-layer'],
     'debug': ['debug-layer'],
     'debug-layout-graph': ['debug-geometry-graph-layer'],
     'debug-layout-graph-nano': [], // This is technically a setting, not a map layer by itself.
@@ -188,6 +189,7 @@ export const initialMapState: Map = {
         ],
         debug: [
             { name: 'debug-1m', visible: false },
+            { name: 'debug-projection-lines', visible: false },
             { name: 'debug', visible: false },
             {
                 name: 'debug-layout-graph',

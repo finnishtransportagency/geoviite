@@ -3,6 +3,7 @@ import { MapLayerName } from 'map/map-model';
 export const GEOMETRY_GRAPH = 50.0;
 export const LINKING_DOTS = 0.19;
 export const DEBUG_1M_POINTS = 0.06;
+export const DEBUG_PROJECTION_LINES = 1.0;
 
 export const HIGHLIGHTS_SHOW = 100.0;
 

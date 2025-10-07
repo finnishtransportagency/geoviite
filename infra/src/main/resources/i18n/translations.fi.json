@@ -1389,6 +1389,7 @@
         "geometry-km-post": "Suunnitelman tasakilometripisteet",
         "operating-points": "Liikennepaikat",
         "debug-1m": "Tasametripisteet",
+        "debug-projection-lines": "Geokoodauksen projektioviivat",
         "debug": "Debug",
         "debug-layout-graph": "Raidegraafi",
         "debug-layout-graph-nano": "Nano-tason graafi"
