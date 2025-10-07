@@ -89,11 +89,11 @@ import fi.fta.geoviite.infra.util.getTrackNumberOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -603,7 +603,7 @@ class PublicationDao(
                 id to
                     Publication(
                         id = id,
-                        uuid = rs.getUuid<Publication>("publication_uuid"),
+                        uuid = rs.getUuid("publication_uuid"),
                         publicationUser = rs.getString("publication_user").let(UserName::of),
                         publicationTime = rs.getInstant("publication_time"),
                         message = rs.getPublicationMessage("message"),
@@ -1531,30 +1531,29 @@ class PublicationDao(
 
                 trackIds.forEachIndexed { index, id ->
                     val connectionMap =
-                        when (requireNotNull(trackChangeSides[index])) {
+                        when (trackChangeSides[index]) {
                             ChangeSide.OLD -> oldTracks
                             ChangeSide.NEW -> newTracks
                             ChangeSide.NA -> unchangedTracks
                         }
                     val presentationJointNumber =
-                        when (requireNotNull(trackChangeSides[index])) {
+                        when (trackChangeSides[index]) {
                             ChangeSide.OLD -> presentationJointNumberChange.old
                             else -> presentationJointNumberChange.new
                         }
                     connectionMap.compute(id) { id, current ->
-                        val jointNumber = requireNotNull(trackJointNumbers[index])
+                        val jointNumber = trackJointNumbers[index]
                         val joint =
                             PublicationSwitchJoint(
                                 jointNumber = jointNumber,
-                                location =
-                                    Point(requireNotNull(trackJointXs[index]), requireNotNull(trackJointYs[index])),
+                                location = Point(trackJointXs[index], trackJointYs[index]),
                                 isPresentationJoint = jointNumber == presentationJointNumber,
                             )
                         current?.copy(joints = current.joints + joint)
                             ?: SwitchLocationTrack(
                                 id = id,
-                                trackNumberId = requireNotNull(trackNumberIds[index]),
-                                name = requireNotNull(trackNames[index]),
+                                trackNumberId = trackNumberIds[index],
+                                name = trackNames[index],
                                 joints = listOf(joint),
                             )
                     }
@@ -2097,8 +2096,7 @@ class PublicationDao(
                         name = AlignmentName(rs.getString("name")),
                         trackNumberId = rs.getIntId("track_number_id"),
                         operation = rs.getEnum("operation"),
-                        changedKmNumbers =
-                            rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
+                        changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
                     )
             }
             .let { locationTrackRows ->
@@ -2283,7 +2281,7 @@ class PublicationDao(
             }
             .groupBy({ it.first.first }, { it.first.second to it.second })
             .mapValues { (_, idsAndJoints) ->
-                idsAndJoints.groupBy({ it.first }).mapValues { (_, js) -> js.map { it.second } }
+                idsAndJoints.groupBy { it.first }.mapValues { (_, js) -> js.map { it.second } }
             }
     }
 
@@ -2376,48 +2374,88 @@ class PublicationDao(
         return fetchPublicationIdByUuid(uuid)?.let(::getPublication)
     }
 
-    fun fetchPublishedLocationTracksAfterMoment(
+    fun fetchPublishedLocationTrackBetween(
+        trackId: IntId<LocationTrack>,
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
-    ): List<IntId<LocationTrack>> {
+    ): LayoutRowVersion<LocationTrack>? =
+        fetchPublishedLocationTracksBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, trackId).singleOrNull()
+
+    fun fetchPublishedLocationTracksBetween(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): List<LayoutRowVersion<LocationTrack>> =
+        fetchPublishedLocationTracksBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, null)
+
+    private fun fetchPublishedLocationTracksBetweenInternal(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+        trackId: IntId<LocationTrack>? = null,
+    ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
-            select distinct plt.id as location_track_id
+            select distinct on (plt.id)
+              plt.id,
+              plt.layout_context_id,
+              plt.version
             from publication.location_track plt
               join publication.publication publication on plt.publication_id = publication.id
             where design_id is null 
+              and (:track_id::int is null or plt.id = :track_id)
               and publication.publication_time > :start_time 
-              and publication.publication_time <= :end_time;
+              and publication.publication_time <= :end_time
+            order by plt.id, publication.publication_time desc
         """
 
         val params =
             mapOf(
                 "start_time" to Timestamp.from(exclusiveStartMoment),
                 "end_time" to Timestamp.from(inclusiveEndMoment),
+                "track_id" to trackId?.intValue,
             )
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("location_track_id") }
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
     }
 
-    fun fetchPublishedTrackNumbersAfterMoment(
+    fun fetchPublishedTrackNumberBetween(
+        id: IntId<LayoutTrackNumber>,
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
-    ): List<IntId<LayoutTrackNumber>> {
+    ): LayoutRowVersion<LayoutTrackNumber>? =
+        fetchPublishedTrackNumbersBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id).singleOrNull()
+
+    fun fetchPublishedTrackNumbersBetween(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): List<LayoutRowVersion<LayoutTrackNumber>> =
+        fetchPublishedTrackNumbersBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id = null)
+
+    private fun fetchPublishedTrackNumbersBetweenInternal(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+        id: IntId<LayoutTrackNumber>?,
+    ): List<LayoutRowVersion<LayoutTrackNumber>> {
         val sql =
             """
-            select distinct ptn.id as track_number_id
+            select distinct on (ptn.id)
+              ptn.id,
+              ptn.layout_context_id,
+              ptn.version
             from publication.track_number ptn
               join publication.publication publication on ptn.publication_id = publication.id
-            where design_id is null 
+            where design_id is null
+              and (:tn_id::int is null or ptn.id = :tn_id)
               and publication.publication_time > :start_time 
-              and publication.publication_time <= :end_time;
+              and publication.publication_time <= :end_time
+            order by ptn.id, publication.publication_time desc
         """
 
         val params =
             mapOf(
                 "start_time" to Timestamp.from(exclusiveStartMoment),
                 "end_time" to Timestamp.from(inclusiveEndMoment),
+                "tn_id" to id?.intValue,
             )
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("track_number_id") }
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
     }
 
     fun fetchPublishedSwitchJoints(

@@ -7,20 +7,27 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
+import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
@@ -293,4 +300,50 @@ constructor(
                     .forEach { (expected, response) -> assertEquals(expected, response.rataosoite) }
             }
     }
+
+    @Test
+    fun `Track number modification API should show modifications for calculated change`() {
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val tnOid = testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
+
+        val basePublication =
+            extTestDataService.publishInMain(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
+        getExtTrackNumber(tnOid).also { assertAddressRange(it, "0000+0000.000", "0000+0010.000") }
+        api.trackNumbers.verifyNoModificationSince(tnOid, basePublication.uuid)
+
+        initUser()
+        val newStart = TrackMeter(KmNumber("0001"), BigDecimal.TEN)
+        mainDraftContext.save(mainOfficialContext.fetch(rlId)!!.copy(startAddress = newStart), rlGeom)
+        val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(rlId))
+        assertAddressRange(getExtTrackNumber(tnOid), "0001+0010.000", "0001+0020.000")
+        api.trackNumbers.getModifiedBetween(tnOid, basePublication.uuid, rlPublication.uuid).also { mod ->
+            assertAddressRange(mod.ratanumero, "0001+0010.000", "0001+0020.000")
+        }
+        api.trackNumbers.verifyNoModificationSince(tnOid, rlPublication.uuid)
+
+        initUser()
+        val kmpId = mainDraftContext.save(kmPost(tnId, KmNumber(4), gkLocation = kmPostGkLocation(5.0, 0.0))).id
+        val kmpPublication = extTestDataService.publishInMain(kmPosts = listOf(kmpId))
+        assertAddressRange(getExtTrackNumber(tnOid), "0001+0010.000", "0004+0005.000")
+        api.trackNumbers.getModifiedBetween(tnOid, rlPublication.uuid, kmpPublication.uuid).also { mod ->
+            assertAddressRange(mod.ratanumero, "0001+0010.000", "0004+0005.000")
+        }
+        api.trackNumbers.getModifiedBetween(tnOid, basePublication.uuid, kmpPublication.uuid).also { mod ->
+            assertAddressRange(mod.ratanumero, "0001+0010.000", "0004+0005.000")
+        }
+        api.trackNumbers.getModifiedBetween(tnOid, basePublication.uuid, rlPublication.uuid).also { mod ->
+            assertAddressRange(mod.ratanumero, "0001+0010.000", "0001+0020.000")
+        }
+        api.trackNumbers.verifyNoModificationSince(tnOid, kmpPublication.uuid)
+
+        assertAddressRange(getExtTrackNumber(tnOid, basePublication), "0000+0000.000", "0000+0010.000")
+        assertAddressRange(getExtTrackNumber(tnOid, rlPublication), "0001+0010.000", "0001+0020.000")
+        assertAddressRange(getExtTrackNumber(tnOid, kmpPublication), "0001+0010.000", "0004+0005.000")
+    }
+
+    private fun getExtTrackNumber(oid: Oid<LayoutTrackNumber>, publication: Publication? = null): ExtTestTrackNumberV1 =
+        (publication?.uuid?.let { uuid -> api.trackNumbers.getAtVersion(oid, uuid) } ?: api.trackNumbers.get(oid))
+            .ratanumero
 }
