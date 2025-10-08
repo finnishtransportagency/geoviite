@@ -4,10 +4,7 @@ import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { formatDateShort, getMaxTimestamp, getMinTimestamp } from 'utils/date-utils';
 import Infobox from 'tool-panel/infobox/infobox';
-import {
-    useReferenceLineChangeTimes,
-    useTrackNumberChangeTimes,
-} from 'track-layout/track-layout-react-utils';
+import { useReferenceLineChangeTimes, useTrackNumberChangeTimes, } from 'track-layout/track-layout-react-utils';
 import { LayoutReferenceLine, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
@@ -15,6 +12,8 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { createDelegates } from 'store/store-utils';
 import { useAppNavigate } from 'common/navigate';
 import { SearchItemType } from 'asset-search/search-dropdown';
+import { useHasPublicationLog } from 'publication/publication-utils';
+import { getTrackNumberById } from 'track-layout/layout-track-number-api';
 
 type TrackNumberChangeInfoInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -46,6 +45,11 @@ export const TrackNumberChangeInfoInfobox: React.FC<TrackNumberChangeInfoInfobox
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const navigate = useAppNavigate();
+
+    const hasPublicationLog = useHasPublicationLog(trackNumber.id, getTrackNumberById, changedTime);
+    const openPublicationLogButtonTitle = hasPublicationLog
+        ? undefined
+        : t('tool-panel.track-number.publication-log-unavailable');
 
     const openPublicationLog = React.useCallback(() => {
         delegates.startFreshSpecificItemPublicationLogSearch({
@@ -81,6 +85,8 @@ export const TrackNumberChangeInfoInfobox: React.FC<TrackNumberChangeInfoInfobox
                         <Button
                             size={ButtonSize.SMALL}
                             variant={ButtonVariant.SECONDARY}
+                            title={openPublicationLogButtonTitle}
+                            disabled={!hasPublicationLog}
                             onClick={openPublicationLog}>
                             {t('tool-panel.show-in-publication-log')}
                         </Button>
