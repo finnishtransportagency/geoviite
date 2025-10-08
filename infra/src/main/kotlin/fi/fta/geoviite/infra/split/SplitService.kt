@@ -46,11 +46,9 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
-import kotlin.math.max
-import kotlin.math.min
 
 const val MAX_SPLIT_GEOM_ADJUSTMENT = 5.0
 
@@ -621,10 +619,12 @@ private fun connectPartialDuplicateEdges(
                 ?: failEdgeConnection(replacements.last(), e)
         }
     // The edges before and after the connecting ones are taken as-is
-    // Note: sublist in end-exclusive so hitting the min/max limits results in an empty list, as desired
-    val startEdges = geometry.edges.subList(0, max(0, replacementIndices.first - 2))
-    val endEdges = geometry.edges.subList(min(replacementIndices.last + 2, geometry.edges.size), geometry.edges.size)
-    return startEdges + listOfNotNull(startConnection) + replacements + listOfNotNull(endConnection) + endEdges
+    val startEdges =
+        if (replacementIndices.first <= 1) emptyList() else geometry.edges.subList(0, replacementIndices.first - 1)
+    val endEdges =
+        if (replacementIndices.last >= geometry.edges.lastIndex - 1) emptyList()
+        else geometry.edges.subList(replacementIndices.last + 2, geometry.edges.size)
+    return (startEdges + listOfNotNull(startConnection) + replacements + listOfNotNull(endConnection) + endEdges)
 }
 
 private fun failEdgeConnection(prev: LayoutEdge, next: LayoutEdge): Nothing =
