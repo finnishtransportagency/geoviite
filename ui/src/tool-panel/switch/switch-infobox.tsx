@@ -152,6 +152,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         () => getSwitch(switchId, layoutContext),
         [switchId, changeTimes.layoutSwitch, layoutContext.branch, layoutContext.publicationState],
     );
+
     const structure = switchStructures?.find(
         (structure) => structure.id === layoutSwitch?.switchStructureId,
     );
