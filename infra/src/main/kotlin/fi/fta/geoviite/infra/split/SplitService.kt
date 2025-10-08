@@ -46,9 +46,11 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import kotlin.math.max
+import kotlin.math.min
 
 const val MAX_SPLIT_GEOM_ADJUSTMENT = 5.0
 
@@ -603,29 +605,26 @@ fun splitLocationTrack(
 
 private fun connectPartialDuplicateEdges(
     geometry: LocationTrackGeometry,
-    replacementEdges: List<LayoutEdge>,
+    replacements: List<LayoutEdge>,
     replacementIndices: IntRange,
 ): List<LayoutEdge> {
-    // Partial duplicate edges before the split start position
-    val startEdges = geometry.edges.subList(0, replacementIndices.start)
-    // Partial duplicate edges after the split end position
-    val endEdges = geometry.edges.subList(replacementIndices.endInclusive + 1, geometry.edges.size)
-    // Split source track edges: adjust so that they connect to start/end properly
-    val adjustedMidEdges =
-        replacementEdges.mapIndexed { index, edge ->
-            edge
-                .let { e ->
-                    e.takeIf { index > 0 || startEdges.isEmpty() }
-                        ?: e.connectStartFrom(startEdges.last(), MAX_SPLIT_GEOM_ADJUSTMENT)
-                        ?: failEdgeConnection(startEdges.last(), e)
-                }
-                .let { e ->
-                    e.takeIf { index < replacementEdges.lastIndex || endEdges.isEmpty() }
-                        ?: e.connectEndTo(endEdges.first(), MAX_SPLIT_GEOM_ADJUSTMENT)
-                        ?: failEdgeConnection(e, endEdges.first())
-                }
+    require(replacements.isNotEmpty()) { "Cannot replace edges with nothing" }
+    // The connecting edges (edges around the connection point) must be adjusted to fit the new geometry properly
+    val startConnection =
+        geometry.edges.getOrNull(replacementIndices.first - 1)?.let { e ->
+            e.connectEndTo(replacements.first(), MAX_SPLIT_GEOM_ADJUSTMENT)
+                ?: failEdgeConnection(e, replacements.first())
         }
-    return startEdges + adjustedMidEdges + endEdges
+    val endConnection =
+        geometry.edges.getOrNull(replacementIndices.last + 1)?.let { e ->
+            e.connectStartFrom(replacements.last(), MAX_SPLIT_GEOM_ADJUSTMENT)
+                ?: failEdgeConnection(replacements.last(), e)
+        }
+    // The edges before and after the connecting ones are taken as-is
+    // Note: sublist in end-exclusive so hitting the min/max limits results in an empty list, as desired
+    val startEdges = geometry.edges.subList(0, max(0, replacementIndices.first - 2))
+    val endEdges = geometry.edges.subList(min(replacementIndices.last + 2, geometry.edges.size), geometry.edges.size)
+    return startEdges + listOfNotNull(startConnection) + replacements + listOfNotNull(endConnection) + endEdges
 }
 
 private fun failEdgeConnection(prev: LayoutEdge, next: LayoutEdge): Nothing =

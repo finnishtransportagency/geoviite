@@ -458,8 +458,7 @@ sealed class LayoutEdge : IAlignment<EdgeM> {
         return if (newStart == startNode && newEnd == endNode) this else TmpLayoutEdge(newStart, newEnd, segments)
     }
 
-    private fun findStartConnectionM(preceding: LayoutEdge, seekDistance: Double, tolerance: Double): LineM<EdgeM>? {
-        if (firstSegmentStart.isSame(preceding.lastSegmentEnd, tolerance)) return LineM(0.0)
+    private fun findStartConnectionM(preceding: LayoutEdge, seekDistance: Double): LineM<EdgeM>? {
         val prevEnd = preceding.lastSegmentEnd
         val prevEndDirection = preceding.segments.last().endDirection
         return allAlignmentPoints
@@ -468,8 +467,7 @@ sealed class LayoutEdge : IAlignment<EdgeM> {
             ?.m
     }
 
-    private fun findEndConnectionM(following: LayoutEdge, seekDistance: Double, tolerance: Double): LineM<EdgeM>? {
-        if (lastSegmentEnd.isSame(following.firstSegmentStart, tolerance)) return length
+    private fun findEndConnectionM(following: LayoutEdge, seekDistance: Double): LineM<EdgeM>? {
         val nextStart = following.firstSegmentStart
         val nextStartDirection = following.segments.first().startDirection
         return allAlignmentPointsDownward
@@ -483,22 +481,24 @@ sealed class LayoutEdge : IAlignment<EdgeM> {
         maxAdjustDistance: Double,
         tolerance: Double = LAYOUT_M_DELTA,
     ): LayoutEdge? =
-        findStartConnectionM(previousEdge, maxAdjustDistance, tolerance)?.let { startConnectionM ->
-            val slicedSegments =
-                segments.takeIf { isSame(startConnectionM.distance, 0.0, tolerance) }
-                    ?: slice(segmentsWithM, Range(startConnectionM, length), tolerance)
-            val connectSegment = createGapIfNeeded(previousEdge.segments, slicedSegments)
-            withSegments(listOfNotNull(connectSegment) + slicedSegments)
-        }
+        takeIf { firstSegmentStart.isSame(previousEdge.lastSegmentEnd, tolerance) }
+            ?: findStartConnectionM(previousEdge, maxAdjustDistance)?.let { startConnectionM ->
+                val slicedSegments =
+                    segments.takeIf { isSame(startConnectionM.distance, 0.0, tolerance) }
+                        ?: slice(segmentsWithM, Range(startConnectionM, length), tolerance)
+                val connectSegment = createGapIfNeeded(previousEdge.segments, slicedSegments)
+                withSegments(listOfNotNull(connectSegment) + slicedSegments)
+            }
 
     fun connectEndTo(nextEdge: LayoutEdge, maxAdjustDistance: Double, tolerance: Double = LAYOUT_M_DELTA): LayoutEdge? =
-        findEndConnectionM(nextEdge, maxAdjustDistance, tolerance)?.let { endConnectionM ->
-            val slicedSegments =
-                segments.takeIf { isSame(endConnectionM.distance, length.distance, tolerance) }
-                    ?: slice(segmentsWithM, Range(LineM(0.0), endConnectionM), tolerance)
-            val connectSegment = createGapIfNeeded(slicedSegments, nextEdge.segments)
-            withSegments(slicedSegments + listOfNotNull(connectSegment))
-        }
+        takeIf { lastSegmentEnd.isSame(nextEdge.firstSegmentStart, tolerance) }
+            ?: findEndConnectionM(nextEdge, maxAdjustDistance)?.let { endConnectionM ->
+                val slicedSegments =
+                    segments.takeIf { isSame(endConnectionM.distance, length.distance, tolerance) }
+                        ?: slice(segmentsWithM, Range(LineM(0.0), endConnectionM), tolerance)
+                val connectSegment = createGapIfNeeded(slicedSegments, nextEdge.segments)
+                withSegments(slicedSegments + listOfNotNull(connectSegment))
+            }
 }
 
 data class TmpLayoutEdge(
