@@ -958,7 +958,8 @@
             "set-area": "Aseta alue kartalla",
             "created": "Luotu",
             "modified": "Muokattu",
-            "cannot-set-location-for-external": "Ratkon hallinnoiman toiminnallisen pisteen sijaintia ei voi muokata"
+            "cannot-set-location-for-external": "Ratkon hallinnoiman toiminnallisen pisteen sijaintia ei voi muokata",
+            "unset": "Ei asetettu"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
