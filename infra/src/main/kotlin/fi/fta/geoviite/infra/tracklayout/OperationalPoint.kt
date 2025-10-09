@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
@@ -16,22 +15,15 @@ data class OperationalPoint(
     val abbreviation: OperationalPointAbbreviation?,
     val uicCode: UicCode,
     val rinfType: Int?,
-    val raideType: OperationalPointType,
-    val area: Polygon?,
+    val raideType: OperationalPointType?,
+    val polygon: Polygon?,
     val location: Point?,
-    val trackNumberId: IntId<LayoutTrackNumber>,
     val state: OperationalPointState,
     val origin: OperationalPointOrigin,
     @JsonIgnore override val contextData: LayoutContextData<OperationalPoint>,
 ) : LayoutAsset<OperationalPoint>(contextData) {
     override fun toLog(): String =
-        logFormat(
-            "id" to id,
-            "version" to version,
-            "context" to contextData::class.simpleName,
-            "name" to name,
-            "trackNumber" to trackNumberId,
-        )
+        logFormat("id" to id, "version" to version, "context" to contextData::class.simpleName, "name" to name)
 
     override fun withContext(contextData: LayoutContextData<OperationalPoint>): OperationalPoint =
         copy(contextData = contextData)

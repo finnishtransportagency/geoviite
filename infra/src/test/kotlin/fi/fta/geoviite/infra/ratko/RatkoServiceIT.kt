@@ -1281,7 +1281,11 @@ constructor(
         assertEquals(trackNumberId, pointFromIntegrationTable.trackNumberId)
 
         val pointsFromLayoutTable =
-            operationalPointService.listNear(LayoutBranch.main.draft, boundingBoxAroundPoint(Point(95.0, 95.0), 10.0))
+            operationalPointService.list(
+                LayoutBranch.main.draft,
+                bbox = boundingBoxAroundPoint(Point(95.0, 95.0), 10.0),
+                ids = null,
+            )
         assertEquals(1, pointsFromIntegrationTable.size)
         val pointFromLayoutTable = pointsFromLayoutTable[0]
         assertEquals(
@@ -1293,7 +1297,6 @@ constructor(
         assertEquals("123101431", pointFromLayoutTable.uicCode.toString())
         assertEquals(OperationalPointType.LPO, pointFromLayoutTable.raideType)
         assertEquals(Point(100.0, 100.0), pointFromLayoutTable.location)
-        assertEquals(trackNumberId, pointFromLayoutTable.trackNumberId)
     }
 
     @Test

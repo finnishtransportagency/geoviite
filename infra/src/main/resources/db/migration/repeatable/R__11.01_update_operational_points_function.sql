@@ -13,8 +13,7 @@ create type integrations.full_ratko_operational_point as
   abbreviation    text,
   uic_code        text,
   type            layout.operational_point_type,
-  location        postgis.geometry,
-  track_number_id int
+  location        postgis.geometry
 );
 comment on type integrations.full_ratko_operational_point is 'Internal type used in importing operational points from Ratko.';
 
@@ -25,8 +24,7 @@ select a.name != b.name or
        a.abbreviation != b.abbreviation or
        a.uic_code != b.uic_code or
        a.type != b.type or
-       a.location::text != b.location::text or
-       a.track_number_id != b.track_number_id;
+       a.location::text != b.location::text;
 $$ language sql;
 
 create function integrations.update_operational_points_from_ratko() returns void as
@@ -70,7 +68,7 @@ with
   ),
   -- (id, external_id, name, abbreviation...)
   all_ratko_rows as (
-    select id, external_id, name, abbreviation, uic_code, type, location, track_number_id
+    select id, external_id, name, abbreviation, uic_code, type, location
       from integrations.ratko_operational_point
         join (
         (
@@ -112,11 +110,11 @@ with
   deletions as (
     insert into layout.operational_point
       (id, draft, design_id, layout_context_id, design_asset_state, origin_design_id, origin,
-       name, abbreviation, uic_code, type, location, track_number_id, state, rinf_type_code)
+       name, abbreviation, uic_code, type, location, state, rinf_type_code)
       (
         select
           id, true, null, 'main_draft', design_asset_state, origin_design_id, 'RATKO',
-          name, abbreviation, uic_code, type, location, track_number_id, 'DELETED', rinf_type_code
+          name, abbreviation, uic_code, type, location, 'DELETED', rinf_type_code
           from layout.operational_point
           where not exists (
             select *
@@ -136,12 +134,12 @@ with
 insert
   into layout.operational_point
     (id, draft, design_id, layout_context_id, design_asset_state, origin_design_id, origin,
-     name, abbreviation, uic_code, type, location, track_number_id, state,
+     name, abbreviation, uic_code, type, location, state,
      rinf_type_code, polygon)
     (
       select
         id, true, null, 'main_draft', null, null, 'RATKO',
-        name, abbreviation, uic_code, type, location, track_number_id, 'IN_USE',
+        name, abbreviation, uic_code, type, location, 'IN_USE',
         existing_point.rinf_type_code, existing_point.polygon
         from to_update
           left join lateral
@@ -156,7 +154,6 @@ on conflict (id, layout_context_id) do update set
   name = excluded.name,
   abbreviation = excluded.abbreviation,
   uic_code = excluded.uic_code,
-  location = excluded.location,
-  track_number_id = excluded.track_number_id;
+  location = excluded.location;
 $$
   language sql;
