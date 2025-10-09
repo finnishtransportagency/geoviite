@@ -426,6 +426,9 @@ fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
                         ),
                     )
                 }
-            SwitchConnectivity(alignments = linkableFullAlignments + linkableSplitAlignments, frontJoint = null)
+            SwitchConnectivity(
+                alignments = linkableFullAlignments + linkableSplitAlignments.distinctBy { it.joints },
+                frontJoint = null,
+            )
         }
     }
