@@ -2208,6 +2208,12 @@
             "title": "Toiminnallisen pisteen poistaminen paikannuspohjasta",
             "deleted-op-not-allowed": "Poistettu-tilainen toiminnallinen piste ei voi olla osa paikannuspohjaa.",
             "confirm": "Haluatko poistaa toiminnallisen pisteen paikannuspohjasta?"
+        },
+        "validation": {
+            "invalid-name": "Virheellinen nimi",
+            "invalid-abbreviation": "Virheellinen lyhenne",
+            "invalid-uic-code": "Virheellinen UIC-koodi",
+            "mandatory-field": "Pakollinen kenttä"
         }
     },
     "licenses-page": {

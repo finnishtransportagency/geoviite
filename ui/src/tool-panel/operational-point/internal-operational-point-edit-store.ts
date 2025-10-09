@@ -4,10 +4,17 @@ import {
     FieldValidationIssueType,
     isPropEditFieldCommitted,
     PropEdit,
+    validate,
 } from 'utils/validation-utils';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
+
+export const UIC_CODE_REGEX = /^[0-9]+$/g;
+export const NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 _\-\\!?]+$/g;
+const UIC_CODE_MAX_LENGTH = 20;
+const ABBREVIATION_MAX_LENGTH = 20;
+const NAME_MAX_LENGTH = 150;
 
 export type InternalOperationalPointSaveRequest = {
     name?: string;
@@ -30,7 +37,7 @@ export type InternalOperationalPointEditState = {
 function validateInternalOperationalPoint(
     saveRequest: InternalOperationalPointSaveRequest,
 ): FieldValidationIssue<InternalOperationalPointSaveRequest>[] {
-    const errors: FieldValidationIssue<InternalOperationalPointSaveRequest>[] = [
+    const mandatoryFieldErrors: FieldValidationIssue<InternalOperationalPointSaveRequest>[] = [
         saveRequest.rinfType === undefined
             ? {
                   field: 'rinfType' as keyof InternalOperationalPointSaveRequest,
@@ -38,7 +45,7 @@ function validateInternalOperationalPoint(
                   type: FieldValidationIssueType.ERROR,
               }
             : undefined,
-        ...['name', 'abbreviation', 'state', 'uicCode'].map(
+        ...['name', 'state', 'uicCode'].map(
             (prop: keyof Omit<InternalOperationalPointSaveRequest, 'rinfType'>) =>
                 isNilOrBlank(saveRequest[prop])
                     ? {
@@ -48,10 +55,43 @@ function validateInternalOperationalPoint(
                       }
                     : undefined,
         ),
-        // TODO: Add more specific validation
+    ].filter(filterNotEmpty);
+    const regexAndLengthErrors: FieldValidationIssue<InternalOperationalPointSaveRequest>[] = [
+        validate<InternalOperationalPointSaveRequest>(
+            !saveRequest.uicCode ||
+                (!!saveRequest.uicCode?.match(UIC_CODE_REGEX) &&
+                    saveRequest.uicCode.length <= UIC_CODE_MAX_LENGTH),
+            {
+                field: 'uicCode',
+                reason: 'invalid-uic-code',
+                type: FieldValidationIssueType.ERROR,
+            },
+        ),
+        validate<InternalOperationalPointSaveRequest>(
+            !saveRequest.abbreviation ||
+                (!!saveRequest.abbreviation.match(NAME_REGEX) &&
+                    saveRequest.abbreviation.length <= ABBREVIATION_MAX_LENGTH),
+            {
+                field: 'abbreviation',
+                reason: 'invalid-abbreviation',
+                type: FieldValidationIssueType.ERROR,
+                params: { max: ABBREVIATION_MAX_LENGTH },
+            },
+        ),
+        validate<InternalOperationalPointSaveRequest>(
+            !saveRequest.name ||
+                (!!saveRequest.name.match(NAME_REGEX) &&
+                    saveRequest.name.length <= NAME_MAX_LENGTH),
+            {
+                field: 'name',
+                reason: 'invalid-name',
+                type: FieldValidationIssueType.ERROR,
+                params: { max: NAME_MAX_LENGTH },
+            },
+        ),
     ].filter(filterNotEmpty);
 
-    return errors;
+    return [...mandatoryFieldErrors, ...regexAndLengthErrors];
 }
 
 export const initialInternalOperationalPointEditState: InternalOperationalPointEditState = {
