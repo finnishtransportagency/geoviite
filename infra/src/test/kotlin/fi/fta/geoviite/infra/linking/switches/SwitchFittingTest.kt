@@ -99,7 +99,7 @@ data class TrackForSwitchFitting(
         val jointsByEdgeIndex =
             joints
                 .map { joint ->
-                    val mOnTrack =
+                    val mOnTrack: LineM<LocationTrackM> =
                         when (joint.location) {
                             is PlaceInnerJointAtTrackStart,
                             is PlaceTopologicalJointAtTrackStart -> LineM(0.0)
@@ -319,15 +319,6 @@ class SwitchFittingTest {
         assertJoint(fitted, 2, trackA.locationTrack, expectedM = LineM(distance1to2))
         assertJoint(fitted, 1, trackC.locationTrack, expectedM = LineM(0.0))
         assertJoint(fitted, 3, trackC.locationTrack, expectedM = LineM(distance1to3.distance))
-
-        // TODO: Selvitettävä vielä, vaikka todennäköisesti tällä ei ole juuri merkitystä.
-        /*
-        Eli track B:n osalta snäppäystä ei tällä hetkellä tapahdu, vaan getBestMatchesForJoint-funktio
-        suodattaa pois snpäpätyn matchin, jolloin jää jäljelle snäppäämätön match. Näin tapahtuu, koska tällä
-        raiteella on match vain yhteen jointtiin (numero 1), jolloin joint 1 on sekä start että end joint,
-        jolloin end tyyppinen match suodattuu pois.
-        */
-        // assertJoint(fitted, 1, trackB.locationTrack, expectedM = trackBLength)
     }
 
     @Test

@@ -26,7 +26,7 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtTestTrackLayoutV1
+class ExtTestTrackLayoutV1IT
 @Autowired
 constructor(
     mockMvc: MockMvc,
@@ -46,10 +46,7 @@ constructor(
         )
 
     private val collectionErrorTests =
-        listOf(
-            api.locationTrackCollection::getWithExpectedError,
-            api.trackNumberCollection::getWithExpectedError,
-        )
+        listOf(api.locationTrackCollection::getWithExpectedError, api.trackNumberCollection::getWithExpectedError)
 
     private val modificationErrorTests =
         listOf(
@@ -61,6 +58,12 @@ constructor(
         listOf(
             api.locationTrackCollection::getModifiedWithExpectedError,
             api.trackNumberCollection::getModifiedWithExpectedError,
+        )
+
+    private val geometryErrorTests =
+        listOf(
+            ::setupValidLocationTrack to api.locationTracks::getGeometryWithExpectedError,
+            ::setupValidTrackNumber to api.trackNumbers::getGeometryWithExpectedError,
         )
 
     private val noContentTests =
@@ -267,10 +270,7 @@ constructor(
         val emptyButRealPublication = extTestDataService.publishInMain()
 
         collectionModificationErrorTests.forEach { apiCall ->
-            apiCall(
-                arrayOf("alkuversio" to nonExistingTrackLayoutVersion),
-                HttpStatus.NOT_FOUND,
-            )
+            apiCall(arrayOf("alkuversio" to nonExistingTrackLayoutVersion), HttpStatus.NOT_FOUND)
 
             apiCall(
                 arrayOf("alkuversio" to nonExistingTrackLayoutVersion, "loppuversio" to nonExistingTrackLayoutVersion),
@@ -298,10 +298,7 @@ constructor(
         val emptyButRealPublication = extTestDataService.publishInMain()
 
         collectionModificationErrorTests.forEach { apiCall ->
-            apiCall(
-                arrayOf("alkuversio" to invalidTrackLayoutVersion),
-                HttpStatus.BAD_REQUEST,
-            )
+            apiCall(arrayOf("alkuversio" to invalidTrackLayoutVersion), HttpStatus.BAD_REQUEST)
 
             apiCall(
                 arrayOf("alkuversio" to invalidTrackLayoutVersion, "loppuversio" to invalidTrackLayoutVersion),
@@ -351,10 +348,7 @@ constructor(
         extTestDataService.publishInMain() // Purposefully a publication so that it does not answer based on this
 
         collectionErrorTests.forEach { apiCall ->
-            apiCall(
-                arrayOf("rataverkon_versio" to "00000000-0000-0000-0000-000000000000"),
-                HttpStatus.NOT_FOUND,
-            )
+            apiCall(arrayOf("rataverkon_versio" to "00000000-0000-0000-0000-000000000000"), HttpStatus.NOT_FOUND)
         }
     }
 
@@ -374,7 +368,7 @@ constructor(
 
             apiCall(
                 arrayOf(
-                    "alkuversio" to lastContentPublication.uuid.toString(),
+                    "alkuversio" to lastContentPublication.uuid.toString()
                     // This should implicitly use the last available track layout version which does not contain any
                     // meaningful changes
                 ),
@@ -391,18 +385,27 @@ constructor(
         }
     }
 
+    @Test
+    fun `Ext api asset geometry endpoints should return HTTP 400 if resolution is wrong`() {
+
+        geometryErrorTests
+            .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
+            .forEach { (oid, apiCall) ->
+                apiCall(oid.toString(), arrayOf("osoitepistevali" to "asd"), HttpStatus.BAD_REQUEST)
+                apiCall(oid.toString(), arrayOf("osoitepistevali" to "-1"), HttpStatus.BAD_REQUEST)
+                apiCall(oid.toString(), arrayOf("osoitepistevali" to "0.250"), HttpStatus.BAD_REQUEST)
+                apiCall(oid.toString(), arrayOf("osoitepistevali" to "0"), HttpStatus.BAD_REQUEST)
+                apiCall(oid.toString(), arrayOf("osoitepistevali" to "10.0"), HttpStatus.BAD_REQUEST)
+                apiCall(oid.toString(), arrayOf("osoitepistevali" to "1337"), HttpStatus.BAD_REQUEST)
+            }
+    }
+
     private fun setupValidTrackNumber(): Oid<LayoutTrackNumber> {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                segments = listOf(segment),
-            )
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
-        extTestDataService.publishInMain(
-            trackNumbers = listOf(trackNumberId),
-            referenceLines = listOf(referenceLineId),
-        )
+        extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
         return oid
     }
@@ -430,10 +433,7 @@ constructor(
     private fun setupValidLocationTrack(): Oid<LocationTrack> {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                segments = listOf(segment),
-            )
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
 

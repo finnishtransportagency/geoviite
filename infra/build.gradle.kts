@@ -1,3 +1,4 @@
+import com.diffplug.spotless.kotlin.KtfmtStep
 import com.github.jk1.license.filter.DependencyFilter
 import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.InventoryHtmlReportRenderer
@@ -12,15 +13,15 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "33.2"
-val kotlinVersion = "2.1.10"
+val kotlinVersion = "2.2.20"
 
 plugins {
     id("org.springframework.boot") version "3.5.5"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "2.9"
-    kotlin("jvm") version "2.1.10"
-    kotlin("plugin.spring") version "2.1.10"
-    id("com.ncorti.ktfmt.gradle") version "0.22.0"
+    kotlin("jvm") version "2.2.20"
+    kotlin("plugin.spring") version "2.2.20"
+    id("com.diffplug.spotless") version "8.0.0"
 }
 
 group = "fi.fta.geoviite"
@@ -37,11 +38,16 @@ repositories {
     mavenCentral()
 }
 
-ktfmt {
-    blockIndent = 4
-    continuationIndent = 4
-    maxWidth = 120
-    manageTrailingCommas = true
+configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+    kotlin {
+        ktfmt("0.58").kotlinlangStyle().configure {
+            it.setMaxWidth(120)
+            it.setBlockIndent(4)
+            it.setContinuationIndent(4)
+            it.setRemoveUnusedImports(true)
+            it.setTrailingCommaManagementStrategy(KtfmtStep.TrailingCommaManagementStrategy.COMPLETE)
+        }
+    }
 }
 
 configurations { all { exclude("org.springframework.boot", "spring-boot-starter-logging") } }
@@ -59,7 +65,9 @@ dependencies {
     }
 
     // Actual deps
-    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.791") { exclude("commons-logging", "commons-logging") }
+    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.791") {
+        exclude("commons-logging", "commons-logging")
+    }
     implementation("org.bouncycastle:bcpkix-jdk18on:1.81")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -117,11 +125,10 @@ dependencies {
 
 licenseReport {
     renderers = arrayOf<ReportRenderer>(InventoryHtmlReportRenderer("report.html", "Backend"))
-    filters =
-        arrayOf<DependencyFilter>(
-            LicenseBundleNormalizer()
-            // ExcludeTransitiveDependenciesFilter(),
-        )
+    filters = arrayOf<DependencyFilter>(
+        LicenseBundleNormalizer()
+        // ExcludeTransitiveDependenciesFilter(),
+    )
     allowedLicensesFile = File("$projectDir/allowed-licenses.json")
 }
 
@@ -148,14 +155,24 @@ tasks.withType<Test> {
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)
 }
 
-tasks.register<Test>("integrationtest") { useJUnitPlatform() }
-
-tasks.register<Test>("integrationtest-without-cache") {
-    systemProperty("geoviite.cache.enabled", false)
+tasks.register<Test>("integrationtest") {
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
 }
 
-tasks.register<Test>("ui-test-selenium-local") { useJUnitPlatform() }
+tasks.register<Test>("integrationtest-without-cache") {
+    systemProperty("geoviite.cache.enabled", false)
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform()
+}
+
+tasks.register<Test>("ui-test-selenium-local") {
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform()
+}
 
 tasks.register<Test>("ui-test-selenium-docker") {
     //     Unfortunately not dynamically assigned from the .env file yet :(
@@ -164,6 +181,8 @@ tasks.register<Test>("ui-test-selenium-docker") {
     environment("E2E_REMOTE_SELENIUM_HUB_ENABLED", "true")
     environment("E2E_URL_REMOTE_SELENIUM_HUB", "http://host.docker.internal:4444")
 
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
     useJUnitPlatform()
 }
 

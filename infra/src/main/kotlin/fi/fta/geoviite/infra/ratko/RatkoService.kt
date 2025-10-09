@@ -46,12 +46,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import java.time.Duration
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import java.time.Duration
-import java.time.Instant
 
 open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
     RuntimeException(cause)
@@ -81,7 +81,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
     private val lockDao: LockDao,
-    private val ratkoOperatingPointDao: RatkoOperatingPointDao,
+    private val ratkoOperationalPointDao: RatkoOperationalPointDao,
     private val splitService: SplitService,
     private val publicationDao: PublicationDao,
     private val layoutDesignDao: LayoutDesignDao,
@@ -89,10 +89,10 @@ constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(120)
 
-    fun updateOperatingPointsFromRatko() {
+    fun updateOperationalPointsFromRatko() {
         lockDao.runWithLock(DatabaseLock.RATKO_OPERATING_POINTS_FETCH, databaseLockDuration) {
-            val points = ratkoClient.fetchOperatingPoints()
-            ratkoOperatingPointDao.updateOperatingPoints(points)
+            val points = ratkoClient.fetchOperationalPoints()
+            ratkoOperationalPointDao.updateOperationalPoints(points)
         }
     }
 
@@ -318,7 +318,7 @@ constructor(
                     publication.split?.id?.let { splitId -> publication to splitService.getOrThrow(splitId) }
                 }
 
-            val locationTrackOidsPushedInSplits =
+            val locationTrackKilometersPushedInSplits =
                 publicationsToSplits
                     .map { (publication, split) ->
                         RatkoSplit(
@@ -348,12 +348,19 @@ constructor(
                     lastPublicationTime,
                 )
 
+            val changedKilometersOverride =
+                locationTrackKilometersPushedInSplits
+                    .map { locationTrackKilometers -> locationTrackKilometers.id to locationTrackKilometers.kilometers }
+                    .toMap()
+
             pushSwitchChanges(
                 layoutBranch = pushableBranch,
-                publishedSwitches = publications.flatMap { it.allPublishedSwitches },
+                publishedSwitches =
+                    publications.flatMap { it.allPublishedSwitches },
                 publishedLocationTracks = publications.flatMap { it.allPublishedLocationTracks },
                 publicationTime = lastPublicationTime,
                 extIds = extIds,
+                changedKilometersOverride = changedKilometersOverride,
             )
 
             ratkoPushDao.updatePushStatus(ratkoPushId, RatkoPushStatus.IN_PROGRESS_M_VALUES)
@@ -366,6 +373,8 @@ constructor(
                 logger.warn("Failed to push M values for route numbers $pushedRouteNumberOids")
             }
 
+            val locationTrackOidsPushedInSplits =
+                locationTrackKilometersPushedInSplits.map { locationTrackKilometers -> locationTrackKilometers.oid }
             try {
                 ratkoLocationTrackService.forceRedraw(
                     listOf(locationTrackOidsPushedInSplits, pushedLocationTrackOids)
@@ -430,6 +439,7 @@ constructor(
         publishedLocationTracks: List<PublishedLocationTrack>,
         publicationTime: Instant,
         extIds: AllOids,
+        changedKilometersOverride: Map<IntId<LocationTrack>, Set<KmNumber>>,
     ) {
         // Location track points are always removed per kilometre.
         // However, there is a slight chance that points used by switches (according to Geoviite)
@@ -438,10 +448,12 @@ constructor(
         val locationTrackSwitchChanges =
             publishedLocationTracks
                 .flatMap { locationTrack ->
+                    val filterByKmNumbers =
+                        changedKilometersOverride.getOrDefault(locationTrack.id, locationTrack.changedKmNumbers)
                     getSwitchChangesByLocationTrack(
                         layoutBranch = layoutBranch.branch,
                         locationTrackId = locationTrack.id,
-                        filterByKmNumbers = locationTrack.changedKmNumbers,
+                        filterByKmNumbers = filterByKmNumbers,
                         moment = publicationTime,
                         extIds = extIds,
                     )

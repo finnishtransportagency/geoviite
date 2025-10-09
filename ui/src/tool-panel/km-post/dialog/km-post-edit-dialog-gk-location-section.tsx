@@ -152,7 +152,6 @@ export const KmPostEditDialogGkLocationSection: React.FC<
             return '-';
         }
     };
-
     return (
         <>
             <Heading size={HeadingSize.SUB}>
@@ -208,7 +207,8 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                                 value={gkLocationEnabled ? state.kmPost.gkLocationY : ''}
                                 onChange={(e) => updateProp('gkLocationY', e.target.value)}
                                 disabled={!fieldsEnabled}
-                                onBlur={() => {
+                                onBlur={(e) => {
+                                    updateProp('gkLocationY', e.target.value.trim());
                                     stateActions.onCommitField('gkLocationY');
                                 }}
                                 hasError={hasErrors('gkLocationY')}
@@ -225,7 +225,8 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                                 value={gkLocationEnabled ? state.kmPost.gkLocationX : ''}
                                 disabled={!fieldsEnabled}
                                 onChange={(e) => updateProp('gkLocationX', e.target.value)}
-                                onBlur={() => {
+                                onBlur={(e) => {
+                                    updateProp('gkLocationX', e.target.value.trim());
                                     stateActions.onCommitField('gkLocationX');
                                 }}
                                 hasError={hasErrors('gkLocationX')}

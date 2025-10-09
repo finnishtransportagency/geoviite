@@ -81,8 +81,7 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
             if (i == edges.lastIndex) {
                 listOf(
                     e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min),
-                    e.endNode.node to
-                        e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min)),
+                    e.endNode.node to e.lastSegmentEnd.toAlignmentPoint(e.segmentMValues.last().min.toAlignmentM(m.min)),
                 )
             } else {
                 listOf(e.startNode.node to e.firstSegmentStart.toAlignmentPoint(m.min))
@@ -260,6 +259,10 @@ fun verifyTrackGeometry(trackId: IntId<LocationTrack>?, edges: List<LayoutEdge>)
         }
         require(prev.endNode.node.portB == null || prev.endNode.portConnection != next.startNode.portConnection) {
             "Outgoing edge cannot connect to the same node port as the incoming one: prev=${prev.endNode} next=${next.startNode}"
+        }
+
+        require(prev.lastSegmentEnd.isSame(next.firstSegmentStart, 0.001)) {
+            "Track edges should begin where the previous one ends: trackId=$trackId connectingNode=${prev.endNode} prevPoint=${prev.lastSegmentEnd} next=${next.firstSegmentStart}"
         }
     }
     edges.firstOrNull()?.startNode?.trackBoundaryIn?.let { boundary ->

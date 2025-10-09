@@ -1,10 +1,6 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-data class ExtTestAddressPointV1(
-    val x: Double,
-    val y: Double,
-    val rataosoite: String?,
-)
+data class ExtTestAddressPointV1(val x: Double, val y: Double, val rataosoite: String?)
 
 data class ExtTestLocationTrackV1(
     val sijaintiraide_oid: String,
@@ -27,8 +23,9 @@ data class ExtTestLocationTrackResponseV1(
 
 data class ExtTestLocationTrackGeometryResponseV1(
     val rataverkon_versio: String,
+    val sijaintiraide_oid: String,
     val koordinaatisto: String,
-    val osoitevalit: List<ExtTestGeometryIntervalV1>,
+    val osoitevali: ExtTestGeometryIntervalV1?,
 )
 
 data class ExtTestModifiedLocationTrackGeometryResponseV1(
@@ -82,8 +79,9 @@ data class ExtTestModifiedTrackNumberResponseV1(
 
 data class ExtTestTrackNumberGeometryResponseV1(
     val rataverkon_versio: String,
+    val ratanumero_oid: String,
     val koordinaatisto: String,
-    val osoitevalit: List<ExtTestGeometryIntervalV1>,
+    val osoitevali: ExtTestGeometryIntervalV1?,
 )
 
 data class ExtTestTrackNumberCollectionResponseV1(
@@ -99,14 +97,10 @@ data class ExtTestModifiedTrackNumberCollectionResponseV1(
     val ratanumerot: List<ExtTestTrackNumberV1>,
 )
 
-data class ExtTestErrorResponseV1(
-    val virheviesti: String,
-    val korrelaatiotunnus: String,
-    val aikaleima: String,
-)
+data class ExtTestErrorResponseV1(val virheviesti: String, val korrelaatiotunnus: String, val aikaleima: String)
 
 data class ExtTestGeometryIntervalV1(
-    val alku: String,
-    val loppu: String,
+    val alkuosoite: String,
+    val loppuosoite: String,
     val pisteet: List<ExtTestAddressPointV1>,
 )

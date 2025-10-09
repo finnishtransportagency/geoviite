@@ -4,9 +4,11 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.publication.Publication
+import kotlin.reflect.KClass
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
-import kotlin.reflect.KClass
 
 class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
     val testApiMapper = jacksonObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
@@ -48,11 +50,7 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             ExtTestModifiedTrackNumberCollectionResponseV1::class,
         )
 
-    inner class AssetApi<
-        AssetResponse : Any,
-        AssetModificationResponse : Any,
-        AssetGeometryResponse : Any,
-    >(
+    inner class AssetApi<AssetResponse : Any, AssetModificationResponse : Any, AssetGeometryResponse : Any>(
         private val assetUrl: (String) -> String,
         private val assetClazz: KClass<AssetResponse>,
         private val modifiedUrl: ((String) -> String)? = null,
@@ -62,6 +60,14 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
     ) {
         fun get(oid: Oid<*>, vararg params: Pair<String, String>): AssetResponse {
             return internalGet(assetClazz, assetUrl(oid.toString()), params.toMap())
+        }
+
+        fun getAtVersion(
+            oid: Oid<*>,
+            layoutVersion: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+        ): AssetResponse {
+            return get(oid, TRACK_LAYOUT_VERSION to layoutVersion.toString(), *params)
         }
 
         fun getWithExpectedError(
@@ -76,6 +82,20 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             internalGetWithoutBody(assetUrl(oid.toString()), params.toMap(), httpStatus)
         }
 
+        fun getModifiedBetween(
+            oid: Oid<*>,
+            fromVersion: Uuid<Publication>,
+            toVersion: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+        ): AssetModificationResponse {
+            return getModified(
+                oid,
+                TRACK_LAYOUT_VERSION_FROM to fromVersion.toString(),
+                TRACK_LAYOUT_VERSION_TO to toVersion.toString(),
+                *params,
+            )
+        }
+
         fun getModified(oid: Oid<*>, vararg params: Pair<String, String>): AssetModificationResponse {
             require(modifiedUrl != null) { "Modifications not supported for this asset" }
             return internalGet(requireNotNull(modifiedClazz), modifiedUrl(oid.toString()), params.toMap())
@@ -88,6 +108,19 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         ): ExtTestErrorResponseV1 {
             require(modifiedUrl != null) { "Modifications not supported for this asset type" }
             return internalGet(ExtTestErrorResponseV1::class, modifiedUrl(oid), params.toMap(), httpStatus)
+        }
+
+        fun verifyNoModificationSince(
+            oid: Oid<*>,
+            layoutVersion: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+        ) {
+            return getModifiedWithEmptyBody(
+                oid,
+                TRACK_LAYOUT_VERSION_FROM to layoutVersion.toString(),
+                *params,
+                httpStatus = HttpStatus.NO_CONTENT,
+            )
         }
 
         fun getModifiedWithEmptyBody(oid: Oid<*>, vararg params: Pair<String, String>, httpStatus: HttpStatus) {
@@ -115,10 +148,7 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         }
     }
 
-    inner class AssetCollectionApi<
-        AssetCollectionResponse : Any,
-        ModifiedAssetCollectionResponse : Any,
-    >(
+    inner class AssetCollectionApi<AssetCollectionResponse : Any, ModifiedAssetCollectionResponse : Any>(
         private val assetCollectionUrl: () -> String,
         private val assetCollectionClazz: KClass<AssetCollectionResponse>,
         private val modifiedAssetCollectionUrl: (() -> String)? = null,
@@ -129,10 +159,7 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             return internalGet(assetCollectionClazz, assetCollectionUrl(), params.toMap())
         }
 
-        fun getWithExpectedError(
-            vararg params: Pair<String, String>,
-            httpStatus: HttpStatus,
-        ): ExtTestErrorResponseV1 {
+        fun getWithExpectedError(vararg params: Pair<String, String>, httpStatus: HttpStatus): ExtTestErrorResponseV1 {
             return internalGet(ExtTestErrorResponseV1::class, assetCollectionUrl(), params.toMap(), httpStatus)
         }
 
@@ -149,17 +176,32 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             )
         }
 
+        fun getModifiedBetween(
+            fromVersion: Uuid<Publication>,
+            toVersion: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+        ): ModifiedAssetCollectionResponse {
+            return getModified(
+                TRACK_LAYOUT_VERSION_FROM to fromVersion.toString(),
+                TRACK_LAYOUT_VERSION_TO to toVersion.toString(),
+                *params,
+            )
+        }
+
+        fun verifyNoModificationSince(layoutVersion: Uuid<Publication>, vararg params: Pair<String, String>) {
+            return getModifiedWithEmptyBody(
+                TRACK_LAYOUT_VERSION_FROM to layoutVersion.toString(),
+                *params,
+                httpStatus = HttpStatus.NO_CONTENT,
+            )
+        }
+
         fun getModifiedWithExpectedError(
             vararg params: Pair<String, String>,
             httpStatus: HttpStatus,
         ): ExtTestErrorResponseV1 {
             require(modifiedAssetCollectionUrl != null) { "Modifications not supported for this asset collection type" }
-            return internalGet(
-                ExtTestErrorResponseV1::class,
-                modifiedAssetCollectionUrl(),
-                params.toMap(),
-                httpStatus,
-            )
+            return internalGet(ExtTestErrorResponseV1::class, modifiedAssetCollectionUrl(), params.toMap(), httpStatus)
         }
 
         fun getModifiedWithEmptyBody(vararg params: Pair<String, String>, httpStatus: HttpStatus) {
@@ -179,11 +221,7 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         }
     }
 
-    fun internalGetWithoutBody(
-        url: String,
-        params: Map<String, String> = emptyMap(),
-        httpStatus: HttpStatus,
-    ) {
+    fun internalGetWithoutBody(url: String, params: Map<String, String> = emptyMap(), httpStatus: HttpStatus) {
         testApiConnection.doGetWithParamsWithoutBody(url, params, httpStatus)
     }
 }

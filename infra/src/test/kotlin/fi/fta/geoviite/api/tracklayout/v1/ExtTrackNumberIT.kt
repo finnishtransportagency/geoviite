@@ -4,23 +4,35 @@ import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
+import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
+import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -49,10 +61,7 @@ constructor(
     fun `Newest official track number is returned by default`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                segments = listOf(segment),
-            )
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val publication1 =
             extTestDataService.publishInMain(
@@ -73,10 +82,7 @@ constructor(
     fun `Track number api respects the track layout version argument`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                segments = listOf(segment),
-            )
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val publication1 =
             extTestDataService.publishInMain(
@@ -123,10 +129,7 @@ constructor(
         val (trackNumberId, referenceLineId, oid) =
             extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
-        extTestDataService.publishInMain(
-            trackNumbers = listOf(trackNumberId),
-            referenceLines = listOf(referenceLineId),
-        )
+        extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
         tests.forEach { (epsgCode, expectedStart, expectedEnd) ->
             val response = api.trackNumbers.get(oid, "koordinaatisto" to epsgCode)
@@ -189,9 +192,7 @@ constructor(
                 val referenceLineId =
                     mainDraftContext.saveReferenceLine(referenceLineAndAlignment(trackNumber.id as IntId, segment)).id
 
-                extTestDataService.publishInMain(
-                    referenceLines = listOf(referenceLineId),
-                )
+                extTestDataService.publishInMain(referenceLines = listOf(referenceLineId))
 
                 val oid =
                     someOid<LayoutTrackNumber>().also { oid ->
@@ -231,4 +232,118 @@ constructor(
             assertExtLayoutState(trackNumber.state, response.ratanumero.tila)
         }
     }
+
+    @Test
+    fun `Track number geometry api returns points at addresses divisible by resolution`() {
+        // Purposefully chosen to not be exactly divisible by any resolution
+        val startM = 0.125
+        val endM = 225.780
+
+        val segment =
+            segment(
+                HelsinkiTestData.HKI_BASE_POINT,
+                HelsinkiTestData.HKI_BASE_POINT + Point(endM - startM, 0.0),
+                startM,
+            )
+        val (trackNumberId, referenceLineId, oid) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                segments = listOf(segment),
+                startAddress = TrackMeter(KmNumber("0000"), startM.toBigDecimal()),
+            )
+
+        extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
+
+        Resolution.entries
+            .map { it.meters }
+            .forEach { resolution ->
+                val response = api.trackNumbers.getGeometry(oid, "osoitepistevali" to resolution.toString())
+                assertGeometryIntervalAddressResolution(requireNotNull(response.osoitevali), resolution, startM, endM)
+            }
+    }
+
+    @Test
+    fun `Track number geometry api only returns start and end points if track number is shorter than resolution`() {
+        val startKmNumber = KmNumber("0000")
+
+        val startM = 0.1
+        val endM = 0.2
+        val intervalStartAddress = TrackMeter(startKmNumber, startM.toBigDecimal().setScale(3))
+        val intervalEndAddress = TrackMeter(startKmNumber, endM.toBigDecimal().setScale(3))
+
+        val segment =
+            segment(
+                HelsinkiTestData.HKI_BASE_POINT,
+                HelsinkiTestData.HKI_BASE_POINT + Point(0.0, endM - startM),
+                startM,
+            )
+        val (trackNumberId, referenceLineId, oid) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                segments = listOf(segment),
+                startAddress = intervalStartAddress,
+            )
+
+        extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
+
+        Resolution.entries
+            .map { it.meters }
+            .forEach { resolution ->
+                val response = api.trackNumbers.getGeometry(oid, "osoitepistevali" to resolution.toString())
+                assertNotNull(response.osoitevali)
+                assertEquals(intervalStartAddress, response.osoitevali.alkuosoite.let(::TrackMeter))
+                assertEquals(intervalEndAddress, response.osoitevali.loppuosoite.let(::TrackMeter))
+
+                listOf(intervalStartAddress, intervalEndAddress)
+                    .map { address -> address.toString() }
+                    .zip(response.osoitevali.pisteet)
+                    .forEach { (expected, response) -> assertEquals(expected, response.rataosoite) }
+            }
+    }
+
+    @Test
+    fun `Track number modification API should show modifications for calculated change`() {
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val tnOid = testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
+
+        val basePublication =
+            extTestDataService.publishInMain(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
+        getExtTrackNumber(tnOid).also { assertAddressRange(it, "0000+0000.000", "0000+0010.000") }
+        api.trackNumbers.verifyNoModificationSince(tnOid, basePublication.uuid)
+
+        initUser()
+        val newStart = TrackMeter(KmNumber("0001"), BigDecimal.TEN)
+        mainDraftContext.save(mainOfficialContext.fetch(rlId)!!.copy(startAddress = newStart), rlGeom)
+        val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(rlId))
+        assertAddressRange(getExtTrackNumber(tnOid), "0001+0010.000", "0001+0020.000")
+        api.trackNumbers.getModifiedBetween(tnOid, basePublication.uuid, rlPublication.uuid).also { mod ->
+            assertAddressRange(mod.ratanumero, "0001+0010.000", "0001+0020.000")
+        }
+        api.trackNumbers.verifyNoModificationSince(tnOid, rlPublication.uuid)
+
+        initUser()
+        val kmpId = mainDraftContext.save(kmPost(tnId, KmNumber(4), gkLocation = kmPostGkLocation(5.0, 0.0))).id
+        val kmpPublication = extTestDataService.publishInMain(kmPosts = listOf(kmpId))
+        assertAddressRange(getExtTrackNumber(tnOid), "0001+0010.000", "0004+0005.000")
+        api.trackNumbers.getModifiedBetween(tnOid, rlPublication.uuid, kmpPublication.uuid).also { mod ->
+            assertAddressRange(mod.ratanumero, "0001+0010.000", "0004+0005.000")
+        }
+        api.trackNumbers.getModifiedBetween(tnOid, basePublication.uuid, kmpPublication.uuid).also { mod ->
+            assertAddressRange(mod.ratanumero, "0001+0010.000", "0004+0005.000")
+        }
+        api.trackNumbers.getModifiedBetween(tnOid, basePublication.uuid, rlPublication.uuid).also { mod ->
+            assertAddressRange(mod.ratanumero, "0001+0010.000", "0001+0020.000")
+        }
+        api.trackNumbers.verifyNoModificationSince(tnOid, kmpPublication.uuid)
+
+        assertAddressRange(getExtTrackNumber(tnOid, basePublication), "0000+0000.000", "0000+0010.000")
+        assertAddressRange(getExtTrackNumber(tnOid, rlPublication), "0001+0010.000", "0001+0020.000")
+        assertAddressRange(getExtTrackNumber(tnOid, kmpPublication), "0001+0010.000", "0004+0005.000")
+    }
+
+    private fun getExtTrackNumber(oid: Oid<LayoutTrackNumber>, publication: Publication? = null): ExtTestTrackNumberV1 =
+        (publication?.uuid?.let { uuid -> api.trackNumbers.getAtVersion(oid, uuid) } ?: api.trackNumbers.get(oid))
+            .ratanumero
 }

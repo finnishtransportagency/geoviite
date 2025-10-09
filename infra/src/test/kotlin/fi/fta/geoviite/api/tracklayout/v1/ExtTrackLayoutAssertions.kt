@@ -1,9 +1,11 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import org.junit.jupiter.api.Assertions.assertEquals
+import java.math.BigDecimal
 
 fun assertExtStartAndEnd(
     expectedStart: Point,
@@ -38,4 +40,33 @@ fun assertExtLocationTrackState(expectedState: LocationTrackState, stateName: St
         }
 
     assertEquals(expectedStateName, stateName)
+}
+
+fun assertGeometryIntervalAddressResolution(
+    interval: ExtTestGeometryIntervalV1,
+    resolution: BigDecimal,
+    startM: Double,
+    endM: Double,
+) {
+    val delta = 0.0001
+
+    val responseStart = TrackMeter(interval.alkuosoite).meters.toDouble()
+    val responseEnd = TrackMeter(interval.loppuosoite).meters.toDouble()
+
+    assertEquals(startM, responseStart, delta)
+    assertEquals(endM, responseEnd, delta)
+
+    // Also check that the start/end points are included in the response's address point list as well.
+    assertEquals(startM, interval.pisteet.first().rataosoite!!.let(::TrackMeter).meters.toDouble(), delta)
+    assertEquals(endM, interval.pisteet.last().rataosoite!!.let(::TrackMeter).meters.toDouble(), delta)
+
+    interval.pisteet.drop(1).dropLast(1).forEach { point ->
+        // Middle points should be exactly divisible by resolution
+        assertEquals(0.0, (TrackMeter(point.rataosoite!!).meters % resolution).toDouble(), delta)
+    }
+}
+
+fun assertAddressRange(trackNumber: ExtTestTrackNumberV1, start: String, end: String) {
+    assertEquals(start, trackNumber.alkusijainti?.rataosoite)
+    assertEquals(end, trackNumber.loppusijainti?.rataosoite)
 }

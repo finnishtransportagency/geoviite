@@ -64,6 +64,7 @@ data class PVApiLatestVersion(
     @JsonProperty("versio") val version: PVId,
     @JsonProperty("nimi") val name: UnsafeString,
     @JsonProperty("muokattu") val changeTime: Instant,
+    @JsonProperty("koko") val size: Long,
 )
 
 data class PVApiDocumentMetadata(

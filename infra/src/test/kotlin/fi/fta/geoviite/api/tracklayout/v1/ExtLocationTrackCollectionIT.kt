@@ -4,17 +4,27 @@ import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
+import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.util.FreeText
+import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -124,9 +134,7 @@ constructor(
             .forEach { (track, geometry) ->
                 locationTrackService.saveDraft(
                     LayoutBranch.main,
-                    track.copy(
-                        description = FreeText("only in draft"),
-                    ),
+                    track.copy(description = FreeText("only in draft")),
                     geometry,
                 )
             }
@@ -163,18 +171,12 @@ constructor(
 
         layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
 
-        extTestDataService.publishInMain(
-            trackNumbers = listOf(trackNumberId),
-            referenceLines = listOf(referenceLineId),
-        )
+        extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
         val tracksToPublications =
             listOf(1, 2, 3).map { totalAmountOfLocationTracks ->
                 val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
-                val publication =
-                    extTestDataService.publishInMain(
-                        locationTracks = listOf(trackId),
-                    )
+                val publication = extTestDataService.publishInMain(locationTracks = listOf(trackId))
 
                 val trackOid =
                     someOid<LocationTrack>().also { oid ->
@@ -185,10 +187,7 @@ constructor(
             }
 
         tracksToPublications.forEach { (amountOfPublishedLocationTracks, trackOid, publication) ->
-            val response =
-                api.locationTrackCollection.get(
-                    "rataverkon_versio" to publication.uuid.toString(),
-                )
+            val response = api.locationTrackCollection.get("rataverkon_versio" to publication.uuid.toString())
 
             assertEquals(amountOfPublishedLocationTracks, response.sijaintiraiteet.size)
             assertTrue(response.sijaintiraiteet.any { track -> track.sijaintiraide_oid == trackOid.toString() })
@@ -363,6 +362,87 @@ constructor(
     }
 
     @Test
+    fun `Location track modifications listing lists tracks with calculated changes`() {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+        val (trackNumberId1, referenceLineId1, trackNumberOid1) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId2, referenceLineId2, trackNumberOid2) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+
+        val trackGeom = trackGeometryOfSegments(segment(Point(20.0, 0.0), Point(40.0, 0.0)))
+        val (trackId1, trackOid1) =
+            mainDraftContext.save(locationTrack(trackNumberId1), trackGeom).id.let {
+                it to testDBService.generateLocationTrackOid(it, LayoutBranch.main)
+            }
+        val (trackId2, trackOid2) =
+            mainDraftContext.save(locationTrack(trackNumberId1), trackGeom).id.let {
+                it to testDBService.generateLocationTrackOid(it, LayoutBranch.main)
+            }
+        val (trackId3, _) =
+            mainDraftContext.save(locationTrack(trackNumberId2), trackGeom).id.let {
+                it to testDBService.generateLocationTrackOid(it, LayoutBranch.main)
+            }
+
+        val basePublication =
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(trackNumberId1, trackNumberId2),
+                referenceLines = listOf(referenceLineId1, referenceLineId2),
+                locationTracks = listOf(trackId1, trackId2, trackId3),
+            )
+        getTracksByTrackNumberOids(trackNumberOid1, trackNumberOid2).forEach { track ->
+            assertEquals("0000+0020.000", track.alkusijainti?.rataosoite)
+        }
+        api.locationTrackCollection.verifyNoModificationSince(basePublication.uuid)
+
+        initUser()
+        mainDraftContext.save(
+            mainOfficialContext
+                .fetch(referenceLineId1)!!
+                .copy(startAddress = TrackMeter(KmNumber("0001"), BigDecimal.TEN)),
+            alignment(segment),
+        )
+        val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(referenceLineId1))
+        getTracksByTrackNumberOids(trackNumberOid1).forEach { track ->
+            assertEquals("0001+0030.000", track.alkusijainti?.rataosoite)
+        }
+        assertEquals(
+            setOf(trackOid1.toString() to "0001+0030.000", trackOid2.toString() to "0001+0030.000"),
+            api.locationTrackCollection
+                .getModifiedBetween(basePublication.uuid, rlPublication.uuid)
+                .sijaintiraiteet
+                .map { it.sijaintiraide_oid to it.alkusijainti?.rataosoite }
+                .toSet(),
+        )
+        api.locationTrackCollection.verifyNoModificationSince(rlPublication.uuid)
+
+        initUser()
+        val kmpId =
+            mainDraftContext.save(kmPost(trackNumberId1, KmNumber(4), gkLocation = kmPostGkLocation(10.0, 0.0))).id
+        val kmpPublication = extTestDataService.publishInMain(kmPosts = listOf(kmpId))
+        getTracksByTrackNumberOids(trackNumberOid1).forEach { track ->
+            assertEquals("0004+0010.000", track.alkusijainti?.rataosoite)
+        }
+        assertEquals(
+            setOf(trackOid1.toString() to "0004+0010.000", trackOid2.toString() to "0004+0010.000"),
+            api.locationTrackCollection
+                .getModifiedBetween(rlPublication.uuid, kmpPublication.uuid)
+                .sijaintiraiteet
+                .map { it.sijaintiraide_oid to it.alkusijainti?.rataosoite }
+                .toSet(),
+        )
+        api.locationTrackCollection.verifyNoModificationSince(kmpPublication.uuid)
+
+        getTracksByTrackNumberOids(trackNumberOid2).forEach { track ->
+            assertEquals("0000+0020.000", track.alkusijainti?.rataosoite)
+        }
+    }
+
+    private fun getTracksByTrackNumberOids(vararg tnOids: Oid<LayoutTrackNumber>): List<ExtTestLocationTrackV1> =
+        api.locationTrackCollection.get().sijaintiraiteet.filter { tn ->
+            tn.ratanumero_oid in tnOids.map { oid -> oid.toString() }
+        }
+
+    @Test
     fun `Location track modifications listing contains tracks in all states (including deleted)`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
@@ -494,10 +574,7 @@ constructor(
 
         val publicationEnd = extTestDataService.publishInMain(locationTracks = listOf(trackId))
 
-        val response =
-            api.locationTrackCollection.getModified(
-                "alkuversio" to publicationStart.uuid.toString(),
-            )
+        val response = api.locationTrackCollection.getModified("alkuversio" to publicationStart.uuid.toString())
 
         assertEquals(publicationStart.uuid.toString(), response.alkuversio)
         assertEquals(publicationEnd.uuid.toString(), response.loppuversio)

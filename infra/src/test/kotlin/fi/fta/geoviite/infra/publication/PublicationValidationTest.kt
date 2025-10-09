@@ -319,8 +319,8 @@ class PublicationValidationTest {
     }
 
     @Test
-    fun validationCatchesInvalidGeocodingContext() {
-        assertAddressPointError(true, { null }, "$VALIDATION_GEOCODING.no-context")
+    fun `Validation gives error when no addresses can be calculated`() {
+        assertAddressPointError(true, { null }, "$VALIDATION_GEOCODING.no-addresses")
     }
 
     @Test

@@ -1442,6 +1442,7 @@
         "geometry-km-post": "Suunnitelman tasakilometripisteet",
         "operational-points": "Liikennepaikat",
         "debug-1m": "Tasametripisteet",
+        "debug-projection-lines": "Geokoodauksen projektioviivat",
         "debug": "Debug",
         "debug-layout-graph": "Raidegraafi",
         "debug-layout-graph-nano": "Nano-tason graafi"
@@ -1641,6 +1642,7 @@
             },
             "reference-line": {
                 "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
+                "no-addresses": "Pituusmittauslinjalta ei voida laskea osoitteita raiteelle {{locationTrack}}",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava pituusmittauslinja ei ole luonnos",
                 "track-number": {
                     "not-official": "Pituusmittauslinja viittaa ratanumeron {{trackNumber}} luonnosriviin",
@@ -1654,6 +1656,7 @@
             },
             "location-track": {
                 "no-context": "Raiteelle ei voida laskea tasametripisteitä koska siitä puuttuu tietoja",
+                "no-addresses": "Raiteelle ei voida laskea osoitteita ratanumerolta {{trackNumber}}",
                 "duplicate-of": {
                     "state": {
                         "DELETED": "Raiteen duplikaatti {{duplicateTrack}} on poistettu. Duplikaattitietoa ei enää tarvita."

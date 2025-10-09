@@ -197,11 +197,7 @@ class ExtLocationTrackControllerV1(
         return publicationService
             .getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
             .let { publication ->
-                extLocationTrackService.createLocationTrackResponse(
-                    oid,
-                    publication,
-                    coordinateSystem ?: LAYOUT_SRID,
-                )
+                extLocationTrackService.createLocationTrackResponse(oid, publication, coordinateSystem ?: LAYOUT_SRID)
             }
             .let(::toResponse)
     }
@@ -333,10 +329,10 @@ class ExtLocationTrackControllerV1(
         coordinateSystem: Srid? = null,
         @Parameter(description = EXT_OPENAPI_ADDRESS_POINT_FILTER_START)
         @RequestParam(ADDRESS_POINT_FILTER_START, required = false)
-        addressPointFilterStart: ExtMaybeTrackKmOrTrackMeterV1? = null,
+        addressFilterStart: ExtMaybeTrackKmOrTrackMeterV1? = null,
         @Parameter(description = EXT_OPENAPI_ADDRESS_POINT_FILTER_END)
         @RequestParam(ADDRESS_POINT_FILTER_END, required = false)
-        addressPointFilterEnd: ExtMaybeTrackKmOrTrackMeterV1? = null,
+        addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1? = null,
     ): ResponseEntity<ExtLocationTrackGeometryResponseV1> {
         return publicationService
             .getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
@@ -344,9 +340,9 @@ class ExtLocationTrackControllerV1(
                 extLocationTrackGeometryService.createGeometryResponse(
                     oid,
                     publication,
-                    extResolution?.toResolution() ?: Resolution.ONE_METER,
-                    coordinateSystem ?: LAYOUT_SRID,
-                    ExtTrackKilometerIntervalFilterV1.of(addressPointFilterStart, addressPointFilterEnd),
+                    resolution = extResolution?.toResolution() ?: Resolution.ONE_METER,
+                    coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
+                    addressFilter = createAddressFilter(addressFilterStart, addressFilterEnd),
                 )
             }
             .let(::toResponse)

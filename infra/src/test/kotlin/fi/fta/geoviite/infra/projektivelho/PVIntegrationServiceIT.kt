@@ -225,7 +225,7 @@ fun insertDocumentMetaWithStatus(pvDao: PVDao, oid: Oid<PVDocument>, status: PVD
         oid = oid,
         assignmentOid = null,
         latestVersion =
-            PVApiLatestVersion(version = PVId("test"), name = UnsafeString("test"), changeTime = Instant.now()),
+            PVApiLatestVersion(version = PVId("test"), name = UnsafeString("test"), changeTime = Instant.now(), 1000),
         metadata =
             PVApiDocumentMetadata(
                 materialCategory = PVDictionaryCode("test"),

@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.ratko.RatkoOperatingPointDao
+import fi.fta.geoviite.infra.ratko.RatkoOperationalPointDao
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.*
@@ -46,7 +46,7 @@ class ChangeTimeController(
     private val ratkoPushDao: RatkoPushDao,
     private val pvDocumentService: PVDocumentService,
     private val splitService: SplitService,
-    private val ratkoOperatingPointDao: RatkoOperatingPointDao,
+    private val ratkoOperationalPointDao: RatkoOperationalPointDao,
     private val layoutDesignDao: LayoutDesignDao,
 ) {
 
@@ -70,7 +70,7 @@ class ChangeTimeController(
             ratkoPush = ratkoPushDao.getRatkoPushChangeTime(),
             pvDocument = pvDocumentService.getDocumentChangeTime(),
             split = splitService.getChangeTime(),
-            operatingPoints = ratkoOperatingPointDao.getChangeTime(),
+            operatingPoints = ratkoOperationalPointDao.getChangeTime(),
             layoutDesign = layoutDesignDao.getChangeTime(),
         )
     }

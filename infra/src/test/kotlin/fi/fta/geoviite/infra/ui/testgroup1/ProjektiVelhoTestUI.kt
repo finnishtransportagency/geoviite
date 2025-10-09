@@ -173,6 +173,7 @@ constructor(
                     version = PVId("123456"),
                     name = UnsafeString("foo bar.xml"),
                     changeTime = Instant.parse("2023-03-04T05:06:07.089Z"),
+                    size = 1000,
                 ),
             status = PVDocumentStatus.SUGGESTED,
             assignmentOid = assignmentOid,

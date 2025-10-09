@@ -92,6 +92,7 @@ import { useResizeObserver } from 'utils/use-resize-observer';
 import { createDebugGeometryGraphLayer } from 'map/layers/debug/debug-geometry-graph-layer';
 import { PlanDownloadState } from 'map/plan-download/plan-download-store';
 import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
+import { createDebugProjectionLinesLayer } from 'map/layers/debug/debug-projection-lines-layer';
 
 declare global {
     interface Window {
@@ -711,6 +712,16 @@ const MapView: React.FC<MapViewProps> = ({
                             selection,
                             layoutContext,
                             resolution,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
+                    case 'debug-projection-lines-layer':
+                        return createDebugProjectionLinesLayer(
+                            existingOlLayer as GeoviiteMapLayer<LineString>,
+                            selection,
+                            layoutContext,
+                            resolution,
+                            changeTimes,
+                            olView,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'debug-layer':

@@ -19,7 +19,7 @@ COPY \
     ./infra/gradlew \
     ./
 
-RUN bash ./gradlew downloadDependencies --no-daemon
+RUN bash ./gradlew downloadDependencies --no-daemon --no-configuration-cache
 
 
 # Backend build

@@ -2,7 +2,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -10,13 +9,14 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.time.Instant
 
 @GeoviiteService
 class ExtTrackNumberServiceV1
@@ -24,6 +24,7 @@ class ExtTrackNumberServiceV1
 constructor(
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val referenceLineService: ReferenceLineService,
+    private val publicationDao: PublicationDao,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -57,19 +58,14 @@ constructor(
 
     fun createTrackNumberModificationResponse(
         oid: Oid<LayoutTrackNumber>,
-        trackNumberId: IntId<LayoutTrackNumber>,
+        id: IntId<LayoutTrackNumber>,
         publications: PublicationComparison,
         coordinateSystem: Srid,
     ): ExtModifiedTrackNumberResponseV1? {
-        return layoutTrackNumberDao
-            .fetchOfficialVersionComparison(
-                LayoutBranch.main,
-                trackNumberId,
-                publications.from.publicationTime,
-                publications.to.publicationTime,
-            )
-            .takeIf { assetVersions -> assetVersions.areDifferent() }
-            ?.let { assetVersions ->
+        return publicationDao
+            .fetchPublishedTrackNumberBetween(id, publications.from.publicationTime, publications.to.publicationTime)
+            ?.let(layoutTrackNumberDao::fetch)
+            ?.let { trackNumber ->
                 ExtModifiedTrackNumberResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
@@ -77,17 +73,13 @@ constructor(
                     trackNumber =
                         getExtTrackNumber(
                             oid,
-                            layoutTrackNumberDao.fetch(assetVersions.toVersion.let(::requireNotNull)),
+                            trackNumber,
                             MainLayoutContext.official,
                             publications.to.publicationTime,
                             coordinateSystem,
                         ),
                 )
-            }
-            ?: layoutAssetVersionsAreTheSame(
-                trackNumberId,
-                publications,
-            )
+            } ?: layoutAssetVersionsAreTheSame(id, publications)
     }
 
     fun getExtTrackNumber(
