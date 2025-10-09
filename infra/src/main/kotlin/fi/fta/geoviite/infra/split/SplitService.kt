@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
@@ -48,6 +49,8 @@ import fi.fta.geoviite.infra.util.produceIf
 import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+
+const val MAX_SPLIT_GEOM_ADJUSTMENT = 5.0
 
 @GeoviiteService
 class SplitService(
@@ -440,7 +443,7 @@ class SplitService(
         val targetResults =
             splitLocationTrack(
                 track = track,
-                geometry = geometry,
+                sourceGeometry = geometry,
                 targets = collectSplitTargetParams(branch, request.targetTracks, suggestions),
             )
 
@@ -557,47 +560,31 @@ data class SplitTargetResult(
 
 fun splitLocationTrack(
     track: LocationTrack,
-    geometry: LocationTrackGeometry,
+    sourceGeometry: LocationTrackGeometry,
     targets: List<SplitTargetParams>,
 ): List<SplitTargetResult> {
     return targets
         .mapIndexed { index, target ->
             val nextSwitch = targets.getOrNull(index + 1)?.startSwitch
-            val edgeIndices = findSplitEdgeIndices(geometry, target.startSwitch, nextSwitch)
-            val edges: List<LayoutEdge> = cutEdges(geometry, edgeIndices)
-            val connectivityType = calculateTopologicalConnectivity(track, geometry.segments.size, edgeIndices)
+            val edgeIndices = findSplitEdgeIndices(sourceGeometry, target.startSwitch, nextSwitch)
+            val edges: List<LayoutEdge> = cutEdges(sourceGeometry, edgeIndices)
+            val connectivityType = calculateTopologicalConnectivity(track, sourceGeometry.edges.size, edgeIndices)
             val (newTrack, newGeometry) =
-                target.duplicate?.let { d ->
-                    when (d.operation) {
+                target.duplicate?.let { dup ->
+                    when (dup.operation) {
                         SplitTargetDuplicateOperation.TRANSFER -> {
-                            val replacedEdgeIndexRange =
-                                findSplitEdgeIndices(d.geometry, target.startSwitch, nextSwitch)
-
-                            val newEdges =
-                                listOf(
-                                        // Partial duplicate edges before the split start position
-                                        d.geometry.edges.subList(0, replacedEdgeIndexRange.start),
-                                        // Split source track edges
-                                        edges,
-                                        // Partial duplicate edges after the split end position
-                                        d.geometry.edges.subList(
-                                            replacedEdgeIndexRange.endInclusive + 1,
-                                            d.geometry.edges.size,
-                                        ),
-                                    )
-                                    .flatten()
-                                    .distinct()
-
+                            val replacedIndices = findSplitEdgeIndices(dup.geometry, target.startSwitch, nextSwitch)
+                            val newEdges = connectPartialDuplicateEdges(dup.geometry, edges, replacedIndices)
                             updateSplitTargetForTransferAssets(
-                                duplicateTrack = d.track,
+                                duplicateTrack = dup.track,
                                 topologicalConnectivityType = connectivityType,
-                            ) to TmpLocationTrackGeometry.of(newEdges, d.track.id as? IntId)
+                            ) to TmpLocationTrackGeometry.of(newEdges, dup.track.id as? IntId)
                         }
 
                         SplitTargetDuplicateOperation.OVERWRITE ->
                             updateSplitTargetForOverwriteDuplicate(
                                 sourceTrack = track,
-                                duplicateTrack = d.track,
+                                duplicateTrack = dup.track,
                                 request = target.request,
                                 edges = edges,
                                 topologicalConnectivityType = connectivityType,
@@ -611,8 +598,37 @@ fun splitLocationTrack(
                 operation = target.getOperation(),
             )
         }
-        .also { result -> validateSplitResult(result, geometry) }
+        .also { result -> validateSplitResult(result, sourceGeometry) }
 }
+
+private fun connectPartialDuplicateEdges(
+    geometry: LocationTrackGeometry,
+    replacements: List<LayoutEdge>,
+    replacementIndices: IntRange,
+): List<LayoutEdge> {
+    require(replacements.isNotEmpty()) { "Cannot replace edges with nothing" }
+    // The connecting edges (edges around the connection point) must be adjusted to fit the new geometry properly
+    val startConnection =
+        geometry.edges.getOrNull(replacementIndices.first - 1)?.let { e ->
+            e.connectEndTo(replacements.first(), MAX_SPLIT_GEOM_ADJUSTMENT)
+                ?: failEdgeConnection(e, replacements.first())
+        }
+    val endConnection =
+        geometry.edges.getOrNull(replacementIndices.last + 1)?.let { e ->
+            e.connectStartFrom(replacements.last(), MAX_SPLIT_GEOM_ADJUSTMENT)
+                ?: failEdgeConnection(replacements.last(), e)
+        }
+    // The edges before and after the connecting ones are taken as-is
+    val startEdges =
+        if (replacementIndices.first <= 1) emptyList() else geometry.edges.subList(0, replacementIndices.first - 1)
+    val endEdges =
+        if (replacementIndices.last >= geometry.edges.lastIndex - 1) emptyList()
+        else geometry.edges.subList(replacementIndices.last + 2, geometry.edges.size)
+    return (startEdges + listOfNotNull(startConnection) + replacements + listOfNotNull(endConnection) + endEdges)
+}
+
+private fun failEdgeConnection(prev: LayoutEdge, next: LayoutEdge): Nothing =
+    throw LinkingFailureException("Cannot connect edges: prev=${prev.toLog()} next=${next.toLog()}")
 
 fun validateSplitResult(results: List<SplitTargetResult>, geometry: LocationTrackGeometry) {
     results.forEachIndexed { index, result ->
