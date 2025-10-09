@@ -356,7 +356,7 @@ constructor(
                 locationTracks = listOf(trackId),
             )
         assertEquals("0000+0020.000", getExtLocationTrack(trackOid).alkusijainti?.rataosoite)
-        api.locationTracks.verifyNoModificationSince(trackOid, basePublication.uuid)
+        api.locationTracks.assertNoModificationSince(trackOid, basePublication.uuid)
 
         initUser()
         mainDraftContext.save(
@@ -368,7 +368,7 @@ constructor(
         api.locationTracks.getModifiedBetween(trackOid, basePublication.uuid, rlPublication.uuid).also { mod ->
             assertEquals("0001+0030.000", mod.sijaintiraide.alkusijainti?.rataosoite)
         }
-        api.locationTracks.verifyNoModificationSince(trackOid, rlPublication.uuid)
+        api.locationTracks.assertNoModificationSince(trackOid, rlPublication.uuid)
 
         initUser()
         val kmpId = mainDraftContext.save(kmPost(tnId, KmNumber(4), gkLocation = kmPostGkLocation(10.0, 0.0))).id
@@ -378,7 +378,7 @@ constructor(
         api.locationTracks.getModifiedBetween(trackOid, basePublication.uuid, kmpPublication.uuid).also { mod ->
             assertEquals("0004+0010.000", mod.sijaintiraide.alkusijainti?.rataosoite)
         }
-        api.locationTracks.verifyNoModificationSince(trackOid, kmpPublication.uuid)
+        api.locationTracks.assertNoModificationSince(trackOid, kmpPublication.uuid)
 
         assertEquals("0000+0020.000", getExtLocationTrack(trackOid, basePublication).alkusijainti?.rataosoite)
         assertEquals("0001+0030.000", getExtLocationTrack(trackOid, rlPublication).alkusijainti?.rataosoite)

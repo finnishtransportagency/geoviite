@@ -27,7 +27,6 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
@@ -38,6 +37,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -311,7 +311,7 @@ constructor(
         val basePublication =
             extTestDataService.publishInMain(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
         getExtTrackNumber(tnOid).also { assertAddressRange(it, "0000+0000.000", "0000+0010.000") }
-        api.trackNumbers.verifyNoModificationSince(tnOid, basePublication.uuid)
+        api.trackNumbers.assertNoModificationSince(tnOid, basePublication.uuid)
 
         initUser()
         val newStart = TrackMeter(KmNumber("0001"), BigDecimal.TEN)
@@ -321,7 +321,7 @@ constructor(
         api.trackNumbers.getModifiedBetween(tnOid, basePublication.uuid, rlPublication.uuid).also { mod ->
             assertAddressRange(mod.ratanumero, "0001+0010.000", "0001+0020.000")
         }
-        api.trackNumbers.verifyNoModificationSince(tnOid, rlPublication.uuid)
+        api.trackNumbers.assertNoModificationSince(tnOid, rlPublication.uuid)
 
         initUser()
         val kmpId = mainDraftContext.save(kmPost(tnId, KmNumber(4), gkLocation = kmPostGkLocation(5.0, 0.0))).id
@@ -336,7 +336,7 @@ constructor(
         api.trackNumbers.getModifiedBetween(tnOid, basePublication.uuid, rlPublication.uuid).also { mod ->
             assertAddressRange(mod.ratanumero, "0001+0010.000", "0001+0020.000")
         }
-        api.trackNumbers.verifyNoModificationSince(tnOid, kmpPublication.uuid)
+        api.trackNumbers.assertNoModificationSince(tnOid, kmpPublication.uuid)
 
         assertAddressRange(getExtTrackNumber(tnOid, basePublication), "0000+0000.000", "0000+0010.000")
         assertAddressRange(getExtTrackNumber(tnOid, rlPublication), "0001+0010.000", "0001+0020.000")

@@ -6,9 +6,9 @@ import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.publication.Publication
-import kotlin.reflect.KClass
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
+import kotlin.reflect.KClass
 
 class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
     val testApiMapper = jacksonObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
@@ -110,7 +110,7 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             return internalGet(ExtTestErrorResponseV1::class, modifiedUrl(oid), params.toMap(), httpStatus)
         }
 
-        fun verifyNoModificationSince(
+        fun assertNoModificationSince(
             oid: Oid<*>,
             layoutVersion: Uuid<Publication>,
             vararg params: Pair<String, String>,
