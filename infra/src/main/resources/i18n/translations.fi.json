@@ -339,9 +339,9 @@
             "INVALID_JOINTS": "Linkitettävän vaihteen vaihdepisteet eivät vastaa vaihdetyypin vaihdepisteitä."
         },
         "SplitTargetOperation": {
-            "CREATE": "Uusi kohde",
-            "OVERWRITE": "Duplikaatti korvattu",
-            "TRANSFER": "Kohteet siirretty"
+            "CREATE": "Uusi raide lisätty",
+            "OVERWRITE": "Duplikaattiraiteen geometria korvattu",
+            "TRANSFER": "Osittaisen duplikaattiraiteen geometriaa korvattu"
         },
         "LayoutContextMode": {
             "MAIN_OFFICIAL": "Nykytila",
@@ -733,7 +733,7 @@
                 "show-on-map": "Kohdista kartalla",
                 "no-linkable-location-tracks": "Sopivia sijaintiraiteita ei löytynyt linkitettäväksi.",
                 "no-linkable-reference-lines": "Sopivia pituusmittauslinjoja ei löytynyt linkitettäväksi.",
-                "part-of-unfinished-split": "Raiteen {{locationTrackName}} jakamiseen liittyvä kohteiden siirto täytyy suorittaa tai merkata onnistuneeksi ennen kuin raiteen geometriaa voi muokata."
+                "part-of-unfinished-split": "Raiteen {{locationTrackName}} geometriaa ei voi muokata, ennen kuin raiteen jakamiseen liittyvä julkaisu on viety Ratkoon."
             },
             "geometry-segment": {
                 "no-geometry-information": "Ei geometriatietoja valitulle segmentille.",
@@ -853,11 +853,11 @@
                 "end-address": "Loppusijainti (km + m)",
                 "endpoint": "Päätepiste",
                 "operation": {
-                    "OVERWRITE": "Korvaa duplikaattiraiteen",
-                    "TRANSFER": "Siirretään vain ratakohteet",
+                    "OVERWRITE": "Korvataan raiteen geometria",
+                    "TRANSFER": "Korvataan osa raiteen geometriasta",
                     "CREATE": "Luodaan uusi raide"
                 },
-                "is-partial-duplicate-tooltip": "Raide on osittainen duplikaatti, päällekkäinen osuus {{overlappingLength}} m, ei-päällekkäinen osuus {{nonOverlappingLength}} m.\n\nOsittaisen duplikaatin geometriaa ei muokata, vain ratakohteet siirretään.",
+                "is-partial-duplicate-tooltip": "Raide on osittainen duplikaatti, päällekkäinen osuus {{overlappingLength}} m, ei-päällekkäinen osuus {{nonOverlappingLength}} m.\n\nPäällekkäinen geometrian osuus korvataan.",
                 "short-duplicate-non-overlap-warning": "Ei-päällekkäisen osuuden pituus on kuitenkin vain {{nonOverlappingLength}} m, joten kannattaa tarkastaa, ettei geometria jatku tarkoituksettomasti vaihteiden yli.",
                 "description-base": "Kuvauksen perusosa",
                 "description-suffix": "Kuvauksen lisäosa",
@@ -881,7 +881,7 @@
                     "switch-not-found": "Katkaisukohdan vaihde on poistettu. Poista katkaisukohta tai peruuta vaihteen poisto",
                     "split-point-not-matching-start": "Duplikaattiraiteen ({{trackName}}) päällekkäinen osuus alkaa kohdasta ({{expectedSplitPoint}}), mutta katkaisukohdaksi on valittu ({{selectedSplitPoint}})",
                     "split-point-not-matching-end": "Duplikaattiraiteen ({{trackName}}) päällekkäinen osuus loppuu kohtaan ({{expectedSplitPoint}}), mutta katkaisukohdaksi on valittu ({{selectedSplitPoint}})",
-                    "duplicate-not-published": "Duplikaattiraiteen {{duplicateName}} muutoksia ei ole julkaistu Ratkoon. Poikkeavat tiedot Geoviitteen ja Ratkon välillä voivat aiheuttaa ongelmia kohteiden massasiirrossa Ratkossa.",
+                    "duplicate-not-published": "Duplikaattiraiteen {{duplicateName}} muutoksia ei ole julkaistu Ratkoon. Poikkeavat tiedot Geoviitteen ja Ratkon välillä voivat aiheuttaa ongelmia kohteiden sijainneissa Ratkossa.",
                     "publish-duplicate": "Julkaise tai hylkää duplikaattiraiteen muutokset ja yritä jakamista sitten uudestaan.",
                     "has-errors": "Tiedoissa on virheitä",
                     "show": "näytä",
@@ -1844,7 +1844,7 @@
         "bulk-transfer-status": "Kohteiden siirto jaetulta raiteelta",
         "actions": "Toiminnot",
         "show-split-info": "Näytä raiteen jakamisen tiedot",
-        "mark-as-successful": "Merkitse kohteiden siirto onnistuneeksi",
+        "mark-as-successful": "Merkitse raiteen jakaminen onnistuneeksi",
         "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
         "transfer-starts-after-reconnect": "Vienti käynnistyy automaattisesti Ratko-yhteyden palautumisen jälkeen",
         "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
