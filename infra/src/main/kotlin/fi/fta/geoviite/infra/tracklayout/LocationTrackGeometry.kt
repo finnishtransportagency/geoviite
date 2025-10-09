@@ -3,10 +3,16 @@ package fi.fta.geoviite.infra.tracklayout
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.linking.createGapIfNeeded
+import fi.fta.geoviite.infra.linking.slice
 import fi.fta.geoviite.infra.linking.splitSegments
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.boundingBoxCombining
+import fi.fta.geoviite.infra.math.directionBetweenPoints
+import fi.fta.geoviite.infra.math.isSame
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.SWITCH
 import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_BOUNDARY
@@ -17,6 +23,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.INNER
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.OUTER
 import java.util.*
+import kotlin.math.PI
 import kotlin.math.abs
 
 enum class TrackSwitchLinkType {
@@ -450,6 +457,48 @@ sealed class LayoutEdge : IAlignment<EdgeM> {
         val newEnd = endNode.takeIf { n -> n.type != TRACK_BOUNDARY } ?: endNode.withInnerBoundary(id, END)
         return if (newStart == startNode && newEnd == endNode) this else TmpLayoutEdge(newStart, newEnd, segments)
     }
+
+    private fun findStartConnectionM(preceding: LayoutEdge, seekDistance: Double): LineM<EdgeM>? {
+        val prevEnd = preceding.lastSegmentEnd
+        val prevEndDirection = preceding.segments.last().endDirection
+        return allAlignmentPoints
+            .takeWhile { p -> lineLength(prevEnd, p) <= seekDistance }
+            .firstOrNull { p -> angleDiffRads(prevEndDirection, directionBetweenPoints(prevEnd, p)) < PI / 2 }
+            ?.m
+    }
+
+    private fun findEndConnectionM(following: LayoutEdge, seekDistance: Double): LineM<EdgeM>? {
+        val nextStart = following.firstSegmentStart
+        val nextStartDirection = following.segments.first().startDirection
+        return allAlignmentPointsDownward
+            .takeWhile { p -> lineLength(p, nextStart) <= seekDistance }
+            .firstOrNull { p -> angleDiffRads(nextStartDirection, directionBetweenPoints(p, nextStart)) < PI / 2 }
+            ?.m
+    }
+
+    fun connectStartFrom(
+        previousEdge: LayoutEdge,
+        maxAdjustDistance: Double,
+        tolerance: Double = LAYOUT_M_DELTA,
+    ): LayoutEdge? =
+        takeIf { firstSegmentStart.isSame(previousEdge.lastSegmentEnd, tolerance) }
+            ?: findStartConnectionM(previousEdge, maxAdjustDistance)?.let { startConnectionM ->
+                val slicedSegments =
+                    segments.takeIf { isSame(startConnectionM.distance, 0.0, tolerance) }
+                        ?: slice(segmentsWithM, Range(startConnectionM, length), tolerance)
+                val connectSegment = createGapIfNeeded(previousEdge.segments, slicedSegments)
+                withSegments(listOfNotNull(connectSegment) + slicedSegments)
+            }
+
+    fun connectEndTo(nextEdge: LayoutEdge, maxAdjustDistance: Double, tolerance: Double = LAYOUT_M_DELTA): LayoutEdge? =
+        takeIf { lastSegmentEnd.isSame(nextEdge.firstSegmentStart, tolerance) }
+            ?: findEndConnectionM(nextEdge, maxAdjustDistance)?.let { endConnectionM ->
+                val slicedSegments =
+                    segments.takeIf { isSame(endConnectionM.distance, length.distance, tolerance) }
+                        ?: slice(segmentsWithM, Range(LineM(0.0), endConnectionM), tolerance)
+                val connectSegment = createGapIfNeeded(slicedSegments, nextEdge.segments)
+                withSegments(slicedSegments + listOfNotNull(connectSegment))
+            }
 }
 
 data class TmpLayoutEdge(
