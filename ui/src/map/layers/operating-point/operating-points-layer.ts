@@ -7,15 +7,16 @@ import {
     loadLayerData,
     pointToCoords,
 } from 'map/layers/utils/layer-utils';
-import { getOperatingPoints } from 'track-layout/layout-operating-point-api';
+import { getOperationalPoints } from 'track-layout/layout-operational-point-api';
 import Feature from 'ol/Feature';
-import { OperatingPoint } from 'track-layout/track-layout-model';
+import { OperationalPoint } from 'track-layout/track-layout-model';
 import Style from 'ol/style/Style';
 import { Circle, Fill, Stroke, Text } from 'ol/style';
 import OlView from 'ol/View';
 import { ChangeTimes } from 'common/common-slice';
-import { fieldComparator } from 'utils/array-utils';
+import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
+import { LayoutContext } from 'common/common-model';
 
 const layerName: MapLayerName = 'operating-points-layer';
 
@@ -45,6 +46,7 @@ export function createOperatingPointLayer(
     mapTiles: MapTile[],
     existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     olView: OlView,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer, true, true);
@@ -55,13 +57,15 @@ export function createOperatingPointLayer(
     const getOperatingPointsFromApi = async () => {
         return (
             await Promise.all(
-                mapTiles.map((tile) => getOperatingPoints(tile, changeTimes.operatingPoints)),
+                mapTiles.map((tile) =>
+                    getOperationalPoints(tile, layoutContext, changeTimes.operationalPoints),
+                ),
             )
         ).flat();
     };
     const onLoadingChange = () => {};
-    const createFeatures = (points: OperatingPoint[]) =>
-        showOperatingPoints ? points.map(renderPoint) : [];
+    const createFeatures = (points: OperationalPoint[]) =>
+        showOperatingPoints ? points.map(renderPoint).filter(filterNotEmpty) : [];
     loadLayerData(source, isLatest, onLoadingChange, getOperatingPointsFromApi(), createFeatures);
 
     return {
@@ -140,7 +144,7 @@ const operatingPointStyleResolutionsSmallestFirst = operatingPointStyleResolutio
 );
 
 function getOperatingPointStyleForFeature(feature: Feature, resolution: number) {
-    const point = feature.get('operatingPoint') as OperatingPoint;
+    const point = feature.get('operatingPoint') as OperationalPoint;
     const smallestResolutionConf = operatingPointStyleResolutionsSmallestFirst.find(
         (styleResolution) => resolution <= styleResolution.resolutionUpperLimit,
     );
@@ -151,7 +155,11 @@ function getOperatingPointStyleForFeature(feature: Feature, resolution: number) 
     return getOperatingPointStyle(selectedStyle, point.name);
 }
 
-function renderPoint(point: OperatingPoint): Feature<OlPoint> {
+function renderPoint(point: OperationalPoint): Feature<OlPoint> | undefined {
+    if (!point.location) {
+        return undefined;
+    }
+
     const feature = new Feature({
         geometry: new OlPoint(pointToCoords(point.location)),
     });

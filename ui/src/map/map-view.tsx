@@ -703,6 +703,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             olView,
+                            layoutContext,
                             changeTimes,
                         );
                     case 'debug-1m-points-layer':

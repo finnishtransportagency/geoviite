@@ -14,6 +14,7 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     MapAlignmentType,
+    OperationalPointId,
 } from 'track-layout/track-layout-model';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { SelectedGeometryItem } from 'selection/selection-model';
@@ -48,6 +49,8 @@ import { TabHeader, TabHeaderSize } from 'geoviite-design-lib/tab-header/tab-hea
 import { LayoutContext } from 'common/common-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { LayoutSwitchLinkingInfoboxContainer } from 'tool-panel/switch/layout-switch-linking-infobox-container';
+import { OperationalPointInfoboxContainer } from './operational-point/operational-point-infobox-container';
+import { getManyOperationalPoints } from 'track-layout/layout-operational-point-api';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -58,6 +61,7 @@ type ToolPanelProps = {
     geometrySwitchIds: SelectedGeometryItem<GeometrySwitchId>[];
     locationTrackIds: LocationTrackId[];
     geometryAlignmentIds: SelectedGeometryItem<GeometryAlignmentId>[];
+    operationalPointIds: OperationalPointId[];
     linkingState?: LinkingState;
     splittingState?: SplittingState;
     changeTimes: ChangeTimes;
@@ -81,7 +85,8 @@ export type ToolPanelAssetType =
     | 'GEOMETRY_PLAN'
     | 'GEOMETRY_KM_POST'
     | 'GEOMETRY_SWITCH'
-    | 'SUGGESTED_SWITCH';
+    | 'SUGGESTED_SWITCH'
+    | 'OPERATING_POINT';
 export type ToolPanelAsset = {
     id: string;
     type: ToolPanelAssetType;
@@ -116,6 +121,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     geometrySwitchIds,
     locationTrackIds,
     geometryAlignmentIds,
+    operationalPointIds,
     linkingState,
     splittingState,
     changeTimes,
@@ -131,7 +137,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 }: ToolPanelProps) => {
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
 
-    const tracksSwitchesKmPostsPlans = useLoader(() => {
+    const tracksSwitchesKmPostsPlansOperationalPoints = useLoader(() => {
         const trackNumbersPromise = getTrackNumbers(
             layoutContext,
             changeTimes.layoutTrackNumber,
@@ -151,6 +157,11 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             changeTimes.geometryPlan,
             false,
         );
+        const operationalPointsPromise = getManyOperationalPoints(
+            operationalPointIds,
+            layoutContext,
+            changeTimes.operationalPoints,
+        );
 
         return Promise.all([
             // TODO: GVT-2014 Check the nullability in these api-calls/caches
@@ -163,6 +174,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             trackNumbersPromise.then((l) => l.filter(filterNotEmpty)),
             plansPromise.then((l) => l.filter(filterNotEmpty)),
             elementPlansPromise,
+            operationalPointsPromise,
         ]);
     }, [
         locationTrackIds,
@@ -181,15 +193,34 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         geometryAlignmentIds,
     ]);
 
-    const locationTracks = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[0]) || [];
-    const switches = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[1]) || [];
-    const kmPosts = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[2]) || [];
-    const trackNumbers = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[3]) || [];
-    const planHeaders = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[4]) || [];
+    const locationTracks =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[0]) ||
+        [];
+    const switches =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[1]) ||
+        [];
+    const kmPosts =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[2]) ||
+        [];
+    const trackNumbers =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[3]) ||
+        [];
+    const planHeaders =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[4]) ||
+        [];
 
     const getPlan = (id: GeometryPlanId) =>
-        tracksSwitchesKmPostsPlans &&
-        tracksSwitchesKmPostsPlans[5].find((p) => p.layout?.id === id);
+        tracksSwitchesKmPostsPlansOperationalPoints &&
+        tracksSwitchesKmPostsPlansOperationalPoints[5].find((p) => p.layout?.id === id);
+    const operationalPoints =
+        (tracksSwitchesKmPostsPlansOperationalPoints &&
+            tracksSwitchesKmPostsPlansOperationalPoints[6]) ||
+        [];
 
     const infoboxVisibilityChange = React.useCallback(
         (
@@ -205,7 +236,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     );
 
     React.useEffect(() => {
-        if (tracksSwitchesKmPostsPlans === undefined) {
+        if (tracksSwitchesKmPostsPlansOperationalPoints === undefined) {
             return;
         }
         const planTabs = planHeaders.map((p: GeometryPlanHeader) => {
@@ -406,6 +437,25 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             },
         );
 
+        const operationalPointTabs: ToolPanelTab[] = operationalPoints.map((op) => {
+            return {
+                asset: {
+                    type: 'OPERATING_POINT',
+                    id: op.id,
+                },
+                title: op.name,
+                element: (
+                    <OperationalPointInfoboxContainer
+                        operationalPointId={op.id}
+                        visibilities={infoboxVisibilities.operationalPoint}
+                        onVisiblityChange={(visibilities) =>
+                            infoboxVisibilityChange('operationalPoint', visibilities)
+                        }
+                    />
+                ),
+            };
+        });
+
         const allTabs = [
             ...geometryKmPostTabs,
             ...layoutKmPostTabs,
@@ -416,6 +466,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             ...locationTrackTabs,
             ...trackNumberTabs,
             ...planTabs,
+            ...operationalPointTabs,
         ].toSorted((t1, t2) =>
             compareByField(t1, t2, (t) => TOOL_PANEL_ASSET_ORDER.indexOf(t.asset.type)),
         );

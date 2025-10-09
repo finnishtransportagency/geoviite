@@ -11,7 +11,7 @@ import {
     LocationTrackId,
     LocationTrackNameSpecifier,
     LocationTrackNamingScheme,
-    OperatingPoint,
+    OperationalPoint,
     SplitPoint,
     splitPointsAreSame,
     SwitchNameParts,
@@ -100,7 +100,7 @@ export type SwitchOnLocationTrack = {
     address: TrackMeter | undefined;
     location: Point | undefined;
     distance: number | undefined;
-    nearestOperatingPoint: OperatingPoint | undefined;
+    nearestOperatingPoint: OperationalPoint | undefined;
 };
 
 export type SplitRequest = {
@@ -480,8 +480,8 @@ function addSplitToState(
 }
 
 function getLocationTrackDescription(
-    prevStation: OperatingPoint,
-    nextStation: OperatingPoint,
+    prevStation: OperationalPoint,
+    nextStation: OperationalPoint,
 ): string {
     return `${prevStation.name}-${nextStation.name}`;
 }

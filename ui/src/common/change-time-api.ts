@@ -116,6 +116,14 @@ export function updateLayoutDesignChangeTime(): Promise<TimeStamp> {
     );
 }
 
+export function updateOperationalPointsChangeTime(): Promise<TimeStamp> {
+    return updateChangeTime(
+        `${CHANGES_API}/operational-points`,
+        delegates.setOperationalPointsChangeTime,
+        getChangeTimes().operationalPoints,
+    );
+}
+
 function updateChangeTime(
     url: string,
     storeUpdate: (ts: TimeStamp) => void,

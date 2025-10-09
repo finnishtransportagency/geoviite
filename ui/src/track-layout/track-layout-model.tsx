@@ -32,6 +32,22 @@ import { isNilOrBlank } from 'utils/string-utils';
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
 export type LocationTrackState = 'BUILT' | 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING';
+export type RinfType =
+    | 10
+    | 20
+    | 30
+    | 40
+    | 50
+    | 60
+    | 70
+    | 80
+    | 90
+    | 100
+    | 110
+    | 120
+    | 130
+    | 140
+    | 150;
 
 export const LAYOUT_SRID: Srid = 'EPSG:3067';
 
@@ -419,6 +435,24 @@ export type LayoutKmLengthDetails = {
     gkLocationLinkedFromGeometry: boolean;
 };
 
+export type UICCode = string;
+export type OperationalPointState = 'IN_USE' | 'DELETED';
+
+export type OperationalPointId = Brand<string, 'OperationalPointId'>;
+export type OperationalPointOrigin = 'GEOVIITE' | 'RATKO';
+
+export type OperationalPoint = {
+    id: OperationalPointId;
+    origin: OperationalPointOrigin;
+    name: string;
+    abbreviation: string;
+    uicCode: UICCode;
+    rinfType: number;
+    raideType?: OperationalPointType;
+    location?: Point;
+    state: OperationalPointState;
+} & LayoutAssetFields;
+
 export type PlanArea = {
     id: GeometryPlanId;
     name: string;
@@ -505,15 +539,6 @@ export type OperationalPointType =
     | 'OLP' // Osiin jaettu liikennepaikka
     | 'SEIS' // Seisake
     | 'LVH'; // Linjavaihde
-
-export type OperatingPoint = {
-    externalId: Oid;
-    name: string;
-    abbreviation: string;
-    uicCode: string;
-    type: OperationalPointType;
-    location: Point;
-};
 
 export type KmPostInfoboxExtras = {
     kmLength: number | undefined;
