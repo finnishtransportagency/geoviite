@@ -41,3 +41,17 @@ begin
 end
 $$ language plpgsql called on null input
                     immutable;
+
+create or replace function layout.infer_operation_from_operational_point_state_transition(old_state layout.operational_point_state, new_state layout.operational_point_state)
+  returns varchar as
+$$
+begin
+  return (case
+            when new_state = 'DELETED' and old_state != 'DELETED' then 'DELETE'
+            when new_state != 'DELETED' and old_state = 'DELETED' then 'RESTORE'
+            when old_state is null then 'CREATE'
+            else 'MODIFY'
+          end);
+end
+$$ language plpgsql called on null input
+                    immutable;

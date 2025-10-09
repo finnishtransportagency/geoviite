@@ -22,6 +22,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import org.slf4j.Logger
@@ -40,6 +42,7 @@ constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val switchDao: LayoutSwitchDao,
+    private val operationalPointDao: OperationalPointDao,
     private val switchLibraryService: SwitchLibraryService,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val geocodingCacheService: GeocodingCacheService,
@@ -188,6 +191,27 @@ constructor(
         }
     }
 
+    @Transactional(readOnly = true)
+    fun validateOperationalPoints(
+        target: ValidationTarget,
+        ids: List<IntId<OperationalPoint>>,
+    ): List<ValidatedAsset<OperationalPoint>> {
+        if (ids.isEmpty()) return emptyList()
+        val validationContext =
+            when (target) {
+                is ValidateTransition ->
+                    createValidationContext(
+                        target = target,
+                        operationalPoints = operationalPointDao.fetchCandidateVersions(target.candidateContext),
+                    )
+
+                is ValidateContext -> createValidationContext(target)
+            }
+        return ids.mapNotNull { id ->
+            validateOperationalPoint(id, validationContext)?.let { issues -> ValidatedAsset(id, issues) }
+        }
+    }
+
     private fun createValidationContext(
         target: ValidationTarget,
         trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>> = emptyList(),
@@ -195,9 +219,19 @@ constructor(
         referenceLines: List<LayoutRowVersion<ReferenceLine>> = emptyList(),
         switches: List<LayoutRowVersion<LayoutSwitch>> = emptyList(),
         kmPosts: List<LayoutRowVersion<LayoutKmPost>> = emptyList(),
+        operationalPoints: List<LayoutRowVersion<OperationalPoint>> = emptyList(),
     ): ValidationContext =
         createValidationContext(
-            ValidationVersions(target, trackNumbers, locationTracks, referenceLines, switches, kmPosts, emptyList())
+            ValidationVersions(
+                target,
+                trackNumbers,
+                locationTracks,
+                referenceLines,
+                switches,
+                kmPosts,
+                operationalPoints,
+                emptyList(),
+            )
         )
 
     private fun createValidationContext(publicationSet: ValidationVersions): ValidationContext =
@@ -207,6 +241,7 @@ constructor(
             kmPostDao = kmPostDao,
             locationTrackDao = locationTrackDao,
             switchDao = switchDao,
+            operationalPointDao = operationalPointDao,
             geocodingService = geocodingService,
             alignmentDao = alignmentDao,
             publicationDao = publicationDao,
@@ -263,6 +298,10 @@ constructor(
                     val validationIssues = validateKmPost(candidate.id, validationContext) ?: emptyList()
                     candidate.copy(issues = validationIssues + kmPostSplitIssues)
                 },
+            operationalPoints =
+                candidates.operationalPoints.map { candidate ->
+                    candidate.copy(issues = validateOperationalPoint(candidate.id, validationContext) ?: emptyList())
+                },
         )
     }
 
@@ -285,6 +324,9 @@ constructor(
         }
         versions.switches.forEach { version ->
             assertNoErrors(version, requireNotNull(validateSwitch(version.id, validationContext)))
+        }
+        versions.operationalPoints.forEach { version ->
+            assertNoErrors(version, requireNotNull(validateOperationalPoint(version.id, validationContext)))
         }
     }
 
@@ -588,6 +630,71 @@ constructor(
                 trackNetworkTopologyIssues +
                 switchConnectivityIssues)
         }
+    }
+
+    private fun validateOperationalPoint(
+        id: IntId<OperationalPoint>,
+        validationContext: ValidationContext,
+    ): List<LayoutValidationIssue>? {
+        val operationalPoint = validationContext.getOperationalPoint(id) ?: return null
+        val operationalPointVersion = requireNotNull(operationalPoint.version)
+        val nameDuplicationIssues =
+            validateOperationalPointNameDuplication(
+                operationalPoint,
+                validationContext.getOperationalPointsByName(operationalPoint.name),
+                validationContext.target.type,
+            )
+        val abbreviationDuplicationIssues =
+            if (operationalPoint.abbreviation == null) listOf()
+            else
+                validateOperationalPointAbbreviationDuplication(
+                    operationalPoint,
+                    validationContext.getOperationalPointsByAbbreviation(operationalPoint.abbreviation),
+                    validationContext.target.type,
+                )
+        val uicCodeIssues =
+            if (operationalPoint.uicCode == null)
+                listOf(validationError("$VALIDATION_OPERATIONAL_POINT.uic-code-missing"))
+            else
+                validateOperationalPointUicCodeDuplication(
+                    operationalPoint,
+                    validationContext.getOperationalPointsByUicCode(operationalPoint.uicCode),
+                    validationContext.target.type,
+                )
+        val rinfCodeIssues =
+            listOfNotNull(
+                validate(operationalPoint.rinfType != null) { "$VALIDATION_OPERATIONAL_POINT.rinf-code-missing" }
+            )
+        val polygonOverlapIssues =
+            validateOperationalPointPolygonOverlap(
+                operationalPoint,
+                validationContext.getOverlappingOperationalPoints(id),
+                validationContext.target.type,
+            )
+        val locationIssues =
+            listOfNotNull(
+                validate(operationalPoint.polygon != null) { "$VALIDATION_OPERATIONAL_POINT.polygon-missing" },
+                validate(operationalPoint.location != null) { "$VALIDATION_OPERATIONAL_POINT.location-missing" },
+            )
+
+        val polygonLocationIssues =
+            listOfNotNull(
+                validate(
+                    operationalPoint.polygon == null ||
+                        operationalPoint.location == null ||
+                        requireNotNull(operationalPointDao.polygonContainsLocation(operationalPointVersion))
+                ) {
+                    "$VALIDATION_OPERATIONAL_POINT.location-outside-polygon"
+                }
+            )
+
+        return nameDuplicationIssues +
+            abbreviationDuplicationIssues +
+            uicCodeIssues +
+            rinfCodeIssues +
+            polygonOverlapIssues +
+            locationIssues +
+            polygonLocationIssues
     }
 
     private fun validateGeocodingContext(

@@ -1758,6 +1758,24 @@
                     "relinking-failed": "Vaihteen {{switch}} uudelleenlinkitys epäonnistui"
                 }
             },
+            "operational-point": {
+                "duplicate-name-official": "Pisteen nimi {{name}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä",
+                "duplicate-name-draft": "Muutosjoukossa on monta toiminnallista pistettä nimellä {{name}}",
+                "duplicate-name-draft-in-main": "Pisteen nimi {{name}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä",
+                "duplicate-abbreviation-official": "Pisteen lyhenne {{abbreviation}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä: {{duplicateNames}}",
+                "duplicate-abbreviation-draft": "Muutosjoukossa on monta toiminnallista pistettä nimellä {{abbrev}}: {{duplicateNames}}",
+                "duplicate-abbreviation-draft-in-main": "Pisteen lyhenne {{abbreviation}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä: {{duplicateNames}}",
+                "duplicate-uic-code-official": "Pisteen UIC-tunnus {{uicCode}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä: {{duplicateNames}}",
+                "duplicate-uic-code-draft": "Muutosjoukossa on monta toiminnallista pistettä UIC-tunnuksella {{uicCode}}: {{duplicateNames}}",
+                "duplicate-uic-code-draft-in-main": "Pisteen UIC-tunnus {{uicCode}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä: {{duplicateNames}}",
+                "uic-code-missing": "UIC-tunnus puuttuu",
+                "location-missing": "Pistemäinen sijainti puuttuu",
+                "overlapping-polygon-official": "Pisteen polygoni on päällekkäin toisen paikannuspohjan toiminnallisella pisteen kanssa: {{duplicateNames}}",
+                "overlapping-polygon-draft": "Muutosjoukossa on päällekkäisiä toiminnallisten pisteiden polygoneita: {{duplicateNames}}",
+                "overlapping-polygon-draft-in-main": "Toiminnallisen pisteen polygoni on päällekkäin paikannuspohjan luonnoksen kanssa: {{duplicateNames}}",
+                "polygon-missing": "Polygoni puuttuu",
+                "location-outside-polygon": "Pistemäinen sijainti on polygonin ulkopuolella"
+            },
             "geocoding": {
                 "sharp-angle": "Raiteen {{locationTrack}} tasametripisteet menevät taaksepäin, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",
                 "stretched-meters": "Raiteen {{locationTrack}} metrivälit ovat liian pitkiä, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",

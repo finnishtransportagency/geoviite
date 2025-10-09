@@ -1174,4 +1174,30 @@ fun publishedVersions(
     locationTracks: List<Change<LayoutRowVersion<LocationTrack>>> = listOf(),
     switches: List<Change<LayoutRowVersion<LayoutSwitch>>> = listOf(),
     kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>> = listOf(),
-) = PublishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts)
+    operationalPoints: List<Change<LayoutRowVersion<OperationalPoint>>> = listOf(),
+) = PublishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts, operationalPoints)
+
+fun operationalPoint(
+    name: String = "name",
+    abbreviation: String = name,
+    rinfType: Int? = 10,
+    state: OperationalPointState = OperationalPointState.IN_USE,
+    uicCode: String? = "1234",
+    location: Point = Point(10.0, 10.0),
+    polygon: Polygon = Polygon(Point(0.0, 0.0), Point(20.0, 0.0), Point(20.0, 20.0), Point(0.0, 20.0), Point(0.0, 0.0)),
+    origin: OperationalPointOrigin = OperationalPointOrigin.GEOVIITE,
+    draft: Boolean = true,
+    contextData: LayoutContextData<OperationalPoint> = createMainContext(null, draft),
+): OperationalPoint =
+    OperationalPoint(
+        name = OperationalPointName(name),
+        OperationalPointAbbreviation(abbreviation),
+        rinfType = rinfType,
+        state = state,
+        uicCode = uicCode?.let(::UicCode),
+        location = location,
+        raideType = null,
+        polygon = polygon,
+        origin = origin,
+        contextData = contextData,
+    )

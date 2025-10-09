@@ -18,6 +18,7 @@ import {
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
+    OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { RatkoPushStatus } from 'ratko/ratko-model';
@@ -278,6 +279,7 @@ export type PublicationRequestIds = {
     locationTracks: LocationTrackId[];
     switches: LayoutSwitchId[];
     kmPosts: LayoutKmPostId[];
+    operationalPoints: OperationalPointId[];
 };
 
 export type PropKey = {

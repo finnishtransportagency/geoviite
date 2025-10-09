@@ -11,13 +11,17 @@ import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.LayoutAssetTable
+import fi.fta.geoviite.infra.util.getBooleanOrNull
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
+import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getPointOrNull
 import fi.fta.geoviite.infra.util.getPolygonPointListOrNull
+import fi.fta.geoviite.infra.util.getUnsafeStringOrNull
+import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
 import java.time.Instant
@@ -210,7 +214,7 @@ class OperationalPointDao(
                     "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
                     "name" to item.name.toString(),
                     "abbreviation" to item.abbreviation?.toString(),
-                    "uic_code" to item.uicCode.toString(),
+                    "uic_code" to item.uicCode?.toString(),
                     "type" to item.raideType?.name,
                     "location_x" to item.location?.x,
                     "location_y" to item.location?.y,
@@ -232,8 +236,8 @@ class OperationalPointDao(
     private fun getOperationalPoint(rs: ResultSet): OperationalPoint =
         OperationalPoint(
             name = rs.getString("name").let(::OperationalPointName),
-            abbreviation = rs.getString("abbreviation")?.let(::OperationalPointAbbreviation),
-            uicCode = rs.getString("uic_code").let(::UicCode),
+            abbreviation = rs.getUnsafeStringOrNull("abbreviation")?.toString()?.let(::OperationalPointAbbreviation),
+            uicCode = rs.getUnsafeStringOrNull("uic_code")?.toString()?.let(::UicCode),
             location = rs.getPointOrNull("location_x", "location_y"),
             raideType = rs.getEnumOrNull<OperationalPointType>("type"),
             state = rs.getEnum("state"),
@@ -246,5 +250,125 @@ class OperationalPointDao(
 
     fun getChangeTime(): Instant {
         return fetchLatestChangeTime(DbTable.LAYOUT_OPERATIONAL_POINT)
+    }
+
+    fun findNameDuplicates(
+        context: LayoutContext,
+        items: List<OperationalPointName>,
+    ): Map<OperationalPointName, List<LayoutRowVersion<OperationalPoint>>> =
+        findFieldDuplicates(context, items, "name") { rs -> rs.getString("name").let(::OperationalPointName) }
+
+    fun findAbbreviationDuplicates(
+        context: LayoutContext,
+        items: List<OperationalPointAbbreviation>,
+    ): Map<OperationalPointAbbreviation, List<LayoutRowVersion<OperationalPoint>>> =
+        findFieldDuplicates(context, items, "abbreviation") { rs ->
+            rs.getString("abbreviation").let(::OperationalPointAbbreviation)
+        }
+
+    fun findUicCodeDuplicates(
+        context: LayoutContext,
+        items: List<UicCode>,
+    ): Map<UicCode, List<LayoutRowVersion<OperationalPoint>>> =
+        findFieldDuplicates(context, items, "uic_code") { rs -> rs.getString("uic_code").let(::UicCode) }
+
+    /**
+     * baseContext, candidateContext, and publicationCandidateIds define a publication set. If publicationCandidateIds
+     * is null, all candidates are considered to be in the publication set. Find all overlaps between polygons in
+     * checkIds (if checkIds is null, all publication candidates) and anywhere in the publication set.
+     */
+    fun findOverlappingPolygonsInPublicationCandidates(
+        baseContext: LayoutContext,
+        candidateContext: LayoutContext,
+        publicationCandidateIds: List<IntId<OperationalPoint>>? = null,
+        checkIds: List<IntId<OperationalPoint>>? = null,
+    ): Map<IntId<OperationalPoint>, List<IntId<OperationalPoint>>> {
+        require(
+            publicationCandidateIds == null || checkIds == null || checkIds.all(publicationCandidateIds::contains)
+        ) {
+            "Making checkIds not a subset of publicationCandidateIds is not supported"
+        }
+
+        val (candidateIdSqlFragment, candidateIdSqlParams) =
+            if (publicationCandidateIds == null) "true" to mapOf()
+            else if (publicationCandidateIds.isEmpty()) "false" to mapOf()
+            else
+                "id = any(:candidate_ids)" to
+                    mapOf("candidate_ids" to publicationCandidateIds.map { it.intValue }.toTypedArray())
+
+        val (checkIdSqlFragment, checkIdSqlParams) =
+            if (checkIds == null) "true" to mapOf()
+            else if (checkIds.isEmpty()) "false" to mapOf()
+            else "id = any(:check_ids)" to mapOf("check_ids" to checkIds.map { it.intValue }.toTypedArray())
+
+        val sql =
+            """
+            with candidate_points as not materialized (
+                select *
+                  from layout.operational_point_in_layout_context(:candidate_publication_state::layout.publication_state,
+                                                                  :candidate_design_id::int)
+                  where ($candidateIdSqlFragment) and polygon is not null
+              ),
+            base_points as not materialized (
+              select *
+                from layout.operational_point_in_layout_context(:base_publication_state::layout.publication_state,
+                                                                :base_design_id::int) base_point
+                where not ($candidateIdSqlFragment) and polygon is not null
+            ), check_points as not materialized (
+              select * from candidate_points where $checkIdSqlFragment
+            )
+            (select point.id as point_id, other.id as other_id
+             from check_points point
+               join base_points other
+                 on postgis.st_overlaps(point.polygon, other.polygon))
+            union all
+            (select point.id as point_id, other.id as other_id
+             from check_points point
+               join (select * from candidate_points where not ($checkIdSqlFragment)) other
+                 on postgis.st_overlaps(point.polygon, other.polygon))
+            union all
+            (select point_id, other_id
+             from check_points a
+               join check_points b
+                 on a.id < b.id and postgis.st_overlaps(a.polygon, b.polygon)
+               cross join lateral (
+                 select a.id as point_id, b.id as other_id
+                 union all
+                 select b.id as point_id, a.id as other_id
+               ) symmetrize
+            )
+        """
+                .trimIndent()
+
+        val params =
+            mapOf(
+                "base_publication_state" to baseContext.state.name,
+                "base_design_id" to baseContext.branch.designId?.intValue,
+                "candidate_publication_state" to candidateContext.state.name,
+                "candidate_design_id" to candidateContext.branch.designId?.intValue,
+            ) + candidateIdSqlParams + checkIdSqlParams
+
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                rs.getIntId<OperationalPoint>("point_id") to rs.getIntId<OperationalPoint>("other_id")
+            }
+            .groupBy({ it.first }, { it.second })
+    }
+
+    fun polygonContainsLocation(rowVersion: LayoutRowVersion<OperationalPoint>): Boolean? {
+        val sql =
+            """
+                select postgis.st_intersects(polygon, location) c
+                from layout.operational_point_version opv
+                where opv.id = :id and opv.version = :version and opv.layout_context_id = :context
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "id" to rowVersion.id.intValue,
+                "version" to rowVersion.version,
+                "context" to rowVersion.context.toSqlString(),
+            )
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> rs.getBooleanOrNull("c") }
     }
 }

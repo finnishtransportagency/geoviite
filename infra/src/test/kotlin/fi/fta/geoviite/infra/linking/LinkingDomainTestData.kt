@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 
 fun publicationRequest(
@@ -22,6 +23,7 @@ fun publicationRequest(
     switches: List<IntId<LayoutSwitch>> = listOf(),
     referenceLines: List<IntId<ReferenceLine>> = listOf(),
     locationTracks: List<IntId<LocationTrack>> = listOf(),
+    operationalPoints: List<IntId<OperationalPoint>> = listOf(),
 ) =
     PublicationRequestIds(
         trackNumbers = trackNumbers,
@@ -29,6 +31,7 @@ fun publicationRequest(
         switches = switches,
         referenceLines = referenceLines,
         locationTracks = locationTracks,
+        operationalPoints = operationalPoints,
     )
 
 fun validationVersions(
@@ -37,6 +40,7 @@ fun validationVersions(
     kmPosts: List<LayoutRowVersion<LayoutKmPost>> = listOf(),
     locationTracks: List<LayoutRowVersion<LocationTrack>> = listOf(),
     switches: List<LayoutRowVersion<LayoutSwitch>> = listOf(),
+    operationalPoints: List<LayoutRowVersion<OperationalPoint>> = listOf(),
     target: ValidationTarget = draftTransitionOrOfficialState(PublicationState.DRAFT, LayoutBranch.main),
 ) =
     ValidationVersions(
@@ -46,6 +50,7 @@ fun validationVersions(
         kmPosts = kmPosts,
         locationTracks = locationTracks,
         switches = switches,
+        operationalPoints = operationalPoints,
         splits = listOf(),
     )
 

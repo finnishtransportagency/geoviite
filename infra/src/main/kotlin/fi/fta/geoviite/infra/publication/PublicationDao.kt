@@ -48,6 +48,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.util.DaoBase
@@ -427,6 +428,60 @@ class PublicationDao(
                 )
             }
         logger.daoAccess(FETCH, KmPostPublicationCandidate::class, candidates.map(KmPostPublicationCandidate::id))
+        return candidates
+    }
+
+    fun fetchOperationalPointPublicationCandidates(
+        transition: LayoutContextTransition
+    ): List<OperationalPointPublicationCandidate> {
+        val sql =
+            """
+                select
+                  candidate_operational_point.name,
+                  candidate_operational_point.id,
+                  candidate_operational_point.design_id,
+                  candidate_operational_point.draft,
+                  candidate_operational_point.version,
+                  candidate_operational_point.change_time,
+                  candidate_operational_point.change_user,
+                  layout.infer_operation_from_operational_point_state_transition(
+                    (select state
+                     from layout.operational_point_in_layout_context('OFFICIAL', null)
+                     where id = candidate_operational_point.id),
+                    candidate_operational_point.state
+                  ) as operation,
+                  candidate_operational_point.design_asset_state,
+                  postgis.st_x(candidate_operational_point.location) as point_x,
+                  postgis.st_y(candidate_operational_point.location) as point_y
+                from layout.operational_point candidate_operational_point
+                where draft = (:candidate_state = 'DRAFT')
+                  and design_id is not distinct from :candidate_design_id
+                  and not (design_id is not null and not draft and (design_asset_state = 'CANCELLED' or exists (
+                    select * from layout.operational_point drafted_cancellation
+                    where drafted_cancellation.draft
+                      and drafted_cancellation.design_id = design_id
+                      and drafted_cancellation.id = candidate_operational_point.id
+                      and drafted_cancellation.design_asset_state = 'CANCELLED')))
+                order by name
+            """
+                .trimIndent()
+        val candidates =
+            jdbcTemplate.query(sql, publicationCandidateSqlArguments(transition)) { rs, _ ->
+                OperationalPointPublicationCandidate(
+                    name = OperationalPointName(rs.getString("name")),
+                    rowVersion = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+                    draftChangeTime = rs.getInstant("change_time"),
+                    userName = UserName.of(rs.getString("change_user")),
+                    operation = rs.getEnum("operation"),
+                    designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
+                    location = rs.getPointOrNull("point_x", "point_y"),
+                )
+            }
+        logger.daoAccess(
+            FETCH,
+            OperationalPointPublicationCandidate::class,
+            candidates.map(OperationalPointPublicationCandidate::id),
+        )
         return candidates
     }
 

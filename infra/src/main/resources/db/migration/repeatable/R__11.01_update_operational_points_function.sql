@@ -21,8 +21,8 @@ create function integrations.operational_point_content_differs(a layout.operatio
                                                                b integrations.full_ratko_operational_point) returns boolean as
 $$
 select a.name != b.name or
-       a.abbreviation != b.abbreviation or
-       a.uic_code != b.uic_code or
+       a.abbreviation is distinct from b.abbreviation or
+       a.uic_code is distinct from b.uic_code or
        a.type != b.type or
        a.location::text != b.location::text;
 $$ language sql;
@@ -68,7 +68,8 @@ with
   ),
   -- (id, external_id, name, abbreviation...)
   all_ratko_rows as (
-    select id, external_id, name, abbreviation, uic_code, type, location
+    -- hack for compatibility with older production database dumps: Null out empty UIC codes
+    select id, external_id, name, abbreviation, case when uic_code != '' then uic_code end as uic_code, type, location
       from integrations.ratko_operational_point
         join (
         (

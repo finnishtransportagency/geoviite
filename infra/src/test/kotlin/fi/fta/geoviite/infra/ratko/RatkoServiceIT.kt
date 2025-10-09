@@ -88,6 +88,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointService
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
@@ -2364,6 +2365,7 @@ constructor(
         locationTracks: List<IntId<LocationTrack>> = listOf(),
         switches: List<IntId<LayoutSwitch>> = listOf(),
         kmPosts: List<IntId<LayoutKmPost>> = listOf(),
+        operationalPoints: List<IntId<OperationalPoint>> = listOf(),
     ) {
         val ids =
             PublicationRequestIds(
@@ -2372,6 +2374,7 @@ constructor(
                 locationTracks = locationTracks,
                 switches = switches,
                 kmPosts = kmPosts,
+                operationalPoints = operationalPoints,
             )
         publicationService.publishManualPublication(branch, PublicationRequest(ids, PublicationMessage.of("")))
         ratkoService.pushChangesToRatko(branch)

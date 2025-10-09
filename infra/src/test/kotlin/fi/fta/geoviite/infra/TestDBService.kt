@@ -178,6 +178,8 @@ class TestDBService(
                     "edge_segment",
                     "node",
                     "node_port",
+                    "operational_point",
+                    "operational_point_version",
                 ),
         )
     }

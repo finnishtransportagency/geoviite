@@ -35,6 +35,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.OperationalPointService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
@@ -62,6 +64,8 @@ constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val switchDao: LayoutSwitchDao,
     private val trackNumberDao: LayoutTrackNumberDao,
+    private val operationalPointService: OperationalPointService,
+    private val operationalPointDao: OperationalPointDao,
     private val calculatedChangesService: CalculatedChangesService,
     private val ratkoClient: RatkoClient?,
     private val transactionTemplate: TransactionTemplate,
@@ -85,6 +89,7 @@ constructor(
                 },
             switches = publicationDao.fetchSwitchPublicationCandidates(transition),
             kmPosts = publicationDao.fetchKmPostPublicationCandidates(transition),
+            operationalPoints = publicationDao.fetchOperationalPointPublicationCandidates(transition),
         )
     }
 
@@ -160,6 +165,12 @@ constructor(
                 .map { it.id }
                 .filter { id -> requestIds.switches.contains(id) }
 
+        val operationalPointIds =
+            operationalPointDao
+                .fetchCandidateVersions(branch.draft)
+                .map { it.id }
+                .filter { id -> requestIds.operationalPoints.contains(id) }
+
         val revertSplits = splitService.findUnpublishedSplits(branch, locationTrackIds.toList(), requestIds.switches)
         val revertSplitTracks = revertSplits.flatMap { s -> s.locationTracks }.distinct()
         val revertSplitSwitches = revertSplits.flatMap { s -> s.relinkedSwitches }.distinct()
@@ -170,6 +181,7 @@ constructor(
             locationTracks = (locationTrackIds + revertSplitTracks).distinct(),
             switches = (switchIds + revertSplitSwitches).distinct(),
             kmPosts = kmPostIds.toList(),
+            operationalPoints = operationalPointIds.toList(),
         )
     }
 
@@ -192,6 +204,8 @@ constructor(
             toDelete.trackNumbers
                 .map { id -> trackNumberService.deleteDraft(branch, id, noUpdateLocationTracks = locationTrackIds) }
                 .size
+        val operationalPointCount =
+            toDelete.operationalPoints.map { id -> operationalPointService.deleteDraft(branch, id) }.size
 
         return PublicationResultSummary(
             publicationId = null,
@@ -200,6 +214,7 @@ constructor(
             referenceLines = referenceLineCount,
             switches = switchCount,
             kmPosts = kmPostCount,
+            operationalPoints = operationalPointCount,
         )
     }
 
@@ -240,6 +255,8 @@ constructor(
             locationTracks =
                 locationTrackDao.fetchCandidateVersions(transition.candidateContext, request.locationTracks),
             switches = switchDao.fetchCandidateVersions(transition.candidateContext, request.switches),
+            operationalPoints =
+                operationalPointDao.fetchCandidateVersions(transition.candidateContext, request.operationalPoints),
             splits =
                 splitService.fetchPublicationVersions(
                     transition.candidateBranch,
@@ -360,6 +377,7 @@ constructor(
                         versions.locationTracks,
                         versions.switches,
                         versions.kmPosts,
+                        versions.operationalPoints,
                     )
 
                 if (changesInheritedToDesign.isEmpty()) null else inheritorBranch to changesInheritedToDesign
@@ -386,6 +404,7 @@ constructor(
                 (indirectChanges.switchChanges.map { it.switchId } + switchChangesBySameKmLocationTrackChange)
                     .distinct(),
             kmPosts = listOf(),
+            operationalPoints = listOf(),
         )
     }
 
@@ -410,6 +429,7 @@ constructor(
             locationTracks = request.locationTracks.size,
             switches = request.switches.size,
             kmPosts = request.kmPosts.size,
+            operationalPoints = request.operationalPoints.size,
         )
     }
 
@@ -425,6 +445,8 @@ constructor(
         val switches = versions.switches.map { v -> switchService.publish(branch, v) }
         val referenceLines = versions.referenceLines.map { v -> referenceLineService.publish(branch, v) }
         val locationTracks = versions.locationTracks.map { v -> locationTrackService.publish(branch, v) }
+        val operationalPoints = versions.operationalPoints.map { v -> operationalPointService.publish(branch, v) }
+
         val publicationId = publicationDao.createPublication(branch, message, cause, request.parentId)
         publicationDao.insertCalculatedChanges(
             publicationId,
@@ -435,6 +457,7 @@ constructor(
                 locationTracks.map { it.versionChange },
                 switches.map { it.versionChange },
                 kmPosts.map { it.versionChange },
+                operationalPoints.map { it.versionChange },
             ),
         )
 
@@ -447,6 +470,7 @@ constructor(
             locationTracks = locationTracks,
             switches = switches,
             kmPosts = kmPosts,
+            operationalPoints = operationalPoints,
         )
     }
 
