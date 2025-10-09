@@ -445,7 +445,7 @@ export type OperationalPoint = {
     id: OperationalPointId;
     origin: OperationalPointOrigin;
     name: string;
-    abbreviation: string;
+    abbreviation?: string;
     uicCode: UICCode;
     rinfType: number;
     raideType?: OperationalPointType;

@@ -61,7 +61,9 @@ export const ExternalOperationalPointEditDialog: React.FC<
     );
 
     const getVisibleErrorsByProp = (prop: keyof ExternalOperationalPointSaveRequest) =>
-        getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop);
+        getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop).map(
+            (err) => t(`operational-point-dialog.validation.${err}`),
+        );
 
     const updateRinfType = (value: RinfType | undefined) =>
         value &&
@@ -116,7 +118,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             <Button
                                 isProcessing={isSaving}
                                 disabled={isSaving}
-                                qa-id="save-switch-changes"
+                                qa-id="save-external-operational-point-changes"
                                 onClick={() =>
                                     saveUpdatedOperationalPoint(
                                         operationalPoint.id,
@@ -134,15 +136,15 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             {t('operational-point-dialog.basic-info')}
                         </Heading>
                         <FieldLayout
-                            label={`${t('operational-point-dialog.name')} *`}
+                            label={t('operational-point-dialog.name')}
                             value={state.existingOperationalPoint?.name}
                         />
                         <FieldLayout
-                            label={`${t('operational-point-dialog.abbreviation')} *`}
+                            label={t('operational-point-dialog.abbreviation')}
                             value={state.existingOperationalPoint?.abbreviation}
                         />
                         <FieldLayout
-                            label={`${t('operational-point-dialog.type-raide')} *`}
+                            label={t('operational-point-dialog.type-raide')}
                             value={
                                 state.existingOperationalPoint &&
                                 t(`enum.RaideType.${state.existingOperationalPoint.raideType}`)
@@ -171,7 +173,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             errors={getVisibleErrorsByProp('rinfType')}
                         />
                         <FieldLayout
-                            label={`${t('operational-point-dialog.state')} *`}
+                            label={t('operational-point-dialog.state')}
                             value={
                                 state.existingOperationalPoint && (
                                     <OperationalPointState
@@ -181,7 +183,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             }
                         />
                         <FieldLayout
-                            label={`${t('operational-point-dialog.uic-code')} *`}
+                            label={t('operational-point-dialog.uic-code')}
                             value={state.existingOperationalPoint?.uicCode}
                         />
                     </FormLayoutColumn>

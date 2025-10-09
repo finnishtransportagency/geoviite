@@ -82,7 +82,9 @@ export const InternalOperationalPointEditDialog: React.FC<
     const hasErrors = (fieldName: keyof InternalOperationalPointSaveRequest) =>
         hasErrorsGeneric(state.committedFields, state.validationIssues, fieldName);
     const getVisibleErrorsByProp = (prop: keyof InternalOperationalPointSaveRequest) =>
-        getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop);
+        getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop).map(
+            (err) => t(`operational-point-dialog.validation.${err}`),
+        );
 
     function saveNewOperationalPoint(newOperationalPoint: InternalOperationalPointSaveRequest) {
         setIsSaving(true);
@@ -168,7 +170,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                                 {t('button.cancel')}
                             </Button>
                             <Button
-                                qa-id="save-switch-changes"
+                                qa-id="save-internal-operational-point-changes"
                                 onClick={saveOrConfirm}
                                 disabled={!canSave}
                                 isProcessing={isSaving}>

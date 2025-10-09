@@ -26,7 +26,6 @@ import { defaultPublicationSearch } from 'publication/publication-utils';
 import { TimeStamp } from 'common/common-model';
 import { SearchablePublicationLogItem } from 'publication/log/publication-log';
 import { SearchItemValue } from 'asset-search/search-dropdown';
-import { brand } from 'common/brand';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
@@ -41,7 +40,7 @@ export function createEmptyItemCollections(): ItemCollections {
         geometryLinkPoints: [],
         clusterPoints: [],
         geometryPlans: [],
-        operationalPoints: [brand('INT_1')],
+        operationalPoints: [],
     };
 }
 
@@ -202,6 +201,11 @@ function updateItemCollectionsByOptions(
         options['geometryPlans'],
         flags,
     );
+    itemCollections['operationalPoints'] = getNewIdCollection(
+        itemCollections['operationalPoints'],
+        options['operationalPoints'],
+        flags,
+    );
 }
 
 function updateItemCollectionsByUnselecting(
@@ -247,6 +251,10 @@ function updateItemCollectionsByUnselecting(
     itemCollections['geometryPlans'] = filterIdCollection(
         itemCollections['geometryPlans'],
         unselectItemCollections['geometryPlans'],
+    );
+    itemCollections['operationalPoints'] = filterIdCollection(
+        itemCollections['operationalPoints'],
+        unselectItemCollections['operationalPoints'],
     );
 }
 

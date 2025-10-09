@@ -1,14 +1,21 @@
 import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
-import { deleteNonNull, getNonNull, postNonNull, putNonNull, queryParams } from 'api/api-fetch';
+import {
+    deleteNonNull,
+    getNonNull,
+    getNullable,
+    postNonNull,
+    putNonNull,
+    queryParams,
+} from 'api/api-fetch';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { bboxString } from 'common/common-api';
 import { LayoutAssetChangeInfo, LayoutContext, TimeStamp } from 'common/common-model';
-import { brand } from 'common/brand';
 import { contextInUri, layoutUri, TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { updateOperationalPointsChangeTime } from 'common/change-time-api';
 import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/internal-operational-point-edit-store';
 import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 
 type OriginInUri = 'INTERNAL' | 'EXTERNAL';
 type OperationalPointSaveRequest =
@@ -18,7 +25,8 @@ type OperationalPointSaveRequest =
 const cacheKey = (id: OperationalPointId, layoutContext: LayoutContext) =>
     `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
 
-const operationalPointsCache = asyncCache<string, OperationalPoint>();
+const operationalPointsCache = asyncCache<string, OperationalPoint | undefined>();
+const allOperationalPointsCache = asyncCache<string, OperationalPoint[]>();
 const operationalPointsTileCache = asyncCache<string, OperationalPoint[]>();
 
 const operationalPointUriByOrigin = (
@@ -45,25 +53,9 @@ export const getOperationalPoint = async (
     id: OperationalPointId,
     layoutContext: LayoutContext,
     changeTime: TimeStamp,
-): Promise<OperationalPoint> =>
-    operationalPointsCache.get(
-        changeTime,
-        cacheKey(id, layoutContext),
-        // TODO use proper fetch
-        () =>
-            Promise.resolve({
-                id: brand('INT_1'),
-                origin: 'GEOVIITE',
-                name: 'Helsinki Asema',
-                abbreviation: 'HKI',
-                uicCode: '0000001',
-                state: 'IN_USE',
-                raideType: 'LP',
-                rinfType: 10,
-                isDraft: false,
-                dataType: 'STORED',
-                version: 'a_b',
-            }),
+): Promise<OperationalPoint | undefined> =>
+    operationalPointsCache.get(changeTime, cacheKey(id, layoutContext), () =>
+        getNullable<OperationalPoint>(`${layoutUri('operational-points', layoutContext)}/${id}`),
     );
 
 export const getManyOperationalPoints = async (
@@ -71,17 +63,40 @@ export const getManyOperationalPoints = async (
     layoutContext: LayoutContext,
     changeTime: TimeStamp,
 ): Promise<OperationalPoint[]> =>
-    Promise.all(ids.map((id) => getOperationalPoint(id, layoutContext, changeTime)));
+    operationalPointsCache
+        .getMany(
+            changeTime,
+            ids,
+            (id) => cacheKey(id, layoutContext),
+            (ids) =>
+                getNonNull<OperationalPoint[]>(
+                    `${layoutUri('operational-points', layoutContext)}${queryParams({
+                        ids,
+                    })}`,
+                ).then((ops) => {
+                    const opMap = indexIntoMap(ops);
+                    return (id) => opMap.get(id);
+                }),
+        )
+        .then((ops) => ops.filter(filterNotEmpty));
+
+export const getAllOperationalPoints = (
+    layoutContext: LayoutContext,
+    changeTime: TimeStamp,
+): Promise<OperationalPoint[]> =>
+    allOperationalPointsCache.get(
+        changeTime,
+        `${layoutContext.branch}_${layoutContext.publicationState}`,
+        () => getNonNull<OperationalPoint[]>(`${layoutUri('operational-points', layoutContext)}`),
+    );
 
 export const getOperationalPointChangeTimes = (
-    _id: OperationalPointId,
-    _layoutContext: LayoutContext,
+    id: OperationalPointId,
+    layoutContext: LayoutContext,
 ): Promise<LayoutAssetChangeInfo | undefined> =>
-    // TODO use proper fetch
-    Promise.resolve({
-        created: '2023-10-10T12:00:00Z',
-        changed: '2023-10-15T12:00:00Z',
-    });
+    getNonNull<LayoutAssetChangeInfo>(
+        `${layoutUri('operational-points', layoutContext)}/${id}/change-info`,
+    );
 
 export async function insertOperationalPoint(
     newOperationalPoint: InternalOperationalPointSaveRequest,
