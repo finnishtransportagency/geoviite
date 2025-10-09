@@ -711,7 +711,7 @@ export const getFirstOfTypeInSelection = (
         KM_POST: () => first(selectedItems.kmPosts),
         GEOMETRY_KM_POST: () => first(selectedItems.geometryKmPostIds)?.geometryId,
         SWITCH: () => first(selectedItems.switches),
-        OPERATING_POINT: () => undefined,
+        OPERATIONAL_POINT: () => undefined,
         SUGGESTED_SWITCH: () =>
             switchLinkingActive ? SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID : undefined,
         GEOMETRY_SWITCH: () => first(selectedItems.switches),

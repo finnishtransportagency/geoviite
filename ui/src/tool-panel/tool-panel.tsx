@@ -86,7 +86,7 @@ export type ToolPanelAssetType =
     | 'GEOMETRY_KM_POST'
     | 'GEOMETRY_SWITCH'
     | 'SUGGESTED_SWITCH'
-    | 'OPERATING_POINT';
+    | 'OPERATIONAL_POINT';
 export type ToolPanelAsset = {
     id: string;
     type: ToolPanelAssetType;
@@ -440,7 +440,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const operationalPointTabs: ToolPanelTab[] = operationalPoints.map((op) => {
             return {
                 asset: {
-                    type: 'OPERATING_POINT',
+                    type: 'OPERATIONAL_POINT',
                     id: op.id,
                 },
                 title: op.name,

@@ -120,21 +120,21 @@ function createKmPostOptionItem(
     );
 }
 
-type OperatingPointItemValue = {
-    operatingPoint: OperationalPoint;
-    type: SearchItemType.OPERATING_POINT;
+type OperationalPointItemValue = {
+    operationalPoint: OperationalPoint;
+    type: SearchItemType.OPERATIONAL_POINT;
 };
 
-function createOperatingPointOptionItem(
-    operatingPoint: OperationalPoint,
-): Item<OperatingPointItemValue> {
+function createOperationalPointOptionItem(
+    operationalPoint: OperationalPoint,
+): Item<OperationalPointItemValue> {
     return dropdownOption(
         {
-            operatingPoint: operatingPoint,
-            type: SearchItemType.OPERATING_POINT,
+            operationalPoint: operationalPoint,
+            type: SearchItemType.OPERATIONAL_POINT,
         } as const,
-        `${operatingPoint.name}, ${operatingPoint.abbreviation}`,
-        `operating-point-${operatingPoint.name}`,
+        `${operationalPoint.name}, ${operationalPoint.abbreviation}`,
+        `operational-point-${operationalPoint.name}`,
     );
 }
 
@@ -168,7 +168,7 @@ async function getOptions(
     });
 
     return [
-        searchResult.operatingPoints.map(createOperatingPointOptionItem),
+        searchResult.operationalPoints.map(createOperationalPointOptionItem),
         locationTrackOptions,
         searchResult.switches.map((sw) => createSwitchOptionItem(sw, t)),
         searchResult.trackNumbers.map((tn) => createTrackNumberOptionItem(tn, t)),
@@ -183,7 +183,7 @@ type SearchItemMap = {
     [SearchItemType.LOCATION_TRACK]: LocationTrackItemValue;
     [SearchItemType.SWITCH]: SwitchItemValue;
     [SearchItemType.TRACK_NUMBER]: TrackNumberItemValue;
-    [SearchItemType.OPERATING_POINT]: OperatingPointItemValue;
+    [SearchItemType.OPERATIONAL_POINT]: OperationalPointItemValue;
     [SearchItemType.KM_POST]: KmPostItemValue;
 };
 
@@ -211,7 +211,7 @@ export enum SearchItemType {
     LOCATION_TRACK = 'LOCATION_TRACK',
     SWITCH = 'SWITCH',
     TRACK_NUMBER = 'TRACK_NUMBER',
-    OPERATING_POINT = 'OPERATING_POINT',
+    OPERATIONAL_POINT = 'OPERATIONAL_POINT',
     KM_POST = 'KM_POST',
 }
 

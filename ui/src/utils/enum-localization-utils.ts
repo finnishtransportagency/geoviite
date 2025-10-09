@@ -192,9 +192,9 @@ export const locationTrackNamingSchemes: LocalizedEnum<LocationTrackNamingScheme
     'LocationTrackNamingScheme',
     [
         LocationTrackNamingScheme.FREE_TEXT,
-        LocationTrackNamingScheme.WITHIN_OPERATING_POINT,
+        LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT,
         LocationTrackNamingScheme.TRACK_NUMBER_TRACK,
-        LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS,
+        LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS,
         LocationTrackNamingScheme.CHORD,
     ],
 );

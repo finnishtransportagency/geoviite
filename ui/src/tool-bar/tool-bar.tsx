@@ -44,7 +44,7 @@ import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
 import {
     calculateBoundingBoxToShowAroundLocation,
-    MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
+    MAP_POINT_OPERATIONAL_POINT_BBOX_OFFSET,
 } from 'map/map-utils';
 import { DesignSelectionContainer } from 'tool-bar/workspace-selection';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
@@ -174,16 +174,16 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         }
 
         switch (item.type) {
-            case SearchItemType.OPERATING_POINT: {
-                const operatingPointArea = item.operatingPoint.location
+            case SearchItemType.OPERATIONAL_POINT: {
+                const operationalPointArea = item.operationalPoint.location
                     ? calculateBoundingBoxToShowAroundLocation(
-                          item.operatingPoint.location,
-                          MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
+                          item.operationalPoint.location,
+                          MAP_POINT_OPERATIONAL_POINT_BBOX_OFFSET,
                       )
                     : undefined;
 
-                if (operatingPointArea) {
-                    showArea(operatingPointArea);
+                if (operationalPointArea) {
+                    showArea(operationalPointArea);
                 }
                 break;
             }
@@ -494,7 +494,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             SearchItemType.LOCATION_TRACK,
                             SearchItemType.SWITCH,
                             SearchItemType.TRACK_NUMBER,
-                            SearchItemType.OPERATING_POINT,
+                            SearchItemType.OPERATIONAL_POINT,
                         ]}
                         includeDeletedAssets={false}
                     />

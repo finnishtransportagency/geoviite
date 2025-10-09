@@ -362,8 +362,8 @@
             "FREE_TEXT": "Vapaa teksti",
             "TRACK_NUMBER_TRACK": "Ratanumeron raide",
             "CHORD": "Kujaraide",
-            "WITHIN_OPERATING_POINT": "Liikennepaikan raide",
-            "BETWEEN_OPERATING_POINTS": "Liikennepaikkojen välinen raide"
+            "WITHIN_OPERATIONAL_POINT": "Liikennepaikan raide",
+            "BETWEEN_OPERATIONAL_POINTS": "Liikennepaikkojen välinen raide"
         },
         "LocationTrackNameSpecifier": {
             "PR": "PR (Pohjoinen raide)",
@@ -504,7 +504,7 @@
         "naming-scheme": "Tunnuksen muoto",
         "name-free-text": "Sijaintiraidetunnus",
         "name-specifier": "Sijaintiraidetarkenne",
-        "operating-point-range": "Liikennepaikkaväli",
+        "operational-point-range": "Liikennepaikkaväli",
         "full-name": "Valmis tunnus",
         "track-number": "Ratanumero",
         "state": "Tila",
@@ -523,7 +523,7 @@
         "invalid-description-length": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
         "invalid-description-characters": "Kuvauksen perusosa sisältää virheellisiä merkkejä",
         "invalid-name": "Virheellinen sijaintiraidetunnus",
-        "invalid-operating-point-range-name": "Virheellinen liikennepaikkaväli",
+        "invalid-operational-point-range-name": "Virheellinen liikennepaikkaväli",
         "save-in-progress": "Tallennetaan",
         "duplicate-of": "Duplikaatti raiteelle",
         "not-a-duplicate": "Ei duplikaatti",
@@ -1440,7 +1440,7 @@
         "geometry-switch": "Suunnitelman vaihteet",
         "plan-area": "Suunnitelman alueet",
         "geometry-km-post": "Suunnitelman tasakilometripisteet",
-        "operating-points": "Liikennepaikat",
+        "operational-points": "Liikennepaikat",
         "debug-1m": "Tasametripisteet",
         "debug-projection-lines": "Geokoodauksen projektioviivat",
         "debug": "Debug",

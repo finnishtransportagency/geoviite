@@ -35,7 +35,7 @@ type LocationTrackNameTrackNumberProps = {
     getSpecifierErrors: () => string[];
 };
 
-type LocationTrackNameBetweenOperatingPointsProps = {
+type LocationTrackNameBetweenOperationalPointsProps = {
     request: LocationTrackSaveRequest;
     updateSpecifier: (specifier: LocationTrackNameSpecifier | undefined) => void;
     onCommitSpecifier: () => void;
@@ -44,7 +44,7 @@ type LocationTrackNameBetweenOperatingPointsProps = {
 
 const NAMING_SCHEMES_WITHOUT_FULL_NAME: LocationTrackNamingScheme[] = [
     LocationTrackNamingScheme.FREE_TEXT,
-    LocationTrackNamingScheme.WITHIN_OPERATING_POINT,
+    LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT,
 ];
 
 const LocationTrackNameFreeText: React.FC<LocationTrackNameFreeTextProps> = ({
@@ -101,10 +101,10 @@ const LocationTrackNameTrackNumber: React.FC<LocationTrackNameTrackNumberProps> 
                 errors={getSpecifierErrors()}
             />
             <FieldLayout
-                label={`${t('location-track-dialog.operating-point-range')}`}
+                label={`${t('location-track-dialog.operational-point-range')}`}
                 value={
                     <TextField
-                        qa-id="location-track-name-operating-point-range"
+                        qa-id="location-track-name-operational-point-range"
                         value={request.nameFreeText}
                         onChange={(e) => updateFreeText && updateFreeText(e.target.value)}
                         onBlur={() => onCommitFreeText && onCommitFreeText()}
@@ -117,8 +117,8 @@ const LocationTrackNameTrackNumber: React.FC<LocationTrackNameTrackNumberProps> 
     );
 };
 
-const LocationTrackNameBetweenOperatingPoints: React.FC<
-    LocationTrackNameBetweenOperatingPointsProps
+const LocationTrackNameBetweenOperationalPoints: React.FC<
+    LocationTrackNameBetweenOperationalPointsProps
 > = ({ request, updateSpecifier, onCommitSpecifier, getSpecifierErrors }) => {
     const { t } = useTranslation();
     return (
@@ -175,7 +175,7 @@ export const LocationTrackNameParts: React.FC<{
                     getSpecifierErrors={() => getVisibleErrorsByProp('nameSpecifier')}
                 />
             );
-        case LocationTrackNamingScheme.WITHIN_OPERATING_POINT:
+        case LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT:
             return (
                 <LocationTrackNameFreeText
                     request={state.locationTrack}
@@ -184,9 +184,9 @@ export const LocationTrackNameParts: React.FC<{
                     getFreeTextErrors={() => getVisibleErrorsByProp('nameFreeText')}
                 />
             );
-        case LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS:
+        case LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS:
             return (
-                <LocationTrackNameBetweenOperatingPoints
+                <LocationTrackNameBetweenOperationalPoints
                     request={state.locationTrack}
                     updateSpecifier={(value) => updateProp('nameSpecifier', value)}
                     onCommitSpecifier={() => onCommitField('nameSpecifier')}

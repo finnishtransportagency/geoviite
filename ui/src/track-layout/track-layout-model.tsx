@@ -132,8 +132,8 @@ export type LayoutReferenceLine = {
 
 export enum LocationTrackNamingScheme {
     FREE_TEXT = 'FREE_TEXT',
-    WITHIN_OPERATING_POINT = 'WITHIN_OPERATING_POINT',
-    BETWEEN_OPERATING_POINTS = 'BETWEEN_OPERATING_POINTS',
+    WITHIN_OPERATIONAL_POINT = 'WITHIN_OPERATIONAL_POINT',
+    BETWEEN_OPERATIONAL_POINTS = 'BETWEEN_OPERATIONAL_POINTS',
     TRACK_NUMBER_TRACK = 'TRACK_NUMBER_TRACK',
     CHORD = 'CHORD',
 }
@@ -160,8 +160,8 @@ export type LocationTrackNameFreeText = {
     scheme: LocationTrackNamingScheme.FREE_TEXT;
     freeText: string;
 };
-export type LocationTrackNameWithinOperatingPoint = {
-    scheme: LocationTrackNamingScheme.WITHIN_OPERATING_POINT;
+export type LocationTrackNameWithinOperationalPoint = {
+    scheme: LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT;
     freeText: string;
 };
 export type LocationTrackNameByTrackNumber = {
@@ -169,8 +169,8 @@ export type LocationTrackNameByTrackNumber = {
     freeText: string;
     specifier: LocationTrackNameSpecifier;
 };
-export type LocationTrackNameBetweenOperatingPoints = {
-    scheme: LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS;
+export type LocationTrackNameBetweenOperationalPoints = {
+    scheme: LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS;
     specifier: LocationTrackNameSpecifier;
 };
 export type LocationTrackNameChord = {
@@ -179,9 +179,9 @@ export type LocationTrackNameChord = {
 
 export type LocationTrackNameStructure =
     | LocationTrackNameFreeText
-    | LocationTrackNameWithinOperatingPoint
+    | LocationTrackNameWithinOperationalPoint
     | LocationTrackNameByTrackNumber
-    | LocationTrackNameBetweenOperatingPoints
+    | LocationTrackNameBetweenOperationalPoints
     | LocationTrackNameChord;
 
 export function getNameFreeText(
@@ -206,7 +206,7 @@ export const locationTrackNameFieldsSanitized = (
 
     switch (saveRequest.namingScheme) {
         case LocationTrackNamingScheme.FREE_TEXT:
-        case LocationTrackNamingScheme.WITHIN_OPERATING_POINT:
+        case LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT:
             return {
                 nameFreeText: freeText,
                 nameSpecifier: undefined,
@@ -216,7 +216,7 @@ export const locationTrackNameFieldsSanitized = (
                 nameFreeText: freeText,
                 nameSpecifier: specifier,
             };
-        case LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS:
+        case LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS:
             return {
                 nameFreeText: undefined,
                 nameSpecifier: specifier,
@@ -596,11 +596,11 @@ export function formatTrackName(
 ): string {
     switch (namingScheme) {
         case LocationTrackNamingScheme.FREE_TEXT:
-        case LocationTrackNamingScheme.WITHIN_OPERATING_POINT:
+        case LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT:
             return nameFreeText ?? '';
         case LocationTrackNamingScheme.TRACK_NUMBER_TRACK:
             return `${withPlaceholder(trackNumber)} ${toProperForm(nameSpecifier)} ${nameFreeText ?? ''}`.trim();
-        case LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS:
+        case LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS:
             return nameSpecifier
                 ? `${toProperForm(nameSpecifier)} ${getShortName(startSwitch)}-${getShortName(endSwitch)}`
                 : `${getShortName(startSwitch)}-${getShortName(endSwitch)}`;

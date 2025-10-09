@@ -18,31 +18,31 @@ import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { LayoutContext } from 'common/common-model';
 
-const layerName: MapLayerName = 'operating-points-layer';
+const layerName: MapLayerName = 'operational-points-layer';
 
-enum OperatingPointStyle {
+enum OperationalPointStyle {
     Large,
     Medium,
     Small,
     None,
 }
 
-const operatingPointStyleResolutions = [
+const operationalPointStyleResolutions = [
     {
-        style: OperatingPointStyle.Large,
-        resolutionUpperLimit: Limits.OPERATING_POINTS_LARGE,
+        style: OperationalPointStyle.Large,
+        resolutionUpperLimit: Limits.OPERATIONAL_POINTS_LARGE,
     },
     {
-        style: OperatingPointStyle.Medium,
-        resolutionUpperLimit: Limits.OPERATING_POINTS_MEDIUM,
+        style: OperationalPointStyle.Medium,
+        resolutionUpperLimit: Limits.OPERATIONAL_POINTS_MEDIUM,
     },
     {
-        style: OperatingPointStyle.Small,
-        resolutionUpperLimit: Limits.OPERATING_POINTS_SMALL,
+        style: OperationalPointStyle.Small,
+        resolutionUpperLimit: Limits.OPERATIONAL_POINTS_SMALL,
     },
 ];
 
-export function createOperatingPointLayer(
+export function createOperationalPointLayer(
     mapTiles: MapTile[],
     existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     olView: OlView,
@@ -52,9 +52,9 @@ export function createOperatingPointLayer(
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer, true, true);
     const resolution = olView.getResolution() || 0;
 
-    const showOperatingPoints = resolution <= Limits.OPERATING_POINTS_SMALL;
+    const showOperationalPoints = resolution <= Limits.OPERATIONAL_POINTS_SMALL;
 
-    const getOperatingPointsFromApi = async () => {
+    const getOperationalPointsFromApi = async () => {
         return (
             await Promise.all(
                 mapTiles.map((tile) =>
@@ -65,8 +65,8 @@ export function createOperatingPointLayer(
     };
     const onLoadingChange = () => {};
     const createFeatures = (points: OperationalPoint[]) =>
-        showOperatingPoints ? points.map(renderPoint).filter(filterNotEmpty) : [];
-    loadLayerData(source, isLatest, onLoadingChange, getOperatingPointsFromApi(), createFeatures);
+        showOperationalPoints ? points.map(renderPoint).filter(filterNotEmpty) : [];
+    loadLayerData(source, isLatest, onLoadingChange, getOperationalPointsFromApi(), createFeatures);
 
     return {
         name: layerName,
@@ -74,9 +74,9 @@ export function createOperatingPointLayer(
     };
 }
 
-function getOperatingPointStyle(style: OperatingPointStyle, operatingPointName: string) {
+function getOperationalPointStyle(style: OperationalPointStyle, operationalPointName: string) {
     switch (style) {
-        case OperatingPointStyle.Small:
+        case OperationalPointStyle.Small:
             return new Style({
                 image: new Circle({
                     radius: 4,
@@ -87,7 +87,7 @@ function getOperatingPointStyle(style: OperatingPointStyle, operatingPointName: 
                     color: 'white',
                 }),
                 text: new Text({
-                    text: operatingPointName,
+                    text: operationalPointName,
                     fill: new Fill({ color: 'black' }),
                     offsetX: 10,
                     textAlign: 'left',
@@ -96,7 +96,7 @@ function getOperatingPointStyle(style: OperatingPointStyle, operatingPointName: 
                     font: '11px "Open Sans"',
                 }),
             });
-        case OperatingPointStyle.Medium:
+        case OperationalPointStyle.Medium:
             return new Style({
                 image: new Circle({
                     radius: 5,
@@ -107,7 +107,7 @@ function getOperatingPointStyle(style: OperatingPointStyle, operatingPointName: 
                     color: 'white',
                 }),
                 text: new Text({
-                    text: operatingPointName,
+                    text: operationalPointName,
                     fill: new Fill({ color: 'black' }),
                     offsetX: 12,
                     textAlign: 'left',
@@ -115,7 +115,7 @@ function getOperatingPointStyle(style: OperatingPointStyle, operatingPointName: 
                     font: '14px "Open Sans"',
                 }),
             });
-        case OperatingPointStyle.Large:
+        case OperationalPointStyle.Large:
             return new Style({
                 image: new Circle({
                     radius: 6,
@@ -126,7 +126,7 @@ function getOperatingPointStyle(style: OperatingPointStyle, operatingPointName: 
                     color: 'white',
                 }),
                 text: new Text({
-                    text: operatingPointName,
+                    text: operationalPointName,
                     fill: new Fill({ color: 'black' }),
                     offsetX: 14,
                     textAlign: 'left',
@@ -134,25 +134,25 @@ function getOperatingPointStyle(style: OperatingPointStyle, operatingPointName: 
                     font: '16px "Open Sans"',
                 }),
             });
-        case OperatingPointStyle.None:
+        case OperationalPointStyle.None:
             return [];
     }
 }
 
-const operatingPointStyleResolutionsSmallestFirst = operatingPointStyleResolutions.sort(
+const operationalPointStyleResolutionsSmallestFirst = operationalPointStyleResolutions.sort(
     fieldComparator((a) => a.resolutionUpperLimit),
 );
 
-function getOperatingPointStyleForFeature(feature: Feature, resolution: number) {
-    const point = feature.get('operatingPoint') as OperationalPoint;
-    const smallestResolutionConf = operatingPointStyleResolutionsSmallestFirst.find(
+function getOperationalPointStyleForFeature(feature: Feature, resolution: number) {
+    const point = feature.get('operationalPoint') as OperationalPoint;
+    const smallestResolutionConf = operationalPointStyleResolutionsSmallestFirst.find(
         (styleResolution) => resolution <= styleResolution.resolutionUpperLimit,
     );
     const selectedStyle =
         smallestResolutionConf !== undefined
             ? smallestResolutionConf.style
-            : OperatingPointStyle.None;
-    return getOperatingPointStyle(selectedStyle, point.name);
+            : OperationalPointStyle.None;
+    return getOperationalPointStyle(selectedStyle, point.name);
 }
 
 function renderPoint(point: OperationalPoint): Feature<OlPoint> | undefined {
@@ -163,8 +163,8 @@ function renderPoint(point: OperationalPoint): Feature<OlPoint> | undefined {
     const feature = new Feature({
         geometry: new OlPoint(pointToCoords(point.location)),
     });
-    feature.set('operatingPoint', point);
-    feature.setStyle(getOperatingPointStyleForFeature);
+    feature.set('operationalPoint', point);
+    feature.setStyle(getOperationalPointStyleForFeature);
 
     return feature;
 }

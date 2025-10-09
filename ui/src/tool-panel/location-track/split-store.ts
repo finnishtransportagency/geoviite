@@ -100,7 +100,7 @@ export type SwitchOnLocationTrack = {
     address: TrackMeter | undefined;
     location: Point | undefined;
     distance: number | undefined;
-    nearestOperatingPoint: OperationalPoint | undefined;
+    nearestOperationalPoint: OperationalPoint | undefined;
 };
 
 export type SplitRequest = {
@@ -497,8 +497,8 @@ function getNameForTarget(
     name: string;
     descriptionBase: string;
 } {
-    // TODO: GVT-3083 when supporting other naming schemes, this should perhaps be BETWEEN_OPERATING_POINTS
-    //  as within operating points the tracks mostly have duplicates to pick the name from.
+    // TODO: GVT-3083 when supporting other naming schemes, this should perhaps be BETWEEN_OPERATIONAL_POINTS
+    //  as within operational points the tracks mostly have duplicates to pick the name from.
     const namingScheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT;
     // TODO: GVT-3083 when supporting other naming schemes, it would likely make sense to pick this from the main track
     //  (the split source) as it will logically be on the same side as the split ones
@@ -522,13 +522,13 @@ function getNameForTarget(
         ),
         descriptionBase:
             startSwitch !== undefined &&
-            startSwitch.nearestOperatingPoint !== undefined &&
+            startSwitch.nearestOperationalPoint !== undefined &&
             endSwitch !== undefined &&
-            endSwitch.nearestOperatingPoint !== undefined &&
-            startSwitch.nearestOperatingPoint.name !== endSwitch.nearestOperatingPoint.name
+            endSwitch.nearestOperationalPoint !== undefined &&
+            startSwitch.nearestOperationalPoint.name !== endSwitch.nearestOperationalPoint.name
                 ? getLocationTrackDescription(
-                      startSwitch.nearestOperatingPoint,
-                      endSwitch.nearestOperatingPoint,
+                      startSwitch.nearestOperationalPoint,
+                      endSwitch.nearestOperationalPoint,
                   )
                 : '',
     };

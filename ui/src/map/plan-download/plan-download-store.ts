@@ -116,7 +116,7 @@ export const planDownloadAssetIdFromToolPanelAsset = (
         case 'SUGGESTED_SWITCH':
         case 'KM_POST':
         case 'SWITCH':
-        case 'OPERATING_POINT':
+        case 'OPERATIONAL_POINT':
             return undefined;
         default:
             return exhaustiveMatchingGuard(selectedAsset.type);
