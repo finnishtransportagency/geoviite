@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_T
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.NodeConnection
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -149,6 +150,174 @@ class SplitTest {
         assertEdgesMatch(geometry.edges.subList(5, 7), resultTracks[2].geometry)
         assertEdgesMatch(geometry.edges.subList(7, 8), resultTracks[3].geometry)
     }
+
+    @Test
+    fun `Combining edges works when replacement extends over the replaced geom`() {
+        val switchLink1_1 = switchLinkYV(IntId(123), 1)
+        val switchLink1_2 = switchLinkYV(IntId(123), 2)
+        val origEdge1 = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))), endOuterSwitch = switchLink1_1)
+        val origEdge2 =
+            edge(
+                listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                startInnerSwitch = switchLink1_1,
+                endInnerSwitch = switchLink1_2,
+            )
+        val origEdge3 = edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))), startOuterSwitch = switchLink1_2)
+        val replacementEdge =
+            edge(
+                listOf(segment(Point(9.0, 0.0), Point(21.0, 0.0))),
+                startInnerSwitch = switchLink1_1,
+                endInnerSwitch = switchLink1_2,
+            )
+        val result =
+            connectPartialDuplicateEdges(trackGeometry(origEdge1, origEdge2, origEdge3), listOf(replacementEdge), 1..1)
+
+        assertEquals(
+            listOf(
+                EdgeTestData(origEdge1).copy(segments = listOf(Point(0.0, 0.0) to Point(9.0, 0.0))),
+                EdgeTestData(replacementEdge),
+                EdgeTestData(origEdge3).copy(segments = listOf(Point(21.0, 0.0) to Point(30.0, 0.0))),
+            ),
+            result.map { edge -> EdgeTestData(edge) },
+        )
+    }
+
+    @Test
+    fun `Combining edges works when replacement is shorter than the replaced geom`() {
+        val switchLink1_1 = switchLinkYV(IntId(123), 1)
+        val switchLink1_2 = switchLinkYV(IntId(123), 2)
+        val origEdge1 = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))), endOuterSwitch = switchLink1_1)
+        val origEdge2 =
+            edge(
+                listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                startInnerSwitch = switchLink1_1,
+                endInnerSwitch = switchLink1_2,
+            )
+        val origEdge3 = edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))), startOuterSwitch = switchLink1_2)
+        val replacementEdge =
+            edge(
+                listOf(segment(Point(11.0, 0.0), Point(19.0, 0.0))),
+                startInnerSwitch = switchLink1_1,
+                endInnerSwitch = switchLink1_2,
+            )
+        val result =
+            connectPartialDuplicateEdges(trackGeometry(origEdge1, origEdge2, origEdge3), listOf(replacementEdge), 1..1)
+
+        assertEquals(
+            listOf(
+                EdgeTestData(origEdge1)
+                    .copy(segments = listOf(Point(0.0, 0.0) to Point(10.0, 0.0), Point(10.0, 0.0) to Point(11.0, 0.0))),
+                EdgeTestData(replacementEdge),
+                EdgeTestData(origEdge3)
+                    .copy(segments = listOf(Point(19.0, 0.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))),
+            ),
+            result.map { edge -> EdgeTestData(edge) },
+        )
+    }
+
+    @Test
+    fun `Combining edges works when the replacement edge is shorter and offset from the replaced geom`() {
+        val switchLink1_1 = switchLinkYV(IntId(123), 1)
+        val switchLink1_2 = switchLinkYV(IntId(123), 2)
+        val origEdge1 = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))), endOuterSwitch = switchLink1_1)
+        val origEdge2 =
+            edge(
+                listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                startInnerSwitch = switchLink1_1,
+                endInnerSwitch = switchLink1_2,
+            )
+        val origEdge3 = edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))), startOuterSwitch = switchLink1_2)
+        val replacementEdge =
+            edge(
+                listOf(segment(Point(11.0, 1.0), Point(19.0, 1.0))),
+                startInnerSwitch = switchLink1_1,
+                endInnerSwitch = switchLink1_2,
+            )
+        val result =
+            connectPartialDuplicateEdges(trackGeometry(origEdge1, origEdge2, origEdge3), listOf(replacementEdge), 1..1)
+
+        assertEquals(
+            listOf(
+                EdgeTestData(origEdge1)
+                    .copy(segments = listOf(Point(0.0, 0.0) to Point(10.0, 0.0), Point(10.0, 0.0) to Point(11.0, 1.0))),
+                EdgeTestData(replacementEdge),
+                EdgeTestData(origEdge3)
+                    .copy(segments = listOf(Point(19.0, 1.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))),
+            ),
+            result.map { edge -> EdgeTestData(edge) },
+        )
+    }
+
+    @Test
+    fun `Combining edges works when the replacement edge is longer and offset from the replaced geom`() {
+        val switchLink1_1 = switchLinkYV(IntId(123), 1)
+        val switchLink1_2 = switchLinkYV(IntId(123), 2)
+        val origEdge1 = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))), endOuterSwitch = switchLink1_1)
+        val origEdge2 =
+            edge(
+                listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                startInnerSwitch = switchLink1_1,
+                endInnerSwitch = switchLink1_2,
+            )
+        val origEdge3 = edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))), startOuterSwitch = switchLink1_2)
+        val replacementEdge =
+            edge(
+                listOf(segment(Point(9.0, 1.0), Point(21.0, 1.0))),
+                startInnerSwitch = switchLink1_1,
+                endInnerSwitch = switchLink1_2,
+            )
+        val result =
+            connectPartialDuplicateEdges(trackGeometry(origEdge1, origEdge2, origEdge3), listOf(replacementEdge), 1..1)
+
+        assertEquals(
+            listOf(
+                EdgeTestData(origEdge1)
+                    .copy(segments = listOf(Point(0.0, 0.0) to Point(8.0, 0.0), Point(8.0, 0.0) to Point(9.0, 1.0))),
+                EdgeTestData(replacementEdge),
+                EdgeTestData(origEdge3)
+                    .copy(segments = listOf(Point(21.0, 1.0) to Point(22.0, 0.0), Point(22.0, 0.0) to Point(30.0, 0.0))),
+            ),
+            result.map { edge -> EdgeTestData(edge) },
+        )
+    }
+
+    @Test
+    fun `Combining edges works when replacing everything`() {
+        val switchLink1_1 = switchLinkYV(IntId(123), 1)
+        val switchLink1_2 = switchLinkYV(IntId(123), 2)
+        val origEdge1 = edge(listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))), endOuterSwitch = switchLink1_1)
+        val origEdge2 =
+            edge(
+                listOf(segment(Point(10.0, 0.0), Point(20.0, 0.0))),
+                startInnerSwitch = switchLink1_1,
+                endInnerSwitch = switchLink1_2,
+            )
+        val origEdge3 = edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 0.0))), startOuterSwitch = switchLink1_2)
+        val replacementEdge =
+            edge(
+                listOf(segment(Point(11.0, 1.0), Point(19.0, 1.0))),
+                startInnerSwitch = switchLink1_1,
+                endInnerSwitch = switchLink1_2,
+            )
+        val result =
+            connectPartialDuplicateEdges(trackGeometry(origEdge1, origEdge2, origEdge3), listOf(replacementEdge), 0..3)
+
+        assertEquals(listOf(EdgeTestData(replacementEdge)), result.map { edge -> EdgeTestData(edge) })
+    }
+}
+
+data class EdgeTestData(
+    val startNode: NodeConnection,
+    val endNode: NodeConnection,
+    val segments: List<Pair<Point, Point>>,
+) {
+    constructor(
+        edge: LayoutEdge
+    ) : this(
+        startNode = edge.startNode,
+        endNode = edge.endNode,
+        segments = edge.segments.map { s -> s.segmentStart.toPoint() to s.segmentEnd.toPoint() },
+    )
 }
 
 fun linearSegment(points: IntRange): LayoutSegment =

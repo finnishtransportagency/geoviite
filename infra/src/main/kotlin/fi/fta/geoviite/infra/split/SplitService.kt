@@ -601,7 +601,7 @@ fun splitLocationTrack(
         .also { result -> validateSplitResult(result, sourceGeometry) }
 }
 
-private fun connectPartialDuplicateEdges(
+fun connectPartialDuplicateEdges(
     geometry: LocationTrackGeometry,
     replacements: List<LayoutEdge>,
     replacementIndices: IntRange,

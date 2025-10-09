@@ -269,7 +269,7 @@ fun verifyTrackGeometry(trackId: IntId<LocationTrack>?, edges: List<LayoutEdge>)
         }
 
         require(prev.lastSegmentEnd.isSame(next.firstSegmentStart, 0.001)) {
-            "Track edges should begin where the previous one ends: trackId=$trackId connectingNode=${prev.endNode} prevPoint=${prev.lastSegmentEnd} next=${next.firstSegmentStart}"
+            "Track edges should begin where the previous one ends: trackId=$trackId connectingNode=${prev.endNode} prevPoint=${prev.lastSegmentEnd} nextPoint=${next.firstSegmentStart}"
         }
     }
     edges.firstOrNull()?.startNode?.trackBoundaryIn?.let { boundary ->
