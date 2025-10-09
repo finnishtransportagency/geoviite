@@ -17,7 +17,7 @@ import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-poin
 import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 
-type OriginInUri = 'INTERNAL' | 'EXTERNAL';
+type OriginInUri = 'internal' | 'external';
 type OperationalPointSaveRequest =
     | InternalOperationalPointSaveRequest
     | ExternalOperationalPointSaveRequest;
@@ -129,14 +129,14 @@ export const updateInternalOperationalPoint = (
     updatedOperationalPoint: InternalOperationalPointSaveRequest,
     layoutContext: LayoutContext,
 ): Promise<OperationalPointId> =>
-    updateOperationalPoint(id, 'INTERNAL', updatedOperationalPoint, layoutContext);
+    updateOperationalPoint(id, 'internal', updatedOperationalPoint, layoutContext);
 
 export const updateExternalOperationalPoint = (
     id: OperationalPointId,
     updatedOperationalPoint: ExternalOperationalPointSaveRequest,
     layoutContext: LayoutContext,
 ): Promise<OperationalPointId> =>
-    updateOperationalPoint(id, 'EXTERNAL', updatedOperationalPoint, layoutContext);
+    updateOperationalPoint(id, 'external', updatedOperationalPoint, layoutContext);
 
 export async function deleteDraftOperationalPoint(
     layoutContext: LayoutContext,

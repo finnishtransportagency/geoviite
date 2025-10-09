@@ -84,9 +84,13 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                     )}
                     <InfoboxField
                         label={t('tool-panel.operational-point.type-rinf')}
-                        value={t('enum.rinf-type-full', {
-                            rinfType: operationalPoint.rinfType,
-                        })}
+                        value={
+                            operationalPoint.rinfType
+                                ? t('enum.rinf-type-full', {
+                                      rinfType: operationalPoint.rinfType,
+                                  })
+                                : t('tool-panel.operational-point.unset')
+                        }
                     />
                     <InfoboxField
                         label={t('tool-panel.operational-point.uic-code')}
