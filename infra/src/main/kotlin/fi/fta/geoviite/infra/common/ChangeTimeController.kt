@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.ratko.RatkoOperationalPointDao
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.*
@@ -30,7 +29,7 @@ data class CollectedChangeTimes(
     val ratkoPush: Instant,
     val pvDocument: Instant,
     val split: Instant,
-    val operatingPoints: Instant,
+    val operationalPoints: Instant,
     val layoutDesign: Instant,
 )
 
@@ -46,7 +45,7 @@ class ChangeTimeController(
     private val ratkoPushDao: RatkoPushDao,
     private val pvDocumentService: PVDocumentService,
     private val splitService: SplitService,
-    private val ratkoOperationalPointDao: RatkoOperationalPointDao,
+    private val operationalPointDao: OperationalPointDao,
     private val layoutDesignDao: LayoutDesignDao,
 ) {
 
@@ -70,7 +69,7 @@ class ChangeTimeController(
             ratkoPush = ratkoPushDao.getRatkoPushChangeTime(),
             pvDocument = pvDocumentService.getDocumentChangeTime(),
             split = splitService.getChangeTime(),
-            operatingPoints = ratkoOperationalPointDao.getChangeTime(),
+            operationalPoints = operationalPointDao.getChangeTime(),
             layoutDesign = layoutDesignDao.getChangeTime(),
         )
     }
@@ -145,5 +144,11 @@ class ChangeTimeController(
     @GetMapping("/layout-designs")
     fun getLayoutDesignChangeTime(): Instant {
         return layoutDesignDao.getChangeTime()
+    }
+
+    @PreAuthorize(AUTH_BASIC)
+    @GetMapping("/operational-points")
+    fun getOperationalPointChangeTime(): Instant {
+        return operationalPointDao.getChangeTime()
     }
 }

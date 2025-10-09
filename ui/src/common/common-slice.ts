@@ -21,7 +21,6 @@ export type ChangeTimes = {
     pvDocument: TimeStamp;
     split: TimeStamp;
     operationalPoints: TimeStamp;
-    operatingPoints: TimeStamp;
     layoutDesign: TimeStamp;
 };
 
@@ -43,7 +42,6 @@ export const initialChangeTimes: ChangeTimes = {
     pvDocument: initialChangeTime,
     split: initialChangeTime,
     operationalPoints: initialChangeTime,
-    operatingPoints: initialChangeTime,
     layoutDesign: initialChangeTime,
 };
 

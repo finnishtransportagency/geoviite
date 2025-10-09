@@ -120,7 +120,7 @@ export function updateOperationalPointsChangeTime(): Promise<TimeStamp> {
     return updateChangeTime(
         `${CHANGES_API}/operational-points`,
         delegates.setOperationalPointsChangeTime,
-        getChangeTimes().operatingPoints,
+        getChangeTimes().operationalPoints,
     );
 }
 

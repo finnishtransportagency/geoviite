@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
+import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
@@ -19,6 +20,7 @@ import fi.fta.geoviite.infra.util.getPointOrNull
 import fi.fta.geoviite.infra.util.getPolygonPointListOrNull
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -241,4 +243,8 @@ class OperationalPointDao(
             contextData =
                 rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
+
+    fun getChangeTime(): Instant {
+        return fetchLatestChangeTime(DbTable.LAYOUT_OPERATIONAL_POINT)
+    }
 }
