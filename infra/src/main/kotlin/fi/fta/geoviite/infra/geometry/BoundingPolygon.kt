@@ -12,7 +12,8 @@ fun collectAnglePoints(alignments: List<GeometryAlignment>): List<Point> =
 
 fun getBoundingPolygonFromPlan(plan: GeometryPlan, transformation: Transformation): Polygon? =
     tryCreateBoundingPolygon(
-        collectAnglePoints(plan.alignments) + plan.kmPosts.mapNotNull { it.location },
+        collectAnglePoints(plan.alignments) +
+            plan.kmPosts.mapNotNull { it.location?.takeIf { point -> point.x != 0.0 && point.y != 0.0 } },
         transformation,
     )
 
