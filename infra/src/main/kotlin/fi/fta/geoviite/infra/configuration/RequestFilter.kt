@@ -363,13 +363,12 @@ constructor(
         return request
             .getHeader("x-forwarded-host")
             ?.takeIf { it.isNotEmpty() }
-            ?.split(".")
+            ?.split("/")
             ?.firstOrNull()
-            ?.let { firstSubDomain ->
-                when (firstSubDomain) {
-                    "avoinapi" -> extApiUser(ExtApiUserType.PUBLIC)
-                    "api" -> extApiUser(ExtApiUserType.PRIVATE)
-
+            ?.let { domain ->
+                when (domain) {
+                    in extApi.publicHosts -> extApiUser(ExtApiUserType.PUBLIC)
+                    in extApi.privateHosts -> extApiUser(ExtApiUserType.PRIVATE)
                     else ->
                         throw ApiUnauthorizedException("Could not determine integration api user type (invalid host).")
                 }

@@ -42,6 +42,8 @@ geoviite:
     url-path-prefixes:
       - /geoviite
       - /rata-vkm
+    public-hosts: "${GEOVIITE_EXT_API_PUBLIC_HOSTS:localhost}"
+    private-hosts: "${GEOVIITE_EXT_API_PRIVATE_HOSTS:localhost}"
 
 springdoc:
   enable-default-api-docs: false
