@@ -963,7 +963,8 @@
             "created": "Luotu",
             "modified": "Muokattu",
             "cannot-set-location-for-external": "Ratkon hallinnoiman toiminnallisen pisteen sijaintia ei voi muokata",
-            "unset": "Ei asetettu"
+            "unset": "Ei asetettu",
+            "unpublished": "Julkaisematon"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
@@ -1998,6 +1999,7 @@
         "new-switch": "Uusi vaihde",
         "new-location-track": "Uusi sijaintiraide",
         "new-km-post": "Uusi tasakilometripiste",
+        "new-operational-point": "Uusi toiminnallinen piste",
         "splitting-in-progress": "Raiteen jakaminen on kesken",
         "linking-in-progress": "Linkitys on kesken",
         "choose-workspace": "Valitse työtila",

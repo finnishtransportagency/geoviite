@@ -14,15 +14,17 @@ type OperationalPointInfoboxContainerProps = {
     operationalPointId: OperationalPointId;
     visibilities: OperationalPointInfoboxVisibilities;
     onVisiblityChange: (visibilites: OperationalPointInfoboxVisibilities) => void;
+    onDataChange: () => void;
 };
 
 export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxContainerProps> = ({
     operationalPointId,
     visibilities,
     onVisiblityChange,
+    onDataChange,
 }) => {
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
-    const _delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
     const operationalPoint = useLoader(
@@ -32,7 +34,7 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
                 trackLayoutState.layoutContext,
                 changeTimes.operationalPoints,
             ),
-        [changeTimes.operationalPoints],
+        [operationalPointId, changeTimes.operationalPoints],
     );
 
     return (
@@ -44,6 +46,9 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
                     changeTimes={changeTimes}
                     visibilities={visibilities}
                     onVisibilityChange={onVisiblityChange}
+                    onDataChange={onDataChange}
+                    onSelect={delegates.onSelect}
+                    onUnselect={delegates.onUnselect}
                 />
             )}
         </React.Fragment>
