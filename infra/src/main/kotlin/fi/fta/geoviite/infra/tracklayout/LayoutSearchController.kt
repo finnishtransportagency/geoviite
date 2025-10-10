@@ -20,14 +20,14 @@ data class TrackLayoutSearchResult(
     val switches: List<LayoutSwitch>,
     val trackNumbers: List<LayoutTrackNumber>,
     val kmPosts: List<LayoutKmPost>,
-    val operatingPoints: List<RatkoOperationalPoint>,
+    val operationalPoints: List<RatkoOperationalPoint>,
 )
 
 enum class TrackLayoutSearchedAssetType {
     LOCATION_TRACK,
     SWITCH,
     TRACK_NUMBER,
-    OPERATING_POINT,
+    OPERATIONAL_POINT,
     KM_POST,
 }
 

@@ -111,8 +111,8 @@ constructor(
                 else emptyList(),
             kmPosts =
                 if (types.contains(TrackLayoutSearchedAssetType.KM_POST)) searchAllKmPosts(params) else emptyList(),
-            operatingPoints =
-                if (types.contains(TrackLayoutSearchedAssetType.OPERATING_POINT))
+            operationalPoints =
+                if (types.contains(TrackLayoutSearchedAssetType.OPERATIONAL_POINT))
                     ratkoLocalService.searchOperationalPoints(params.searchTerm, params.limitPerResultType)
                 else emptyList(),
         )
@@ -163,8 +163,8 @@ constructor(
                     .take(params.limitPerResultType),
             trackNumbers = emptyList(),
             kmPosts = emptyList(),
-            operatingPoints =
-                if (types.contains(TrackLayoutSearchedAssetType.OPERATING_POINT))
+            operationalPoints =
+                if (types.contains(TrackLayoutSearchedAssetType.OPERATIONAL_POINT))
                     ratkoLocalService.searchOperationalPoints(params.searchTerm, params.limitPerResultType)
                 else emptyList(),
         )
