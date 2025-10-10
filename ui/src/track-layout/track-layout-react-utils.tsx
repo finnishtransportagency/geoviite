@@ -10,6 +10,7 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     LocationTrackInfoboxExtras,
+    OperationalPoint,
     OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
@@ -268,6 +269,17 @@ export function useConflictingTracks(
             layoutContext.branch,
             layoutContext.publicationState,
         ],
+    );
+}
+
+export function useOperationalPoint(
+    id: OperationalPointId | undefined,
+    layoutContext: LayoutContext,
+    changeTime?: TimeStamp,
+): OperationalPoint | undefined {
+    return useOptionalLoader(
+        () => (id ? getOperationalPoint(id, layoutContext, changeTime) : undefined),
+        [id, layoutContext.publicationState, layoutContext.branch, changeTime],
     );
 }
 

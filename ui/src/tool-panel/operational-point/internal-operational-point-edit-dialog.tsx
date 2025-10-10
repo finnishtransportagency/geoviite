@@ -10,7 +10,12 @@ import { operationalPointStates, rinfTypes } from 'utils/enum-localization-utils
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
-import { OperationalPoint, OperationalPointId, RinfType } from 'track-layout/track-layout-model';
+import {
+    OperationalPoint,
+    OperationalPointId,
+    OperationalPointState,
+    RinfType,
+} from 'track-layout/track-layout-model';
 import {
     actions,
     initialInternalOperationalPointEditState,
@@ -21,27 +26,61 @@ import {
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { UnknownAction } from 'redux';
 import {
-    hasErrors as hasErrorsGeneric,
     getVisibleErrorsByProp as getVisibleErrorsByPropGeneric,
+    hasErrors as hasErrorsGeneric,
 } from 'utils/validation-utils';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import {
     deleteDraftOperationalPoint,
+    getAllOperationalPoints,
     insertOperationalPoint,
     updateInternalOperationalPoint,
 } from 'track-layout/layout-operational-point-api';
 import { LayoutContext } from 'common/common-model';
+import { useLoader } from 'utils/react-utils';
+import { getChangeTimes } from 'common/change-time-api';
+import { isEqualIgnoreCase } from 'utils/string-utils';
+import { filterNotEmpty } from 'utils/array-utils';
+import { useOperationalPoint } from 'track-layout/track-layout-react-utils';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+
+type InternalOperationalPointEditDialogContainerProps = {
+    operationalPointId: OperationalPointId | undefined;
+    layoutContext: LayoutContext;
+    onSave: (id: OperationalPointId) => void;
+    onClose: () => void;
+};
+
+export const InternalOperationalPointEditDialogContainer: React.FC<
+    InternalOperationalPointEditDialogContainerProps
+> = ({ operationalPointId, layoutContext, onSave, onClose }) => {
+    const [editOperationalPointId, setEditOperationalPointId] = React.useState<
+        OperationalPointId | undefined
+    >(operationalPointId);
+    const operationalPoint = useOperationalPoint(editOperationalPointId, layoutContext);
+
+    return (
+        <InternalOperationalPointEditDialog
+            operationalPoint={operationalPoint}
+            layoutContext={layoutContext}
+            onSave={onSave}
+            onClose={onClose}
+            onEditOperationalPoint={setEditOperationalPointId}
+        />
+    );
+};
 
 type InternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint | undefined;
     layoutContext: LayoutContext;
     onSave: (id: OperationalPointId) => void;
     onClose: () => void;
+    onEditOperationalPoint: (operationalPoint: OperationalPointId) => void;
 };
 
 export const InternalOperationalPointEditDialog: React.FC<
     InternalOperationalPointEditDialogProps
-> = ({ operationalPoint, layoutContext, onClose, onSave }) => {
+> = ({ operationalPoint, layoutContext, onClose, onSave, onEditOperationalPoint }) => {
     const { t } = useTranslation();
 
     const [state, dispatcher] = React.useReducer<
@@ -49,6 +88,12 @@ export const InternalOperationalPointEditDialog: React.FC<
         [action: UnknownAction]
     >(reducer, initialInternalOperationalPointEditState);
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
+    const operationalPointChangeTime = getChangeTimes().operationalPoints;
+
+    const allOperationalPoints = useLoader(
+        () => getAllOperationalPoints(layoutContext, operationalPointChangeTime),
+        [layoutContext, operationalPointChangeTime],
+    );
 
     React.useEffect(() => {
         if (operationalPoint) stateActions.onOperationalPointLoaded(operationalPoint);
@@ -79,12 +124,49 @@ export const InternalOperationalPointEditDialog: React.FC<
         });
     }
 
+    const duplicateAbbreviationPoint = allOperationalPoints?.find(
+        (op) =>
+            op.id !== state.existingOperationalPoint?.id &&
+            op.abbreviation &&
+            state.operationalPoint?.abbreviation &&
+            op.state !== 'DELETED' &&
+            isEqualIgnoreCase(op.abbreviation, state.operationalPoint.abbreviation),
+    );
+    const duplicateNamePoint = allOperationalPoints?.find(
+        (op) =>
+            op.id !== state.existingOperationalPoint?.id &&
+            !!state.operationalPoint?.name &&
+            op.state !== 'DELETED' &&
+            isEqualIgnoreCase(op.name, state.operationalPoint.name),
+    );
+    const duplicateUicCodePoint = allOperationalPoints?.find(
+        (op) =>
+            op.id !== state.existingOperationalPoint?.id &&
+            !!state.operationalPoint.uicCode &&
+            op.state !== 'DELETED' &&
+            isEqualIgnoreCase(op.uicCode, state.operationalPoint.uicCode),
+    );
+
     const hasErrors = (fieldName: keyof InternalOperationalPointSaveRequest) =>
         hasErrorsGeneric(state.committedFields, state.validationIssues, fieldName);
     const getVisibleErrorsByProp = (prop: keyof InternalOperationalPointSaveRequest) =>
-        getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop).map(
-            (err) => t(`operational-point-dialog.validation.${err}`),
-        );
+        getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop);
+
+    const visibleNameErrors = [
+        ...getVisibleErrorsByProp('name'),
+        duplicateNamePoint !== undefined ? 'name-in-use' : undefined,
+    ].filter(filterNotEmpty);
+    const visibleAbbreviationErrors = [
+        ...getVisibleErrorsByProp('abbreviation'),
+        duplicateAbbreviationPoint !== undefined ? 'abbreviation-in-use' : undefined,
+    ].filter(filterNotEmpty);
+    const visibleUicCodeErrors = [
+        ...getVisibleErrorsByProp('uicCode'),
+        duplicateUicCodePoint !== undefined ? 'uic-code-in-use' : undefined,
+    ].filter(filterNotEmpty);
+
+    const translateErrors = (errors: string[]): string[] =>
+        errors.map((err) => t(`operational-point-dialog.validation.${err}`));
 
     function saveNewOperationalPoint(newOperationalPoint: InternalOperationalPointSaveRequest) {
         setIsSaving(true);
@@ -139,7 +221,14 @@ export const InternalOperationalPointEditDialog: React.FC<
         }
     };
 
-    const canSave = !isSaving;
+    const moveToEditLinkText = (s: { state: OperationalPointState; name: string }) => {
+        return s.state === 'DELETED'
+            ? t('operational-point-dialog.move-to-edit-deleted')
+            : t('operational-point-dialog.move-to-edit', { name: s.name });
+    };
+
+    const canSave =
+        !isSaving && !duplicateNamePoint && !duplicateAbbreviationPoint && !duplicateUicCodePoint;
 
     return (
         <React.Fragment>
@@ -191,12 +280,19 @@ export const InternalOperationalPointEditDialog: React.FC<
                                     value={state.operationalPoint.name}
                                     onChange={(e) => updateProp('name', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('name')}
-                                    hasError={hasErrors('name')}
+                                    hasError={visibleNameErrors.length > 0}
                                     wide
                                 />
                             }
-                            errors={getVisibleErrorsByProp('name')}
-                        />
+                            errors={translateErrors(visibleNameErrors)}>
+                            {duplicateNamePoint && (
+                                <AnchorLink
+                                    className={dialogStyles['dialog__alert']}
+                                    onClick={() => onEditOperationalPoint(duplicateNamePoint.id)}>
+                                    {moveToEditLinkText(duplicateNamePoint)}
+                                </AnchorLink>
+                            )}
+                        </FieldLayout>
                         <FieldLayout
                             label={`${t('operational-point-dialog.abbreviation')} *`}
                             value={
@@ -204,11 +300,11 @@ export const InternalOperationalPointEditDialog: React.FC<
                                     value={state.operationalPoint.abbreviation}
                                     onChange={(e) => updateProp('abbreviation', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('abbreviation')}
-                                    hasError={hasErrors('abbreviation')}
+                                    hasError={visibleAbbreviationErrors.length > 0}
                                     wide
                                 />
                             }
-                            errors={getVisibleErrorsByProp('abbreviation')}
+                            errors={translateErrors(visibleAbbreviationErrors)}
                         />
                         <FieldLayout
                             label={`${t('operational-point-dialog.type-rinf')} *`}
@@ -226,7 +322,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                                     wide
                                 />
                             }
-                            errors={getVisibleErrorsByProp('rinfType')}
+                            errors={translateErrors(getVisibleErrorsByProp('rinfType'))}
                         />
                         <FieldLayout
                             label={`${t('operational-point-dialog.state')} *`}
@@ -240,7 +336,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                                     wide
                                 />
                             }
-                            errors={getVisibleErrorsByProp('state')}
+                            errors={translateErrors(getVisibleErrorsByProp('state'))}
                         />
                         <FieldLayout
                             label={`${t('operational-point-dialog.uic-code')} *`}
@@ -249,11 +345,11 @@ export const InternalOperationalPointEditDialog: React.FC<
                                     value={state.operationalPoint.uicCode}
                                     onChange={(e) => updateProp('uicCode', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('uicCode')}
-                                    hasError={hasErrors('uicCode')}
+                                    hasError={visibleUicCodeErrors.length > 0}
                                     wide
                                 />
                             }
-                            errors={getVisibleErrorsByProp('uicCode')}
+                            errors={translateErrors(visibleUicCodeErrors)}
                         />
                     </FormLayoutColumn>
                 </FormLayout>
