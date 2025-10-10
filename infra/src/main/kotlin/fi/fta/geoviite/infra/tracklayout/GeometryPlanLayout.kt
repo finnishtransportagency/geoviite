@@ -58,7 +58,6 @@ data class GeometryPlanLayout(
 data class PlanLayoutAlignment(
     val header: AlignmentHeader<GeometryAlignment, LayoutState>,
     @JsonIgnore override val segments: List<PlanLayoutSegment>,
-    @JsonIgnore val staStart: Double,
     val polyLine: AlignmentPolyLine<GeometryAlignment, PlanLayoutAlignmentM>? = null,
 ) : IAlignment<PlanLayoutAlignmentM> {
     override val segmentMValues: List<Range<LineM<PlanLayoutAlignmentM>>> by lazy { calculateSegmentMValues(segments) }

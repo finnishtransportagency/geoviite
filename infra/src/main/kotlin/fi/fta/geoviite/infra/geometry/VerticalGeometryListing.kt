@@ -108,9 +108,9 @@ data class VerticalGeometryListing(
     val coordinateSystemSrid: Srid?,
     val coordinateSystemName: CoordinateSystemName?,
     val creationTime: Instant?,
-    val layoutStartStation: LineM<LocationTrackM>? = null,
-    val layoutPointStation: LineM<LocationTrackM>? = null,
-    val layoutEndStation: LineM<LocationTrackM>? = null,
+    val alignmentStartStation: Double? = null,
+    val alignmentPointStation: Double? = null,
+    val alignmentEndStation: Double? = null,
     val trackNumber: TrackNumber? = null,
 )
 
@@ -217,9 +217,9 @@ fun toVerticalGeometryListing(
                             entry.end.address >= overlapCandidate.start.address
                     }
                     .size > 1,
-            layoutStartStation = entryLayoutStations?.get(entryIndex)?.get(0),
-            layoutPointStation = entryLayoutStations?.get(entryIndex)?.get(1),
-            layoutEndStation = entryLayoutStations?.get(entryIndex)?.get(2),
+            alignmentStartStation = entryLayoutStations?.get(entryIndex)?.get(0)?.distance,
+            alignmentPointStation = entryLayoutStations?.get(entryIndex)?.get(1)?.distance,
+            alignmentEndStation = entryLayoutStations?.get(entryIndex)?.get(2)?.distance,
         )
     }
 }
@@ -337,6 +337,9 @@ fun toVerticalGeometryListing(
         coordinateSystemName = planHeader.units.coordinateSystemName,
         creationTime = planHeader.planTime,
         overlapsAnother = false,
+        alignmentStartStation = alignment.stationValueNormalized(segment.start.x),
+        alignmentPointStation = alignment.stationValueNormalized(stationPoint.x),
+        alignmentEndStation = alignment.stationValueNormalized(segment.end.x),
     )
 }
 

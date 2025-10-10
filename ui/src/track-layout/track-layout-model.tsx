@@ -504,7 +504,6 @@ export type AlignmentStartAndEnd = {
     id: AlignmentId;
     start?: AlignmentEndPoint;
     end?: AlignmentEndPoint;
-    staStart?: number;
 };
 
 export function getSwitchPresentationJoint(
