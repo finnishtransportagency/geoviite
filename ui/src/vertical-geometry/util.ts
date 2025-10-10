@@ -107,7 +107,7 @@ function approximateHeightAtLeftEdge(
     visibleStartM: number,
 ): number | undefined {
     const firstVisibleItemIndex = geometry.findIndex((item) =>
-        item.start ? item.start.station > visibleStartM : false,
+        item.start ? item.alignmentStartStation > visibleStartM : false,
     );
 
     return approximateHeight(
@@ -123,7 +123,7 @@ function approximateHeightAtRightEdge(
     visibleEndM: number,
 ): number | undefined {
     const lastVisibleItemIndex = findLastIndex(geometry, (item) =>
-        item.end ? item.end.station < visibleEndM : false,
+        item.end ? item.alignmentEndStation < visibleEndM : false,
     );
 
     return approximateHeight(
@@ -144,11 +144,11 @@ function approximateHeight(
 
     const [previousPoint, nextPoint]: [Point, Point] = [
         {
-            x: adjacentVerticalGeometryItems[0].end.station,
+            x: adjacentVerticalGeometryItems[0].alignmentEndStation,
             y: adjacentVerticalGeometryItems[0].end.height,
         },
         {
-            x: adjacentVerticalGeometryItems[1].start.station,
+            x: adjacentVerticalGeometryItems[1].alignmentStartStation,
             y: adjacentVerticalGeometryItems[1].start.height,
         },
     ];
@@ -176,42 +176,18 @@ export function sumPaddings(p1: string, p2: string) {
     return parseFloat(p1) + parseFloat(p2);
 }
 
-export function substituteLayoutStationsForGeometryStations(
-    geometryItem: VerticalGeometryItem,
-): VerticalGeometryDiagramDisplayItem | undefined {
-    return geometryItem.layoutPointStation === undefined
-        ? undefined
-        : {
-              ...geometryItem,
-
-              start: geometryItem.layoutStartStation
-                  ? {
-                        ...geometryItem.start,
-                        station: geometryItem.layoutStartStation,
-                    }
-                  : undefined,
-
-              point: {
-                  ...geometryItem.point,
-                  station: geometryItem.layoutPointStation,
-              },
-
-              end: geometryItem.layoutEndStation
-                  ? {
-                        ...geometryItem.end,
-                        station: geometryItem.layoutEndStation,
-                    }
-                  : undefined,
-          };
+function isVerticalGeometryDiagramDisplayItem(
+    item: VerticalGeometryItem,
+): item is VerticalGeometryDiagramDisplayItem {
+    return (
+        item.alignmentStartStation !== undefined &&
+        item.alignmentPointStation !== undefined &&
+        item.alignmentEndStation !== undefined
+    );
 }
 
-export function processPlanGeometries(geometry: VerticalGeometryItem[], staStart: number) {
-    return geometry.map((item) => ({
-        ...item,
-        start: { ...item.start, station: item.start.station - staStart },
-        point: { ...item.point, station: item.point.station - staStart },
-        end: { ...item.end, station: item.end.station - staStart },
-    }));
+export function processPlanGeometries(geometry: VerticalGeometryItem[]) {
+    return geometry.filter(isVerticalGeometryDiagramDisplayItem);
 }
 
 export function processLayoutGeometries(
@@ -222,13 +198,11 @@ export function processLayoutGeometries(
         linkingSummary.find((linkingSummaryItem) => linkingSummaryItem.endM >= layoutM)?.filename;
 
     return geometry
-        .map(substituteLayoutStationsForGeometryStations)
-        .filter(filterNotEmpty)
+        .filter(isVerticalGeometryDiagramDisplayItem)
         .filter(
             (geom) =>
-                (geom.start?.station &&
-                    geom.fileName === linkedAreaSourceFile(geom.start.station)) ||
-                (geom.end?.station && geom.fileName === linkedAreaSourceFile(geom.end.station)) ||
-                (geom.point?.station && geom.fileName === linkedAreaSourceFile(geom.point.station)),
+                geom.fileName === linkedAreaSourceFile(geom.alignmentStartStation) ||
+                geom.fileName === linkedAreaSourceFile(geom.alignmentEndStation) ||
+                geom.fileName === linkedAreaSourceFile(geom.alignmentPointStation),
         );
 }

@@ -40,7 +40,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
-import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
 import fi.fta.geoviite.infra.util.Either
@@ -135,12 +134,7 @@ data class AlignmentAddresses<M : AnyM<M>>(
     }
 }
 
-data class AlignmentStartAndEnd<T>(
-    val id: IntId<T>,
-    val start: AlignmentEndPoint?,
-    val end: AlignmentEndPoint?,
-    val staStart: Double?,
-) {
+data class AlignmentStartAndEnd<T>(val id: IntId<T>, val start: AlignmentEndPoint?, val end: AlignmentEndPoint?) {
     companion object {
         fun <T, M : AlignmentM<M>, G : GeocodingAlignmentM<G>> of(
             id: IntId<T>,
@@ -155,7 +149,7 @@ data class AlignmentStartAndEnd<T>(
                 alignment.end?.let { p ->
                     AlignmentEndPoint(p, geocodingContext?.getAddress(p)?.let(::getAddressIfIWithin))
                 }
-            return AlignmentStartAndEnd(id, start, end, (alignment as? PlanLayoutAlignment)?.staStart)
+            return AlignmentStartAndEnd(id, start, end)
         }
     }
 }

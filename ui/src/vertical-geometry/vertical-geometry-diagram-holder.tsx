@@ -189,10 +189,8 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                     setProcessedGeometry(
                         (linkingSummary
                             ? processLayoutGeometries(geometry, linkingSummary)
-                            : processPlanGeometries(geometry, startEnd?.staStart ?? 0)
-                        ).sort((a, b) =>
-                            !a.point || !b.point ? 0 : a.point.station - b.point.station,
-                        ),
+                            : processPlanGeometries(geometry)
+                        ).sort((a, b) => a.alignmentPointStation - b.alignmentPointStation),
                     );
 
                     setStartM(start);

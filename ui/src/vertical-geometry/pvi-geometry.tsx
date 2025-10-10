@@ -85,18 +85,14 @@ interface EdgeLineProps {
 }
 
 const LeftMostStartingLine: React.FC<EdgeLineProps> = ({ coordinates, verticalGeometryItem }) => {
-    if (!verticalGeometryItem.start || !verticalGeometryItem.point) {
-        return <React.Fragment />;
-    }
-
     return (
         <line
             x1={mToX(
                 coordinates,
-                verticalGeometryItem.start.station -
+                verticalGeometryItem.alignmentStartStation -
                     (verticalGeometryItem.linearSectionBackward.linearSegmentLength ?? 0),
             )}
-            x2={mToX(coordinates, verticalGeometryItem.point.station)}
+            x2={mToX(coordinates, verticalGeometryItem.alignmentPointStation)}
             y1={
                 heightToY(
                     coordinates,
@@ -116,17 +112,13 @@ const RightMostEndingLine: React.FC<EdgeLineProps> = ({
     coordinates,
     verticalGeometryItem: endingVerticalGeometryItem,
 }) => {
-    if (!endingVerticalGeometryItem.end || !endingVerticalGeometryItem.point) {
-        return <React.Fragment />;
-    }
-
     return (
         <line
             stroke="black"
-            x1={mToX(coordinates, endingVerticalGeometryItem.point.station)}
+            x1={mToX(coordinates, endingVerticalGeometryItem.alignmentPointStation)}
             x2={mToX(
                 coordinates,
-                endingVerticalGeometryItem.end.station +
+                endingVerticalGeometryItem.alignmentEndStation +
                     (endingVerticalGeometryItem.linearSectionForward.linearSegmentLength ?? 0),
             )}
             y1={
@@ -155,18 +147,17 @@ const GeoLineDistanceAndAngleText: React.FC<{
     const approximateAngleTextLengthM =
         (approximateAngleTextLengthPx / coordinates.mMeterLengthPxOverM) * angleTextScale;
 
-    if (!geo.point || !geo.end || !nextGeo.point) {
+    if (nextGeo.alignmentPointStation - geo.alignmentPointStation <= approximateAngleTextLengthM) {
         return <React.Fragment />;
     }
 
-    if (nextGeo.point.station - geo.point.station <= approximateAngleTextLengthM) {
-        return <React.Fragment />;
-    }
-
-    const midpoint = geo.point.station + (nextGeo.point.station - geo.point.station) * 0.5;
+    const midpoint =
+        geo.alignmentPointStation +
+        (nextGeo.alignmentPointStation - geo.alignmentPointStation) * 0.5;
     const angleTextStartM = midpoint - approximateAngleTextLengthM * 0.5;
     const angleTextStartProportion =
-        (angleTextStartM - geo.point.station) / (nextGeo.point.station - geo.point.station);
+        (angleTextStartM - geo.alignmentPointStation) /
+        (nextGeo.alignmentPointStation - geo.alignmentPointStation);
     const angleTextStartHeight =
         (1 - angleTextStartProportion) * geo.point.height +
         angleTextStartProportion * nextGeo.point.height;
@@ -175,7 +166,8 @@ const GeoLineDistanceAndAngleText: React.FC<{
     const angle = radsToDegrees(
         -Math.atan2(
             coordinates.meterHeightPx * (nextGeo.point.height - geo.point.height),
-            coordinates.mMeterLengthPxOverM * (nextGeo.point.station - geo.point.station),
+            coordinates.mMeterLengthPxOverM *
+                (nextGeo.alignmentPointStation - geo.alignmentPointStation),
         ),
     );
 
@@ -183,7 +175,7 @@ const GeoLineDistanceAndAngleText: React.FC<{
         <text
             className={styles['vertical-geometry-diagram__text-stroke-wide']}
             transform={`translate(${textStartX},${textStartY}) rotate(${angle}) scale(${angleTextScale})`}>
-            {(nextGeo.point.station - geo.point.station).toLocaleString(undefined, {
+            {(nextGeo.alignmentPointStation - geo.alignmentPointStation).toLocaleString(undefined, {
                 maximumFractionDigits: 3,
             })}
             {' : '}
@@ -197,14 +189,10 @@ const GeoLine: React.FC<{
     geo: VerticalGeometryDiagramDisplayItem;
     nextGeo: VerticalGeometryDiagramDisplayItem;
 }> = ({ coordinates, geo, nextGeo }) => {
-    if (!geo.point || !geo.end || !nextGeo.point) {
-        return <React.Fragment />;
-    }
-
     return (
         <line
-            x1={mToX(coordinates, geo.point.station)}
-            x2={mToX(coordinates, nextGeo.point.station)}
+            x1={mToX(coordinates, geo.alignmentPointStation)}
+            x2={mToX(coordinates, nextGeo.alignmentPointStation)}
             y1={heightToY(coordinates, geo.point.height) - pviAssistLineHeightPx}
             y2={heightToY(coordinates, nextGeo.point.height) - pviAssistLineHeightPx}
             stroke={'black'}
@@ -235,9 +223,9 @@ const StartingTangentArrow: React.FC<TangentArrowProps> = ({ geo, coordinates, k
 
     return tangentArrow(
         true,
-        geo.point.station,
-        geo.start.station,
-        approximateHeightAtM(geo.start.station, kmHeights) ?? geo.start.height,
+        geo.alignmentPointStation,
+        geo.alignmentStartStation,
+        approximateHeightAtM(geo.alignmentStartStation, kmHeights) ?? geo.start.height,
         geo.tangent,
         pviAssistLineHeightPx,
         coordinates,
@@ -251,9 +239,9 @@ const EndingTangentArrow: React.FC<TangentArrowProps> = ({ geo, coordinates, kmH
 
     return tangentArrow(
         false,
-        geo.point.station,
-        geo.end.station,
-        approximateHeightAtM(geo.end.station, kmHeights) ?? geo.end.height,
+        geo.alignmentPointStation,
+        geo.alignmentEndStation,
+        approximateHeightAtM(geo.alignmentEndStation, kmHeights) ?? geo.end.height,
         geo.tangent,
         pviAssistLineHeightPx,
         coordinates,
@@ -300,12 +288,12 @@ function getMinimumSpaceAroundPoint(
     return (
         Math.min(
             ...[
-                maybePreviousGeo && maybePreviousGeo.point
-                    ? geo.point.station - maybePreviousGeo.point.station
+                maybePreviousGeo
+                    ? geo.alignmentPointStation - maybePreviousGeo.alignmentPointStation
                     : undefined,
 
-                maybeNextGeo && maybeNextGeo.point
-                    ? maybeNextGeo.point.station - geo.point.station
+                maybeNextGeo
+                    ? maybeNextGeo.alignmentPointStation - geo.alignmentPointStation
                     : undefined,
             ].filter(filterNotEmpty),
         ) * coordinates.mMeterLengthPxOverM
@@ -338,11 +326,11 @@ const PviPoint: React.FC<{
 }> = ({ geometry, kmHeights, coordinates, drawTangentArrows, index }) => {
     const pviPoint = expectDefined(geometry[index]);
 
-    const x = mToX(coordinates, pviPoint.point.station);
+    const x = mToX(coordinates, pviPoint.alignmentPointStation);
     // bottomY is on the height line (unless approximateHeightAt fails for whatever reason), topY is at the PVI
     // line
     const bottomHeight =
-        approximateHeightAtM(pviPoint.point.station, kmHeights) ?? pviPoint.point.height;
+        approximateHeightAtM(pviPoint.alignmentPointStation, kmHeights) ?? pviPoint.point.height;
     const bottomY = heightToY(coordinates, bottomHeight);
     const topY = heightToY(coordinates, pviPoint.point.height) - pviAssistLineHeightPx;
 
@@ -397,24 +385,24 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
     }
 
     const leftmostPviInViewR = geometry.findIndex(
-        (s) => s.point && (s.end?.station ?? s.point.station) >= coordinates.startM,
+        (s) => s.alignmentEndStation >= coordinates.startM,
     );
     const leftPviI = leftmostPviInViewR < 1 ? 0 : leftmostPviInViewR - 1;
     const pastRightmostPviInViewR = geometry.findIndex(
-        (s) => s.point && (s.start?.station ?? s.point.station) >= coordinates.endM,
+        (s) => s.alignmentStartStation >= coordinates.endM,
     );
     const rightPviI =
         pastRightmostPviInViewR === -1 ? geometry.length - 1 : pastRightmostPviInViewR;
 
     return (
         <>
-            {leftPviI === 0 && firstItem.start && firstItem.point && (
+            {leftPviI === 0 && (
                 <LeftMostStartingLine coordinates={coordinates} verticalGeometryItem={firstItem} />
             )}
             {rightPviI === geometry.length - 1 && lastItem && (
                 <RightMostEndingLine coordinates={coordinates} verticalGeometryItem={lastItem} />
             )}
-            {Array.from([...Array(rightPviI - leftPviI)].keys()).map((index) => (
+            {Array.from([...Array(rightPviI - leftPviI + 1)].keys()).map((index) => (
                 <PviPoint
                     key={expectDefined(geometry[index + leftPviI]).id}
                     geometry={geometry}

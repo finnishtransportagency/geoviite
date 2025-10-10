@@ -180,7 +180,6 @@ fun toMapAlignments(
 
         PlanLayoutAlignment(
             header = toAlignmentHeader(trackNumberId, alignment, boundingBoxInLayoutSpace),
-            staStart = alignment.staStart.toDouble(),
             segments = mapSegments,
         )
     }
