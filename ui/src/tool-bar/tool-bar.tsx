@@ -27,6 +27,7 @@ import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection
 import {
     refereshKmPostSelection,
     refreshLocationTrackSelection,
+    refreshOperationalPointSelection,
     refreshSwitchSelection,
     refreshTrackNumberSelection,
 } from 'track-layout/track-layout-react-utils';
@@ -60,6 +61,7 @@ import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { error } from 'geoviite-design-lib/snackbar/snackbar';
+import { InternalOperationalPointEditDialog } from 'tool-panel/operational-point/internal-operational-point-edit-dialog';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED = 3;
@@ -105,6 +107,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
+    const [showAddOperationalPointDialog, setShowAddOperationalPointDialog] = React.useState(false);
     const [showEditWorkspaceDialog, setShowEditWorkspaceDialog] = React.useState(false);
     const [showDeleteWorkspaceDialog, setShowDeleteWorkspaceDialog] = React.useState(false);
     const [designIdSelectorOpened, setDesignIdSelectorOpened] = React.useState(false);
@@ -143,6 +146,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         'locationTrack' = 2,
         'switch' = 3,
         'kmPost' = 4,
+        'operationalPoint' = 5,
     }
 
     const newMenuItems: MenuOption[] = [
@@ -165,6 +169,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             () => showAddDialog(NewMenuItems.kmPost),
             t('tool-bar.new-km-post'),
             'tool-bar.new-km-post',
+        ),
+        menuOption(
+            () => showAddDialog(NewMenuItems.operationalPoint),
+            t('tool-bar.new-operational-point'),
+            'tool-bar.new-operational-point',
         ),
     ];
 
@@ -259,6 +268,9 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             case NewMenuItems.kmPost:
                 setShowAddKmPostDialog(true);
                 break;
+            case NewMenuItems.operationalPoint:
+                setShowAddOperationalPointDialog(true);
+                break;
             default:
                 return exhaustiveMatchingGuard(dialog);
         }
@@ -294,6 +306,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     );
     const handleSwitchSave = refreshSwitchSelection(layoutContextDraft, onSelect, onUnselect);
     const handleKmPostSave = refereshKmPostSelection(layoutContextDraft, onSelect, onUnselect);
+    const handleOperationalPointSave = refreshOperationalPointSelection(
+        layoutContextDraft,
+        onSelect,
+        onUnselect,
+    );
 
     const layoutContextTransferDisabledReason = (): string | undefined => {
         if (splittingState) return t('tool-bar.splitting-in-progress');
@@ -535,6 +552,15 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     onClose={() => setShowAddKmPostDialog(false)}
                     onSave={handleKmPostSave}
                     editType={'CREATE'}
+                />
+            )}
+
+            {showAddOperationalPointDialog && (
+                <InternalOperationalPointEditDialog
+                    layoutContext={layoutContext}
+                    operationalPoint={undefined}
+                    onSave={handleOperationalPointSave}
+                    onClose={() => setShowAddOperationalPointDialog(false)}
                 />
             )}
 

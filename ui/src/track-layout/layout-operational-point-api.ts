@@ -10,8 +10,19 @@ import {
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { bboxString } from 'common/common-api';
-import { LayoutAssetChangeInfo, LayoutContext, TimeStamp } from 'common/common-model';
-import { contextInUri, layoutUri, TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
+import {
+    LayoutAssetChangeInfo,
+    LayoutBranch,
+    LayoutContext,
+    Oid,
+    TimeStamp,
+} from 'common/common-model';
+import {
+    contextInUri,
+    layoutUri,
+    layoutUriWithoutContext,
+    TRACK_LAYOUT_URI,
+} from 'track-layout/track-layout-api';
 import { updateOperationalPointsChangeTime } from 'common/change-time-api';
 import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/internal-operational-point-edit-store';
 import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
@@ -28,12 +39,19 @@ const cacheKey = (id: OperationalPointId, layoutContext: LayoutContext) =>
 const operationalPointsCache = asyncCache<string, OperationalPoint | undefined>();
 const allOperationalPointsCache = asyncCache<string, OperationalPoint[]>();
 const operationalPointsTileCache = asyncCache<string, OperationalPoint[]>();
+const operationalPointOidsCache = asyncCache<
+    OperationalPointId,
+    { [key in LayoutBranch]?: Oid } | undefined
+>();
 
 const operationalPointUriByOrigin = (
-    id: OperationalPointId,
     origin: OriginInUri,
     layoutContext: LayoutContext,
-) => `${TRACK_LAYOUT_URI}/operational-points/${origin}/${contextInUri(layoutContext)}/${id}`;
+    id: OperationalPointId | undefined = undefined,
+) => {
+    const base = `${TRACK_LAYOUT_URI}/operational-points/${origin}/${contextInUri(layoutContext)}`;
+    return id ? `${base}/${id}` : base;
+};
 
 export async function getOperationalPoints(
     mapTile: MapTile,
@@ -103,7 +121,7 @@ export async function insertOperationalPoint(
     layoutContext: LayoutContext,
 ): Promise<OperationalPointId> {
     const result = await postNonNull<InternalOperationalPointSaveRequest, OperationalPointId>(
-        layoutUri('operational-points', layoutContext),
+        operationalPointUriByOrigin('internal', layoutContext),
         newOperationalPoint,
     );
     await updateOperationalPointsChangeTime();
@@ -117,7 +135,7 @@ async function updateOperationalPoint(
     layoutContext: LayoutContext,
 ): Promise<OperationalPointId> {
     const result = await putNonNull<OperationalPointSaveRequest, OperationalPointId>(
-        operationalPointUriByOrigin(id, origin, layoutContext),
+        operationalPointUriByOrigin(origin, layoutContext, id),
         updatedOperationalPoint,
     );
     await updateOperationalPointsChangeTime();
@@ -147,4 +165,16 @@ export async function deleteDraftOperationalPoint(
     );
     await updateOperationalPointsChangeTime();
     return result;
+}
+
+export async function getOperationalPointOids(
+    id: OperationalPointId,
+    changeTime: TimeStamp,
+): Promise<{ [key in LayoutBranch]?: Oid }> {
+    const oids = await operationalPointOidsCache.get(changeTime, id, () =>
+        getNullable<{ [key in LayoutBranch]?: Oid }>(
+            `${layoutUriWithoutContext('operational-points', id)}/oids`,
+        ),
+    );
+    return oids ?? {};
 }

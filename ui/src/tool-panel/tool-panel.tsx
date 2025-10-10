@@ -187,10 +187,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         changeTimes.layoutTrackNumber,
         changeTimes.split,
         changeTimes.geometryPlan,
+        changeTimes.operationalPoints,
         planIds,
         geometryKmPostIds,
         geometrySwitchIds,
         geometryAlignmentIds,
+        operationalPointIds,
     ]);
 
     const locationTracks =
@@ -451,6 +453,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         onVisiblityChange={(visibilities) =>
                             infoboxVisibilityChange('operationalPoint', visibilities)
                         }
+                        onDataChange={onDataChange}
                     />
                 ),
             };

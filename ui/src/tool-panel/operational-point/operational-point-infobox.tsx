@@ -7,7 +7,7 @@ import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { OperationalPointOid } from 'track-layout/oid';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { LayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { InternalOperationalPointEditDialog } from 'tool-panel/operational-point/internal-operational-point-edit-dialog';
 import { ExternalOperationalPointEditDialog } from 'tool-panel/operational-point/external-operational-point-edit-dialog';
 import { OperationalPoint } from 'track-layout/track-layout-model';
@@ -17,6 +17,8 @@ import { useLoader } from 'utils/react-utils';
 import { getOperationalPointChangeTimes } from 'track-layout/layout-operational-point-api';
 import { ChangeTimes } from 'common/common-slice';
 import { formatDateShort } from 'utils/date-utils';
+import { refreshOperationalPointSelection } from 'track-layout/track-layout-react-utils';
+import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 
 type OperationalPointInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -24,6 +26,9 @@ type OperationalPointInfoboxProps = {
     changeTimes: ChangeTimes;
     visibilities: OperationalPointInfoboxVisibilities;
     onVisibilityChange: (visibilities: OperationalPointInfoboxVisibilities) => void;
+    onDataChange: () => void;
+    onSelect: (items: OnSelectOptions) => void;
+    onUnselect: (items: OptionalUnselectableItemCollections) => void;
 };
 
 export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = ({
@@ -32,6 +37,9 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     changeTimes,
     onVisibilityChange,
     layoutContext,
+    onDataChange,
+    onSelect,
+    onUnselect,
 }) => {
     const { t } = useTranslation();
     const visibilityChange = (key: keyof OperationalPointInfoboxVisibilities) => {
@@ -46,6 +54,22 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     const [editDialogOpen, setEditDialogOpen] = React.useState(false);
     const isExternal = operationalPoint.origin === 'RATKO';
 
+    const openEditDialog = () => {
+        setEditDialogOpen(true);
+        onDataChange();
+    };
+
+    const closeEditDialog = () => {
+        setEditDialogOpen(false);
+        onDataChange();
+    };
+
+    const handleOperationalPointSave = refreshOperationalPointSelection(
+        draftLayoutContext(layoutContext),
+        onSelect,
+        onUnselect,
+    );
+
     return (
         <React.Fragment>
             <Infobox
@@ -53,7 +77,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 onContentVisibilityChange={() => visibilityChange('basic')}
                 title={t('tool-panel.operational-point.basic-info-heading')}
                 qa-id="operational-point-infobox-basic"
-                onEdit={() => setEditDialogOpen(true)}
+                onEdit={openEditDialog}
                 iconDisabled={layoutContext.publicationState === 'OFFICIAL'}>
                 <InfoboxContent>
                     <InfoboxField
@@ -62,7 +86,16 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                     />
                     <InfoboxField
                         label={t('tool-panel.operational-point.identifier')}
-                        value={<OperationalPointOid />}
+                        value={
+                            <OperationalPointOid
+                                id={operationalPoint.id}
+                                changeTimes={changeTimes}
+                                branch={layoutContext.branch}
+                                getFallbackTextIfNoOid={() =>
+                                    t('tool-panel.operational-point.unpublished')
+                                }
+                            />
+                        }
                     />
                     <InfoboxField
                         label={t('tool-panel.operational-point.name')}
@@ -179,15 +212,15 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                     <ExternalOperationalPointEditDialog
                         operationalPoint={operationalPoint}
                         layoutContext={layoutContext}
-                        onSave={() => setEditDialogOpen(false)} // TODO
-                        onClose={() => setEditDialogOpen(false)}
+                        onSave={handleOperationalPointSave}
+                        onClose={closeEditDialog}
                     />
                 ) : (
                     <InternalOperationalPointEditDialog
                         operationalPoint={operationalPoint}
                         layoutContext={layoutContext}
-                        onSave={() => setEditDialogOpen(false)} // TODO
-                        onClose={() => setEditDialogOpen(false)}
+                        onSave={handleOperationalPointSave}
+                        onClose={closeEditDialog}
                     />
                 ))}
         </React.Fragment>
