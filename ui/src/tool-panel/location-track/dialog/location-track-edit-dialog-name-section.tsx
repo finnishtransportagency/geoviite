@@ -84,7 +84,7 @@ const LocationTrackNameTrackNumber: React.FC<LocationTrackNameTrackNumberProps> 
     return (
         <React.Fragment>
             <FieldLayout
-                label={`${t('location-track-dialog.name-specifier')} *`}
+                label={t('location-track-dialog.name-specifier')}
                 value={
                     <Dropdown
                         qa-id="location-track-name-specifier"

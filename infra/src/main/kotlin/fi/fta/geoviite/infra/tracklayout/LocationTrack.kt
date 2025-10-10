@@ -136,11 +136,7 @@ sealed class LocationTrackNameStructure {
                         requireNotNull(freeText) { "Naming scheme of type $scheme must have a free text part" }
                     )
                 LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS -> LocationTrackNameBetweenOperatingPoints(specifier)
-                LocationTrackNamingScheme.TRACK_NUMBER_TRACK ->
-                    LocationTrackNameByTrackNumber(
-                        freeText,
-                        requireNotNull(specifier) { "Naming scheme of type $scheme must have a name specifier part" },
-                    )
+                LocationTrackNamingScheme.TRACK_NUMBER_TRACK -> LocationTrackNameByTrackNumber(freeText, specifier)
                 LocationTrackNamingScheme.CHORD -> LocationTrackNameChord
             }
     }
@@ -168,14 +164,16 @@ data class LocationTrackNameWithinOperatingPoint(override val freeText: Location
 
 data class LocationTrackNameByTrackNumber(
     override val freeText: LocationTrackNameFreeTextPart?,
-    override val specifier: LocationTrackNameSpecifier,
+    override val specifier: LocationTrackNameSpecifier?,
 ) : LocationTrackNameStructure() {
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.TRACK_NUMBER_TRACK
 
     fun format(trackNumber: TrackNumber): AlignmentName {
         val nameString =
-            if (freeText != null) "$trackNumber ${specifier.properForm} $freeText"
-            else "$trackNumber ${specifier.properForm}"
+            if (freeText == null && specifier == null) trackNumber.toString()
+            else if (specifier == null) "$trackNumber $freeText"
+            else if (freeText == null) "$trackNumber ${specifier.properForm}"
+            else "$trackNumber ${specifier.properForm} $freeText"
 
         return AlignmentName(nameString.trim())
     }

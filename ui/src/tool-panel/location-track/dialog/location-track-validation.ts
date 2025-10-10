@@ -18,10 +18,6 @@ const ALL_FREE_TEXT_SCHEMES: LocationTrackNamingScheme[] = [
     ...MANDATORY_FREE_TEXT_SCHEMES,
 ] as const;
 
-const MANDATORY_NAME_SPECIFIER_SCHEMES: LocationTrackNamingScheme[] = [
-    LocationTrackNamingScheme.TRACK_NUMBER_TRACK,
-] as const;
-
 export const validateLocationTrackName = (
     name: string | undefined,
 ): FieldValidationIssue<{ name: string }>[] => {
@@ -54,7 +50,6 @@ export const validateLocationTrackNameStructure = (
 ): FieldValidationIssue<LocationTrackSaveRequest>[] => {
     const namingScheme = saveRequest.namingScheme;
     const nameFreeText = saveRequest.nameFreeText;
-    const nameSpecifier = saveRequest.nameSpecifier;
 
     return (
         [
@@ -84,15 +79,6 @@ export const validateLocationTrackNameStructure = (
                           saveRequest.namingScheme === 'TRACK_NUMBER_TRACK'
                               ? 'invalid-operational-point-range-name'
                               : 'invalid-name',
-                      type: FieldValidationIssueType.ERROR,
-                  }
-                : undefined,
-            MANDATORY_NAME_SPECIFIER_SCHEMES.includes(
-                namingScheme ?? LocationTrackNamingScheme.FREE_TEXT,
-            ) && isNil(nameSpecifier)
-                ? {
-                      field: 'nameSpecifier',
-                      reason: 'mandatory-field',
                       type: FieldValidationIssueType.ERROR,
                   }
                 : undefined,
