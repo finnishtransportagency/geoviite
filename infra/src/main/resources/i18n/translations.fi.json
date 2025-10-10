@@ -614,7 +614,8 @@
                 "revert-succeeded": "Ratanumeron ja pituusmittauslinjan luonnokset hylätty",
                 "revert-failed": "Luonnosten hylkääminen epäonnistui"
             },
-            "unpublished": "Julkaisematon"
+            "unpublished": "Julkaisematon",
+            "publication-log-unavailable": "Ratanumeroa ei ole julkaistu nykytilaan"
         },
         "km-post": {
             "layout": {
@@ -641,7 +642,8 @@
                 "no-kilometer-length": "Pituutta ei voida laskea",
                 "negative-kilometer-length": "Virheellinen sijainti",
                 "no-location": "Ei sijaintia",
-                "plan-crs": "Lähdekoordinaatisto"
+                "plan-crs": "Lähdekoordinaatisto",
+                "publication-log-unavailable": "Tasakmpistettä ei ole julkaistu nykytilaan"
             },
             "geometry": {
                 "general-title": "Raidegeometria: Tasakilometripiste",
@@ -689,7 +691,8 @@
                 "no-location": "Ei sijaintia",
                 "joint-number": "Piste {{number}}",
                 "switch-not-existing": "Vaihde on poistettu",
-                "cant-edit-while-linking": "Vaihteen tietoja ei voi muokata linkitystilassa"
+                "cant-edit-while-linking": "Vaihteen tietoja ei voi muokata linkitystilassa",
+                "publication-log-unavailable": "Vaihdetta ei ole julkaistu nykytilaan"
             },
             "geometry": {
                 "geometry-title": "Raidegeometria: vaihde",
@@ -938,7 +941,8 @@
             "cannot-shorten-deleted-track": "Poistettua raidetta ei voi lyhentää",
             "unsupported-state-for-splitting": "Vain \"Käytössä\"-tilaisen raiteen voi jakaa",
             "cant-edit-while-splitting": "Raiteen tietoja ei voi muokata koska sen jakaminen on kesken",
-            "cant-edit-while-linking": "Raiteen tietoja ei voi muokata linkitystilassa"
+            "cant-edit-while-linking": "Raiteen tietoja ei voi muokata linkitystilassa",
+            "publication-log-unavailable": "Raidetta ei ole julkaistu nykytilaan"
         },
         "operational-point": {
             "basic-info-heading": "Toiminnallisen pisteen perustiedot",
@@ -959,7 +963,8 @@
             "created": "Luotu",
             "modified": "Muokattu",
             "cannot-set-location-for-external": "Ratkon hallinnoiman toiminnallisen pisteen sijaintia ei voi muokata",
-            "unset": "Ei asetettu"
+            "unset": "Ei asetettu",
+            "unpublished": "Julkaisematon"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
@@ -1994,6 +1999,7 @@
         "new-switch": "Uusi vaihde",
         "new-location-track": "Uusi sijaintiraide",
         "new-km-post": "Uusi tasakilometripiste",
+        "new-operational-point": "Uusi toiminnallinen piste",
         "splitting-in-progress": "Raiteen jakaminen on kesken",
         "linking-in-progress": "Linkitys on kesken",
         "choose-workspace": "Valitse työtila",

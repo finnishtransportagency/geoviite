@@ -2,6 +2,7 @@ import {
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
+    OperationalPointId,
 } from 'track-layout/track-layout-model';
 import { LayoutBranch, Oid, TimeStamp } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
@@ -15,12 +16,15 @@ import styles from 'track-layout/oid.scss';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
 import { TFunction } from 'i18next/typescript/t';
+import { getOperationalPointOids } from 'track-layout/layout-operational-point-api';
 
 type TrackNumberOidProps = OidProps<LayoutTrackNumberId>;
 
 type LocationTrackOidProps = OidProps<LocationTrackId>;
 
 type SwitchOidProps = OidProps<LayoutSwitchId>;
+
+type OperationalPointOidProps = OidProps<OperationalPointId>;
 
 interface OidProps<Id> {
     id: Id;
@@ -83,7 +87,7 @@ export const SwitchOid: React.FC<SwitchOidProps> = oidComponent(
     (changeTimes) => changeTimes.layoutSwitchExtId,
 );
 
-export const OperationalPointOid: React.FC = oidComponent(
-    (_id, _changeTime) => Promise.resolve({ MAIN: 'Oiderooni' }),
-    (_changeTimes) => new Date().toISOString(),
+export const OperationalPointOid: React.FC<OperationalPointOidProps> = oidComponent(
+    getOperationalPointOids,
+    (changeTimes) => changeTimes.operationalPoints,
 );

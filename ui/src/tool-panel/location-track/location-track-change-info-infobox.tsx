@@ -15,6 +15,8 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { createDelegates } from 'store/store-utils';
 import { useAppNavigate } from 'common/navigate';
 import { SearchItemType } from 'asset-search/search-dropdown';
+import { useHasPublicationLog } from 'publication/publication-utils';
+import { getLocationTrack } from 'track-layout/layout-location-track-api';
 
 type LocationTrackChangeInfoInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -35,6 +37,16 @@ export const LocationTrackChangeInfoInfobox: React.FC<LocationTrackChangeInfoInf
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const navigate = useAppNavigate();
+
+    const hasPublicationLog = useHasPublicationLog(
+        locationTrackId,
+        getLocationTrack,
+        locationTrackChangeInfo?.changed,
+    );
+
+    const openPublicationLogButtonTitle = hasPublicationLog
+        ? undefined
+        : t('tool-panel.location-track.publication-log-unavailable');
 
     const openPublicationLog = React.useCallback(() => {
         delegates.startFreshSpecificItemPublicationLogSearch({
@@ -70,6 +82,8 @@ export const LocationTrackChangeInfoInfobox: React.FC<LocationTrackChangeInfoInf
                         <Button
                             size={ButtonSize.SMALL}
                             variant={ButtonVariant.SECONDARY}
+                            title={openPublicationLogButtonTitle}
+                            disabled={!hasPublicationLog}
                             onClick={openPublicationLog}>
                             {t('tool-panel.show-in-publication-log')}
                         </Button>
