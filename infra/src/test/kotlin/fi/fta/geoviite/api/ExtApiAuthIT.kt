@@ -40,7 +40,7 @@ class ExtApiAuthIT @Autowired constructor(mockMvc: MockMvc) {
     @Test
     fun `Public rata-vkm redirect does not work with the default url when the host is overridden`() {
         val headers = HttpHeaders()
-        headers.set("X-Forwarded-Host", "avoinapi.example.com")
+        headers.set("X-Forwarded-Host", "localhost")
         testApi.doGetWithParamsWithoutBody("/rata-vkm", emptyMap(), HttpStatus.UNAUTHORIZED, headers)
     }
 
@@ -56,7 +56,7 @@ class ExtApiAuthIT @Autowired constructor(mockMvc: MockMvc) {
     @Test
     fun `Private rata-vkm redirect does not work with the default host when the host is overridden`() {
         val headers = HttpHeaders()
-        headers.set("X-Forwarded-Host", "api.example.com")
+        headers.set("X-Forwarded-Host", "localhost")
         testApi.doGetWithParamsWithoutBody("/rata-vkm", emptyMap(), HttpStatus.UNAUTHORIZED, headers)
     }
 
@@ -72,7 +72,7 @@ class ExtApiAuthIT @Autowired constructor(mockMvc: MockMvc) {
     @Test
     fun `Private ext-api redirect does not work with the default host when the host is overridden`() {
         val headers = HttpHeaders()
-        headers.set("X-Forwarded-Host", "api.example.com")
+        headers.set("X-Forwarded-Host", "localhost")
         testApi.doGetWithParamsWithoutBody("/geoviite", emptyMap(), HttpStatus.UNAUTHORIZED, headers)
     }
 }
