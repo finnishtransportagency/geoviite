@@ -1,0 +1,6 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.operational-point-dialog__error {
+    @include vayla-design.typography-caption;
+    color: vayla-design.$color-red-default;
+}

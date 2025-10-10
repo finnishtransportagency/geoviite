@@ -2217,7 +2217,11 @@
             "invalid-name": "Virheellinen nimi",
             "invalid-abbreviation": "Virheellinen lyhenne",
             "invalid-uic-code": "Virheellinen UIC-koodi",
-            "mandatory-field": "Pakollinen kenttä"
+            "mandatory-field": "Pakollinen kenttä",
+            "name-in-use": "Huomaa, että paikannuspohjassa on toinen toiminnallinen piste samalla nimellä",
+            "name-in-use-deleted": "Huomaa, että paikannuspohjassa on poistettu toiminnallinen piste samalla nimellä",
+            "abbreviation-in-use": "Lyhenne on jo käytössä",
+            "uic-code-in-use": "UIC-koodi on jo käytössä"
         }
     },
     "licenses-page": {
