@@ -37,7 +37,6 @@ export const MainPublicationListRow: React.FC<MainPublicationListRowProps> = ({ 
             </div>
             {publication.split && (
                 <PublicationListRowSplit
-                    split={publication.split}
                     publicationId={publication.id}
                     ratkoPushStatus={publication.ratkoPushStatus}
                 />

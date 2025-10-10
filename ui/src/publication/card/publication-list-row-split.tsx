@@ -4,7 +4,7 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Menu, menuOption, MenuSelectOption } from 'vayla-design-lib/menu/menu';
 import { SplitDetailsDialog } from 'publication/split/split-details-dialog';
-import { BulkTransferState, PublicationId, SplitHeader } from 'publication/publication-model';
+import { PublicationId } from 'publication/publication-model';
 import styles from 'publication/card/publication-list-row.scss';
 import {
     ratkoPushFailed,
@@ -13,14 +13,9 @@ import {
     ratkoPushSucceeded,
 } from 'ratko/ratko-model';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
-import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { createClassName } from 'vayla-design-lib/utils';
-import { putBulkTransferState } from 'publication/split/split-api';
-import { success } from 'geoviite-design-lib/snackbar/snackbar';
-import { updateSplitChangeTime } from 'common/change-time-api';
 
 export type PublicationListRowSplitProps = {
-    split: SplitHeader;
     ratkoPushStatus: RatkoPushStatus | undefined;
     publicationId: PublicationId;
 };
@@ -47,35 +42,7 @@ const PublicationStateIcon: React.FC<{ ratkoPushStatus: RatkoPushStatus | undefi
     }
 };
 
-const BulkTransferStateIcon: React.FC<{
-    bulkTransferState: BulkTransferState | undefined;
-}> = ({ bulkTransferState }) => {
-    switch (bulkTransferState) {
-        case 'PENDING':
-        case undefined:
-            return <span className={styles['publication-list-item__split-detail-no-icon']} />;
-        case 'DONE':
-            return (
-                <span className={styles['publication-list-item--success']}>
-                    <Icons.Tick size={IconSize.SMALL} color={IconColor.INHERIT} />
-                </span>
-            );
-        case 'FAILED':
-        case 'TEMPORARY_FAILURE':
-            return (
-                <span className={styles['publication-list-item--error']}>
-                    <Icons.StatusError size={IconSize.SMALL} color={IconColor.INHERIT} />
-                </span>
-            );
-        case 'IN_PROGRESS':
-            return <Spinner size={SpinnerSize.SMALL} />;
-        default:
-            return exhaustiveMatchingGuard(bulkTransferState);
-    }
-};
-
 export const PublicationListRowSplit: React.FC<PublicationListRowSplitProps> = ({
-    split,
     ratkoPushStatus,
     publicationId,
 }) => {
@@ -97,24 +64,6 @@ export const PublicationListRowSplit: React.FC<PublicationListRowSplitProps> = (
             t('publication-card.show-split-info'),
             'show-split-info-link',
         ),
-        menuOption(
-            () => {
-                putBulkTransferState(split.id, 'DONE')
-                    .then(() => {
-                        success(
-                            t('publication-card.bulk-transfer-marked-as-successful'),
-                            undefined,
-                            {
-                                id: 'toast-bulk-transfer-marked-as-successful',
-                            },
-                        );
-                    })
-                    .then(() => updateSplitChangeTime());
-            },
-            t('publication-card.mark-as-successful'),
-            'mark-bulk-transfer-as-finished-link',
-            split?.bulkTransferState === 'DONE',
-        ),
     ];
 
     return (
@@ -127,14 +76,6 @@ export const PublicationListRowSplit: React.FC<PublicationListRowSplitProps> = (
                                 <PublicationStateIcon ratkoPushStatus={ratkoPushStatus} />
                             </span>
                             <span>{t('publication-card.publication-status')}</span>
-                        </div>
-                        <div className={styles['publication-list-item__split-detail-row']}>
-                            <span>
-                                <BulkTransferStateIcon
-                                    bulkTransferState={split.bulkTransferState}
-                                />
-                            </span>
-                            <span>{t('publication-card.bulk-transfer-status')}</span>
                         </div>
                     </div>
                     <div className={styles['publication-list-item__split-action-button-container']}>
