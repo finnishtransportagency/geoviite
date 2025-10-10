@@ -10,7 +10,12 @@ import { operationalPointStates, rinfTypes } from 'utils/enum-localization-utils
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
-import { OperationalPoint, OperationalPointId, RinfType } from 'track-layout/track-layout-model';
+import {
+    OperationalPoint,
+    OperationalPointId,
+    OperationalPointState,
+    RinfType,
+} from 'track-layout/track-layout-model';
 import {
     actions,
     initialInternalOperationalPointEditState,
@@ -36,17 +41,47 @@ import { useLoader } from 'utils/react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
+import { useOperationalPoint } from 'track-layout/track-layout-react-utils';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import styles from './operational-point-edit-dialog.scss';
+
+type InternalOperationalPointEditDialogContainerProps = {
+    operationalPointId: OperationalPointId | undefined;
+    layoutContext: LayoutContext;
+    onSave: (id: OperationalPointId) => void;
+    onClose: () => void;
+};
+
+export const InternalOperationalPointEditDialogContainer: React.FC<
+    InternalOperationalPointEditDialogContainerProps
+> = ({ operationalPointId, layoutContext, onSave, onClose }) => {
+    const [editOperationalPointId, setEditOperationalPointId] = React.useState<
+        OperationalPointId | undefined
+    >(operationalPointId);
+    const operationalPoint = useOperationalPoint(editOperationalPointId, layoutContext);
+
+    return (
+        <InternalOperationalPointEditDialog
+            operationalPoint={operationalPoint}
+            layoutContext={layoutContext}
+            onSave={onSave}
+            onClose={onClose}
+            onEditOperationalPoint={setEditOperationalPointId}
+        />
+    );
+};
 
 type InternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint | undefined;
     layoutContext: LayoutContext;
     onSave: (id: OperationalPointId) => void;
     onClose: () => void;
+    onEditOperationalPoint: (operationalPoint: OperationalPointId) => void;
 };
 
 export const InternalOperationalPointEditDialog: React.FC<
     InternalOperationalPointEditDialogProps
-> = ({ operationalPoint, layoutContext, onClose, onSave }) => {
+> = ({ operationalPoint, layoutContext, onClose, onSave, onEditOperationalPoint }) => {
     const { t } = useTranslation();
 
     const [state, dispatcher] = React.useReducer<
@@ -187,6 +222,12 @@ export const InternalOperationalPointEditDialog: React.FC<
         }
     };
 
+    const moveToEditLinkText = (s: { state: OperationalPointState; name: string }) => {
+        return s.state === 'DELETED'
+            ? t('operational-point-dialog.move-to-edit-deleted')
+            : t('operational-point-dialog.move-to-edit', { name: s.name });
+    };
+
     const canSave =
         !isSaving && !duplicateNamePoint && !duplicateAbbreviationPoint && !duplicateUicCodePoint;
 
@@ -244,8 +285,15 @@ export const InternalOperationalPointEditDialog: React.FC<
                                     wide
                                 />
                             }
-                            errors={translateErrors(visibleNameErrors)}
-                        />
+                            errors={translateErrors(visibleNameErrors)}>
+                            {duplicateNamePoint && (
+                                <AnchorLink
+                                    className={dialogStyles['dialog__alert']}
+                                    onClick={() => onEditOperationalPoint(duplicateNamePoint.id)}>
+                                    {moveToEditLinkText(duplicateNamePoint)}
+                                </AnchorLink>
+                            )}
+                        </FieldLayout>
                         <FieldLayout
                             label={`${t('operational-point-dialog.abbreviation')} *`}
                             value={

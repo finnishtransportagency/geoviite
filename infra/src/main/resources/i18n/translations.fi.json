@@ -2214,6 +2214,8 @@
         "adding-failed": "Toiminnallisen pisteen lisäys epäonnistui",
         "modified-successfully": "Toiminnallisen pisteen tiedot päivitetty",
         "modify-failed": "Toiminnallisen pisteen päivittäminen epäonnistui",
+        "move-to-edit": "Voit siirtyä muokkaamaan toiminnallista pistettä {{name}} tästä.",
+        "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun toiminnallisen pisteen tästä.",
         "delete-confirm-dialog": {
             "title": "Toiminnallisen pisteen poistaminen paikannuspohjasta",
             "deleted-op-not-allowed": "Poistettu-tilainen toiminnallinen piste ei voi olla osa paikannuspohjaa.",
@@ -2224,8 +2226,8 @@
             "invalid-abbreviation": "Virheellinen lyhenne",
             "invalid-uic-code": "Virheellinen UIC-koodi",
             "mandatory-field": "Pakollinen kenttä",
-            "name-in-use": "Huomaa, että paikannuspohjassa on toinen toiminnallinen piste samalla nimellä",
-            "name-in-use-deleted": "Huomaa, että paikannuspohjassa on poistettu toiminnallinen piste samalla nimellä",
+            "name-in-use": "Paikannuspohjassa on toinen toiminnallinen piste samalla nimellä",
+            "name-in-use-deleted": "Paikannuspohjassa on poistettu toiminnallinen piste samalla nimellä",
             "abbreviation-in-use": "Lyhenne on jo käytössä",
             "uic-code-in-use": "UIC-koodi on jo käytössä"
         }

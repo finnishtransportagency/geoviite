@@ -8,7 +8,7 @@ import { OperationalPointOid } from 'track-layout/oid';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
-import { InternalOperationalPointEditDialog } from 'tool-panel/operational-point/internal-operational-point-edit-dialog';
+import { InternalOperationalPointEditDialogContainer } from 'tool-panel/operational-point/internal-operational-point-edit-dialog';
 import { ExternalOperationalPointEditDialog } from 'tool-panel/operational-point/external-operational-point-edit-dialog';
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
@@ -216,8 +216,8 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                         onClose={closeEditDialog}
                     />
                 ) : (
-                    <InternalOperationalPointEditDialog
-                        operationalPoint={operationalPoint}
+                    <InternalOperationalPointEditDialogContainer
+                        operationalPointId={operationalPoint.id}
                         layoutContext={layoutContext}
                         onSave={handleOperationalPointSave}
                         onClose={closeEditDialog}
