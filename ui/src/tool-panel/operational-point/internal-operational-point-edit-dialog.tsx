@@ -43,7 +43,6 @@ import { isEqualIgnoreCase } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { useOperationalPoint } from 'track-layout/track-layout-react-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
-import styles from './operational-point-edit-dialog.scss';
 
 type InternalOperationalPointEditDialogContainerProps = {
     operationalPointId: OperationalPointId | undefined;
