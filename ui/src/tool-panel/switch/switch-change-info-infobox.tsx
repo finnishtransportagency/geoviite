@@ -12,6 +12,8 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { createDelegates } from 'store/store-utils';
 import { useAppNavigate } from 'common/navigate';
 import { SearchItemType } from 'asset-search/search-dropdown';
+import { getSwitch } from 'track-layout/layout-switch-api';
+import { useHasPublicationLog } from 'publication/publication-utils';
 
 type SwitchChangeInfoInfoboxProps = {
     layoutSwitch: LayoutSwitch;
@@ -32,6 +34,11 @@ export const SwitchChangeInfoInfobox: React.FC<SwitchChangeInfoInfoboxProps> = (
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const navigate = useAppNavigate();
+
+    const hasPublicationLog = useHasPublicationLog(switchId, getSwitch, switchChangeInfo?.changed);
+    const openPublicationLogButtonTitle = hasPublicationLog
+        ? undefined
+        : t('tool-panel.switch.layout.publication-log-unavailable');
 
     const openPublicationLog = React.useCallback(() => {
         delegates.startFreshSpecificItemPublicationLogSearch({
@@ -67,6 +74,8 @@ export const SwitchChangeInfoInfobox: React.FC<SwitchChangeInfoInfoboxProps> = (
                         <Button
                             size={ButtonSize.SMALL}
                             variant={ButtonVariant.SECONDARY}
+                            title={openPublicationLogButtonTitle}
+                            disabled={!hasPublicationLog}
                             onClick={openPublicationLog}>
                             {t('tool-panel.show-in-publication-log')}
                         </Button>

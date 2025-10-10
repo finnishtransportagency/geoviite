@@ -43,6 +43,7 @@ import { GK_FIN_COORDINATE_SYSTEMS } from 'tool-panel/km-post/dialog/km-post-edi
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { SearchItemType } from 'asset-search/search-dropdown';
 import { useAppNavigate } from 'common/navigate';
+import { useHasPublicationLog } from 'publication/publication-utils';
 
 type KmPostInfoboxProps = {
     layoutContext: LayoutContext;
@@ -154,6 +155,16 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         onSelect,
         onUnselect,
     );
+
+    const hasPublicationLog = useHasPublicationLog(
+        kmPost.id,
+        getKmPost,
+        kmPostCreatedAndChangedTime?.changed,
+    );
+
+    const openPublicationLogButtonTitle = hasPublicationLog
+        ? undefined
+        : t('tool-panel.km-post.layout.publication-log-unavailable');
 
     const openPublicationLog = React.useCallback(() => {
         delegates.startFreshSpecificItemPublicationLogSearch({
@@ -343,6 +354,8 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             <Button
                                 size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
+                                title={openPublicationLogButtonTitle}
+                                disabled={!hasPublicationLog}
                                 onClick={openPublicationLog}>
                                 {t('tool-panel.show-in-publication-log')}
                             </Button>
