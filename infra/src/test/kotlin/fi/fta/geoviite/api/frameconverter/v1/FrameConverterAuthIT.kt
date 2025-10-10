@@ -19,7 +19,15 @@ import org.springframework.test.web.servlet.MockMvc
 private val API_URLS = listOf("/rata-vkm/v1/rataosoitteet", "/rata-vkm/v1/koordinaatit")
 
 @ActiveProfiles("dev", "test", "ext-api")
-@SpringBootTest(classes = [InfraApplication::class], properties = ["geoviite.skip-auth=false"])
+@SpringBootTest(
+    classes = [InfraApplication::class],
+    properties =
+        [
+            "geoviite.skip-auth=false",
+            "geoviite.ext-api.public-hosts=rata-vkm-public-test.localhost",
+            "geoviite.ext-api.private-hosts=rata-vkm-private-test.localhost",
+        ],
+)
 @AutoConfigureMockMvc
 class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {
     private val mapper = ObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
@@ -68,7 +76,7 @@ class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {
     @Test
     fun `Public api access should work`() {
         val headers = HttpHeaders()
-        headers.set("X-Forwarded-Host", "avoinapi.example.test")
+        headers.set("X-Forwarded-Host", "rata-vkm-public-test.localhost")
 
         API_URLS.forEach { apiUrl ->
             val featureCollection = fetchAuthorizedFeatureCollectionOrNull(headers, apiUrl)
@@ -79,7 +87,7 @@ class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {
     @Test
     fun `Private api access should work`() {
         val headers = HttpHeaders()
-        headers.set("X-Forwarded-Host", "api.example.test")
+        headers.set("X-Forwarded-Host", "rata-vkm-private-test.localhost")
 
         API_URLS.forEach { apiUrl ->
             val featureCollection = fetchAuthorizedFeatureCollectionOrNull(headers, apiUrl)
