@@ -557,6 +557,24 @@ export type LayoutGraph = {
     detailLevel: LayoutGraphLevel;
 };
 
+const formatTrackNumberTrackName = (
+    trackNumber: TrackNumber | undefined,
+    nameSpecifier: LocationTrackNameSpecifier | undefined,
+    nameFreeText: string | undefined,
+): string => {
+    const trackNumberPart = withPlaceholder(trackNumber);
+
+    if (!nameSpecifier && !nameFreeText) {
+        return trackNumberPart;
+    } else if (nameSpecifier && !nameFreeText) {
+        return `${trackNumberPart} ${toProperForm(nameSpecifier)}`;
+    } else if (!nameSpecifier && nameFreeText) {
+        return `${trackNumberPart} ${nameFreeText}`;
+    } else {
+        return `${trackNumberPart} ${toProperForm(nameSpecifier)} ${nameFreeText}`;
+    }
+};
+
 /**
  * This function duplicates the backend logic in LocationTrack.kt for front-end formatting
  * so that UI-side validation and display logic can act independently.
@@ -574,7 +592,7 @@ export function formatTrackName(
         case LocationTrackNamingScheme.WITHIN_OPERATING_POINT:
             return nameFreeText ?? '';
         case LocationTrackNamingScheme.TRACK_NUMBER_TRACK:
-            return `${withPlaceholder(trackNumber)} ${toProperForm(nameSpecifier)} ${nameFreeText ?? ''}`.trim();
+            return formatTrackNumberTrackName(trackNumber, nameSpecifier, nameFreeText);
         case LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS:
             return nameSpecifier
                 ? `${toProperForm(nameSpecifier)} ${getShortName(startSwitch)}-${getShortName(endSwitch)}`
