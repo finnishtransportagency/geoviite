@@ -82,6 +82,9 @@ type InternalOperationalPointEditDialogProps = {
     changeTimes: ChangeTimes;
 };
 
+const existsAndIsntItself = (op: OperationalPoint, id: OperationalPointId | undefined) =>
+    op.id !== id && op.state !== 'DELETED';
+
 export const InternalOperationalPointEditDialog: React.FC<
     InternalOperationalPointEditDialogProps
 > = ({ operationalPoint, layoutContext, onClose, onSave, onEditOperationalPoint, changeTimes }) => {
@@ -93,9 +96,12 @@ export const InternalOperationalPointEditDialog: React.FC<
     >(reducer, initialInternalOperationalPointEditState);
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
-    const allOperationalPoints = useLoader(
-        () => getAllOperationalPoints(layoutContext, changeTimes.operationalPoints),
-        [layoutContext, changeTimes.operationalPoints],
+    const allOtherExistingOperationalPoints = useLoader(
+        () =>
+            getAllOperationalPoints(layoutContext, changeTimes.operationalPoints).then((ops) =>
+                ops.filter((op) => existsAndIsntItself(op, state.existingOperationalPoint?.id)),
+            ),
+        [layoutContext, changeTimes.operationalPoints, state.existingOperationalPoint?.id],
     );
 
     React.useEffect(() => {
@@ -127,22 +133,18 @@ export const InternalOperationalPointEditDialog: React.FC<
         });
     }
 
-    const isNotItselfOrDeleted = (op: OperationalPoint) =>
-        op.id !== state.existingOperationalPoint?.id && op.state !== 'DELETED';
-
-    const allOtherExistingOperatingPoints = allOperationalPoints?.filter(isNotItselfOrDeleted);
-    const duplicateAbbreviationPoint = allOtherExistingOperatingPoints?.find(
+    const duplicateAbbreviationPoint = allOtherExistingOperationalPoints?.find(
         (op) =>
             op.abbreviation &&
             state.operationalPoint?.abbreviation &&
             isEqualIgnoreCase(op.abbreviation, state.operationalPoint.abbreviation),
     );
-    const duplicateNamePoint = allOtherExistingOperatingPoints?.find(
+    const duplicateNamePoint = allOtherExistingOperationalPoints?.find(
         (op) =>
             !!state.operationalPoint?.name &&
             isEqualIgnoreCase(op.name, state.operationalPoint.name),
     );
-    const duplicateUicCodePoint = allOtherExistingOperatingPoints?.find(
+    const duplicateUicCodePoint = allOtherExistingOperationalPoints?.find(
         (op) =>
             !!state.operationalPoint.uicCode &&
             isEqualIgnoreCase(op.uicCode, state.operationalPoint.uicCode),
