@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.frontpage
 import exists
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
 import java.time.Instant
@@ -30,6 +31,14 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
         getElementWhenExists(byQaId("show-split-info-link")).click()
 
         return SplitDetailsDialog()
+    }
+
+    fun setNthSplitBulkTransferCompleted(nth: Int) = apply {
+        logger.info("Set split publication bulk transfer completed nth=$nth")
+
+        openNthSplitActionsMenu(nth)
+        getElementWhenExists(byQaId("mark-bulk-transfer-as-finished-link")).click()
+        waitAndClearToast("toast-bulk-transfer-marked-as-successful")
     }
 
     fun openNthSplitActionsMenu(nth: Int): E2EFrontPage = apply {
