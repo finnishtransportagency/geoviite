@@ -21,7 +21,7 @@ data class ExtKmPostV1(
     @JsonProperty(TRACK_NUMBER_OID) val trackNumberOid: Oid<LayoutTrackNumber>,
     @JsonProperty(KM_NUMBER) val kmNumber: KmNumber,
     @JsonProperty(STATE) val state: ExtKmPostStateV1,
-    @JsonProperty(KM_LENGTH) val kmLength: BigDecimal,
+    @JsonProperty(KM_LENGTH) val kmLength: BigDecimal?,
     @JsonProperty(OFFICIAL_LOCATION) val officialLocation: ExtSridCoordinateV1,
     @JsonProperty(COORDINATE_LOCATION) val location: ExtCoordinateV1,
 )

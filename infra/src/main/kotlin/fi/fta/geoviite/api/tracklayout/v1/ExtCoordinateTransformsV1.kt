@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 
 internal fun <T> layoutAlignmentStartAndEndToCoordinateSystem(
@@ -47,3 +48,11 @@ fun toExtAddressPoint(addressPoint: AddressPoint<*>, targetCoordinateSystem: Sri
         }
     return ExtAddressPointV1(point.x, point.y, addressPoint.address.formatFixedDecimals(3))
 }
+
+fun toExtCoordinate(point: IPoint, targetCoordinateSystem: Srid): ExtCoordinateV1 =
+    ExtCoordinateV1(
+        when (targetCoordinateSystem) {
+            LAYOUT_SRID -> point
+            else -> transformNonKKJCoordinate(LAYOUT_SRID, targetCoordinateSystem, point)
+        }
+    )
