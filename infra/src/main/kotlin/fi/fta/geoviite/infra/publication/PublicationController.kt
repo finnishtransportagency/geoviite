@@ -123,9 +123,9 @@ constructor(
     fun publishChanges(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody request: PublicationRequest,
-    ): PublicationResult {
+    ): PublicationResultSummary {
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publicationService.publishManualPublication(branch, request)
+            publicationService.publishManualPublication(branch, request).summarize()
         }
             ?: throw PublicationFailureException(
                 message = "Could not reserve publication lock",
