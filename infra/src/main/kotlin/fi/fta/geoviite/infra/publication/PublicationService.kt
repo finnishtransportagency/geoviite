@@ -39,12 +39,12 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 @GeoviiteService
 class PublicationService
@@ -532,23 +532,20 @@ constructor(
     fun getPublicationsToCompare(
         trackLayoutVersionFrom: Uuid<Publication>,
         trackLayoutVersionTo: Uuid<Publication>?,
-    ): PublicationComparison {
-        val fromPublication =
-            publicationDao.fetchPublicationByUuid(trackLayoutVersionFrom)
-                ?: throw TrackLayoutVersionNotFound("trackLayoutVersionFrom=${trackLayoutVersionFrom}")
+        branchType: LayoutBranchType = LayoutBranchType.MAIN,
+    ): PublicationComparison =
+        PublicationComparison(
+            from = getPublicationWithType(branchType, trackLayoutVersionFrom),
+            to = getPublicationByUuidOrLatest(branchType, trackLayoutVersionTo),
+        )
 
-        val toPublication =
-            trackLayoutVersionTo?.let { uuid ->
-                publicationDao.fetchPublicationByUuid(uuid)
-                    ?: throw TrackLayoutVersionNotFound("trackLayoutVersion=${uuid}")
-            } ?: publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, count = 1).single()
-
-        return PublicationComparison(fromPublication, toPublication)
-    }
+    fun getPublicationWithType(branchType: LayoutBranchType, trackLayoutVersion: Uuid<Publication>): Publication =
+        publicationDao.fetchPublicationByUuid(trackLayoutVersion).also {
+            if (it.layoutBranch.branch.type != branchType) throw TrackLayoutVersionNotFound(trackLayoutVersion)
+        }
 
     fun getPublicationByUuidOrLatest(branchType: LayoutBranchType, publicationUuid: Uuid<Publication>?): Publication {
-        return publicationUuid?.let { uuid ->
-            publicationDao.fetchPublicationByUuid(uuid) ?: throw TrackLayoutVersionNotFound("publicationUuid=${uuid}")
-        } ?: publicationDao.fetchLatestPublications(branchType, count = 1).single()
+        return publicationUuid?.let { uuid -> getPublicationWithType(branchType, uuid) }
+            ?: publicationDao.fetchLatestPublications(branchType, count = 1).single()
     }
 }
