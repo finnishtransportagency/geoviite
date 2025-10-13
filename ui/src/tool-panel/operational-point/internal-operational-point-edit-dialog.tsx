@@ -130,22 +130,20 @@ export const InternalOperationalPointEditDialog: React.FC<
     const isNotItselfOrDeleted = (op: OperationalPoint) =>
         op.id !== state.existingOperationalPoint?.id && op.state !== 'DELETED';
 
-    const duplicateAbbreviationPoint = allOperationalPoints?.find(
+    const allOtherExistingOperatingPoints = allOperationalPoints?.filter(isNotItselfOrDeleted);
+    const duplicateAbbreviationPoint = allOtherExistingOperatingPoints?.find(
         (op) =>
-            isNotItselfOrDeleted(op) &&
             op.abbreviation &&
             state.operationalPoint?.abbreviation &&
             isEqualIgnoreCase(op.abbreviation, state.operationalPoint.abbreviation),
     );
-    const duplicateNamePoint = allOperationalPoints?.find(
+    const duplicateNamePoint = allOtherExistingOperatingPoints?.find(
         (op) =>
-            isNotItselfOrDeleted(op) &&
             !!state.operationalPoint?.name &&
             isEqualIgnoreCase(op.name, state.operationalPoint.name),
     );
-    const duplicateUicCodePoint = allOperationalPoints?.find(
+    const duplicateUicCodePoint = allOtherExistingOperatingPoints?.find(
         (op) =>
-            isNotItselfOrDeleted(op) &&
             !!state.operationalPoint.uicCode &&
             isEqualIgnoreCase(op.uicCode, state.operationalPoint.uicCode),
     );
