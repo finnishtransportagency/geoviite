@@ -23,7 +23,7 @@ import {
     layoutUriWithoutContext,
     TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
-import { updateOperationalPointsChangeTime } from 'common/change-time-api';
+import { getChangeTimes, updateOperationalPointsChangeTime } from 'common/change-time-api';
 import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/internal-operational-point-edit-store';
 import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
@@ -70,7 +70,7 @@ export async function getOperationalPoints(
 export const getOperationalPoint = async (
     id: OperationalPointId,
     layoutContext: LayoutContext,
-    changeTime: TimeStamp,
+    changeTime: TimeStamp = getChangeTimes().operationalPoints,
 ): Promise<OperationalPoint | undefined> =>
     operationalPointsCache.get(changeTime, cacheKey(id, layoutContext), () =>
         getNullable<OperationalPoint>(`${layoutUri('operational-points', layoutContext)}/${id}`),

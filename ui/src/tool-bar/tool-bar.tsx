@@ -61,7 +61,7 @@ import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { error } from 'geoviite-design-lib/snackbar/snackbar';
-import { InternalOperationalPointEditDialog } from 'tool-panel/operational-point/internal-operational-point-edit-dialog';
+import { InternalOperationalPointEditDialogContainer } from 'tool-panel/operational-point/internal-operational-point-edit-dialog';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED = 3;
@@ -556,9 +556,9 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             )}
 
             {showAddOperationalPointDialog && (
-                <InternalOperationalPointEditDialog
+                <InternalOperationalPointEditDialogContainer
                     layoutContext={layoutContext}
-                    operationalPoint={undefined}
+                    operationalPointId={undefined}
                     onSave={handleOperationalPointSave}
                     onClose={() => setShowAddOperationalPointDialog(false)}
                 />

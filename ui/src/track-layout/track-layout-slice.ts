@@ -677,8 +677,10 @@ export const toolPanelAssetExists = (
             return selection.selectedItems.geometryAlignmentIds.some(
                 (g) => g.geometryId === asset.id,
             );
+        case 'OPERATIONAL_POINT':
+            return selection.selectedItems.operationalPoints.includes(brand(asset.id));
         default:
-            return false;
+            return exhaustiveMatchingGuard(asset.type);
     }
 };
 
