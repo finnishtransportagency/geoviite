@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -11,6 +12,7 @@ import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.error.ConcurrentChangesToTrackInSwitchLinkingException
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -2059,6 +2061,35 @@ constructor(
         assertEquals(1, relinkingTrackGeometry.edges.size)
         assertEquals(switchLinkYV(startSwitch.id, 1), relinkingTrackGeometry.edges[0].startNode.switchOut)
         assertEquals(switchLinkYV(endSwitch.id, 1), relinkingTrackGeometry.edges[0].endNode.switchOut)
+    }
+
+    @Test
+    fun `saveSwitchLinking checks that it has the correct version of the suggested tracks`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val straightTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumber, name = "straight track orig"),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(60.0, 0.0))),
+            )
+        mainDraftContext.save(
+            locationTrack(trackNumber),
+            trackGeometryOfSegments(segment(Point(10.0, 0.0), Point(50.0, -2.0))),
+        )
+        val switch = mainDraftContext.save(switch())
+        val suggestion = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(10.0, 0.0), switch.id)!!
+
+        mainDraftContext.save(locationTrackDao.fetch(straightTrack).copy(name = AlignmentName("straight track edit")))
+
+        val expectedException =
+            assertThrows<ConcurrentChangesToTrackInSwitchLinkingException> {
+                switchLinkingService.saveSwitchLinking(
+                    LayoutBranch.main,
+                    suggestion,
+                    switch.id,
+                    geometrySwitchId = null,
+                )
+            }
+        assertEquals("straight track edit", expectedException.localizationParams.get("track"))
     }
 
     private fun createDraftLocationTrackFromLayoutSegments(

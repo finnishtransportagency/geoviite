@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.error.ConcurrentChangesToTrackInSwitchLinkingException
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
@@ -44,9 +45,9 @@ import fi.fta.geoviite.infra.tracklayout.TmpLayoutEdge
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.tracklayout.replaceEdges
 import fi.fta.geoviite.infra.util.processFlattened
+import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import java.util.stream.Collectors
 
 @GeoviiteService
 class SwitchLinkingService
@@ -232,10 +233,7 @@ constructor(
         val originalSwitch = switchService.getOrThrow(branch.draft, layoutSwitchId)
         geometrySwitchId?.let(::verifyPlanNotHidden)
 
-        val originalTracks =
-            suggestedSwitch.trackLinks.keys.associateWith { id ->
-                locationTrackService.getWithGeometryOrThrow(branch.draft, id)
-            }
+        val originalTracks = collectSuggestedSwitchTracks(suggestedSwitch, branch)
         val changedTracks =
             withChangesFromLinkingSwitch(
                 suggestedSwitch,
@@ -247,6 +245,19 @@ constructor(
         saveLocationTrackChanges(branch, recalc, originalTracks)
         return updateLayoutSwitch(branch, suggestedSwitch, layoutSwitchId)
     }
+
+    private fun collectSuggestedSwitchTracks(
+        suggestedSwitch: SuggestedSwitch,
+        branch: LayoutBranch,
+    ): Map<IntId<LocationTrack>, Pair<LocationTrack, DbLocationTrackGeometry>> =
+        suggestedSwitch.trackLinks.mapValues { (id, links) ->
+            val expectedVersion = links.locationTrackVersion
+            val trackAndGeometry = locationTrackService.getWithGeometryOrThrow(branch.draft, id)
+            if (trackAndGeometry.first.version?.version != expectedVersion) {
+                throw ConcurrentChangesToTrackInSwitchLinkingException(trackAndGeometry.first.name)
+            }
+            trackAndGeometry
+        }
 
     private fun saveLocationTrackChanges(
         branch: LayoutBranch,
