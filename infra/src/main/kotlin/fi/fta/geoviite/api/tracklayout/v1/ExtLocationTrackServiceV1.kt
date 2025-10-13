@@ -2,10 +2,8 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
@@ -50,7 +48,7 @@ constructor(
                         getExtLocationTrack(
                             oid,
                             locationTrack,
-                            LayoutContext.of(publication.layoutBranch.branch, PublicationState.OFFICIAL),
+                            publication.layoutBranch.branch,
                             publication.publicationTime,
                             coordinateSystem,
                         ),
@@ -76,7 +74,7 @@ constructor(
                         getExtLocationTrack(
                             oid,
                             locationTrack,
-                            MainLayoutContext.official,
+                            LayoutBranch.main,
                             publications.to.publicationTime,
                             coordinateSystem,
                         ),
@@ -87,28 +85,28 @@ constructor(
     fun getExtLocationTrack(
         oid: Oid<LocationTrack>,
         locationTrack: LocationTrack,
-        layoutContext: LayoutContext,
+        branch: LayoutBranch,
         moment: Instant,
         coordinateSystem: Srid,
     ): ExtLocationTrackV1 {
         val trackNumberName =
             layoutTrackNumberDao
-                .fetchOfficialVersionAtMoment(layoutContext.branch, locationTrack.trackNumberId, moment)
+                .fetchOfficialVersionAtMoment(branch, locationTrack.trackNumberId, moment)
                 ?.let(layoutTrackNumberDao::fetch)
                 ?.number
                 ?: throw ExtTrackNumberNotFoundV1(
-                    "track number was not found for branch=${layoutContext.branch}, trackNumberId=${locationTrack.trackNumberId}, moment=$moment"
+                    "track number was not found for branch=$branch, trackNumberId=${locationTrack.trackNumberId}, moment=$moment"
                 )
 
         val trackNumberOid =
-            layoutTrackNumberDao.fetchExternalId(layoutContext.branch, locationTrack.trackNumberId)?.oid
+            layoutTrackNumberDao.fetchExternalId(branch, locationTrack.trackNumberId)?.oid
                 ?: throw ExtOidNotFoundExceptionV1(
-                    "track number oid was not found, branch=${layoutContext.branch}, trackNumberId=${locationTrack.trackNumberId}"
+                    "track number oid was not found, branch=$branch, trackNumberId=${locationTrack.trackNumberId}"
                 )
 
         val (startLocation, endLocation) =
             locationTrackService
-                .getStartAndEndAtMoment(layoutContext, listOf(locationTrack.id as IntId), moment)
+                .getStartAndEndAtMoment(branch, listOf(locationTrack.id as IntId), moment)
                 .first()
                 .let { startAndEnd -> layoutAlignmentStartAndEndToCoordinateSystem(coordinateSystem, startAndEnd) }
                 .let { startAndEnd -> startAndEnd.start to startAndEnd.end }

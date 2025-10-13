@@ -174,13 +174,13 @@ class LocationTrackService(
     }
 
     fun getStartAndEndAtMoment(
-        context: LayoutContext,
+        branch: LayoutBranch,
         ids: List<IntId<LocationTrack>>,
         moment: Instant,
     ): List<AlignmentStartAndEnd<LocationTrack>> {
-        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(context, moment)
+        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
         val trackData =
-            dao.getManyOfficialAtMoment(context.branch, ids, moment).let(::associateWithGeometries).map {
+            dao.getManyOfficialAtMoment(branch, ids, moment).let(::associateWithGeometries).map {
                 (track, geometry) ->
                 // Deleted tracks are not validated for the context which might live on after track deletion
                 // Hence, we don't have a valid addressing for deleted tracks

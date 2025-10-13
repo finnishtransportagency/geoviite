@@ -2,9 +2,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
@@ -33,7 +31,7 @@ constructor(
             coordinateSystem = coordinateSystem,
             trackNumberCollection =
                 extGetTrackNumberCollection(
-                    LayoutContext.of(publication.layoutBranch.branch, PublicationState.OFFICIAL),
+                    publication.layoutBranch.branch,
                     layoutTrackNumberDao
                         .listOfficialAtMoment(publication.layoutBranch.branch, publication.publicationTime)
                         .filter { trackNumber -> trackNumber.state != LayoutState.DELETED },
@@ -58,7 +56,7 @@ constructor(
                     coordinateSystem = coordinateSystem,
                     trackNumberCollection =
                         extGetTrackNumberCollection(
-                            MainLayoutContext.official,
+                            LayoutBranch.main,
                             modifiedTrackNumbers,
                             coordinateSystem,
                             publications.to.publicationTime,
@@ -68,7 +66,7 @@ constructor(
     }
 
     fun extGetTrackNumberCollection(
-        layoutContext: LayoutContext,
+        branch: LayoutBranch,
         trackNumbers: List<LayoutTrackNumber>,
         coordinateSystem: Srid,
         moment: Instant,
@@ -78,13 +76,13 @@ constructor(
         val referenceLineStartsAndEnds =
             referenceLineService
                 .getStartAndEndAtMoment(
-                    layoutContext,
+                    branch,
                     trackNumbers.mapNotNull { trackNumber -> trackNumber.referenceLineId },
                     moment,
                 )
                 .associateBy { it.id }
 
-        val externalTrackNumberIds = layoutTrackNumberDao.fetchExternalIds(layoutContext.branch, trackNumberIds)
+        val externalTrackNumberIds = layoutTrackNumberDao.fetchExternalIds(branch, trackNumberIds)
 
         return trackNumbers.map { trackNumber ->
             val (startLocation, endLocation) =
