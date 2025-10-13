@@ -2,8 +2,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
@@ -13,8 +12,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import org.springframework.beans.factory.annotation.Autowired
 import java.time.Instant
+import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class ExtLocationTrackCollectionServiceV1
@@ -35,7 +34,7 @@ constructor(
             coordinateSystem = coordinateSystem,
             locationTrackCollection =
                 extGetLocationTrackCollection(
-                    LayoutContext.of(publication.layoutBranch.branch, PublicationState.OFFICIAL),
+                    publication.layoutBranch.branch,
                     locationTrackDao
                         .listOfficialAtMoment(publication.layoutBranch.branch, publication.publicationTime)
                         .filter { track -> track.state != LocationTrackState.DELETED },
@@ -60,7 +59,7 @@ constructor(
                     coordinateSystem = coordinateSystem,
                     locationTrackCollection =
                         extGetLocationTrackCollection(
-                            LayoutContext.of(publications.to.layoutBranch.branch, PublicationState.OFFICIAL),
+                            publications.to.layoutBranch.branch,
                             modifiedLocationTracks,
                             coordinateSystem,
                             publications.to.publicationTime,
@@ -70,7 +69,7 @@ constructor(
     }
 
     fun extGetLocationTrackCollection(
-        layoutContext: LayoutContext,
+        branch: LayoutBranch,
         locationTracks: List<LocationTrack>,
         coordinateSystem: Srid,
         moment: Instant,
@@ -79,15 +78,15 @@ constructor(
         val distinctTrackNumberIds = locationTracks.map { locationTrack -> locationTrack.trackNumberId }.distinct()
 
         val trackNumbers =
-            layoutTrackNumberDao
-                .getManyOfficialAtMoment(layoutContext.branch, distinctTrackNumberIds, moment)
-                .associateBy { trackNumber -> trackNumber.id }
+            layoutTrackNumberDao.getManyOfficialAtMoment(branch, distinctTrackNumberIds, moment).associateBy {
+                trackNumber ->
+                trackNumber.id
+            }
 
-        val externalLocationTrackIds = locationTrackDao.fetchExternalIds(layoutContext.branch, locationTrackIds)
-        val externalTrackNumberIds = layoutTrackNumberDao.fetchExternalIds(layoutContext.branch, distinctTrackNumberIds)
+        val externalLocationTrackIds = locationTrackDao.fetchExternalIds(branch, locationTrackIds)
+        val externalTrackNumberIds = layoutTrackNumberDao.fetchExternalIds(branch, distinctTrackNumberIds)
 
-        val locationTrackStartsAndEnds =
-            locationTrackService.getStartAndEndAtMoment(layoutContext, locationTrackIds, moment)
+        val locationTrackStartsAndEnds = locationTrackService.getStartAndEndAtMoment(branch, locationTrackIds, moment)
 
         require(locationTracks.size == locationTrackStartsAndEnds.size) {
             "locationTracks.size=${locationTracks.size} != locationTrackStartsAndEnds.size=${locationTrackStartsAndEnds.size}"
@@ -110,7 +109,7 @@ constructor(
                 trackNumbers[locationTrack.trackNumberId]?.number
                     ?: throw ExtTrackNumberNotFoundV1(
                         "track number was not found for " +
-                            "branch=${layoutContext.branch}, trackNumberId=${locationTrack.trackNumberId}, moment=$moment"
+                            "branch=$branch, trackNumberId=${locationTrack.trackNumberId}, moment=$moment"
                     )
 
             val trackNumberOid =

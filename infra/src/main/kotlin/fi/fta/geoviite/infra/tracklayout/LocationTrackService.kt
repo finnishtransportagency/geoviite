@@ -173,14 +173,13 @@ class LocationTrackService(
     }
 
     fun getStartAndEndAtMoment(
-        context: LayoutContext,
+        branch: LayoutBranch,
         ids: List<IntId<LocationTrack>>,
         moment: Instant,
     ): List<AlignmentStartAndEnd<LocationTrack>> {
-        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(context, moment)
+        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
         val trackData =
-            dao.getManyOfficialAtMoment(context.branch, ids, moment).let(::associateWithGeometries).map {
-                (track, geometry) ->
+            dao.getManyOfficialAtMoment(branch, ids, moment).let(::associateWithGeometries).map { (track, geometry) ->
                 Triple(track, geometry, getGeocodingContext(track.trackNumberId))
             }
 

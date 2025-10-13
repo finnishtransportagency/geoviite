@@ -13,8 +13,8 @@ import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
 class ReferenceLineService(
@@ -202,13 +202,13 @@ class ReferenceLineService(
     }
 
     fun getStartAndEndAtMoment(
-        context: LayoutContext,
+        branch: LayoutBranch,
         ids: List<IntId<ReferenceLine>>,
         moment: Instant,
     ): List<AlignmentStartAndEnd<ReferenceLine>> {
-        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(context, moment)
+        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
         val referenceLineData =
-            dao.getManyOfficialAtMoment(context.branch, ids, moment).let(::associateWithAlignments).map {
+            dao.getManyOfficialAtMoment(branch, ids, moment).let(::associateWithAlignments).map {
                 (referenceLine, geometry) ->
                 Triple(referenceLine, geometry, getGeocodingContext(referenceLine.trackNumberId))
             }
