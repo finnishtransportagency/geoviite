@@ -10,6 +10,7 @@ import { radsToDegrees } from 'utils/math-utils';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { TrackMeter } from 'common/common-model';
 import { expectDefined } from 'utils/type-utils';
+import { formatRounded } from 'utils/string-utils';
 
 export interface PviGeometryProps {
     geometry: VerticalGeometryDiagramDisplayItem[];
@@ -63,7 +64,7 @@ function tangentArrow(
                     transform={`translate (${tangentX + (left ? 10 : -4)},${
                         tangentBottomPx - 2
                     }) rotate(-90) scale(0.7)`}>
-                    {tangent.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    {formatRounded(tangent, 2)}
                 </text>
             )}
             <line
@@ -175,11 +176,9 @@ const GeoLineDistanceAndAngleText: React.FC<{
         <text
             className={styles['vertical-geometry-diagram__text-stroke-wide']}
             transform={`translate(${textStartX},${textStartY}) rotate(${angle}) scale(${angleTextScale})`}>
-            {(nextGeo.alignmentPointStation - geo.alignmentPointStation).toLocaleString(undefined, {
-                maximumFractionDigits: 3,
-            })}
+            {formatRounded(nextGeo.alignmentPointStation - geo.alignmentPointStation, 3)}
             {' : '}
-            {geo.end.angle?.toLocaleString(undefined, { maximumFractionDigits: 3 })}
+            {geo.end.angle && formatRounded(geo.end.angle, 3)}
         </text>
     );
 };
@@ -264,7 +263,7 @@ const PointHeightText: React.FC<{ x: number; y: number; height: number }> = ({ h
     <text
         className={styles['vertical-geometry-diagram__text-stroke-wide']}
         transform={`translate(${x},${y}) rotate(-90) scale(0.7)`}>
-        kt={height.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+        kt={formatRounded(height, 2)}
     </text>
 );
 

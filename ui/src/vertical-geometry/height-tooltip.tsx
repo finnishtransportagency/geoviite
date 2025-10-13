@@ -4,6 +4,7 @@ import { Coordinates } from 'vertical-geometry/coordinates';
 import { formatTrackMeter, formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import styles from './vertical-geometry-diagram.scss';
 import { useResizeObserver } from 'utils/use-resize-observer';
+import { formatRounded } from 'utils/string-utils';
 
 interface HeightTooltipProps {
     point: SnappedPoint;
@@ -55,9 +56,7 @@ export const HeightTooltip: React.FC<HeightTooltipProps> = ({
             {displayedAddress}
             <br />
             kt=
-            {point.height.toLocaleString(undefined, {
-                maximumFractionDigits: 2,
-            })}
+            {formatRounded(point.height, 2)}
             {point.fileName && (
                 <>
                     <br />

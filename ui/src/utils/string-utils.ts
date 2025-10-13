@@ -1,4 +1,5 @@
 import i18next from 'i18next';
+import { cache, Cache } from 'cache/cache';
 
 export function isNilOrBlank(str: string | undefined): boolean {
     return !str || !str.trim();
@@ -27,3 +28,12 @@ export function parseFloatOrUndefined(str: string): number | undefined {
         return isNaN(parsed) ? undefined : parsed;
     }
 }
+
+const roundedFormatters: Cache<number, Intl.NumberFormat> = cache();
+export const formatRounded = (num: number, maximumFractionDigits: number) =>
+    roundedFormatters
+        .getOrCreate(
+            maximumFractionDigits,
+            () => new Intl.NumberFormat(i18next.language, { maximumFractionDigits }),
+        )
+        .format(num);

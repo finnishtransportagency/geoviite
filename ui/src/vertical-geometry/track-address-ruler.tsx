@@ -8,6 +8,7 @@ import {
 } from 'vertical-geometry/ticks-at-intervals';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { expectDefined } from 'utils/type-utils';
+import { formatRounded } from 'utils/string-utils';
 
 export interface TrackAddressRulerProps {
     kmHeights: TrackKmHeights[];
@@ -73,7 +74,7 @@ export const TrackAddressRuler: React.FC<TrackAddressRulerProps> = ({
                     <text
                         className={styles['vertical-geometry-diagram__text-stroke-wide']}
                         transform={`translate(3 -6) scale(0.7) rotate(-90)`}>
-                        {height.toLocaleString('fi', { maximumFractionDigits: 2 })}
+                        {formatRounded(height, 2)}
                     </text>
                 )}
             </g>
