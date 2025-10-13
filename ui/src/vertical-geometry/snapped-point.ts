@@ -93,7 +93,7 @@ function getSnapOverChart(
 
     const height =
         closest.type === 'intersectionPoint'
-            ? approximatedPoint(closest.m)?.height ?? closest.height
+            ? (approximatedPoint(closest.m)?.height ?? closest.height)
             : closest.height;
     return {
         snapTarget: 'geometryElement',
@@ -167,13 +167,14 @@ export function getSnappedPoint(
 
 function toGeometrySnapPoint(
     fileName: string,
+    m: number,
     stationPoint: StationPoint,
     type: 'intersectionPoint' | 'endPoint',
 ) {
     return stationPoint.address === undefined
         ? undefined
         : {
-              m: stationPoint.station,
+              m,
               height: stationPoint.height,
               address: stationPoint.address,
               fileName,
@@ -189,13 +190,23 @@ function closestGeometrySnapPoint(
     const allGeometryPoints = geometry.flatMap((geom) =>
         [
             geom.point
-                ? toGeometrySnapPoint(geom.fileName, geom.point, 'intersectionPoint')
+                ? toGeometrySnapPoint(
+                      geom.fileName,
+                      geom.alignmentPointStation,
+                      geom.point,
+                      'intersectionPoint',
+                  )
                 : undefined,
             drawTangents && geom.start
-                ? toGeometrySnapPoint(geom.fileName, geom.start, 'endPoint')
+                ? toGeometrySnapPoint(
+                      geom.fileName,
+                      geom.alignmentStartStation,
+                      geom.start,
+                      'endPoint',
+                  )
                 : undefined,
             drawTangents && geom.end
-                ? toGeometrySnapPoint(geom.fileName, geom.end, 'endPoint')
+                ? toGeometrySnapPoint(geom.fileName, geom.alignmentEndStation, geom.end, 'endPoint')
                 : undefined,
         ].filter(filterNotEmpty),
     );

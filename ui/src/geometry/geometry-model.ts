@@ -335,16 +335,13 @@ export type VerticalGeometryItem = {
     coordinateSystemSrid?: Srid;
     coordinateSystemName?: string;
 
-    layoutStartStation?: number;
-    layoutPointStation?: number;
-    layoutEndStation?: number;
+    alignmentStartStation?: number;
+    alignmentPointStation?: number;
+    alignmentEndStation?: number;
 };
 
-export type VerticalGeometryDiagramDisplayItem = Omit<
-    VerticalGeometryItem,
-    'layoutStartStation' | 'layoutPointStation' | 'layoutEndStation' | 'start' | 'point' | 'end'
-> & {
-    start: CircularCurve | undefined;
-    point: StationPoint;
-    end: CircularCurve | undefined;
+export type VerticalGeometryDiagramDisplayItem = VerticalGeometryItem & {
+    alignmentStartStation: number;
+    alignmentPointStation: number;
+    alignmentEndStation: number;
 };
