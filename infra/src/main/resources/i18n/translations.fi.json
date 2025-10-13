@@ -733,7 +733,7 @@
                 "show-on-map": "Kohdista kartalla",
                 "no-linkable-location-tracks": "Sopivia sijaintiraiteita ei löytynyt linkitettäväksi.",
                 "no-linkable-reference-lines": "Sopivia pituusmittauslinjoja ei löytynyt linkitettäväksi.",
-                "part-of-unfinished-split": "Raiteen {{locationTrackName}} geometriaa ei voi muokata, ennen kuin raiteen jakamiseen liittyvä julkaisu on viety Ratkoon."
+                "part-of-unfinished-split": "Raiteen {{locationTrackName}} geometriaa ei voi muokata, ennen kuin jakamiseen liittyvä julkaisu on viety Ratkoon tai jaetun raiteen muokkaus on sallittu manuaalisesti."
             },
             "geometry-segment": {
                 "no-geometry-information": "Ei geometriatietoja valitulle segmentille.",
@@ -1451,7 +1451,7 @@
         "location-tracks": "Sijaintiraiteet",
         "switches": "Vaihteet",
         "no-calculated-changes-text": "Ei rataosoitemuutoksia",
-        "design-has-design-drafts-error": "Suunnitelmaan liittyy julkaisemattomia muutoksia. Vain julkaistut muutokset voi siirtää luonnostilaan.  Voit käydä julkaisemassa suunnitelman muutokset <actionLink>täällä</actionLink>."
+        "design-has-design-drafts-error": "Suunnitelmaan liittyy julkaisemattomia muutoksia. Vain julkaistut muutokset voi siirtää luonnostilaan. Voit käydä julkaisemassa suunnitelman muutokset <actionLink>täällä</actionLink>."
     },
     "preview-table": {
         "change-target": "Muutoskohde",
@@ -1841,13 +1841,12 @@
         "no-publications": "Ei julkaisuja.",
         "show-more": "Näytä lisää",
         "publication-status": "Raiteiden ja vaihteiden vienti",
-        "bulk-transfer-status": "Kohteiden siirto jaetulta raiteelta",
         "actions": "Toiminnot",
         "show-split-info": "Näytä raiteen jakamisen tiedot",
-        "mark-as-successful": "Merkitse raiteen jakaminen onnistuneeksi",
+        "mark-as-successful": "Salli julkaisuun liittyvien raiteiden muokkaus",
         "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
         "transfer-starts-after-reconnect": "Vienti käynnistyy automaattisesti Ratko-yhteyden palautumisen jälkeen",
-        "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
+        "bulk-transfer-marked-as-successful": "Julkaisuun liittyvien raiteiden muokkaus sallittu",
         "design-publication-cause": {
             "LAYOUT_DESIGN_DELETE": "Suunnitelman poisto",
             "LAYOUT_DESIGN_CHANGE": "Suunnitelman metatietojen muutos",
