@@ -82,8 +82,7 @@ type InternalOperationalPointEditDialogProps = {
     changeTimes: ChangeTimes;
 };
 
-const existsAndIsntItself = (op: OperationalPoint, id: OperationalPointId | undefined) =>
-    op.id !== id && op.state !== 'DELETED';
+const isNotItself = (op: OperationalPoint, id: OperationalPointId | undefined) => op.id !== id;
 
 export const InternalOperationalPointEditDialog: React.FC<
     InternalOperationalPointEditDialogProps
@@ -96,10 +95,10 @@ export const InternalOperationalPointEditDialog: React.FC<
     >(reducer, initialInternalOperationalPointEditState);
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
-    const allOtherExistingOperationalPoints = useLoader(
+    const allOtherOperationalPoints = useLoader(
         () =>
             getAllOperationalPoints(layoutContext, changeTimes.operationalPoints).then((ops) =>
-                ops.filter((op) => existsAndIsntItself(op, state.existingOperationalPoint?.id)),
+                ops.filter((op) => isNotItself(op, state.existingOperationalPoint?.id)),
             ),
         [layoutContext, changeTimes.operationalPoints, state.existingOperationalPoint?.id],
     );
@@ -133,19 +132,21 @@ export const InternalOperationalPointEditDialog: React.FC<
         });
     }
 
-    const duplicateAbbreviationPoint = allOtherExistingOperationalPoints?.find(
+    const duplicateAbbreviationPoint = allOtherOperationalPoints?.find(
         (op) =>
             op.abbreviation &&
             state.operationalPoint?.abbreviation &&
             isEqualIgnoreCase(op.abbreviation, state.operationalPoint.abbreviation),
     );
-    const duplicateNamePoint = allOtherExistingOperationalPoints?.find(
+    const duplicateNamePoint = allOtherOperationalPoints?.find(
         (op) =>
+            op.state !== 'DELETED' &&
             !!state.operationalPoint?.name &&
             isEqualIgnoreCase(op.name, state.operationalPoint.name),
     );
-    const duplicateUicCodePoint = allOtherExistingOperationalPoints?.find(
+    const duplicateUicCodePoint = allOtherOperationalPoints?.find(
         (op) =>
+            op.state !== 'DELETED' &&
             !!state.operationalPoint.uicCode &&
             isEqualIgnoreCase(op.uicCode, state.operationalPoint.uicCode),
     );
