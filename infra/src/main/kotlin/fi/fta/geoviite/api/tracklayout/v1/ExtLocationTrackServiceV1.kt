@@ -34,7 +34,7 @@ constructor(
         coordinateSystem: Srid,
     ): ExtLocationTrackResponseV1? {
         val locationTrackId =
-            locationTrackDao.lookupByExternalId(oid.toString())?.id
+            locationTrackDao.lookupByExternalId(oid)?.id
                 ?: throw ExtOidNotFoundExceptionV1("location track lookup failed for oid=$oid")
 
         return locationTrackDao

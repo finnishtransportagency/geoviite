@@ -272,7 +272,7 @@ constructor(
             .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
                 val trackNumberId =
-                    layoutTrackNumberDao.lookupByExternalId(trackNumberOid.toString())?.id
+                    layoutTrackNumberDao.lookupByExternalId(trackNumberOid)?.id
                         ?: throw ExtOidNotFoundExceptionV1("track number lookup failed, oid=$trackNumberOid")
 
                 if (publications.areDifferent()) {

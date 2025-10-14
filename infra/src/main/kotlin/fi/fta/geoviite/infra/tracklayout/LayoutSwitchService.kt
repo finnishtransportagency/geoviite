@@ -99,7 +99,7 @@ constructor(
         SwitchOidPresence(
             existsInRatko = checkRatkoOidPresence(oid),
             existsInGeoviiteAs =
-                dao.lookupByExternalId(oid.toString())?.let { rowByOid ->
+                dao.lookupByExternalId(oid)?.let { rowByOid ->
                     dao.get(rowByOid.context, rowByOid.id)?.let { existingSwitch ->
                         GeoviiteSwitchOidPresence(rowByOid.id, existingSwitch.stateCategory, existingSwitch.name)
                     }

@@ -6,11 +6,11 @@ import fi.fta.geoviite.infra.ratko.IExternalIdDao
 
 interface IExternallyIdentifiedLayoutAssetDao<T : LayoutAsset<T>> : LayoutAssetReader<T>, IExternalIdDao<T> {
     fun getByExternalId(oid: Oid<T>): T? {
-        return lookupByExternalId(oid.toString())?.let { rowByOid -> get(rowByOid.context, rowByOid.id) }
+        return lookupByExternalId(oid)?.let { rowByOid -> get(rowByOid.context, rowByOid.id) }
     }
 
     fun getByExternalIds(context: LayoutContext, oids: List<Oid<T>>): Map<Oid<T>, T?> {
-        val oidMapping = lookupByExternalIds(oids.map { it.toString() })
+        val oidMapping = lookupByExternalIds(oids)
         val oidToNonNullId = oidMapping.mapNotNull { (oid, rowId) -> rowId?.let { oid to rowId.id } }.toMap()
         val assets = getMany(context, oidToNonNullId.values.toList()).associateBy { asset -> asset.id }
 

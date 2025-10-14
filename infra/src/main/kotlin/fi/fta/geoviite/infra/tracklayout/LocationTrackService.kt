@@ -750,20 +750,6 @@ class LocationTrackService(
         return mapNonNullValues(locationTrackDao.fetchExternalIdsByBranch(id)) { (_, v) -> v.oid }
     }
 
-    @Transactional(readOnly = true)
-    fun getLocationTrackByOidAtMoment(
-        oid: Oid<LocationTrack>,
-        layoutContext: LayoutContext,
-        moment: Instant,
-    ): LocationTrack? {
-        return locationTrackDao
-            .lookupByExternalId(oid.toString())
-            ?.let { layoutRowId ->
-                locationTrackDao.fetchOfficialVersionAtMoment(layoutContext.branch, layoutRowId.id, moment)
-            }
-            ?.let(locationTrackDao::fetch)
-    }
-
     @Transactional
     fun updateDependencies(
         branch: LayoutBranch,

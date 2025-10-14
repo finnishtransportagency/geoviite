@@ -271,7 +271,7 @@ class ExtLocationTrackControllerV1(
             .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .let { publications ->
                 val locationTrackId =
-                    locationTrackDao.lookupByExternalId(locationTrackOid.toString())?.id
+                    locationTrackDao.lookupByExternalId(locationTrackOid)?.id
                         ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$locationTrackOid")
 
                 if (publications.areDifferent()) {
