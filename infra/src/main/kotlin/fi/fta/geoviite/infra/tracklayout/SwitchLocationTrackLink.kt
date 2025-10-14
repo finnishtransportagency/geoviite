@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.math.Range
 
 fun getDuplicateTrackParentStatus(
     parentTrack: LocationTrack,
@@ -59,6 +58,7 @@ private fun getLocationTrackDuplicatesBySplitPoints(
     val duplicateTrackSplitPoints = collectSplitPoints(duplicateGeometry)
     val statuses =
         getDuplicateMatches(mainTrackSplitPoints, duplicateTrackSplitPoints, mainTrackId, duplicateTrack.duplicateOf)
+            .filter { status -> (status.second.overlappingLength ?: 0.0) > 0 }
     return statuses.map { (jointIndex, status) ->
         jointIndex to
             LocationTrackDuplicate(
@@ -162,50 +162,21 @@ fun buildDuplicateIndexRanges(matches: List<Pair<Int, Int>>): List<IntRange> {
 }
 
 fun collectSplitPoints(geometry: LocationTrackGeometry): List<SplitPoint> {
-    // TODO: GVT-2941 This might be more complex than needed, but it retains the old logic from pre-graph-model
-    // Compare to main: it includes all segment links + some endpoint link which is more complex
-    // Would it be fine to just include all inner links + topology link if it's a presentation joint?
-    // Currently the logic takes the topology link only if the inner link doesn't override it as "main link"
+    val geometryStart = geometry.start
+    val nonSwitchStartPoint =
+        if (geometryStart != null && geometry.startSwitchLink == null)
+            EndpointSplitPoint(geometryStart, null, DuplicateEndPointType.START)
+        else null
 
-    val allSplitPoints: List<SplitPoint> =
-        geometry.edgesWithM.flatMapIndexed { index: Int, (edge: LayoutEdge, m: Range<LineM<LocationTrackM>>) ->
-            val edgeStart = edge.firstSegmentStart.toAlignmentPoint(m.min)
-            val startSplitPoints: List<SplitPoint> =
-                if (index == 0) {
-                    // The main switch link might be a topology link or an in-track-switch link
-                    val mainLink = geometry.startSwitchLink
-                    // Inner links need to be included always, unless it's already the main link
-                    val innerLink = edge.startNode.switchIn?.takeIf { it != mainLink }
-                    if (mainLink != null || innerLink != null) {
-                        listOfNotNull(mainLink, innerLink).map { sl ->
-                            SwitchSplitPoint(edgeStart, null, sl.id, sl.jointNumber)
-                        }
-                    } else {
-                        listOf(EndpointSplitPoint(edgeStart, null, DuplicateEndPointType.START))
-                    }
-                } else {
-                    edge.startNode.switches.map { sl -> SwitchSplitPoint(edgeStart, null, sl.id, sl.jointNumber) }
-                }
-            val endSplitPoints: List<SplitPoint> =
-                if (index == geometry.edges.lastIndex) {
-                    val (lastSegment, segmentM) = edge.segmentsWithM.last()
-                    val edgeEnd = lastSegment.segmentEnd.toAlignmentPoint(segmentM.min.toAlignmentM(m.min))
-                    // The main switch link might be a topology link or an in-track-switch link
-                    val mainLink = geometry.endSwitchLink
-                    // Inner links need to be included always, unless it's already the main link
-                    val innerLink = edge.endNode.switchIn?.takeIf { it != mainLink }
-                    if (mainLink != null || innerLink != null) {
-                        listOfNotNull(innerLink, mainLink).map { sl ->
-                            SwitchSplitPoint(edgeEnd, null, sl.id, sl.jointNumber)
-                        }
-                    } else {
-                        listOf(EndpointSplitPoint(edgeEnd, null, DuplicateEndPointType.END))
-                    }
-                } else emptyList()
-            startSplitPoints + endSplitPoints
-        }
-    return allSplitPoints.filterIndexed { index, splitPoint ->
-        val firstIndex = allSplitPoints.indexOfFirst { otherSplitPoint -> splitPoint.isSame(otherSplitPoint) }
-        firstIndex == index
-    }
+    val geometryEnd = geometry.end
+    val nonSwitchEndPoint =
+        if (geometryEnd != null && geometry.endSwitchLink == null)
+            EndpointSplitPoint(geometryEnd, null, DuplicateEndPointType.END)
+        else null
+
+    val switchSplitPoints =
+        geometry.trackSwitchLinks.map { link -> SwitchSplitPoint(link.location, null, link.switchId, link.jointNumber) }
+
+    val allSplitPoints = listOfNotNull(nonSwitchStartPoint) + switchSplitPoints + listOfNotNull(nonSwitchEndPoint)
+    return allSplitPoints
 }
