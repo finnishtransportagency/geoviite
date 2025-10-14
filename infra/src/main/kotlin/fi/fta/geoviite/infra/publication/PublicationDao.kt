@@ -2458,6 +2458,13 @@ class PublicationDao(
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
     }
 
+    // TODO: GVT-3143 do we want to do modification API as well? If not, these can be removed
+    data class TrackKmChange(
+        val kmNumber: KmNumber,
+        val changed: Boolean,
+        val kmPostVersion: LayoutRowVersion<LayoutKmPost>?,
+    )
+
     private fun fetchPublishedKmsBetweenInternal(
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
