@@ -27,10 +27,11 @@ import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.requireOne
 import fi.fta.geoviite.infra.util.setUser
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.transaction.annotation.Transactional
 
 // The Kotlin thing to do would be to just use Unit, but for some reason, the overriden functions returning Unit end up
 // giving null to the caller. Not sure why, but perhaps due to reflection shenanigans done by Spring.
@@ -456,6 +457,37 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
             |            where id = :id and not exists (select * from ${table.fullName} t where t.id = ids.id) """
                 .trimMargin()
         jdbcTemplate.execute(sql, mapOf("id" to id.intValue)) { it.execute() }
+    }
+
+    protected fun <Field> findFieldDuplicates(
+        context: LayoutContext,
+        items: List<Field>,
+        fieldName: String,
+        filterSqlFragment: String? = null,
+        extractField: (resultSet: ResultSet) -> Field,
+    ): Map<Field, List<LayoutRowVersion<T>>> {
+        val sql =
+            """
+                select id, design_id, draft, version, $fieldName
+                from ${table.fullLayoutContextFunction}(:publication_state::layout.publication_state, :design_id)
+                where $fieldName = any(:items) and ${filterSqlFragment ?: "true"}
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "items" to items.map { it.toString() }.toTypedArray(),
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+            )
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                extractField(rs) to rs.getLayoutRowVersion<T>("id", "design_id", "draft", "version")
+            }
+            .groupBy({ it.first }, { it.second })
+            .let { found ->
+                logger.daoAccess(AccessType.VERSION_FETCH, "${table.assetClassName} $fieldName duplicates", found.keys)
+                items.associateWith { item -> found.getOrDefault(item, listOf()) }
+            }
     }
 }
 

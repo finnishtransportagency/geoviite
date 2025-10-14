@@ -101,35 +101,10 @@ class LocationTrackDao(
     fun findNameDuplicates(
         context: LayoutContext,
         names: List<AlignmentName>,
-    ): Map<AlignmentName, List<LayoutRowVersion<LocationTrack>>> {
-        return if (names.isEmpty()) {
-            emptyMap()
-        } else {
-            val sql =
-                """
-                    select id, design_id, draft, version, name
-                    from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                    where name in (:names)
-                      and state != 'DELETED'
-                """
-                    .trimIndent()
-            val params =
-                mapOf(
-                    "names" to names,
-                    "publication_state" to context.state.name,
-                    "design_id" to context.branch.designId?.intValue,
-                )
-            val found =
-                jdbcTemplate.query<Pair<AlignmentName, LayoutRowVersion<LocationTrack>>>(sql, params) { rs, _ ->
-                    val daoResponse = rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
-                    val name = rs.getString("name").let(::AlignmentName)
-                    name to daoResponse
-                }
-            // Ensure that the result contains all asked-for names, even if there are no matches
-            logger.daoAccess(AccessType.FETCH, "findNameDuplicates", names)
-            names.associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }
+    ): Map<AlignmentName, List<LayoutRowVersion<LocationTrack>>> =
+        findFieldDuplicates(context, names, "name", "state != 'DELETED'") { rs ->
+            rs.getString("name").let(::AlignmentName)
         }
-    }
 
     override fun fetchManyInternal(
         versions: Collection<LayoutRowVersion<LocationTrack>>
