@@ -18,8 +18,8 @@ import fi.fta.geoviite.infra.util.getOid
 import fi.fta.geoviite.infra.util.getRatkoExternalId
 import fi.fta.geoviite.infra.util.getRatkoExternalIdOrNull
 import fi.fta.geoviite.infra.util.queryOptional
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.Instant
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 
 interface IExternalIdDao<T : LayoutAsset<T>> {
     fun getExternalIdChangeTime(): Instant
@@ -39,9 +39,9 @@ interface IExternalIdDao<T : LayoutAsset<T>> {
 
     fun fetchExternalIdsByBranch(id: IntId<T>): Map<LayoutBranch, RatkoExternalId<T>>
 
-    fun lookupByExternalId(oid: String): LayoutRowId<T>?
+    fun lookupByExternalId(oid: Oid<T>): LayoutRowId<T>?
 
-    fun lookupByExternalIds(oids: List<String>): Map<Oid<T>, LayoutRowId<T>?>
+    fun lookupByExternalIds(oids: List<Oid<T>>): Map<Oid<T>, LayoutRowId<T>?>
 }
 
 class ExternalIdDao<T : LayoutAsset<T>>(
@@ -152,21 +152,21 @@ class ExternalIdDao<T : LayoutAsset<T>>(
             .also { logger.daoAccess(AccessType.FETCH, RatkoExternalId::class, "ALL") }
     }
 
-    override fun lookupByExternalId(oid: String): LayoutRowId<T>? {
+    override fun lookupByExternalId(oid: Oid<T>): LayoutRowId<T>? {
         return lookupByExternalIds(listOf(oid)).values.firstOrNull()
     }
 
-    override fun lookupByExternalIds(oids: List<String>): Map<Oid<T>, LayoutRowId<T>?> {
+    override fun lookupByExternalIds(oids: List<Oid<T>>): Map<Oid<T>, LayoutRowId<T>?> {
         if (oids.isEmpty()) return emptyMap()
 
         val sql =
             """
             select external_id, id, design_id, false as draft 
             from $extIdTable 
-            where external_id = any(array[:external_ids])
+            where external_id = any(:external_ids::varchar[])
       """
 
-        val params = mapOf("external_ids" to oids)
+        val params = mapOf("external_ids" to oids.map { it.toString() }.toTypedArray())
 
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
