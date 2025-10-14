@@ -35,8 +35,16 @@ export const PreviewPublicationConfirmationDialog: React.FC<PreviewPublicationDi
     publish,
 }) => {
     const { t } = useTranslation();
+    const textAreaRef = React.useRef<HTMLTextAreaElement>(null);
+
     const [message, setMessage] = React.useState('');
     const messageValidationErrors = validateMessage(message).map((err) => t(err.reason));
+
+    React.useEffect(() => {
+        if (textAreaRef.current) {
+            textAreaRef.current?.focus();
+        }
+    }, []);
 
     return (
         <Dialog
@@ -76,6 +84,7 @@ export const PreviewPublicationConfirmationDialog: React.FC<PreviewPublicationDi
                         wide
                         hasError={messageValidationErrors.length > 0}
                         onChange={(e) => setMessage(e.currentTarget.value)}
+                        ref={textAreaRef}
                     />
                 }
             />
