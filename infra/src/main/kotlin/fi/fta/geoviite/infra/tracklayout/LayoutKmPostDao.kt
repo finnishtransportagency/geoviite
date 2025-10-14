@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
@@ -23,6 +24,7 @@ import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
 import java.sql.ResultSet
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -132,6 +134,55 @@ class LayoutKmPostDao(
         return trackNumberIds.associateWith { trackNumberId ->
             versions.filter { (tnId, _) -> tnId == trackNumberId }.map { (_, kmPostVersions) -> kmPostVersions }
         }
+    }
+
+    // TODO: GVT-3143 do we want to do modification API as well? If not, these can be removed
+    fun getOfficialAtMoment(
+        branch: LayoutBranch,
+        moment: Instant,
+        trackNumberId: IntId<LayoutTrackNumber>,
+        kmNumber: KmNumber,
+    ): LayoutKmPost? = getOfficialVersionsAtMoment(branch, trackNumberId, moment, kmNumber).firstOrNull()?.let(::fetch)
+
+    fun listOfficialAtMoment(
+        branch: LayoutBranch,
+        moment: Instant,
+        trackNumberId: IntId<LayoutTrackNumber>? = null,
+    ): List<LayoutKmPost> = getOfficialVersionsAtMoment(branch, trackNumberId, moment, kmNumber = null).let(::fetchMany)
+
+    private fun getOfficialVersionsAtMoment(
+        branch: LayoutBranch,
+        trackNumberId: IntId<LayoutTrackNumber>?,
+        moment: Instant,
+        kmNumber: KmNumber?,
+    ): List<LayoutRowVersion<LayoutKmPost>> {
+        val sql =
+            """
+            select
+              id,
+              layout_context_id,
+              version
+              from layout.km_post_at(:moment)
+              where (:track_number_id::int is null or track_number_id = :track_number_id::int)
+                and (:km_number::varchar is null or km_number = :km_number::varchar)
+                and design_id is not distinct from :design_id
+                and draft = false
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "track_number_id" to trackNumberId?.intValue,
+                "moment" to moment,
+                "design_id" to branch.designId?.intValue,
+                "km_number" to kmNumber?.toString(),
+            )
+        logger.daoAccess(
+            AccessType.VERSION_FETCH,
+            LayoutKmPost::class,
+            trackNumberId ?: "all_track_numbers",
+            kmNumber ?: "all_kms",
+        )
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
     }
 
     fun fetchVersion(
