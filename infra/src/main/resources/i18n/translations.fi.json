@@ -129,7 +129,8 @@
             "conversion-failed": "Virhe: Pyynnössä oli virheellinen arvo {{name}}",
             "invalid-version": "Virhe: Käyttöliittymän versio ei vastaa palvelimen versiota",
             "wrong-track-layout-version-order": "Virhe: Pyynnön sisältämä rataverkon lähdeversio oli uudempi kuin vertailtava rataverkon versio (järjestys oli väärinpäin).",
-            "track-layout-version-not-found": "Virhe: Rataverkon versiota ei löydetty."
+            "track-layout-version-not-found": "Virhe: Rataverkon versiota ei löydetty.",
+            "wrong-track-version-in-linking": "Virhe: Linkityksessä käytettävää raidetta {{track}} on muokattu. Vaihdelinkitys on tehtävä uudelleen."
         },
         "deleting": {
             "generic": "Poistamisessa tapahtui virhe",

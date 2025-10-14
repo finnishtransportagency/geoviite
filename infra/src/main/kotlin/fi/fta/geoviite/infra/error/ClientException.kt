@@ -260,3 +260,12 @@ class TrackLayoutVersionNotFound(
         cause,
         localizedMessageKey,
     )
+
+class ConcurrentChangesToTrackInSwitchLinkingException(trackName: AlignmentName) :
+    ClientException(
+        status = BAD_REQUEST,
+        message = "concurrent change to track $trackName",
+        cause = null,
+        "error.bad-request.wrong-track-version-in-linking",
+        LocalizationParams(mapOf("track" to trackName.toString())),
+    )
