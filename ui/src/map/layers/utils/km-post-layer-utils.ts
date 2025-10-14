@@ -20,6 +20,7 @@ import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-util
 import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { expectCoordinate } from 'utils/type-utils';
+import { cache, Cache } from 'cache/cache';
 
 const kmPostImg: HTMLImageElement = new Image();
 kmPostImg.src = `data:image/svg+xml;utf8,${encodeURIComponent(KmPost)}`;
@@ -222,7 +223,7 @@ function getSelectedKmPostRenderer(
     return getRenderer(kmPost, 14, dFunctions);
 }
 
-const kmPostIconCache: Map<number, ImageBitmap> = new Map();
+const kmPostIconCache: Cache<number, ImageBitmap> = cache();
 
 const drawKmPostBitmap = (size: number, iconType: KmPostIconType): ImageBitmap => {
     const icon = iconType === 'NORMAL' ? kmPostImg : deletedKmPostImg;
@@ -231,20 +232,10 @@ const drawKmPostBitmap = (size: number, iconType: KmPostIconType): ImageBitmap =
     return canvas.transferToImageBitmap();
 };
 
-const getKmPostBitmap = (pixelSize: number, iconType: KmPostIconType): ImageBitmap => {
-    if (iconType === 'NORMAL') {
-        const cachedBitmap = kmPostIconCache.get(pixelSize);
-        if (cachedBitmap === undefined) {
-            const bm = drawKmPostBitmap(pixelSize, iconType);
-            kmPostIconCache.set(pixelSize, bm);
-            return bm;
-        } else {
-            return cachedBitmap;
-        }
-    } else {
-        return drawKmPostBitmap(pixelSize, iconType);
-    }
-};
+const getKmPostBitmap = (pixelSize: number, iconType: KmPostIconType): ImageBitmap =>
+    iconType === 'NORMAL'
+        ? kmPostIconCache.getOrCreate(pixelSize, () => drawKmPostBitmap(pixelSize, iconType))
+        : drawKmPostBitmap(pixelSize, iconType);
 
 const kmPostIconDrawFunction =
     (iconRadius: number, iconSize: number, iconType: KmPostIconType = 'NORMAL') =>
