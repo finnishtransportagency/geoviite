@@ -559,7 +559,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
             ?.let { km ->
                 when (limit) {
                     is KmLimit -> km.startAddress
-                    is TrackMeterLimit -> if (limit.kmNumber == km.kmNumber) limit.address else km.startAddress
+                    is TrackMeterLimit -> limit.address.coerceAtLeast(km.startAddress)
                 }
             }
 
@@ -568,7 +568,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
             ?.let { km ->
                 when (limit) {
                     is KmLimit -> km.endAddress
-                    is TrackMeterLimit -> if (limit.kmNumber == km.kmNumber) limit.address else km.endAddress
+                    is TrackMeterLimit -> limit.address.coerceAtMost(km.endAddress)
                 }
             }
 
