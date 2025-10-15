@@ -199,42 +199,53 @@ constructor(
 
         val targetKmNumbers = getAllKmNumbers(splitTargetTrack.geometry, splitSourceTrack.geocodingContext)
 
-        if (splitTargetTrack.existingRatkoLocationTrack == null) {
-            createLocationTrack(
-                branch,
-                splitTargetTrack.track,
-                splitTargetTrack.externalId,
-                publicationTime,
-                locationTrackOidOfGeometry = splitSourceTrack.externalId,
-            )
-        } else {
-            if (splitTargetTrack.splitTarget.operation == SplitTargetOperation.TRANSFER) {
-                // Due to a possibly mismatching geometry between Geoviite & Ratko, the track
-                // kilometers containing relinked switches are updated for a TRANSFER target track.
-                // If this is not done, the integration may fail further in the chain of operations
-                // due to a missing switch joint address point in Ratko.
-                pushSwitchKmsForSplitTransferTarget(
+        val updatedKmNumbers =
+            if (splitTargetTrack.existingRatkoLocationTrack == null) {
+                createLocationTrack(
                     branch,
-                    splitTargetTrack,
-                    splitRelinkedSwitches,
+                    splitTargetTrack.track,
+                    splitTargetTrack.externalId,
                     publicationTime,
-                    splitSourceTrack.geocodingContext,
+                    locationTrackOidOfGeometry = splitSourceTrack.externalId,
                 )
+                targetKmNumbers
+            } else {
+                val updatedKmNumbersByChangedSwitch =
+                    if (splitTargetTrack.splitTarget.operation == SplitTargetOperation.TRANSFER) {
+                        // Due to a possibly mismatching geometry between Geoviite & Ratko, the
+                        // track kilometers containing relinked switches are updated for a TRANSFER
+                        // target track. If this is not done, the integration may fail further in
+                        // the chain of operations due to a missing switch joint address point in
+                        // Ratko.
+                        pushSwitchKmsForSplitTransferTarget(
+                            branch,
+                            splitTargetTrack,
+                            splitRelinkedSwitches,
+                            publicationTime,
+                            splitSourceTrack.geocodingContext,
+                        )
+                    } else setOf()
+
+                val updatedKmNumbersByDuplicateGeometry =
+                    updateLocationTrack(
+                        branch,
+                        splitTargetTrack.track,
+                        splitTargetTrack.externalId,
+                        splitTargetTrack.existingRatkoLocationTrack.let(::requireNotNull),
+                        targetKmNumbers,
+                        publicationTime,
+                        locationTrackOidOfGeometry = splitSourceTrack.externalId,
+                        splitStartAndEnd = targetStartAndEnd,
+                    )
+
+                updatedKmNumbersByChangedSwitch + updatedKmNumbersByDuplicateGeometry
             }
 
-            updateLocationTrack(
-                branch,
-                splitTargetTrack.track,
-                splitTargetTrack.externalId,
-                splitTargetTrack.existingRatkoLocationTrack.let(::requireNotNull),
-                targetKmNumbers,
-                publicationTime,
-                locationTrackOidOfGeometry = splitSourceTrack.externalId,
-                splitStartAndEnd = targetStartAndEnd,
-            )
-        }
-
-        return LocationTrackKilometers( splitTargetTrack.track.id as IntId, splitTargetTrack.externalId.oid, targetKmNumbers)
+        return LocationTrackKilometers(
+            splitTargetTrack.track.id as IntId,
+            splitTargetTrack.externalId.oid,
+            updatedKmNumbers,
+        )
     }
 
     private fun pushSwitchKmsForSplitTransferTarget(
@@ -243,7 +254,7 @@ constructor(
         relinkedSwitches: List<IntId<LayoutSwitch>>,
         publicationTime: Instant,
         geocodingContext: GeocodingContext<ReferenceLineM>,
-    ) {
+    ): Set<KmNumber> {
         val switchesToUpdate =
             relinkedSwitches.filter { relinkedSwitch -> relinkedSwitch in splitTargetTrack.track.switchIds }
 
@@ -268,6 +279,8 @@ constructor(
             trackKmsToUpdate,
             publicationTime,
         )
+
+        return trackKmsToUpdate
     }
 
     fun pushLocationTrackChangesToRatko(
@@ -558,7 +571,7 @@ constructor(
         locationTrackStateOverride: RatkoLocationTrackState? = null,
         locationTrackOidOfGeometry: MainBranchRatkoExternalId<LocationTrack>? = null,
         splitStartAndEnd: Pair<TrackMeter, TrackMeter>? = null,
-    ) {
+    ): Set<KmNumber> {
         try {
             val locationTrackRatkoOid = RatkoOid<RatkoLocationTrack>(locationTrackExternalId.oid)
             val trackNumberOid = getDesignOrInheritedTrackNumberOid(branch, locationTrack.trackNumberId)
@@ -595,29 +608,37 @@ constructor(
                 locationTrackStateOverride = locationTrackStateOverride,
             )
 
-            if (locationTrackOidOfGeometry != null) {
-                val (startAddress, endAddress) = splitStartAndEnd.let(::requireNotNull)
-                ratkoClient.patchLocationTrackPoints(
-                    sourceTrackExternalId = locationTrackOidOfGeometry,
-                    targetTrackExternalId = MainBranchRatkoExternalId(locationTrackExternalId.oid),
-                    startAddress = startAddress,
-                    endAddress = endAddress,
-                )
-            } else {
-                val allKms = addresses.allPoints.asSequence().map { point -> point.address.kmNumber }.toSet()
-                val minTrackKm = allKms.min()
-                val maxTrackKm = allKms.max()
+            val allKms = addresses.allPoints.asSequence().map { point -> point.address.kmNumber }.toSet()
+            val updatedKmNumbers =
+                if (locationTrackOidOfGeometry != null) {
+                    val (startAddress, endAddress) = splitStartAndEnd.let(::requireNotNull)
+                    ratkoClient.patchLocationTrackPoints(
+                        sourceTrackExternalId = locationTrackOidOfGeometry,
+                        targetTrackExternalId = MainBranchRatkoExternalId(locationTrackExternalId.oid),
+                        startAddress = startAddress,
+                        endAddress = endAddress,
+                    )
+                    val copiedKmNumbers =
+                        allKms
+                            .filter { kmNumber -> kmNumber >= startAddress.kmNumber && kmNumber <= endAddress.kmNumber }
+                            .toSet()
+                    copiedKmNumbers
+                } else {
+                    val minTrackKm = allKms.min()
+                    val maxTrackKm = allKms.max()
 
-                // This happens for example when a km-post has been removed in the "middle" of a track.
-                val removedKmsWithinTrackBoundaries =
+                    // This happens for example when a km-post has been removed in the "middle" of a
+                    // track.
+                    val removedKmsWithinTrackBoundaries =
+                        changedKmNumbers
+                            .filterNot { changedKm -> changedKm in allKms }
+                            .filter { kmNumber -> kmNumber > minTrackKm && kmNumber < maxTrackKm }
+                            .toSet()
+
+                    deleteLocationTrackPoints(removedKmsWithinTrackBoundaries, locationTrackRatkoOid)
+                    updateLocationTrackGeometry(locationTrackOid = locationTrackRatkoOid, newPoints = changedMidPoints)
                     changedKmNumbers
-                        .filterNot { changedKm -> changedKm in allKms }
-                        .filter { kmNumber -> kmNumber > minTrackKm && kmNumber < maxTrackKm }
-                        .toSet()
-
-                deleteLocationTrackPoints(removedKmsWithinTrackBoundaries, locationTrackRatkoOid)
-                updateLocationTrackGeometry(locationTrackOid = locationTrackRatkoOid, newPoints = changedMidPoints)
-            }
+                }
 
             if (branch is MainBranch) {
                 createLocationTrackMetadata(
@@ -630,6 +651,8 @@ constructor(
                     changedKmNumbers = changedKmNumbers,
                 )
             }
+
+            return updatedKmNumbers
         } catch (ex: RatkoPushException) {
             throw ex
         } catch (ex: Exception) {
