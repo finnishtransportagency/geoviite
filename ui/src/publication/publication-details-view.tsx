@@ -105,6 +105,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                     sortInfo={sortInfo}
                     onSortChange={setSortInfo}
                     displaySingleItemHistory={displaySingleItemHistory}
+                    publicationDisplayMode={'SINGLE_PUBLICATION_DETAILS'}
                 />
             </div>
             {(ratkoPushFailed(publication.ratkoPushStatus) || unpublishedToRatko) && (

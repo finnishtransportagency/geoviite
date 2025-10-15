@@ -1,4 +1,4 @@
-import PublicationDetailsView from 'publication/publication';
+import PublicationDetailsView from 'publication/publication-details-view';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { useLoader } from 'utils/react-utils';
 import { getPublication } from 'publication/publication-api';

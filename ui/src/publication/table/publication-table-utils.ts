@@ -9,6 +9,11 @@ import {
     timeStampComparator,
 } from 'utils/array-utils';
 
+export type PublicationDisplayMode =
+    | 'PUBLICATION_LOG'
+    | 'SINGLE_PUBLICATION_DETAILS'
+    | 'SINGLE_ASSET';
+
 export type SortablePublicationTableProps = Pick<
     PublicationTableItem,
     | 'name'

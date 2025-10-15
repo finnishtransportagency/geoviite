@@ -9,14 +9,20 @@ import {
 import styles from './publication-table.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
-import { PublicationTableDetails } from 'publication/table/publication-table-details';
+import {
+    PublicationTableDetails,
+    PublicationTableWithoutDetails,
+} from 'publication/table/publication-table-details';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { SearchablePublicationLogItem } from 'publication/log/publication-log';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { PublishedAsset } from 'publication/publication-api';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
+import { PublicationDisplayMode } from 'publication/table/publication-table-utils';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 type PublicationTableRowProps = {
+    publicationDisplayMode: PublicationDisplayMode;
     propChanges: PublicationChange[];
     detailsVisible: boolean;
     detailsVisibleToggle: (id: PublicationId) => void;
@@ -24,6 +30,28 @@ type PublicationTableRowProps = {
     displayItemHistory: (item: SearchItemValue<SearchablePublicationLogItem>) => void;
     allLayoutTrackNumbers: LayoutTrackNumber[];
 } & PublicationTableItem;
+
+type PublicationTableMessageProps = {
+    mode: PublicationDisplayMode;
+    message: string;
+    navigateToPublication: () => void;
+};
+
+const PublicationTableMessage: React.FC<PublicationTableMessageProps> = ({
+    mode,
+    message,
+    navigateToPublication,
+}) => {
+    switch (mode) {
+        case 'PUBLICATION_LOG':
+        case 'SINGLE_ASSET':
+            return <AnchorLink onClick={navigateToPublication}>{message}</AnchorLink>;
+        case 'SINGLE_PUBLICATION_DETAILS':
+            return message;
+        default:
+            return exhaustiveMatchingGuard(mode);
+    }
+};
 
 const getTrackNumberForReferenceLine = (
     asset: PublishedAsset,
@@ -76,6 +104,7 @@ const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     detailsVisibleToggle,
     displaySinglePublication,
     displayItemHistory,
+    publicationDisplayMode,
 }) => {
     const { t } = useTranslation();
     const rowClassNames = createClassName(
@@ -119,9 +148,11 @@ const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
                 <td>{formatDateFull(publicationTime)}</td>
                 <td>{publicationUser}</td>
                 <td className={styles['publication-table__message-column']} title={message}>
-                    <AnchorLink onClick={() => displaySinglePublication(publicationId)}>
-                        {message}
-                    </AnchorLink>
+                    <PublicationTableMessage
+                        mode={publicationDisplayMode}
+                        message={message}
+                        navigateToPublication={() => displaySinglePublication(publicationId)}
+                    />
                 </td>
                 <td>{ratkoPushTime ? formatDateFull(ratkoPushTime) : t('no')}</td>
             </tr>
@@ -131,7 +162,11 @@ const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
                         <span className={styles['publication-table__details-left-bar']}></span>
                     </td>
                     <td colSpan={8}>
-                        <PublicationTableDetails id={id} changes={propChanges} />
+                        {propChanges.length > 0 ? (
+                            <PublicationTableDetails id={id} changes={propChanges} />
+                        ) : (
+                            <PublicationTableWithoutDetails />
+                        )}
                     </td>
                 </tr>
             )}

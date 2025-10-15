@@ -423,6 +423,7 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                     displaySingleItemHistory={
                         trackLayoutActionDelegates.startFreshSpecificItemPublicationLogSearch
                     }
+                    publicationDisplayMode={specificItem ? 'SINGLE_ASSET' : 'PUBLICATION_LOG'}
                 />
             </div>
         </div>

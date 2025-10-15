@@ -1815,6 +1815,7 @@
         "loading": "Julkaisulokia ladataan"
     },
     "publication-details-table": {
+        "no-changes": "Ei muutoksia. Viedään uudelleen Ratkoon osana julkaisua.",
         "property": "Muuttunut kohde",
         "old-value": "Edellinen arvo",
         "new-value": "Uusi arvo",
