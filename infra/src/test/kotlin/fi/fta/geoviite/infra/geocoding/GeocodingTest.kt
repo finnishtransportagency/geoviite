@@ -1205,6 +1205,16 @@ class GeocodingTest {
         )
     }
 
+    @Test
+    fun `getAddressPoints returns null if given a dummy between-kms address filter`() {
+        assertNull(
+            context.getAddressPoints(
+                alignment,
+                addressFilter = AddressFilter(KmLimit(KmNumber(3, "A")), KmLimit(KmNumber(3, "A"))),
+            )
+        )
+    }
+
     private fun <M : AlignmentM<M>> assertEqualsRounded(
         expectedAddressPoints: List<AddressPoint<M>>,
         actualAddressPoints: List<AddressPoint<M>>,
