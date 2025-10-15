@@ -539,10 +539,16 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
             trackStartAndEnd?.let { (trackStart, trackEnd) ->
                 val filteredStart =
                     trackStart.takeIf { (p, _) -> addressFilter.acceptInclusive(p.address) }
-                        ?: addressFilter.start?.let(::getFirstAddressAtOrAfter)?.let(::asTrackAddressPoint)
+                        ?: addressFilter.start
+                            ?.let(::getFirstAddressAtOrAfter)
+                            ?.takeIf(addressFilter::acceptInclusive)
+                            ?.let(::asTrackAddressPoint)
                 val filteredEnd =
                     trackEnd.takeIf { (p, _) -> addressFilter.acceptInclusive(p.address) }
-                        ?: addressFilter.end?.let(::getLastAddressAtOrBefore)?.let(::asTrackAddressPoint)
+                        ?: addressFilter.end
+                            ?.let(::getLastAddressAtOrBefore)
+                            ?.takeIf(addressFilter::acceptInclusive)
+                            ?.let(::asTrackAddressPoint)
                 if (filteredStart != null && filteredEnd != null) filteredStart to filteredEnd else null
             }
         }
