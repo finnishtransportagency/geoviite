@@ -620,6 +620,15 @@ class GeocodingTest {
             assertMidPoints(points.midPoints, KmNumber(4), 0) // missing km (filter)
             assertMidPoints(points.midPoints, KmNumber(5), 0) // filtered out
         }
+
+        // Filters with meter ranges past km start or end meters still only give actual addresses
+        getAddressPoints(
+                AddressFilter(start = TrackMeterLimit(TrackMeter(1, 2)), end = TrackMeterLimit(TrackMeter(3, 30)))
+            )
+            .let { points ->
+                assertAddressPoint(points.startPoint, TrackMeter(1, "17.445"), trackAlignment.start!!)
+                assertAddressPoint(points.endPoint, TrackMeter(3, "20.000"), Point(60.0, 1.0))
+            }
     }
 
     @Test
