@@ -52,7 +52,7 @@
         background: #f8f8f8;
 
         > td {
-            background: none;            
+            background: none;
         }
 
         &-subrow {
@@ -127,5 +127,9 @@
 
     &__remarks-header {
         width: 100%;
+    }
+
+    &--no-changes {
+        padding: 10px 16px;
     }
 }

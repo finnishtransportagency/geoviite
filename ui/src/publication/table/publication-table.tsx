@@ -3,7 +3,11 @@ import PublicationTableRow from 'publication/table/publication-table-row';
 import * as React from 'react';
 import styles from './publication-table.scss';
 import { PublicationId, PublicationTableItem } from 'publication/publication-model';
-import { getSortInfoForProp, SortablePublicationTableProps } from './publication-table-utils';
+import {
+    getSortInfoForProp,
+    PublicationDisplayMode,
+    SortablePublicationTableProps,
+} from './publication-table-utils';
 import { SortDirection, TableSorting } from 'utils/table-utils';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { useState } from 'react';
@@ -26,6 +30,7 @@ export type PublicationTableProps = {
     displaySingleItemHistory: (
         item: SearchItemValue<SearchablePublicationLogItem> | undefined,
     ) => void;
+    publicationDisplayMode: PublicationDisplayMode;
 };
 
 const PublicationTable: React.FC<PublicationTableProps> = ({
@@ -35,6 +40,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
     sortInfo,
     isLoading,
     displaySingleItemHistory,
+    publicationDisplayMode,
 }) => {
     const sortByProp = (propName: keyof SortablePublicationTableProps) => {
         if (sortInfo && onSortChange) {
@@ -174,6 +180,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                             detailsVisibleToggle={publicationItemDetailsVisibilityToggle}
                             displayItemHistory={displaySingleItemHistory}
                             displaySinglePublication={displaySinglePublication}
+                            publicationDisplayMode={publicationDisplayMode}
                         />
                     ))}
                 </tbody>

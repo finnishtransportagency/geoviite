@@ -4,12 +4,22 @@ import { useTranslation } from 'react-i18next';
 import { PublicationChange } from 'publication/publication-model';
 import styles from './publication-table.scss';
 
+const enumTranslationKey = (enumKey: string, value: string) => `enum.${enumKey}.${value}`;
+
+export const PublicationTableWithoutDetails: React.FC = () => {
+    const { t } = useTranslation();
+
+    return (
+        <div className={styles['publication-table-details--no-changes']}>
+            {t('publication-details-table.no-changes')}
+        </div>
+    );
+};
+
 type PublicationTableDetailsProps = {
     id: string;
     changes: PublicationChange[];
 };
-
-const enumTranslationKey = (enumKey: string, value: string) => `enum.${enumKey}.${value}`;
 
 export const PublicationTableDetails: React.FC<PublicationTableDetailsProps> = ({
     id,
