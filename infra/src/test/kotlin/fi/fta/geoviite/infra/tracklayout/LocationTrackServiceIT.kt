@@ -23,7 +23,6 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -36,6 +35,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -730,11 +730,11 @@ constructor(
     @Test
     fun `Splitting initialization parameters are fetched properly`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val mainLineSegment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val rlGeometry = alignmentDao.insert(alignment(mainLineSegment))
-        referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = rlGeometry, draft = false))
+        val referenceLineSegment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+        val referenceLineGeometry = alignmentDao.insert(alignment(referenceLineSegment))
+        referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = referenceLineGeometry, draft = false))
 
-        val switch =
+        val middleSwitch =
             insertAndFetchDraft(
                     switch(
                         joints =
@@ -742,7 +742,7 @@ constructor(
                                 LayoutSwitchJoint(
                                     JointNumber(1),
                                     SwitchJointRole.MAIN,
-                                    Point(100.0, 0.0),
+                                    Point(50.0, 0.0),
                                     LocationAccuracy.DIGITIZED_AERIAL_IMAGE,
                                 )
                             ),
@@ -750,29 +750,40 @@ constructor(
                     )
                 )
                 .id as IntId
-        val locationTrack =
+        
+        val mainLineLocationTrack =
+            locationTrackDao.save(
+                locationTrack(trackNumberId, draft = false),
+                trackGeometry(
+                    edge(
+                        segments = listOf(segment(Point(0.0, 0.0), Point(50.0, 0.0))),
+                        endOuterSwitch = switchLinkYV(middleSwitch, 1),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(middleSwitch, 1),
+                        segments = listOf(segment(Point(50.0, 0.0), Point(100.0, 0.0))),
+                    ),
+                ),
+            )
+
+        val duplicateLocationTrack =
             locationTrackDao.save(
                 locationTrack(trackNumberId = trackNumberId, draft = false),
                 trackGeometry(
                     edge(
-                        startInnerSwitch = switchLinkYV(switch, 1),
+                        startInnerSwitch = switchLinkYV(middleSwitch, 1),
                         segments = listOf(segment(Point(50.0, 0.0), Point(100.0, 0.0))),
                     )
                 ),
             )
-        val duplicateLocationTrack =
-            locationTrackDao.save(
-                locationTrack(trackNumberId, duplicateOf = locationTrack.id, draft = false),
-                trackGeometryOfSegments(mainLineSegment),
-            )
 
         val splittingParams =
-            locationTrackService.getSplittingInitializationParameters(MainLayoutContext.draft, locationTrack.id)
+            locationTrackService.getSplittingInitializationParameters(MainLayoutContext.draft, mainLineLocationTrack.id)
         assertNotNull(splittingParams)
-        assertEquals(locationTrack.id, splittingParams?.id)
+        assertEquals(mainLineLocationTrack.id, splittingParams?.id)
         assertEquals(1, splittingParams?.switches?.size)
         assertEquals(1, splittingParams?.duplicates?.size)
-        assertContains(splittingParams?.switches?.map { it.switchId } ?: emptyList(), switch)
+        assertContains(splittingParams?.switches?.map { it.switchId } ?: emptyList(), middleSwitch)
         assertContains(splittingParams?.duplicates?.map { it.id } ?: emptyList(), duplicateLocationTrack.id)
         assertEquals(locationTrackM(50.0), splittingParams?.switches?.first()?.distance ?: LineM(0.0), 0.01)
     }
