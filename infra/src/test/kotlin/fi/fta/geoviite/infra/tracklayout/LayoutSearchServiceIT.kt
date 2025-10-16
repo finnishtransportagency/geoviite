@@ -13,13 +13,13 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.util.FreeText
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -178,7 +178,7 @@ constructor(
 
         val lt1 =
             mainDraftContext.save( // Location track search scope origin, should be included
-                locationTrack(trackNumberId = trackNumberId, name = "blaa"),
+                locationTrack(trackNumberId = trackNumberId, name = "blaa scope track"),
                 trackGeometry(
                     edge(
                         startOuterSwitch = switchLinkYV(topologyStartSwitchId, 3),
@@ -188,15 +188,15 @@ constructor(
                 ),
             )
         val lt2 =
-            mainDraftContext.save( // Duplicate based on duplicateOf, should be included
-                locationTrack(trackNumberId = trackNumberId, name = "blee", duplicateOf = lt1.id),
+            mainDraftContext.save( // Duplicate based on duplicateOf, shouldn't be included in search results
+                locationTrack(trackNumberId = trackNumberId, name = "blee marked duplicate", duplicateOf = lt1.id),
                 trackGeometry(
                     edge(startOuterSwitch = switchLinkYV(duplicateStartSwitchId, 3), segments = listOf(someSegment()))
                 ),
             )
         val lt3 =
             mainDraftContext.save( // Duplicate based on switches, should be included
-                locationTrack(trackNumberId = trackNumberId, name = "bloo"),
+                locationTrack(trackNumberId = trackNumberId, name = "bloo duplicate by geometry"),
                 trackGeometry(
                     edge(
                         startOuterSwitch = switchLinkYV(topologyStartSwitchId, 3),
@@ -206,7 +206,7 @@ constructor(
                 ),
             )
         mainDraftContext.save( // Non-duplicate, shouldn't be included in search results
-            locationTrack(trackNumberId = trackNumberId, name = "bluu"),
+            locationTrack(trackNumberId = trackNumberId, name = "bluu non duplicate"),
             someTrackGeometry(),
         )
 
@@ -221,9 +221,8 @@ constructor(
                 searchParameters("bl"),
             )
 
-        assertEquals(3, searchResults.locationTracks.size)
+        assertEquals(2, searchResults.locationTracks.size)
         assertContains(searchResults.locationTracks.map { it.id }, lt1.id)
-        assertContains(searchResults.locationTracks.map { it.id }, lt2.id)
         assertContains(searchResults.locationTracks.map { it.id }, lt3.id)
 
         assertEquals(2, searchResults.switches.size)

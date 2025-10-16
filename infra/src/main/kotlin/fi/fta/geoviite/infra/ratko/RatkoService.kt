@@ -87,7 +87,7 @@ constructor(
     private val layoutDesignDao: LayoutDesignDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    private val databaseLockDuration = Duration.ofMinutes(120)
+    private val databaseLockDuration = Duration.ofMinutes(240)
 
     fun updateOperationalPointsFromRatko() {
         lockDao.runWithLock(DatabaseLock.RATKO_OPERATING_POINTS_FETCH, databaseLockDuration) {
