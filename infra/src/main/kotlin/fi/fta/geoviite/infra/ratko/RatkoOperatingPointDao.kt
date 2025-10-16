@@ -12,12 +12,13 @@ import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-fun toRatkoOperatingPoint(rs: ResultSet): RatkoOperatingPoint {
+fun toRatkoOperatingPointOrNull(rs: ResultSet): RatkoOperatingPoint? {
+    val uicCode = rs.getString("uic_code").toIntOrNull() ?: return null
     return RatkoOperatingPoint(
         externalId = rs.getOid("external_id"),
         name = rs.getString("name"),
         abbreviation = rs.getString("abbreviation"),
-        uicCode = rs.getString("uic_code"),
+        uicCode = uicCode,
         type = rs.getEnum("type"),
         location = rs.getPoint("x", "y"),
         trackNumberId = rs.getIntId("track_number_id"),
@@ -92,7 +93,7 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
                         "externalId" to point.externalId.toString(),
                         "name" to point.name,
                         "abbreviation" to point.abbreviation,
-                        "uicCode" to point.uicCode,
+                        "uicCode" to point.uicCode.toString(),
                         "type" to point.type.name,
                         "x" to point.location.x,
                         "y" to point.location.y,
@@ -126,18 +127,20 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
         """
                 .trimIndent()
 
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "x_min" to bbox.x.min,
-                "x_max" to bbox.x.max,
-                "y_min" to bbox.y.min,
-                "y_max" to bbox.y.max,
-                "layout_srid" to LAYOUT_SRID.code,
-            ),
-        ) { rs, _ ->
-            toRatkoOperatingPoint(rs)
-        }
+        val points =
+            jdbcTemplate.query(
+                sql,
+                mapOf(
+                    "x_min" to bbox.x.min,
+                    "x_max" to bbox.x.max,
+                    "y_min" to bbox.y.min,
+                    "y_max" to bbox.y.max,
+                    "layout_srid" to LAYOUT_SRID.code,
+                ),
+            ) { rs, _ ->
+                toRatkoOperatingPointOrNull(rs)
+            }
+        return points.filterNotNull()
     }
 
     @Transactional(readOnly = true)
@@ -162,8 +165,10 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
         """
                 .trimIndent()
 
-        return jdbcTemplate.query(sql, mapOf("searchTerm" to searchTerm, "resultLimit" to resultLimit)) { rs, _ ->
-            toRatkoOperatingPoint(rs)
-        }
+        val points =
+            jdbcTemplate.query(sql, mapOf("searchTerm" to searchTerm, "resultLimit" to resultLimit)) { rs, _ ->
+                toRatkoOperatingPointOrNull(rs)
+            }
+        return points.filterNotNull()
     }
 }

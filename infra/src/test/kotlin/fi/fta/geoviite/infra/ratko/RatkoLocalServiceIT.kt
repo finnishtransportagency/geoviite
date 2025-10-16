@@ -231,7 +231,7 @@ constructor(
             externalId = externalId,
             name = name,
             abbreviation = abbreviation,
-            uicCode = "",
+            uicCode = 16536,
             type = OperationalPointType.LP,
             location = Point(0.0, 0.0),
             trackNumberExternalId = trackNumberExternalId,

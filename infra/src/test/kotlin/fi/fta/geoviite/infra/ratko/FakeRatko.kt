@@ -540,7 +540,7 @@ private fun marshallOperatingPoint(point: RatkoOperatingPointParse): RatkoOperat
                 RatkoAssetProperty("operational_point_type", enumValue = point.type.name),
                 RatkoAssetProperty("name", stringValue = point.name),
                 RatkoAssetProperty("operational_point_abbreviation", stringValue = point.abbreviation),
-                RatkoAssetProperty("operational_point_code", stringValue = point.uicCode),
+                RatkoAssetProperty("operational_point_code", integerValue = point.uicCode),
             ),
         locations =
             listOf(

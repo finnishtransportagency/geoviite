@@ -510,7 +510,7 @@ export type OperatingPoint = {
     externalId: Oid;
     name: string;
     abbreviation: string;
-    uicCode: string;
+    uicCode: number;
     type: OperationalPointType;
     location: Point;
 };
