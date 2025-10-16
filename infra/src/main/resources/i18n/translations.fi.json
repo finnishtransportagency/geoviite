@@ -1447,7 +1447,7 @@
         "geometry-switch": "Suunnitelman vaihteet",
         "plan-area": "Suunnitelman alueet",
         "geometry-km-post": "Suunnitelman tasakilometripisteet",
-        "operational-points": "Liikennepaikat",
+        "operational-points": "Toiminnalliset pisteet",
         "debug-1m": "Tasametripisteet",
         "debug-projection-lines": "Geokoodauksen projektioviivat",
         "debug": "Debug",
