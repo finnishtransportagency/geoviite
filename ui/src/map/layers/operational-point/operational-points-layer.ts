@@ -34,7 +34,7 @@ const LAYER_NAME: MapLayerName = 'operational-points-layer';
 
 export function createOperationalPointLayer(
     mapTiles: MapTile[],
-    existingOlLayer: GeoviiteMapLayer<OlPoint | Rectangle> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     olView: OlView,
     selection: Selection,
     layoutContext: LayoutContext,
