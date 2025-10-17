@@ -36,6 +36,14 @@ import fi.fta.geoviite.infra.logging.apiResponse
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import java.net.URL
+import java.security.KeyFactory
+import java.security.interfaces.ECPublicKey
+import java.security.interfaces.RSAPublicKey
+import java.security.spec.X509EncodedKeySpec
+import java.time.Duration
+import java.time.Instant
+import java.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -50,14 +58,6 @@ import org.springframework.stereotype.Component
 import org.springframework.web.context.request.ServletWebRequest
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.filter.OncePerRequestFilter
-import java.net.URL
-import java.security.KeyFactory
-import java.security.interfaces.ECPublicKey
-import java.security.interfaces.RSAPublicKey
-import java.security.spec.X509EncodedKeySpec
-import java.time.Duration
-import java.time.Instant
-import java.util.*
 
 const val HTTP_HEADER_REMOTE_IP = "X-FORWARDED-FOR"
 const val HTTP_HEADER_CORRELATION_ID = "X-Amzn-Trace-Id"
@@ -356,7 +356,9 @@ constructor(
     }
 
     private fun isExtApiRequest(request: HttpServletRequest): Boolean {
-        return extApi.enabled && extApi.urlPathPrefixes.any { prefix -> request.requestURI.startsWith(prefix) }
+        return extApi.enabled &&
+            extApi.urlPathPrefixes.any { prefix -> request.requestURI.startsWith(prefix) } &&
+            (skipAuth || request.getHeader("x-forwarded-host")?.isNotEmpty() == true)
     }
 
     private fun determineExtApiUserOrThrow(request: HttpServletRequest): User {
