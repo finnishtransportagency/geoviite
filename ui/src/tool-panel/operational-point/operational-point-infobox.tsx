@@ -8,8 +8,6 @@ import { OperationalPointOid } from 'track-layout/oid';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
-import { InternalOperationalPointEditDialogContainer } from 'tool-panel/operational-point/internal-operational-point-edit-dialog';
-import { ExternalOperationalPointEditDialog } from 'tool-panel/operational-point/external-operational-point-edit-dialog';
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { formatToTM35FINString } from 'utils/geography-utils';
@@ -19,6 +17,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { formatDateShort } from 'utils/date-utils';
 import { refreshOperationalPointSelection } from 'track-layout/track-layout-react-utils';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
+import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/operational-point-edit-dialog-container';
 
 type OperationalPointInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -207,22 +206,14 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                     )}
                 </InfoboxContent>
             </Infobox>
-            {editDialogOpen &&
-                (isExternal ? (
-                    <ExternalOperationalPointEditDialog
-                        operationalPoint={operationalPoint}
-                        layoutContext={layoutContext}
-                        onSave={handleOperationalPointSave}
-                        onClose={closeEditDialog}
-                    />
-                ) : (
-                    <InternalOperationalPointEditDialogContainer
-                        operationalPointId={operationalPoint.id}
-                        layoutContext={layoutContext}
-                        onSave={handleOperationalPointSave}
-                        onClose={closeEditDialog}
-                    />
-                ))}
+            {editDialogOpen && (
+                <OperationalPointEditDialogContainer
+                    operationalPointId={operationalPoint.id}
+                    layoutContext={layoutContext}
+                    onSave={handleOperationalPointSave}
+                    onClose={closeEditDialog}
+                />
+            )}
         </React.Fragment>
     );
 };

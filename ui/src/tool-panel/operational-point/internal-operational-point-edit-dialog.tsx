@@ -32,61 +32,35 @@ import {
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import {
     deleteDraftOperationalPoint,
-    getAllOperationalPoints,
     insertOperationalPoint,
     updateInternalOperationalPoint,
 } from 'track-layout/layout-operational-point-api';
 import { LayoutContext } from 'common/common-model';
-import { useLoader } from 'utils/react-utils';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { useOperationalPoint } from 'track-layout/track-layout-react-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
-import { useCommonDataAppSelector } from 'store/hooks';
-import { ChangeTimes } from 'common/common-slice';
-
-type InternalOperationalPointEditDialogContainerProps = {
-    operationalPointId: OperationalPointId | undefined;
-    layoutContext: LayoutContext;
-    onSave: (id: OperationalPointId) => void;
-    onClose: () => void;
-};
-
-export const InternalOperationalPointEditDialogContainer: React.FC<
-    InternalOperationalPointEditDialogContainerProps
-> = ({ operationalPointId, layoutContext, onSave, onClose }) => {
-    const [editOperationalPointId, setEditOperationalPointId] = React.useState<
-        OperationalPointId | undefined
-    >(operationalPointId);
-    const operationalPoint = useOperationalPoint(editOperationalPointId, layoutContext);
-    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
-
-    return (
-        <InternalOperationalPointEditDialog
-            operationalPoint={operationalPoint}
-            layoutContext={layoutContext}
-            onSave={onSave}
-            onClose={onClose}
-            onEditOperationalPoint={setEditOperationalPointId}
-            changeTimes={changeTimes}
-        />
-    );
-};
 
 type InternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint | undefined;
     layoutContext: LayoutContext;
+    allOperationalPoints: OperationalPoint[];
     onSave: (id: OperationalPointId) => void;
     onClose: () => void;
     onEditOperationalPoint: (operationalPoint: OperationalPointId) => void;
-    changeTimes: ChangeTimes;
 };
 
 const isNotItself = (op: OperationalPoint, id: OperationalPointId | undefined) => op.id !== id;
 
 export const InternalOperationalPointEditDialog: React.FC<
     InternalOperationalPointEditDialogProps
-> = ({ operationalPoint, layoutContext, onClose, onSave, onEditOperationalPoint, changeTimes }) => {
+> = ({
+    operationalPoint,
+    layoutContext,
+    allOperationalPoints,
+    onClose,
+    onSave,
+    onEditOperationalPoint,
+}) => {
     const { t } = useTranslation();
 
     const [state, dispatcher] = React.useReducer<
@@ -95,12 +69,8 @@ export const InternalOperationalPointEditDialog: React.FC<
     >(reducer, initialInternalOperationalPointEditState);
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
-    const allOtherOperationalPoints = useLoader(
-        () =>
-            getAllOperationalPoints(layoutContext, changeTimes.operationalPoints).then((ops) =>
-                ops.filter((op) => isNotItself(op, state.existingOperationalPoint?.id)),
-            ),
-        [layoutContext, changeTimes.operationalPoints, state.existingOperationalPoint?.id],
+    const allOtherOperationalPoints = allOperationalPoints.filter((op) =>
+        isNotItself(op, operationalPoint?.id),
     );
 
     React.useEffect(() => {
