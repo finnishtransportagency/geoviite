@@ -20,6 +20,7 @@ export const selectTool: MapTool = {
                 locationTracks: items.locationTracks ?? [],
                 trackNumbers: items.trackNumbers ?? [],
                 geometryPlans: items.geometryPlans ?? [],
+                operationalPoints: items.operationalPoints ?? [],
             });
         });
 

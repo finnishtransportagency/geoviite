@@ -59,8 +59,8 @@
 :export {
     /* prettier-ignore */
     alignmentBadge: {
-    @include vayla-design.typography-body-strong;
-  }
+        @include vayla-design.typography-body-strong;
+    }
     alignmentBadge: vayla-design.$color-black-default;
     alignmentBadgeWhite: vayla-design.$color-white-default;
     alignmentBadgeBlue: geoviite-design.$color-geoviite-blue;
@@ -74,8 +74,8 @@
 :export {
     /* prettier-ignore */
     kmPost: {
-    @include vayla-design.typography-body-strong;
-  }
+        @include vayla-design.typography-body-strong;
+    }
 
     kmPostTextColor: vayla-design.$color-black-default;
     kmPostLabel: rgba(vayla-design.$color-white-default, 0.6);
@@ -126,6 +126,12 @@
     splitPointCircleColor: vayla-design.$color-blue-default;
     splitPointDeletedCircleColor: vayla-design.$color-red-default;
     splitPointDisabledCircleColor: geoviite-design.$color-geoviite-map-red;
+}
+
+// Operational point styling
+:export {
+    operationalPointColor: vayla-design.$color-black-default;
+    selectedOrHighlightedOperationalPointColor: geoviite-design.$color-geoviite-blue;
 }
 
 //Measure tooltip styling

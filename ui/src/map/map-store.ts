@@ -160,6 +160,11 @@ export const initialMapState: Map = {
                         visible: false,
                         qaId: 'reference-line-hide-when-zoomed-close',
                     },
+                    {
+                        name: 'track-number-diagram',
+                        visible: false,
+                        qaId: 'track-number-diagram-layer',
+                    },
                 ],
             },
             {
@@ -178,7 +183,6 @@ export const initialMapState: Map = {
             },
             { name: 'switch', visible: true, qaId: 'switch-layer' },
             { name: 'km-post', visible: true, qaId: 'km-post-layer' },
-            { name: 'track-number-diagram', visible: false, qaId: 'track-number-diagram-layer' },
             { name: 'operational-points', visible: false, qaId: 'operational-points-layer' },
         ],
         geometry: [
