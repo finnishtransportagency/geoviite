@@ -356,7 +356,9 @@ constructor(
     }
 
     private fun isExtApiRequest(request: HttpServletRequest): Boolean {
-        return extApi.enabled && extApi.urlPathPrefixes.any { prefix -> request.requestURI.startsWith(prefix) }
+        return extApi.enabled &&
+            extApi.urlPathPrefixes.any { prefix -> request.requestURI.startsWith(prefix) } &&
+            request.getHeader("x-forwarded-host")?.isNotEmpty() == true
     }
 
     private fun determineExtApiUserOrThrow(request: HttpServletRequest): User {
