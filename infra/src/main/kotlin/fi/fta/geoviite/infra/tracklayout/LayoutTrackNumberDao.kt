@@ -254,33 +254,8 @@ class LayoutTrackNumberDao(
     fun findNumberDuplicates(
         context: LayoutContext,
         numbers: List<TrackNumber>,
-    ): Map<TrackNumber, List<LayoutRowVersion<LayoutTrackNumber>>> {
-        return if (numbers.isEmpty()) {
-            emptyMap()
-        } else {
-            val sql =
-                """
-                    select id, design_id, draft, version, number
-                    from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                    where number in (:numbers)
-                """
-                    .trimIndent()
-            val params =
-                mapOf(
-                    "numbers" to numbers,
-                    "publication_state" to context.state.name,
-                    "design_id" to context.branch.designId?.intValue,
-                )
-            val found =
-                jdbcTemplate.query<Pair<TrackNumber, LayoutRowVersion<LayoutTrackNumber>>>(sql, params) { rs, _ ->
-                    val daoResponse = rs.getLayoutRowVersion<LayoutTrackNumber>("id", "design_id", "draft", "version")
-                    val name = rs.getString("number").let(::TrackNumber)
-                    name to daoResponse
-                }
-            // Ensure that the result contains all asked-for numbers, even if there are no matches
-            numbers.associateWith { n -> found.filter { (number, _) -> number == n }.map { (_, v) -> v } }
-        }
-    }
+    ): Map<TrackNumber, List<LayoutRowVersion<LayoutTrackNumber>>> =
+        findFieldDuplicates(context, numbers, "number") { rs -> rs.getString("number").let(::TrackNumber) }
 
     @Transactional
     fun savePlanItemId(id: IntId<LayoutTrackNumber>, branch: DesignBranch, planItemId: RatkoPlanItemId) {

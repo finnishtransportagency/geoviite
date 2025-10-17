@@ -602,36 +602,10 @@ class LayoutSwitchDao(
     fun findNameDuplicates(
         context: LayoutContext,
         names: List<SwitchName>,
-    ): Map<SwitchName, List<LayoutRowVersion<LayoutSwitch>>> {
-        return if (names.isEmpty()) {
-            emptyMap()
-        } else {
-            val sql =
-                """
-                    select id, design_id, draft, version, name
-                    from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                    where name in (:names)
-                      and state_category != 'NOT_EXISTING'
-                """
-                    .trimIndent()
-            val params =
-                mapOf(
-                    "names" to names,
-                    "publication_state" to context.state.name,
-                    "design_id" to context.branch.designId?.intValue,
-                )
-            val found =
-                jdbcTemplate.query(sql, params) { rs, _ ->
-                    val version = rs.getLayoutRowVersion<LayoutSwitch>("id", "design_id", "draft", "version")
-                    val name = rs.getString("name").let(::SwitchName)
-                    name to version
-                }
-            // Ensure that the result contains all asked-for names, even if there are no matches
-            names
-                .associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }
-                .also { dups -> logger.daoAccess(FETCH, "Switch name duplicates", dups.keys) }
+    ): Map<SwitchName, List<LayoutRowVersion<LayoutSwitch>>> =
+        findFieldDuplicates(context, names, "name", "state_category != 'NOT_EXISTING'") { rs ->
+            rs.getString("name").let(::SwitchName)
         }
-    }
 
     fun findSwitchesNearTrack(
         branch: LayoutBranch,
