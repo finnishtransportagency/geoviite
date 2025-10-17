@@ -2,7 +2,7 @@ import * as React from 'react';
 import { OperationalPointId } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import { ExternalOperationalPointEditDialog } from 'tool-panel/operational-point/external-operational-point-edit-dialog';
-import { InternalOperationalPointEditDialogContainer } from 'tool-panel/operational-point/internal-operational-point-edit-dialog';
+import { InternalOperationalPointEditDialog } from 'tool-panel/operational-point/internal-operational-point-edit-dialog';
 import { useLoader } from 'utils/react-utils';
 import { getAllOperationalPoints } from 'track-layout/layout-operational-point-api';
 import { useCommonDataAppSelector } from 'store/hooks';
@@ -44,9 +44,9 @@ export const OperationalPointEditDialogContainer: React.FC<
             case 'GEOVIITE': // Editing existing operational point
             case undefined: // Creating new operational point
                 return (
-                    <InternalOperationalPointEditDialogContainer
-                        operationalPointId={operationalPointInEdit}
-                        setEditOperationalPointId={setOperationalPointInEdit}
+                    <InternalOperationalPointEditDialog
+                        operationalPoint={operationalPoint}
+                        onEditOperationalPoint={setOperationalPointInEdit}
                         allOperationalPoints={allOperationalPoints}
                         layoutContext={layoutContext}
                         onSave={onSave}

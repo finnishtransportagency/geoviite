@@ -38,41 +38,7 @@ import {
 import { LayoutContext } from 'common/common-model';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { useOperationalPoint } from 'track-layout/track-layout-react-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
-
-type InternalOperationalPointEditDialogContainerProps = {
-    setEditOperationalPointId: (id: OperationalPointId) => void;
-    operationalPointId: OperationalPointId | undefined;
-    layoutContext: LayoutContext;
-    allOperationalPoints: OperationalPoint[];
-    onSave: (id: OperationalPointId) => void;
-    onClose: () => void;
-};
-
-export const InternalOperationalPointEditDialogContainer: React.FC<
-    InternalOperationalPointEditDialogContainerProps
-> = ({
-    operationalPointId,
-    setEditOperationalPointId,
-    allOperationalPoints,
-    layoutContext,
-    onSave,
-    onClose,
-}) => {
-    const operationalPoint = useOperationalPoint(operationalPointId, layoutContext);
-
-    return (
-        <InternalOperationalPointEditDialog
-            operationalPoint={operationalPoint}
-            layoutContext={layoutContext}
-            allOperationalPoints={allOperationalPoints}
-            onSave={onSave}
-            onClose={onClose}
-            onEditOperationalPoint={setEditOperationalPointId}
-        />
-    );
-};
 
 type InternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint | undefined;
