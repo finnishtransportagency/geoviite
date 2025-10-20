@@ -30,6 +30,8 @@ constructor(private val geocodingService: GeocodingService, private val layoutTr
         return layoutTrackNumberDao
             .fetchOfficialVersionAtMoment(publication.layoutBranch.branch, trackNumberId, publication.publicationTime)
             ?.let(layoutTrackNumberDao::fetch)
+            // Deleted track numbers have no geometry in API since there's no guarantee of geocodable addressing
+            ?.takeIf { it.exists }
             ?.let { trackNumber ->
                 val filteredAddressPoints =
                     geocodingService

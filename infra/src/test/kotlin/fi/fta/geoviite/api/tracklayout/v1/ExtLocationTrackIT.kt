@@ -33,6 +33,7 @@ import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
@@ -383,6 +384,39 @@ constructor(
         assertEquals("0000+0020.000", getExtLocationTrack(trackOid, basePublication).alkusijainti?.rataosoite)
         assertEquals("0001+0030.000", getExtLocationTrack(trackOid, rlPublication).alkusijainti?.rataosoite)
         assertEquals("0004+0010.000", getExtLocationTrack(trackOid, kmpPublication).alkusijainti?.rataosoite)
+    }
+
+    @Test
+    fun `Deleted tracks have no geometries exposed through the API`() {
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
+
+        val trackGeom = trackGeometryOfSegments(segment(Point(10.0, 0.0), Point(90.0, 0.0)))
+        val trackId = mainDraftContext.save(locationTrack(tnId), trackGeom).id
+        val trackOid = testDBService.generateLocationTrackOid(trackId, LayoutBranch.main)
+        val initPublication =
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(tnId),
+                referenceLines = listOf(rlId),
+                locationTracks = listOf(trackId),
+            )
+
+        assertEquals(81, api.locationTracks.getGeometry(trackOid).osoitevali?.pisteet?.size)
+
+        initUser()
+        val (origTrack, origGeom) = mainDraftContext.fetchWithGeometry(trackId)!!
+        mainDraftContext.saveLocationTrack(origTrack.copy(state = LocationTrackState.DELETED) to origGeom)
+        val deletePublication = extTestDataService.publishInMain(locationTracks = listOf(trackId))
+
+        api.locationTracks.getGeometryWithEmptyBody(trackOid, httpStatus = HttpStatus.NO_CONTENT)
+        assertEquals(81, api.locationTracks.getGeometryAt(trackOid, initPublication.uuid).osoitevali?.pisteet?.size)
+        api.locationTracks.getGeometryWithEmptyBodyAt(
+            trackOid,
+            deletePublication.uuid,
+            httpStatus = HttpStatus.NO_CONTENT,
+        )
     }
 
     private fun getExtLocationTrack(oid: Oid<LocationTrack>, publication: Publication? = null): ExtTestLocationTrackV1 =

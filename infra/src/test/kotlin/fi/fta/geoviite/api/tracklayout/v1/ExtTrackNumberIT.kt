@@ -35,6 +35,7 @@ import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import java.math.BigDecimal
@@ -341,6 +342,27 @@ constructor(
         assertAddressRange(getExtTrackNumber(tnOid, basePublication), "0000+0000.000", "0000+0010.000")
         assertAddressRange(getExtTrackNumber(tnOid, rlPublication), "0001+0010.000", "0001+0020.000")
         assertAddressRange(getExtTrackNumber(tnOid, kmpPublication), "0001+0010.000", "0004+0005.000")
+    }
+
+    @Test
+    fun `Deleted track numbers have no geometries exposed through the API`() {
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val tnOid = testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
+
+        val initPublication =
+            extTestDataService.publishInMain(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
+
+        assertEquals(101, api.trackNumbers.getGeometry(tnOid).osoitevali?.pisteet?.size)
+
+        initUser()
+        mainDraftContext.save(mainDraftContext.fetch(tnId)!!.copy(state = LayoutState.DELETED))
+        val deletePublication = extTestDataService.publishInMain(trackNumbers = listOf(tnId))
+
+        api.trackNumbers.getGeometryWithEmptyBody(tnOid, httpStatus = HttpStatus.NO_CONTENT)
+        assertEquals(101, api.trackNumbers.getGeometryAt(tnOid, initPublication.uuid).osoitevali?.pisteet?.size)
+        api.trackNumbers.getGeometryWithEmptyBodyAt(tnOid, deletePublication.uuid, httpStatus = HttpStatus.NO_CONTENT)
     }
 
     private fun getExtTrackNumber(oid: Oid<LayoutTrackNumber>, publication: Publication? = null): ExtTestTrackNumberV1 =
