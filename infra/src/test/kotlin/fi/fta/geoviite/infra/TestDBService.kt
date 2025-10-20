@@ -447,7 +447,7 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     /**
      * Copies the asset identified by [rowVersion] to the current context. Note, that this does not create linking to
      * the original asset, so calling this for draft context on an official asset creates a new draft with same data,
-     * not a draft of the official. You can provide [officialRowId] and [designRowId] to link the new asset if desired.
+     * not a draft of the official.
      *
      * <p>
      * If desired, you can also mutate the asset before moving it to the new context by providing a [mutate] function.
