@@ -9,6 +9,7 @@ import { first } from 'utils/array-utils';
 import { useTranslation } from 'react-i18next';
 import { OptionBase } from 'vayla-design-lib/menu/menu';
 import { isEmpty } from 'utils/string-utils';
+import { expectDefined } from 'utils/type-utils';
 
 const MARGIN_BETWEEN_INPUT_AND_POPUP = 2;
 
@@ -370,6 +371,25 @@ export const Dropdown = function <TItemValue>({
                 : 0,
         );
     }, [options]);
+
+    // Automatically select the only allowed option in case there is only a single non-disabled option,
+    // and no previous value has been defined.
+    React.useEffect(() => {
+        if (props.value) {
+            return;
+        }
+
+        if (props.options && isOptionsArray(props.options)) {
+            const optionsAvailableForSelection = props.options.filter(
+                (option) => option.disabled === undefined,
+            );
+
+            if (optionsAvailableForSelection.length === 1) {
+                const onlyAllowedOption = expectDefined(optionsAvailableForSelection[0]).value;
+                props.onChange?.(onlyAllowedOption);
+            }
+        }
+    }, []);
 
     function renderMenuItems() {
         return (
