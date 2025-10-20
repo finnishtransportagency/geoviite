@@ -17,12 +17,8 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class OperationalPointServiceIT
-@Autowired
-constructor(
-    private val operationalPointService: OperationalPointService,
-    private val operationalPointDao: OperationalPointDao,
-) : DBTestBase() {
+class OperationalPointServiceIT @Autowired constructor(private val operationalPointService: OperationalPointService) :
+    DBTestBase() {
     @BeforeEach
     fun cleanup() {
         testDBService.deleteFromTables(
