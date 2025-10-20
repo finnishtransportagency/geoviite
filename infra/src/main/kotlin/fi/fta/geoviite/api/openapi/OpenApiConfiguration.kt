@@ -1,9 +1,11 @@
 package fi.fta.geoviite.api.openapi
 
+import fi.fta.geoviite.api.configuration.ExtApiConfiguration
 import fi.fta.geoviite.infra.environmentInfo.EnvironmentInfo
 import io.swagger.v3.oas.models.Paths
 import io.swagger.v3.oas.models.info.Contact
 import io.swagger.v3.oas.models.info.Info
+import io.swagger.v3.oas.models.servers.Server
 import org.springdoc.core.customizers.OpenApiCustomizer
 import org.springdoc.core.models.GroupedOpenApi
 import org.springframework.beans.factory.annotation.Autowired
@@ -16,9 +18,7 @@ import org.springframework.context.annotation.Profile
 @Profile("ext-api")
 class OpenApiConfiguration
 @Autowired
-constructor(
-    private val environmentInfo: EnvironmentInfo,
-) {
+constructor(private val environmentInfo: EnvironmentInfo, private val extApiConfiguration: ExtApiConfiguration) {
 
     @Bean
     fun geoviiteApi(): GroupedOpenApi {
@@ -26,7 +26,16 @@ constructor(
             .group("geoviite")
             .pathsToMatch("/geoviite/**")
             .pathsToExclude("/geoviite/dev/**")
-            .addOpenApiCustomizer(geoviiteOpenApiCustomizer())
+            .addOpenApiCustomizer(geoviiteOpenApiCustomizer(extApiConfiguration.rootURL))
+            .build()
+    }
+
+    @Bean
+    fun geoviiteNoPrefixApi(): GroupedOpenApi {
+        return GroupedOpenApi.builder()
+            .group("geoviite-user-api")
+            .pathsToMatch("/paikannuspohja/v1/**")
+            .addOpenApiCustomizer(geoviiteOpenApiCustomizer(extApiConfiguration.rootURL))
             .build()
     }
 
@@ -36,12 +45,12 @@ constructor(
         return GroupedOpenApi.builder()
             .group("geoviite-dev")
             .pathsToMatch("/geoviite/dev/**")
-            .addOpenApiCustomizer(geoviiteOpenApiCustomizer())
+            .addOpenApiCustomizer(geoviiteOpenApiCustomizer(extApiConfiguration.soaServerURL))
             .build()
     }
 
     @Bean
-    fun geoviiteOpenApiCustomizer(): OpenApiCustomizer {
+    fun geoviiteOpenApiCustomizer(serverURL: String): OpenApiCustomizer {
         return OpenApiCustomizer { openApi ->
             openApi.info(
                 Info()
@@ -54,6 +63,8 @@ constructor(
                             .email(environmentInfo.geoviiteSupportEmailAddress)
                     )
             )
+
+            openApi.servers(listOf(Server().apply { url = serverURL }))
 
             // Alphabetically sort paths & components for user friendliness.
             openApi.paths =
