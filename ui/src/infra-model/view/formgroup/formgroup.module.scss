@@ -62,7 +62,8 @@
 
     &__paragraph-with-linebreaks {
         white-space: pre-line;
-        word-break: break-all;
+        word-break: normal;
+        overflow-wrap: break-word;
     }
 }
 
