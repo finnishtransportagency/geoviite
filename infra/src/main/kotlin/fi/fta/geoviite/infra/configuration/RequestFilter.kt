@@ -50,6 +50,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 import org.springframework.core.annotation.Order
+import org.springframework.core.env.Environment
 import org.springframework.core.io.UrlResource
 import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -85,6 +86,7 @@ constructor(
     @Value("\${geoviite.api-root:}") private val apiRoot: String,
     @Value("\${geoviite.app-root:}") private val appRoot: String,
     private val extApi: ExtApiConfiguration,
+    private val env: Environment,
     private val environmentInfo: EnvironmentInfo,
     private val localizationService: LocalizationService,
 ) : OncePerRequestFilter() {
@@ -98,6 +100,8 @@ constructor(
         check(jwksUrl.isNotBlank()) { "Invalid configuration: set property geoviite.jwt.validation.url" }
         UrlJwkProvider(URL("$jwksUrl/.well-known/jwks.json"))
     }
+
+    private val redirectRootToAppRoot: Boolean by lazy { "backend" in env.activeProfiles.toSet() }
 
     private fun localUser(activeRole: Role, availableRoles: List<Role>): User {
         return User(
@@ -192,7 +196,7 @@ constructor(
             if (path.startsWith(apiRoot)) {
                 val newPath = path.replace(apiRoot, "")
                 request.getRequestDispatcher(newPath).forward(request, response)
-            } else if (path == "/" && appRoot.isNotBlank()) {
+            } else if (path == "/" && appRoot.isNotBlank() && redirectRootToAppRoot) {
                 // Redirect browser from server root to <url>/$appRoot/
                 // (So that Geoviite UI can open without specifying the /app/ path in the bowser).
                 response.status = HttpServletResponse.SC_FOUND
