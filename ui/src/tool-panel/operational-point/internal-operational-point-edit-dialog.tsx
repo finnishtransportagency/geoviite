@@ -9,7 +9,9 @@ import { Dropdown, dropdownOption, DropdownOption } from 'vayla-design-lib/dropd
 import { operationalPointStates, rinfTypes } from 'utils/enum-localization-utils';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
+import {
+    OperationalPointDeleteDraftConfirmDialog
+} from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
 import {
     OperationalPoint,
     OperationalPointId,
@@ -268,7 +270,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                             )}
                         </FieldLayout>
                         <FieldLayout
-                            label={`${t('operational-point-dialog.abbreviation')} *`}
+                            label={`${t('operational-point-dialog.abbreviation')}`}
                             value={
                                 <TextField
                                     value={state.operationalPoint.abbreviation}
