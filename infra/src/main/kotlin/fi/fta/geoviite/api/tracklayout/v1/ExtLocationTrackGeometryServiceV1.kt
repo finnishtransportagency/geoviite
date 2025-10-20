@@ -36,6 +36,8 @@ constructor(
         return locationTrackDao
             .fetchOfficialVersionAtMoment(publication.layoutBranch.branch, locationTrackId, publication.publicationTime)
             ?.let(locationTrackDao::fetch)
+            // Deleted tracks have no geometry in API since there's no guarantee of geocodable addressing
+            ?.takeIf { it.exists }
             ?.let { locationTrack ->
                 val filteredAddressPoints =
                     if (addressFilter.start == null && addressFilter.end == null) {

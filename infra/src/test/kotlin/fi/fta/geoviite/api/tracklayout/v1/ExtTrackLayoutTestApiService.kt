@@ -133,6 +133,14 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             return internalGet(requireNotNull(geometryClazz), geometryUrl(oid.toString()), params.toMap())
         }
 
+        fun getGeometryAt(
+            oid: Oid<*>,
+            layoutVersion: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+        ): AssetGeometryResponse {
+            return getGeometry(oid, TRACK_LAYOUT_VERSION to layoutVersion.toString(), *params)
+        }
+
         fun getGeometryWithExpectedError(
             oid: String,
             vararg params: Pair<String, String>,
@@ -145,6 +153,20 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         fun getGeometryWithEmptyBody(oid: Oid<*>, vararg params: Pair<String, String>, httpStatus: HttpStatus) {
             require(geometryUrl != null) { "Geometry not supported for this asset type" }
             internalGetWithoutBody(geometryUrl(oid.toString()), params.toMap(), httpStatus)
+        }
+
+        fun getGeometryWithEmptyBodyAt(
+            oid: Oid<*>,
+            layoutVersion: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+            httpStatus: HttpStatus,
+        ) {
+            return getGeometryWithEmptyBody(
+                oid,
+                TRACK_LAYOUT_VERSION to layoutVersion.toString(),
+                *params,
+                httpStatus = httpStatus,
+            )
         }
     }
 
