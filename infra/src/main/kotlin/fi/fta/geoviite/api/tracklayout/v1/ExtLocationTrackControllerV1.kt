@@ -34,7 +34,11 @@ private const val EXT_LOCATION_TRACK_COLLECTION_TAG_V1 = "Sijaintiraidekokoelma"
 
 @PreAuthorize(AUTH_API_GEOMETRY)
 @GeoviiteExtApiController(
-    ["$EXT_TRACK_LAYOUT_BASE_PATH/paikannuspohja/v1", "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1"]
+    [
+        "/paikannuspohja/v1",
+        "$EXT_TRACK_LAYOUT_BASE_PATH/paikannuspohja/v1",
+        "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1",
+    ]
 )
 class ExtLocationTrackControllerV1(
     private val extLocationTrackService: ExtLocationTrackServiceV1,
