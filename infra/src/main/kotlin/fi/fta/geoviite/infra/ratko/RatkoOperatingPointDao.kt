@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-fun toRatkoOperatingPointOrNull(rs: ResultSet): RatkoOperatingPoint? {
-    val uicCode = rs.getString("uic_code").toIntOrNull() ?: return null
+fun toRatkoOperatingPoint(rs: ResultSet): RatkoOperatingPoint {
+    val uicCode = rs.getString("uic_code").toIntOrNull() ?: 0
     return RatkoOperatingPoint(
         externalId = rs.getOid("external_id"),
         name = rs.getString("name"),
@@ -138,7 +138,7 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
                     "layout_srid" to LAYOUT_SRID.code,
                 ),
             ) { rs, _ ->
-                toRatkoOperatingPointOrNull(rs)
+                toRatkoOperatingPoint(rs)
             }
         return points.filterNotNull()
     }
@@ -167,7 +167,7 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
 
         val points =
             jdbcTemplate.query(sql, mapOf("searchTerm" to searchTerm, "resultLimit" to resultLimit)) { rs, _ ->
-                toRatkoOperatingPointOrNull(rs)
+                toRatkoOperatingPoint(rs)
             }
         return points.filterNotNull()
     }
