@@ -1234,7 +1234,7 @@ constructor(
         name: String,
         trackNumberOid: Oid<RatkoRouteNumber>,
         location: Point = Point(10.0, 10.0),
-    ) = RatkoOperatingPointParse(Oid(oid), name, name, name, OperationalPointType.LP, location, trackNumberOid)
+    ) = RatkoOperatingPointParse(Oid(oid), name, name, 123, OperationalPointType.LP, location, trackNumberOid)
 
     @Test
     fun fetchAndFindOperatingPoints() {
@@ -1249,7 +1249,7 @@ constructor(
                 Oid("1.2.3.4.5"),
                 "Kannustamo",
                 "KST",
-                "KST-123",
+                6346235,
                 OperationalPointType.LPO,
                 Point(100.0, 100.0),
                 Oid("5.5.5.5.5"),
@@ -1267,7 +1267,7 @@ constructor(
         assertEquals("1.2.3.4.5", point.externalId.toString())
         assertEquals("Kannustamo", point.name)
         assertEquals("KST", point.abbreviation)
-        assertEquals("KST-123", point.uicCode)
+        assertEquals(6346235, point.uicCode)
         assertEquals(OperationalPointType.LPO, point.type)
         assertEquals(Point(100.0, 100.0), point.location)
         assertEquals(trackNumberId, point.trackNumberId)
