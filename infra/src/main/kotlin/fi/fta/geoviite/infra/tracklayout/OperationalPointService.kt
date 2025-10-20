@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
@@ -54,6 +55,12 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao) :
         saveDraft(
             branch,
             dao.getOrThrow(branch.draft, id)
+                .also {
+                    if (it.origin != OperationalPointOrigin.GEOVIITE)
+                        throw SavingFailureException(
+                            "Only operational points originating from Geoviite can be updated with this method. pointId=$id"
+                        )
+                }
                 .copy(
                     state = request.state,
                     name = request.name,
@@ -69,7 +76,17 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao) :
         id: IntId<OperationalPoint>,
         request: ExternalOperationalPointSaveRequest,
     ): LayoutRowVersion<OperationalPoint> =
-        saveDraft(branch, (dao.getOrThrow(branch.draft, id).copy(rinfType = request.rinfType)))
+        saveDraft(
+            branch,
+            (dao.getOrThrow(branch.draft, id)
+                .also {
+                    if (it.origin != OperationalPointOrigin.RATKO)
+                        throw SavingFailureException(
+                            "Only operational points originating from Ratko can be updated with this method. pointId=$id"
+                        )
+                }
+                .copy(rinfType = request.rinfType)),
+        )
 
     @Transactional
     fun updateLocation(

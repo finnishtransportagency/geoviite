@@ -40,11 +40,13 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.Point3DZ
 import fi.fta.geoviite.infra.math.Point4DZM
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.PublishedVersions
+import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
@@ -502,6 +504,37 @@ fun locationTrack(
         topologicalConnectivity = topologicalConnectivity,
         ownerId = ownerId,
         contextData = contextData,
+    )
+
+private var operationalPointNameCounter = 0
+private var operationalPointAbbreviationCounter = 0
+private var uicCodeCounter = 0
+
+fun operationalPoint(
+    name: String = "Operational point ${operationalPointNameCounter++}",
+    abbreviation: String = "OP${operationalPointAbbreviationCounter++}",
+    uicCode: String = "${100000 + uicCodeCounter++}",
+    rinfType: Int? = null,
+    raideType: OperationalPointType? = null,
+    location: Point? = null,
+    polygon: Polygon? = null,
+    draft: Boolean = false,
+    state: OperationalPointState = OperationalPointState.IN_USE,
+    origin: OperationalPointOrigin = OperationalPointOrigin.RATKO,
+    id: IntId<OperationalPoint>? = null,
+    contextData: LayoutContextData<OperationalPoint> = createMainContext(id, draft),
+) =
+    OperationalPoint(
+        OperationalPointName(name),
+        OperationalPointAbbreviation(abbreviation),
+        UicCode(uicCode),
+        rinfType,
+        raideType,
+        polygon,
+        location,
+        state,
+        origin,
+        contextData,
     )
 
 fun <T> someOid() = Oid<T>("${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}")

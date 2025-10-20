@@ -116,6 +116,12 @@ class DeletingFailureException(
     localizedMessageKey: String = "error.deleting.generic",
 ) : ClientException(BAD_REQUEST, "Deleting failed: $message", cause, localizedMessageKey)
 
+class SavingFailureException(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "error.saving.invalid",
+) : ClientException(BAD_REQUEST, "Saving failed: $message", cause, localizedMessageKey)
+
 class InputValidationException(
     message: String,
     type: KClass<*>,
