@@ -17,21 +17,11 @@ const ABBREVIATION_MAX_LENGTH = 20;
 const NAME_MAX_LENGTH = 150;
 
 export type InternalOperationalPointSaveRequest = {
-    name?: string;
+    name: string;
     abbreviation?: string;
     rinfType?: number;
     state?: OperationalPointState;
-    uicCode?: UICCode;
-};
-
-export type InternalOperationalPointEditState = {
-    isNewOperationalPoint: boolean;
-    existingOperationalPoint?: OperationalPoint;
-    isSaving: boolean;
-    operationalPoint: InternalOperationalPointSaveRequest;
-    validationIssues: FieldValidationIssue<InternalOperationalPointSaveRequest>[];
-    committedFields: (keyof InternalOperationalPointSaveRequest)[];
-    allFieldsCommitted: boolean;
+    uicCode: UICCode;
 };
 
 function validateInternalOperationalPoint(
@@ -59,7 +49,7 @@ function validateInternalOperationalPoint(
     const regexAndLengthErrors: FieldValidationIssue<InternalOperationalPointSaveRequest>[] = [
         validate<InternalOperationalPointSaveRequest>(
             !saveRequest.uicCode ||
-                (!!saveRequest.uicCode?.match(UIC_CODE_REGEX) &&
+                (!!saveRequest.uicCode.match(UIC_CODE_REGEX) &&
                     saveRequest.uicCode.length <= UIC_CODE_MAX_LENGTH),
             {
                 field: 'uicCode',
@@ -93,6 +83,16 @@ function validateInternalOperationalPoint(
 
     return [...mandatoryFieldErrors, ...regexAndLengthErrors];
 }
+
+export type InternalOperationalPointEditState = {
+    isNewOperationalPoint: boolean;
+    existingOperationalPoint?: OperationalPoint;
+    isSaving: boolean;
+    operationalPoint: InternalOperationalPointSaveRequest;
+    validationIssues: FieldValidationIssue<InternalOperationalPointSaveRequest>[];
+    committedFields: (keyof InternalOperationalPointSaveRequest)[];
+    allFieldsCommitted: boolean;
+};
 
 export const initialInternalOperationalPointEditState: InternalOperationalPointEditState = {
     isNewOperationalPoint: false,

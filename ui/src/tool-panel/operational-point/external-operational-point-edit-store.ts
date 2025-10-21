@@ -14,7 +14,6 @@ export type ExternalOperationalPointSaveRequest = {
 };
 
 export type ExternalOperationalPointEditState = {
-    isNewOperationalPoint: boolean;
     existingOperationalPoint?: OperationalPoint;
     isSaving: boolean;
     operationalPoint: ExternalOperationalPointSaveRequest;
@@ -24,7 +23,6 @@ export type ExternalOperationalPointEditState = {
 };
 
 export const initialExternalOperationalPointEditState: ExternalOperationalPointEditState = {
-    isNewOperationalPoint: false,
     existingOperationalPoint: undefined,
     isSaving: false,
     operationalPoint: {

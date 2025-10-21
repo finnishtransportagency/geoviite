@@ -449,8 +449,8 @@ export function refreshOperationalPointSelection(
 ): (id: OperationalPointId) => void {
     return (id) => {
         updateOperationalPointsChangeTime().then((ts) => {
-            getOperationalPoint(id, layoutContext, ts).then((s) => {
-                if (s) onSelect({ operationalPoints: [id] });
+            getOperationalPoint(id, layoutContext, ts).then((point) => {
+                if (point) onSelect({ operationalPoints: [id] });
                 else onUnselect({ operationalPoints: [id] });
             });
         });

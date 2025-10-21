@@ -40,11 +40,7 @@ export const PreviewPublicationConfirmationDialog: React.FC<PreviewPublicationDi
     const [message, setMessage] = React.useState('');
     const messageValidationErrors = validateMessage(message).map((err) => t(err.reason));
 
-    React.useEffect(() => {
-        if (textAreaRef.current) {
-            textAreaRef.current?.focus();
-        }
-    }, []);
+    React.useEffect(() => textAreaRef.current?.focus(), []);
 
     return (
         <Dialog

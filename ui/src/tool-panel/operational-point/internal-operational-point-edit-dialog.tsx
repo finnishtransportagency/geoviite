@@ -105,22 +105,22 @@ export const InternalOperationalPointEditDialog: React.FC<
     }
 
     const duplicateAbbreviationPoint = allOtherOperationalPoints?.find(
-        (op) =>
-            op.abbreviation &&
+        (operationalPoint) =>
+            operationalPoint.abbreviation &&
             state.operationalPoint?.abbreviation &&
-            isEqualIgnoreCase(op.abbreviation, state.operationalPoint.abbreviation),
+            isEqualIgnoreCase(operationalPoint.abbreviation, state.operationalPoint.abbreviation),
     );
     const duplicateNamePoint = allOtherOperationalPoints?.find(
-        (op) =>
-            op.state !== 'DELETED' &&
+        (operationalPoint) =>
+            operationalPoint.state !== 'DELETED' &&
             !!state.operationalPoint?.name &&
-            isEqualIgnoreCase(op.name, state.operationalPoint.name),
+            isEqualIgnoreCase(operationalPoint.name, state.operationalPoint.name),
     );
     const duplicateUicCodePoint = allOtherOperationalPoints?.find(
-        (op) =>
-            op.state !== 'DELETED' &&
+        (operationalPoint) =>
+            operationalPoint.state !== 'DELETED' &&
             !!state.operationalPoint.uicCode &&
-            isEqualIgnoreCase(op.uicCode, state.operationalPoint.uicCode),
+            isEqualIgnoreCase(operationalPoint.uicCode, state.operationalPoint.uicCode),
     );
 
     const hasErrors = (fieldName: keyof InternalOperationalPointSaveRequest) =>
@@ -132,10 +132,12 @@ export const InternalOperationalPointEditDialog: React.FC<
         ...getVisibleErrorsByProp('name'),
         duplicateNamePoint !== undefined ? 'name-in-use' : undefined,
     ].filter(filterNotEmpty);
+
     const visibleAbbreviationErrors = [
         ...getVisibleErrorsByProp('abbreviation'),
         duplicateAbbreviationPoint !== undefined ? 'abbreviation-in-use' : undefined,
     ].filter(filterNotEmpty);
+
     const visibleUicCodeErrors = [
         ...getVisibleErrorsByProp('uicCode'),
         duplicateUicCodePoint !== undefined ? 'uic-code-in-use' : undefined,
@@ -197,10 +199,10 @@ export const InternalOperationalPointEditDialog: React.FC<
         }
     };
 
-    const moveToEditLinkText = (s: { state: OperationalPointState; name: string }) => {
-        return s.state === 'DELETED'
+    const moveToEditLinkText = (state: OperationalPointState, name: string) => {
+        return state === 'DELETED'
             ? t('operational-point-dialog.move-to-edit-deleted')
-            : t('operational-point-dialog.move-to-edit', { name: s.name });
+            : t('operational-point-dialog.move-to-edit', { name });
     };
 
     const canSave =
@@ -265,7 +267,10 @@ export const InternalOperationalPointEditDialog: React.FC<
                                 <AnchorLink
                                     className={dialogStyles['dialog__alert']}
                                     onClick={() => onEditOperationalPoint(duplicateNamePoint.id)}>
-                                    {moveToEditLinkText(duplicateNamePoint)}
+                                    {moveToEditLinkText(
+                                        duplicateNamePoint.state,
+                                        duplicateNamePoint.name,
+                                    )}
                                 </AnchorLink>
                             )}
                         </FieldLayout>
