@@ -345,24 +345,45 @@ constructor(
     }
 
     @Test
-    fun `Deleted track numbers have no geometries exposed through the API`() {
+    fun `Deleted track numbers have no addresses exposed through the API`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
         val tnOid = testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
         val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
+        val startWithAddress = ExtTestAddressPointV1(0.0, 0.0, "0000+0000.000")
+        val startWithoutAddress = ExtTestAddressPointV1(0.0, 0.0, null)
+        val endWithAddress = ExtTestAddressPointV1(100.0, 0.0, "0000+0100.000")
+        val endWithoutAddress = ExtTestAddressPointV1(100.0, 0.0, null)
 
         val initPublication =
             extTestDataService.publishInMain(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
 
         assertEquals(101, api.trackNumbers.getGeometry(tnOid).osoitevali?.pisteet?.size)
+        api.trackNumbers.get(tnOid).also { tn ->
+            assertEquals(startWithAddress, tn.ratanumero.alkusijainti)
+            assertEquals(endWithAddress, tn.ratanumero.loppusijainti)
+        }
 
         initUser()
         mainDraftContext.save(mainDraftContext.fetch(tnId)!!.copy(state = LayoutState.DELETED))
         val deletePublication = extTestDataService.publishInMain(trackNumbers = listOf(tnId))
 
         api.trackNumbers.getGeometryWithEmptyBody(tnOid, httpStatus = HttpStatus.NO_CONTENT)
+        api.trackNumbers.get(tnOid).also { tn ->
+            assertEquals(startWithoutAddress, tn.ratanumero.alkusijainti)
+            assertEquals(endWithoutAddress, tn.ratanumero.loppusijainti)
+        }
+
         assertEquals(101, api.trackNumbers.getGeometryAt(tnOid, initPublication.uuid).osoitevali?.pisteet?.size)
+        api.trackNumbers.getAtVersion(tnOid, initPublication.uuid).also { tn ->
+            assertEquals(startWithAddress, tn.ratanumero.alkusijainti)
+            assertEquals(endWithAddress, tn.ratanumero.loppusijainti)
+        }
         api.trackNumbers.getGeometryWithEmptyBodyAt(tnOid, deletePublication.uuid, httpStatus = HttpStatus.NO_CONTENT)
+        api.trackNumbers.getAtVersion(tnOid, deletePublication.uuid).also { tn ->
+            assertEquals(startWithoutAddress, tn.ratanumero.alkusijainti)
+            assertEquals(endWithoutAddress, tn.ratanumero.loppusijainti)
+        }
     }
 
     private fun getExtTrackNumber(oid: Oid<LayoutTrackNumber>, publication: Publication? = null): ExtTestTrackNumberV1 =
