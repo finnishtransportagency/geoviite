@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -103,6 +104,9 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao) :
         request: Polygon,
     ): LayoutRowVersion<OperationalPoint> =
         saveDraft(branch, (dao.getOrThrow(branch.draft, id).copy(polygon = request)))
+
+    fun getExternalIdsByBranch(id: IntId<OperationalPoint>): Map<LayoutBranch, Oid<OperationalPoint>> =
+        dao.fetchExternalIdsByBranch(id).mapValues { (_, v) -> v.oid }
 
     private fun saveDraft(branch: LayoutBranch, point: OperationalPoint) = dao.save(asDraft(branch, point))
 }

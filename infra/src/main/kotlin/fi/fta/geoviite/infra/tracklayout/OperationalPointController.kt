@@ -3,12 +3,14 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -142,5 +144,13 @@ class OperationalPointController(
             .validateOperationalPoints(draftTransitionOrOfficialState(publicationState, layoutBranch), listOf(id))
             .firstOrNull()
             .let(::toResponse)
+    }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
+    @GetMapping("/operational-points/{id}/oids")
+    fun getOperationalPointOids(
+        @PathVariable("id") id: IntId<OperationalPoint>
+    ): Map<LayoutBranch, Oid<OperationalPoint>> {
+        return operationalPointService.getExternalIdsByBranch(id)
     }
 }
