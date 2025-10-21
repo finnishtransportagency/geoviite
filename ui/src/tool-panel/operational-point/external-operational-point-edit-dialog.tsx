@@ -53,7 +53,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
         if (operationalPoint) stateActions.onOperationalPointLoaded(operationalPoint);
     }, [operationalPoint]);
 
-    const [deleteDraftConfirmDialogOpen, setShowDeleteDraftConfirmDialog] = React.useState(false);
+    const [deleteDraftConfirmDialogOpen, setdeleteDraftConfirmDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
 
     const rinfTypeOptions: DropdownOption<RinfType>[] = rinfTypes.map((value) =>
@@ -73,10 +73,10 @@ export const ExternalOperationalPointEditDialog: React.FC<
             editingExistingValue: !!state.operationalPoint,
         });
 
-    function saveUpdatedOperationalPoint(
+    const saveUpdatedOperationalPoint = (
         id: OperationalPointId,
         updatedOperationalPoint: ExternalOperationalPointSaveRequest,
-    ) {
+    ) => {
         setIsSaving(true);
         updateExternalOperationalPoint(id, updatedOperationalPoint, layoutContext)
             .then(
@@ -88,11 +88,11 @@ export const ExternalOperationalPointEditDialog: React.FC<
                 () => Snackbar.error('operational-point-dialog.modify-failed'),
             )
             .finally(() => setIsSaving(false));
-    }
+    };
 
     const revertDraft = () => {
         deleteDraftOperationalPoint(layoutContext, operationalPoint.id);
-        setShowDeleteDraftConfirmDialog(true);
+        setdeleteDraftConfirmDialogOpen(true);
     };
 
     return (
@@ -102,15 +102,12 @@ export const ExternalOperationalPointEditDialog: React.FC<
                 onClose={onClose}
                 footerContent={
                     <React.Fragment>
-                        {
-                            <Button
-                                disabled={!operationalPoint?.isDraft}
-                                onClick={() => setShowDeleteDraftConfirmDialog(true)}
-                                variant={ButtonVariant.WARNING}>
-                                {t('button.revert-draft')}
-                            </Button>
-                        }
-
+                        <Button
+                            disabled={!operationalPoint?.isDraft || isSaving}
+                            onClick={() => setdeleteDraftConfirmDialogOpen(true)}
+                            variant={ButtonVariant.WARNING}>
+                            {t('button.revert-draft')}
+                        </Button>
                         <div className={dialogStyles['dialog__footer-content--right-aligned']}>
                             <Button variant={ButtonVariant.SECONDARY} onClick={onClose}>
                                 {t('button.cancel')}
@@ -191,7 +188,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
             </Dialog>
             {deleteDraftConfirmDialogOpen && (
                 <OperationalPointDeleteDraftConfirmDialog
-                    onClose={() => setShowDeleteDraftConfirmDialog(false)}
+                    onClose={() => setdeleteDraftConfirmDialogOpen(false)}
                     onRevert={revertDraft}
                 />
             )}

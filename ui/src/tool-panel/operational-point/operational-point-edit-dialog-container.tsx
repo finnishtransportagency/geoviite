@@ -18,7 +18,7 @@ type OperationalPointEditDialogContainerProps = {
 export const OperationalPointEditDialogContainer: React.FC<
     OperationalPointEditDialogContainerProps
 > = ({ operationalPointId, layoutContext, onSave, onClose }) => {
-    const [operationalPointInEdit, setOperationalPointInEdit] = React.useState<
+    const [existingOperationalPointInEdit, setExistingOperationalPointInEdit] = React.useState<
         OperationalPointId | undefined
     >(operationalPointId);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
@@ -27,8 +27,10 @@ export const OperationalPointEditDialogContainer: React.FC<
         () => getAllOperationalPoints(layoutContext, changeTimes.operationalPoints),
         [layoutContext, changeTimes.operationalPoints],
     );
-    const operationalPoint = allOperationalPoints?.find((op) => op.id === operationalPointInEdit);
-    const origin = operationalPoint?.origin;
+    const existingOperationalPoint = allOperationalPoints?.find(
+        (op) => op.id === existingOperationalPointInEdit,
+    );
+    const origin = existingOperationalPoint?.origin;
 
     if (!allOperationalPoints) {
         return <React.Fragment />;
@@ -37,7 +39,7 @@ export const OperationalPointEditDialogContainer: React.FC<
             case 'RATKO':
                 return (
                     <ExternalOperationalPointEditDialog
-                        operationalPoint={expectDefined(operationalPoint)}
+                        operationalPoint={expectDefined(existingOperationalPoint)}
                         layoutContext={layoutContext}
                         onSave={onSave}
                         onClose={onClose}
@@ -47,8 +49,8 @@ export const OperationalPointEditDialogContainer: React.FC<
             case undefined: // Creating new operational point
                 return (
                     <InternalOperationalPointEditDialog
-                        operationalPoint={operationalPoint}
-                        onEditOperationalPoint={setOperationalPointInEdit}
+                        operationalPoint={existingOperationalPoint}
+                        onEditOperationalPoint={setExistingOperationalPointInEdit}
                         allOperationalPoints={allOperationalPoints}
                         layoutContext={layoutContext}
                         onSave={onSave}

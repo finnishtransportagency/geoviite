@@ -84,7 +84,7 @@ const createOperationalPointStyle = (
     operationalPointName: string,
     isSelectedOrHighlighted: boolean,
     size: OperationalPointFeatureSize,
-) => {
+): Style => {
     const color = isSelectedOrHighlighted
         ? mapStyles.selectedOrHighlightedOperationalPointColor
         : mapStyles.operationalPointColor;
@@ -115,21 +115,20 @@ function getOperationalPointStyleForFeature(
     resolution: number,
     selectedOperationalPoints: OperationalPointId[],
     highlightedOperationalPoints: OperationalPointId[],
-) {
+): Style | undefined {
     const point = feature.get(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY) as OperationalPoint;
     const smallestResolutionConf = operationalPointStyleResolutionsSmallestFirst.find(
         (styleResolution) => resolution <= styleResolution.resolutionUpperLimit,
     );
-    const selectedStyle =
-        smallestResolutionConf !== undefined
-            ? smallestResolutionConf.style
-            : OperationalPointFeatureSize.None;
-    return createOperationalPointStyle(
-        point.name,
-        selectedOperationalPoints.includes(point.id) ||
-            highlightedOperationalPoints.includes(point.id),
-        selectedStyle,
-    );
+
+    return smallestResolutionConf
+        ? createOperationalPointStyle(
+              point.name,
+              selectedOperationalPoints.includes(point.id) ||
+                  highlightedOperationalPoints.includes(point.id),
+              smallestResolutionConf.style,
+          )
+        : undefined;
 }
 
 function renderOperationalPointFeature(

@@ -13,7 +13,6 @@ export enum OperationalPointFeatureSize {
     Large,
     Medium,
     Small,
-    None,
 }
 
 const OPERATIONAL_POINT_FEATURE_SIZE_LIMITS: {
@@ -45,8 +44,6 @@ export const featureStyleRadius = (size: OperationalPointFeatureSize) => {
             return 5;
         case OperationalPointFeatureSize.Large:
             return 6;
-        case OperationalPointFeatureSize.None:
-            return 0;
         default:
             return exhaustiveMatchingGuard(size);
     }
@@ -60,8 +57,6 @@ export const featureStyleOffsetX = (size: OperationalPointFeatureSize) => {
             return 12;
         case OperationalPointFeatureSize.Large:
             return 14;
-        case OperationalPointFeatureSize.None:
-            return undefined;
         default:
             return exhaustiveMatchingGuard(size);
     }
@@ -76,8 +71,6 @@ export const featureStyleFont = (size: OperationalPointFeatureSize) => {
             return fontString(14);
         case OperationalPointFeatureSize.Large:
             return fontString(16);
-        case OperationalPointFeatureSize.None:
-            return undefined;
         default:
             return exhaustiveMatchingGuard(size);
     }
