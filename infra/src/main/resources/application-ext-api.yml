@@ -44,8 +44,8 @@ geoviite:
       - /rata-vkm
     public-hosts: "${GEOVIITE_EXT_API_PUBLIC_HOSTS:localhost}"
     private-hosts: "${GEOVIITE_EXT_API_PRIVATE_HOSTS:localhost}"
-    soaServerURL: "${GEOVIITE_EXT_API_SOA_SERVER_URL:http://localhost:8080}"
-    rootURL: "${GEOVIITE_EXT_API_ROOT_URL:http://localhost:8080}"
+    soa-server-url: "${GEOVIITE_EXT_API_SOA_SERVER_URL:http://localhost:8080}"
+    root-url: "${GEOVIITE_EXT_API_ROOT_URL:http://localhost:8080}"
 
 springdoc:
   enable-default-api-docs: false
