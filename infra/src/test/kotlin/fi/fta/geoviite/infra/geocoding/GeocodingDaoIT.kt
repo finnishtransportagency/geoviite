@@ -274,7 +274,6 @@ constructor(
             geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId),
         )
 
-        Thread.sleep(2) // Sleep to ensure different timestamp for update
         testDBService.update(tnV1) { tn -> tn.copy(state = LayoutState.DELETED) }
         val dbTimeAfterDelete = testDBService.getDbTime()
         assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId))
