@@ -6,6 +6,7 @@ import { InternalOperationalPointEditDialog } from 'tool-panel/operational-point
 import { useLoader } from 'utils/react-utils';
 import { getAllOperationalPoints } from 'track-layout/layout-operational-point-api';
 import { useCommonDataAppSelector } from 'store/hooks';
+import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 
 type OperationalPointEditDialogContainerProps = {
     operationalPointId: OperationalPointId | undefined;
@@ -27,15 +28,16 @@ export const OperationalPointEditDialogContainer: React.FC<
         [layoutContext, changeTimes.operationalPoints],
     );
     const operationalPoint = allOperationalPoints?.find((op) => op.id === operationalPointInEdit);
+    const origin = operationalPoint?.origin;
 
     if (!allOperationalPoints) {
         return <React.Fragment />;
     } else {
-        switch (operationalPoint?.origin) {
+        switch (origin) {
             case 'RATKO':
                 return (
                     <ExternalOperationalPointEditDialog
-                        operationalPoint={operationalPoint}
+                        operationalPoint={expectDefined(operationalPoint)}
                         layoutContext={layoutContext}
                         onSave={onSave}
                         onClose={onClose}
@@ -53,6 +55,8 @@ export const OperationalPointEditDialogContainer: React.FC<
                         onClose={onClose}
                     />
                 );
+            default:
+                return exhaustiveMatchingGuard(origin);
         }
     }
 };

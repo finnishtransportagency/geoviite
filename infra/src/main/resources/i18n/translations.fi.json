@@ -136,6 +136,9 @@
             "generic": "Poistamisessa tapahtui virhe",
             "plan-linked": "Suunnitelmaa ei voida poistaa, koska se on linkitettynä paikannuspohjaan."
         },
+        "saving": {
+            "generic": "Tallennuksessa tapahtui virhe"
+        },
         "authentication": {
             "unauthorized": "Käyttöoikeudet eivät riitä toiminnon suorittamiseen",
             "token-expired": "Toimintoa ei voida suorittaa, koska istunto on vanhentunut",

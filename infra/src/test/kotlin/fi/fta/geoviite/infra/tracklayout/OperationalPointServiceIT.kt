@@ -3,12 +3,14 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -30,9 +32,9 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
 
     @Test
     fun `list() can find points by id or bbox or both`() {
-        val a = operationalPointService.insert(LayoutBranch.main, saveRequest("a"))
-        val b = operationalPointService.insert(LayoutBranch.main, saveRequest("b"))
-        operationalPointService.insert(LayoutBranch.main, saveRequest("c"))
+        val a = operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("a"))
+        val b = operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("b"))
+        operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("c"))
         assertEquals(
             listOf(a, b),
             operationalPointService
@@ -73,8 +75,60 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
     }
 
     @Test
+    fun `can update internal operational point`() {
+        val original = operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("original"))
+        val updated =
+            operationalPointService
+                .update(
+                    LayoutBranch.main,
+                    original.id,
+                    internalPointSaveRequest(
+                        name = "updated",
+                        abbreviation = "upd",
+                        rinfType = 20,
+                        state = OperationalPointState.DELETED,
+                        uicCode = "20202",
+                    ),
+                )
+                .let { version -> operationalPointService.getOrThrow(mainDraftContext.context, version.id) }
+        assertEquals("updated", updated.name.toString())
+        assertEquals("upd", updated.abbreviation.toString())
+        assertEquals(20, updated.rinfType)
+        assertEquals(OperationalPointState.DELETED, updated.state)
+        assertEquals("20202", updated.uicCode.toString())
+    }
+
+    @Test
+    fun `cannot update external operational point with internal request`() {
+        val external = testDBService.save(operationalPoint("external")).id
+
+        assertThrows<SavingFailureException> {
+            operationalPointService.update(LayoutBranch.main, external, internalPointSaveRequest("updated"))
+        }
+    }
+
+    @Test
+    fun `can update external operational point`() {
+        val original = testDBService.save(operationalPoint("external", origin = OperationalPointOrigin.RATKO))
+        val updated =
+            operationalPointService
+                .update(LayoutBranch.main, original.id, externalPointSaveRequest(rinfType = 30))
+                .let { version -> operationalPointService.get(mainDraftContext.context, version.id)!! }
+        assertEquals(30, updated.rinfType)
+    }
+
+    @Test
+    fun `cannot update internal operational point with external request`() {
+        val internal = operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("internal")).id
+
+        assertThrows<SavingFailureException> {
+            operationalPointService.update(LayoutBranch.main, internal, externalPointSaveRequest(rinfType = 30))
+        }
+    }
+
+    @Test
     fun `locations and areas can be saved`() {
-        val a = operationalPointService.insert(LayoutBranch.main, saveRequest("a")).id
+        val a = operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("a")).id
         val location = Point(123.4, 567.8)
         val area =
             Polygon(
@@ -91,7 +145,7 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
         assertEquals(area, updated.polygon)
     }
 
-    private fun saveRequest(
+    private fun internalPointSaveRequest(
         name: String = "name",
         abbreviation: String = name,
         rinfType: Int = 10,
@@ -105,4 +159,6 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
             state,
             UicCode(uicCode),
         )
+
+    private fun externalPointSaveRequest(rinfType: Int = 10) = ExternalOperationalPointSaveRequest(rinfType)
 }
