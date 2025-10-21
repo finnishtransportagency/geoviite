@@ -270,7 +270,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                             )}
                         </FieldLayout>
                         <FieldLayout
-                            label={`${t('operational-point-dialog.abbreviation')}`}
+                            label={t('operational-point-dialog.abbreviation')}
                             value={
                                 <TextField
                                     value={state.operationalPoint.abbreviation}
