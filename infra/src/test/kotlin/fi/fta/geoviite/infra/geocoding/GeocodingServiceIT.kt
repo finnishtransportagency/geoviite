@@ -16,14 +16,20 @@ import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.geocodingContextCacheKey
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
+import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -93,5 +99,27 @@ constructor(private val geocodingService: GeocodingService, private val geometry
             TrackMeter(KmNumber("0141"), BigDecimal.valueOf(5)),
             context.getAddress(Point(450000.0, 7000015.0), 0)!!.first,
         )
+    }
+
+    // A deleted track number is likely borked for geocoding and should never be used.
+    // The issues are (at least) that:
+    // - DELETED track numbers are not validated in publication to be intact
+    // - There is no way to differentiate between km-posts that are deleted because the track number was deleted and
+    //   ones that were already deleted before that
+    @Test
+    fun `No geocoding contexts are returned for deleted TrackNumbers`() {
+        val tnV1 = mainOfficialContext.createLayoutTrackNumber()
+        val tnId = tnV1.id
+        val rlV1 =
+            mainOfficialContext.saveReferenceLine(
+                referenceLineAndAlignment(tnId, segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+            )
+        val kmpV1 = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
+        val initKey = geocodingContextCacheKey(tnId, tnV1, rlV1, kmpV1)
+        assertNotNull(geocodingService.getGeocodingContext(initKey))
+        val tnV2 = testDBService.update(tnV1) { tn -> tn.copy(state = LayoutState.DELETED) }
+        val deleteKey = geocodingContextCacheKey(tnId, tnV2, rlV1, kmpV1)
+        assertNull(geocodingService.getGeocodingContext(deleteKey))
+        assertNotNull(geocodingService.getGeocodingContext(initKey))
     }
 }

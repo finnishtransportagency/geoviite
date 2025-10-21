@@ -387,7 +387,7 @@ constructor(
     }
 
     @Test
-    fun `Deleted tracks have no geometries exposed through the API`() {
+    fun `Deleted tracks have no addresses exposed through the API`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
         testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
         val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
@@ -402,8 +402,16 @@ constructor(
                 referenceLines = listOf(rlId),
                 locationTracks = listOf(trackId),
             )
+        val startWithAddress = ExtTestAddressPointV1(10.0, 0.0, "0000+0010.000")
+        val startWithoutAddress = ExtTestAddressPointV1(10.0, 0.0, null)
+        val endWithAddress = ExtTestAddressPointV1(90.0, 0.0, "0000+0090.000")
+        val endWithoutAddress = ExtTestAddressPointV1(90.0, 0.0, null)
 
         assertEquals(81, api.locationTracks.getGeometry(trackOid).osoitevali?.pisteet?.size)
+        api.locationTracks.get(trackOid).also { track ->
+            assertEquals(startWithAddress, track.sijaintiraide.alkusijainti)
+            assertEquals(endWithAddress, track.sijaintiraide.loppusijainti)
+        }
 
         initUser()
         val (origTrack, origGeom) = mainDraftContext.fetchWithGeometry(trackId)!!
@@ -411,12 +419,24 @@ constructor(
         val deletePublication = extTestDataService.publishInMain(locationTracks = listOf(trackId))
 
         api.locationTracks.getGeometryWithEmptyBody(trackOid, httpStatus = HttpStatus.NO_CONTENT)
+        api.locationTracks.get(trackOid).also { track ->
+            assertEquals(startWithoutAddress, track.sijaintiraide.alkusijainti)
+            assertEquals(endWithoutAddress, track.sijaintiraide.loppusijainti)
+        }
         assertEquals(81, api.locationTracks.getGeometryAt(trackOid, initPublication.uuid).osoitevali?.pisteet?.size)
+        api.locationTracks.getAtVersion(trackOid, initPublication.uuid).also { track ->
+            assertEquals(startWithAddress, track.sijaintiraide.alkusijainti)
+            assertEquals(endWithAddress, track.sijaintiraide.loppusijainti)
+        }
         api.locationTracks.getGeometryWithEmptyBodyAt(
             trackOid,
             deletePublication.uuid,
             httpStatus = HttpStatus.NO_CONTENT,
         )
+        api.locationTracks.getAtVersion(trackOid, deletePublication.uuid).also { track ->
+            assertEquals(startWithoutAddress, track.sijaintiraide.alkusijainti)
+            assertEquals(endWithoutAddress, track.sijaintiraide.loppusijainti)
+        }
     }
 
     private fun getExtLocationTrack(oid: Oid<LocationTrack>, publication: Publication? = null): ExtTestLocationTrackV1 =

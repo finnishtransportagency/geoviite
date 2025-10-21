@@ -22,14 +22,14 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.queryNotNull
 import fi.fta.geoviite.infra.util.queryOptional
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Transactional(readOnly = true)
 @Component
@@ -93,7 +93,8 @@ class GeocodingDao(
                       from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) kmp
                       where kmp.track_number_id = tn.id and kmp.state = 'IN_USE'
                   ) kmp on (true)
-                where ((:tn_id::int is null and tn.state != 'DELETED') or :tn_id = tn.id)
+                where (:tn_id::int is null or :tn_id = tn.id)
+                  and tn.state != 'DELETED'
             """
                 .trimIndent()
         val params =
@@ -115,86 +116,99 @@ class GeocodingDao(
                 // language=SQL
                 val sql =
                     """
-            with
-              tn_versions as (
-                select distinct on (id, is_design)
-                  id, design_id, version, deleted, case when design_id is not null then 0 else 1 end as is_design
-                from layout.track_number_version
-                where id = :tn_id
-                  and draft = false
-                  and (design_id is null or design_id = :design_id)
-                  and change_time <= :moment
-                order by id, is_design, version desc
-              ),
-              tn as (
-                select id, design_id, version
-                from tn_versions
-                where deleted = false
-                order by is_design
-                limit 1
-              ),
-              rl_versions as (
-                select distinct on (id, is_design)
-                  id, design_id, version, deleted, case when design_id is not null then 0 else 1 end as is_design
-                from layout.reference_line_version
-                where track_number_id = :tn_id
-                  and draft = false
-                  and (design_id is null or design_id = :design_id)
-                  and change_time <= :moment
-                order by id, is_design, version desc
-              ),
-              rl as (
-                select id, design_id, version
-                from rl_versions
-                where deleted = false
-                order by is_design
-                limit 1
-              ),
-              kmp_versions as (
-                select distinct on (id, is_design)
-                  id, design_id, version, state, deleted, case when design_id is not null then 0 else 1 end as is_design
-                from layout.km_post_version
-                where track_number_id = :tn_id
-                  and draft = false
-                  and (design_id is null or design_id = :design_id)
-                  and change_time <= :moment
-                order by id, is_design, version desc
-              ),
-              kmp as (
-                select distinct on (id) id, design_id, false as draft, version, state
-                from kmp_versions
-                where deleted = false
-                order by id, is_design
-              )
-            select
-              tn.id as tn_id,
-              tn.design_id as tn_design_id,
-              false as tn_draft,
-              tn.version as tn_version,
-              rl.id as rl_id,
-              rl.design_id as rl_design_id,
-              false as rl_draft,
-              rl.version as rl_version,
-              kmp_ids,
-              kmp_design_ids,
-              kmp_drafts,
-              kmp_versions
-            from tn
-              left join rl on true
-              left join lateral (
-                select
-                  coalesce(array_agg(kmp.id order by kmp.id, kmp.version)
-                           filter (where kmp.id is not null and kmp.state = 'IN_USE'), '{}') as kmp_ids,
-                  coalesce(array_agg(kmp.design_id order by kmp.id, kmp.version)
-                           filter (where kmp.id is not null and kmp.state = 'IN_USE'), '{}') as kmp_design_ids,
-                  coalesce(array_agg(kmp.draft order by kmp.id, kmp.version)
-                           filter (where kmp.id is not null and kmp.state = 'IN_USE'), '{}') as kmp_drafts,
-                  coalesce(array_agg(kmp.version order by kmp.id, kmp.version)
-                           filter (where kmp.id is not null and kmp.state = 'IN_USE'), '{}') as kmp_versions
-                from kmp
-              )
-               kmp on true
-        """
+                        with
+                          tn_versions as (
+                            select distinct on (id, is_design)
+                              id, design_id, version, state, deleted, case when design_id is not null then 0 else 1 end as is_design
+                            from layout.track_number_version
+                            where id = :tn_id
+                              and draft = false
+                              and (design_id is null or design_id = :design_id)
+                              and change_time <= :moment
+                            order by id, is_design, version desc
+                          ),
+                          tn as (
+                            select id, design_id, version, state
+                            from tn_versions
+                            where deleted = false
+                            order by is_design
+                            limit 1
+                          ),
+                          rl_versions as (
+                            select distinct on (id, is_design)
+                              id, design_id, version, deleted, case when design_id is not null then 0 else 1 end as is_design
+                            from layout.reference_line_version
+                            where track_number_id = :tn_id
+                              and draft = false
+                              and (design_id is null or design_id = :design_id)
+                              and change_time <= :moment
+                            order by id, is_design, version desc
+                          ),
+                          rl as (
+                            select id, design_id, version
+                            from rl_versions
+                            where deleted = false
+                            order by is_design
+                            limit 1
+                          ),
+                          kmp_versions as (
+                            select distinct on (id, is_design)
+                              id, design_id, version, state, deleted, case when design_id is not null then 0 else 1 end as is_design
+                            from layout.km_post_version
+                            where track_number_id = :tn_id
+                              and draft = false
+                              and (design_id is null or design_id = :design_id)
+                              and change_time <= :moment
+                            order by id, is_design, version desc
+                          ),
+                          kmp as (
+                            select distinct on (id) id, design_id, false as draft, version, state
+                            from kmp_versions
+                            where deleted = false
+                            order by id, is_design
+                          )
+                        select
+                          tn.id as tn_id,
+                          tn.design_id as tn_design_id,
+                          false as tn_draft,
+                          tn.version as tn_version,
+                          rl.id as rl_id,
+                          rl.design_id as rl_design_id,
+                          false as rl_draft,
+                          rl.version as rl_version,
+                          kmp_ids,
+                          kmp_design_ids,
+                          kmp_drafts,
+                          kmp_versions
+                        from tn
+                          left join rl on true
+                          left join lateral (
+                            select
+                              coalesce(
+                                array_agg(kmp.id order by kmp.id, kmp.version)
+                                  filter (where kmp.id is not null and kmp.state = 'IN_USE'),
+                                '{}'
+                              ) as kmp_ids,
+                              coalesce(
+                                array_agg(kmp.design_id order by kmp.id, kmp.version)
+                                  filter (where kmp.id is not null and kmp.state = 'IN_USE'),
+                                '{}'
+                              ) as kmp_design_ids,
+                              coalesce(
+                                array_agg(kmp.draft order by kmp.id, kmp.version)
+                                  filter (where kmp.id is not null and kmp.state = 'IN_USE'),
+                                '{}'
+                              ) as kmp_drafts,
+                              coalesce(
+                                array_agg(kmp.version order by kmp.id, kmp.version)
+                                  filter (where kmp.id is not null and kmp.state = 'IN_USE'),
+                                '{}'
+                              ) as kmp_versions
+                            from kmp
+                          )
+                           kmp on true
+                           where tn.state != 'DELETED'
+                    """
                         .trimIndent()
                 val params =
                     mapOf(
