@@ -46,6 +46,7 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.processFlattened
+import fi.fta.geoviite.infra.util.produceIf
 import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
@@ -181,7 +182,10 @@ class LocationTrackService(
         val trackData =
             dao.getManyOfficialAtMoment(context.branch, ids, moment).let(::associateWithGeometries).map {
                 (track, geometry) ->
-                Triple(track, geometry, getGeocodingContext(track.trackNumberId))
+                // Deleted tracks are not validated for the context which might live on after track deletion
+                // Hence, we don't have a valid addressing for deleted tracks
+                val geocodingContext = produceIf(track.exists) { getGeocodingContext(track.trackNumberId) }
+                Triple(track, geometry, geocodingContext)
             }
 
         return trackData
@@ -437,9 +441,8 @@ class LocationTrackService(
                 ?.let { km -> geocodingContext.kms.find { it.kmNumber >= km }?.startAddress ?: trackEnd }
                 ?.coerceAtLeast(trackStart) ?: trackStart
         val rangeEnd =
-            endKm
-                ?.let { km -> geocodingContext.kms.find { it.kmNumber > km }?.startAddress }
-                ?.coerceAtMost(trackEnd) ?: trackEnd
+            endKm?.let { km -> geocodingContext.kms.find { it.kmNumber > km }?.startAddress }?.coerceAtMost(trackEnd)
+                ?: trackEnd
         return if (rangeStart < rangeEnd) Range(rangeStart, rangeEnd) else null
     }
 

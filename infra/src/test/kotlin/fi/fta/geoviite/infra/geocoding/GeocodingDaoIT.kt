@@ -6,9 +6,8 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentService
-import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutState
@@ -19,6 +18,7 @@ import fi.fta.geoviite.infra.tracklayout.geocodingContextCacheKey
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.segment
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -37,10 +37,8 @@ constructor(
     val trackNumberDao: LayoutTrackNumberDao,
     val referenceLineDao: ReferenceLineDao,
     val alignmentDao: LayoutAlignmentDao,
-    val alignmentService: LayoutAlignmentService,
     val kmPostDao: LayoutKmPostDao,
     val kmPostService: LayoutKmPostService,
-    val designDao: LayoutDesignDao,
 ) : DBTestBase() {
 
     @Test
@@ -254,5 +252,38 @@ constructor(
         assertEquals(designKeyV2, geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, version2Time))
         assertEquals(mainKeyV3, geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, version3Time))
         assertEquals(designKeyV3, geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, version3Time))
+    }
+
+    // A deleted track number is likely borked for geocoding and should never be used.
+    // The issues are (at least) that:
+    // - DELETED track numbers are not validated in publication to be intact
+    // - There is no way to differentiate between km-posts that are deleted because the track number was deleted and
+    //   ones that were already deleted before that
+    @Test
+    fun `No cache keys are returned for deleted TrackNumbers`() {
+        val tnV1 = mainOfficialContext.createLayoutTrackNumber()
+        val tnId = tnV1.id
+        val rlV1 =
+            mainOfficialContext.saveReferenceLine(
+                referenceLineAndAlignment(tnId, segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+            )
+        val kmpV1 = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
+        val dbTimeAfterInit = testDBService.getDbTime()
+        assertEquals(
+            geocodingContextCacheKey(tnId, tnV1, rlV1, kmpV1),
+            geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId),
+        )
+
+        Thread.sleep(2) // Sleep to ensure different timestamp for update
+        testDBService.update(tnV1) { tn -> tn.copy(state = LayoutState.DELETED) }
+        val dbTimeAfterDelete = testDBService.getDbTime()
+        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId))
+
+        // Verify moment fetches as well
+        assertEquals(
+            geocodingContextCacheKey(tnId, tnV1, rlV1, kmpV1),
+            geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, dbTimeAfterInit),
+        )
+        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, dbTimeAfterDelete))
     }
 }
