@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.authorization
 
-import fi.fta.geoviite.infra.aspects.GeoviiteController
+import fi.fta.geoviite.infra.aspects.GeoviiteCommonController
 import fi.fta.geoviite.infra.cloudfront.CloudFrontCookies
 import fi.fta.geoviite.infra.cloudfront.CookieSigner
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestParam
 
-@GeoviiteController("/authorization")
+@GeoviiteCommonController("/authorization")
 class AuthorizationController
 @Autowired
 constructor(

@@ -7,25 +7,44 @@ import fi.fta.geoviite.infra.authorization.AUTH_API_SWAGGER
 import io.swagger.v3.oas.annotations.Hidden
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Profile
+import org.springframework.core.env.Environment
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 
 const val OPENAPI_GEOVIITE_PATH = "/geoviite/v3/api-docs/geoviite"
+const val OPENAPI_GEOVIITE_NO_PREFIX_PATH = "/geoviite/v3/api-docs/geoviite-user-api"
+
 const val OPENAPI_GEOVIITE_DEV_PATH = "/geoviite/dev/v3/api-docs/geoviite-dev"
+const val OPENAPI_GEOVIITE_DEV_NO_PREFIX_PATH = "/geoviite/dev/v3/api-docs/geoviite-user-api"
 
 const val OPENAPI_RATAVKM_PATH = "/rata-vkm/static/openapi-rata-vkm-v1.yml"
 const val OPENAPI_RATAVKM_DEV_PATH = "/rata-vkm/dev/static/openapi-rata-vkm-v1.yml"
 
-val allowedResourcePrefixes = listOf("/geoviite", "/rata-vkm")
+val allowedResourcePrefixes = listOf("/", "/geoviite", "/rata-vkm")
 
 val allowedApiDefinitionPaths =
-    listOf(OPENAPI_GEOVIITE_PATH, OPENAPI_GEOVIITE_DEV_PATH, OPENAPI_RATAVKM_PATH, OPENAPI_RATAVKM_DEV_PATH)
+    listOf(
+        OPENAPI_GEOVIITE_PATH,
+        OPENAPI_GEOVIITE_NO_PREFIX_PATH,
+        OPENAPI_GEOVIITE_DEV_PATH,
+        OPENAPI_RATAVKM_PATH,
+        OPENAPI_RATAVKM_DEV_PATH,
+    )
 
 @GeoviiteExtApiController([])
 @Hidden // These controller paths are hidden from the dynamically generated OpenApi definitions.
-class SwaggerController {
+class SwaggerController @Autowired constructor(env: Environment) {
+
+    private val openApiGeoviiteNoPrefixPath: String by lazy {
+        if ("ext-api-dev-swagger" in env.activeProfiles.toSet()) {
+            OPENAPI_GEOVIITE_DEV_NO_PREFIX_PATH
+        } else {
+            OPENAPI_GEOVIITE_NO_PREFIX_PATH
+        }
+    }
 
     @PreAuthorize(AUTH_API_GEOMETRY)
     @GetMapping(
@@ -38,6 +57,12 @@ class SwaggerController {
     )
     fun sendGeoviiteSwaggerIndexRedirect(response: HttpServletResponse) {
         sendRedirect(response, "/geoviite/swagger-ui/index.html?url=$OPENAPI_GEOVIITE_PATH")
+    }
+
+    @PreAuthorize(AUTH_API_GEOMETRY)
+    @GetMapping("", "/", "/swagger-ui", "/swagger-ui/", params = ["!url"])
+    fun sendGeoviiteSwaggerNoPrefixIndexRedirect(response: HttpServletResponse) {
+        sendRedirect(response, "/swagger-ui/index.html?url=$openApiGeoviiteNoPrefixPath")
     }
 
     @Profile("ext-api-dev-swagger")
@@ -115,7 +140,11 @@ private fun swaggerResourceRequest(
     val apiDefinitionPathOk = request.getParameter("url")?.let(allowedApiDefinitionPaths::contains) ?: true
 
     if (resourcePrefixOk && apiDefinitionPathOk) {
-        request.getRequestDispatcher(request.requestURI.removePrefix(prefixWithLeadingSlash)).forward(request, response)
+        val dispatcherUri =
+            if (prefixWithLeadingSlash == "/") prefixWithLeadingSlash
+            else request.requestURI.removePrefix(prefixWithLeadingSlash)
+
+        request.getRequestDispatcher(dispatcherUri).forward(request, response)
     } else {
         response.status = HttpServletResponse.SC_NOT_FOUND
     }

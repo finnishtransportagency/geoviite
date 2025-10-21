@@ -36,20 +36,6 @@ import fi.fta.geoviite.infra.logging.apiResponse
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
-import org.springframework.core.annotation.Order
-import org.springframework.core.io.UrlResource
-import org.springframework.http.MediaType
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.stereotype.Component
-import org.springframework.web.context.request.ServletWebRequest
-import org.springframework.web.context.request.WebRequest
-import org.springframework.web.filter.OncePerRequestFilter
 import java.net.URL
 import java.security.KeyFactory
 import java.security.interfaces.ECPublicKey
@@ -58,6 +44,21 @@ import java.security.spec.X509EncodedKeySpec
 import java.time.Duration
 import java.time.Instant
 import java.util.*
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
+import org.springframework.core.annotation.Order
+import org.springframework.core.env.Environment
+import org.springframework.core.io.UrlResource
+import org.springframework.http.MediaType
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.stereotype.Component
+import org.springframework.web.context.request.ServletWebRequest
+import org.springframework.web.context.request.WebRequest
+import org.springframework.web.filter.OncePerRequestFilter
 
 const val HTTP_HEADER_REMOTE_IP = "X-FORWARDED-FOR"
 const val HTTP_HEADER_CORRELATION_ID = "X-Amzn-Trace-Id"
@@ -85,6 +86,7 @@ constructor(
     @Value("\${geoviite.api-root:}") private val apiRoot: String,
     @Value("\${geoviite.app-root:}") private val appRoot: String,
     private val extApi: ExtApiConfiguration,
+    private val env: Environment,
     private val environmentInfo: EnvironmentInfo,
     private val localizationService: LocalizationService,
 ) : OncePerRequestFilter() {
@@ -98,6 +100,8 @@ constructor(
         check(jwksUrl.isNotBlank()) { "Invalid configuration: set property geoviite.jwt.validation.url" }
         UrlJwkProvider(URL("$jwksUrl/.well-known/jwks.json"))
     }
+
+    private val redirectRootToAppRoot: Boolean by lazy { "backend" in env.activeProfiles.toSet() }
 
     private fun localUser(activeRole: Role, availableRoles: List<Role>): User {
         return User(
@@ -192,7 +196,7 @@ constructor(
             if (path.startsWith(apiRoot)) {
                 val newPath = path.replace(apiRoot, "")
                 request.getRequestDispatcher(newPath).forward(request, response)
-            } else if (path == "/" && appRoot.isNotBlank()) {
+            } else if (path == "/" && appRoot.isNotBlank() && redirectRootToAppRoot) {
                 // Redirect browser from server root to <url>/$appRoot/
                 // (So that Geoviite UI can open without specifying the /app/ path in the bowser).
                 response.status = HttpServletResponse.SC_FOUND
@@ -356,7 +360,9 @@ constructor(
     }
 
     private fun isExtApiRequest(request: HttpServletRequest): Boolean {
-        return extApi.enabled && extApi.urlPathPrefixes.any { prefix -> request.requestURI.startsWith(prefix) }
+        return extApi.enabled &&
+            extApi.urlPathPrefixes.any { prefix -> request.requestURI.startsWith(prefix) } &&
+            (skipAuth || request.getHeader("x-forwarded-host")?.isNotEmpty() == true)
     }
 
     private fun determineExtApiUserOrThrow(request: HttpServletRequest): User {
