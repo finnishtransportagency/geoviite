@@ -5,13 +5,13 @@ import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeatureCollection
 import fi.fta.geoviite.infra.aspects.DisableDefaultGeoviiteLogging
 import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
-import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.logging.apiResult
 import fi.fta.geoviite.infra.util.Either
 import fi.fta.geoviite.infra.util.processRights
+import java.math.BigDecimal
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
-import java.math.BigDecimal
 
 const val EXT_FRAME_CONVERTER_BASE_PATH = "/rata-vkm"
 
@@ -158,7 +157,11 @@ constructor(
         params: FrameConverterQueryParamsV1,
     ): List<List<GeoJsonFeature>> {
         return processRequests(
-            frameConverterServiceV1.validateTrackAddressToCoordinateRequests(assertRequestType(requests), params),
+            frameConverterServiceV1.validateTrackAddressToCoordinateRequests(
+                LayoutBranch.main,
+                assertRequestType(requests),
+                params,
+            ),
             params,
             { validated, _ -> validated },
             frameConverterServiceV1::trackAddressesToCoordinates,
@@ -189,12 +192,12 @@ constructor(
         requests: List<Request>,
         params: FrameConverterQueryParamsV1,
         validate: (Request, FrameConverterQueryParamsV1) -> Either<List<GeoJsonFeatureErrorResponseV1>, ValidRequest>,
-        process: (LayoutContext, List<ValidRequest>, FrameConverterQueryParamsV1) -> List<List<GeoJsonFeature>>,
+        process: (LayoutBranch, List<ValidRequest>, FrameConverterQueryParamsV1) -> List<List<GeoJsonFeature>>,
     ): List<List<GeoJsonFeature>> =
         processRights(
             requests,
             { request -> validate(request, params) },
-            { validRequests -> process(MainLayoutContext.official, validRequests, params) },
+            { validRequests -> process(LayoutBranch.main, validRequests, params) },
         )
 
     private fun logRequestAmount(method: String, requests: List<FrameConverterRequestV1>) {
