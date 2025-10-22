@@ -156,6 +156,7 @@ constructor(
                 switchChanges = listOf(),
                 locationTrackChanges = listOf(),
                 referenceLineChanges = listOf(),
+                operationalPointChanges = listOf(),
             ),
             IndirectChanges(trackNumberChanges = listOf(), switchChanges = listOf(), locationTrackChanges = listOf()),
         )

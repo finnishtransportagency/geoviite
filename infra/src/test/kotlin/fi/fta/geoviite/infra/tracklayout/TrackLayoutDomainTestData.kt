@@ -46,7 +46,6 @@ import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.PublishedVersions
-import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
@@ -504,37 +503,6 @@ fun locationTrack(
         topologicalConnectivity = topologicalConnectivity,
         ownerId = ownerId,
         contextData = contextData,
-    )
-
-private var operationalPointNameCounter = 0
-private var operationalPointAbbreviationCounter = 0
-private var uicCodeCounter = 0
-
-fun operationalPoint(
-    name: String = "Operational point ${operationalPointNameCounter++}",
-    abbreviation: String = "OP${operationalPointAbbreviationCounter++}",
-    uicCode: String = "${100000 + uicCodeCounter++}",
-    rinfType: Int? = null,
-    raideType: OperationalPointType? = null,
-    location: Point? = null,
-    polygon: Polygon? = null,
-    draft: Boolean = false,
-    state: OperationalPointState = OperationalPointState.IN_USE,
-    origin: OperationalPointOrigin = OperationalPointOrigin.RATKO,
-    id: IntId<OperationalPoint>? = null,
-    contextData: LayoutContextData<OperationalPoint> = createMainContext(id, draft),
-) =
-    OperationalPoint(
-        OperationalPointName(name),
-        OperationalPointAbbreviation(abbreviation),
-        UicCode(uicCode),
-        rinfType,
-        raideType,
-        polygon,
-        location,
-        state,
-        origin,
-        contextData,
     )
 
 fun <T> someOid() = Oid<T>("${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}")
@@ -1174,4 +1142,30 @@ fun publishedVersions(
     locationTracks: List<Change<LayoutRowVersion<LocationTrack>>> = listOf(),
     switches: List<Change<LayoutRowVersion<LayoutSwitch>>> = listOf(),
     kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>> = listOf(),
-) = PublishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts)
+    operationalPoints: List<Change<LayoutRowVersion<OperationalPoint>>> = listOf(),
+) = PublishedVersions(trackNumbers, referenceLines, locationTracks, switches, kmPosts, operationalPoints)
+
+fun operationalPoint(
+    name: String = "name",
+    abbreviation: String = name,
+    rinfType: Int? = 10,
+    state: OperationalPointState = OperationalPointState.IN_USE,
+    uicCode: String? = "1234",
+    location: Point = Point(10.0, 10.0),
+    polygon: Polygon = Polygon(Point(0.0, 0.0), Point(20.0, 0.0), Point(20.0, 20.0), Point(0.0, 20.0), Point(0.0, 0.0)),
+    origin: OperationalPointOrigin = OperationalPointOrigin.GEOVIITE,
+    draft: Boolean = true,
+    contextData: LayoutContextData<OperationalPoint> = createMainContext(null, draft),
+): OperationalPoint =
+    OperationalPoint(
+        name = OperationalPointName(name),
+        OperationalPointAbbreviation(abbreviation),
+        rinfType = rinfType,
+        state = state,
+        uicCode = uicCode?.let(::UicCode),
+        location = location,
+        raideType = null,
+        polygon = polygon,
+        origin = origin,
+        contextData = contextData,
+    )

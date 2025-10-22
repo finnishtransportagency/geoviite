@@ -75,6 +75,7 @@ export const emptyPublicationRequestIds = (): PublicationRequestIds => ({
     referenceLines: [],
     switches: [],
     kmPosts: [],
+    operationalPoints: [],
 });
 
 const addCandidateTypeAndState = (

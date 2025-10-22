@@ -27,8 +27,8 @@ import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
 import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
-import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItem
@@ -540,7 +540,7 @@ private fun marshallOperatingPoint(point: RatkoOperationalPointParse): RatkoOper
                 RatkoAssetProperty("operational_point_type", enumValue = point.type.name),
                 RatkoAssetProperty("name", stringValue = point.name),
                 RatkoAssetProperty("operational_point_abbreviation", stringValue = point.abbreviation),
-                RatkoAssetProperty("operational_point_code", stringValue = point.uicCode),
+                RatkoAssetProperty("operational_point_code", integerValue = point.uicCode?.toInt()),
             ),
         locations =
             listOf(

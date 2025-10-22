@@ -66,7 +66,7 @@ create table layout.operational_point
   origin_design_id   int,
   name               varchar(150)                   not null,
   abbreviation       varchar(20),
-  uic_code           varchar(20)                    not null,
+  uic_code           varchar(20),
   type               layout.operational_point_type,
   location           postgis.geometry(Point, 3067),
   state              layout.operational_point_state not null,
@@ -111,7 +111,8 @@ insert into layout.operational_point
       'main_official',
       name,
       abbreviation,
-      uic_code,
+      -- hack for compatibility with older production database dumps: Null out empty UIC codes
+      case when uic_code != '' then uic_code end,
       type,
       location,
       'IN_USE',

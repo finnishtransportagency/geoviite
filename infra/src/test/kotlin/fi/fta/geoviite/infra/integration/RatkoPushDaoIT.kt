@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.publishedVersions
@@ -268,6 +269,7 @@ constructor(
         locationTracks: List<Change<LayoutRowVersion<LocationTrack>>> = listOf(),
         switches: List<Change<LayoutRowVersion<LayoutSwitch>>> = listOf(),
         kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>> = listOf(),
+        operationalPoints: List<Change<LayoutRowVersion<OperationalPoint>>> = listOf(),
         message: String = "",
     ): IntId<Publication> =
         publicationDao
@@ -303,6 +305,7 @@ constructor(
                                         )
                                     },
                                 switchChanges = switches.map { SwitchChange(it.new.id, emptyList()) },
+                                operationalPointChanges = operationalPoints.map { it.new.id },
                             ),
                         indirectChanges =
                             IndirectChanges(

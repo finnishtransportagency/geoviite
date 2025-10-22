@@ -48,6 +48,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
@@ -62,6 +65,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -113,6 +117,7 @@ constructor(
     val locationTrackService: LocationTrackService,
     val switchDao: LayoutSwitchDao,
     val switchService: LayoutSwitchService,
+    val operationalPointDao: OperationalPointDao,
     val switchStructureDao: SwitchStructureDao,
     val splitDao: SplitDao,
     val splitService: SplitService,
@@ -147,6 +152,8 @@ constructor(
         val kmPosts =
             mainDraftContext.saveMany(kmPost(trackNumbers[0].id, KmNumber(1)), kmPost(trackNumbers[0].id, KmNumber(2)))
 
+        val operationalPoints = mainDraftContext.saveMany(operationalPoint("foo"), operationalPoint("bar"))
+
         val publicationRequestIds =
             PublicationRequestIds(
                 trackNumbers.map { it.id },
@@ -154,6 +161,7 @@ constructor(
                 referenceLines.map { it.id },
                 switches.map { it.id },
                 kmPosts.map { it.id },
+                operationalPoints.map { it.id },
             )
 
         val publicationVersions = publicationService.getValidationVersions(LayoutBranch.main, publicationRequestIds)
@@ -644,7 +652,7 @@ constructor(
         val revertResult =
             publicationService.revertPublicationCandidates(
                 LayoutBranch.main,
-                PublicationRequestIds(listOf(), listOf(), listOf(), listOf(switch1), listOf()),
+                publicationRequestIds(switches = listOf(switch1)),
             )
 
         assertEquals(revertResult.switches, 1)
@@ -1913,6 +1921,32 @@ constructor(
         assertEquals(0, referenceLineDao.list(mainDraftContext.context, false).size)
     }
 
+    @Test
+    fun `operational point creation and edit can be published`() {
+        val op = operationalPoint()
+        val id = mainDraftContext.save(op).id
+        publicationService.publishManualPublication(
+            LayoutBranch.main,
+            PublicationRequest(publicationRequestIds(operationalPoints = listOf(id)), PublicationMessage.of("foo")),
+        )
+        val publishedVersion = mainOfficialContext.fetchVersion(id)!!
+        assertEquals(id, publishedVersion.id)
+        val official = operationalPointDao.fetch(publishedVersion)
+        assertEquals(op.name, official.name)
+        assertEquals(op.abbreviation, official.abbreviation)
+        assertEquals(op.location, official.location)
+        assertEquals(op.polygon, official.polygon)
+        assertEquals(op.origin, official.origin)
+
+        mainDraftContext.save(official.copy(name = OperationalPointName("Lordistan")))
+        publicationService.publishManualPublication(
+            LayoutBranch.main,
+            PublicationRequest(publicationRequestIds(operationalPoints = listOf(id)), PublicationMessage.of("bar")),
+        )
+        val editedOfficial = mainOfficialContext.fetch(id)!!
+        assertEquals("Lordistan", editedOfficial.name.toString())
+    }
+
     private fun touchAsDraftAndPublish(
         branch: LayoutBranch,
         trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
@@ -2126,7 +2160,9 @@ fun publicationRequestIds(
     referenceLines: List<IntId<ReferenceLine>> = listOf(),
     switches: List<IntId<LayoutSwitch>> = listOf(),
     kmPosts: List<IntId<LayoutKmPost>> = listOf(),
-): PublicationRequestIds = PublicationRequestIds(trackNumbers, locationTracks, referenceLines, switches, kmPosts)
+    operationalPoints: List<IntId<OperationalPoint>> = listOf(),
+): PublicationRequestIds =
+    PublicationRequestIds(trackNumbers, locationTracks, referenceLines, switches, kmPosts, operationalPoints)
 
 fun <T : LayoutAsset<T>, S : LayoutAssetDao<T, *>> publishAndCheck(
     rowVersion: LayoutRowVersion<T>,

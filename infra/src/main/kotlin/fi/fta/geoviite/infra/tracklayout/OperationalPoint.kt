@@ -13,7 +13,7 @@ import fi.fta.geoviite.infra.util.StringSanitizer
 data class OperationalPoint(
     val name: OperationalPointName,
     val abbreviation: OperationalPointAbbreviation?,
-    val uicCode: UicCode,
+    val uicCode: UicCode?,
     val rinfType: Int?,
     val raideType: OperationalPointType?,
     val polygon: Polygon?,
@@ -49,7 +49,7 @@ data class SearchOperationalPointsByLocation(override val bbox: BoundingBox) : O
 
 data class UicCode @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
     companion object {
-        val allowedLength = 0..20
+        val allowedLength = 1..20
         val sanitizer = StringSanitizer(UicCode::class, "0-9", allowedLength)
     }
 

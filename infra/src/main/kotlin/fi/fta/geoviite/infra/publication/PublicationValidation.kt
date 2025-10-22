@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -39,6 +40,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameBetweenOperatingPoints
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameChord
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.TOPOLOGY_CALC_DISTANCE
@@ -54,6 +56,7 @@ const val VALIDATION_REFERENCE_LINE = "$VALIDATION.reference-line"
 const val VALIDATION_LOCATION_TRACK = "$VALIDATION.location-track"
 const val VALIDATION_GEOCODING = "$VALIDATION.geocoding"
 const val VALIDATION_SWITCH = "$VALIDATION.switch"
+const val VALIDATION_OPERATIONAL_POINT = "$VALIDATION.operational-point"
 
 private const val JOINT_LOCATION_DELTA = 0.5
 const val MAX_LAYOUT_POINT_ANGLE_CHANGE = PI / 2
@@ -96,13 +99,75 @@ fun validateTrackNumberNumberDuplication(
     duplicates: List<LayoutTrackNumber>,
     validationTargetType: ValidationTargetType,
 ): List<LayoutValidationIssue> =
-    validateNameDuplication(
-        VALIDATION_TRACK_NUMBER,
+    validateNameDuplication(VALIDATION_TRACK_NUMBER, validationTargetType, trackNumber, duplicates) {
+        listOf("trackNumber" to trackNumber.number)
+    }
+
+fun validateOperationalPointNameDuplication(
+    operationalPoint: OperationalPoint,
+    duplicates: List<OperationalPoint>,
+    validationTargetType: ValidationTargetType,
+): List<LayoutValidationIssue> =
+    validateDuplication(
+        "duplicate-name",
+        VALIDATION_OPERATIONAL_POINT,
         validationTargetType,
-        duplicates.any { d -> d.id != trackNumber.id && d.isOfficial },
-        duplicates.any { d -> d.id != trackNumber.id && d.isDraft },
-        "trackNumber" to trackNumber.number,
-    )
+        operationalPoint,
+        duplicates,
+    ) {
+        listOf("name" to operationalPoint.name)
+    }
+
+fun validateOperationalPointAbbreviationDuplication(
+    operationalPoint: OperationalPoint,
+    duplicates: List<OperationalPoint>,
+    validationTargetType: ValidationTargetType,
+): List<LayoutValidationIssue> =
+    validateDuplication(
+        "duplicate-abbreviation",
+        VALIDATION_OPERATIONAL_POINT,
+        validationTargetType,
+        operationalPoint,
+        duplicates,
+    ) { contextDuplicates ->
+        listOf(
+            "abbreviation" to operationalPoint.abbreviation.toString(),
+            "duplicateNames" to contextDuplicates.joinToString { it.name.toString() },
+        )
+    }
+
+fun validateOperationalPointUicCodeDuplication(
+    operationalPoint: OperationalPoint,
+    duplicates: List<OperationalPoint>,
+    validationTargetType: ValidationTargetType,
+): List<LayoutValidationIssue> =
+    validateDuplication(
+        "duplicate-uic-code",
+        VALIDATION_OPERATIONAL_POINT,
+        validationTargetType,
+        operationalPoint,
+        duplicates,
+    ) { contextDuplicates ->
+        listOf(
+            "uicCode" to operationalPoint.uicCode.toString(),
+            "duplicateNames" to contextDuplicates.joinToString { it.name.toString() },
+        )
+    }
+
+fun validateOperationalPointPolygonOverlap(
+    operationalPoint: OperationalPoint,
+    overlapsWith: List<OperationalPoint>,
+    validationTargetType: ValidationTargetType,
+): List<LayoutValidationIssue> =
+    validateDuplication(
+        "overlapping-polygon",
+        VALIDATION_OPERATIONAL_POINT,
+        validationTargetType,
+        operationalPoint,
+        overlapsWith,
+    ) { contextDuplicates ->
+        listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
+    }
 
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,
@@ -131,19 +196,17 @@ fun validateKmPostReferences(
 fun validateKmPostNumberDuplication(
     kmPost: LayoutKmPost,
     trackNumber: TrackNumber,
-    sameTrackNumberKmPosts: List<LayoutKmPost>,
+    allKmPostsOnSameTrackNumber: List<LayoutKmPost>,
     validationTargetType: ValidationTargetType,
-): List<LayoutValidationIssue> {
-    val duplicates = sameTrackNumberKmPosts.filter { it.id != kmPost.id && it.kmNumber == kmPost.kmNumber }
-    return validateNameDuplication(
+): List<LayoutValidationIssue> =
+    validateNameDuplication(
         VALIDATION_KM_POST,
         validationTargetType,
-        duplicates.any { it.isOfficial },
-        duplicates.any { it.isDraft },
-        "kmNumber" to kmPost.kmNumber,
-        "trackNumber" to trackNumber.toString(),
-    )
-}
+        kmPost,
+        allKmPostsOnSameTrackNumber.filter { it.kmNumber == kmPost.kmNumber },
+    ) {
+        listOf("kmNumber" to kmPost.kmNumber, "trackNumber" to trackNumber.toString())
+    }
 
 fun validateSwitchLocationTrackLinkReferences(
     switchExists: Boolean,
@@ -164,22 +227,36 @@ fun validateSwitchLocationTrackLinkReferences(
 fun validateSwitchLocation(switch: LayoutSwitch): List<LayoutValidationIssue> =
     listOfNotNull(validate(switch.joints.isNotEmpty()) { "$VALIDATION_SWITCH.no-location" })
 
-private fun validateNameDuplication(
+private fun <T : LayoutAsset<T>> validateNameDuplication(
     messagePrefix: String,
     validationTargetType: ValidationTargetType,
-    officialDuplicateExists: Boolean,
-    draftDuplicateExists: Boolean,
-    vararg params: Pair<String, Any?>,
+    asset: T,
+    duplicates: List<T>,
+    makeParams: (duplicates: List<T>) -> List<Pair<String, Any?>>,
+): List<LayoutValidationIssue> =
+    validateDuplication("duplicate-name", messagePrefix, validationTargetType, asset, duplicates, makeParams)
+
+private fun <T : LayoutAsset<T>> validateDuplication(
+    duplicateFieldMessageName: String,
+    messagePrefix: String,
+    validationTargetType: ValidationTargetType,
+    asset: T,
+    duplicates: List<T>,
+    makeParams: (duplicates: List<T>) -> List<Pair<String, Any?>>,
 ): List<LayoutValidationIssue> {
+    val draftDuplicates = duplicates.filter { d -> d.id != asset.id && d.isDraft }
+    val officialDuplicates = duplicates.filter { d -> d.id != asset.id && d.isOfficial }
     val isMergingToMain = validationTargetType == ValidationTargetType.MERGING_TO_MAIN
-    val key =
-        if (isMergingToMain && draftDuplicateExists) "duplicate-name-draft-in-main"
-        else if (draftDuplicateExists) "duplicate-name-draft"
-        else if (officialDuplicateExists) "duplicate-name-official" else null
-    return if (key == null) emptyList()
-    else {
-        listOf(validationFatal("$messagePrefix.$key", *params))
-    }
+    fun toParams(ds: List<T>) = LocalizationParams(makeParams(ds).associate { (k, v) -> k to (v?.toString() ?: "") })
+    return listOfNotNull(
+        validateWithParams(draftDuplicates.isEmpty(), FATAL) {
+            (if (isMergingToMain) "$messagePrefix.$duplicateFieldMessageName-draft-in-main"
+            else "$messagePrefix.$duplicateFieldMessageName-draft") to toParams(draftDuplicates)
+        },
+        validateWithParams(officialDuplicates.isEmpty(), FATAL) {
+            "$messagePrefix.$duplicateFieldMessageName-official" to toParams(officialDuplicates)
+        },
+    )
 }
 
 fun validateSwitchNameDuplication(
@@ -188,13 +265,9 @@ fun validateSwitchNameDuplication(
     validationTargetType: ValidationTargetType,
 ): List<LayoutValidationIssue> {
     return if (switch.exists) {
-        validateNameDuplication(
-            VALIDATION_SWITCH,
-            validationTargetType,
-            duplicates.any { d -> d.id != switch.id && d.isOfficial },
-            duplicates.any { d -> d.id != switch.id && d.isDraft },
-            "switch" to switch.name,
-        )
+        validateNameDuplication(VALIDATION_SWITCH, validationTargetType, switch, duplicates) {
+            listOf("switch" to switch.name)
+        }
     } else {
         emptyList()
     }
@@ -286,17 +359,15 @@ fun validateLocationTrackNameDuplication(
     duplicates: List<LocationTrack>,
     validationTargetType: ValidationTargetType,
 ): List<LayoutValidationIssue> {
-    return if (track.exists && duplicates.any { d -> d.id != track.id }) {
+    return if (track.exists) {
         validateNameDuplication(
             VALIDATION_LOCATION_TRACK,
             validationTargetType,
-            // Location track names must be unique within the same track number, but there can be
-            // location tracks with the same name on other track numbers
-            duplicates.any { d -> d.id != track.id && d.isOfficial && d.trackNumberId == track.trackNumberId },
-            duplicates.any { d -> d.id != track.id && d.isDraft && d.trackNumberId == track.trackNumberId },
-            "locationTrack" to track.name,
-            "trackNumber" to trackNumber,
-        )
+            track,
+            duplicates.filter { it.trackNumberId == track.trackNumberId },
+        ) {
+            listOf("locationTrack" to track.name, "trackNumber" to trackNumber)
+        }
     } else emptyList()
 }
 

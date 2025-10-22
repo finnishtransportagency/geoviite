@@ -13,6 +13,9 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
+import fi.fta.geoviite.infra.publication.PublicationValidationService
+import fi.fta.geoviite.infra.publication.ValidatedAsset
+import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -25,7 +28,10 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 
 @GeoviiteController("/track-layout")
-class OperationalPointController(private val operationalPointService: OperationalPointService) {
+class OperationalPointController(
+    private val operationalPointService: OperationalPointService,
+    private val publicationValidationService: PublicationValidationService,
+) {
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}")
     fun getSingleOperatingPoint(
@@ -123,5 +129,18 @@ class OperationalPointController(private val operationalPointService: Operationa
     ): ResponseEntity<LayoutAssetChangeInfo> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return toResponse(operationalPointService.getLayoutAssetChangeInfo(context, id))
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/validation")
+    fun validateOperationalPoint(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("id") id: IntId<OperationalPoint>,
+    ): ResponseEntity<ValidatedAsset<OperationalPoint>> {
+        return publicationValidationService
+            .validateOperationalPoints(draftTransitionOrOfficialState(publicationState, layoutBranch), listOf(id))
+            .firstOrNull()
+            .let(::toResponse)
     }
 }

@@ -83,6 +83,7 @@ constructor(
                     it.referenceLines.map(ReferenceLinePublicationCandidate::id),
                     it.switches.map(SwitchPublicationCandidate::id),
                     it.kmPosts.map(KmPostPublicationCandidate::id),
+                    it.operationalPoints.map(OperationalPointPublicationCandidate::id),
                 )
             }
         publicationService.revertPublicationCandidates(LayoutBranch.main, request)

@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.validateSplitContent
@@ -39,6 +40,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
@@ -54,6 +56,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -64,6 +67,7 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -77,7 +81,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -222,6 +225,7 @@ constructor(
                     kmPosts = listOf(),
                     referenceLines = listOf(referenceLineId),
                     switches = listOf(draftSwitchId, newSwitch1, newSwitch2),
+                    operationalPoints = listOf(),
                 ),
             )
 
@@ -318,13 +322,7 @@ constructor(
             val validation =
                 publicationValidationService.validatePublicationCandidates(
                     publicationService.collectPublicationCandidates(PublicationInMain),
-                    PublicationRequestIds(
-                        trackNumbers = listOf(),
-                        locationTracks = listOf(*publishableTracks),
-                        kmPosts = listOf(),
-                        referenceLines = listOf(),
-                        switches = listOf(),
-                    ),
+                    publicationRequestIds(locationTracks = listOf(*publishableTracks)),
                 )
             val trackErrors = validation.validatedAsPublicationUnit.locationTracks[0].issues
             return trackErrors.find { error ->
@@ -740,13 +738,7 @@ constructor(
         val validated =
             publicationValidationService.validatePublicationCandidates(
                 publicationService.collectPublicationCandidates(MergeFromDesign(design)),
-                PublicationRequestIds(
-                    trackNumbers = listOf(trackNumberId),
-                    locationTracks = listOf(),
-                    kmPosts = listOf(),
-                    referenceLines = listOf(referenceLineId),
-                    switches = listOf(),
-                ),
+                publicationRequestIds(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId)),
             )
         val referenceLineIssues = validated.validatedAsPublicationUnit.referenceLines[0].issues
         assertEquals(1, referenceLineIssues.size)
@@ -761,14 +753,7 @@ constructor(
         stagedSwitches: List<IntId<LayoutSwitch>> = listOf(),
         stagedTracks: List<IntId<LocationTrack>> = listOf(locationTrackId),
     ): LocationTrackPublicationCandidate {
-        val publicationRequestIds =
-            PublicationRequestIds(
-                trackNumbers = listOf(),
-                locationTracks = stagedTracks,
-                referenceLines = listOf(),
-                switches = stagedSwitches,
-                kmPosts = listOf(),
-            )
+        val publicationRequestIds = publicationRequestIds(locationTracks = stagedTracks, switches = stagedSwitches)
 
         val validationResult =
             publicationValidationService.validateAsPublicationUnit(
@@ -1031,10 +1016,7 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.WARNING,
                 "validation.layout.switch.track-linkage.switch-alignment-multiply-connected",
-                mapOf(
-                    "locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})",
-                    "switch" to "TV123",
-                ),
+                mapOf("locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})", "switch" to "TV123"),
             ),
         )
     }
@@ -2109,9 +2091,331 @@ constructor(
                     LayoutValidationIssueType.ERROR,
                     "$VALIDATION_LOCATION_TRACK.switch-linkage.switch-no-alignments-connected",
                     mapOf("switch" to "impossiboru switch name"),
+                ),
+            ),
+            validatedDeleted.validatedAsPublicationUnit.locationTracks[0].issues,
+        )
+    }
+
+    @Test
+    fun `operational point validation checks for polygon overlap`() {
+        val middleOfPolygon = Point(5.0, 5.0)
+        val polyPoints = listOf(Point(0.0, 0.0), Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 10.0), Point(0.0, 0.0))
+
+        // official at 0..10
+        mainOfficialContext
+            .save(
+                operationalPoint(name = "a", uicCode = "1", location = middleOfPolygon, polygon = Polygon(polyPoints))
+            )
+            .id
+        val draftAt1to11 =
+            mainDraftContext
+                .save(
+                    operationalPoint(
+                        name = "b",
+                        uicCode = "2",
+                        location = middleOfPolygon + Point(1.0, 0.0),
+                        polygon = Polygon(polyPoints.map { it + Point(1.0, 0.0) }),
+                    )
+                )
+                .id
+        val draftAt5to15 =
+            mainDraftContext
+                .save(
+                    operationalPoint(
+                        name = "c",
+                        uicCode = "3",
+                        location = middleOfPolygon + Point(5.0, 0.0),
+                        polygon = Polygon(polyPoints.map { it + Point(5.0, 0.0) }),
+                    )
+                )
+                .id
+        val draftAt20to30 =
+            mainDraftContext
+                .save(
+                    operationalPoint(
+                        name = "d",
+                        uicCode = "4",
+                        location = middleOfPolygon + Point(20.0, 0.0),
+                        polygon = Polygon(polyPoints.map { it + Point(20.0, 0.0) }),
+                    )
+                )
+                .id
+
+        val validatedOnlyFirst =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(operationalPoints = listOf(draftAt1to11)),
+            )
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.FATAL,
+                    "validation.layout.operational-point.overlapping-polygon-official",
+                    mapOf("duplicateNames" to "a"),
                 )
             ),
-            validatedDeleted.validatedAsPublicationUnit.locationTracks[0].issues
+            validatedOnlyFirst.validatedAsPublicationUnit.operationalPoints[0].issues,
+        )
+
+        val validatedFirstAndSecond =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(operationalPoints = listOf(draftAt1to11, draftAt5to15)),
+            )
+
+        // b clashes with a and c; and c clashes with a and b. But also, since a is official, and b and c are drafts
+        // in the same publication set, we also have to split them into complaints about drafts and officials.
+        assertEquals(
+            listOf(
+                listOf(
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.overlapping-polygon-draft",
+                        mapOf("duplicateNames" to "c"),
+                    ),
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.overlapping-polygon-official",
+                        mapOf("duplicateNames" to "a"),
+                    ),
+                ),
+                listOf(
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.overlapping-polygon-draft",
+                        mapOf("duplicateNames" to "b"),
+                    ),
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.overlapping-polygon-official",
+                        mapOf("duplicateNames" to "a"),
+                    ),
+                ),
+            ),
+            validatedFirstAndSecond.validatedAsPublicationUnit.operationalPoints
+                .sortedBy { it.name.toString() }
+                .map { point -> point.issues.sortedBy { issue -> issue.localizationKey } },
+        )
+
+        val validatedSecondAndThird =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(operationalPoints = listOf(draftAt5to15, draftAt20to30)),
+            )
+
+        assertEquals(
+            listOf(
+                listOf(
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.overlapping-polygon-official",
+                        mapOf("duplicateNames" to "a"),
+                    )
+                ),
+                // polygon with no overlaps is fine
+                listOf(),
+            ),
+            validatedSecondAndThird.validatedAsPublicationUnit.operationalPoints
+                .sortedBy { it.name.toString() }
+                .map { point -> point.issues.sortedBy { issue -> issue.localizationKey } },
+        )
+    }
+
+    @Test
+    fun `operational point uic code must exist and be unique`() {
+        val external123 =
+            mainDraftContext
+                .save(operationalPoint("ext 123", uicCode = "123", origin = OperationalPointOrigin.RATKO))
+                .id
+        val internal123 = mainDraftContext.save(operationalPoint("int 123", uicCode = "123")).id
+        val externalNull =
+            mainDraftContext
+                .save(operationalPoint("ext null", uicCode = null, origin = OperationalPointOrigin.RATKO))
+                .id
+        val internalNull = mainDraftContext.save(operationalPoint("int null", uicCode = null)).id
+        val internal234 = mainDraftContext.save(operationalPoint("int 234", uicCode = "234")).id
+        mainDraftContext.save(operationalPoint("other 234", uicCode = "234")).id
+        val internal345 = mainDraftContext.save(operationalPoint("int 345", uicCode = "345")).id
+
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.FATAL,
+                    "validation.layout.operational-point.duplicate-uic-code-draft",
+                    mapOf("uicCode" to "123", "duplicateNames" to "ext 123"),
+                )
+            ),
+            publicationValidationService
+                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(internal123))[0]
+                .errors,
+        )
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.FATAL,
+                    "validation.layout.operational-point.duplicate-uic-code-draft",
+                    mapOf("uicCode" to "123", "duplicateNames" to "int 123"),
+                )
+            ),
+            publicationValidationService
+                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(external123))[0]
+                .errors,
+        )
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.ERROR,
+                    "validation.layout.operational-point.uic-code-missing",
+                )
+            ),
+            publicationValidationService
+                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(externalNull))[0]
+                .errors,
+        )
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.ERROR,
+                    "validation.layout.operational-point.uic-code-missing",
+                )
+            ),
+            publicationValidationService
+                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(internalNull))[0]
+                .errors,
+        )
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.FATAL,
+                    "validation.layout.operational-point.duplicate-uic-code-draft",
+                    mapOf("uicCode" to "234", "duplicateNames" to "other 234"),
+                )
+            ),
+            publicationValidationService
+                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(internal234))[0]
+                .errors,
+        )
+        assertEquals(
+            listOf<LayoutValidationIssue>(),
+            publicationValidationService
+                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(internal345))[0]
+                .errors,
+        )
+    }
+
+    @Test
+    fun `operational point location must be inside polygon`() {
+        // currently we happen to define polygons as closed sets; this is probably fine, but let's leave in a test
+        // that breaks if that changes, so we don't accidentally switch
+        val borderlinePoint =
+            mainDraftContext
+                .save(
+                    operationalPoint(
+                        name = "borderline",
+                        location = Point(5.0, 5.0),
+                        uicCode = "123",
+                        polygon =
+                            Polygon(Point(0.0, 0.0), Point(5.0, 0.0), Point(5.0, 5.0), Point(0.0, 5.0), Point(0.0, 0.0)),
+                    )
+                )
+                .id
+        assertEquals(
+            listOf<LayoutValidationIssue>(),
+            publicationValidationService
+                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(borderlinePoint))[0]
+                .errors,
+        )
+
+        val outsidePoint =
+            mainDraftContext
+                .save(
+                    operationalPoint(
+                        name = "outside",
+                        location = Point(5.0, 5.0),
+                        uicCode = "234",
+                        polygon =
+                            Polygon(
+                                Point(10.0, 10.0),
+                                Point(15.0, 10.0),
+                                Point(15.0, 15.0),
+                                Point(10.0, 15.0),
+                                Point(10.0, 10.0),
+                            ),
+                    )
+                )
+                .id
+
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.ERROR,
+                    "validation.layout.operational-point.location-outside-polygon",
+                )
+            ),
+            publicationValidationService
+                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(outsidePoint))[0]
+                .errors,
+        )
+    }
+
+    @Test
+    fun `operational point name and abbreviation must be unique`() {
+        val aa = mainDraftContext.save(operationalPoint(name = "aName", abbreviation = "aAbbrev", uicCode = "1")).id
+        val ab = mainDraftContext.save(operationalPoint(name = "aName", abbreviation = "bAbbrev", uicCode = "2")).id
+        val ba = mainDraftContext.save(operationalPoint(name = "bName", abbreviation = "aAbbrev", uicCode = "3")).id
+        val bb = mainDraftContext.save(operationalPoint(name = "bName", abbreviation = "bAbbrev", uicCode = "4")).id
+        assertEquals(
+            listOf(
+                // aName, aAbbrev
+                listOf(
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.duplicate-abbreviation-draft",
+                        mapOf("abbreviation" to "aAbbrev", "duplicateNames" to "bName"),
+                    ),
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.duplicate-name-draft",
+                        mapOf("name" to "aName"),
+                    ),
+                ),
+                // aName, bAbbrev
+                listOf(
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.duplicate-abbreviation-draft",
+                        mapOf("abbreviation" to "bAbbrev", "duplicateNames" to "bName"),
+                    ),
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.duplicate-name-draft",
+                        mapOf("name" to "aName"),
+                    ),
+                ),
+                // ... (rest thrown out by the take(2) below)
+            ),
+            publicationValidationService
+                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(aa, ab, ba, bb))
+                .sortedBy { it.id.intValue }
+                .take(2)
+                .map { point -> point.errors.sortedBy { it.localizationKey } },
+        )
+    }
+
+    @Test
+    fun `operational point must have rinf type`() {
+        val rinfless = mainDraftContext.save(operationalPoint(rinfType = null)).id
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.ERROR,
+                    "validation.layout.operational-point.rinf-code-missing",
+                )
+            ),
+            publicationValidationService
+                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(rinfless))[0]
+                .errors,
         )
     }
 

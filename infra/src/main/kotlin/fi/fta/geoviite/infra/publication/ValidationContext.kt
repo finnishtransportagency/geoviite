@@ -27,8 +27,13 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.UicCode
 import java.util.concurrent.ConcurrentHashMap
 
 class NullableCache<K, V> {
@@ -81,6 +86,7 @@ class ValidationContext(
     val locationTrackDao: LocationTrackDao,
     val alignmentDao: LayoutAlignmentDao,
     val switchDao: LayoutSwitchDao,
+    val operationalPointDao: OperationalPointDao,
     val switchLibraryService: SwitchLibraryService,
     val publicationDao: PublicationDao,
     val geocodingService: GeocodingService,
@@ -94,16 +100,22 @@ class ValidationContext(
     private val kmPostVersionCache = RowVersionCache<LayoutKmPost>()
     private val locationTrackVersionCache = RowVersionCache<LocationTrack>()
     private val switchVersionCache = RowVersionCache<LayoutSwitch>()
+    private val operationalPointVersionCache = RowVersionCache<OperationalPoint>()
 
     private val trackNumberKmPosts = ReferenceCache<LayoutTrackNumber, LayoutKmPost>()
     private val trackNumberLocationTracks = ReferenceCache<LayoutTrackNumber, LocationTrack>()
     private val switchTrackLinks = ReferenceCache<LayoutSwitch, LocationTrack>()
     private val trackDuplicateLinks = ReferenceCache<LocationTrack, LocationTrack>()
+    private val operationalPointPolygonOverlaps = ReferenceCache<OperationalPoint, OperationalPoint>()
 
     private val geocodingContextKeys = NullableCache<IntId<LayoutTrackNumber>, LayoutGeocodingContextCacheKey>()
     private val switchNameCache = NameCache(::fetchSwitchesByName)
     private val trackNameCache = NameCache(::fetchLocationTracksByName)
     private val trackNumberNumberCache = NameCache(::fetchTrackNumbersByNumber)
+
+    private val operationalPointNameCache = NameCache(::fetchOperationalPointsByName)
+    private val operationalPointAbbreviationCache = NameCache(::fetchOperationalPointsByAbbreviation)
+    private val operationalPointUicCodeCache = NameCache(::fetchOperationalPointsByUicCode)
 
     private val allUnfinishedSplits: List<Split> by lazy { splitService.findUnfinishedSplits(target.candidateBranch) }
 
@@ -135,13 +147,43 @@ class ValidationContext(
     fun getDuplicateTracks(id: IntId<LocationTrack>): List<LocationTrack> =
         (getDuplicateTrackIds(id) ?: emptyList()).mapNotNull(::getLocationTrack)
 
+    fun getOverlappingOperationalPoints(id: IntId<OperationalPoint>): List<OperationalPoint> =
+        (operationalPointPolygonOverlaps.get(id) {
+                operationalPointDao
+                    .findOverlappingPolygonsInPublicationCandidates(
+                        target.baseContext,
+                        target.candidateContext,
+                        publicationSet.getOperationalPointIds().takeIf { it.isNotEmpty() },
+                        listOf(id),
+                    )[id]
+            } ?: listOf())
+            .mapNotNull(::getOperationalPoint)
+
     fun getLocationTrackWithGeometry(id: IntId<LocationTrack>): Pair<LocationTrack, LocationTrackGeometry>? =
         getLocationTrack(id)?.let { track -> track to alignmentDao.fetch(track.getVersionOrThrow()) }
 
     fun getSwitch(id: IntId<LayoutSwitch>): LayoutSwitch? =
         getObject(target.baseContext, id, publicationSet.switches, switchDao, switchVersionCache)
 
+    fun getOperationalPoint(id: IntId<OperationalPoint>): OperationalPoint? =
+        getObject(
+            target.baseContext,
+            id,
+            publicationSet.operationalPoints,
+            operationalPointDao,
+            operationalPointVersionCache,
+        )
+
     fun getSwitchesByName(name: SwitchName): List<LayoutSwitch> = switchNameCache.get(name).mapNotNull(::getSwitch)
+
+    fun getOperationalPointsByName(name: OperationalPointName): List<OperationalPoint> =
+        operationalPointNameCache.get(name).mapNotNull(::getOperationalPoint)
+
+    fun getOperationalPointsByAbbreviation(abbreviation: OperationalPointAbbreviation): List<OperationalPoint> =
+        operationalPointAbbreviationCache.get(abbreviation).mapNotNull(::getOperationalPoint)
+
+    fun getOperationalPointsByUicCode(uicCode: UicCode): List<OperationalPoint> =
+        operationalPointUicCodeCache.get(uicCode).mapNotNull(::getOperationalPoint)
 
     fun getReferenceLineByTrackNumber(trackNumberId: IntId<LayoutTrackNumber>): ReferenceLine? =
         getReferenceLineIdByTrackNumber(trackNumberId)?.let(::getReferenceLine)
@@ -256,6 +298,17 @@ class ValidationContext(
         preloadSwitchVersions(allSwitchIds)
         preloadSwitchesByName(publicationSet.switches.map { v -> v.id })
         preloadSwitchTrackLinks(allSwitchIds)
+        preloadOperationalPointOverlaps(publicationSet.getOperationalPointIds())
+    }
+
+    fun preloadOperationalPointOverlaps(candidateIds: List<IntId<OperationalPoint>>) {
+        operationalPointPolygonOverlaps.preload(candidateIds) { cands ->
+            operationalPointDao.findOverlappingPolygonsInPublicationCandidates(
+                target.baseContext,
+                target.candidateContext,
+                cands,
+            )
+        }
     }
 
     fun preloadTrackNumberVersions(ids: List<IntId<LayoutTrackNumber>>) =
@@ -338,6 +391,46 @@ class ValidationContext(
         val baseVersions = trackNumberDao.findNumberDuplicates(target.baseContext, numbers)
         cacheBaseVersions(baseVersions.values.flatten(), trackNumberVersionCache)
         return mapIdsByField(numbers, { t -> t.number }, publicationSet.trackNumbers, baseVersions, trackNumberDao)
+    }
+
+    private fun fetchOperationalPointsByName(
+        names: List<OperationalPointName>
+    ): Map<OperationalPointName, List<IntId<OperationalPoint>>> {
+        val baseVersions = operationalPointDao.findNameDuplicates(target.baseContext, names)
+        cacheBaseVersions(baseVersions.values.flatten(), operationalPointVersionCache)
+        return mapIdsByField(
+            names,
+            { op -> op.name },
+            publicationSet.operationalPoints,
+            baseVersions,
+            operationalPointDao,
+        )
+    }
+
+    private fun fetchOperationalPointsByAbbreviation(
+        items: List<OperationalPointAbbreviation>
+    ): Map<OperationalPointAbbreviation, List<IntId<OperationalPoint>>> {
+        val baseVersions = operationalPointDao.findAbbreviationDuplicates(target.baseContext, items)
+        cacheBaseVersions(baseVersions.values.flatten(), operationalPointVersionCache)
+        return mapIdsByField(
+            items,
+            { op -> op.abbreviation },
+            publicationSet.operationalPoints,
+            baseVersions,
+            operationalPointDao,
+        )
+    }
+
+    private fun fetchOperationalPointsByUicCode(items: List<UicCode>): Map<UicCode, List<IntId<OperationalPoint>>> {
+        val baseVersions = operationalPointDao.findUicCodeDuplicates(target.baseContext, items)
+        cacheBaseVersions(baseVersions.values.flatten(), operationalPointVersionCache)
+        return mapIdsByField(
+            items,
+            { op -> op.uicCode },
+            publicationSet.operationalPoints,
+            baseVersions,
+            operationalPointDao,
+        )
     }
 
     // Candidate searches that ignore context, for logging reference errors when the item doesn't
@@ -466,7 +559,7 @@ private fun <T : LayoutAsset<T>> cacheBaseVersions(versions: List<LayoutRowVersi
 
 private fun <T : LayoutAsset<T>, Field> mapIdsByField(
     fields: List<Field>,
-    getField: (T) -> Field,
+    getField: (T) -> Field?,
     publicationVersions: List<LayoutRowVersion<T>>,
     matchingOfficialVersions: Map<Field, List<LayoutRowVersion<T>>>,
     dao: ILayoutAssetDao<T, *>,

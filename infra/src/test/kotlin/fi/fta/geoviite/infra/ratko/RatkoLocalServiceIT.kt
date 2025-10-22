@@ -192,8 +192,8 @@ constructor(
             )
             .also(operatingPointDao::updateOperationalPoints)
             .forEach { testOperatingPoint ->
-                ratkoLocalService.searchOperationalPoints(FreeText(testOperatingPoint.externalId.toString())).let { result
-                    ->
+                ratkoLocalService.searchOperationalPoints(FreeText(testOperatingPoint.externalId.toString())).let {
+                    result ->
                     assertEquals(1, result.size)
                     assertEquals(testOperatingPoint.name, result[0].name)
                 }
@@ -231,7 +231,7 @@ constructor(
             externalId = externalId,
             name = name,
             abbreviation = abbreviation,
-            uicCode = "",
+            uicCode = "1234",
             type = OperationalPointType.LP,
             location = Point(0.0, 0.0),
             trackNumberExternalId = trackNumberExternalId,

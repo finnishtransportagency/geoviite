@@ -58,6 +58,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.ESCAPED_NEW_LINE
@@ -299,6 +301,7 @@ enum class PublishableObjectType {
     REFERENCE_LINE,
     SWITCH,
     KM_POST,
+    OPERATIONAL_POINT,
 }
 
 enum class PublicationLogAssetType(val publishableObjectType: PublishableObjectType) {
@@ -354,6 +357,7 @@ data class PublicationCandidates(
     val referenceLines: List<ReferenceLinePublicationCandidate>,
     val switches: List<SwitchPublicationCandidate>,
     val kmPosts: List<KmPostPublicationCandidate>,
+    val operationalPoints: List<OperationalPointPublicationCandidate>,
 ) : Loggable {
     fun ids(): PublicationRequestIds =
         PublicationRequestIds(
@@ -362,6 +366,7 @@ data class PublicationCandidates(
             referenceLines.map { candidate -> candidate.id },
             switches.map { candidate -> candidate.id },
             kmPosts.map { candidate -> candidate.id },
+            operationalPoints.map { candidate -> candidate.id },
         )
 
     fun getValidationVersions(transition: LayoutContextTransition, splitVersions: List<RowVersion<Split>>) =
@@ -372,6 +377,7 @@ data class PublicationCandidates(
             locationTracks = locationTracks.map(LocationTrackPublicationCandidate::getPublicationVersion),
             switches = switches.map(SwitchPublicationCandidate::getPublicationVersion),
             kmPosts = kmPosts.map(KmPostPublicationCandidate::getPublicationVersion),
+            operationalPoints = operationalPoints.map(OperationalPointPublicationCandidate::getPublicationVersion),
             splits = splitVersions,
         )
 
@@ -382,6 +388,8 @@ data class PublicationCandidates(
             locationTracks = locationTracks.filter { candidate -> request.locationTracks.contains(candidate.id) },
             switches = switches.filter { candidate -> request.switches.contains(candidate.id) },
             kmPosts = kmPosts.filter { candidate -> request.kmPosts.contains(candidate.id) },
+            operationalPoints =
+                operationalPoints.filter { candidate -> request.operationalPoints.contains(candidate.id) },
         )
 
     override fun toLog(): String =
@@ -404,11 +412,12 @@ data class ValidationVersions(
     val referenceLines: List<LayoutRowVersion<ReferenceLine>>,
     val switches: List<LayoutRowVersion<LayoutSwitch>>,
     val kmPosts: List<LayoutRowVersion<LayoutKmPost>>,
+    val operationalPoints: List<LayoutRowVersion<OperationalPoint>>,
     val splits: List<RowVersion<Split>>,
 ) {
     companion object {
         fun emptyWithTarget(target: ValidationTarget) =
-            ValidationVersions(target, listOf(), listOf(), listOf(), listOf(), listOf(), listOf())
+            ValidationVersions(target, listOf(), listOf(), listOf(), listOf(), listOf(), listOf(), listOf())
     }
 
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.id == id }
@@ -425,6 +434,8 @@ data class ValidationVersions(
 
     fun findSwitch(id: IntId<LayoutSwitch>) = switches.find { it.id == id }
 
+    fun findOperationalPoint(id: IntId<OperationalPoint>) = operationalPoints.find { it.id == id }
+
     fun getTrackNumberIds() = trackNumbers.map { v -> v.id }
 
     fun getReferenceLineIds() = referenceLines.map { v -> v.id }
@@ -434,6 +445,8 @@ data class ValidationVersions(
     fun getSwitchIds() = switches.map { v -> v.id }
 
     fun getKmPostIds() = kmPosts.map { v -> v.id }
+
+    fun getOperationalPointIds() = operationalPoints.map { v -> v.id }
 
     fun getSplitIds() = splits.map { v -> v.id }
 }
@@ -446,9 +459,11 @@ data class PublicationRequestIds(
     val referenceLines: List<IntId<ReferenceLine>>,
     val switches: List<IntId<LayoutSwitch>>,
     val kmPosts: List<IntId<LayoutKmPost>>,
+    val operationalPoints: List<IntId<OperationalPoint>>,
 ) {
     companion object {
-        fun empty(): PublicationRequestIds = PublicationRequestIds(listOf(), listOf(), listOf(), listOf(), listOf())
+        fun empty(): PublicationRequestIds =
+            PublicationRequestIds(listOf(), listOf(), listOf(), listOf(), listOf(), listOf())
     }
 
     operator fun minus(other: PublicationRequestIds) =
@@ -458,6 +473,7 @@ data class PublicationRequestIds(
             referenceLines - other.referenceLines.toSet(),
             switches - other.switches.toSet(),
             kmPosts - other.kmPosts.toSet(),
+            operationalPoints - other.operationalPoints.toSet(),
         )
 
     operator fun plus(other: PublicationRequestIds) =
@@ -467,6 +483,7 @@ data class PublicationRequestIds(
             (referenceLines.toSet() + other.referenceLines).toList(),
             (switches.toSet() + other.switches).toList(),
             (kmPosts.toSet() + other.kmPosts).toList(),
+            (operationalPoints.toSet() + other.operationalPoints).toList(),
         )
 
     fun isEmpty() =
@@ -474,7 +491,8 @@ data class PublicationRequestIds(
             locationTracks.isEmpty() &&
             referenceLines.isEmpty() &&
             switches.isEmpty() &&
-            kmPosts.isEmpty()
+            kmPosts.isEmpty() &&
+            operationalPoints.isEmpty()
 }
 
 data class PublicationRequest(val content: PublicationRequestIds, val message: PublicationMessage)
@@ -486,6 +504,7 @@ data class PublicationResult(
     val locationTracks: List<PublicationResultVersions<LocationTrack>>,
     val switches: List<PublicationResultVersions<LayoutSwitch>>,
     val kmPosts: List<PublicationResultVersions<LayoutKmPost>>,
+    val operationalPoints: List<PublicationResultVersions<OperationalPoint>>,
 ) {
     fun summarize() =
         PublicationResultSummary(
@@ -495,6 +514,7 @@ data class PublicationResult(
             locationTracks = locationTracks.size,
             switches = switches.size,
             kmPosts = kmPosts.size,
+            operationalPoints = operationalPoints.size,
         )
 }
 
@@ -505,6 +525,7 @@ data class PublicationResultSummary(
     val referenceLines: Int,
     val switches: Int,
     val kmPosts: Int,
+    val operationalPoints: Int,
 )
 
 enum class LayoutValidationIssueType {
@@ -618,7 +639,22 @@ data class KmPostPublicationCandidate(
     override val designAssetState: DesignAssetState?,
     val location: Point?,
 ) : PublicationCandidate<LayoutKmPost> {
+
     override val type = PublishableObjectType.KM_POST
+}
+
+data class OperationalPointPublicationCandidate(
+    override val rowVersion: LayoutRowVersion<OperationalPoint>,
+    val name: OperationalPointName,
+    override val draftChangeTime: Instant,
+    override val userName: UserName,
+    override val issues: List<LayoutValidationIssue> = listOf(),
+    override val operation: Operation,
+    override val publicationGroup: PublicationGroup? = null,
+    override val designAssetState: DesignAssetState?,
+    val location: Point?,
+) : PublicationCandidate<OperationalPoint> {
+    override val type = PublishableObjectType.OPERATIONAL_POINT
 }
 
 data class SwitchLocationTrack(
@@ -924,6 +960,7 @@ data class PublishedVersions(
     val locationTracks: List<Change<LayoutRowVersion<LocationTrack>>>,
     val switches: List<Change<LayoutRowVersion<LayoutSwitch>>>,
     val kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>>,
+    val operationalPoints: List<Change<LayoutRowVersion<OperationalPoint>>>,
 )
 
 data class PreparedPublicationRequest(

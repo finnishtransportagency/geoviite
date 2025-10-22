@@ -23,6 +23,7 @@ class LayoutDesignService(
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
     private val kmPostService: LayoutKmPostService,
+    private val operationalPointService: OperationalPointService,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
@@ -107,6 +108,12 @@ class LayoutDesignService(
                     kmPostService.cancel(branch, kmPost.id as IntId)
                 } else null
             }
+        val operationalPoints =
+            operationalPointService.list(branch.official, true).mapNotNull { operationalPoint ->
+                if (operationalPoint.layoutContext.branch == branch) {
+                    operationalPointService.cancel(branch, operationalPoint.id as IntId)
+                } else null
+            }
 
         val cancellationVersions =
             ValidationVersions(
@@ -116,6 +123,7 @@ class LayoutDesignService(
                 referenceLines,
                 switches,
                 kmPosts,
+                operationalPoints,
                 listOf(),
             )
 

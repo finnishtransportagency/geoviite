@@ -100,7 +100,7 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
 
     @Test
     fun `cannot update external operational point with internal request`() {
-        val external = testDBService.save(operationalPoint("external")).id
+        val external = testDBService.save(operationalPoint("external", origin = OperationalPointOrigin.RATKO)).id
 
         assertThrows<SavingFailureException> {
             operationalPointService.update(LayoutBranch.main, external, internalPointSaveRequest("updated"))

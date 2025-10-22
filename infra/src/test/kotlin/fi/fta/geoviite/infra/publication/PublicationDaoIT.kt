@@ -46,6 +46,7 @@ import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.someSegment
@@ -215,6 +216,8 @@ constructor(
                 locationTrackDeleted = false,
             )
 
+        val operationalPointVersion = mainOfficialContext.save(operationalPoint(draft = false))
+
         val changes =
             CalculatedChanges(
                 directChanges =
@@ -240,6 +243,7 @@ constructor(
                                 )
                             ),
                         switchChanges = listOf(SwitchChange(switchVersion.id, listOf(switchJointChange))),
+                        operationalPointChanges = listOf(operationalPointVersion.id),
                     ),
                 indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList()),
             )

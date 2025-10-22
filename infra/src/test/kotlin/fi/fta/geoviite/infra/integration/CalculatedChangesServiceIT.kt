@@ -41,6 +41,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
@@ -68,11 +70,6 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
@@ -82,6 +79,11 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -97,6 +99,7 @@ constructor(
     val layoutAlignmentDao: LayoutAlignmentDao,
     val layoutTrackNumberDao: LayoutTrackNumberDao,
     val layoutKmPostDao: LayoutKmPostDao,
+    val operationalPointDao: OperationalPointDao,
     val switchService: LayoutSwitchService,
     val switchLinkingService: SwitchLinkingService,
     val alignmentDao: LayoutAlignmentDao,
@@ -1105,6 +1108,7 @@ constructor(
                 locationTracks = listOf(),
                 switches = listOf(),
                 kmPosts = listOf(mainDraftContext.fetchVersion(kmPost)!!),
+                operationalPoints = listOf(),
             )
         assertEquals(
             listOf(TrackNumberChange(trackNumber, setOf(KmNumber(0), KmNumber(1)), false, true)),
@@ -1168,6 +1172,7 @@ constructor(
                 locationTracks = listOf(),
                 switches = listOf(),
                 kmPosts = listOf(mainDraftContext.fetchVersion(kmPost)!!),
+                operationalPoints = listOf(),
             )
         assertEquals(
             listOf(TrackNumberChange(trackNumber, setOf(KmNumber(0), KmNumber(1)), false, true)),
@@ -1247,6 +1252,7 @@ constructor(
                 locationTracks = listOf(),
                 switches = listOf(),
                 kmPosts = listOf(mainDraftContext.fetchVersion(kmPost)!!),
+                operationalPoints = listOf(),
             )
         // no calculated changes affecting the design whatsoever, as the change's cause (the moved
         // km post) is overridden in the design
@@ -1632,6 +1638,7 @@ constructor(
         referenceLineIds: List<IntId<ReferenceLine>> = emptyList(),
         switchIds: List<IntId<LayoutSwitch>> = emptyList(),
         trackNumberIds: List<IntId<LayoutTrackNumber>> = emptyList(),
+        operationalPointIds: List<IntId<OperationalPoint>> = emptyList(),
     ): ValidationVersions {
         val target = draftTransitionOrOfficialState(PublicationState.DRAFT, layoutBranch)
         return ValidationVersions(
@@ -1641,6 +1648,8 @@ constructor(
             referenceLines = referenceLineDao.fetchCandidateVersions(target.candidateContext, referenceLineIds),
             switches = switchDao.fetchCandidateVersions(target.candidateContext, switchIds),
             trackNumbers = layoutTrackNumberDao.fetchCandidateVersions(target.candidateContext, trackNumberIds),
+            operationalPoints =
+                operationalPointDao.fetchCandidateVersions(target.candidateContext, operationalPointIds),
             splits = listOf(),
         )
     }
