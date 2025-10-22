@@ -1149,7 +1149,7 @@ fun publishedVersions(
 fun operationalPoint(
     name: String = "name",
     abbreviation: String = name,
-    rinfType: Int? = 10,
+    rinfType: OperationalPointRinfType? = OperationalPointRinfType.STATION,
     state: OperationalPointState = OperationalPointState.IN_USE,
     uicCode: String? = "1234",
     location: Point = Point(10.0, 10.0),

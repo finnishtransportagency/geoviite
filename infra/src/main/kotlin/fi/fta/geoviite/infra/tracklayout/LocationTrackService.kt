@@ -36,7 +36,7 @@ import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.ratko.RatkoOperationalPointDao
-import fi.fta.geoviite.infra.ratko.model.OperationalPointType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitDuplicateTrack
 import fi.fta.geoviite.infra.split.SplittingInitializationParameters
@@ -719,7 +719,7 @@ class LocationTrackService(
     private fun getNearestOperationalPoint(location: Point) =
         ratkoOperationalPointDao
             .getOperationalPoints(boundingBoxAroundPoint(location, OPERATIONAL_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE))
-            .filter { op -> op.type == OperationalPointType.LPO || op.type == OperationalPointType.LP }
+            .filter { op -> op.type == OperationalPointRaideType.LPO || op.type == OperationalPointRaideType.LP }
             .minByOrNull { operatingPoint -> lineLength(operatingPoint.location, location) }
 
     @Transactional(readOnly = true)

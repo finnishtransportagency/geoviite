@@ -8,7 +8,11 @@ import { Dropdown, DropdownOption, dropdownOption } from 'vayla-design-lib/dropd
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
-import { OperationalPoint, OperationalPointId, RinfType } from 'track-layout/track-layout-model';
+import {
+    OperationalPoint,
+    OperationalPointId,
+    OperationalPointRinfType,
+} from 'track-layout/track-layout-model';
 import { rinfTypes } from 'utils/enum-localization-utils';
 import { OperationalPointState } from 'geoviite-design-lib/operational-point-state/operational-point-state';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
@@ -21,8 +25,8 @@ import {
 } from 'tool-panel/operational-point/external-operational-point-edit-store';
 import { UnknownAction } from 'redux';
 import {
-    hasErrors,
     getVisibleErrorsByProp as getVisibleErrorsByPropGeneric,
+    hasErrors,
 } from 'utils/validation-utils';
 import { LayoutContext } from 'common/common-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
@@ -56,7 +60,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
     const [deleteDraftConfirmDialogOpen, setdeleteDraftConfirmDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
 
-    const rinfTypeOptions: DropdownOption<RinfType>[] = rinfTypes.map((value) =>
+    const rinfTypeOptions: DropdownOption<OperationalPointRinfType>[] = rinfTypes.map((value) =>
         dropdownOption(value.value, value.name, `rinf-type-option-${value}`),
     );
 
@@ -65,7 +69,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
             (err) => t(`operational-point-dialog.validation.${err}`),
         );
 
-    const updateRinfType = (value: RinfType | undefined) =>
+    const updateRinfType = (value: OperationalPointRinfType | undefined) =>
         value &&
         stateActions.onUpdateProp({
             key: 'rinfType',

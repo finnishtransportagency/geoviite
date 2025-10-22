@@ -1,4 +1,9 @@
-import { OperationalPoint, OperationalPointState, UICCode } from 'track-layout/track-layout-model';
+import {
+    OperationalPoint,
+    OperationalPointRinfType,
+    OperationalPointState,
+    UICCode,
+} from 'track-layout/track-layout-model';
 import {
     FieldValidationIssue,
     FieldValidationIssueType,
@@ -19,7 +24,7 @@ const NAME_MAX_LENGTH = 150;
 export type InternalOperationalPointSaveRequest = {
     name: string;
     abbreviation?: string;
-    rinfType?: number;
+    rinfType?: OperationalPointRinfType;
     state?: OperationalPointState;
     uicCode: UICCode;
 };

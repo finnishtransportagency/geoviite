@@ -260,6 +260,7 @@ constructor(
                 trackNumbers = listOf(Change(null, trackNumberVersion)),
                 locationTracks = listOf(Change(null, locationTrackVersion)),
                 switches = listOf(Change(null, switchVersion)),
+                operationalPoints = listOf(Change(null, operationalPointVersion)),
             ),
         )
 

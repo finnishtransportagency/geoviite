@@ -50,7 +50,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
+import fi.fta.geoviite.infra.tracklayout.OperationalPointName
+import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
+import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfTypeWithCode
 import fi.fta.geoviite.infra.tracklayout.StoredAssetId
+import fi.fta.geoviite.infra.tracklayout.UicCode
 import java.math.BigDecimal
 import java.sql.ResultSet
 import java.time.Instant
@@ -383,6 +388,16 @@ fun ResultSet.getPVId(name: String): PVId = verifyNotNull(name, ::getPVIdOrNull)
 
 fun ResultSet.getPVIdOrNull(name: String): PVId? = getString(name)?.let(::PVId)
 
+fun ResultSet.getOperationalPointName(name: String): OperationalPointName = getString(name).let(::OperationalPointName)
+
+fun ResultSet.getOperationalPointNameOrNull(name: String): OperationalPointName? =
+    getUnsafeStringOrNull(name)?.toString()?.let(::OperationalPointName)
+
+fun ResultSet.getOperationalPointAbbreviationOrNull(name: String): OperationalPointAbbreviation? =
+    getUnsafeStringOrNull(name)?.toString()?.let(::OperationalPointAbbreviation)
+
+fun ResultSet.getUicCodeOrNull(name: String): UicCode? = getUnsafeStringOrNull(name)?.toString()?.let(::UicCode)
+
 fun <T> ResultSet.getChange(name: String, nullableGetter: (name: String) -> T?): Change<T> =
     Change(
         nullableGetter("old_$name"),
@@ -391,6 +406,17 @@ fun <T> ResultSet.getChange(name: String, nullableGetter: (name: String) -> T?):
 
 fun <T> ResultSet.getNullableChange(name: String, getter: (name: String) -> T?): Change<T?> =
     Change(getter("old_$name"), getter(name))
+
+fun ResultSet.getNullableRinfTypeChange(
+    rinfTypeName: String,
+    rinfTypeCodeName: String,
+): Change<OperationalPointRinfTypeWithCode?> {
+    val newType = getEnumOrNull<OperationalPointRinfType>(rinfTypeName)
+    val oldType = getEnumOrNull<OperationalPointRinfType>("old_$rinfTypeName")
+    val new = if (newType == null) null else OperationalPointRinfTypeWithCode(newType, getInt(rinfTypeCodeName))
+    val old = if (oldType == null) null else OperationalPointRinfTypeWithCode(oldType, getInt("old_$rinfTypeCodeName"))
+    return Change(old, new)
+}
 
 fun ResultSet.getChangePoint(nameX: String, nameY: String): Change<Point> =
     Change(getPointOrNull("old_$nameX", "old_$nameY"), getPoint(nameX, nameY))

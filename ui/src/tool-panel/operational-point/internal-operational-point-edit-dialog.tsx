@@ -14,7 +14,7 @@ import {
     OperationalPoint,
     OperationalPointId,
     OperationalPointState,
-    RinfType,
+    OperationalPointRinfType,
 } from 'track-layout/track-layout-model';
 import {
     actions,
@@ -93,7 +93,7 @@ export const InternalOperationalPointEditDialog: React.FC<
     const stateOptions = operationalPointStates.map((s) =>
         s.value !== 'DELETED' || officialOperationalPointExists ? s : { ...s, disabled: true },
     );
-    const rinfTypeOptions: DropdownOption<RinfType>[] = rinfTypes.map((value) =>
+    const rinfTypeOptions: DropdownOption<OperationalPointRinfType>[] = rinfTypes.map((value) =>
         dropdownOption(value.value, value.name, `rinf-type-option-${value}`),
     );
 

@@ -8,14 +8,13 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
-import fi.fta.geoviite.infra.ratko.model.OperationalPointType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBooleanOrNull
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
 import fi.fta.geoviite.infra.util.getIntId
-import fi.fta.geoviite.infra.util.getIntOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getPointOrNull
@@ -72,10 +71,12 @@ class OperationalPointDao(
                   postgis.st_x(op.location) as location_x,
                   postgis.st_y(op.location) as location_y,
                   op.state,
-                  op.rinf_type_code,
+                  op.rinf_type,
+                  rt.code as rinf_type_code,
                   postgis.st_astext(op.polygon) as polygon,
                   op.origin
                 from layout.operational_point_version op
+                  left join common.rinf_operational_point_type rt on op.rinf_type = rt.enum_name
                 where not op.deleted
             """
                 .trimIndent()
@@ -166,7 +167,7 @@ class OperationalPointDao(
                     type,
                     location,
                     state,
-                    rinf_type_code,
+                    rinf_type,
                     polygon,
                     origin
                 )
@@ -183,7 +184,7 @@ class OperationalPointDao(
                   :type::layout.operational_point_type,
                   postgis.st_setsrid(postgis.st_point(:location_x, :location_y), :srid),
                   :state::layout.operational_point_state,
-                  :rinf_type_code,
+                  :rinf_type,
                   postgis.st_polygonfromtext(:polygon_wkt, :srid),
                   :origin::layout.operational_point_origin
                 )
@@ -196,7 +197,7 @@ class OperationalPointDao(
                   type = excluded.type,
                   location = excluded.location,
                   state = excluded.state,
-                  rinf_type_code = excluded.rinf_type_code,
+                  rinf_type = excluded.rinf_type,
                   polygon = excluded.polygon
                 returning id, design_id, draft, version
             """
@@ -222,7 +223,7 @@ class OperationalPointDao(
                     "state" to item.state.name,
                     "origin" to item.origin.name,
                     "srid" to LAYOUT_SRID.code,
-                    "rinf_type_code" to item.rinfType,
+                    "rinf_type" to item.rinfType?.name,
                 ),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
@@ -239,9 +240,9 @@ class OperationalPointDao(
             abbreviation = rs.getUnsafeStringOrNull("abbreviation")?.toString()?.let(::OperationalPointAbbreviation),
             uicCode = rs.getUnsafeStringOrNull("uic_code")?.toString()?.let(::UicCode),
             location = rs.getPointOrNull("location_x", "location_y"),
-            raideType = rs.getEnumOrNull<OperationalPointType>("type"),
+            raideType = rs.getEnumOrNull<OperationalPointRaideType>("type"),
             state = rs.getEnum("state"),
-            rinfType = rs.getIntOrNull("rinf_type_code"),
+            rinfType = rs.getEnumOrNull<OperationalPointRinfType>("rinf_type"),
             polygon = rs.getPolygonPointListOrNull("polygon")?.let(::Polygon),
             origin = rs.getEnum("origin"),
             contextData =

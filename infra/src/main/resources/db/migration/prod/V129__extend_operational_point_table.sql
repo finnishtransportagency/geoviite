@@ -20,27 +20,28 @@ select common.create_version_fetch_function('integrations', 'ratko_operational_p
 create table common.rinf_operational_point_type
 (
   code int  not null primary key,
-  name text not null
+  enum_name varchar(50) not null,
+  constraint rinf_operational_point_type_name_uk unique (enum_name)
 );
 
 insert into common.rinf_operational_point_type
-  (code, name)
+  (code, enum_name)
   values
-    (10, 'Station'),
-    (20, 'Small station'),
-    (30, 'Passenger terminal'),
-    (40, 'Freight terminal'),
-    (50, 'Depot or workshop'),
-    (60, 'Train technical services'),
-    (70, 'Passenger stop'),
-    (80, 'Junction'),
-    (90, 'Border point'),
-    (100, 'Shunting yard'),
-    (110, 'Technical change'),
-    (120, 'Switch'),
-    (130, 'Private siding'),
-    (140, 'Domestic border point'),
-    (150, 'Over crossing')
+    (10, 'STATION'),
+    (20, 'SMALL_STATION'),
+    (30, 'PASSENGER_TERMINAL'),
+    (40, 'FREIGHT_TERMINAL'),
+    (50, 'DEPOT_OR_WORKSHOP'),
+    (60, 'TRAIN_TECHNICAL_SERVICES'),
+    (70, 'PASSENGER_STOP'),
+    (80, 'JUNCTION'),
+    (90, 'BORDER_POINT'),
+    (100, 'SHUNTING_YARD'),
+    (110, 'TECHNICAL_CHANGE'),
+    (120, 'SWITCH'),
+    (130, 'PRIVATE_SIDING'),
+    (140, 'DOMESTIC_BORDER_POINT'),
+    (150, 'OVER_CROSSING')
 ;
 
 alter type layout.operating_point_type rename to operational_point_type;
@@ -70,14 +71,14 @@ create table layout.operational_point
   type               layout.operational_point_type,
   location           postgis.geometry(Point, 3067),
   state              layout.operational_point_state not null,
-  rinf_type_code     int,
+  rinf_type          varchar(50),
   polygon            postgis.geometry(Polygon, 3067),
   origin             layout.operational_point_origin  not null,
 
   constraint operational_point_pkey primary key (id, layout_context_id),
   constraint operational_point_id_fkey foreign key (id) references layout.operational_point_id (id),
   constraint layout_context_id_check check (layout.layout_context_id(design_id, draft) = layout_context_id),
-  constraint operational_point_rinf_type_fk foreign key (rinf_type_code) references common.rinf_operational_point_type (code)
+  constraint operational_point_rinf_type_fk foreign key (rinf_type) references common.rinf_operational_point_type (enum_name)
 );
 
 create table layout.operational_point_external_id
@@ -102,7 +103,7 @@ insert into layout.operational_point_id (
 
 insert into layout.operational_point
   (id, draft, design_id, layout_context_id, name, abbreviation, uic_code, type, location,
-   state, rinf_type_code, polygon, origin)
+   state, rinf_type, polygon, origin)
   (
     select
       row_number() over (order by external_id),

@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -50,11 +51,16 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
+import fi.fta.geoviite.infra.tracklayout.OperationalPointName
+import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
+import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
+import fi.fta.geoviite.infra.tracklayout.UicCode
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.combineEdges
@@ -64,6 +70,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -1411,6 +1418,79 @@ constructor(
         assertEquals("4.100 E, 0.000 N", jointLocationDiff.value.newValue)
         val trackAddressDiff = diff.find { it.propKey.key.toString() == "switch-track-address" }!!
         assertEquals("0000+0004.100", trackAddressDiff.value.newValue)
+    }
+
+    @Test
+    fun `operational point diff diffs all fields`() {
+        val op =
+            operationalPoint(
+                name = "name",
+                abbreviation = "abbrev",
+                rinfType = OperationalPointRinfType.STATION,
+                state = OperationalPointState.IN_USE,
+                uicCode = "123",
+                location = Point(20.0, 20.0),
+                polygon =
+                    Polygon(Point(0.0, 0.0), Point(30.0, 0.0), Point(30.0, 30.0), Point(0.0, 30.0), Point(0.0, 0.0)),
+            )
+        val operationalPointId = mainDraftContext.save(op).id
+        publish(publicationService, operationalPoints = listOf(operationalPointId))
+
+        mainDraftContext.save(
+            mainOfficialContext
+                .fetch(operationalPointId)!!
+                .copy(
+                    name = OperationalPointName("ed name"),
+                    abbreviation = OperationalPointAbbreviation("edabbrev"),
+                    rinfType = OperationalPointRinfType.SMALL_STATION,
+                    state = OperationalPointState.DELETED,
+                    uicCode = UicCode("321"),
+                    location = Point(25.0, 20.0),
+                    polygon =
+                        Polygon(Point(0.0, 0.0), Point(40.0, 0.0), Point(40.0, 40.0), Point(0.0, 40.0), Point(0.0, 0.0)),
+                )
+        )
+        publish(publicationService, operationalPoints = listOf(operationalPointId))
+
+        val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items[0]
+        val changes = publicationDao.fetchPublicationOperationalPointChanges(latestPub.id)
+
+        val diff =
+            publicationLogService.diffOperationalPoint(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(operationalPointId),
+            )
+        val expected =
+            listOf(
+                PublicationChange(
+                    PropKey("operational-point"),
+                    ChangeValue(OperationalPointName("name"), OperationalPointName("ed name")),
+                    null,
+                ),
+                PublicationChange(
+                    PropKey("abbreviation"),
+                    ChangeValue(OperationalPointAbbreviation("abbrev"), OperationalPointAbbreviation("edabbrev")),
+                    null,
+                ),
+                PublicationChange(PropKey("uic-code"), ChangeValue(UicCode("123"), UicCode("321")), null),
+                PublicationChange(PropKey("rinf-type"), ChangeValue("Asema (10)", "Asema (pieni) (20)"), null),
+                PublicationChange(PropKey("polygon"), ChangeValue(null, null), null),
+                PublicationChange(
+                    PropKey("location"),
+                    ChangeValue("20.000 E, 20.000 N", "25.000 E, 20.000 N"),
+                    "Siirtynyt 5.0 m",
+                ),
+                PublicationChange(
+                    PropKey("state"),
+                    ChangeValue(
+                        OperationalPointState.IN_USE,
+                        OperationalPointState.DELETED,
+                        localizationKey = "OperationalPointState",
+                    ),
+                    null,
+                ),
+            )
+        assertEquals(expected, diff)
     }
 
     @Test

@@ -1,4 +1,4 @@
-import { OperationalPoint } from 'track-layout/track-layout-model';
+import { OperationalPoint, OperationalPointRinfType } from 'track-layout/track-layout-model';
 import {
     FieldValidationIssue,
     FieldValidationIssueType,
@@ -10,7 +10,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { filterNotEmpty } from 'utils/array-utils';
 
 export type ExternalOperationalPointSaveRequest = {
-    rinfType?: number;
+    rinfType?: OperationalPointRinfType;
 };
 
 export type ExternalOperationalPointEditState = {
