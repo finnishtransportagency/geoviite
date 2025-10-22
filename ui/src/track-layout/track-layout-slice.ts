@@ -276,6 +276,7 @@ export function getSelectableItemTypes(
             return ['layoutLinkPoints', 'clusterPoints'];
         case LinkingType.PlacingLayoutSwitch:
         case LinkingType.LinkingLayoutSwitch:
+        case LinkingType.PlacingOperationalPoint:
             return [];
         case LinkingType.LinkingGeometrySwitch:
             return ['switches'];
@@ -332,6 +333,8 @@ const trackLayoutSlice = createSlice({
 
         onClickLocation: (state: TrackLayoutState, action: PayloadAction<Point>): void => {
             if (state.linkingState?.type === LinkingType.PlacingLayoutSwitch) {
+                state.linkingState.location = action.payload;
+            } else if (state.linkingState?.type === LinkingType.PlacingOperationalPoint) {
                 state.linkingState.location = action.payload;
             } else {
                 mapReducers.onClickLocation(state.map, action);

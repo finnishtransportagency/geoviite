@@ -8,6 +8,8 @@ import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
+import fi.fta.geoviite.infra.util.FreeText
+import kotlin.toString
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
@@ -105,4 +107,16 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao) :
         saveDraft(branch, (dao.getOrThrow(branch.draft, id).copy(polygon = request)))
 
     private fun saveDraft(branch: LayoutBranch, point: OperationalPoint) = dao.save(asDraft(branch, point))
+
+    fun idMatches(
+        layoutContext: LayoutContext,
+        searchTerm: FreeText,
+        onlyIds: Collection<IntId<OperationalPoint>>? = null,
+    ): ((term: String, item: OperationalPoint) -> Boolean) = idMatches(dao, layoutContext, searchTerm, onlyIds)
+
+    override fun contentMatches(term: String, item: OperationalPoint, includeDeleted: Boolean) =
+        (includeDeleted || item.exists) &&
+            (item.name.contains(term, true) ||
+                item.abbreviation.toString().contains(term, true) ||
+                item.uicCode.toString().contains(term, true))
 }

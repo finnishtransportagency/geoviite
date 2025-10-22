@@ -27,6 +27,7 @@ import { getChangeTimes, updateOperationalPointsChangeTime } from 'common/change
 import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/internal-operational-point-edit-store';
 import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
+import { Point } from 'model/geometry';
 
 type OriginInUri = 'internal' | 'external';
 type OperationalPointSaveRequest =
@@ -148,6 +149,19 @@ export const updateInternalOperationalPoint = (
     layoutContext: LayoutContext,
 ): Promise<OperationalPointId> =>
     updateOperationalPoint(id, 'internal', updatedOperationalPoint, layoutContext);
+
+export const updateInternalOperationalPointLocation = async (
+    id: OperationalPointId,
+    location: Point,
+    layoutContext: LayoutContext,
+): Promise<OperationalPointId> => {
+    const result = await putNonNull<Point, OperationalPointId>(
+        `${operationalPointUriByOrigin('internal', layoutContext, id)}/location`,
+        location,
+    );
+    await updateOperationalPointsChangeTime();
+    return result;
+};
 
 export const updateExternalOperationalPoint = (
     id: OperationalPointId,

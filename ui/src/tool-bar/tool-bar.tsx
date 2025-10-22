@@ -194,6 +194,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 if (operationalPointArea) {
                     showArea(operationalPointArea);
                 }
+
+                onSelect({
+                    operationalPoints: [item.operationalPoint.id],
+                });
+                setToolPanelTab({ id: item.operationalPoint.id, type: 'OPERATIONAL_POINT' });
                 break;
             }
 

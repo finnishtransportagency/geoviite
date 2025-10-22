@@ -15,6 +15,7 @@ import {
     LocationTrackState,
     LocationTrackType,
     MapAlignmentType,
+    OperationalPoint,
     ReferenceLineId,
     TopologicalConnectivityType,
 } from 'track-layout/track-layout-model';
@@ -61,7 +62,8 @@ export type LinkingState =
     | PlacingLayoutSwitch
     | LinkingGeometrySwitch
     | LinkingLayoutSwitch
-    | LinkingKmPost;
+    | LinkingKmPost
+    | PlacingOperationalPoint;
 
 export type PreliminaryLinkingGeometry = {
     type: LinkingType.UnknownAlignment;
@@ -185,6 +187,12 @@ export type LinkingKmPost = LinkingBaseType & {
     geometryKmPostId: GeometryKmPostId;
 };
 
+export type PlacingOperationalPoint = LinkingBaseType & {
+    type: LinkingType.PlacingOperationalPoint;
+    operationalPoint: OperationalPoint;
+    location?: Point;
+};
+
 export type KmPostSimpleFields = {
     kmNumber: KmNumber;
     state?: LayoutState;
@@ -213,6 +221,7 @@ export enum LinkingType {
     LinkingLayoutSwitch = 'LinkingLayoutSwitch',
     PlacingLayoutSwitch = 'PlacingLayoutSwitch',
     LinkingKmPost = 'LinkingKmPost',
+    PlacingOperationalPoint = 'PlacingOperationalPoint',
     UnknownAlignment = 'UnknownAlignment',
 }
 

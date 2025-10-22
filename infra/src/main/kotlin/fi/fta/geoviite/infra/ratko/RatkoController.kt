@@ -69,10 +69,4 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
 
         return HttpStatus.NO_CONTENT
     }
-
-    @PreAuthorize(AUTH_VIEW_LAYOUT)
-    @GetMapping("/operating-points")
-    fun getOperatingPoints(@RequestParam bbox: BoundingBox): List<RatkoOperationalPoint> {
-        return ratkoLocalService.getOperationalPoints(bbox)
-    }
 }

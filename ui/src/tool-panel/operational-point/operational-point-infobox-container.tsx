@@ -9,6 +9,7 @@ import { OperationalPointInfobox } from 'tool-panel/operational-point/operationa
 import { OperationalPointId } from 'track-layout/track-layout-model';
 import { useLoader } from 'utils/react-utils';
 import { getOperationalPoint } from 'track-layout/layout-operational-point-api';
+import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 
 type OperationalPointInfoboxContainerProps = {
     operationalPointId: OperationalPointId;
@@ -37,6 +38,23 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
         [operationalPointId, changeTimes.operationalPoints],
     );
 
+    const showOnMap = () => {
+        operationalPoint?.location &&
+            delegates.showArea(calculateBoundingBoxToShowAroundLocation(operationalPoint.location));
+    };
+
+    const startPlacingOperationalPoint = () => {
+        if (operationalPoint) {
+            delegates.startPlacingOperationalPoint(operationalPoint);
+            delegates.showLayers(['operational-points-placing-layer']);
+        }
+    };
+
+    const stopPlacingOperationalPoint = () => {
+        delegates.stopPlacingOperationalPoint();
+        delegates.hideLayers(['operational-points-placing-layer']);
+    };
+
     return (
         <React.Fragment>
             {operationalPoint && (
@@ -44,11 +62,15 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
                     operationalPoint={operationalPoint}
                     layoutContext={trackLayoutState.layoutContext}
                     changeTimes={changeTimes}
+                    layoutState={trackLayoutState}
                     visibilities={visibilities}
                     onVisibilityChange={onVisiblityChange}
                     onDataChange={onDataChange}
                     onSelect={delegates.onSelect}
                     onUnselect={delegates.onUnselect}
+                    onStartPlacingLocation={startPlacingOperationalPoint}
+                    onStopPlacingLocation={stopPlacingOperationalPoint}
+                    onShowOnMap={showOnMap}
                 />
             )}
         </React.Fragment>

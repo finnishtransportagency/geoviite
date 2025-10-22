@@ -13,7 +13,7 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
-import styles from 'tool-panel/location-track/location-track-infobox.scss';
+import infoboxStyles from 'tool-panel/infobox/infobox.module.scss';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { formatToTM35FINString } from 'utils/geography-utils';
 import Infobox from 'tool-panel/infobox/infobox';
@@ -451,10 +451,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             )}
                             {linkingState?.type === LinkingType.LinkingAlignment && (
                                 <React.Fragment>
-                                    <p
-                                        className={
-                                            styles['location-track-infobox__link-alignment-guide']
-                                        }>
+                                    <p className={infoboxStyles['infobox__guide-text']}>
                                         {t('tool-panel.location-track.choose-start-and-end-points')}
                                     </p>
                                     <InfoboxButtons>

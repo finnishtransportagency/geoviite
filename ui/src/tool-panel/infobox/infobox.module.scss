@@ -124,6 +124,13 @@
             color: vayla-design.$color-blue-light;
         }
     }
+
+    &__guide-text {
+        @include vayla-design.typography-caption-strong;
+
+        margin: 0;
+        padding: 7px 0;
+    }
 }
 
 .infobox__list {

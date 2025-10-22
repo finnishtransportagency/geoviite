@@ -963,6 +963,8 @@
             "location": "Sijainti",
             "focus-on-map": "Kohdista kartalla",
             "set-location": "Aseta sijainti kartalla",
+            "set-location-help": "Klikkaa toiminnallisen pisteen sijainti kartalle",
+            "location-update-succeeded": "Toiminnallisen pisteen sijainti päivitetty onnistuneesti",
             "set-area": "Aseta alue kartalla",
             "created": "Luotu",
             "modified": "Muokattu",

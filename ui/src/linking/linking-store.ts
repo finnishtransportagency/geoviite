@@ -23,6 +23,7 @@ import {
     LayoutSwitchId,
     LocationTrackId,
     MapAlignmentType,
+    OperationalPoint,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { GeometryKmPostId, GeometryPlanId, GeometrySwitch } from 'geometry/geometry-model';
@@ -256,6 +257,20 @@ export const linkingReducers = {
             issues: [],
         };
     },
+    startPlacingOperationalPoint: (
+        state: TrackLayoutState,
+        { payload }: PayloadAction<OperationalPoint>,
+    ): void => {
+        state.linkingState = {
+            type: LinkingType.PlacingOperationalPoint,
+            state: 'setup',
+            operationalPoint: payload,
+            issues: [],
+        };
+    },
+    stopPlacingOperationalPoint: (state: TrackLayoutState): void => {
+        state.linkingState = undefined;
+    },
     selectOnlyLayoutSwitchForGeometrySwitchLinking: (
         state: TrackLayoutState,
         {
@@ -367,6 +382,7 @@ function validateLinkingState(state: LinkingState): LinkingState {
         case LinkingType.LinkingKmPost:
         case LinkingType.UnknownAlignment:
         case LinkingType.LinkingLayoutSwitch:
+        case LinkingType.PlacingOperationalPoint:
             return state;
         default:
             return exhaustiveMatchingGuard(state);
