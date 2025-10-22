@@ -6,9 +6,9 @@ import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.publication.Publication
+import kotlin.reflect.KClass
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
-import kotlin.reflect.KClass
 
 class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
     val testApiMapper = jacksonObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
@@ -50,6 +50,18 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             ExtTestModifiedTrackNumberCollectionResponseV1::class,
         )
 
+    val trackNumberKms =
+        AssetApi<ExtTrackKmsResponseV1, Nothing, Nothing>(
+            assetUrl = { oid -> "/geoviite/paikannuspohja/v1/ratanumerot/${oid}/ratakilometrit" },
+            ExtTrackKmsResponseV1::class,
+        )
+
+    val trackNumberKmsCollection =
+        AssetCollectionApi<ExtTrackKmsCollectionResponseV1, Nothing>(
+            assetCollectionUrl = { "/geoviite/paikannuspohja/v1/ratakilometrit" },
+            ExtTrackKmsCollectionResponseV1::class,
+        )
+
     inner class AssetApi<AssetResponse : Any, AssetModificationResponse : Any, AssetGeometryResponse : Any>(
         private val assetUrl: (String) -> String,
         private val assetClazz: KClass<AssetResponse>,
@@ -80,6 +92,23 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
 
         fun getWithEmptyBody(oid: Oid<*>, vararg params: Pair<String, String>, httpStatus: HttpStatus) {
             internalGetWithoutBody(assetUrl(oid.toString()), params.toMap(), httpStatus)
+        }
+
+        fun assertDoesntExist(oid: Oid<*>, vararg params: Pair<String, String>) {
+            getWithEmptyBody(oid, *params, httpStatus = HttpStatus.NO_CONTENT)
+        }
+
+        fun assertDoesntExistAtVersion(
+            oid: Oid<*>,
+            layoutVersion: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+        ) {
+            getWithEmptyBody(
+                oid,
+                TRACK_LAYOUT_VERSION to layoutVersion.toString(),
+                *params,
+                httpStatus = HttpStatus.NO_CONTENT,
+            )
         }
 
         fun getModifiedBetween(
@@ -181,6 +210,13 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             return internalGet(assetCollectionClazz, assetCollectionUrl(), params.toMap())
         }
 
+        fun getAtVersion(
+            layoutVersion: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+        ): AssetCollectionResponse {
+            return get(TRACK_LAYOUT_VERSION to layoutVersion.toString(), *params)
+        }
+
         fun getWithExpectedError(vararg params: Pair<String, String>, httpStatus: HttpStatus): ExtTestErrorResponseV1 {
             return internalGet(ExtTestErrorResponseV1::class, assetCollectionUrl(), params.toMap(), httpStatus)
         }
@@ -210,7 +246,7 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             )
         }
 
-        fun verifyNoModificationSince(layoutVersion: Uuid<Publication>, vararg params: Pair<String, String>) {
+        fun assertNoModificationSince(layoutVersion: Uuid<Publication>, vararg params: Pair<String, String>) {
             return getModifiedWithEmptyBody(
                 TRACK_LAYOUT_VERSION_FROM to layoutVersion.toString(),
                 *params,

@@ -30,6 +30,8 @@ const val TRACK_NUMBER_KMS = "ratanumeron_kilometrit"
 const val TRACK_NUMBER_KMS_COLLECTION = "ratanumeroiden_kilometrit"
 
 const val KM_NUMBER = "km_tunnus"
+const val KM_START_M = "alkupaalu"
+const val KM_END_M = "loppupaalu"
 const val KM_LENGTH = "ratakilometrin_pituus"
 const val OFFICIAL_LOCATION = "virallinen_sijainti"
 

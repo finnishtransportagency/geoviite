@@ -10,14 +10,13 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.time.Instant
 
 @GeoviiteService
 class ExtTrackNumberKmServiceV1
@@ -36,13 +35,16 @@ constructor(private val geocodingService: GeocodingService, private val layoutTr
         val trackNumberId =
             layoutTrackNumberDao.lookupByExternalId(trackNumberOid)?.id
                 ?: throw ExtOidNotFoundExceptionV1("track number lookup failed for oid=$trackNumberOid")
-        return layoutTrackNumberDao.getOfficialAtMoment(branch, trackNumberId, moment)?.let { trackNumber ->
-            ExtTrackKmsResponseV1(
-                trackLayoutVersion = publication.uuid,
-                coordinateSystem = coordinateSystem,
-                trackNumberKms = getExtTrackKms(trackNumberOid, trackNumber, branch, moment, coordinateSystem),
-            )
-        }
+        return layoutTrackNumberDao
+            .getOfficialAtMoment(branch, trackNumberId, moment)
+            ?.takeIf { it.exists }
+            ?.let { trackNumber ->
+                ExtTrackKmsResponseV1(
+                    trackLayoutVersion = publication.uuid,
+                    coordinateSystem = coordinateSystem,
+                    trackNumberKms = getExtTrackKms(trackNumberOid, trackNumber, branch, moment, coordinateSystem),
+                )
+            }
     }
 
     fun createTrackNumberKmsCollectionResponse(
@@ -54,7 +56,7 @@ constructor(private val geocodingService: GeocodingService, private val layoutTr
         val trackNumbers =
             layoutTrackNumberDao
                 .listOfficialAtMoment(publication.layoutBranch.branch, publication.publicationTime)
-                .filter { trackNumber -> trackNumber.state != LayoutState.DELETED }
+                .filter { it.exists }
         val trackNumberIds = trackNumbers.map { trackNumber -> trackNumber.id as IntId }
         val externalTrackNumberIds = layoutTrackNumberDao.fetchExternalIds(branch, trackNumberIds)
         return ExtTrackKmsCollectionResponseV1(
@@ -93,7 +95,9 @@ constructor(private val geocodingService: GeocodingService, private val layoutTr
                     ExtTrackKmV1(
                         type = if (kmPost == null) ExtTrackKmTypeV1.TRACK_NUMBER_START else ExtTrackKmTypeV1.KM_POST,
                         kmNumber = km.kmNumber,
-                        kmLength = roundTo3Decimals(km.length),
+                        // The first KM might not start at 0 meters -> the km start is on the previous TrackNumber
+                        startM = roundTo3Decimals(km.referenceLineM.min) - roundTo3Decimals(km.startMeters),
+                        endM = roundTo3Decimals(km.referenceLineM.max),
                         officialLocation = kmPost?.let { kmp -> getOfficialLocation(trackNumberId, kmp) },
                         location = getKmStart(trackNumberId, kmPost, geocodingContext, coordinateSystem),
                     )
