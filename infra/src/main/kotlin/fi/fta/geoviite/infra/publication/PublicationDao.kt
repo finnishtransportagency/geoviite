@@ -2458,56 +2458,6 @@ class PublicationDao(
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
     }
 
-    // TODO: GVT-3143 do we want to do modification API as well? If not, these can be removed
-    data class TrackKmChange(
-        val kmNumber: KmNumber,
-        val changed: Boolean,
-        val kmPostVersion: LayoutRowVersion<LayoutKmPost>?,
-    )
-
-    private fun fetchPublishedKmsBetweenInternal(
-        exclusiveStartMoment: Instant,
-        inclusiveEndMoment: Instant,
-        id: IntId<LayoutKmPost>?,
-    ): List<LayoutRowVersion<LayoutKmPost>> {
-        val sql =
-            """
-                select distinct on (kmp.id)
-                  kmp.id,
-                  kmp.layout_context_id,
-                  kmp.version
-                  from publication.publication
-                    join lateral (
-                      -- Direct changes (km-post part of publication)
-                      select
-                        kmp.*
-                        from publication.track_number_km ptkm
-                          join layout.km_post_at(:end_time) kmp on kmp.km_number = ptkm.km_number and kmp.track_number_id = ptkm.track_number_id
-                        where ptkm.publication_id = publication.id
-                          and kmp.draft = false
-                      union all
-                      -- Indirect changes (km changed on track number as part of another change)
-                      select kmp.*, true as direct
-                        from publication.km_post pkmp
-                          join layout.km_post_version kmp on kmp.id = pkmp.id and kmp.layout_context_id = pkmp.layout_context_id and kmp.version = pkmp.version
-                        where pkmp.publication_id = publication.id
-                    ) kmp on true
-                  where publication.design_id is null
-                    and (:kmp_id::int is null or kmp.id = :kmp_id)
-                    and publication.publication_time > :start_time
-                    and publication.publication_time <= :end_time
-                  order by kmp.id, publication.publication_time desc
-        """
-
-        val params =
-            mapOf(
-                "start_time" to Timestamp.from(exclusiveStartMoment),
-                "end_time" to Timestamp.from(inclusiveEndMoment),
-                "kmp_id" to id?.intValue,
-            )
-        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
-    }
-
     fun fetchPublishedSwitchJoints(
         publicationId: IntId<Publication>,
         includeRemoved: Boolean,
