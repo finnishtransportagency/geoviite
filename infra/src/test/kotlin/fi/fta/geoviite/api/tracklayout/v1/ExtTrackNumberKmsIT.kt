@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.math.Point
@@ -16,7 +17,6 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -28,6 +28,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -110,6 +111,53 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         // Ensure that the collection also includes the exact same response
         val kmsInCollection = api.trackNumberKmsCollection.get().trackNumberKms.find { it.trackNumber == trackNumber }
+        assertEquals(response.trackNumberKms, kmsInCollection)
+    }
+
+    @Test
+    fun `Track number kms API respects the coordinate system argument`() {
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val tnId = mainDraftContext.createLayoutTrackNumber(trackNumber).id
+        val tnOid = testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        val rlGeom = alignment(segment(Point(1000.0, 1000.0), Point(2000.0, 1000.0)))
+        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter.ZERO), rlGeom).id
+        val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(1500.0, 1002.0))).id
+
+        val publication =
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(tnId),
+                referenceLines = listOf(rlId),
+                kmPosts = listOf(kmp1Id),
+            )
+        val response = api.trackNumberKms.get(tnOid, COORDINATE_SYSTEM to "EPSG:4326")
+        assertEquals(publication.uuid, response.trackLayoutVersion)
+        assertEquals(Srid(4326), response.coordinateSystem)
+        assertEquals(trackNumber, response.trackNumberKms.trackNumber)
+        assertEquals(tnOid, response.trackNumberKms.trackNumberOid)
+        assertKmsMatch(
+            response.trackNumberKms.trackKms,
+            ExtTrackKmV1(
+                type = ExtTrackKmTypeV1.TRACK_NUMBER_START,
+                kmNumber = KmNumber(0),
+                startM = BigDecimal("0.000"),
+                endM = BigDecimal("500.000"),
+                officialLocation = null,
+                // Start location in EPSG:4326 == WGS84, converted using https://epsg.io/transform
+                location = ExtCoordinateV1(22.5202151, 0.0090195),
+            ),
+            ExtTrackKmV1(
+                type = ExtTrackKmTypeV1.KM_POST,
+                kmNumber = KmNumber(1),
+                startM = BigDecimal("500.000"),
+                endM = BigDecimal("1000.000"),
+                officialLocation = ExtSridCoordinateV1(transformFromLayoutToGKCoordinate(Point(1500.0, 1002.0))),
+                // KM Post location in EPSG:4326 == WGS84, converted using https://epsg.io/transform
+                location = ExtCoordinateV1(22.5246947,0.0090375),
+            ),
+        )
+
+        // Ensure that the collection also includes the exact same response
+        val kmsInCollection = api.trackNumberKmsCollection.get(COORDINATE_SYSTEM to "EPSG:4326").trackNumberKms.find { it.trackNumber == trackNumber }
         assertEquals(response.trackNumberKms, kmsInCollection)
     }
 
