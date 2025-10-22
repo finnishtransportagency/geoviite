@@ -332,9 +332,10 @@ const trackLayoutSlice = createSlice({
         },
 
         onClickLocation: (state: TrackLayoutState, action: PayloadAction<Point>): void => {
-            if (state.linkingState?.type === LinkingType.PlacingLayoutSwitch) {
-                state.linkingState.location = action.payload;
-            } else if (state.linkingState?.type === LinkingType.PlacingOperationalPoint) {
+            if (
+                state.linkingState?.type === LinkingType.PlacingLayoutSwitch ||
+                state.linkingState?.type === LinkingType.PlacingOperationalPoint
+            ) {
                 state.linkingState.location = action.payload;
             } else {
                 mapReducers.onClickLocation(state.map, action);

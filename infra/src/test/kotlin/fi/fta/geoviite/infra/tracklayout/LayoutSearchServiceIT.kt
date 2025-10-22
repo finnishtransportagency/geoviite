@@ -13,13 +13,13 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.util.FreeText
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -32,6 +32,9 @@ constructor(
     val switchService: LayoutSwitchService,
     val switchDao: LayoutSwitchDao,
 ) : DBTestBase() {
+
+    @Autowired private lateinit var operationalPointService: OperationalPointService
+
     @BeforeEach
     fun cleanup() {
         testDBService.clearLayoutTables()
@@ -129,6 +132,20 @@ constructor(
 
         val result = searchService.searchAllKmPosts(searchParameters("123")).map { it.version }
         assertEquals(0, result.size)
+    }
+
+    @Test
+    fun `free text search should return operational points when their name, abbreviation or uic code matches the search term`() {
+        val op1 = mainDraftContext.save(operationalPoint(name = "Blaa 0001"))
+        val op2 = mainDraftContext.save(operationalPoint(name = "Blaahaa", abbreviation = "BL0001"))
+        val op3 = mainDraftContext.save(operationalPoint(name = "Blee", uicCode = "0001"))
+        mainDraftContext.save(operationalPoint(name = "Woohoo 1234", abbreviation = "WH1234", uicCode = "1234"))
+
+        val result = searchService.searchAllOperationalPoints(searchParameters("0001")).map { it.version }
+        assertEquals(3, result.size)
+        assertContains(result, op1)
+        assertContains(result, op2)
+        assertContains(result, op3)
     }
 
     @Test
@@ -283,6 +300,8 @@ constructor(
             mainOfficialContext.save(
                 kmPost(trackNumberId = trackNumber.id, km = KmNumber(1), state = LayoutState.DELETED)
             )
+        val operationalPoint =
+            mainOfficialContext.save(operationalPoint(name = "0001", state = OperationalPointState.DELETED))
 
         fun search(includeDeleted: Boolean) =
             searchService.searchAssets(
@@ -292,6 +311,7 @@ constructor(
                     TrackLayoutSearchedAssetType.SWITCH,
                     TrackLayoutSearchedAssetType.TRACK_NUMBER,
                     TrackLayoutSearchedAssetType.KM_POST,
+                    TrackLayoutSearchedAssetType.OPERATIONAL_POINT,
                 ),
                 searchParameters("0001", includeDeleted = includeDeleted),
             )
@@ -303,6 +323,7 @@ constructor(
         assertEquals(0, searchResultsWithoutDeleted.locationTracks.size)
         assertEquals(0, searchResultsWithoutDeleted.switches.size)
         assertEquals(0, searchResultsWithoutDeleted.kmPosts.size)
+        assertEquals(0, searchResultsWithoutDeleted.operationalPoints.size)
 
         assertEquals(1, searchResultsIncludingDeleted.locationTracks.size)
         assertEquals(locationTrack.id, searchResultsIncludingDeleted.locationTracks.first().id)
@@ -315,6 +336,9 @@ constructor(
 
         assertEquals(1, searchResultsIncludingDeleted.kmPosts.size)
         assertEquals(kmPost.id, searchResultsIncludingDeleted.kmPosts.first().id)
+
+        assertEquals(1, searchResultsIncludingDeleted.operationalPoints.size)
+        assertEquals(operationalPoint.id, searchResultsIncludingDeleted.operationalPoints.first().id)
     }
 
     private fun saveTrackNumbersWithSaveRequests(
