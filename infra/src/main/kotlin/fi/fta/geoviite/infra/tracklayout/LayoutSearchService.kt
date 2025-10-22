@@ -175,7 +175,9 @@ constructor(
                     .take(params.limitPerResultType),
             trackNumbers = emptyList(),
             kmPosts = emptyList(),
-            operationalPoints = emptyList(),
+            operationalPoints =
+                if (types.contains(TrackLayoutSearchedAssetType.OPERATIONAL_POINT)) searchAllOperationalPoints(params)
+                else emptyList(),
         )
     }
 
