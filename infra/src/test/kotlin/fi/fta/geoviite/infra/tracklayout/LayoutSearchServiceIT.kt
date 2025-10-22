@@ -33,8 +33,6 @@ constructor(
     val switchDao: LayoutSwitchDao,
 ) : DBTestBase() {
 
-    @Autowired private lateinit var operationalPointService: OperationalPointService
-
     @BeforeEach
     fun cleanup() {
         testDBService.clearLayoutTables()
