@@ -44,16 +44,16 @@ export function createOperationalPointLayer(
     };
     const onLoadingChange = () => {};
 
-    const isBeingPlaced = (id: OperationalPointId) =>
-        !linkingState ||
-        linkingState.type !== LinkingType.PlacingOperationalPoint ||
-        linkingState.operationalPoint.id !== id ||
-        !linkingState.location;
+    const isBeingMoved = (id: OperationalPointId) =>
+        linkingState &&
+        linkingState.type === LinkingType.PlacingOperationalPoint &&
+        linkingState.operationalPoint.id === id &&
+        !!linkingState.location;
 
     const createFeatures = (points: OperationalPoint[]) =>
         showOperationalPoints
             ? points
-                  .filter((point) => !isBeingPlaced(point.id))
+                  .filter((point) => !isBeingMoved(point.id))
                   .map((point) => {
                       const isSelectedOrHighlighted =
                           selection.selectedItems.operationalPoints.includes(point.id) ||
