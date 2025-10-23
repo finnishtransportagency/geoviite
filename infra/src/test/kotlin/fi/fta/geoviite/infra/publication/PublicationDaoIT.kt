@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -339,21 +338,17 @@ constructor(
             // null locationTrackIdsInPublicationUnit = everything in publication unit = nothing
             // linked
             mapOf(),
-            publicationDao.fetchLinkedLocationTracks(ValidateTransition(PublicationInMain), listOf(switch), null),
+            publicationDao.fetchLinkedLocationTracks(PublicationInMain, listOf(switch), null),
         )
         assertEquals(
             // nothing in publication unit = everything linked
             mapOf(switch to setOf(track1Main, track2Main)),
-            publicationDao.fetchLinkedLocationTracks(ValidateTransition(PublicationInMain), listOf(switch), listOf()),
+            publicationDao.fetchLinkedLocationTracks(PublicationInMain, listOf(switch), listOf()),
         )
         assertEquals(
             // just one track in publication unit = only the track not in publication unit is linked
             mapOf(switch to setOf(track2Main)),
-            publicationDao.fetchLinkedLocationTracks(
-                ValidateTransition(PublicationInMain),
-                listOf(switch),
-                listOf(track1Main.id),
-            ),
+            publicationDao.fetchLinkedLocationTracks(PublicationInMain, listOf(switch), listOf(track1Main.id)),
         )
     }
 
@@ -386,7 +381,7 @@ constructor(
                     edge(startInnerSwitch = switchLinkYV(switchByAlignment, 3), segments = listOf(someSegment()))
                 ),
             )
-        val target = draftTransitionOrOfficialState(PublicationState.DRAFT, LayoutBranch.main)
+        val target = PublicationInMain
         assertEquals(
             setOf(officialLinkedAlignment, draftLinkedAlignment),
             publicationDao.fetchLinkedLocationTracks(target, listOf(switchByAlignment))[switchByAlignment],

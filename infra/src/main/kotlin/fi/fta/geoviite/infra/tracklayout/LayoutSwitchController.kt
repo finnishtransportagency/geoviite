@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
-import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -108,10 +107,7 @@ class LayoutSwitchController(
             }
         val switchIds =
             switches.filter { switch -> switchMatchesBbox(switch, bbox, false) }.map { sw -> sw.id as IntId }
-        return publicationValidationService.validateSwitches(
-            draftTransitionOrOfficialState(publicationState, branch),
-            switchIds,
-        )
+        return publicationValidationService.validateSwitches(branch, publicationState, switchIds)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

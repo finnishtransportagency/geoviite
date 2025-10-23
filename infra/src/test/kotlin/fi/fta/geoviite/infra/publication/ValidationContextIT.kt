@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -178,7 +177,7 @@ constructor(
         kmPosts: List<IntId<LayoutKmPost>> = listOf(),
         operationalPoints: List<IntId<OperationalPoint>> = listOf(),
     ): ValidationContext {
-        val target = draftTransitionOrOfficialState(PublicationState.DRAFT, branch)
+        val target = LayoutContextTransition.publicationIn(branch)
         val candidateContext = target.candidateContext
         return ValidationContext(
             trackNumberDao = trackNumberDao,

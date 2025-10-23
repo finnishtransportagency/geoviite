@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
@@ -119,10 +120,7 @@ constructor(
 
         val validation =
             publicationValidationService
-                .validateLocationTracks(
-                    draftTransitionOrOfficialState(OFFICIAL, LayoutBranch.main),
-                    listOf(locationTrackId.id),
-                )
+                .validateLocationTracks(LayoutBranch.main, OFFICIAL, listOf(locationTrackId.id))
                 .first()
         assertEquals(validation.errors.size, 1)
     }
@@ -133,10 +131,7 @@ constructor(
 
         val validation =
             publicationValidationService
-                .validateTrackNumbersAndReferenceLines(
-                    draftTransitionOrOfficialState(OFFICIAL, LayoutBranch.main),
-                    listOf(trackNumber),
-                )
+                .validateTrackNumbersAndReferenceLines(LayoutBranch.main, OFFICIAL, listOf(trackNumber))
                 .first()
         assertEquals(validation.errors.size, 1)
     }
@@ -145,11 +140,7 @@ constructor(
     fun `Validating official switch should work`() {
         val switchId = switchDao.save(switch(draft = false, stateCategory = LayoutStateCategory.EXISTING)).id
 
-        val validation =
-            publicationValidationService.validateSwitches(
-                draftTransitionOrOfficialState(OFFICIAL, LayoutBranch.main),
-                listOf(switchId),
-            )
+        val validation = publicationValidationService.validateSwitches(LayoutBranch.main, OFFICIAL, listOf(switchId))
         assertEquals(1, validation.size)
         assertEquals(1, validation[0].errors.size)
     }
@@ -162,10 +153,7 @@ constructor(
 
         val validationIds =
             publicationValidationService
-                .validateSwitches(
-                    draftTransitionOrOfficialState(OFFICIAL, LayoutBranch.main),
-                    listOf(switchId, switchId2, switchId3),
-                )
+                .validateSwitches(LayoutBranch.main, OFFICIAL, listOf(switchId, switchId2, switchId3))
                 .map { it.id }
         assertEquals(3, validationIds.size)
         assertContains(validationIds, switchId)
@@ -181,9 +169,7 @@ constructor(
                 .id
 
         val validation =
-            publicationValidationService
-                .validateKmPosts(draftTransitionOrOfficialState(OFFICIAL, LayoutBranch.main), listOf(kmPostId))
-                .first()
+            publicationValidationService.validateKmPosts(LayoutBranch.main, OFFICIAL, listOf(kmPostId)).first()
         assertEquals(validation.errors.size, 1)
     }
 
@@ -645,11 +631,19 @@ constructor(
         )
         val design = testDBService.createDesignBranch()
         val designKmPost = testDBService.testContext(design, OFFICIAL).save(kmPost(trackNumber, KmNumber(1)))
-        val transition = ValidateTransition(LayoutContextTransition.mergeToMainFrom(design))
-        val validation = publicationValidationService.validateKmPosts(transition, listOf(designKmPost.id)).first()
+
+        val validation =
+            publicationValidationService
+                .validatePublicationCandidates(
+                    publicationService.collectPublicationCandidates(MergeFromDesign(design)),
+                    publicationRequestIds(kmPosts = listOf(designKmPost.id)),
+                )
+                .validatedAsPublicationUnit
+                .kmPosts
+                .first()
 
         assertTrue(
-            validation.errors.any {
+            validation.issues.any {
                 it.type == LayoutValidationIssueType.FATAL &&
                     it.localizationKey == LocalizationKey.of("$VALIDATION_GEOCODING.duplicate-km-posts")
             }
@@ -661,10 +655,17 @@ constructor(
         mainDraftContext.save(switch(name = "ABC V123"))
         val design = testDBService.createDesignBranch()
         val designSwitch = testDBService.testContext(design, OFFICIAL).save(switch(name = "ABC V123"))
-        val transition = ValidateTransition(LayoutContextTransition.mergeToMainFrom(design))
-        val validation = publicationValidationService.validateSwitches(transition, listOf(designSwitch.id)).first()
+        val validation =
+            publicationValidationService
+                .validatePublicationCandidates(
+                    publicationService.collectPublicationCandidates(MergeFromDesign(design)),
+                    publicationRequestIds(switches = listOf(designSwitch.id)),
+                )
+                .validatedAsPublicationUnit
+                .switches
+                .first()
         assertTrue(
-            validation.errors.any {
+            validation.issues.any {
                 it.type == LayoutValidationIssueType.FATAL &&
                     it.localizationKey == LocalizationKey.of("validation.layout.switch.duplicate-name-draft-in-main")
             }
@@ -677,13 +678,17 @@ constructor(
         val design = testDBService.createDesignBranch()
         val designTrackNumber =
             testDBService.testContext(design, OFFICIAL).save(trackNumber(number = TrackNumber("123")))
-        val transition = ValidateTransition(LayoutContextTransition.mergeToMainFrom(design))
         val validation =
             publicationValidationService
-                .validateTrackNumbersAndReferenceLines(transition, listOf(designTrackNumber.id))
+                .validatePublicationCandidates(
+                    publicationService.collectPublicationCandidates(MergeFromDesign(design)),
+                    publicationRequestIds(trackNumbers = listOf(designTrackNumber.id)),
+                )
+                .validatedAsPublicationUnit
+                .trackNumbers
                 .first()
         assertTrue(
-            validation.errors.any {
+            validation.issues.any {
                 it.type == LayoutValidationIssueType.FATAL &&
                     it.localizationKey ==
                         LocalizationKey.of("validation.layout.track-number.duplicate-name-draft-in-main")
@@ -712,11 +717,17 @@ constructor(
                         segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
                     )
                 )
-        val transition = ValidateTransition(LayoutContextTransition.mergeToMainFrom(design))
         val validation =
-            publicationValidationService.validateLocationTracks(transition, listOf(designLocationTrack.id)).first()
+            publicationValidationService
+                .validatePublicationCandidates(
+                    publicationService.collectPublicationCandidates(MergeFromDesign(design)),
+                    publicationRequestIds(locationTracks = listOf(designLocationTrack.id)),
+                )
+                .validatedAsPublicationUnit
+                .locationTracks
+                .first()
         assertTrue(
-            validation.errors.any {
+            validation.issues.any {
                 it.type == LayoutValidationIssueType.FATAL &&
                     it.localizationKey == LocalizationKey.of("$VALIDATION_LOCATION_TRACK.duplicate-name-draft-in-main")
             }
@@ -1743,7 +1754,7 @@ constructor(
         val draftSwitch = mainDraftContext.save(switch(draftOid = Oid("1.2.3.4.5"))).id
         assertContains(
             publicationValidationService
-                .validateSwitches(ValidateTransition(PublicationInMain), listOf(draftSwitch))[0]
+                .validateSwitches(LayoutBranch.main, PublicationState.DRAFT, listOf(draftSwitch))[0]
                 .errors,
             LayoutValidationIssue(
                 localizationKey = LocalizationKey.of("validation.layout.switch.duplicate-oid"),
@@ -2247,7 +2258,7 @@ constructor(
                 )
             ),
             publicationValidationService
-                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(internal123))[0]
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(internal123))[0]
                 .errors,
         )
         assertEquals(
@@ -2259,7 +2270,7 @@ constructor(
                 )
             ),
             publicationValidationService
-                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(external123))[0]
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(external123))[0]
                 .errors,
         )
         assertEquals(
@@ -2270,7 +2281,7 @@ constructor(
                 )
             ),
             publicationValidationService
-                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(externalNull))[0]
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(externalNull))[0]
                 .errors,
         )
         assertEquals(
@@ -2281,7 +2292,7 @@ constructor(
                 )
             ),
             publicationValidationService
-                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(internalNull))[0]
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(internalNull))[0]
                 .errors,
         )
         assertEquals(
@@ -2293,13 +2304,13 @@ constructor(
                 )
             ),
             publicationValidationService
-                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(internal234))[0]
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(internal234))[0]
                 .errors,
         )
         assertEquals(
             listOf<LayoutValidationIssue>(),
             publicationValidationService
-                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(internal345))[0]
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(internal345))[0]
                 .errors,
         )
     }
@@ -2323,7 +2334,7 @@ constructor(
         assertEquals(
             listOf<LayoutValidationIssue>(),
             publicationValidationService
-                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(borderlinePoint))[0]
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(borderlinePoint))[0]
                 .errors,
         )
 
@@ -2354,7 +2365,7 @@ constructor(
                 )
             ),
             publicationValidationService
-                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(outsidePoint))[0]
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(outsidePoint))[0]
                 .errors,
         )
     }
@@ -2396,7 +2407,7 @@ constructor(
                 // ... (rest thrown out by the take(2) below)
             ),
             publicationValidationService
-                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(aa, ab, ba, bb))
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(aa, ab, ba, bb))
                 .sortedBy { it.id.intValue }
                 .take(2)
                 .map { point -> point.errors.sortedBy { it.localizationKey } },
@@ -2414,7 +2425,7 @@ constructor(
                 )
             ),
             publicationValidationService
-                .validateOperationalPoints(ValidateContext(mainDraftContext.context), listOf(rinfless))[0]
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(rinfless))[0]
                 .errors,
         )
     }
