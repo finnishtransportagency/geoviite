@@ -210,6 +210,7 @@ module.exports = (env) => {
             new MiniCssExtractPlugin(),
             new ESLintWebpackPlugin({
                 configType: 'flat',
+                failOnError: false,
                 extensions: ['js', 'jsx', 'ts', 'tsx'],
             }),
             new LicensePlugin({

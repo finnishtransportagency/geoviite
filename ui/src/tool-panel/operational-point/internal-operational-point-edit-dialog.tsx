@@ -9,9 +9,7 @@ import { Dropdown, dropdownOption, DropdownOption } from 'vayla-design-lib/dropd
 import { operationalPointStates, rinfTypes } from 'utils/enum-localization-utils';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import {
-    OperationalPointDeleteDraftConfirmDialog
-} from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
+import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
 import {
     OperationalPoint,
     OperationalPointId,
@@ -28,6 +26,7 @@ import {
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { UnknownAction } from 'redux';
 import {
+    FieldValidationIssueType,
     getVisibleErrorsByProp as getVisibleErrorsByPropGeneric,
     hasErrors as hasErrorsGeneric,
 } from 'utils/validation-utils';
@@ -37,10 +36,11 @@ import {
     insertOperationalPoint,
     updateInternalOperationalPoint,
 } from 'track-layout/layout-operational-point-api';
-import { LayoutContext } from 'common/common-model';
+import { LayoutContext, officialLayoutContext } from 'common/common-model';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import { useOperationalPoint } from 'track-layout/track-layout-react-utils';
 
 type InternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint | undefined;
@@ -75,8 +75,14 @@ export const InternalOperationalPointEditDialog: React.FC<
         isNotItself(op, operationalPoint?.id),
     );
 
+    const isNew = !operationalPoint;
+    const officialOperationalPointExists = !!useOperationalPoint(
+        operationalPoint?.id,
+        officialLayoutContext(layoutContext),
+    );
+
     React.useEffect(() => {
-        if (operationalPoint) stateActions.onOperationalPointLoaded(operationalPoint);
+        stateActions.onInit(operationalPoint);
     }, [operationalPoint]);
 
     const [deleteDraftConfirmDialogOpen, setShowDeleteDraftConfirmDialog] = React.useState(false);
@@ -84,10 +90,8 @@ export const InternalOperationalPointEditDialog: React.FC<
         React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
 
-    const isNew = !operationalPoint;
-
     const stateOptions = operationalPointStates.map((s) =>
-        s.value !== 'DELETED' || !isNew ? s : { ...s, disabled: true },
+        s.value !== 'DELETED' || officialOperationalPointExists ? s : { ...s, disabled: true },
     );
     const rinfTypeOptions: DropdownOption<RinfType>[] = rinfTypes.map((value) =>
         dropdownOption(value.value, value.name, `rinf-type-option-${value}`),
@@ -195,7 +199,8 @@ export const InternalOperationalPointEditDialog: React.FC<
     const revertDraft = () => {
         if (operationalPoint) {
             deleteDraftOperationalPoint(layoutContext, operationalPoint.id);
-            setShowDeleteDraftConfirmDialog(true);
+            setShowDeleteDraftConfirmDialog(false);
+            onClose();
         }
     };
 
@@ -206,7 +211,11 @@ export const InternalOperationalPointEditDialog: React.FC<
     };
 
     const canSave =
-        !isSaving && !duplicateNamePoint && !duplicateAbbreviationPoint && !duplicateUicCodePoint;
+        !isSaving &&
+        !duplicateNamePoint &&
+        !duplicateAbbreviationPoint &&
+        !duplicateUicCodePoint &&
+        !state.validationIssues.some((issue) => issue.type === FieldValidationIssueType.ERROR);
 
     return (
         <React.Fragment>

@@ -76,6 +76,7 @@
         margin-left: 24px;
         flex-grow: 1;
         white-space: pre-wrap;
+        overflow-wrap: anywhere;
 
         &--error {
             color: vayla-design.$color-red-dark;
