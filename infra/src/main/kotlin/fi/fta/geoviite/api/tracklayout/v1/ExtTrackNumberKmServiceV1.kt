@@ -13,10 +13,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtTrackNumberKmServiceV1
@@ -108,8 +108,8 @@ constructor(private val geocodingService: GeocodingService, private val layoutTr
     private fun getOfficialLocation(
         trackNumberId: IntId<LayoutTrackNumber>,
         kmPost: LayoutKmPost,
-    ): ExtSridCoordinateV1 =
-        requireNotNull(kmPost.gkLocation?.location?.let(::ExtSridCoordinateV1)) {
+    ): ExtKmPostOfficialLocationV1 =
+        requireNotNull(kmPost.gkLocation?.let(::ExtKmPostOfficialLocationV1)) {
             "An active km post in official layout must have an official GK location: id=${kmPost.id} kmNumber=${kmPost.kmNumber} trackNumberId=$trackNumberId"
         }
 
