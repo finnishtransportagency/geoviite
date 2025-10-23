@@ -17,7 +17,6 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.segment
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -27,6 +26,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -349,7 +349,7 @@ constructor(
                 referenceLines = listOf(referenceLineId1, referenceLineId2),
             )
         assertAddressRange(getExtTrackNumberInCollection(trackNumberOid1)!!, "0000+0000.000", "0000+0010.000")
-        api.trackNumberCollection.verifyNoModificationSince(basePublication.uuid)
+        api.trackNumberCollection.assertNoModificationSince(basePublication.uuid)
 
         initUser()
         mainDraftContext.save(
@@ -364,7 +364,7 @@ constructor(
             assertEquals(listOf(trackNumberOid1.toString()), mods.ratanumerot.map { it.ratanumero_oid })
             assertAddressRange(mods.ratanumerot[0], "0001+0010.000", "0001+0020.000")
         }
-        api.trackNumberCollection.verifyNoModificationSince(rlPublication.uuid)
+        api.trackNumberCollection.assertNoModificationSince(rlPublication.uuid)
 
         initUser()
         val kmpId =
@@ -383,7 +383,7 @@ constructor(
             assertEquals(listOf(trackNumberOid1.toString()), mods.ratanumerot.map { it.ratanumero_oid })
             assertAddressRange(mods.ratanumerot[0], "0001+0010.000", "0001+0020.000")
         }
-        api.trackNumberCollection.verifyNoModificationSince(kmpPublication.uuid)
+        api.trackNumberCollection.assertNoModificationSince(kmpPublication.uuid)
 
         assertAddressRange(getExtTrackNumberInCollection(trackNumberOid2)!!, "0000+0000.000", "0000+0010.000")
     }

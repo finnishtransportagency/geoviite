@@ -439,6 +439,9 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
     fun <T : LayoutAsset<T>> save(asset: T): LayoutRowVersion<T> =
         testService.save(testService.updateContext(asset, context), asset.version)
 
+    inline fun <reified T : LayoutAsset<T>> mutate(id: IntId<T>, op: (T) -> T): LayoutRowVersion<T>? =
+        fetch(id)?.let { save(op(it)) }
+
     fun saveLocationTrack(asset: Pair<LocationTrack, LocationTrackGeometry>): LayoutRowVersion<LocationTrack> =
         save(asset.first, asset.second)
 

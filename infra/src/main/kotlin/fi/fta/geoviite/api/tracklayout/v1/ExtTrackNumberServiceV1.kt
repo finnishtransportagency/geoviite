@@ -2,10 +2,8 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
@@ -34,7 +32,7 @@ constructor(
         coordinateSystem: Srid,
     ): ExtTrackNumberResponseV1? {
         val trackNumberId =
-            layoutTrackNumberDao.lookupByExternalId(oid.toString())?.id
+            layoutTrackNumberDao.lookupByExternalId(oid)?.id
                 ?: throw ExtOidNotFoundExceptionV1("track number lookup failed for oid=$oid")
 
         return layoutTrackNumberDao
@@ -48,7 +46,7 @@ constructor(
                         getExtTrackNumber(
                             oid,
                             trackNumber,
-                            LayoutContext.of(publication.layoutBranch.branch, PublicationState.OFFICIAL),
+                            publication.layoutBranch.branch,
                             publication.publicationTime,
                             coordinateSystem,
                         ),
@@ -74,7 +72,7 @@ constructor(
                         getExtTrackNumber(
                             oid,
                             trackNumber,
-                            MainLayoutContext.official,
+                            LayoutBranch.main,
                             publications.to.publicationTime,
                             coordinateSystem,
                         ),
@@ -85,13 +83,13 @@ constructor(
     fun getExtTrackNumber(
         oid: Oid<LayoutTrackNumber>,
         trackNumber: LayoutTrackNumber,
-        layoutContext: LayoutContext,
+        branch: LayoutBranch,
         moment: Instant,
         coordinateSystem: Srid,
     ): ExtTrackNumberV1 {
         val (startLocation, endLocation) =
             referenceLineService
-                .getStartAndEndAtMoment(layoutContext, listOf(trackNumber.referenceLineId as IntId), moment)
+                .getStartAndEndAtMoment(branch, listOf(trackNumber.referenceLineId as IntId), moment)
                 .firstOrNull()
                 ?.let { startAndEnd -> layoutAlignmentStartAndEndToCoordinateSystem(coordinateSystem, startAndEnd) }
                 ?.let { startAndEnd -> startAndEnd.start to startAndEnd.end } ?: (null to null)

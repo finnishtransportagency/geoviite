@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geography.ETRS89_TM35FIN_SRID
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
@@ -62,7 +63,7 @@ fun <T : LayoutAsset<T>> idMatches(
     searchTerm: FreeText,
     onlyIds: Collection<IntId<T>>?,
 ): ((term: String, item: T) -> Boolean) {
-    val rowId = dao.lookupByExternalId(searchTerm.trim().toString())
+    val rowId = Oid.tryParse<T>(searchTerm.toString())?.let(dao::lookupByExternalId)
     return { term, item ->
         (onlyIds == null || onlyIds.contains(item.id)) &&
             (item.id.toString() == term.trim() ||

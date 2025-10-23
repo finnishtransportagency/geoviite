@@ -22,10 +22,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.*
 import kotlin.jvm.optionals.getOrNull
+import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
 class GeocodingService(
@@ -89,15 +89,13 @@ class GeocodingService(
     }
 
     fun getLazyGeocodingContextsAtMoment(
-        layoutContext: LayoutContext,
+        branch: LayoutBranch,
         moment: Instant,
     ): (IntId<LayoutTrackNumber>) -> GeocodingContext<ReferenceLineM>? {
         val contexts: MutableMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext<ReferenceLineM>>> = mutableMapOf()
         return { trackNumberId ->
             contexts
-                .computeIfAbsent(trackNumberId) {
-                    Optional.ofNullable(getGeocodingContextAtMoment(layoutContext.branch, it, moment))
-                }
+                .computeIfAbsent(trackNumberId) { Optional.ofNullable(getGeocodingContextAtMoment(branch, it, moment)) }
                 .getOrNull()
         }
     }

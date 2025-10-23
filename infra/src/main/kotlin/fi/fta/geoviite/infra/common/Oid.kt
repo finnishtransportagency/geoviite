@@ -11,6 +11,9 @@ data class Oid<T> @JsonCreator(mode = DELEGATING) constructor(private val value:
     companion object {
         private val allowedLength = 5..50
         private val sanitizer = Regex("^\\d+(\\.\\d+){2,9}\$")
+
+        fun <T> tryParse(value: String): Oid<T>? =
+            value.trim().let { if (sanitizer.matches(it) && it.length in allowedLength) Oid(it) else null }
     }
 
     init {

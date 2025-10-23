@@ -24,7 +24,7 @@ constructor(private val geocodingService: GeocodingService, private val layoutTr
         addressFilter: AddressFilter,
     ): ExtTrackNumberGeometryResponseV1? {
         val trackNumberId =
-            layoutTrackNumberDao.lookupByExternalId(oid.toString())?.id
+            layoutTrackNumberDao.lookupByExternalId(oid)?.id
                 ?: throw ExtOidNotFoundExceptionV1("track number lookup failed for oid=$oid")
 
         return layoutTrackNumberDao

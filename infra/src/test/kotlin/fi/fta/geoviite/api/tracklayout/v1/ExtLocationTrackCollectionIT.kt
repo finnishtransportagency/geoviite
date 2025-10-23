@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.util.FreeText
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -34,6 +33,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -392,7 +392,7 @@ constructor(
         getTracksByTrackNumberOids(trackNumberOid1, trackNumberOid2).forEach { track ->
             assertEquals("0000+0020.000", track.alkusijainti?.rataosoite)
         }
-        api.locationTrackCollection.verifyNoModificationSince(basePublication.uuid)
+        api.locationTrackCollection.assertNoModificationSince(basePublication.uuid)
 
         initUser()
         mainDraftContext.save(
@@ -413,7 +413,7 @@ constructor(
                 .map { it.sijaintiraide_oid to it.alkusijainti?.rataosoite }
                 .toSet(),
         )
-        api.locationTrackCollection.verifyNoModificationSince(rlPublication.uuid)
+        api.locationTrackCollection.assertNoModificationSince(rlPublication.uuid)
 
         initUser()
         val kmpId =
@@ -430,7 +430,7 @@ constructor(
                 .map { it.sijaintiraide_oid to it.alkusijainti?.rataosoite }
                 .toSet(),
         )
-        api.locationTrackCollection.verifyNoModificationSince(kmpPublication.uuid)
+        api.locationTrackCollection.assertNoModificationSince(kmpPublication.uuid)
 
         getTracksByTrackNumberOids(trackNumberOid2).forEach { track ->
             assertEquals("0000+0020.000", track.alkusijainti?.rataosoite)
