@@ -82,19 +82,16 @@ enum class ExtTrackKmTypeV1(val value: String) {
     @JsonValue override fun toString() = value
 }
 
-@Schema(name = "Koordinaattipiste")
-@JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtSridCoordinateV1(
-    @JsonProperty(COORDINATE_SYSTEM) val srid: Srid,
-    @JsonProperty(COORDINATE_LOCATION) val location: ExtCoordinateV1,
-) {
-    constructor(geometryPoint: GeometryPoint) : this(geometryPoint.srid, ExtCoordinateV1(geometryPoint))
-}
-
-@Schema(name = "Koordinaattipiste")
+@Schema(name = "Koordinaattisijainti")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtCoordinateV1(val x: Double, val y: Double) {
     constructor(coordinate: IPoint) : this(coordinate.x, coordinate.y)
+}
+
+@Schema(name = "Tietyn koordinaattijärjestelmän sijainti")
+@JsonInclude(JsonInclude.Include.ALWAYS)
+data class ExtSridCoordinateV1(val x: Double, val y: Double, @JsonProperty(COORDINATE_SYSTEM) val srid: Srid) {
+    constructor(geometryPoint: GeometryPoint) : this(geometryPoint.x, geometryPoint.y, geometryPoint.srid)
 }
 
 @Schema(name = "Osoitepiste")

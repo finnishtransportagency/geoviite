@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
+import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -28,7 +29,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -152,12 +152,15 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 endM = BigDecimal("1000.000"),
                 officialLocation = ExtSridCoordinateV1(transformFromLayoutToGKCoordinate(Point(1500.0, 1002.0))),
                 // KM Post location in EPSG:4326 == WGS84, converted using https://epsg.io/transform
-                location = ExtCoordinateV1(22.5246947,0.0090375),
+                location = ExtCoordinateV1(22.5246947, 0.0090375),
             ),
         )
 
         // Ensure that the collection also includes the exact same response
-        val kmsInCollection = api.trackNumberKmsCollection.get(COORDINATE_SYSTEM to "EPSG:4326").trackNumberKms.find { it.trackNumber == trackNumber }
+        val kmsInCollection =
+            api.trackNumberKmsCollection.get(COORDINATE_SYSTEM to "EPSG:4326").trackNumberKms.find {
+                it.trackNumber == trackNumber
+            }
         assertEquals(response.trackNumberKms, kmsInCollection)
     }
 
@@ -236,7 +239,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     fun assertLocationsMatch(expected: ExtSridCoordinateV1, actual: ExtSridCoordinateV1) {
         assertEquals(expected.srid, actual.srid)
-        assertLocationsMatch(expected.location, actual.location)
+        assertEquals(expected.x, actual.x, LAYOUT_M_DELTA)
+        assertEquals(expected.y, actual.y, LAYOUT_M_DELTA)
     }
 
     fun assertLocationsMatch(expected: ExtCoordinateV1, actual: ExtCoordinateV1) {
