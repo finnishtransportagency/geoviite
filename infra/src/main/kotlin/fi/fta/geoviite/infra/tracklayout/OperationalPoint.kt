@@ -27,6 +27,8 @@ data class OperationalPoint(
 
     override fun withContext(contextData: LayoutContextData<OperationalPoint>): OperationalPoint =
         copy(contextData = contextData)
+
+    @JsonIgnore val exists = !state.isRemoved()
 }
 
 enum class OperationalPointOrigin {
@@ -36,7 +38,9 @@ enum class OperationalPointOrigin {
 
 enum class OperationalPointState {
     IN_USE,
-    DELETED,
+    DELETED;
+
+    fun isRemoved() = this == DELETED
 }
 
 sealed interface OperationalPointSearchBbox {
@@ -63,7 +67,8 @@ data class UicCode @JsonCreator(mode = DELEGATING) constructor(private val value
 
 const val ALLOWED_OPERATIONAL_POINT_NAME_CHARACTERS = "A-Za-zÄÖÅäöå0-9 \\-_/!?"
 
-data class OperationalPointName @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
+data class OperationalPointName @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
+    Comparable<OperationalPointName>, CharSequence by value {
     companion object {
         val allowedLength = 1..150
         val sanitizer =
@@ -76,6 +81,8 @@ data class OperationalPointName @JsonCreator(mode = DELEGATING) constructor(priv
     }
 
     @JsonValue override fun toString(): String = value
+
+    override fun compareTo(other: OperationalPointName): Int = value.compareTo(other.value)
 }
 
 data class OperationalPointAbbreviation @JsonCreator(mode = DELEGATING) constructor(private val value: String) {

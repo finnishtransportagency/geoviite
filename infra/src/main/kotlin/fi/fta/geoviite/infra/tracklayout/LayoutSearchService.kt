@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.ratko.RatkoLocalService
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.beans.factory.annotation.Autowired
 
@@ -22,7 +21,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val trackNumberService: LayoutTrackNumberService,
     private val kmPostService: LayoutKmPostService,
-    private val ratkoLocalService: RatkoLocalService,
+    private val operationalPointService: OperationalPointService,
 ) {
 
     fun searchAssets(
@@ -96,6 +95,20 @@ constructor(
             .sortedBy(LayoutKmPost::kmNumber)
             .take(params.limitPerResultType)
 
+    fun searchAllOperationalPoints(params: AssetSearchParameters): List<OperationalPoint> =
+        operationalPointService
+            .list(params.layoutContext, includeDeleted = true)
+            .let { list ->
+                operationalPointService.filterBySearchTerm(
+                    list,
+                    params.searchTerm,
+                    operationalPointService.idMatches(params.layoutContext, params.searchTerm),
+                    params.includeDeleted,
+                )
+            }
+            .sortedBy(OperationalPoint::name)
+            .take(params.limitPerResultType)
+
     private fun searchFromEntireRailwayNetwork(
         types: List<TrackLayoutSearchedAssetType>,
         params: AssetSearchParameters,
@@ -112,8 +125,7 @@ constructor(
             kmPosts =
                 if (types.contains(TrackLayoutSearchedAssetType.KM_POST)) searchAllKmPosts(params) else emptyList(),
             operationalPoints =
-                if (types.contains(TrackLayoutSearchedAssetType.OPERATIONAL_POINT))
-                    ratkoLocalService.searchOperationalPoints(params.searchTerm, params.limitPerResultType)
+                if (types.contains(TrackLayoutSearchedAssetType.OPERATIONAL_POINT)) searchAllOperationalPoints(params)
                 else emptyList(),
         )
 
@@ -164,8 +176,7 @@ constructor(
             trackNumbers = emptyList(),
             kmPosts = emptyList(),
             operationalPoints =
-                if (types.contains(TrackLayoutSearchedAssetType.OPERATIONAL_POINT))
-                    ratkoLocalService.searchOperationalPoints(params.searchTerm, params.limitPerResultType)
+                if (types.contains(TrackLayoutSearchedAssetType.OPERATIONAL_POINT)) searchAllOperationalPoints(params)
                 else emptyList(),
         )
     }

@@ -45,6 +45,7 @@ export type MapLayerName =
     | 'location-track-split-location-layer'
     | 'plan-area-layer'
     | 'operational-points-layer'
+    | 'operational-points-placing-layer'
     | 'debug-1m-points-layer'
     | 'debug-projection-lines-layer'
     | 'debug-layer'

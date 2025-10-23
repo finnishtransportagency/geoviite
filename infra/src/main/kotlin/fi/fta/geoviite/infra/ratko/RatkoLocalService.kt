@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 
@@ -67,9 +66,5 @@ constructor(
 
     fun getOperationalPoints(bbox: BoundingBox): List<RatkoOperationalPoint> {
         return ratkoOperationalPointDao.getOperationalPoints(bbox)
-    }
-
-    fun searchOperationalPoints(searchTerm: FreeText, resultLimit: Int = 10): List<RatkoOperationalPoint> {
-        return ratkoOperationalPointDao.searchOperationalPoints(searchTerm, resultLimit)
     }
 }

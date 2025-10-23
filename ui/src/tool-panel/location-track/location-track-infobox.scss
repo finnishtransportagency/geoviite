@@ -3,13 +3,6 @@
 $-color-error: vayla-design.$color-red-dark;
 $-color-warning: vayla-design.$color-lemon-dark;
 
-.location-track-infobox__link-alignment-guide {
-    @include vayla-design.typography-caption-strong;
-
-    margin: 0;
-    padding: 7px 0;
-}
-
 .location-track-infobox-duplicate-of__ul {
     list-style-type: none; /* Remove bullets */
     padding: 0; /* Remove padding */

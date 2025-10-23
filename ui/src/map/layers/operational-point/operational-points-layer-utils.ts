@@ -1,11 +1,16 @@
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { Rectangle } from 'model/geometry';
+import { Point, Rectangle } from 'model/geometry';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { OperationalPoint } from 'track-layout/track-layout-model';
-import { findMatchingEntities } from 'map/layers/utils/layer-utils';
+import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
 import { fieldComparator } from 'utils/array-utils';
+import Style from 'ol/style/Style';
+import { Circle, Fill, Stroke, Text } from 'ol/style';
+import Feature, { FeatureLike } from 'ol/Feature';
+import { Point as OlPoint } from 'ol/geom';
+import mapStyles from 'map/map.module.scss';
 
 export const OPERATIONAL_POINT_FEATURE_DATA_PROPERTY = 'operational-point-data';
 
@@ -87,3 +92,72 @@ export const findMatchingOperationalPoints = (
         OPERATIONAL_POINT_FEATURE_DATA_PROPERTY,
         options,
     );
+
+const createOperationalPointStyle = (
+    operationalPointName: string,
+    isSelectedOrHighlighted: boolean,
+    size: OperationalPointFeatureSize,
+): Style => {
+    const color = isSelectedOrHighlighted
+        ? mapStyles.selectedOrHighlightedOperationalPointColor
+        : mapStyles.operationalPointColor;
+
+    return new Style({
+        image: new Circle({
+            radius: featureStyleRadius(size),
+            stroke: new Stroke({ color: 'white', width: 2 }),
+            fill: new Fill({ color }),
+        }),
+        fill: new Fill({
+            color: 'white',
+        }),
+        text: new Text({
+            text: operationalPointName,
+            fill: new Fill({ color }),
+            textAlign: 'left',
+            backgroundFill: new Fill({ color: 'rgba(255, 255, 255, 0.85)' }),
+            scale: 1,
+            offsetX: featureStyleOffsetX(size),
+            font: featureStyleFont(size),
+        }),
+    });
+};
+
+function getOperationalPointStyleForFeature(
+    feature: FeatureLike,
+    resolution: number,
+    isSelectedOrHighlighted: boolean,
+): Style | undefined {
+    const point = feature.get(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY) as OperationalPoint;
+    const smallestResolutionConf = operationalPointStyleResolutionsSmallestFirst.find(
+        (styleResolution) => resolution <= styleResolution.resolutionUpperLimit,
+    );
+
+    return smallestResolutionConf
+        ? createOperationalPointStyle(
+              point.name,
+              isSelectedOrHighlighted,
+              smallestResolutionConf.style,
+          )
+        : undefined;
+}
+
+export const renderOperationalPointFeature = (
+    point: OperationalPoint,
+    isSelectedOrHighlighted: boolean,
+    location: Point | undefined = point.location,
+): Feature<OlPoint> | undefined => {
+    if (!location) {
+        return undefined;
+    }
+
+    const feature = new Feature({
+        geometry: new OlPoint(pointToCoords(location)),
+    });
+    feature.set(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY, point);
+    feature.setStyle((feature, resolution) =>
+        getOperationalPointStyleForFeature(feature, resolution, isSelectedOrHighlighted),
+    );
+
+    return feature;
+};

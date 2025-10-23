@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import Infobox from 'tool-panel/infobox/infobox';
-import { OperationalPointInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import {
+    OperationalPointInfoboxVisibilities,
+    TrackLayoutState,
+} from 'track-layout/track-layout-slice';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { OperationalPointOid } from 'track-layout/oid';
@@ -10,7 +13,6 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
-import { formatToTM35FINString } from 'utils/geography-utils';
 import { useLoader } from 'utils/react-utils';
 import { getOperationalPointChangeTimes } from 'track-layout/layout-operational-point-api';
 import { ChangeTimes } from 'common/common-slice';
@@ -18,27 +20,36 @@ import { formatDateShort } from 'utils/date-utils';
 import { refreshOperationalPointSelection } from 'track-layout/track-layout-react-utils';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/operational-point-edit-dialog-container';
+import { OperationalPointLocationInfobox } from 'tool-panel/operational-point/operational-point-location-infobox';
 
 type OperationalPointInfoboxProps = {
     operationalPoint: OperationalPoint;
     layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
+    layoutState: TrackLayoutState;
     visibilities: OperationalPointInfoboxVisibilities;
     onVisibilityChange: (visibilities: OperationalPointInfoboxVisibilities) => void;
     onDataChange: () => void;
     onSelect: (items: OnSelectOptions) => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
+    onShowOnMap: () => void;
+    onStartPlacingLocation: () => void;
+    onStopPlacingLocation: () => void;
 };
 
 export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = ({
     operationalPoint,
     visibilities,
     changeTimes,
+    layoutState,
     onVisibilityChange,
     layoutContext,
     onDataChange,
     onSelect,
     onUnselect,
+    onShowOnMap,
+    onStartPlacingLocation,
+    onStopPlacingLocation,
 }) => {
     const { t } = useTranslation();
     const visibilityChange = (key: keyof OperationalPointInfoboxVisibilities) => {
@@ -130,50 +141,16 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                     />
                 </InfoboxContent>
             </Infobox>
-            <Infobox
-                contentVisible={visibilities.location}
-                onContentVisibilityChange={() => visibilityChange('location')}
-                title={t('tool-panel.operational-point.location-heading')}
-                qa-id="operational-point-infobox-location">
-                <InfoboxContent>
-                    <InfoboxField
-                        label={t('tool-panel.operational-point.location')}
-                        value={
-                            operationalPoint.location
-                                ? formatToTM35FINString(operationalPoint.location)
-                                : '-'
-                        }
-                    />
-                    <InfoboxButtons>
-                        <Button
-                            variant={ButtonVariant.SECONDARY}
-                            size={ButtonSize.SMALL}
-                            disabled={!operationalPoint.location}>
-                            {t('tool-panel.operational-point.focus-on-map')}
-                        </Button>
-                    </InfoboxButtons>
-                    <InfoboxButtons>
-                        <Button
-                            variant={ButtonVariant.SECONDARY}
-                            size={ButtonSize.SMALL}
-                            disabled={isExternal}
-                            title={
-                                isExternal
-                                    ? t(
-                                          'tool-panel.operational-point.cannot-set-location-for-external',
-                                      )
-                                    : undefined
-                            }>
-                            {t('tool-panel.operational-point.set-location')}
-                        </Button>
-                    </InfoboxButtons>
-                    <InfoboxButtons>
-                        <Button variant={ButtonVariant.SECONDARY} size={ButtonSize.SMALL}>
-                            {t('tool-panel.operational-point.set-area')}
-                        </Button>
-                    </InfoboxButtons>
-                </InfoboxContent>
-            </Infobox>
+            <OperationalPointLocationInfobox
+                operationalPoint={operationalPoint}
+                layoutContext={layoutContext}
+                layoutState={layoutState}
+                visibilities={visibilities}
+                visibilityChange={visibilityChange}
+                onShowOnMap={onShowOnMap}
+                onStartPlacingLocation={onStartPlacingLocation}
+                onStopPlacingLocation={onStopPlacingLocation}
+            />
             <Infobox
                 contentVisible={visibilities.log}
                 onContentVisibilityChange={() => visibilityChange('log')}

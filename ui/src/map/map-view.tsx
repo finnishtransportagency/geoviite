@@ -26,7 +26,12 @@ import { MapTool, MapToolActivateOptions, MapToolWithButton } from './tools/tool
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
-import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
+import {
+    LinkingState,
+    LinkingSwitch,
+    LinkPoint,
+    PlacingOperationalPoint,
+} from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
 import { GeometryPlanLayout, LAYOUT_SRID, LayoutGraphLevel } from 'track-layout/track-layout-model';
@@ -93,6 +98,7 @@ import { createDebugGeometryGraphLayer } from 'map/layers/debug/debug-geometry-g
 import { PlanDownloadState } from 'map/plan-download/plan-download-store';
 import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
 import { createDebugProjectionLinesLayer } from 'map/layers/debug/debug-projection-lines-layer';
+import { createOperationalPointsPlacingLayer } from 'map/layers/operational-point/operational-points-placing-layer';
 
 declare global {
     interface Window {
@@ -704,8 +710,15 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             olView,
                             selection,
+                            linkingState,
                             layoutContext,
                             changeTimes,
+                        );
+                    case 'operational-points-placing-layer':
+                        return createOperationalPointsPlacingLayer(
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
+                            linkingState as PlacingOperationalPoint | undefined,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'debug-1m-points-layer':
                         return createDebug1mPointsLayer(
