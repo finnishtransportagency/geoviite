@@ -92,7 +92,8 @@ export const ExternalOperationalPointEditDialog: React.FC<
 
     const revertDraft = () => {
         deleteDraftOperationalPoint(layoutContext, operationalPoint.id);
-        setdeleteDraftConfirmDialogOpen(true);
+        setdeleteDraftConfirmDialogOpen(false);
+        onClose();
     };
 
     return (
@@ -114,7 +115,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             </Button>
                             <Button
                                 isProcessing={isSaving}
-                                disabled={isSaving}
+                                disabled={isSaving || state.validationIssues.length > 0}
                                 qa-id="save-external-operational-point-changes"
                                 onClick={() =>
                                     saveUpdatedOperationalPoint(

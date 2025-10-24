@@ -114,18 +114,20 @@ const internalOperationalPointEditSlice = createSlice({
     name: 'operationalPointEdit',
     initialState: initialInternalOperationalPointEditState,
     reducers: {
-        onOperationalPointLoaded: (
+        onInit: (
             state: InternalOperationalPointEditState,
-            { payload: existingOperationalPoint }: PayloadAction<OperationalPoint>,
+            { payload: existingOperationalPoint }: PayloadAction<OperationalPoint | undefined>,
         ): void => {
             state.existingOperationalPoint = existingOperationalPoint;
-            state.operationalPoint = {
-                name: existingOperationalPoint.name,
-                abbreviation: existingOperationalPoint.abbreviation,
-                rinfType: existingOperationalPoint.rinfType,
-                state: existingOperationalPoint.state,
-                uicCode: existingOperationalPoint.uicCode,
-            };
+            if (existingOperationalPoint) {
+                state.operationalPoint = {
+                    name: existingOperationalPoint.name,
+                    abbreviation: existingOperationalPoint.abbreviation,
+                    rinfType: existingOperationalPoint.rinfType,
+                    state: existingOperationalPoint.state,
+                    uicCode: existingOperationalPoint.uicCode,
+                };
+            }
             state.validationIssues = validateInternalOperationalPoint(state.operationalPoint);
         },
         onUpdateProp: function <TKey extends keyof InternalOperationalPointSaveRequest>(
