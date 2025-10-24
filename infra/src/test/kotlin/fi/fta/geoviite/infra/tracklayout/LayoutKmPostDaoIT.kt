@@ -11,10 +11,12 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.GeometryPoint
-import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
+import fi.fta.geoviite.infra.publication.PublicationInMain
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
+import kotlin.test.assertContains
+import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -23,8 +25,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
-import kotlin.test.assertNotEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -156,7 +156,7 @@ class LayoutKmPostDaoIT @Autowired constructor(private val kmPostDao: LayoutKmPo
         val postThreeOnlyDraft = kmPostDao.save(kmPost(trackNumberId, KmNumber(3), draft = true))
         val postFourOnlyOfficial = kmPostDao.save(kmPost(trackNumberId, KmNumber(4), draft = false))
 
-        val target = draftTransitionOrOfficialState(PublicationState.DRAFT, LayoutBranch.main)
+        val target = PublicationInMain
         val versionsEmpty =
             kmPostDao.fetchVersionsForPublication(target, listOf(trackNumberId), listOf())[trackNumberId]!!
         val versionsOnlyOne =

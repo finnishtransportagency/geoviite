@@ -17,7 +17,6 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
-import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -141,7 +140,7 @@ class OperationalPointController(
         @PathVariable("id") id: IntId<OperationalPoint>,
     ): ResponseEntity<ValidatedAsset<OperationalPoint>> {
         return publicationValidationService
-            .validateOperationalPoints(draftTransitionOrOfficialState(publicationState, layoutBranch), listOf(id))
+            .validateOperationalPoints(layoutBranch, publicationState, listOf(id))
             .firstOrNull()
             .let(::toResponse)
     }

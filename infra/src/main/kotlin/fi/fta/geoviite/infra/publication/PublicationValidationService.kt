@@ -2,6 +2,8 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingCacheService
@@ -64,15 +66,17 @@ constructor(
 
     @Transactional(readOnly = true)
     fun validateTrackNumbersAndReferenceLines(
-        target: ValidationTarget,
+        branch: LayoutBranch,
+        state: PublicationState,
         trackNumberIds: List<IntId<LayoutTrackNumber>>,
     ): List<ValidatedAsset<LayoutTrackNumber>> {
         if (trackNumberIds.isEmpty()) return emptyList()
 
+        val target = LayoutContextTransition.publicationIn(branch)
         // Switches don't affect tracknumber validity, so they are ignored
         val validationContext =
-            when (target) {
-                is ValidateTransition ->
+            when (state) {
+                PublicationState.DRAFT ->
                     createValidationContext(
                         target = target,
                         locationTracks = locationTrackDao.fetchCandidateVersions(target.candidateContext),
@@ -81,7 +85,7 @@ constructor(
                         referenceLines = referenceLineDao.fetchCandidateVersions(target.candidateContext),
                     )
 
-                is ValidateContext -> createValidationContext(target)
+                PublicationState.OFFICIAL -> createValidationContext(target)
             }
         validationContext.preloadTrackNumberAndReferenceLineVersions(trackNumberIds)
         validationContext.preloadTrackNumbersByNumber(trackNumberIds)
@@ -101,14 +105,16 @@ constructor(
 
     @Transactional(readOnly = true)
     fun validateLocationTracks(
-        target: ValidationTarget,
+        branch: LayoutBranch,
+        state: PublicationState,
         trackIds: List<IntId<LocationTrack>>,
     ): List<ValidatedAsset<LocationTrack>> {
         if (trackIds.isEmpty()) return emptyList()
 
+        val target = LayoutContextTransition.publicationIn(branch)
         val validationContext =
-            when (target) {
-                is ValidateTransition ->
+            when (state) {
+                PublicationState.DRAFT ->
                     createValidationContext(
                         target = target,
                         switches = switchDao.fetchCandidateVersions(target.candidateContext),
@@ -118,7 +124,7 @@ constructor(
                         referenceLines = referenceLineDao.fetchCandidateVersions(target.candidateContext),
                     )
 
-                is ValidateContext -> createValidationContext(target)
+                PublicationState.OFFICIAL -> createValidationContext(target)
             }
         validationContext.preloadLocationTrackVersions(trackIds)
         validationContext.preloadLocationTracksByName(trackIds)
@@ -135,23 +141,25 @@ constructor(
 
     @Transactional(readOnly = true)
     fun validateSwitches(
-        target: ValidationTarget,
+        branch: LayoutBranch,
+        state: PublicationState,
         switchIds: List<IntId<LayoutSwitch>>,
     ): List<ValidatedAsset<LayoutSwitch>> {
         if (switchIds.isEmpty()) return emptyList()
+        val target = LayoutContextTransition.publicationIn(branch)
 
         // Only tracks and switches affect switch validation, so we can ignore the other types in
         // the publication unit
         val validationContext =
-            when (target) {
-                is ValidateTransition ->
+            when (state) {
+                PublicationState.DRAFT ->
                     createValidationContext(
                         target = target,
                         switches = switchDao.fetchCandidateVersions(target.candidateContext),
                         locationTracks = locationTrackDao.fetchCandidateVersions(target.candidateContext),
                     )
 
-                is ValidateContext -> createValidationContext(target)
+                PublicationState.OFFICIAL -> createValidationContext(target)
             }
         validationContext.preloadSwitchVersions(switchIds)
         validationContext.preloadSwitchTrackLinks(switchIds)
@@ -162,15 +170,17 @@ constructor(
 
     @Transactional(readOnly = true)
     fun validateKmPosts(
-        target: ValidationTarget,
+        branch: LayoutBranch,
+        state: PublicationState,
         kmPostIds: List<IntId<LayoutKmPost>>,
     ): List<ValidatedAsset<LayoutKmPost>> {
         if (kmPostIds.isEmpty()) return emptyList()
+        val target = LayoutContextTransition.publicationIn(branch)
 
         // We can ignore switches and locationtracks, as they don't affect km-post validity
         val validationContext =
-            when (target) {
-                is ValidateTransition ->
+            when (state) {
+                PublicationState.DRAFT ->
                     createValidationContext(
                         target = target,
                         kmPosts = kmPostDao.fetchCandidateVersions(target.candidateContext),
@@ -178,7 +188,7 @@ constructor(
                         referenceLines = referenceLineDao.fetchCandidateVersions(target.candidateContext),
                     )
 
-                is ValidateContext -> createValidationContext(target)
+                PublicationState.OFFICIAL -> createValidationContext(target)
             }
 
         validationContext.preloadKmPostVersions(kmPostIds)
@@ -193,19 +203,21 @@ constructor(
 
     @Transactional(readOnly = true)
     fun validateOperationalPoints(
-        target: ValidationTarget,
+        branch: LayoutBranch,
+        state: PublicationState,
         ids: List<IntId<OperationalPoint>>,
     ): List<ValidatedAsset<OperationalPoint>> {
         if (ids.isEmpty()) return emptyList()
+        val target = LayoutContextTransition.publicationIn(branch)
         val validationContext =
-            when (target) {
-                is ValidateTransition ->
+            when (state) {
+                PublicationState.DRAFT ->
                     createValidationContext(
                         target = target,
                         operationalPoints = operationalPointDao.fetchCandidateVersions(target.candidateContext),
                     )
 
-                is ValidateContext -> createValidationContext(target)
+                PublicationState.OFFICIAL -> createValidationContext(target)
             }
         return ids.mapNotNull { id ->
             validateOperationalPoint(id, validationContext)?.let { issues -> ValidatedAsset(id, issues) }
@@ -213,7 +225,7 @@ constructor(
     }
 
     private fun createValidationContext(
-        target: ValidationTarget,
+        target: LayoutContextTransition,
         trackNumbers: List<LayoutRowVersion<LayoutTrackNumber>> = emptyList(),
         locationTracks: List<LayoutRowVersion<LocationTrack>> = emptyList(),
         referenceLines: List<LayoutRowVersion<ReferenceLine>> = emptyList(),
@@ -394,7 +406,7 @@ constructor(
                 validateTrackNumberNumberDuplication(
                     trackNumber = trackNumber,
                     duplicates = validationContext.getTrackNumbersByNumber(trackNumber.number),
-                    validationTargetType = validationContext.target.type,
+                    validationTargetType = validationContext.target.validationTargetType,
                 )
             return referenceIssues + geocodingIssues + duplicateNameIssues
         }
@@ -428,7 +440,7 @@ constructor(
                         kmPost,
                         trackNumberNumber,
                         context.getKmPostsByTrackNumber(kmPost.trackNumberId),
-                        context.target.type,
+                        context.target.validationTargetType,
                     )
 
             referenceIssues + geocodingIssues + duplicateNumberIssues
@@ -468,7 +480,7 @@ constructor(
                 validateSwitchNameDuplication(
                     switch,
                     validationContext.getSwitchesByName(switch.name),
-                    validationContext.target.type,
+                    validationContext.target.validationTargetType,
                 )
             val oidDuplicationIssues =
                 validateSwitchOidDuplication(
@@ -617,7 +629,7 @@ constructor(
                     track,
                     trackNumberName,
                     tracksWithSameName,
-                    validationContext.target.type,
+                    validationContext.target.validationTargetType,
                 )
 
             (referenceIssues +
@@ -642,7 +654,7 @@ constructor(
             validateOperationalPointNameDuplication(
                 operationalPoint,
                 validationContext.getOperationalPointsByName(operationalPoint.name),
-                validationContext.target.type,
+                validationContext.target.validationTargetType,
             )
         val abbreviationDuplicationIssues =
             if (operationalPoint.abbreviation == null) listOf()
@@ -650,7 +662,7 @@ constructor(
                 validateOperationalPointAbbreviationDuplication(
                     operationalPoint,
                     validationContext.getOperationalPointsByAbbreviation(operationalPoint.abbreviation),
-                    validationContext.target.type,
+                    validationContext.target.validationTargetType,
                 )
         val uicCodeIssues =
             if (operationalPoint.uicCode == null)
@@ -659,7 +671,7 @@ constructor(
                 validateOperationalPointUicCodeDuplication(
                     operationalPoint,
                     validationContext.getOperationalPointsByUicCode(operationalPoint.uicCode),
-                    validationContext.target.type,
+                    validationContext.target.validationTargetType,
                 )
         val rinfCodeIssues =
             listOfNotNull(
@@ -669,7 +681,7 @@ constructor(
             validateOperationalPointPolygonOverlap(
                 operationalPoint,
                 validationContext.getOverlappingOperationalPoints(id),
-                validationContext.target.type,
+                validationContext.target.validationTargetType,
             )
         val locationIssues =
             listOfNotNull(

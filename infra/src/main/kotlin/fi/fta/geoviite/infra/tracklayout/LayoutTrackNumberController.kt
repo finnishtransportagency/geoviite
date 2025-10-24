@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
-import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.util.FILENAME_DATE_FORMATTER
 import fi.fta.geoviite.infra.util.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.toResponse
@@ -77,7 +76,7 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<LayoutTrackNumber>,
     ): ResponseEntity<ValidatedAsset<LayoutTrackNumber>> {
         return publicationValidationService
-            .validateTrackNumbersAndReferenceLines(draftTransitionOrOfficialState(publicationState, branch), listOf(id))
+            .validateTrackNumbersAndReferenceLines(branch, publicationState, listOf(id))
             .firstOrNull()
             .let(::toResponse)
     }

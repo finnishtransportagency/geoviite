@@ -24,10 +24,7 @@ import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationValidationService
-import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidatedAsset
-import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
-import fi.fta.geoviite.infra.publication.publicationInOrMergeFromBranch
 import fi.fta.geoviite.infra.split.SplittingInitializationParameters
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
@@ -155,7 +152,7 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<ValidatedAsset<LocationTrack>> {
         return publicationValidationService
-            .validateLocationTracks(draftTransitionOrOfficialState(publicationState, layoutBranch), listOf(id))
+            .validateLocationTracks(layoutBranch, publicationState, listOf(id))
             .firstOrNull()
             .let(::toResponse)
     }
@@ -169,9 +166,12 @@ class LocationTrackController(
     ): List<SwitchValidationWithSuggestedSwitch> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         val switchSuggestions = switchLinkingService.getTrackSwitchSuggestions(context, id)
-        val target = ValidateTransition(publicationInOrMergeFromBranch(layoutBranch, publicationState))
         val switchValidation =
-            publicationValidationService.validateSwitches(target, switchSuggestions.map { (id, _) -> id })
+            publicationValidationService.validateSwitches(
+                layoutBranch,
+                publicationState,
+                switchSuggestions.map { (id, _) -> id },
+            )
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
                 validatedAsset.id,

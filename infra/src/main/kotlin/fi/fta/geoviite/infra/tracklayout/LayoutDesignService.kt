@@ -4,12 +4,11 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.integration.CalculatedChanges
+import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationInDesign
 import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.publication.ValidateContext
-import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
@@ -117,7 +116,7 @@ class LayoutDesignService(
 
         val cancellationVersions =
             ValidationVersions(
-                ValidateTransition(PublicationInDesign(branch)),
+                PublicationInDesign(branch),
                 trackNumbers,
                 locationTracks,
                 referenceLines,
@@ -139,7 +138,7 @@ class LayoutDesignService(
     private fun makeEmptyPublication(branchBranch: DesignBranch, cause: PublicationCause) =
         publicationService.publishChanges(
             branchBranch,
-            ValidationVersions.emptyWithTarget(ValidateContext(branchBranch.official)),
+            ValidationVersions.emptyWithTarget(LayoutContextTransition.publicationIn(branchBranch)),
             CalculatedChanges.empty(),
             PublicationMessage.of(""),
             cause,

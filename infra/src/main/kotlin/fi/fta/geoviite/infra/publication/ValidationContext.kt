@@ -153,7 +153,7 @@ class ValidationContext(
                     .findOverlappingPolygonsInPublicationCandidates(
                         target.baseContext,
                         target.candidateContext,
-                        publicationSet.getOperationalPointIds().takeIf { it.isNotEmpty() },
+                        publicationSet.getOperationalPointIds(),
                         listOf(id),
                     )[id]
             } ?: listOf())

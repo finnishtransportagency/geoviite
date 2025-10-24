@@ -17,13 +17,12 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.InheritanceFromPublicationInMain
+import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.PreparedPublicationRequest
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationResult
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
-import fi.fta.geoviite.infra.publication.ValidateTransition
-import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
@@ -273,7 +272,7 @@ class CalculatedChangesService(
         else {
             val validationVersions =
                 ValidationVersions(
-                    ValidateTransition(InheritanceFromPublicationInMain(branch)),
+                    InheritanceFromPublicationInMain(branch),
                     trackNumbers = getNonOverriddenVersions(branch, trackNumbers, trackNumberDao),
                     referenceLines = getNonOverriddenVersions(branch, referenceLines, referenceLineDao),
                     locationTracks = getNonOverriddenVersions(branch, locationTracks, locationTrackDao),
@@ -392,7 +391,7 @@ class CalculatedChangesService(
         changes: IndirectChanges,
     ): ValidationVersions =
         ValidationVersions(
-            ValidateTransition(InheritanceFromPublicationInMain(inheritorBranch)),
+            InheritanceFromPublicationInMain(inheritorBranch),
             trackNumbers =
                 trackNumberDao
                     .getMany(inheritorBranch.official, changes.trackNumberChanges.map { it.trackNumberId })
@@ -926,6 +925,6 @@ private fun mergeInheritedChangeVersionsWithCompletedMergeVersions(
 private fun <T : LayoutAsset<T>> getObjectFromValidationVersions(
     versions: List<LayoutRowVersion<T>>,
     dao: LayoutAssetDao<T, *>,
-    target: ValidationTarget,
+    target: LayoutContextTransition,
     id: IntId<T>,
 ): T? = (versions.find { it.id == id } ?: dao.fetchVersion(target.baseContext, id))?.let(dao::fetch)

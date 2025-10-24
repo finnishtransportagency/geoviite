@@ -12,7 +12,7 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.publication.ValidationTarget
+import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
@@ -30,12 +30,12 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setForceCustomPlan
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
@@ -251,14 +251,7 @@ class LocationTrackDao(
             ownerId = rs.getIntId("owner_id"),
             switchIds = rs.getIntIdArray("switch_ids"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "design_asset_state",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
 
     @Transactional
@@ -515,7 +508,7 @@ class LocationTrackDao(
     }
 
     fun fetchVersionsForPublication(
-        target: ValidationTarget,
+        target: LayoutContextTransition,
         trackNumberIds: List<IntId<LayoutTrackNumber>>,
         trackIdsToPublish: List<IntId<LocationTrack>>,
     ): Map<IntId<LayoutTrackNumber>, List<LayoutRowVersion<LocationTrack>>> {
