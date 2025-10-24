@@ -17,7 +17,6 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -29,6 +28,9 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
+import kotlin.math.abs
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -50,15 +52,18 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val tnOid = testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
         val rlGeom = alignment(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter(10, 100)), rlGeom).id
-        val kmp13Id = mainDraftContext.save(kmPost(tnId, KmNumber(13), gkLocation = kmPostGkLocation(300.0, 2.0))).id
-        val kmp14Id = mainDraftContext.save(kmPost(tnId, KmNumber(14), gkLocation = kmPostGkLocation(400.0, -1.0))).id
+        val kmp13Id =
+            mainDraftContext.save(kmPost(tnId, KmNumber(13), gkLocation = kmPostGkLocation(300.0, 2.0, true))).id
+        val kmp14Id =
+            mainDraftContext.save(kmPost(tnId, KmNumber(14), gkLocation = kmPostGkLocation(400.0, -1.0, false))).id
         val deletedKmp15Id =
             mainDraftContext
                 .save(
                     kmPost(tnId, KmNumber(15), gkLocation = kmPostGkLocation(500.0, 0.0), state = LayoutState.DELETED)
                 )
                 .id
-        val kmp16Id = mainDraftContext.save(kmPost(tnId, KmNumber(16), gkLocation = kmPostGkLocation(600.0, 0.0))).id
+        val kmp16Id =
+            mainDraftContext.save(kmPost(tnId, KmNumber(16), gkLocation = kmPostGkLocation(600.0, 0.0, true))).id
 
         val publication =
             extTestDataService.publishInMain(
@@ -88,7 +93,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 kmNumber = KmNumber(13),
                 startM = BigDecimal("300.000"),
                 endM = BigDecimal("400.000"),
-                officialLocation = ExtSridCoordinateV1(transformFromLayoutToGKCoordinate(Point(300.0, 2.0))),
+                officialLocation = ExtKmPostOfficialLocationV1(transformFromLayoutToGKCoordinate(Point(300.0, 2.0)), true),
                 location = ExtCoordinateV1(300.0, 2.0),
             ),
             ExtTrackKmV1(
@@ -96,7 +101,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 kmNumber = KmNumber(14),
                 startM = BigDecimal("400.000"),
                 endM = BigDecimal("600.000"), // Since km 15 is deleted, the next one is km 16
-                officialLocation = ExtSridCoordinateV1(transformFromLayoutToGKCoordinate(Point(400.0, -1.0))),
+                officialLocation =
+                    ExtKmPostOfficialLocationV1(transformFromLayoutToGKCoordinate(Point(400.0, -1.0)), false),
                 location = ExtCoordinateV1(400.0, -1.0),
             ),
             ExtTrackKmV1(
@@ -104,7 +110,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 kmNumber = KmNumber(16),
                 startM = BigDecimal("600.000"),
                 endM = BigDecimal("1000.000"), // Reference line end
-                officialLocation = ExtSridCoordinateV1(transformFromLayoutToGKCoordinate(Point(600.0, 0.0))),
+                officialLocation = ExtKmPostOfficialLocationV1(transformFromLayoutToGKCoordinate(Point(600.0, 0.0)), true),
                 location = ExtCoordinateV1(600.0, 0.0),
             ),
         )
@@ -150,7 +156,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 kmNumber = KmNumber(1),
                 startM = BigDecimal("500.000"),
                 endM = BigDecimal("1000.000"),
-                officialLocation = ExtSridCoordinateV1(transformFromLayoutToGKCoordinate(Point(1500.0, 1002.0))),
+                officialLocation =
+                    ExtKmPostOfficialLocationV1(transformFromLayoutToGKCoordinate(Point(1500.0, 1002.0)), false),
                 // KM Post location in EPSG:4326 == WGS84, converted using https://epsg.io/transform
                 location = ExtCoordinateV1(22.5246947, 0.0090375),
             ),
@@ -226,9 +233,15 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             assertEquals(expectedKm.endM, expectedKm.startM + expectedKm.kmLength)
             assertEquals(expectedKm.officialLocation != null, actualKm.officialLocation != null)
             if (expectedKm.officialLocation != null && actualKm.officialLocation != null) {
-                assertLocationsMatch(expectedKm.officialLocation, actualKm.officialLocation)
+                assertTrue(
+                    isSame(expectedKm.officialLocation, actualKm.officialLocation),
+                    "KMs do not match (official location): expected=$expectedKm actualKm=$actualKm",
+                )
             }
-            assertLocationsMatch(expectedKm.location, actualKm.location)
+            assertTrue(
+                isSame(expectedKm.location, actualKm.location),
+                "KMs do not match (layout location): expected=$expectedKm actualKm=$actualKm",
+            )
         }
         assertEquals(
             expected.size,
@@ -237,14 +250,13 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
     }
 
-    fun assertLocationsMatch(expected: ExtSridCoordinateV1, actual: ExtSridCoordinateV1) {
-        assertEquals(expected.srid, actual.srid)
-        assertEquals(expected.x, actual.x, LAYOUT_M_DELTA)
-        assertEquals(expected.y, actual.y, LAYOUT_M_DELTA)
-    }
+    fun isSame(expected: ExtKmPostOfficialLocationV1, actual: ExtKmPostOfficialLocationV1): Boolean =
+        // X & Y checked with a tolerance
+        abs(expected.x - actual.x) < LAYOUT_M_DELTA &&
+            abs(expected.y - actual.y) < LAYOUT_M_DELTA &&
+            // Confirm all other fields by ignoring x/y
+            expected.copy(x = actual.x, y = actual.y) == actual
 
-    fun assertLocationsMatch(expected: ExtCoordinateV1, actual: ExtCoordinateV1) {
-        assertEquals(expected.x, actual.x, LAYOUT_M_DELTA)
-        assertEquals(expected.y, actual.y, LAYOUT_M_DELTA)
-    }
+    fun isSame(expected: ExtCoordinateV1, actual: ExtCoordinateV1): Boolean =
+        abs(expected.x - actual.x) < LAYOUT_M_DELTA && abs(expected.y - actual.y) < LAYOUT_M_DELTA
 }

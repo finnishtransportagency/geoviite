@@ -34,6 +34,7 @@ const val KM_START_M = "alkupaalu"
 const val KM_END_M = "loppupaalu"
 const val KM_LENGTH = "ratakilometrin_pituus"
 const val OFFICIAL_LOCATION = "virallinen_sijainti"
+const val OFFICIAL_LOCATION_CONFIRMED = "vahvistettu"
 
 const val EXT_OPENAPI_INVALID_ARGUMENTS = "Yhden tai useamman hakuargumentin muoto oli virheellinen."
 

@@ -27,7 +27,7 @@ data class ExtTrackKmV1(
     @JsonProperty(KM_NUMBER) val kmNumber: KmNumber,
     @JsonProperty(KM_START_M) val startM: BigDecimal,
     @JsonProperty(KM_END_M) val endM: BigDecimal,
-    @JsonProperty(OFFICIAL_LOCATION) val officialLocation: ExtSridCoordinateV1?,
+    @JsonProperty(OFFICIAL_LOCATION) val officialLocation: ExtKmPostOfficialLocationV1?,
     @JsonProperty(COORDINATE_LOCATION) val location: ExtCoordinateV1,
 ) {
     @JsonProperty(KM_LENGTH) val kmLength = endM - startM

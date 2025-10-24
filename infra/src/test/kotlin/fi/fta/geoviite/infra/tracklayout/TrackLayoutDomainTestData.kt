@@ -958,7 +958,8 @@ fun kmPostGkLocation(
     gkLocationConfirmed: Boolean = false,
 ) = LayoutKmPostGkLocation(location = gkLocation, confirmed = gkLocationConfirmed, source = gkLocationSource)
 
-fun kmPostGkLocation(x: Double, y: Double) = kmPostGkLocation(Point(x, y))
+fun kmPostGkLocation(x: Double, y: Double, confirmed: Boolean = false): LayoutKmPostGkLocation =
+    kmPostGkLocation(Point(x, y), gkLocationConfirmed = confirmed)
 
 fun kmPostGkLocation(
     roughLayoutLocation: Point,

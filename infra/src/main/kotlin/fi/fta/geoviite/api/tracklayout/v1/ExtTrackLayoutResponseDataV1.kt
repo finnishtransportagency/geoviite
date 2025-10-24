@@ -3,11 +3,14 @@ package fi.fta.geoviite.api.tracklayout.v1
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.api.tracklayout.v1.ExtKmPostLocationConfirmedV1.CONFIRMED
+import fi.fta.geoviite.api.tracklayout.v1.ExtKmPostLocationConfirmedV1.NOT_CONFIRMED
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
@@ -76,10 +79,16 @@ enum class ExtTrackNumberStateV1(val value: String) {
 
 @Schema(name = "Ratakilometrin tyyppi", type = "string")
 enum class ExtTrackKmTypeV1(val value: String) {
-    TRACK_NUMBER_START("ratanumeron_alku"),
+    TRACK_NUMBER_START("ratanumeron alku"),
     KM_POST("tasakilometripiste");
 
     @JsonValue override fun toString() = value
+}
+
+@Schema(name = "Tasakilometripisteen virallisen sijainnin vahvistus", type = "string")
+enum class ExtKmPostLocationConfirmedV1(val value: String) {
+    CONFIRMED("vahvistettu"),
+    NOT_CONFIRMED("ei vahvistettu"),
 }
 
 @Schema(name = "Koordinaattisijainti")
@@ -88,10 +97,20 @@ data class ExtCoordinateV1(val x: Double, val y: Double) {
     constructor(coordinate: IPoint) : this(coordinate.x, coordinate.y)
 }
 
-@Schema(name = "Tietyn koordinaattijärjestelmän sijainti")
+@Schema(name = "Tasakilometripisteen virallinen sijainti")
 @JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtSridCoordinateV1(val x: Double, val y: Double, @JsonProperty(COORDINATE_SYSTEM) val srid: Srid) {
-    constructor(geometryPoint: GeometryPoint) : this(geometryPoint.x, geometryPoint.y, geometryPoint.srid)
+data class ExtKmPostOfficialLocationV1(
+    val x: Double,
+    val y: Double,
+    @JsonProperty(COORDINATE_SYSTEM) val srid: Srid,
+    @JsonProperty(OFFICIAL_LOCATION_CONFIRMED) val confirmed: ExtKmPostLocationConfirmedV1,
+) {
+    constructor(
+        geometryPoint: GeometryPoint,
+        confirmed: Boolean,
+    ) : this(geometryPoint.x, geometryPoint.y, geometryPoint.srid, if (confirmed) CONFIRMED else NOT_CONFIRMED)
+
+    constructor(location: LayoutKmPostGkLocation) : this(location.location, location.confirmed)
 }
 
 @Schema(name = "Osoitepiste")
