@@ -20,7 +20,7 @@ export enum OperationalPointFeatureSize {
     Small,
 }
 
-export type OperationalPointFeatureMode = 'DELETED' | 'HIGHLIGHTED' | 'REGULAR';
+export type OperationalPointFeatureMode = 'DELETED' | 'HIGHLIGHTED' | 'SELECTED' | 'REGULAR';
 
 const OPERATIONAL_POINT_FEATURE_SIZE_LIMITS: {
     style: OperationalPointFeatureSize;
@@ -88,6 +88,7 @@ const featureColor = (mode: OperationalPointFeatureMode) => {
         case 'DELETED':
             return mapStyles.deletedOperationalPointColor;
         case 'HIGHLIGHTED':
+        case 'SELECTED':
             return mapStyles.selectedOrHighlightedOperationalPointColor;
         case 'REGULAR':
             return mapStyles.operationalPointColor;
