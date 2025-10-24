@@ -20,6 +20,8 @@ export enum OperationalPointFeatureSize {
     Small,
 }
 
+export type OperationalPointFeatureMode = 'DELETED' | 'HIGHLIGHTED' | 'SELECTED' | 'REGULAR';
+
 const OPERATIONAL_POINT_FEATURE_SIZE_LIMITS: {
     style: OperationalPointFeatureSize;
     resolutionUpperLimit: number;
@@ -81,6 +83,20 @@ export const featureStyleFont = (size: OperationalPointFeatureSize) => {
     }
 };
 
+const featureColor = (mode: OperationalPointFeatureMode) => {
+    switch (mode) {
+        case 'DELETED':
+            return mapStyles.deletedOperationalPointColor;
+        case 'HIGHLIGHTED':
+        case 'SELECTED':
+            return mapStyles.selectedOrHighlightedOperationalPointColor;
+        case 'REGULAR':
+            return mapStyles.operationalPointColor;
+        default:
+            return exhaustiveMatchingGuard(mode);
+    }
+};
+
 export const findMatchingOperationalPoints = (
     hitArea: Rectangle,
     source: VectorSource,
@@ -95,14 +111,13 @@ export const findMatchingOperationalPoints = (
 
 const createOperationalPointStyle = (
     operationalPointName: string,
-    isSelectedOrHighlighted: boolean,
+    featureMode: OperationalPointFeatureMode,
     size: OperationalPointFeatureSize,
 ): Style => {
-    const color = isSelectedOrHighlighted
-        ? mapStyles.selectedOrHighlightedOperationalPointColor
-        : mapStyles.operationalPointColor;
+    const color = featureColor(featureMode);
+    const drawText = featureMode !== 'DELETED';
 
-    return new Style({
+    const styleArgs = {
         image: new Circle({
             radius: featureStyleRadius(size),
             stroke: new Stroke({ color: 'white', width: 2 }),
@@ -111,6 +126,8 @@ const createOperationalPointStyle = (
         fill: new Fill({
             color: 'white',
         }),
+    };
+    const textArgs = {
         text: new Text({
             text: operationalPointName,
             fill: new Fill({ color }),
@@ -120,13 +137,15 @@ const createOperationalPointStyle = (
             offsetX: featureStyleOffsetX(size),
             font: featureStyleFont(size),
         }),
-    });
+    };
+
+    return new Style({ ...styleArgs, ...(drawText ? textArgs : {}) });
 };
 
 function getOperationalPointStyleForFeature(
     feature: FeatureLike,
     resolution: number,
-    isSelectedOrHighlighted: boolean,
+    featureMode: OperationalPointFeatureMode,
 ): Style | undefined {
     const point = feature.get(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY) as OperationalPoint;
     const smallestResolutionConf = operationalPointStyleResolutionsSmallestFirst.find(
@@ -134,17 +153,13 @@ function getOperationalPointStyleForFeature(
     );
 
     return smallestResolutionConf
-        ? createOperationalPointStyle(
-              point.name,
-              isSelectedOrHighlighted,
-              smallestResolutionConf.style,
-          )
+        ? createOperationalPointStyle(point.name, featureMode, smallestResolutionConf.style)
         : undefined;
 }
 
 export const renderOperationalPointFeature = (
     point: OperationalPoint,
-    isSelectedOrHighlighted: boolean,
+    featureMode: OperationalPointFeatureMode,
     location: Point | undefined = point.location,
 ): Feature<OlPoint> | undefined => {
     if (!location) {
@@ -156,7 +171,7 @@ export const renderOperationalPointFeature = (
     });
     feature.set(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY, point);
     feature.setStyle((feature, resolution) =>
-        getOperationalPointStyleForFeature(feature, resolution, isSelectedOrHighlighted),
+        getOperationalPointStyleForFeature(feature, resolution, featureMode),
     );
 
     return feature;

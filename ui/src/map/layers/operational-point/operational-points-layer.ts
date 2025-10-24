@@ -13,11 +13,22 @@ import { Selection } from 'selection/selection-model';
 import { Rectangle } from 'model/geometry';
 import {
     findMatchingOperationalPoints,
+    OperationalPointFeatureMode,
     renderOperationalPointFeature,
 } from 'map/layers/operational-point/operational-points-layer-utils';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 
 const LAYER_NAME: MapLayerName = 'operational-points-layer';
+
+const operationalPointFeatureMode = (
+    operationalPointId: OperationalPointId,
+    selection: Selection,
+): OperationalPointFeatureMode => {
+    if (selection.selectedItems.operationalPoints.includes(operationalPointId)) return 'SELECTED';
+    if (selection.highlightedItems.operationalPoints.includes(operationalPointId))
+        return 'HIGHLIGHTED';
+    return 'REGULAR';
+};
 
 export function createOperationalPointLayer(
     mapTiles: MapTile[],
@@ -54,13 +65,12 @@ export function createOperationalPointLayer(
         showOperationalPoints
             ? points
                   .filter((point) => !isBeingMoved(point.id))
-                  .map((point) => {
-                      const isSelectedOrHighlighted =
-                          selection.selectedItems.operationalPoints.includes(point.id) ||
-                          selection.highlightedItems.operationalPoints.includes(point.id);
-
-                      return renderOperationalPointFeature(point, isSelectedOrHighlighted);
-                  })
+                  .map((point) =>
+                      renderOperationalPointFeature(
+                          point,
+                          operationalPointFeatureMode(point.id, selection),
+                      ),
+                  )
                   .filter(filterNotEmpty)
             : [];
     loadLayerData(source, isLatest, onLoadingChange, getOperationalPointsFromApi(), createFeatures);

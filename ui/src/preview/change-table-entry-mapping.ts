@@ -2,6 +2,7 @@ import {
     KmPostPublicationCandidate,
     LocationTrackPublicationCandidate,
     Operation,
+    OperationalPointPublicationCandidate,
     PublicationGroup,
     ReferenceLinePublicationCandidate,
     SwitchPublicationCandidate,
@@ -13,6 +14,7 @@ import {
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
+    OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { KmNumber, TrackNumber } from 'common/common-model';
@@ -23,7 +25,8 @@ type PublicationId =
     | ReferenceLineId
     | LocationTrackId
     | LayoutSwitchId
-    | LayoutKmPostId;
+    | LayoutKmPostId
+    | OperationalPointId;
 
 export type ChangeTableEntry = {
     id: PublicationId;
@@ -42,7 +45,8 @@ const changeTableEntryCommonFields = (
         | TrackNumberPublicationCandidate
         | ReferenceLinePublicationCandidate
         | SwitchPublicationCandidate
-        | KmPostPublicationCandidate,
+        | KmPostPublicationCandidate
+        | OperationalPointPublicationCandidate,
 ) => ({
     id: candidate.id,
     userName: candidate.userName,
@@ -70,6 +74,10 @@ export function getSwitchUiName(name: string) {
 export function getKmPostUiName(kmNumber: KmNumber) {
     return i18n.t('publication-table.km-post', { kmNumber });
 }
+
+export const getOperationalPointUiName = (name: string) => {
+    return i18n.t('publication-table.operational-point', { name });
+};
 
 export const trackNumberToChangeTableEntry = (trackNumber: TrackNumberPublicationCandidate) => ({
     ...changeTableEntryCommonFields(trackNumber),
@@ -133,3 +141,12 @@ export const kmPostChangeTableEntry = (
         trackNumbers: [trackNumber ? trackNumber.number : ''],
     };
 };
+
+export const operationalPointChangeTableEntry = (
+    operationalPoint: OperationalPointPublicationCandidate,
+) => ({
+    ...changeTableEntryCommonFields(operationalPoint),
+    uiName: getOperationalPointUiName(operationalPoint.name),
+    name: operationalPoint.name,
+    trackNumbers: [],
+});

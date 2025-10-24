@@ -11,6 +11,7 @@ import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { bboxString } from 'common/common-api';
 import {
+    DesignBranch,
     LayoutAssetChangeInfo,
     LayoutBranch,
     LayoutContext,
@@ -20,6 +21,7 @@ import {
 import {
     contextInUri,
     layoutUri,
+    layoutUriByBranch,
     layoutUriWithoutContext,
     TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
@@ -192,3 +194,9 @@ export async function getOperationalPointOids(
     );
     return oids ?? {};
 }
+
+export const cancelOperationalPoint = async (
+    design: DesignBranch,
+    id: OperationalPointId,
+): Promise<void> =>
+    postNonNull(`${layoutUriByBranch('operational-points', design)}/${id}/cancel`, '');

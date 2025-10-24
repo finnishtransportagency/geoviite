@@ -19,6 +19,7 @@ import {
     DraftChangeType,
     KmPostPublicationCandidate,
     LocationTrackPublicationCandidate,
+    OperationalPointPublicationCandidate,
     PublicationCandidate,
     ReferenceLinePublicationCandidate,
     SwitchPublicationCandidate,
@@ -179,6 +180,10 @@ export function createPublicationCandidateLayer(
         (c) => c.type === DraftChangeType.KM_POST,
     );
 
+    const operationalPointCandidates = publicationCandidates.filter(
+        (c) => c.type === DraftChangeType.OPERATIONAL_POINT,
+    );
+
     const createFeatures = (data: {
         candidateLocationTracks: LocationTrackCandidateAndAlignment[];
         candidateReferenceLines: ReferenceLineCandidateAndAlignment[];
@@ -219,6 +224,11 @@ export function createPublicationCandidateLayer(
             DraftChangeType.KM_POST,
         );
 
+        const candidateOperationalPointFeatures = createCandidatePointFeatures(
+            operationalPointCandidates,
+            DraftChangeType.OPERATIONAL_POINT,
+        );
+
         const showEndPointTicks = metersPerPixel <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
         const baseLocationTrackFeatures = data.baseLocationTracks
@@ -253,6 +263,7 @@ export function createPublicationCandidateLayer(
             ...candidateTrackNumberAlignmentFeatures,
             ...candidateSwitchFeatures,
             ...candidateKmPostFeatures,
+            ...candidateOperationalPointFeatures,
             ...baseLocationTrackFeatures,
             ...baseReferenceLineFeatures,
         ];
@@ -315,12 +326,18 @@ export function createPublicationCandidateLayer(
                 CandidateDataProperties.KM_POST,
             );
 
+            const operationalPointPublicationCandidates =
+                findByPropertyName<OperationalPointPublicationCandidate>(
+                    CandidateDataProperties.OPERATIONAL_POINT,
+                );
+
             return {
                 locationTrackPublicationCandidates,
                 referenceLinePublicationCandidates,
                 trackNumberPublicationCandidates,
                 switchPublicationCandidates,
                 kmPostPublicationCandidates,
+                operationalPointPublicationCandidates,
             };
         },
     };

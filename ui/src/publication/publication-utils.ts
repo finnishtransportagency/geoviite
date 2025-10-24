@@ -95,6 +95,9 @@ export const createPublicationCandidateReference = (
         case DraftChangeType.KM_POST:
             return { id: brand(id), type };
 
+        case DraftChangeType.OPERATIONAL_POINT:
+            return { id: brand(id), type };
+
         default:
             return exhaustiveMatchingGuard(type);
     }

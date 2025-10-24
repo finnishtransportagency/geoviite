@@ -5,6 +5,7 @@ import {
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
+    OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
@@ -12,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import {
     useKmPost,
     useLocationTrack,
+    useOperationalPoint,
     useReferenceLine,
     useSwitch,
     useTrackNumbersIncludingDeleted,
@@ -162,6 +164,30 @@ const LookupKmPostItem: React.FC<{ layoutContext: LayoutContext; kmPostId: Layou
     kmPostId,
 }) => useKmPost(kmPostId, draftLayoutContext(layoutContext))?.kmNumber;
 
+const OperationalPointItem: React.FC<{
+    layoutContext: LayoutContext;
+    operationalPoint: PublicationCandidateReference & { type: DraftChangeType.OPERATIONAL_POINT };
+}> = ({ layoutContext, operationalPoint }) => {
+    const { t } = useTranslation();
+    return (
+        <li>
+            {t('publish.revert-confirm.dependency-list.operational-point')}{' '}
+            {operationalPoint.name ?? (
+                <LookupOperationalPointItem
+                    layoutContext={layoutContext}
+                    operationalPointId={operationalPoint.id}
+                />
+            )}
+        </li>
+    );
+};
+
+const LookupOperationalPointItem: React.FC<{
+    layoutContext: LayoutContext;
+    operationalPointId: OperationalPointId;
+}> = ({ layoutContext, operationalPointId }) =>
+    useOperationalPoint(operationalPointId, draftLayoutContext(layoutContext))?.name;
+
 export const publicationRequestTypeTranslationKey = (type: DraftChangeType) => {
     switch (type) {
         case DraftChangeType.TRACK_NUMBER:
@@ -174,6 +200,8 @@ export const publicationRequestTypeTranslationKey = (type: DraftChangeType) => {
             return 'switch';
         case DraftChangeType.KM_POST:
             return 'km-post';
+        case DraftChangeType.OPERATIONAL_POINT:
+            return 'operational-point';
 
         default:
             return exhaustiveMatchingGuard(type);
@@ -264,6 +292,15 @@ const getPublicationCandidateComponent = (
                     key={candidateComponentKey}
                 />
             );
+            
+        case DraftChangeType.OPERATIONAL_POINT:
+            return (
+                <OperationalPointItem
+                    layoutContext={layoutContext}
+                    operationalPoint={candidate}
+                    key={candidateComponentKey}
+                />
+            );
 
         default:
             return exhaustiveMatchingGuard(candidateType);
@@ -279,6 +316,7 @@ const sortCandidatesByAssetType = (
         [DraftChangeType.LOCATION_TRACK]: 3,
         [DraftChangeType.SWITCH]: 4,
         [DraftChangeType.KM_POST]: 5,
+        [DraftChangeType.OPERATIONAL_POINT]: 6,
     };
 
     return [...candidates].sort((a, b) => {

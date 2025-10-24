@@ -57,6 +57,7 @@ export enum DraftChangeType {
     REFERENCE_LINE = 'REFERENCE_LINE',
     SWITCH = 'SWITCH',
     KM_POST = 'KM_POST',
+    OPERATIONAL_POINT = 'OPERATIONAL_POINT',
 }
 
 export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE' | 'CALCULATED';
@@ -78,7 +79,8 @@ export type PublicationCandidateId =
     | ReferenceLineId
     | LocationTrackId
     | LayoutSwitchId
-    | LayoutKmPostId;
+    | LayoutKmPostId
+    | OperationalPointId;
 
 export type BasePublicationCandidate = {
     type: DraftChangeType;
@@ -97,7 +99,8 @@ export type PublicationCandidate =
     | LocationTrackPublicationCandidate
     | ReferenceLinePublicationCandidate
     | SwitchPublicationCandidate
-    | KmPostPublicationCandidate;
+    | KmPostPublicationCandidate
+    | OperationalPointPublicationCandidate;
 
 export type PublicationCandidateReference =
     | {
@@ -108,7 +111,8 @@ export type PublicationCandidateReference =
     | { id: ReferenceLineId; type: DraftChangeType.REFERENCE_LINE; name?: TrackNumber }
     | { id: LocationTrackId; type: DraftChangeType.LOCATION_TRACK; name?: string }
     | { id: LayoutSwitchId; type: DraftChangeType.SWITCH; name?: string }
-    | { id: LayoutKmPostId; type: DraftChangeType.KM_POST; kmNumber?: KmNumber };
+    | { id: LayoutKmPostId; type: DraftChangeType.KM_POST; kmNumber?: KmNumber }
+    | { id: OperationalPointId; type: DraftChangeType.OPERATIONAL_POINT; name?: string };
 
 export type WithBoundingBox = {
     boundingBox?: BoundingBox;
@@ -166,6 +170,13 @@ export type KmPostPublicationCandidate = BasePublicationCandidate &
         trackNumberId: LayoutTrackNumberId;
         kmNumber: KmNumber;
         location?: Point;
+    };
+
+export type OperationalPointPublicationCandidate = BasePublicationCandidate &
+    WithLocation & {
+        id: OperationalPointId;
+        type: DraftChangeType.OPERATIONAL_POINT;
+        name: string;
     };
 
 export type ValidatedPublicationCandidates = {

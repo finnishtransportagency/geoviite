@@ -1583,14 +1583,16 @@
                 "track-number": "ratanumeroon",
                 "reference-line": "pituusmittauslinjaan",
                 "switch": "vaihteeseen",
-                "km-post": "tasakilometripisteeseen"
+                "km-post": "tasakilometripisteeseen",
+                "operational-point": "toiminnalliseen pisteeseen"
             },
             "dependency-list": {
                 "location-track": "Sijaintiraide",
                 "track-number": "Ratanumero",
                 "reference-line": "Pituusmittauslinja",
                 "switch": "Vaihde",
-                "km-post": "Tasakilometripiste"
+                "km-post": "Tasakilometripiste",
+                "operational-point": "Toiminnallinen piste"
             }
         },
         "revert-change": "Hylkää muutos",
@@ -1829,6 +1831,7 @@
         "reference-line": "Pituusmittauslinja {{trackNumber}}",
         "switch": "Vaihde {{switch}}",
         "km-post": "Tasakilometripiste {{kmNumber}}",
+        "operational-point": "Toiminnallinen piste {{name}}",
         "count-header-loading": "Julkaistut muutokset",
         "count-header": "Julkaistut muutokset ({{number}}{{truncated}} kpl)",
         "calculated-change": "Laskennallinen muutos",

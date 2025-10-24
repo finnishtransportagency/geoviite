@@ -5,6 +5,7 @@ import { Rectangle } from 'model/geometry';
 import {
     KmPostPublicationCandidate,
     LocationTrackPublicationCandidate,
+    OperationalPointPublicationCandidate,
     ReferenceLinePublicationCandidate,
     SwitchPublicationCandidate,
     TrackNumberPublicationCandidate,
@@ -16,6 +17,7 @@ export type LayerItemSearchResult = OptionalItemCollections & {
     trackNumberPublicationCandidates?: TrackNumberPublicationCandidate[];
     switchPublicationCandidates?: SwitchPublicationCandidate[];
     kmPostPublicationCandidates?: KmPostPublicationCandidate[];
+    operationalPointPublicationCandidates?: OperationalPointPublicationCandidate[];
 };
 
 export type SearchItemsOptions = {
