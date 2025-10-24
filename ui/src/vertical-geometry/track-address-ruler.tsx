@@ -50,7 +50,7 @@ export const TrackAddressRuler: React.FC<TrackAddressRulerProps> = ({
     const endM = coordinates.endM + 5 / coordinates.mMeterLengthPxOverM;
 
     const kilometerTickLabelInterval = minimumIntervalOrLongest(
-        coordinates.mMeterLengthPxOverM * coordinates.horizontalTickLengthMeters,
+        coordinates.mMeterLengthPxOverM * 1000,
         minimumRulerHeightLabelDistancePx,
     );
 
