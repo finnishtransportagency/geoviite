@@ -24,7 +24,7 @@ export const createOperationalPointsPlacingLayer = (
             : [
                   renderOperationalPointFeature(
                       operationalPoint,
-                      'HIGHLIGHTED',
+                      'SELECTED',
                       linkingState?.location,
                   ),
               ].filter(filterNotEmpty);
