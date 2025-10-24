@@ -1,7 +1,7 @@
 import { LineString, Point as OlPoint } from 'ol/geom';
 import { Circle, Fill, Stroke, Style } from 'ol/style';
 import Feature from 'ol/Feature';
-import { AlignmentPoint } from 'track-layout/track-layout-model';
+import { AlignmentPoint, LayoutSwitch } from 'track-layout/track-layout-model';
 import { filterNotEmpty, filterUnique, first, init, last, lastIndex } from 'utils/array-utils';
 import { expectDefined } from 'utils/type-utils';
 import {
@@ -29,7 +29,7 @@ import {
 } from 'map/layers/utils/alignment-layer-utils';
 import mapStyles from 'map/map.module.scss';
 import { mergeRanges, Point, rangesIntersectInclusive } from 'model/geometry';
-import { Range } from 'common/common-model';
+import { Range, SwitchStructure } from 'common/common-model';
 
 export enum CandidateDataProperties {
     TRACK_NUMBER = 'track-number-candidate-data',
@@ -475,16 +475,30 @@ export const createCandidatePointFeature = (
 export const createCandidatePointFeatures = (
     candidates: CandidatePointFeature[],
     type: PointFeatureChangeType,
+    getOriginalLocation: (candidate: CandidatePointFeature) => Point | undefined,
 ): Feature<OlPoint>[] =>
     candidates
-        .map((candidate) =>
-            candidate.location
+        .map((candidate) => {
+            const location =
+                candidate.operation === 'DELETE'
+                    ? getOriginalLocation(candidate)
+                    : candidate.location;
+            return location
                 ? createCandidatePointFeature(
                       candidate,
-                      candidate.location,
+                      location,
                       type,
                       ChangeExplicitness.EXPLICIT,
                   )
-                : undefined,
-        )
+                : undefined;
+        })
         .filter(filterNotEmpty);
+
+export const getSwitchLocation = (
+    sw: LayoutSwitch,
+    structure: SwitchStructure,
+): Point | undefined => {
+    const presentationJointNumber = structure?.presentationJointNumber;
+    const presentationJoint = sw.joints.find((joint) => joint.number === presentationJointNumber);
+    return presentationJoint?.location;
+};

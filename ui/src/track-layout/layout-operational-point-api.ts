@@ -36,8 +36,10 @@ type OperationalPointSaveRequest =
     | InternalOperationalPointSaveRequest
     | ExternalOperationalPointSaveRequest;
 
-const cacheKey = (id: OperationalPointId, layoutContext: LayoutContext) =>
+const singlePointCacheKey = (id: OperationalPointId, layoutContext: LayoutContext) =>
     `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
+const mapTileCacheKey = (mapTileId: string, layoutContext: LayoutContext) =>
+    `${mapTileId}_${layoutContext.publicationState}_${layoutContext.branch}`;
 
 const operationalPointsCache = asyncCache<string, OperationalPoint | undefined>();
 const allOperationalPointsCache = asyncCache<string, OperationalPoint[]>();
@@ -61,13 +63,17 @@ export async function getOperationalPoints(
     layoutContext: LayoutContext,
     changeTime: TimeStamp,
 ): Promise<OperationalPoint[]> {
-    return operationalPointsTileCache.get(changeTime, mapTile.id, () => {
-        const params = queryParams({ bbox: bboxString(mapTile.area) });
+    return operationalPointsTileCache.get(
+        changeTime,
+        mapTileCacheKey(mapTile.id, layoutContext),
+        () => {
+            const params = queryParams({ bbox: bboxString(mapTile.area) });
 
-        return getNonNull<OperationalPoint[]>(
-            `${layoutUri('operational-points', layoutContext)}${params}`,
-        );
-    });
+            return getNonNull<OperationalPoint[]>(
+                `${layoutUri('operational-points', layoutContext)}${params}`,
+            );
+        },
+    );
 }
 
 export const getOperationalPoint = async (
@@ -75,7 +81,7 @@ export const getOperationalPoint = async (
     layoutContext: LayoutContext,
     changeTime: TimeStamp = getChangeTimes().operationalPoints,
 ): Promise<OperationalPoint | undefined> =>
-    operationalPointsCache.get(changeTime, cacheKey(id, layoutContext), () =>
+    operationalPointsCache.get(changeTime, singlePointCacheKey(id, layoutContext), () =>
         getNullable<OperationalPoint>(`${layoutUri('operational-points', layoutContext)}/${id}`),
     );
 
@@ -88,7 +94,7 @@ export const getManyOperationalPoints = async (
         .getMany(
             changeTime,
             ids,
-            (id) => cacheKey(id, layoutContext),
+            (id) => singlePointCacheKey(id, layoutContext),
             (ids) =>
                 getNonNull<OperationalPoint[]>(
                     `${layoutUri('operational-points', layoutContext)}${queryParams({
