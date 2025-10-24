@@ -12,6 +12,7 @@ import {
     KmPostPublicationCandidate,
     LayoutBranchType,
     LocationTrackPublicationCandidate,
+    OperationalPointPublicationCandidate,
     PublicationCandidate,
     PublicationCandidateReference,
     PublicationDetails,
@@ -62,6 +63,7 @@ export type PublicationCandidatesResponse = {
     referenceLines: ReferenceLinePublicationCandidate[];
     switches: SwitchPublicationCandidate[];
     kmPosts: KmPostPublicationCandidate[];
+    operationalPoints: OperationalPointPublicationCandidate[];
 };
 
 export type ValidatedPublicationCandidatesResponse = {
@@ -109,6 +111,9 @@ const toPublicationCandidates = (
         publicationCandidatesResponse.kmPosts.map((candidate) =>
             addCandidateTypeAndState(candidate, DraftChangeType.KM_POST),
         ),
+        publicationCandidatesResponse.operationalPoints.map((candidate) =>
+            addCandidateTypeAndState(candidate, DraftChangeType.OPERATIONAL_POINT),
+        ),
     ].flat();
 };
 
@@ -130,6 +135,9 @@ const toPublicationCandidateReferences = (
         ),
         publicationRequestIds.kmPosts.map((candidateId) =>
             createPublicationCandidateReference(candidateId, DraftChangeType.KM_POST),
+        ),
+        publicationRequestIds.operationalPoints.map((candidateId) =>
+            createPublicationCandidateReference(candidateId, DraftChangeType.OPERATIONAL_POINT),
         ),
     ].flat();
 };
@@ -157,6 +165,10 @@ const toPublicationRequestIds = (
 
             case DraftChangeType.KM_POST:
                 publicationRequestIds.kmPosts.push(candidate.id);
+                break;
+
+            case DraftChangeType.OPERATIONAL_POINT:
+                publicationRequestIds.operationalPoints.push(candidate.id);
                 break;
 
             default:

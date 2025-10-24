@@ -14,6 +14,8 @@ import {
     LayoutKmPostId,
     LayoutSwitch,
     LayoutSwitchId,
+    OperationalPoint,
+    OperationalPointId,
 } from 'track-layout/track-layout-model';
 import { Point, Rectangle } from 'model/geometry';
 import Feature from 'ol/Feature';
@@ -25,6 +27,7 @@ import {
 } from 'common/common-model';
 import {
     KmPostPublicationCandidate,
+    OperationalPointPublicationCandidate,
     PublicationCandidate,
     SwitchPublicationCandidate,
 } from 'publication/publication-model';
@@ -38,9 +41,12 @@ import { SWITCH_LARGE_SYMBOLS, SWITCH_SHOW } from 'map/layers/utils/layer-visibi
 import { Style } from 'ol/style';
 import { getDeletedSwitchRenderer } from 'map/layers/utils/switch-layer-utils';
 import { CandidateDataProperties } from 'map/layers/utils/publication-candidate-highlight-utils';
+import { renderOperationalPointFeature } from 'map/layers/operational-point/operational-points-layer-utils';
+import { getOperationalPoints } from 'track-layout/layout-operational-point-api';
 
 let shownSwitchesCompare = '';
 let shownKmPostsCompare = '';
+let shownOperationalPointsCompare = '';
 
 const updateShownSwitches = (
     switchIds: LayoutSwitchId[],
@@ -66,6 +72,18 @@ const updateShownKmPosts = (
     }
 };
 
+const updateShownOperationalPoints = (
+    operationalPointIds: OperationalPointId[],
+    onViewContentChanged: (items: OptionalShownItems) => void,
+): void => {
+    const compare = operationalPointIds.sort().join();
+
+    if (compare !== shownOperationalPointsCompare) {
+        shownOperationalPointsCompare = compare;
+        onViewContentChanged({ operationalPoints: operationalPointIds });
+    }
+};
+
 const deletedSwitchFeature = (location: Point, isLarge: boolean): Feature<OlPoint> => {
     const deletedIconFeature = new Feature({
         geometry: new OlPoint(pointToCoords(location)),
@@ -82,6 +100,7 @@ const createFeatures = (
     switches: LayoutSwitch[],
     kmPosts: LayoutKmPost[],
     switchStructures: SwitchStructure[],
+    operationalPoints: OperationalPoint[],
     resolution: number,
 ) => {
     const swFeatures = switches
@@ -93,8 +112,13 @@ const createFeatures = (
     const kpFeatures = kmPosts
         .flatMap((kmPost) => createKmPostBadgeFeature(kmPost, 'DELETED'))
         .filter(filterNotEmpty);
+    const opFeatures = operationalPoints
+        .flatMap((operationalPoint) =>
+            renderOperationalPointFeature(operationalPoint, 'DELETED', operationalPoint.location),
+        )
+        .filter(filterNotEmpty);
 
-    return [...swFeatures, ...kpFeatures];
+    return [...swFeatures, ...kpFeatures, ...opFeatures];
 };
 
 const createDeletedSwitchIconFeature = (
@@ -113,6 +137,7 @@ const createDeletedSwitchIconFeature = (
 const onLoadingChange = (
     switches: LayoutSwitch[],
     kmPosts: LayoutKmPost[],
+    operationalPoints: OperationalPoint[],
     loading: boolean,
     onViewContentChanged: (items: OptionalShownItems) => void,
     onLoadingData: (loading: boolean) => void,
@@ -124,6 +149,10 @@ const onLoadingChange = (
         );
         updateShownSwitches(
             switches.map((sw) => sw.id),
+            onViewContentChanged,
+        );
+        updateShownOperationalPoints(
+            operationalPoints.map((op) => op.id),
             onViewContentChanged,
         );
     }
@@ -164,6 +193,25 @@ const getSwitchesTiledPromise = (
             .filter((s) => deletedSwitchCandidates.some((candidate) => candidate.id === s.id));
     });
 
+const getOperationalPointsTiledPromise = (
+    mapTiles: MapTile[],
+    layerLayoutContext: LayoutContext,
+    changeTimes: ChangeTimes,
+    deletedOperationalPointCandidates: OperationalPointPublicationCandidate[],
+): Promise<OperationalPoint[]> =>
+    Promise.all(
+        mapTiles.map((t) =>
+            getOperationalPoints(t, layerLayoutContext, changeTimes.operationalPoints),
+        ),
+    ).then((operationalPoints) => {
+        return operationalPoints
+            .flat()
+            .filter(filterUniqueById((s) => s.id))
+            .filter((op) =>
+                deletedOperationalPointCandidates.some((candidate) => candidate.id === op.id),
+            );
+    });
+
 export function createDeletedPublicationCandidateIconLayer(
     mapTiles: MapTile[],
     existingOlLayer: GeoviiteMapLayer<LineString | OlPoint | Rectangle> | undefined,
@@ -188,6 +236,9 @@ export function createDeletedPublicationCandidateIconLayer(
     const deletedSwitchCandidates = publicationCandidates
         .filter((c) => c.type === 'SWITCH')
         .filter((c) => c.operation === 'DELETE');
+    const deletedOperationalPointCandidates = publicationCandidates
+        .filter((c) => c.type === 'OPERATIONAL_POINT')
+        .filter((c) => c.operation === 'DELETE');
 
     const deletedSwitchesPromise =
         resolution <= SWITCH_SHOW && deletedSwitchCandidates.length > 0
@@ -207,15 +258,26 @@ export function createDeletedPublicationCandidateIconLayer(
                   deletedKmPostCandidates,
               )
             : Promise.resolve([]);
+    const operationalPointsPromise =
+        deletedOperationalPointCandidates.length > 0
+            ? getOperationalPointsTiledPromise(
+                  mapTiles,
+                  layerLayoutContext,
+                  changeTimes,
+                  deletedOperationalPointCandidates,
+              )
+            : Promise.resolve([]);
 
     const allPromises = Promise.all([
         deletedSwitchesPromise,
         kmPostPromise,
         getSwitchStructures(),
-    ]).then(([switches, kmPosts, switchStructures]) => ({
+        operationalPointsPromise,
+    ]).then(([switches, kmPosts, switchStructures, operationalPoints]) => ({
         switches,
         kmPosts,
         switchStructures,
+        operationalPoints,
     }));
 
     loadLayerData(
@@ -225,12 +287,20 @@ export function createDeletedPublicationCandidateIconLayer(
             onLoadingChange(
                 data?.switches ?? [],
                 data?.kmPosts ?? [],
+                data?.operationalPoints ?? [],
                 loading,
                 onViewContentChanged,
                 onLoadingData,
             ),
         allPromises,
-        (data) => createFeatures(data.switches, data.kmPosts, data.switchStructures, resolution),
+        (data) =>
+            createFeatures(
+                data.switches,
+                data.kmPosts,
+                data.switchStructures,
+                data.operationalPoints,
+                resolution,
+            ),
     );
 
     return {
@@ -249,10 +319,17 @@ export function createDeletedPublicationCandidateIconLayer(
                 CandidateDataProperties.KM_POST,
                 options,
             ),
+            operationalPointPublicationCandidates: findMatchingEntities(
+                hitArea,
+                source,
+                CandidateDataProperties.OPERATIONAL_POINT,
+                options,
+            ),
         }),
         onRemove: () => {
             updateShownKmPosts([], onViewContentChanged);
             updateShownSwitches([], onViewContentChanged);
+            updateShownOperationalPoints([], onViewContentChanged);
         },
     };
 }

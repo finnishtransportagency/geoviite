@@ -75,6 +75,7 @@ import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-
 import { measurementTool } from 'map/tools/measurement-tool';
 import { previewViewAreaSelectTool } from 'map/tools/preview-view-area-select-tool';
 import { prevIfObjectsEqual } from 'utils/object-utils';
+import { cancelOperationalPoint } from 'track-layout/layout-operational-point-api';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -157,6 +158,8 @@ function cancelPublicationCandidate(
             return cancelSwitch(design, publicationCandidate.id);
         case DraftChangeType.KM_POST:
             return cancelKmPost(design, publicationCandidate.id);
+        case DraftChangeType.OPERATIONAL_POINT:
+            return cancelOperationalPoint(design, publicationCandidate.id);
         default:
             return exhaustiveMatchingGuard(publicationCandidate);
     }

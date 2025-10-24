@@ -59,7 +59,10 @@ export function createOperationalPointLayer(
                           selection.selectedItems.operationalPoints.includes(point.id) ||
                           selection.highlightedItems.operationalPoints.includes(point.id);
 
-                      return renderOperationalPointFeature(point, isSelectedOrHighlighted);
+                      return renderOperationalPointFeature(
+                          point,
+                          isSelectedOrHighlighted ? 'HIGHLIGHTED' : 'REGULAR',
+                      );
                   })
                   .filter(filterNotEmpty)
             : [];

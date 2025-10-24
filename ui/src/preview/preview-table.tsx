@@ -6,6 +6,7 @@ import {
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
+    OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
@@ -20,14 +21,15 @@ import {
     ChangeTableEntry,
     kmPostChangeTableEntry,
     locationTrackToChangeTableEntry,
+    operationalPointChangeTableEntry,
     referenceLineToChangeTableEntry,
     switchToChangeTableEntry,
     trackNumberToChangeTableEntry,
 } from 'preview/change-table-entry-mapping';
 import {
     DraftChangeType,
-    PublicationCandidate,
     LayoutValidationIssue,
+    PublicationCandidate,
     PublicationValidationState,
 } from 'publication/publication-model';
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
@@ -48,7 +50,8 @@ export type PublishableObjectId =
     | ReferenceLineId
     | LocationTrackId
     | LayoutSwitchId
-    | LayoutKmPostId;
+    | LayoutKmPostId
+    | OperationalPointId;
 
 export type PreviewTableEntry = {
     publishCandidate: PublicationCandidate;
@@ -116,6 +119,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                 return switchToChangeTableEntry(candidate, trackNumbers);
             case DraftChangeType.KM_POST:
                 return kmPostChangeTableEntry(candidate, trackNumbers);
+            case DraftChangeType.OPERATIONAL_POINT:
+                return operationalPointChangeTableEntry(candidate);
 
             default:
                 return exhaustiveMatchingGuard(candidate);
@@ -132,6 +137,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
 
             case DraftChangeType.SWITCH:
             case DraftChangeType.KM_POST:
+            case DraftChangeType.OPERATIONAL_POINT:
                 return candidate.location
                     ? calculateBoundingBoxToShowAroundLocation(candidate.location)
                     : undefined;

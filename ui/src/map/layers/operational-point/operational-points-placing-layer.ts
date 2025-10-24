@@ -22,7 +22,11 @@ export const createOperationalPointsPlacingLayer = (
         operationalPoint === undefined || !linkingState?.location
             ? []
             : [
-                  renderOperationalPointFeature(operationalPoint, true, linkingState?.location),
+                  renderOperationalPointFeature(
+                      operationalPoint,
+                      'HIGHLIGHTED',
+                      linkingState?.location,
+                  ),
               ].filter(filterNotEmpty);
 
     loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);

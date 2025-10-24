@@ -9,6 +9,7 @@ import {
     KmPostPublicationCandidate,
     LocationTrackPublicationCandidate,
     Operation,
+    OperationalPointPublicationCandidate,
     PublicationCandidate,
     PublicationStage,
     ReferenceLinePublicationCandidate,
@@ -36,6 +37,7 @@ export enum CandidateDataProperties {
     LOCATION_TRACK = 'location-track-candidate-data',
     SWITCH = 'switch-candidate-data',
     KM_POST = 'km-post-candidate-data',
+    OPERATIONAL_POINT = 'operational-point-candidate-data',
 }
 
 export enum ChangeExplicitness {
@@ -67,8 +69,14 @@ export type CandidateLineStringFeature =
     | LocationTrackPublicationCandidate
     | TrackNumberPublicationCandidate;
 
-export type PointFeatureChangeType = DraftChangeType.SWITCH | DraftChangeType.KM_POST;
-export type CandidatePointFeature = SwitchPublicationCandidate | KmPostPublicationCandidate;
+export type PointFeatureChangeType =
+    | DraftChangeType.SWITCH
+    | DraftChangeType.KM_POST
+    | DraftChangeType.OPERATIONAL_POINT;
+export type CandidatePointFeature =
+    | SwitchPublicationCandidate
+    | KmPostPublicationCandidate
+    | OperationalPointPublicationCandidate;
 
 export type PointRange = {
     indexRange: Range<number>;
@@ -95,6 +103,7 @@ const DATA_PROPERTY_BY_CHANGE_TYPE = {
     [DraftChangeType.LOCATION_TRACK]: CandidateDataProperties.LOCATION_TRACK,
     [DraftChangeType.SWITCH]: CandidateDataProperties.SWITCH,
     [DraftChangeType.KM_POST]: CandidateDataProperties.KM_POST,
+    [DraftChangeType.OPERATIONAL_POINT]: CandidateDataProperties.OPERATIONAL_POINT,
 };
 
 const isLineStringType = (type: DraftChangeType): boolean =>

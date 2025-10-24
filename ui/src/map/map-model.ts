@@ -5,6 +5,7 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
     MapAlignmentType,
+    OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { expectDefined, ValueOf } from 'utils/type-utils';
@@ -80,6 +81,7 @@ export type OptionalShownItems = {
     locationTracks?: LocationTrackId[];
     kmPosts?: LayoutKmPostId[];
     switches?: LayoutSwitchId[];
+    operationalPoints?: OperationalPointId[];
 };
 
 export type ShownItems = {

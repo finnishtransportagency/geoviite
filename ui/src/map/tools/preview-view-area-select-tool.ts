@@ -18,6 +18,7 @@ export const previewViewAreaSelectTool = (
             ...(items.trackNumberPublicationCandidates || []),
             ...(items.switchPublicationCandidates || []),
             ...(items.kmPostPublicationCandidates || []),
+            ...(items.operationalPointPublicationCandidates || []),
         ].flat();
 
         const groups = selectedCandidates
