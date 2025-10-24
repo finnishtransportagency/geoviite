@@ -40,7 +40,10 @@ import { createKmPostBadgeFeature } from 'map/layers/utils/km-post-layer-utils';
 import { SWITCH_LARGE_SYMBOLS, SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { Style } from 'ol/style';
 import { getDeletedSwitchRenderer } from 'map/layers/utils/switch-layer-utils';
-import { CandidateDataProperties } from 'map/layers/utils/publication-candidate-highlight-utils';
+import {
+    CandidateDataProperties,
+    getSwitchLocation,
+} from 'map/layers/utils/publication-candidate-highlight-utils';
 import { renderOperationalPointFeature } from 'map/layers/operational-point/operational-points-layer-utils';
 import { getOperationalPoints } from 'track-layout/layout-operational-point-api';
 
@@ -126,11 +129,9 @@ const createDeletedSwitchIconFeature = (
     structure: SwitchStructure,
     resolution: number,
 ): Feature<OlPoint> | undefined => {
-    const presentationJointNumber = structure?.presentationJointNumber;
-    const presentationJoint = s.joints.find((joint) => joint.number === presentationJointNumber);
-
-    return presentationJoint
-        ? deletedSwitchFeature(presentationJoint.location, resolution <= SWITCH_LARGE_SYMBOLS)
+    const switchLocation = getSwitchLocation(s, structure);
+    return switchLocation
+        ? deletedSwitchFeature(switchLocation, resolution <= SWITCH_LARGE_SYMBOLS)
         : undefined;
 };
 

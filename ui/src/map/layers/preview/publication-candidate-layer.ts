@@ -5,7 +5,12 @@ import {
     getReferenceLineMapAlignmentsByTiles,
 } from 'track-layout/layout-map-api';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { draftMainLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
+import {
+    draftMainLayoutContext,
+    LayoutContext,
+    officialLayoutContext,
+    SwitchStructure,
+} from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { filterNotEmpty } from 'utils/array-utils';
 import Feature from 'ol/Feature';
@@ -36,11 +41,17 @@ import {
     createCandidatePointFeatures,
     createCandidateReferenceLineFeatures,
     createCandidateTrackNumberFeatures,
+    getSwitchLocation,
     LocationTrackCandidateAndAlignment,
     PublicationCandidateFeatureType,
     ReferenceLineCandidateAndAlignment,
     TrackNumberCandidateAndAlignment,
 } from 'map/layers/utils/publication-candidate-highlight-utils';
+import { LayoutKmPost, LayoutSwitch, OperationalPoint } from 'track-layout/track-layout-model';
+import { getSwitches } from 'track-layout/layout-switch-api';
+import { getKmPosts } from 'track-layout/layout-km-post-api';
+import { getManyOperationalPoints } from 'track-layout/layout-operational-point-api';
+import { getSwitchStructures } from 'common/common-api';
 
 const layerName: MapLayerName = 'publication-candidate-layer';
 
@@ -175,13 +186,28 @@ export function createPublicationCandidateLayer(
               )
             : Promise.resolve([]);
     const switchCandidates = publicationCandidates.filter((c) => c.type === DraftChangeType.SWITCH);
+    const baseSwitchesPromise = getSwitches(
+        switchCandidates.map((c) => c.id),
+        targetLayoutContext,
+        changeTimes.layoutSwitch,
+    );
 
     const kmPostCandidates = publicationCandidates.filter(
         (c) => c.type === DraftChangeType.KM_POST,
     );
+    const baseKmPostsPromise = getKmPosts(
+        kmPostCandidates.map((c) => c.id),
+        targetLayoutContext,
+        changeTimes.layoutKmPost,
+    );
 
     const operationalPointCandidates = publicationCandidates.filter(
         (c) => c.type === DraftChangeType.OPERATIONAL_POINT,
+    );
+    const baseOperationalPointsPromise = getManyOperationalPoints(
+        operationalPointCandidates.map((c) => c.id),
+        targetLayoutContext,
+        changeTimes.operationalPoints,
     );
 
     const createFeatures = (data: {
@@ -190,6 +216,10 @@ export function createPublicationCandidateLayer(
         candidateTrackNumbers: TrackNumberCandidateAndAlignment[];
         baseLocationTracks: LocationTrackCandidateAndAlignment[];
         baseReferenceLines: ReferenceLineCandidateAndAlignment[];
+        baseSwitches: LayoutSwitch[];
+        baseKmPosts: LayoutKmPost[];
+        baseOperationalPoints: OperationalPoint[];
+        switchStructures: SwitchStructure[];
     }) => {
         const filteredLocationTrackCandidates = data.candidateLocationTracks.filter((c) => {
             return locationTrackIds.includes(c.alignment.header.id);
@@ -218,15 +248,29 @@ export function createPublicationCandidateLayer(
         const candidateSwitchFeatures = createCandidatePointFeatures(
             switchCandidates,
             DraftChangeType.SWITCH,
+            (candidate) => {
+                const baseSwitch = data.baseSwitches.find((s) => s.id === candidate.id);
+                if (!baseSwitch) {
+                    return undefined;
+                }
+
+                const structure = data.switchStructures.find(
+                    (str) => str.id === baseSwitch.switchStructureId,
+                );
+                return structure ? getSwitchLocation(baseSwitch, structure) : undefined;
+            },
         );
         const candidateKmPostFeatures = createCandidatePointFeatures(
             kmPostCandidates,
             DraftChangeType.KM_POST,
+            (candidate) => data.baseKmPosts.find((k) => k.id === candidate.id)?.layoutLocation,
         );
 
         const candidateOperationalPointFeatures = createCandidatePointFeatures(
             operationalPointCandidates,
             DraftChangeType.OPERATIONAL_POINT,
+            (candidate) =>
+                data.baseOperationalPoints.find((op) => op.id === candidate.id)?.location,
         );
 
         const showEndPointTicks = metersPerPixel <= Limits.SHOW_LOCATION_TRACK_BADGES;
@@ -274,12 +318,20 @@ export function createPublicationCandidateLayer(
         candidateReferenceLineAlignmentPromise,
         baseLocationTrackAlignmentsPromise,
         baseReferenceLineLineAlignmentsPromise,
+        baseSwitchesPromise,
+        baseKmPostsPromise,
+        baseOperationalPointsPromise,
+        getSwitchStructures(),
     ]).then(
         ([
             candidateLocationTracks,
             candidateTrackNumbersAndReferenceLines,
             baseLocationTracks,
             baseReferenceLines,
+            baseSwitches,
+            baseKmPosts,
+            baseOperationalPoints,
+            switchStructures,
         ]) => {
             const { candidateTrackNumbers, candidateReferenceLines } =
                 candidateTrackNumbersAndReferenceLines;
@@ -290,6 +342,10 @@ export function createPublicationCandidateLayer(
                 candidateReferenceLines,
                 baseLocationTracks,
                 baseReferenceLines,
+                baseSwitches,
+                baseKmPosts,
+                baseOperationalPoints,
+                switchStructures,
             };
         },
     );
