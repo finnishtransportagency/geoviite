@@ -116,7 +116,6 @@ const createOperationalPointStyle = (
 ): Style => {
     const color = featureColor(featureMode);
     const drawText = featureMode !== 'DELETED';
-    console.log(featureMode);
 
     const styleArgs = {
         image: new Circle({
