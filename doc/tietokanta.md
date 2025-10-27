@@ -1,6 +1,6 @@
 # Tietokanta
 
-Tietokanta on jaettu useisiin skemoihin, jotka kuvataan tässä kehitystyön näkökulmasta. Datan merkitys on helpointa
+Tietokanta on jaettu useisiin skeemoihin, jotka kuvataan tässä kehitystyön näkökulmasta. Datan merkitys on helpointa
 ymmärtää katsomalla tietomallin yleiskuvausta: [Geoviite tietomalli](tietomalli.md)
 
 ## Audit ja versiointi
@@ -13,19 +13,19 @@ olemassa myös versiotaulu.
 
 Versioiden sisältämiä automaattisia metatietoja ovat:
 
-- Päivityshetki `change_time`: ajanhetki, jolla päätaulun rivi muuttui ko. version kuvaamaan tilaan
+- Päivityshetki `change_time`: ajanhetki, jolloin päätaulun rivi muuttui ko. version kuvaamaan tilaan
 - Päivityksen tekijä `change_user`: käyttäjä (tunnus), joka muutoksen teki
-- Version voimassaolon päättymishetki `expiry_time`: ajanhetki, jolla päätaulun rivi muuttui seuraavaan tilaan (`null`
+- Version voimassaolon päättymishetki `expiry_time`: ajanhetki, jolloin päätaulun rivi muuttui seuraavaan tilaan (`null`
   mikäli versio on edelleen voimassa)
-- Version poisto-operaation lippu `deleted`: `true` jos rivi on poistettu päätaulusta tämän version ajanhetkellä,
-  muutoin `false`
+- Version poisto-operaation lippu `deleted`: `true` jos riviä ei tässä versiossa ole päätaulussa olemassa, muutoin
+  `false`
 
 Versiotaulusta voidaan hakea sen automaattisten metatietojen avulla minkä vain ajanhetken tila päätaulussa. Käytännössä
 haun `where` ehto voidaan kirjoittaa näin:
 
 ```
-where change_time <= [haettu ajanhetki] -- change_time on inklusiivinen (tästä hetkestä alken tila oli x)
-  and expiry_time > [haettu ajanhetki] -- expiry_time on eksklusiivinen (tästä hetkestä alken tila oli jotain muuta)
+where change_time <= [haettu ajanhetki] -- change_time on inklusiivinen (tästä hetkestä alkaen tila oli x)
+  and expiry_time > [haettu ajanhetki] -- expiry_time on eksklusiivinen (tästä hetkestä alkaen tila oli jotain muuta)
   and deleted = false -- Ei huomioida poisto-versioita sillä niiden voimassaollessa riviä ei ollut päätaulussa
 ```
 
@@ -41,7 +41,7 @@ onkin tyypillinen rakenne Geoviitteen koodipohjassa. Lisää välimuistin käyt�
 
 On myös huomattava että tietokannan rakenteellisissa muutoksissa (esim uuden sarakkeen lisäys default-arvolla) voi
 olla tarve päivittää versiotaulua migraation yhteydessä, joten oletus versioiden muuttumattomuudesta ei päde
-vesiopäivitysten yli. Koska tietomalli ei kuitenkaan muutu sovelluksen ajon aikana, tällä on harvoin merkitystä.
+versiopäivitysten yli. Koska tietomalli ei kuitenkaan muutu sovelluksen ajon aikana, tällä on harvoin merkitystä.
 
 ### Poistot versiotaulussa
 
@@ -106,10 +106,9 @@ harvinaista.
 
 ### Postgis
 
-Postgis-skeema sisältää Postgresin PostGIS-laajennoksen omat rakenteet, muunmuassa koordinaattijärjestelmien tiedot.
-Sitä
-ei muokata Geoviitteestä, mutta sen metodeita käytetään laajasti ja joihinkin tauluihin voidaan viitata kun esimerkiksi
-halutaan käyttää viite-eheyttä varmistamaan toimivan koordinaattijärjestelmän käyttö.
+Postgis-skeema sisältää Postgresin PostGIS-laajennoksen omat rakenteet, muun muassa koordinaattijärjestelmien tiedot.
+Sitä ei muokata Geoviitteestä, mutta sen metodeita käytetään laajasti ja joihinkin tauluihin voidaan viitata kun
+esimerkiksi halutaan käyttää viite-eheyttä varmistamaan toimivan koordinaattijärjestelmän käyttö.
 
 ### Common
 
