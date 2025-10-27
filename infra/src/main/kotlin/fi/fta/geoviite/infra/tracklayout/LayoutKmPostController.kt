@@ -16,7 +16,6 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationValidationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
-import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -120,7 +119,7 @@ class LayoutKmPostController(
         @PathVariable("id") id: IntId<LayoutKmPost>,
     ): ResponseEntity<ValidatedAsset<LayoutKmPost>> {
         return publicationValidationService
-            .validateKmPosts(draftTransitionOrOfficialState(publicationState, branch), listOf(id))
+            .validateKmPosts(branch, publicationState, listOf(id))
             .firstOrNull()
             .let(::toResponse)
     }

@@ -20,9 +20,9 @@ import fi.fta.geoviite.infra.linking.switches.matchFittedSwitchToTracks
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -1640,7 +1640,7 @@ constructor(
         trackNumberIds: List<IntId<LayoutTrackNumber>> = emptyList(),
         operationalPointIds: List<IntId<OperationalPoint>> = emptyList(),
     ): ValidationVersions {
-        val target = draftTransitionOrOfficialState(PublicationState.DRAFT, layoutBranch)
+        val target = LayoutContextTransition.publicationIn(layoutBranch)
         return ValidationVersions(
             target = target,
             locationTracks = locationTrackDao.fetchCandidateVersions(target.candidateContext, locationTrackIds),

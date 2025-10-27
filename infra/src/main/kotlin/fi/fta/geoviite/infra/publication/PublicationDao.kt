@@ -538,7 +538,7 @@ class PublicationDao(
      * @param includeDeleted Filters location tracks, not switches
      */
     fun fetchLinkedLocationTracks(
-        target: ValidationTarget,
+        target: LayoutContextTransition,
         switchIds: List<IntId<LayoutSwitch>>,
         locationTrackIdsInPublicationUnit: List<IntId<LocationTrack>>? = null,
         includeDeleted: Boolean = false,

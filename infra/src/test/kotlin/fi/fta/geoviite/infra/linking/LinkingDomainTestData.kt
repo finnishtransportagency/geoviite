@@ -1,14 +1,13 @@
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.PublicationCause
+import fi.fta.geoviite.infra.publication.PublicationInMain
 import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationResultSummary
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -41,7 +40,7 @@ fun validationVersions(
     locationTracks: List<LayoutRowVersion<LocationTrack>> = listOf(),
     switches: List<LayoutRowVersion<LayoutSwitch>> = listOf(),
     operationalPoints: List<LayoutRowVersion<OperationalPoint>> = listOf(),
-    target: ValidationTarget = draftTransitionOrOfficialState(PublicationState.DRAFT, LayoutBranch.main),
+    target: LayoutContextTransition = PublicationInMain,
 ) =
     ValidationVersions(
         target = target,
