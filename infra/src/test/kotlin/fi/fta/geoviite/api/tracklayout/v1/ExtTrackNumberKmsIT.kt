@@ -17,7 +17,10 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
+import java.math.BigDecimal
+import kotlin.math.abs
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
@@ -28,9 +31,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.math.BigDecimal
-import kotlin.math.abs
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -93,7 +93,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 kmNumber = KmNumber(13),
                 startM = BigDecimal("300.000"),
                 endM = BigDecimal("400.000"),
-                officialLocation = ExtKmPostOfficialLocationV1(transformFromLayoutToGKCoordinate(Point(300.0, 2.0)), true),
+                officialLocation =
+                    ExtKmPostOfficialLocationV1(transformFromLayoutToGKCoordinate(Point(300.0, 2.0)), true),
                 location = ExtCoordinateV1(300.0, 2.0),
             ),
             ExtTrackKmV1(
@@ -110,7 +111,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 kmNumber = KmNumber(16),
                 startM = BigDecimal("600.000"),
                 endM = BigDecimal("1000.000"), // Reference line end
-                officialLocation = ExtKmPostOfficialLocationV1(transformFromLayoutToGKCoordinate(Point(600.0, 0.0)), true),
+                officialLocation =
+                    ExtKmPostOfficialLocationV1(transformFromLayoutToGKCoordinate(Point(600.0, 0.0)), true),
                 location = ExtCoordinateV1(600.0, 0.0),
             ),
         )

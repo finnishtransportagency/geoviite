@@ -32,7 +32,11 @@ private const val EXT_TRACK_NUMBER_KMS_COLLECTION_TAG_V1 = "Ratanumerokokoelman 
 
 @PreAuthorize(AUTH_API_GEOMETRY)
 @GeoviiteExtApiController(
-    ["$EXT_TRACK_LAYOUT_BASE_PATH/paikannuspohja/v1", "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1"]
+    [
+        "/paikannuspohja/v1",
+        "$EXT_TRACK_LAYOUT_BASE_PATH/paikannuspohja/v1",
+        "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1",
+    ]
 )
 class ExtKmPostControllerV1
 @Autowired
