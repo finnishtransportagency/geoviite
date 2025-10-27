@@ -102,7 +102,7 @@ export const initialInternalOperationalPointEditState: InternalOperationalPointE
         name: '',
         abbreviation: '',
         rinfType: undefined,
-        state: undefined,
+        state: 'IN_USE',
         uicCode: '',
     },
     validationIssues: [],
