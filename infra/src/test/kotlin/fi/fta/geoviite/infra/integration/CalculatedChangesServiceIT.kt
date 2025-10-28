@@ -801,7 +801,10 @@ constructor(
     fun `reference line changes should be included in calculated changes`() {
         val testData = insertTestData()
         val (referenceLine, _) = testData.referenceLineAndAlignment
-        referenceLineService.saveDraft(LayoutBranch.main, referenceLine.copy(startAddress = TrackMeter(0, 500)))
+        referenceLineService.saveDraft(
+            LayoutBranch.main,
+            referenceLine.copy(startAddress = TrackMeter(0, 500).round(3)),
+        )
 
         val changes = getCalculatedChanges(referenceLineIds = listOf(referenceLine.id as IntId))
 

@@ -398,7 +398,7 @@ constructor(
         mainDraftContext.save(
             mainOfficialContext
                 .fetch(referenceLineId1)!!
-                .copy(startAddress = TrackMeter(KmNumber("0001"), BigDecimal.TEN)),
+                .copy(startAddress = TrackMeter(KmNumber(1), BigDecimal.TEN).round(3)),
             alignment(segment),
         )
         val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(referenceLineId1))

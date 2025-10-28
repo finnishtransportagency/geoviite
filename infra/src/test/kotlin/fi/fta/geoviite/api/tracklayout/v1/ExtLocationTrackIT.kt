@@ -182,7 +182,7 @@ constructor(
             extTestDataService.insertTrackNumberAndReferenceLineWithOid(
                 mainDraftContext,
                 segments = listOf(segment),
-                startAddress = TrackMeter(KmNumber("0000"), startM.toBigDecimal()),
+                startAddress = TrackMeter(KmNumber(0), startM.toBigDecimal()),
             )
 
         val track = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment))
@@ -361,7 +361,7 @@ constructor(
 
         initUser()
         mainDraftContext.save(
-            mainOfficialContext.fetch(rlId)!!.copy(startAddress = TrackMeter(KmNumber("0001"), BigDecimal.TEN)),
+            mainOfficialContext.fetch(rlId)!!.copy(startAddress = TrackMeter(KmNumber(1), BigDecimal.TEN).round(3)),
             rlGeom,
         )
         val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(rlId))

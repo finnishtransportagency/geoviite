@@ -13,8 +13,8 @@ import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
-import java.time.Instant
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class ReferenceLineService(
@@ -50,8 +50,9 @@ class ReferenceLineService(
         startAddress: TrackMeter,
     ): LayoutRowVersion<ReferenceLine>? {
         val originalVersion =
-            dao.fetchVersionByTrackNumberId(branch.draft, trackNumberId)
-                ?: throw IllegalStateException("Track number should have a reference line")
+            requireNotNull(dao.fetchVersionByTrackNumberId(branch.draft, trackNumberId)) {
+                "Track number should have a reference line: trackNumber=$trackNumberId branch=$branch"
+            }
         val original = dao.fetch(originalVersion)
         return if (original.startAddress != startAddress) {
             saveDraft(
