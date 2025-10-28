@@ -107,9 +107,9 @@ insert into layout.operational_point
   (
     select
       row_number() over (order by external_id),
-      false,
+      true,
       null,
-      'main_official',
+      'main_draft',
       name,
       abbreviation,
       -- hack for compatibility with older production database dumps: Null out empty UIC codes
