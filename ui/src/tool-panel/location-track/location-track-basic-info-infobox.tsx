@@ -152,6 +152,16 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
                     value={locationTrack.name}
                 />
                 <InfoboxField
+                    qaId="location-track-track-number"
+                    label={t('tool-panel.location-track.track-number')}
+                    value={<TrackNumberLinkContainer trackNumberId={trackNumber?.id} />}
+                />
+                <InfoboxField
+                    qaId="location-track-description"
+                    label={t('tool-panel.location-track.description')}
+                    value={locationTrack.description}
+                />
+                <InfoboxField
                     qaId="location-track-state"
                     label={t('tool-panel.location-track.state')}
                     value={<LocationTrackState state={locationTrack.state} />}
@@ -161,16 +171,7 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
                     label={t('tool-panel.location-track.type')}
                     value={<LocationTrackTypeLabel type={locationTrack.type} />}
                 />
-                <InfoboxField
-                    qaId="location-track-description"
-                    label={t('tool-panel.location-track.description')}
-                    value={locationTrack.description}
-                />
-                <InfoboxField
-                    qaId="location-track-track-number"
-                    label={t('tool-panel.location-track.track-number')}
-                    value={<TrackNumberLinkContainer trackNumberId={trackNumber?.id} />}
-                />
+
                 <InfoboxText value={trackNumber?.description} />
                 {extraInfoLoadingStatus === LoaderStatus.Ready && (
                     <InfoboxField

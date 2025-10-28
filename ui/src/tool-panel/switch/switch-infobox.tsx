@@ -23,13 +23,7 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
-import {
-    draftLayoutContext,
-    JointNumber,
-    LayoutContext,
-    SwitchOwnerId,
-    TrackMeter,
-} from 'common/common-model';
+import { draftLayoutContext, JointNumber, LayoutContext, SwitchOwnerId, TrackMeter, } from 'common/common-model';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
 import { BoundingBox, Point } from 'model/geometry';
 import { PlacingLayoutSwitch } from 'linking/linking-model';
@@ -242,17 +236,6 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     disabledReason={editingDisabledReason()}>
                     <InfoboxContent>
                         <InfoboxField
-                            label={t('tool-panel.switch.layout.km-m')}
-                            value={
-                                (switchJointTrackMeters && (
-                                    <SwitchInfoboxTrackMeters
-                                        jointTrackMeters={switchJointTrackMeters}
-                                        presentationJoint={structure?.presentationJointNumber}
-                                    />
-                                )) || <Spinner />
-                            }
-                        />
-                        <InfoboxField
                             qaId="switch-oid"
                             label={t('tool-panel.switch.layout.oid')}
                             value={
@@ -276,6 +259,17 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             label={t('tool-panel.switch.layout.state-category')}
                             value={
                                 <LayoutStateCategoryLabel category={layoutSwitch.stateCategory} />
+                            }
+                        />
+                        <InfoboxField
+                            label={t('tool-panel.switch.layout.km-m')}
+                            value={
+                                (switchJointTrackMeters && (
+                                    <SwitchInfoboxTrackMeters
+                                        jointTrackMeters={switchJointTrackMeters}
+                                        presentationJoint={structure?.presentationJointNumber}
+                                    />
+                                )) || <Spinner />
                             }
                         />
                         <InfoboxButtons>
