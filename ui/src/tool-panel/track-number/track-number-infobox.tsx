@@ -206,14 +206,14 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         value={trackNumber.number}
                     />
                     <InfoboxField
-                        qaId="track-number-state"
-                        label={t('tool-panel.track-number.state')}
-                        value={<LayoutState state={trackNumber.state} />}
-                    />
-                    <InfoboxField
                         qaId="track-number-description"
                         label={t('tool-panel.track-number.description')}
                         value={trackNumber.description}
+                    />
+                    <InfoboxField
+                        qaId="track-number-state"
+                        label={t('tool-panel.track-number.state')}
+                        value={<LayoutState state={trackNumber.state} />}
                     />
                 </InfoboxContent>
             </Infobox>

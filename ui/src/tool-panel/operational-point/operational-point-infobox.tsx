@@ -91,10 +91,6 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 iconDisabled={layoutContext.publicationState === 'OFFICIAL'}>
                 <InfoboxContent>
                     <InfoboxField
-                        label={t('tool-panel.operational-point.source')}
-                        value={t(`enum.OperationalPointOrigin.${operationalPoint.origin}`)}
-                    />
-                    <InfoboxField
                         label={t('tool-panel.operational-point.identifier')}
                         value={
                             <OperationalPointOid
@@ -118,6 +114,10 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                     <InfoboxField
                         label={t('tool-panel.operational-point.state')}
                         value={<LayoutState state={operationalPoint.state} />}
+                    />
+                    <InfoboxField
+                        label={t('tool-panel.operational-point.source')}
+                        value={t(`enum.OperationalPointOrigin.${operationalPoint.origin}`)}
                     />
                     {isExternal && (
                         <InfoboxField
