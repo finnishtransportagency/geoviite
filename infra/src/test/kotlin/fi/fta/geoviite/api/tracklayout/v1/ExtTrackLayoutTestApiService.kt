@@ -58,7 +58,7 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
 
     val trackNumberKmsCollection =
         AssetCollectionApi<ExtTrackKmsCollectionResponseV1, Nothing>(
-            assetCollectionUrl = { "/geoviite/paikannuspohja/v1/ratakilometrit" },
+            assetCollectionUrl = { "/geoviite/paikannuspohja/v1/ratanumerot/ratakilometrit" },
             ExtTrackKmsCollectionResponseV1::class,
         )
 
