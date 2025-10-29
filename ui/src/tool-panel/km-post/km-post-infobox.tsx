@@ -7,12 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { formatToGkFinString, formatToTM35FINString, formatWithSrid } from 'utils/geography-utils';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import {
-    CoordinateSystem,
-    draftLayoutContext,
-    LayoutContext,
-    TimeStamp,
-} from 'common/common-model';
+import { CoordinateSystem, draftLayoutContext, LayoutContext, TimeStamp, } from 'common/common-model';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getKmPost, getKmPostInfoboxExtras } from 'track-layout/layout-km-post-api';
@@ -192,11 +187,6 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 iconDisabled={layoutContext.publicationState === 'OFFICIAL'}>
                 <InfoboxContent>
                     <InfoboxField
-                        qaId="km-post-km-number"
-                        label={t('tool-panel.km-post.layout.km-post')}
-                        value={updatedKmPost?.kmNumber}
-                    />
-                    <InfoboxField
                         label={t('tool-panel.km-post.layout.track-number')}
                         qaId="km-post-track-number"
                         value={
@@ -204,6 +194,11 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                 trackNumberId={updatedKmPost?.trackNumberId}
                             />
                         }
+                    />
+                    <InfoboxField
+                        qaId="km-post-km-number"
+                        label={t('tool-panel.km-post.layout.km-post')}
+                        value={updatedKmPost?.kmNumber}
                     />
                     <InfoboxField
                         label={t('tool-panel.km-post.layout.state')}

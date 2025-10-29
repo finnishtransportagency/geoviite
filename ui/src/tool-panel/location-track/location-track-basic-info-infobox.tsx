@@ -5,7 +5,6 @@ import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
-import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { LocationTrackInfoboxDuplicateOf } from 'tool-panel/location-track/location-track-infobox-duplicate-of';
 import TopologicalConnectivityLabel from 'tool-panel/location-track/topological-connectivity-label';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
@@ -147,14 +146,14 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
                     }
                 />
                 <InfoboxField
-                    qaId="location-track-name"
-                    label={t('tool-panel.location-track.track-name')}
-                    value={locationTrack.name}
-                />
-                <InfoboxField
                     qaId="location-track-track-number"
                     label={t('tool-panel.location-track.track-number')}
                     value={<TrackNumberLinkContainer trackNumberId={trackNumber?.id} />}
+                />
+                <InfoboxField
+                    qaId="location-track-name"
+                    label={t('tool-panel.location-track.track-name')}
+                    value={locationTrack.name}
                 />
                 <InfoboxField
                     qaId="location-track-description"
@@ -171,8 +170,6 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
                     label={t('tool-panel.location-track.type')}
                     value={<LocationTrackTypeLabel type={locationTrack.type} />}
                 />
-
-                <InfoboxText value={trackNumber?.description} />
                 {extraInfoLoadingStatus === LoaderStatus.Ready && (
                     <InfoboxField
                         label={
