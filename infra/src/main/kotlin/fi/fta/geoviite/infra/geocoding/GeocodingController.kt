@@ -50,11 +50,7 @@ class GeocodingController(
     ): ResponseEntity<List<ProjectionLine<ReferenceLineM>>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
         return toResponse(
-            geocodingService
-                .getGeocodingContext(layoutContext, trackNumberId)
-                ?.projectionLines
-                ?.getValue(Resolution.ONE_METER)
-                ?.value
+            geocodingService.getGeocodingContext(layoutContext, trackNumberId)?.getProjectionLines(Resolution.ONE_METER)
         )
     }
 
