@@ -572,7 +572,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         addressFilter: AddressFilter? = null,
     ): AlignmentAddresses<TargetM>? {
         return getStartAndEnd(alignment, addressFilter)?.let { (startPoint, endPoint) ->
-            val pointRange = (startPoint.first.address + minMeterLength)..(endPoint.first.address - minMeterLength)
+            val pointRange = Range(startPoint.first.address, endPoint.first.address)
             val midPoints = getMidPoints(alignment, pointRange, resolution)
             AlignmentAddresses(
                 startPoint = startPoint.first,
@@ -650,10 +650,10 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
                     // add some extra projection lines to make sure we don't go out of sync when the
                     // track and reference line loop in on themselves
                     getProjectionLinesForRange(
-                            (alignmentStartAddress + minMeterLength)..(alignmentEndAddress - minMeterLength),
+                            exclusiveRange = Range(alignmentStartAddress, alignmentEndAddress),
                             resolution,
                         )
-                        .filterIndexed { index, _ -> index % 10 == 0 },
+                        .filterIndexed { index, address -> index % 10 == 0 },
                 Comparator.comparing(ProjectionLine<M>::referenceLineM),
             ) { sortedLines ->
                 getProjectedAddressPoints(sortedLines, alignment).addressPoints
@@ -670,13 +670,13 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
 
     private fun <TargetM : AlignmentM<TargetM>> getMidPoints(
         alignment: IAlignment<TargetM>,
-        range: ClosedRange<TrackMeter>,
+        exclusiveRange: Range<TrackMeter>,
         resolution: Resolution = Resolution.ONE_METER,
     ): AddressPointWalkResult<TargetM> =
-        getProjectedAddressPoints(getProjectionLinesForRange(range, resolution), alignment)
+        getProjectedAddressPoints(getProjectionLinesForRange(exclusiveRange, resolution), alignment)
 
-    private fun getProjectionLinesForRange(range: ClosedRange<TrackMeter>, resolution: Resolution) =
-        getSublistForRangeInOrderedList(projectionLines.getValue(resolution).value, range) { p, e ->
+    private fun getProjectionLinesForRange(exclusiveRange: Range<TrackMeter>, resolution: Resolution) =
+        getSublistForRangeInOrderedListExclusive(projectionLines.getValue(resolution).value, exclusiveRange) { p, e ->
             p.address.compareTo(e)
         }
 
@@ -735,6 +735,19 @@ fun splitRange(range: ClosedRange<TrackMeter>, splits: List<ClosedRange<TrackMet
         if (range.start >= allowedRange.endInclusive || range.endInclusive <= allowedRange.start) null
         else maxOf(range.start, allowedRange.start)..minOf(range.endInclusive, allowedRange.endInclusive)
     }
+
+fun <T, R : Comparable<R>> getSublistForRangeInOrderedListExclusive(
+    things: List<T>,
+    range: Range<R>,
+    compare: (thing: T, rangeEnd: R) -> Int,
+): List<T> =
+    getIndexRangeForRangeInOrderedList(things, range.min, range.max, compare)?.let { indexRange ->
+        val exclusiveStart =
+            if (compare(things[indexRange.first], range.min) <= 0) indexRange.first + 1 else indexRange.first
+        val exclusiveEnd =
+            if (compare(things[indexRange.last], range.max) >= 0) indexRange.last else indexRange.last + 1
+        if (exclusiveStart >= exclusiveEnd) listOf() else things.subList(exclusiveStart, exclusiveEnd)
+    } ?: listOf()
 
 fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
     things: List<T>,
