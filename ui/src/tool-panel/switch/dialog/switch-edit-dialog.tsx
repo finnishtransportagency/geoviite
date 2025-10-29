@@ -440,7 +440,7 @@ export const SwitchEditDialog = ({
                         />
 
                         <FieldLayout
-                            label={`${t('switch-dialog.trap-point')}`}
+                            label={`${t('switch-dialog.trap-point')} *`}
                             value={
                                 <Dropdown
                                     value={trapPoint}
@@ -457,7 +457,7 @@ export const SwitchEditDialog = ({
                         </Heading>
 
                         <FieldLayout
-                            label={t('switch-dialog.owner')}
+                            label={`${t('switch-dialog.owner')} *`}
                             value={
                                 <Dropdown
                                     value={switchOwnerId}
