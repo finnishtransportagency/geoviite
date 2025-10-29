@@ -29,11 +29,7 @@ import {
     officialMainLayoutContext,
     PublicationState,
 } from 'common/common-model';
-import {
-    GeometryPlanLayout,
-    LocationTrackId,
-    SwitchSplitPoint,
-} from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LocationTrackId, SwitchSplitPoint, } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { first } from 'utils/array-utils';
 import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
@@ -749,13 +745,13 @@ const updateSelectedToolPanelTab = (
     currentlySelectedTab: ToolPanelAsset | undefined,
     selectedTabOverride?: ToolPanelAsset | undefined,
 ): ToolPanelAsset | undefined => {
-    if (
+    if (selectedTabOverride) {
+        return selectedTabOverride;
+    } else if (
         !currentlySelectedTab ||
         !toolPanelAssetExists(selection, linkingState, currentlySelectedTab)
     ) {
         return getFirstToolPanelAsset(selection, linkingState);
-    } else if (selectedTabOverride) {
-        return selectedTabOverride;
     } else {
         return currentlySelectedTab;
     }
