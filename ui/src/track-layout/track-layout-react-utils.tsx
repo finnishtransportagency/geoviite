@@ -388,12 +388,15 @@ export function refreshTrackNumberSelection(
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LayoutTrackNumberId) => void {
     return (id) => {
-        Promise.all([updateAllChangeTimes()]).then(([changeTimes]) => {
-            getTrackNumberById(id, layoutContext, changeTimes.layoutTrackNumber).then((tn) => {
-                if (tn) onSelect({ trackNumbers: [id] });
-                else onUnselect({ trackNumbers: [id] });
-            });
-        });
+        Promise.all([updateAllChangeTimes()])
+            .then(([changeTimes]) =>
+                getTrackNumberById(id, layoutContext, changeTimes.layoutTrackNumber),
+            )
+            .then((tn) =>
+                tn
+                    ? onSelect({ trackNumbers: [id], selectedTab: { id, type: 'TRACK_NUMBER' } })
+                    : onUnselect({ trackNumbers: [id] }),
+            );
     };
 }
 
@@ -403,12 +406,16 @@ export function refreshLocationTrackSelection(
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LocationTrackId) => void {
     return (id) => {
-        updateLocationTrackChangeTime().then((ts) => {
-            getLocationTrack(id, layoutContext, ts).then((lt) => {
-                if (lt) onSelect({ locationTracks: [id] });
-                else onUnselect({ locationTracks: [id] });
-            });
-        });
+        updateLocationTrackChangeTime()
+            .then((ts) => getLocationTrack(id, layoutContext, ts))
+            .then((lt) =>
+                lt
+                    ? onSelect({
+                          locationTracks: [id],
+                          selectedTab: { id, type: 'LOCATION_TRACK' },
+                      })
+                    : onUnselect({ locationTracks: [id] }),
+            );
     };
 }
 
@@ -418,27 +425,29 @@ export function refreshSwitchSelection(
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LayoutSwitchId) => void {
     return (id) => {
-        updateSwitchChangeTime().then((ts) => {
-            getSwitch(id, layoutContext, ts).then((s) => {
-                if (s) onSelect({ switches: [id] });
-                else onUnselect({ switches: [id] });
-            });
-        });
+        updateSwitchChangeTime()
+            .then((ts) => getSwitch(id, layoutContext, ts))
+            .then((layoutSwitch) =>
+                layoutSwitch
+                    ? onSelect({ switches: [id], selectedTab: { id, type: 'SWITCH' } })
+                    : onUnselect({ switches: [id] }),
+            );
     };
 }
 
-export function refereshKmPostSelection(
+export function refreshKmPostSelection(
     layoutContext: LayoutContext,
     onSelect: OnSelectFunction,
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LayoutKmPostId) => void {
     return (id) => {
-        updateKmPostChangeTime().then((ts) => {
-            getKmPost(id, layoutContext, ts).then((kmp) => {
-                if (kmp) onSelect({ kmPosts: [id] });
-                else onUnselect({ kmPosts: [id] });
-            });
-        });
+        updateKmPostChangeTime()
+            .then((ts) => getKmPost(id, layoutContext, ts))
+            .then((kmp) =>
+                kmp
+                    ? onSelect({ kmPosts: [id], selectedTab: { id, type: 'KM_POST' } })
+                    : onUnselect({ kmPosts: [id] }),
+            );
     };
 }
 
@@ -448,12 +457,16 @@ export function refreshOperationalPointSelection(
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: OperationalPointId) => void {
     return (id) => {
-        updateOperationalPointsChangeTime().then((ts) => {
-            getOperationalPoint(id, layoutContext, ts).then((point) => {
-                if (point) onSelect({ operationalPoints: [id] });
-                else onUnselect({ operationalPoints: [id] });
-            });
-        });
+        updateOperationalPointsChangeTime()
+            .then((ts) => getOperationalPoint(id, layoutContext, ts))
+            .then((operationalPoint) =>
+                operationalPoint
+                    ? onSelect({
+                          operationalPoints: [id],
+                          selectedTab: { id, type: 'OPERATIONAL_POINT' },
+                      })
+                    : onUnselect({ operationalPoints: [id] }),
+            );
     };
 }
 

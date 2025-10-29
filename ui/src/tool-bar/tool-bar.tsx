@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
+import { error } from 'geoviite-design-lib/snackbar/snackbar';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import {
     Button,
@@ -25,7 +26,7 @@ import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-mo
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
-    refereshKmPostSelection,
+    refreshKmPostSelection,
     refreshLocationTrackSelection,
     refreshOperationalPointSelection,
     refreshSwitchSelection,
@@ -60,7 +61,6 @@ import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
-import { error } from 'geoviite-design-lib/snackbar/snackbar';
 import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/operational-point-edit-dialog-container';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
@@ -310,7 +310,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         onUnselect,
     );
     const handleSwitchSave = refreshSwitchSelection(layoutContextDraft, onSelect, onUnselect);
-    const handleKmPostSave = refereshKmPostSelection(layoutContextDraft, onSelect, onUnselect);
+    const handleKmPostSave = refreshKmPostSelection(layoutContextDraft, onSelect, onUnselect);
     const handleOperationalPointSave = refreshOperationalPointSelection(
         layoutContextDraft,
         onSelect,

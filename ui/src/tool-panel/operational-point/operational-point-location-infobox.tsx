@@ -9,7 +9,10 @@ import { LinkingType } from 'linking/linking-model';
 import Infobox from 'tool-panel/infobox/infobox';
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
-import { OperationalPointInfoboxVisibilities, TrackLayoutState, } from 'track-layout/track-layout-slice';
+import {
+    OperationalPointInfoboxVisibilities,
+    TrackLayoutState,
+} from 'track-layout/track-layout-slice';
 import { updateInternalOperationalPointLocation } from 'track-layout/layout-operational-point-api';
 import * as SnackBar from 'geoviite-design-lib/snackbar/snackbar';
 import infoboxStyles from 'tool-panel/infobox/infobox.module.scss';

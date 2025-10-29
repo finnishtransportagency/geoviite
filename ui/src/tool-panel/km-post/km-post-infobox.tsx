@@ -19,7 +19,7 @@ import {
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
 import {
-    refereshKmPostSelection,
+    refreshKmPostSelection,
     useCoordinateSystem,
     useKmPostChangeTimes,
 } from 'track-layout/track-layout-react-utils';
@@ -145,7 +145,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
 
-    const handleKmPostSave = refereshKmPostSelection(
+    const handleKmPostSave = refreshKmPostSelection(
         draftLayoutContext(layoutContext),
         onSelect,
         onUnselect,
