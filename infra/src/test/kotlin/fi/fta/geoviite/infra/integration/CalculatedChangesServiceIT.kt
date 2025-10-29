@@ -803,7 +803,7 @@ constructor(
         val (referenceLine, _) = testData.referenceLineAndAlignment
         referenceLineService.saveDraft(
             LayoutBranch.main,
-            referenceLine.copy(startAddress = TrackMeter(0, 500).round(3)),
+            referenceLine.copy(startAddress = TrackMeter("0000+0500.000")),
         )
 
         val changes = getCalculatedChanges(referenceLineIds = listOf(referenceLine.id as IntId))

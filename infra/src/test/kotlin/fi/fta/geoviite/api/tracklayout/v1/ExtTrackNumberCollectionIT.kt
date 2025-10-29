@@ -17,7 +17,6 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.segment
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -353,9 +352,7 @@ constructor(
 
         initUser()
         mainDraftContext.save(
-            mainOfficialContext
-                .fetch(referenceLineId1)!!
-                .copy(startAddress = TrackMeter(KmNumber(1), BigDecimal.TEN).round(3)),
+            mainOfficialContext.fetch(referenceLineId1)!!.copy(startAddress = TrackMeter("0001+0010.000")),
             alignment(segment),
         )
         val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(referenceLineId1))

@@ -43,7 +43,7 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
         assertEquals(DataType.STORED, fromDb.dataType)
         assertMatches(referenceLine, fromDb, contextMatch = false)
 
-        val updatedLine = fromDb.copy(startAddress = TrackMeter(KmNumber(12), 321).round(3))
+        val updatedLine = fromDb.copy(startAddress = TrackMeter("0012+0321.000"))
         val updatedVersion = referenceLineDao.save(updatedLine)
         val updatedId = updatedVersion.id
         assertEquals(id, updatedId)
@@ -75,7 +75,7 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
         assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
-        val tempDraft1 = asMainDraft(inserted).copy(startAddress = TrackMeter(2, 4).round(3))
+        val tempDraft1 = asMainDraft(inserted).copy(startAddress = TrackMeter("0002+0004.000"))
         val draftVersion1 = referenceLineDao.save(tempDraft1)
         val draft1 = referenceLineDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)

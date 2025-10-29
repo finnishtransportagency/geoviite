@@ -27,7 +27,6 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
@@ -315,7 +314,7 @@ constructor(
         api.trackNumbers.assertNoModificationSince(tnOid, basePublication.uuid)
 
         initUser()
-        val newStart = TrackMeter(KmNumber(1), BigDecimal.TEN).round(3)
+        val newStart = TrackMeter("0001+0010.000")
         mainDraftContext.save(mainOfficialContext.fetch(rlId)!!.copy(startAddress = newStart), rlGeom)
         val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(rlId))
         assertAddressRange(getExtTrackNumber(tnOid), "0001+0010.000", "0001+0020.000")

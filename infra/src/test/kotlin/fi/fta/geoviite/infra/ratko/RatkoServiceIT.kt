@@ -116,6 +116,10 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.queryOne
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -124,10 +128,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -255,7 +255,7 @@ constructor(
                 newTrackNumber,
                 TrackNumberDescription("aoeu"),
                 LayoutState.IN_USE,
-                TrackMeter(KmNumber(123), 0).round(3),
+                TrackMeter("0123+0000.000"),
             ),
         )
         publishAndPush(trackNumbers = listOf(originalTrackNumber.id))
@@ -275,7 +275,7 @@ constructor(
                 trackNumber.trackNumberObject.number,
                 TrackNumberDescription("augh"),
                 LayoutState.DELETED,
-                TrackMeter(KmNumber(123), 0).round(3),
+                TrackMeter("0123+0000.000"),
             ),
         )
         publishAndPush(trackNumbers = listOf(trackNumber.id))

@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -70,7 +69,7 @@ constructor(
         val changeTimeAfterInsert = referenceLineService.getChangeTime()
         val referenceLineId = referenceLine?.id as IntId
 
-        val address = TrackMeter(KmNumber(2), 200).round(3)
+        val address = TrackMeter("0002+0200.000")
         val updateResponse =
             referenceLineService.updateTrackNumberReferenceLine(LayoutBranch.main, trackNumberId, address)
         assertEquals(referenceLineId, updateResponse?.id)
@@ -97,13 +96,13 @@ constructor(
             referenceLineService.updateTrackNumberReferenceLine(
                 LayoutBranch.main,
                 trackNumberId,
-                TrackMeter(3, 5).round(3),
+                TrackMeter("0003+0005.000"),
             )
         assertEquals(publishResponse.id, editResponse?.id)
         assertNotEquals(publishResponse.rowId, editResponse?.rowId)
 
         val editedDraft = getAndVerifyDraft(publishResponse.id)
-        assertEquals(TrackMeter(3, 5).round(3), editedDraft.startAddress)
+        assertEquals(TrackMeter("0003+0005.000"), editedDraft.startAddress)
         // Creating a draft should duplicate the alignment
         assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
@@ -111,13 +110,13 @@ constructor(
             referenceLineService.updateTrackNumberReferenceLine(
                 LayoutBranch.main,
                 trackNumberId,
-                TrackMeter(8, 9).round(3),
+                TrackMeter("0008+0009.000"),
             )
         assertEquals(publishResponse.id, editResponse2?.id)
         assertNotEquals(publishResponse.rowId, editResponse2?.rowId)
 
         val editedDraft2 = referenceLineService.get(MainLayoutContext.draft, publishResponse.id)!!
-        assertEquals(TrackMeter(8, 9).round(3), editedDraft2.startAddress)
+        assertEquals(TrackMeter("0008+0009.000"), editedDraft2.startAddress)
         assertNotEquals(published.alignmentVersion.id, editedDraft2.alignmentVersion!!.id)
         // Second edit to same draft should not duplicate alignment again
         assertEquals(editedDraft.alignmentVersion.id, editedDraft2.alignmentVersion.id)
@@ -132,25 +131,28 @@ constructor(
         val (publishResponse, published) = publishAndVerify(trackNumberId, referenceLineId)
 
         val editedVersion =
-            referenceLineService.saveDraft(LayoutBranch.main, published.copy(startAddress = TrackMeter(1, 1).round(3)))
+            referenceLineService.saveDraft(
+                LayoutBranch.main,
+                published.copy(startAddress = TrackMeter("0001+0001.000")),
+            )
         assertEquals(publishResponse.id, editedVersion.id)
         assertNotEquals(publishResponse.rowId, editedVersion.rowId)
 
         val editedDraft = getAndVerifyDraft(publishResponse.id)
-        assertEquals(TrackMeter(1, 1).round(3), editedDraft.startAddress)
+        assertEquals(TrackMeter("0001+0001.000"), editedDraft.startAddress)
         // Creating a draft should duplicate the alignment
         assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
         val editedVersion2 =
             referenceLineService.saveDraft(
                 LayoutBranch.main,
-                editedDraft.copy(startAddress = TrackMeter(2, 2).round(3)),
+                editedDraft.copy(startAddress = TrackMeter("0001+0001.000")),
             )
         assertEquals(publishResponse.id, editedVersion2.id)
         assertNotEquals(publishResponse.rowId, editedVersion2.rowId)
 
         val editedDraft2 = getAndVerifyDraft(publishResponse.id)
-        assertEquals(TrackMeter(2, 2).round(3), editedDraft2.startAddress)
+        assertEquals(TrackMeter("0001+0001.000"), editedDraft2.startAddress)
         assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
         // Second edit to same draft should not duplicate alignment again
         assertEquals(editedDraft.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)

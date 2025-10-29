@@ -79,6 +79,8 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
+import java.math.BigDecimal
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -94,8 +96,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
-import java.math.BigDecimal
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -348,7 +348,7 @@ constructor(
         val (tmpLine, tmpAlignment) = referenceLineService.getWithAlignmentOrThrow(MainLayoutContext.draft, officialId)
         referenceLineService.saveDraft(
             LayoutBranch.main,
-            tmpLine.copy(startAddress = TrackMeter(2, 20).round(3)),
+            tmpLine.copy(startAddress = TrackMeter("0002+0020.000")),
             tmpAlignment.copy(
                 segments = listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
             ),
@@ -599,7 +599,7 @@ constructor(
             referenceLineDao,
             referenceLineService,
             { referenceLine(tnId, draft = true) },
-            { orig -> asMainDraft(orig.copy(startAddress = TrackMeter(12, 34).round(3))) },
+            { orig -> asMainDraft(orig.copy(startAddress = TrackMeter("0012+0034.000"))) },
         )
     }
 
