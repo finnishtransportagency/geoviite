@@ -22,7 +22,7 @@ import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-fi
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
-    refereshKmPostSelection,
+    refreshKmPostSelection,
     usePlanHeader,
     useTrackNumbers,
 } from 'track-layout/track-layout-react-utils';
@@ -189,7 +189,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
         }
     }
 
-    const handleKmPostSave = refereshKmPostSelection(
+    const handleKmPostSave = refreshKmPostSelection(
         draftLayoutContext(layoutContext),
         onSelect,
         onUnselect,
