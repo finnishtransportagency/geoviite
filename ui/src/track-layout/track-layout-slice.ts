@@ -29,11 +29,7 @@ import {
     officialMainLayoutContext,
     PublicationState,
 } from 'common/common-model';
-import {
-    GeometryPlanLayout,
-    LocationTrackId,
-    SwitchSplitPoint,
-} from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LocationTrackId, SwitchSplitPoint, } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { first } from 'utils/array-utils';
 import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
@@ -688,8 +684,9 @@ export const toolPanelAssetExists = (
     }
 };
 
-export const TOOL_PANEL_ASSET_ORDER: ToolPanelAssetType[] = [
+export const TOOL_PANEL_ASSET_ORDER = [
     'GEOMETRY_KM_POST',
+    'OPERATIONAL_POINT',
     'KM_POST',
     'SUGGESTED_SWITCH',
     'GEOMETRY_SWITCH',
@@ -698,7 +695,7 @@ export const TOOL_PANEL_ASSET_ORDER: ToolPanelAssetType[] = [
     'LOCATION_TRACK',
     'TRACK_NUMBER',
     'GEOMETRY_PLAN',
-];
+] as const;
 
 export const getFirstOfTypeInSelection = (
     selection: Selection,
@@ -717,7 +714,7 @@ export const getFirstOfTypeInSelection = (
         KM_POST: () => first(selectedItems.kmPosts),
         GEOMETRY_KM_POST: () => first(selectedItems.geometryKmPostIds)?.geometryId,
         SWITCH: () => first(selectedItems.switches),
-        OPERATIONAL_POINT: () => undefined,
+        OPERATIONAL_POINT: () => first(selectedItems.operationalPoints),
         SUGGESTED_SWITCH: () =>
             switchLinkingActive ? SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID : undefined,
         GEOMETRY_SWITCH: () => first(selectedItems.switches),

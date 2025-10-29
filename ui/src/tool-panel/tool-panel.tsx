@@ -76,17 +76,8 @@ type ToolPanelProps = {
     onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
 };
 
-export type ToolPanelAssetType =
-    | 'LOCATION_TRACK'
-    | 'SWITCH'
-    | 'KM_POST'
-    | 'TRACK_NUMBER'
-    | 'GEOMETRY_ALIGNMENT'
-    | 'GEOMETRY_PLAN'
-    | 'GEOMETRY_KM_POST'
-    | 'GEOMETRY_SWITCH'
-    | 'SUGGESTED_SWITCH'
-    | 'OPERATIONAL_POINT';
+export type ToolPanelAssetType = (typeof TOOL_PANEL_ASSET_ORDER)[number];
+
 export type ToolPanelAsset = {
     id: string;
     type: ToolPanelAssetType;
@@ -483,6 +474,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         switches,
         geometrySwitchIds,
         locationTracks,
+        operationalPoints,
         geometryAlignmentIds,
         linkingState,
         splittingState,
