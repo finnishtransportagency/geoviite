@@ -9,13 +9,12 @@ import { LinkingType } from 'linking/linking-model';
 import Infobox from 'tool-panel/infobox/infobox';
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
-import {
-    OperationalPointInfoboxVisibilities,
-    TrackLayoutState,
-} from 'track-layout/track-layout-slice';
+import { OperationalPointInfoboxVisibilities, TrackLayoutState, } from 'track-layout/track-layout-slice';
 import { updateInternalOperationalPointLocation } from 'track-layout/layout-operational-point-api';
 import * as SnackBar from 'geoviite-design-lib/snackbar/snackbar';
 import infoboxStyles from 'tool-panel/infobox/infobox.module.scss';
+import { EDIT_LAYOUT } from 'user/user-model';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 type OperationalPointLocationInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -87,67 +86,69 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
                         {t('tool-panel.operational-point.focus-on-map')}
                     </Button>
                 </InfoboxButtons>
-                {!layoutState.linkingState && (
+                <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                    {!layoutState.linkingState && (
+                        <InfoboxButtons>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                size={ButtonSize.SMALL}
+                                disabled={
+                                    layoutContext.publicationState === 'OFFICIAL' ||
+                                    !!layoutState.linkingState ||
+                                    isExternal
+                                }
+                                onClick={onStartPlacingLocation}
+                                title={
+                                    isExternal
+                                        ? t(
+                                              'tool-panel.operational-point.cannot-set-location-for-external',
+                                          )
+                                        : undefined
+                                }>
+                                {t('tool-panel.operational-point.set-location')}
+                            </Button>
+                        </InfoboxButtons>
+                    )}
+                    {layoutState.linkingState &&
+                        layoutState.linkingState.type === LinkingType.PlacingOperationalPoint && (
+                            <React.Fragment>
+                                <p className={infoboxStyles['infobox__guide-text']}>
+                                    {t('tool-panel.operational-point.set-location-help')}
+                                </p>
+                                <InfoboxButtons>
+                                    <Button
+                                        variant={ButtonVariant.SECONDARY}
+                                        size={ButtonSize.SMALL}
+                                        disabled={locationUpdateInProgress}
+                                        onClick={onStopPlacingLocation}>
+                                        {t('button.cancel')}
+                                    </Button>
+                                    <Button
+                                        variant={ButtonVariant.PRIMARY}
+                                        size={ButtonSize.SMALL}
+                                        disabled={
+                                            !layoutState.linkingState.location ||
+                                            locationUpdateInProgress
+                                        }
+                                        isProcessing={locationUpdateInProgress}
+                                        onClick={saveLocation}>
+                                        {t('button.save')}
+                                    </Button>
+                                </InfoboxButtons>
+                            </React.Fragment>
+                        )}
                     <InfoboxButtons>
                         <Button
                             variant={ButtonVariant.SECONDARY}
                             size={ButtonSize.SMALL}
                             disabled={
                                 layoutContext.publicationState === 'OFFICIAL' ||
-                                !!layoutState.linkingState ||
-                                isExternal
-                            }
-                            onClick={onStartPlacingLocation}
-                            title={
-                                isExternal
-                                    ? t(
-                                          'tool-panel.operational-point.cannot-set-location-for-external',
-                                      )
-                                    : undefined
+                                !!layoutState.linkingState
                             }>
-                            {t('tool-panel.operational-point.set-location')}
+                            {t('tool-panel.operational-point.set-area')}
                         </Button>
                     </InfoboxButtons>
-                )}
-                {layoutState.linkingState &&
-                    layoutState.linkingState.type === LinkingType.PlacingOperationalPoint && (
-                        <React.Fragment>
-                            <p className={infoboxStyles['infobox__guide-text']}>
-                                {t('tool-panel.operational-point.set-location-help')}
-                            </p>
-                            <InfoboxButtons>
-                                <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    size={ButtonSize.SMALL}
-                                    disabled={locationUpdateInProgress}
-                                    onClick={onStopPlacingLocation}>
-                                    {t('button.cancel')}
-                                </Button>
-                                <Button
-                                    variant={ButtonVariant.PRIMARY}
-                                    size={ButtonSize.SMALL}
-                                    disabled={
-                                        !layoutState.linkingState.location ||
-                                        locationUpdateInProgress
-                                    }
-                                    isProcessing={locationUpdateInProgress}
-                                    onClick={saveLocation}>
-                                    {t('button.save')}
-                                </Button>
-                            </InfoboxButtons>
-                        </React.Fragment>
-                    )}
-                <InfoboxButtons>
-                    <Button
-                        variant={ButtonVariant.SECONDARY}
-                        size={ButtonSize.SMALL}
-                        disabled={
-                            layoutContext.publicationState === 'OFFICIAL' ||
-                            !!layoutState.linkingState
-                        }>
-                        {t('tool-panel.operational-point.set-area')}
-                    </Button>
-                </InfoboxButtons>
+                </PrivilegeRequired>
             </InfoboxContent>
         </Infobox>
     );
