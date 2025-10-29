@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.RequestParam
         "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1",
     ]
 )
-class ExtKmPostControllerV1
+class ExtTrackNumberKmControllerV1
 @Autowired
 constructor(
     private val extKmPostService: ExtTrackNumberKmServiceV1,
