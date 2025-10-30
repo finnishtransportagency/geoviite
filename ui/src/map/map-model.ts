@@ -47,6 +47,7 @@ export type MapLayerName =
     | 'plan-area-layer'
     | 'operational-points-layer'
     | 'operational-points-placing-layer'
+    | 'operational-points-area-placing-layer'
     | 'debug-1m-points-layer'
     | 'debug-projection-lines-layer'
     | 'debug-layer'

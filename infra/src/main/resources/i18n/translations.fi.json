@@ -964,6 +964,8 @@
             "focus-on-map": "Kohdista kartalla",
             "set-location": "Aseta sijainti kartalla",
             "set-location-help": "Klikkaa toiminnallisen pisteen sijainti kartalle",
+            "insert-area-help": "Piirrä toiminnnallisen pisteen alue kartalle",
+            "update-area-help": "Muokkaa toiminnallisen pisteen aluetta kartalla",
             "location-update-succeeded": "Toiminnallisen pisteen sijainti päivitetty onnistuneesti",
             "set-area": "Aseta alue kartalla",
             "created": "Luotu",

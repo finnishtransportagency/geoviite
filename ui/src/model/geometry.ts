@@ -33,6 +33,11 @@ export type BoundingBox = {
 
 export type Rectangle = Polygon;
 
+export type GvtPolygon = {
+    points: Point[];
+    bouundingBox?: BoundingBox;
+};
+
 export function coordsToPoint(coords: Coordinate): Point {
     const [x, y] = expectCoordinate(coords);
     return {

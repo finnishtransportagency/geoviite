@@ -137,6 +137,7 @@ export const initialMapState: Map = {
         'location-track-split-alignment-layer',
         'reference-line-selected-alignment-layer',
         'operational-points-layer',
+        //'operational-points-area-placing-layer',
     ],
     layerMenu: {
         layout: [

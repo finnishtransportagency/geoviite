@@ -31,6 +31,7 @@ import { angleDiffRads, directionBetweenPoints } from 'utils/math-utils';
 import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 import { draftLayoutContext, LayoutContext, LayoutContextMode } from 'common/common-model';
 import { brand } from 'common/brand';
+import { GvtPolygon } from 'model/geometry';
 
 export const linkingReducers = {
     startAlignmentLinking: (
@@ -271,6 +272,29 @@ export const linkingReducers = {
     stopPlacingOperationalPoint: (state: TrackLayoutState): void => {
         state.linkingState = undefined;
     },
+    startPlacingOperationalPointArea: (
+        state: TrackLayoutState,
+        { payload }: PayloadAction<OperationalPoint>,
+    ): void => {
+        state.linkingState = {
+            type: LinkingType.PlacingOperationalPointArea,
+            state: 'setup',
+            operationalPoint: payload,
+            polygon: payload.polygon,
+            issues: [],
+        };
+    },
+    stopPlacingOperationalPointArea: (state: TrackLayoutState): void => {
+        state.linkingState = undefined;
+    },
+    setOperationalPointArea: (
+        state: TrackLayoutState,
+        { payload }: PayloadAction<GvtPolygon>,
+    ): void => {
+        if (state.linkingState?.type === LinkingType.PlacingOperationalPointArea) {
+            state.linkingState.polygon = payload;
+        }
+    },
     selectOnlyLayoutSwitchForGeometrySwitchLinking: (
         state: TrackLayoutState,
         {
@@ -383,6 +407,7 @@ function validateLinkingState(state: LinkingState): LinkingState {
         case LinkingType.UnknownAlignment:
         case LinkingType.LinkingLayoutSwitch:
         case LinkingType.PlacingOperationalPoint:
+        case LinkingType.PlacingOperationalPointArea:
             return state;
         default:
             return exhaustiveMatchingGuard(state);

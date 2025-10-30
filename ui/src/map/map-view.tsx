@@ -6,7 +6,7 @@ import {
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
-import { defaults as defaultInteractions } from 'ol/interaction';
+import { defaults as defaultInteractions, Draw, Modify } from 'ol/interaction';
 import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
@@ -30,7 +30,7 @@ import {
     LinkingState,
     LinkingSwitch,
     LinkPoint,
-    PlacingOperationalPoint,
+    PlacingOperationalPointArea,
 } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
@@ -73,7 +73,7 @@ import { createDuplicateTracksHighlightLayer } from 'map/layers/highlight/duplic
 import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
 import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/track-number-end-point-addresses-layer';
-import { Point, Rectangle } from 'model/geometry';
+import { GvtPolygon, Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -98,7 +98,18 @@ import { createDebugGeometryGraphLayer } from 'map/layers/debug/debug-geometry-g
 import { PlanDownloadState } from 'map/plan-download/plan-download-store';
 import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
 import { createDebugProjectionLinesLayer } from 'map/layers/debug/debug-projection-lines-layer';
-import { createOperationalPointsPlacingLayer } from 'map/layers/operational-point/operational-points-placing-layer';
+import {
+    coordsToPolygon,
+    createOperationalPointsAreaPlacingLayer,
+    getCoords,
+    operationalPointAreaPolygonStyle,
+} from 'map/layers/operational-point/operational-points-area-placing-layer';
+import Feature from 'ol/Feature';
+import { doubleClick } from 'ol/events/condition';
+import Style from 'ol/style/Style';
+import CircleStyle from 'ol/style/Circle';
+import Fill from 'ol/style/Fill';
+import Collection from 'ol/Collection';
 
 declare global {
     interface Window {
@@ -126,6 +137,7 @@ export type MapViewProps = {
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
     onClosePlanDownloadPopup: () => void;
+    onSetOperationalPointPolygon: (polygon: GvtPolygon) => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
@@ -250,6 +262,7 @@ const MapView: React.FC<MapViewProps> = ({
     onClosePlanDownloadPopup,
     onClickLocation,
     onMapLayerChange,
+    onSetOperationalPointPolygon,
     mapLayerMenuGroups,
     visibleLayerNames,
     publicationCandidates,
@@ -272,6 +285,10 @@ const MapView: React.FC<MapViewProps> = ({
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
     const { isLoading, onLayerLoading } = useIsLoadingMapLayers(map.visibleLayers);
     const mapLayers = [...map.visibleLayers].sort().join();
+    const [drawInteraction, setDrawInteraction] = React.useState<Draw>();
+    const [modifyInteraction, setModifyInteraction] = React.useState<Modify>();
+    const [modifyFeatureCollection, setModifyFeatureCollection] =
+        React.useState<Collection<Feature>>();
 
     const handleClusterPointClick = (clickType: ClickType) => {
         const clusterPoint = first(selection.selectedItems.clusterPoints);
@@ -319,6 +336,61 @@ const MapView: React.FC<MapViewProps> = ({
                 new DragPan({ condition: (event) => event.originalEvent.which === 2 }),
             );
 
+            const draw = new Draw({
+                type: 'Polygon',
+                style: operationalPointAreaPolygonStyle(true),
+            });
+            setDrawInteraction(draw);
+
+            interactions.push(draw);
+            draw.on('drawend', function (event) {
+                const feature = event.feature as Feature<Polygon>;
+                if (!feature) {
+                    return;
+                }
+
+                const coords = getCoords(feature);
+                onSetOperationalPointPolygon(coordsToPolygon(coords));
+            });
+
+            draw.setActive(
+                linkingState?.type === 'PlacingOperationalPointArea' && !linkingState.polygon,
+            );
+
+            const fetaures: Collection<Feature> = new Collection();
+            setModifyFeatureCollection(fetaures);
+
+            const modify = new Modify({
+                deleteCondition: doubleClick,
+                style: new Style({
+                    image: new CircleStyle({
+                        radius: 5,
+                        fill: new Fill({
+                            color: '#009BFF',
+                        }),
+                    }),
+                }),
+                features: fetaures,
+            });
+            setModifyInteraction(modify);
+
+            interactions.push(modify);
+            modify.on('modifyend', (event) => {
+                const feature = event.features.item(0) as Feature<Polygon>;
+                if (!feature) {
+                    return;
+                }
+
+                onSetOperationalPointPolygon(coordsToPolygon(getCoords(feature)));
+            });
+            console.log(
+                'blacktivateeros',
+                linkingState?.type === 'PlacingOperationalPointArea' && !!linkingState.polygon,
+            );
+            modify.setActive(
+                linkingState?.type === 'PlacingOperationalPointArea' && !!linkingState.polygon,
+            );
+
             // use in the browser window.map.getPixelFromCoordinate([x,y])
             window.map = new OlMap({
                 controls: controls,
@@ -330,6 +402,30 @@ const MapView: React.FC<MapViewProps> = ({
             setOlMap(window.map);
         }
     }, []);
+
+    React.useEffect(() => {
+        if (linkingState?.type === 'PlacingOperationalPointArea') {
+            const hasPolygon = !!linkingState.polygon;
+            drawInteraction?.setActive(!hasPolygon);
+            modifyInteraction?.setActive(hasPolygon);
+            console.log('activateeros', hasPolygon);
+            if (linkingState.polygon) {
+                modifyFeatureCollection?.clear();
+                const coords = linkingState.polygon.points.map(pointToCoords);
+
+                const feature = new Feature({
+                    geometry: new Polygon([coords]),
+                });
+                feature.setStyle(operationalPointAreaPolygonStyle(false));
+                modifyFeatureCollection?.push(feature);
+            } else {
+                modifyFeatureCollection?.clear();
+            }
+        } else {
+            drawInteraction?.setActive(false);
+            modifyInteraction?.setActive(false);
+        }
+    }, [linkingState]);
 
     // Track map view port changes
     React.useEffect(() => {
@@ -714,10 +810,11 @@ const MapView: React.FC<MapViewProps> = ({
                             layoutContext,
                             changeTimes,
                         );
-                    case 'operational-points-placing-layer':
-                        return createOperationalPointsPlacingLayer(
-                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
-                            linkingState as PlacingOperationalPoint | undefined,
+                    case 'operational-points-area-placing-layer':
+                        return createOperationalPointsAreaPlacingLayer(
+                            existingOlLayer as GeoviiteMapLayer<Polygon>,
+                            linkingState as PlacingOperationalPointArea | undefined,
+                            layoutContext,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'debug-1m-points-layer':
@@ -751,6 +848,7 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'virtual-km-post-linking-layer': // Virtual map layers
                     case 'virtual-hide-geometry-layer':
+                    case 'operational-points-placing-layer':
                         return undefined;
                     default:
                         return exhaustiveMatchingGuard(layerName);

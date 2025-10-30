@@ -22,6 +22,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { RevertRequestType } from 'preview/preview-view-revert-request';
 import { ChangesBeingReverted } from 'preview/preview-view';
+import styles from './publication-request-dependency-list.scss';
 
 const TrackNumberItem: React.FC<{
     layoutContext: LayoutContext;
@@ -30,8 +31,8 @@ const TrackNumberItem: React.FC<{
 }> = (props) => {
     const { t } = useTranslation();
     return (
-        <li>
-            {t('publish.revert-confirm.dependency-list.track-number')}{' '}
+        <li className={styles['dependency-list-item']}>
+            {`${t('publish.revert-confirm.dependency-list.track-number')} `}
             {props.trackNumber.number ?? (
                 <LookupTrackNumberItem
                     layoutContext={props.layoutContext}
@@ -60,8 +61,8 @@ const ReferenceLineItem: React.FC<{
 }> = (props) => {
     const { t } = useTranslation();
     return (
-        <li>
-            {t('publish.revert-confirm.dependency-list.reference-line')}{' '}
+        <li className={styles['dependency-list-item']}>
+            {`${t('publish.revert-confirm.dependency-list.reference-line')} `}
             {props.referenceLine.name ?? (
                 <LookupReferenceLineItem
                     layoutContext={props.layoutContext}
@@ -101,8 +102,8 @@ const LocationTrackItem: React.FC<{
 }> = (props) => {
     const { t } = useTranslation();
     return (
-        <li>
-            {t('publish.revert-confirm.dependency-list.location-track')}{' '}
+        <li className={styles['dependency-list-item']}>
+            {`${t('publish.revert-confirm.dependency-list.location-track')} `}
             {props.locationTrack.name ?? (
                 <LookupLocationTrackItem
                     layoutContext={props.layoutContext}
@@ -130,8 +131,8 @@ const SwitchItem: React.FC<{
 }> = ({ layoutContext, switchCandidate }) => {
     const { t } = useTranslation();
     return (
-        <li>
-            {t('publish.revert-confirm.dependency-list.switch')}{' '}
+        <li className={styles['dependency-list-item']}>
+            {`${t('publish.revert-confirm.dependency-list.switch')} `}
             {switchCandidate.name ?? (
                 <LookupSwitchItem layoutContext={layoutContext} switchId={switchCandidate.id} />
             )}
@@ -150,8 +151,8 @@ const KmPostItem: React.FC<{
 }> = ({ layoutContext, kmPost }) => {
     const { t } = useTranslation();
     return (
-        <li>
-            {t('publish.revert-confirm.dependency-list.km-post')}{' '}
+        <li className={styles['dependency-list-item']}>
+            {`${t('publish.revert-confirm.dependency-list.km-post')} `}
             {kmPost.kmNumber ?? (
                 <LookupKmPostItem layoutContext={layoutContext} kmPostId={kmPost.id} />
             )}
@@ -170,7 +171,7 @@ const OperationalPointItem: React.FC<{
 }> = ({ layoutContext, operationalPoint }) => {
     const { t } = useTranslation();
     return (
-        <li>
+        <li className={styles['dependency-list-item']}>
             {t('publish.revert-confirm.dependency-list.operational-point')}{' '}
             {operationalPoint.name ?? (
                 <LookupOperationalPointItem
@@ -292,7 +293,7 @@ const getPublicationCandidateComponent = (
                     key={candidateComponentKey}
                 />
             );
-            
+
         case DraftChangeType.OPERATIONAL_POINT:
             return (
                 <OperationalPointItem

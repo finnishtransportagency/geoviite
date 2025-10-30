@@ -35,6 +35,8 @@ type OperationalPointInfoboxProps = {
     onShowOnMap: () => void;
     onStartPlacingLocation: () => void;
     onStopPlacingLocation: () => void;
+    onStartPlacingArea: () => void;
+    onStopPlacingArea: () => void;
 };
 
 export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = ({
@@ -50,6 +52,8 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     onShowOnMap,
     onStartPlacingLocation,
     onStopPlacingLocation,
+    onStartPlacingArea,
+    onStopPlacingArea,
 }) => {
     const { t } = useTranslation();
     const visibilityChange = (key: keyof OperationalPointInfoboxVisibilities) => {
@@ -150,6 +154,8 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 onShowOnMap={onShowOnMap}
                 onStartPlacingLocation={onStartPlacingLocation}
                 onStopPlacingLocation={onStopPlacingLocation}
+                onStartPlacingArea={onStartPlacingArea}
+                onStopPlacingArea={onStopPlacingArea}
             />
             <Infobox
                 contentVisible={visibilities.log}
