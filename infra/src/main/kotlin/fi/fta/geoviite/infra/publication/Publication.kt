@@ -36,7 +36,9 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitTargetOperation
@@ -59,9 +61,13 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
+import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfTypeWithCode
+import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import fi.fta.geoviite.infra.tracklayout.UicCode
 import fi.fta.geoviite.infra.util.ESCAPED_NEW_LINE
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.NEW_LINE_CHARACTER
@@ -129,6 +135,10 @@ data class PublishedAssetSwitch(val asset: LayoutSwitch) : PublishedAsset() {
 
 data class PublishedAssetKmPost(val asset: LayoutKmPost) : PublishedAsset() {
     override val type = PublishableObjectType.KM_POST
+}
+
+data class PublishedAssetOperationalPoint(val asset: OperationalPoint) : PublishedAsset() {
+    override val type = PublishableObjectType.OPERATIONAL_POINT
 }
 
 data class PublicationTableItem(
@@ -271,6 +281,15 @@ data class PublishedKmPost(
         get() = version.id
 }
 
+data class PublishedOperationalPoint(
+    val version: LayoutRowVersion<OperationalPoint>,
+    val name: OperationalPointName,
+    val operation: Operation,
+) {
+    val id: IntId<OperationalPoint>
+        get() = version.id
+}
+
 data class PublishedIndirectChanges(
     // Currently only used by Ratko integration
     @JsonIgnore val trackNumbers: List<PublishedTrackNumber>,
@@ -285,6 +304,7 @@ data class PublicationDetails(
     val locationTracks: List<PublishedLocationTrack>,
     val switches: List<PublishedSwitch>,
     val kmPosts: List<PublishedKmPost>,
+    val operationalPoints: List<PublishedOperationalPoint>,
     val ratkoPushStatus: RatkoPushStatus?,
     val ratkoPushTime: Instant?,
     val indirectChanges: PublishedIndirectChanges,
@@ -309,6 +329,7 @@ enum class PublicationLogAssetType(val publishableObjectType: PublishableObjectT
     LOCATION_TRACK(PublishableObjectType.LOCATION_TRACK),
     SWITCH(PublishableObjectType.SWITCH),
     KM_POST(PublishableObjectType.KM_POST),
+    OPERATIONAL_POINT(PublishableObjectType.OPERATIONAL_POINT),
 }
 
 data class PublicationLogAsset(val id: IntId<*>, val type: PublicationLogAssetType) {
@@ -333,6 +354,9 @@ data class PublicationLogAsset(val id: IntId<*>, val type: PublicationLogAssetTy
     fun isSwitch(other: IntId<LayoutSwitch>) = type == PublicationLogAssetType.SWITCH && id == other
 
     fun isKmPost(other: IntId<LayoutKmPost>) = type == PublicationLogAssetType.KM_POST && id == other
+
+    fun isOperationalPoint(other: IntId<OperationalPoint>) =
+        type == PublicationLogAssetType.OPERATIONAL_POINT && id == other
 }
 
 enum class Operation(val priority: Int) {
@@ -722,6 +746,18 @@ data class TrackJointChange(
     val id: IntId<LocationTrack>,
     val name: AlignmentName,
     val joints: Change<List<JointNumber>?>,
+)
+
+data class OperationalPointChanges(
+    val id: IntId<OperationalPoint>,
+    val name: Change<OperationalPointName>,
+    val abbreviation: Change<OperationalPointAbbreviation?>,
+    val uicCode: Change<UicCode>,
+    val rinfType: Change<OperationalPointRinfTypeWithCode?>,
+    val raideType: Change<OperationalPointRaideType?>,
+    val polygon: Change<Polygon>,
+    val location: Change<Point>,
+    val state: Change<OperationalPointState>,
 )
 
 data class SwitchChanges(

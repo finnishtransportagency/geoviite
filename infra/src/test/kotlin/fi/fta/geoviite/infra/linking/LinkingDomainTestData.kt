@@ -61,10 +61,11 @@ fun publish(
     switches: List<IntId<LayoutSwitch>> = listOf(),
     referenceLines: List<IntId<ReferenceLine>> = listOf(),
     locationTracks: List<IntId<LocationTrack>> = listOf(),
+    operationalPoints: List<IntId<OperationalPoint>> = listOf(),
 ) =
     publish(
         publicationService,
-        publicationRequest(trackNumbers, kmPosts, switches, referenceLines, locationTracks),
+        publicationRequest(trackNumbers, kmPosts, switches, referenceLines, locationTracks, operationalPoints),
         branch,
     )
 

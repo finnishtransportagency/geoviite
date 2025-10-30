@@ -30,6 +30,8 @@ import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
@@ -48,7 +50,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
+import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.util.DaoBase
@@ -76,9 +80,14 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.getListOrNull
 import fi.fta.geoviite.infra.util.getNullableChange
 import fi.fta.geoviite.infra.util.getNullableChangePoint
+import fi.fta.geoviite.infra.util.getNullableRinfTypeChange
 import fi.fta.geoviite.infra.util.getOidOrNull
+import fi.fta.geoviite.infra.util.getOperationalPointAbbreviationOrNull
+import fi.fta.geoviite.infra.util.getOperationalPointName
+import fi.fta.geoviite.infra.util.getOperationalPointNameOrNull
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.getPointOrNull
+import fi.fta.geoviite.infra.util.getPolygonPointListOrNull
 import fi.fta.geoviite.infra.util.getPublicationMessage
 import fi.fta.geoviite.infra.util.getPublicationPublishedIn
 import fi.fta.geoviite.infra.util.getSridOrNull
@@ -88,6 +97,7 @@ import fi.fta.geoviite.infra.util.getTrackMeter
 import fi.fta.geoviite.infra.util.getTrackMeterOrNull
 import fi.fta.geoviite.infra.util.getTrackNumber
 import fi.fta.geoviite.infra.util.getTrackNumberOrNull
+import fi.fta.geoviite.infra.util.getUicCodeOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
@@ -705,6 +715,12 @@ class PublicationDao(
             changes.directChanges.switchChanges,
             changes.indirectChanges.switchChanges,
             publishedVersions.switches,
+        )
+
+        saveOperationalPointChanges(
+            publicationId,
+            changes.directChanges.operationalPointChanges,
+            publishedVersions.operationalPoints,
         )
 
         logger.daoAccess(INSERT, CalculatedChanges::class, publicationId)
@@ -1646,6 +1662,75 @@ class PublicationDao(
             .also { logger.daoAccess(FETCH, SwitchChanges::class, publicationId) }
     }
 
+    fun fetchPublicationOperationalPointChanges(
+        publicationId: IntId<Publication>
+    ): Map<IntId<OperationalPoint>, OperationalPointChanges> {
+        val sql =
+            """
+                select
+                  point.id as point_id,
+                  point.version as point_version,
+                  point_version.name as name,
+                  old_point_version.name as old_name,
+                  point_version.abbreviation as abbreviation,
+                  old_point_version.abbreviation as old_abbreviation,
+                  point_version.uic_code as uic_code,
+                  old_point_version.uic_code as old_uic_code,
+                  point_version.rinf_type as rinf_type,
+                  old_point_version.rinf_type as old_rinf_type,
+                  rinf_type.code as rinf_type_code,
+                  old_rinf_type.code as old_rinf_type_code,
+                  point_version.type as type,
+                  old_point_version.type as old_type,
+                  point_version.state,
+                  old_point_version.state as old_state,
+                  postgis.st_x(point_version.location) as point_x,
+                  postgis.st_y(point_version.location) as point_y,
+                  postgis.st_x(old_point_version.location) as old_point_x,
+                  postgis.st_y(old_point_version.location) as old_point_y,
+                  postgis.st_astext(point_version.polygon) as polygon,
+                  postgis.st_astext(old_point_version.polygon) as old_polygon
+                from publication.operational_point point
+                  left join layout.operational_point_version point_version
+                          on point_version.id = point.id
+                            and point_version.layout_context_id = point.layout_context_id
+                            and point_version.version = point.version
+                  left join layout.operational_point_version old_point_version
+                          on old_point_version.id = point.id
+                            and old_point_version.layout_context_id = point.base_layout_context_id
+                            and old_point_version.version = point.base_version
+                  left join common.rinf_operational_point_type rinf_type
+                   on point_version.rinf_type = rinf_type.enum_name
+                  left join common.rinf_operational_point_type old_rinf_type
+                    on old_point_version.rinf_type = old_rinf_type.enum_name
+                where publication_id = :publication_id
+            """
+                .trimIndent()
+
+        return jdbcTemplate
+            .query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+                val id = rs.getIntId<OperationalPoint>("point_id")
+                id to
+                    OperationalPointChanges(
+                        id,
+                        name = rs.getChange("name") { field -> rs.getOperationalPointNameOrNull(field) },
+                        abbreviation = rs.getNullableChange("abbreviation", rs::getOperationalPointAbbreviationOrNull),
+                        uicCode = rs.getChange("uic_code", rs::getUicCodeOrNull),
+                        rinfType = rs.getNullableRinfTypeChange("rinf_type", "rinf_type_code"),
+                        raideType =
+                            rs.getNullableChange("type") { field ->
+                                rs.getEnumOrNull<OperationalPointRaideType>(field)
+                            },
+                        polygon =
+                            rs.getChange("polygon") { field -> rs.getPolygonPointListOrNull(field)?.let(::Polygon) },
+                        location = rs.getChangePoint("point_x", "point_y"),
+                        state = rs.getChange("state") { field -> rs.getEnumOrNull<OperationalPointState>(field) },
+                    )
+            }
+            .toMap()
+            .also { logger.daoAccess(FETCH, OperationalPointChanges::class, publicationId) }
+    }
+
     fun fetchChangeTime(): Instant {
         val sql = "select max(publication_time) as publication_time from publication.publication"
         return jdbcTemplate.query(sql) { rs, _ -> rs.getInstantOrNull("publication_time") }.first()
@@ -1788,6 +1873,48 @@ class PublicationDao(
             """
                 .trimIndent(),
             kmPostIds
+                .map { id ->
+                    val versionChange = requireNotNull(publishedVersions.find { it.new.id == id })
+                    mapOf(
+                        "publication_id" to publicationId.intValue,
+                        "id" to id.intValue,
+                        "layout_context_id" to versionChange.new.context.toSqlString(),
+                        "version" to versionChange.new.version,
+                        "base_layout_context_id" to versionChange.old?.context?.toSqlString(),
+                        "base_version" to versionChange.old?.version,
+                    )
+                }
+                .toTypedArray(),
+        )
+    }
+
+    private fun saveOperationalPointChanges(
+        publicationId: IntId<Publication>,
+        operationalPointIds: Collection<IntId<OperationalPoint>>,
+        publishedVersions: List<Change<LayoutRowVersion<OperationalPoint>>>,
+    ) {
+
+        jdbcTemplate.batchUpdate(
+            """
+                insert into publication.operational_point (
+                  publication_id,
+                  id,
+                  layout_context_id,
+                  version,
+                  base_layout_context_id,
+                  base_version
+                )
+                values (
+                  :publication_id,
+                  :id,
+                  :layout_context_id,
+                  :version,
+                  :base_layout_context_id,
+                  :base_version
+                )
+            """
+                .trimIndent(),
+            operationalPointIds
                 .map { id ->
                     val versionChange = requireNotNull(publishedVersions.find { it.new.id == id })
                     mapOf(
@@ -2535,6 +2662,41 @@ class PublicationDao(
                         jointNumber = rs.getJointNumber("joint_number"),
                         address = rs.getTrackMeter("address"),
                     )
+            }
+            .groupBy({ it.first }, { it.second })
+    }
+
+    fun fetchPublishedOperationalPoints(
+        publicationIds: Set<IntId<Publication>>
+    ): Map<IntId<Publication>, List<PublishedOperationalPoint>> {
+        val sql =
+            """
+                select
+                  pop.publication_id,
+                  opv.id,
+                  opv.design_id,
+                  opv.draft,
+                  opv.version,
+                  layout.infer_operation_from_operational_point_state_transition(opc.old_state, opc.state) as operation,
+                  opv.name
+                from publication.operational_point pop
+                  inner join layout.operational_point_version opv using (id, layout_context_id, version)
+                  inner join layout.operational_point_change_view opc using (id, layout_context_id, version)
+                where publication_id = any(array[:publication_ids]::int[])
+            """
+                .trimIndent()
+
+        return jdbcTemplate
+            .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
+                rs.getIntId<Publication>("publication_id") to
+                    PublishedOperationalPoint(
+                        version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+                        name = rs.getOperationalPointName("name"),
+                        operation = rs.getEnum<Operation>("operation"),
+                    )
+            }
+            .also { kmPosts ->
+                logger.daoAccess(FETCH, PublishedOperationalPoint::class, kmPosts.map { it.second.version })
             }
             .groupBy({ it.first }, { it.second })
     }
