@@ -67,7 +67,7 @@ fun <T, R : Comparable<R>> getIndexRangeForRangeInOrderedList(
     rangeEnd: R,
     compare: (thing: T, rangeEnd: R) -> Int,
 ): IntRange? {
-    if (rangeEnd < rangeStart) {
+    if (rangeEnd < rangeStart || things.isEmpty()) {
         return null
     }
     val startInsertionPoint = things.binarySearch { t -> compare(t, rangeStart) }

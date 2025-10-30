@@ -178,7 +178,7 @@ data class GeocodingKm<M : GeocodingAlignmentM<M>>(
 
     fun isTooLong(): Boolean = !TrackMeter.isMetersValid(startMeters + round(length, METERS_MAX_DECIMAL_DIGITS))
 
-    fun getReferenceLineM(address: TrackMeter): LineM<M>? {
+    fun getReferenceLineM(address: TrackMeter): LineM<M> {
         require(address.kmNumber == kmNumber) {
             "Can only calculate ReferenceLine m within the kilometer: km=$kmNumber address=$address"
         }
@@ -238,8 +238,6 @@ private const val PROJECTION_LINE_MAX_ANGLE_DELTA = PI / 16
 
 private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.java)
 
-data class KmPostWithRejectedReason(val kmPost: LayoutKmPost, val rejectedReason: KmValidationIssue)
-
 data class ValidatedGeocodingContext<M : GeocodingAlignmentM<M>>(
     val geocodingContext: GeocodingContext<M>,
     val kmErrors: List<Pair<KmNumber, KmValidationIssue>>,
@@ -289,8 +287,10 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
 
     private val polyLineEdges: List<PolyLineEdge<M>> by lazy { getPolyLineEdges(referenceLineGeometry) }
 
-    val projectionLines: Map<Resolution, Lazy<List<ProjectionLine<M>>>> =
-        enumValues<Resolution>().associateWith { resolution -> lazy { createProjectionLines(resolution) } }
+    private val projectionLines: ConcurrentHashMap<Resolution, List<ProjectionLine<M>>> = ConcurrentHashMap()
+
+    fun getProjectionLines(resolution: Resolution): List<ProjectionLine<M>> =
+        projectionLines.computeIfAbsent(resolution) { createProjectionLines(resolution) }
 
     private fun createProjectionLines(resolution: Resolution): List<ProjectionLine<M>> {
         require(isSame(polyLineEdges.last().endM, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
@@ -335,7 +335,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         polyLineEdges
         startProjection
         endProjection
-        // Skip preloading projectionlines as the benefit is quite limited and it's costly at startup
+        // Skip preloading projection lines as the benefit is quite limited, and it's costly at startup
         kmNumbers
     }
 
@@ -354,16 +354,15 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     }
 
     private fun findCachedProjectionLine(address: TrackMeter, resolution: Resolution): ProjectionLine<M>? {
-        return if (address !in startAddress..endAddress) null
-        else if (address == startAddress) startProjection
-        else if (address == endAddress) endProjection
-        else if (projectionLines.getValue(resolution).value.isEmpty()) null
-        else
-            projectionLines
-                .getValue(resolution)
-                .value
-                .binarySearch { line -> line.address.compareTo(address) }
-                .let { index -> projectionLines[resolution]?.value?.getOrNull(index) }
+        return when (address) {
+            !in startAddress..endAddress -> null
+            startAddress -> startProjection
+            endAddress -> endProjection
+            else ->
+                getProjectionLines(resolution)
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { lines -> lines.getOrNull(lines.binarySearch { line -> line.address.compareTo(address) }) }
+        }
     }
 
     companion object {
@@ -461,8 +460,8 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
                         // When the order is wrong, it could be either KM that is faulty, although
                         // we use the first one anyhow to geocode where we can.
                         errors.addAll(
-                            listOfNotNull(
-                                previousKmNumber.let { km -> km to KmValidationIssue.INCORRECT_ORDER },
+                            listOf(
+                                previousKmNumber to KmValidationIssue.INCORRECT_ORDER,
                                 post.kmNumber to KmValidationIssue.INCORRECT_ORDER,
                             )
                         )
@@ -572,7 +571,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         addressFilter: AddressFilter? = null,
     ): AlignmentAddresses<TargetM>? {
         return getStartAndEnd(alignment, addressFilter)?.let { (startPoint, endPoint) ->
-            val pointRange = (startPoint.first.address + minMeterLength)..(endPoint.first.address - minMeterLength)
+            val pointRange = Range(startPoint.first.address, endPoint.first.address)
             val midPoints = getMidPoints(alignment, pointRange, resolution)
             AlignmentAddresses(
                 startPoint = startPoint.first,
@@ -650,7 +649,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
                     // add some extra projection lines to make sure we don't go out of sync when the
                     // track and reference line loop in on themselves
                     getProjectionLinesForRange(
-                            (alignmentStartAddress + minMeterLength)..(alignmentEndAddress - minMeterLength),
+                            exclusiveRange = Range(alignmentStartAddress, alignmentEndAddress),
                             resolution,
                         )
                         .filterIndexed { index, _ -> index % 10 == 0 },
@@ -670,13 +669,13 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
 
     private fun <TargetM : AlignmentM<TargetM>> getMidPoints(
         alignment: IAlignment<TargetM>,
-        range: ClosedRange<TrackMeter>,
+        exclusiveRange: Range<TrackMeter>,
         resolution: Resolution = Resolution.ONE_METER,
     ): AddressPointWalkResult<TargetM> =
-        getProjectedAddressPoints(getProjectionLinesForRange(range, resolution), alignment)
+        getProjectedAddressPoints(getProjectionLinesForRange(exclusiveRange, resolution), alignment)
 
-    private fun getProjectionLinesForRange(range: ClosedRange<TrackMeter>, resolution: Resolution) =
-        getSublistForRangeInOrderedList(projectionLines.getValue(resolution).value, range) { p, e ->
+    private fun getProjectionLinesForRange(exclusiveRange: Range<TrackMeter>, resolution: Resolution) =
+        getSublistForRangeInOrderedListExclusive(getProjectionLines(resolution), exclusiveRange) { p, e ->
             p.address.compareTo(e)
         }
 
@@ -697,7 +696,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         kms: Set<KmNumber>,
         resolution: Resolution = Resolution.ONE_METER,
     ): List<ClosedRange<TrackMeter>> {
-        if (projectionLines.getValue(resolution).value.isEmpty()) return listOf()
+        if (getProjectionLines(resolution).isEmpty()) return listOf()
         val addressRanges = getKmRanges(kms).mapNotNull { kmRange -> toAddressRange(kmRange, resolution) }
         return splitRange(range, addressRanges)
     }
@@ -723,7 +722,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
      * not include decimal meters after the last even meter, even though such addresses can be calculated
      */
     private fun toAddressRange(kmRange: ClosedRange<KmNumber>, resolution: Resolution): ClosedRange<TrackMeter>? {
-        val projectionLinesResolution = projectionLines.getValue(resolution).value
+        val projectionLinesResolution = getProjectionLines(resolution)
         val startAddress = projectionLinesResolution.find { l -> l.address.kmNumber == kmRange.start }?.address
         val endAddress = projectionLinesResolution.findLast { l -> l.address.kmNumber == kmRange.endInclusive }?.address
         return if (startAddress != null && endAddress != null) startAddress..endAddress else null
@@ -736,13 +735,28 @@ fun splitRange(range: ClosedRange<TrackMeter>, splits: List<ClosedRange<TrackMet
         else maxOf(range.start, allowedRange.start)..minOf(range.endInclusive, allowedRange.endInclusive)
     }
 
-fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
-    things: List<T>,
-    range: ClosedRange<R>,
-    compare: (thing: T, rangeEnd: R) -> Int,
+fun <T, R : Comparable<R>> getSublistForRangeInOrderedListExclusive(
+    orderedValues: List<T>,
+    range: Range<R>,
+    valueCompare: (thing: T, rangeEnd: R) -> Int,
 ): List<T> =
-    getIndexRangeForRangeInOrderedList(things, range.start, range.endInclusive, compare)?.let { indexRange ->
-        things.subList(indexRange.first, indexRange.last + 1)
+    getIndexRangeForRangeInOrderedList(orderedValues, range.min, range.max, valueCompare)?.let { indexRange ->
+        val exclusiveStart =
+            if (valueCompare(orderedValues[indexRange.first], range.min) == 0) indexRange.first + 1
+            else indexRange.first
+        val exclusiveEnd =
+            if (valueCompare(orderedValues[indexRange.last], range.max) == 0) indexRange.last else indexRange.last + 1
+        if (exclusiveStart >= exclusiveEnd) listOf() else orderedValues.subList(exclusiveStart, exclusiveEnd)
+    } ?: listOf()
+
+fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
+    orderedValues: List<T>,
+    range: ClosedRange<R>,
+    valueCompare: (thing: T, rangeEnd: R) -> Int,
+): List<T> =
+    getIndexRangeForRangeInOrderedList(orderedValues, range.start, range.endInclusive, valueCompare)?.let { indexRange
+        ->
+        orderedValues.subList(indexRange.first, indexRange.last + 1)
     } ?: listOf()
 
 fun <TargetM : AlignmentM<TargetM>, M : GeocodingAlignmentM<M>> getProjectedAddressPoint(
@@ -848,7 +862,7 @@ private fun <M : GeocodingAlignmentM<M>> createProjectionLines(
     edges: List<PolyLineEdge<M>>,
     resolution: Resolution,
 ): List<ProjectionLine<M>> {
-    return kms.flatMapIndexed { index: Int, km: GeocodingKm<M> ->
+    return kms.flatMap { km: GeocodingKm<M> ->
         val projectionLineSteps = km.getMetersSequence(resolution)
         projectionLineSteps.map { meter ->
             val referenceLineM = km.referenceLineM.min + meter.toDouble() - km.startMeters.toDouble()
