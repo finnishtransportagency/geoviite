@@ -460,7 +460,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
                         // When the order is wrong, it could be either KM that is faulty, although
                         // we use the first one anyhow to geocode where we can.
                         errors.addAll(
-                            listOfNotNull(
+                            listOf(
                                 previousKmNumber to KmValidationIssue.INCORRECT_ORDER,
                                 post.kmNumber to KmValidationIssue.INCORRECT_ORDER,
                             )
@@ -736,25 +736,27 @@ fun splitRange(range: ClosedRange<TrackMeter>, splits: List<ClosedRange<TrackMet
     }
 
 fun <T, R : Comparable<R>> getSublistForRangeInOrderedListExclusive(
-    things: List<T>,
+    orderedValues: List<T>,
     range: Range<R>,
-    compare: (thing: T, rangeEnd: R) -> Int,
+    valueCompare: (thing: T, rangeEnd: R) -> Int,
 ): List<T> =
-    getIndexRangeForRangeInOrderedList(things, range.min, range.max, compare)?.let { indexRange ->
+    getIndexRangeForRangeInOrderedList(orderedValues, range.min, range.max, valueCompare)?.let { indexRange ->
         val exclusiveStart =
-            if (compare(things[indexRange.first], range.min) <= 0) indexRange.first + 1 else indexRange.first
+            if (valueCompare(orderedValues[indexRange.first], range.min) == 0) indexRange.first + 1
+            else indexRange.first
         val exclusiveEnd =
-            if (compare(things[indexRange.last], range.max) >= 0) indexRange.last else indexRange.last + 1
-        if (exclusiveStart >= exclusiveEnd) listOf() else things.subList(exclusiveStart, exclusiveEnd)
+            if (valueCompare(orderedValues[indexRange.last], range.max) == 0) indexRange.last else indexRange.last + 1
+        if (exclusiveStart >= exclusiveEnd) listOf() else orderedValues.subList(exclusiveStart, exclusiveEnd)
     } ?: listOf()
 
 fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
-    things: List<T>,
+    orderedValues: List<T>,
     range: ClosedRange<R>,
-    compare: (thing: T, rangeEnd: R) -> Int,
+    valueCompare: (thing: T, rangeEnd: R) -> Int,
 ): List<T> =
-    getIndexRangeForRangeInOrderedList(things, range.start, range.endInclusive, compare)?.let { indexRange ->
-        things.subList(indexRange.first, indexRange.last + 1)
+    getIndexRangeForRangeInOrderedList(orderedValues, range.start, range.endInclusive, valueCompare)?.let { indexRange
+        ->
+        orderedValues.subList(indexRange.first, indexRange.last + 1)
     } ?: listOf()
 
 fun <TargetM : AlignmentM<TargetM>, M : GeocodingAlignmentM<M>> getProjectedAddressPoint(
