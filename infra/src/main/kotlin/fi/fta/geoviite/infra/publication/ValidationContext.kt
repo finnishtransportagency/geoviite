@@ -299,6 +299,9 @@ class ValidationContext(
         preloadSwitchesByName(publicationSet.switches.map { v -> v.id })
         preloadSwitchTrackLinks(allSwitchIds)
         preloadOperationalPointOverlaps(publicationSet.getOperationalPointIds())
+        preloadOperationalPointsByName(publicationSet.getOperationalPointIds())
+        preloadOperationalPointsByAbbreviation(publicationSet.getOperationalPointIds())
+        preloadOperationalPointsByUicCode(publicationSet.getOperationalPointIds())
     }
 
     fun preloadOperationalPointOverlaps(candidateIds: List<IntId<OperationalPoint>>) {
@@ -379,6 +382,19 @@ class ValidationContext(
         cacheBaseVersions(baseVersions.values.flatten(), locationTrackVersionCache)
         return mapIdsByField(names, { t -> t.name }, publicationSet.locationTracks, baseVersions, locationTrackDao)
     }
+
+    fun preloadOperationalPointsByName(ids: List<IntId<OperationalPoint>>) =
+        operationalPointNameCache.preload(ids.mapNotNull(::getOperationalPoint).map(OperationalPoint::name).distinct())
+
+    fun preloadOperationalPointsByAbbreviation(ids: List<IntId<OperationalPoint>>) =
+        operationalPointAbbreviationCache.preload(
+            ids.mapNotNull(::getOperationalPoint).mapNotNull(OperationalPoint::abbreviation).distinct()
+        )
+
+    fun preloadOperationalPointsByUicCode(ids: List<IntId<OperationalPoint>>) =
+        operationalPointUicCodeCache.preload(
+            ids.mapNotNull(::getOperationalPoint).mapNotNull(OperationalPoint::uicCode).distinct()
+        )
 
     fun preloadTrackNumbersByNumber(trackNumberIds: List<IntId<LayoutTrackNumber>>) =
         trackNumberNumberCache.preload(
