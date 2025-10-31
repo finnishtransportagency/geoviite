@@ -54,6 +54,8 @@ fun lineIntersection(start1: IPoint, end1: IPoint, start2: IPoint, end2: IPoint)
     )
 }
 
+fun lineIntersection(a: Line, b: Line) = lineIntersection(a.start, a.end, b.start, b.end)
+
 enum class IntersectType {
     BEFORE,
     WITHIN,
@@ -120,4 +122,6 @@ data class Line(val start: IPoint, val end: IPoint) {
         val v = (end - start).normalized()
         return Line(start - v * fromStart, end + v * fromEnd)
     }
+
+    fun move(displacement: Point): Line = Line(start + displacement, end + displacement)
 }
