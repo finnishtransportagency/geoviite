@@ -307,7 +307,7 @@ fun trackNumberSaveRequest(
         number = number,
         description = TrackNumberDescription(description),
         state = state,
-        startAddress = startAddress,
+        startAddress = startAddress.round(3),
     )
 
 fun referenceLineAndAlignment(
@@ -341,7 +341,7 @@ fun referenceLine(
 ) =
     ReferenceLine(
         trackNumberId = trackNumberId,
-        startAddress = startAddress,
+        startAddress = startAddress.round(3),
         sourceId = null,
         boundingBox = alignment?.boundingBox,
         segmentCount = alignment?.segments?.size ?: 0,

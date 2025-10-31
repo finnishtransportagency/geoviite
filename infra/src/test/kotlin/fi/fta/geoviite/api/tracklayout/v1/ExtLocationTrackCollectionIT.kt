@@ -33,7 +33,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -398,7 +397,7 @@ constructor(
         mainDraftContext.save(
             mainOfficialContext
                 .fetch(referenceLineId1)!!
-                .copy(startAddress = TrackMeter(KmNumber("0001"), BigDecimal.TEN)),
+                .copy(startAddress = TrackMeter("0001+0010.000")),
             alignment(segment),
         )
         val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(referenceLineId1))

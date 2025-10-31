@@ -86,6 +86,9 @@ data class TrackNumberSaveRequest(
     init {
         require(description.isNotBlank()) { "TrackNumber should have a non-blank description" }
         require(description.length < 100) { "TrackNumber description too long: ${description.length}>100" }
+        require(startAddress.decimalCount() == 3) {
+            "ReferenceLine start addresses should be given with 3 decimal precision"
+        }
     }
 }
 
