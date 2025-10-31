@@ -58,11 +58,11 @@ function linesIntersects(
     );
 }
 
-export const coordsToPolygon = (coords: [number, number][]): GvtPolygon => ({
-    points: coords.map(([x, y]) => ({ x, y })),
+export const coordsToPolygon = (coords: Coordinate[]): GvtPolygon => ({
+    points: coords.map(([x, y]) => ({ x: x ?? 0, y: y ?? 0 })),
 });
 
-function isValidPolygon(coords: [number, number][], ignoreLast: boolean) {
+export function isValidPolygon(coords: Coordinate[], ignoreLast: boolean) {
     let lines = coords.slice(0, -1).map((c, index, cs) => {
         const endCoordinate = expectDefined(cs[(index + 1) % cs.length]);
         return [c, endCoordinate];
@@ -74,7 +74,7 @@ function isValidPolygon(coords: [number, number][], ignoreLast: boolean) {
     });
 }
 
-export function getCoords(feature: Feature<MultiPoint | LineString | Polygon>): [number, number][] {
+export function getCoords(feature: Feature<MultiPoint | LineString | Polygon>): Coordinate[] {
     const geom = feature.getGeometry();
     const coords = geom?.getCoordinates()[0];
     const unified: Coordinate[] =
@@ -83,14 +83,12 @@ export function getCoords(feature: Feature<MultiPoint | LineString | Polygon>): 
             : Array.isArray(coords) && !Array.isArray(coords[0])
               ? ([coords] as Coordinate[])
               : [];
-    return unified.map((c) => (Array.isArray(c) ? c.map((v: number) => Math.round(v)) : c)) as [
-        number,
-        number,
-    ][];
+    return unified.map((c) => (Array.isArray(c) ? c.map((v: number) => Math.round(v)) : c));
 }
 
 export const operationalPointAreaPolygonStyle = function (isNew: boolean) {
-    return function (feature: Feature<MultiPoint>) {
+    return function (feature: Feature<Polygon>) {
+        console.log('stylerooni');
         const coords = getCoords(feature);
         const isValid = isValidPolygon(coords, isNew);
         const lineColor = isValid ? '#009BFF' : 'red';
@@ -112,11 +110,11 @@ export const operationalPointAreaPolygonStyle = function (isNew: boolean) {
                       fill: new Fill({
                           color: fillColor,
                       }),
-                      // geometry: function (feature) {
-                      //   const coordinates = getCoords(feature);
-                      //   const refined = coordinates;
-                      //   return new Polygon(refined);
-                      // },
+                      geometry: function (feature: Feature<Polygon>) {
+                          const coordinates = getCoords(feature);
+                          const refined = coordinates;
+                          return new Polygon([refined]);
+                      },
                   }),
                   new Style({
                       image: new CircleStyle({

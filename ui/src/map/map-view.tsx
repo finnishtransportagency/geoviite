@@ -10,6 +10,7 @@ import { defaults as defaultInteractions, Draw, Modify } from 'ol/interaction';
 import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
+import VectorSource from 'ol/source/Vector';
 import {
     getLayerSetting,
     HELSINKI_RAILWAY_STATION_COORDS,
@@ -287,8 +288,10 @@ const MapView: React.FC<MapViewProps> = ({
     const mapLayers = [...map.visibleLayers].sort().join();
     const [drawInteraction, setDrawInteraction] = React.useState<Draw>();
     const [modifyInteraction, setModifyInteraction] = React.useState<Modify>();
-    const [modifyFeatureCollection, setModifyFeatureCollection] =
+    const [_modifyFeatureCollection, setModifyFeatureCollection] =
         React.useState<Collection<Feature>>();
+    const [_modifyFeatureSource, setModifyFeatureSource] =
+        React.useState<VectorSource<Feature<Polygon>>>();
 
     const handleClusterPointClick = (clickType: ClickType) => {
         const clusterPoint = first(selection.selectedItems.clusterPoints);
@@ -357,21 +360,28 @@ const MapView: React.FC<MapViewProps> = ({
                 linkingState?.type === 'PlacingOperationalPointArea' && !linkingState.polygon,
             );
 
-            const fetaures: Collection<Feature> = new Collection();
+            const fetaures: Collection<Feature<Polygon>> = new Collection();
             setModifyFeatureCollection(fetaures);
+            const source = new VectorSource<Feature<Polygon>>();
+            setModifyFeatureSource(source);
 
             const modify = new Modify({
                 deleteCondition: doubleClick,
                 style: new Style({
                     image: new CircleStyle({
-                        radius: 5,
+                        radius: 7,
                         fill: new Fill({
-                            color: '#009BFF',
+                            color: 'rgba(0, 0, 0, 1.0)',
                         }),
                     }),
                 }),
-                features: fetaures,
+                wrapX: true,
+                source,
             });
+            console.log(
+                modify.getOverlay().getUpdateWhileInteracting(),
+                modify.getOverlay().getUpdateWhileAnimating(),
+            );
             setModifyInteraction(modify);
 
             interactions.push(modify);
@@ -383,10 +393,6 @@ const MapView: React.FC<MapViewProps> = ({
 
                 onSetOperationalPointPolygon(coordsToPolygon(getCoords(feature)));
             });
-            console.log(
-                'blacktivateeros',
-                linkingState?.type === 'PlacingOperationalPointArea' && !!linkingState.polygon,
-            );
             modify.setActive(
                 linkingState?.type === 'PlacingOperationalPointArea' && !!linkingState.polygon,
             );
@@ -408,24 +414,24 @@ const MapView: React.FC<MapViewProps> = ({
             const hasPolygon = !!linkingState.polygon;
             drawInteraction?.setActive(!hasPolygon);
             modifyInteraction?.setActive(hasPolygon);
-            console.log('activateeros', hasPolygon);
+
             if (linkingState.polygon) {
-                modifyFeatureCollection?.clear();
+                _modifyFeatureSource?.clear();
                 const coords = linkingState.polygon.points.map(pointToCoords);
 
                 const feature = new Feature({
                     geometry: new Polygon([coords]),
                 });
                 feature.setStyle(operationalPointAreaPolygonStyle(false));
-                modifyFeatureCollection?.push(feature);
+                _modifyFeatureSource?.addFeature(feature);
             } else {
-                modifyFeatureCollection?.clear();
+                _modifyFeatureSource?.clear();
             }
         } else {
             drawInteraction?.setActive(false);
             modifyInteraction?.setActive(false);
         }
-    }, [linkingState]);
+    }, [linkingState, olMap]);
 
     // Track map view port changes
     React.useEffect(() => {
