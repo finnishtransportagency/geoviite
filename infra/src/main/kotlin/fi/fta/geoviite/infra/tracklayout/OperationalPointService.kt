@@ -1,20 +1,23 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.GeoviiteOidDao
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.OidType
 import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
+import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.util.FreeText
 import kotlin.toString
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
-class OperationalPointService(val operatingPointDao: OperationalPointDao) :
+class OperationalPointService(val operatingPointDao: OperationalPointDao, private val geoviiteOidDao: GeoviiteOidDao) :
     LayoutAssetService<OperationalPoint, NoParams, OperationalPointDao>(operatingPointDao) {
 
     fun list(
@@ -109,6 +112,23 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao) :
 
     fun getExternalIdsByBranch(id: IntId<OperationalPoint>): Map<LayoutBranch, Oid<OperationalPoint>> =
         dao.fetchExternalIdsByBranch(id).mapValues { (_, v) -> v.oid }
+
+    @Transactional
+    override fun publish(
+        branch: LayoutBranch,
+        version: LayoutRowVersion<OperationalPoint>,
+    ): PublicationResultVersions<OperationalPoint> {
+        val publishedVersion = publishInternal(branch, version)
+        val presentId = dao.fetchExternalId(branch, version.id)
+        if (presentId == null) {
+            dao.insertExternalIdInExistingTransaction(
+                branch,
+                version.id,
+                geoviiteOidDao.reserveOid(OidType.OPERATIONAL_POINT),
+            )
+        }
+        return publishedVersion
+    }
 
     private fun saveDraft(branch: LayoutBranch, point: OperationalPoint) = dao.save(asDraft(branch, point))
 

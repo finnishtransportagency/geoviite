@@ -7,9 +7,11 @@ import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
+import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -17,8 +19,13 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class OperationalPointServiceIT @Autowired constructor(private val operationalPointService: OperationalPointService) :
-    DBTestBase() {
+class OperationalPointServiceIT
+@Autowired
+constructor(
+    private val operationalPointService: OperationalPointService,
+    private val operationalPointDao: OperationalPointDao,
+) : DBTestBase() {
+
     @BeforeEach
     fun cleanup() {
         testDBService.deleteFromTables(
@@ -151,6 +158,19 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
         val updated = operationalPointService.get(mainDraftContext.context, a)!!
         assertEquals(location, updated.location)
         assertEquals(area, updated.polygon)
+    }
+
+    @Test
+    fun `publication assigns an oid to not-yet-oided operational points`() {
+        val firstDraft = operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("a"))
+        assertNull(operationalPointDao.fetchExternalId(LayoutBranch.main, firstDraft.id))
+        operationalPointService.publish(LayoutBranch.main, firstDraft)
+        val assignedOid = operationalPointDao.fetchExternalId(LayoutBranch.main, firstDraft.id)
+        assertNotNull(assignedOid)
+        operationalPointService.update(LayoutBranch.main, firstDraft.id, internalPointSaveRequest("b"))
+        operationalPointService.publish(LayoutBranch.main, firstDraft)
+        val oidAfterSecondPublication = operationalPointDao.fetchExternalId(LayoutBranch.main, firstDraft.id)
+        assertEquals(assignedOid.oid, oidAfterSecondPublication?.oid)
     }
 
     private fun internalPointSaveRequest(

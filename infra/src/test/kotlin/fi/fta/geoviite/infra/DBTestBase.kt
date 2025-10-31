@@ -33,4 +33,17 @@ abstract class DBTestBase(private val testUser: String = TEST_USER) {
     }
 
     fun <T> transactional(op: () -> T): T = testDBService.transactional(op)
+
+    protected fun <T> transactionalForcingRollback(callback: () -> T): T? {
+        var rv: T? = null
+        try {
+            transactional {
+                rv = callback()
+                throw ForceRollback()
+            }
+        } catch (_: ForceRollback) {}
+        return rv
+    }
 }
+
+private class ForceRollback : RuntimeException()
