@@ -6,11 +6,10 @@ import {
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
-import { defaults as defaultInteractions, Draw, Modify } from 'ol/interaction';
+import { defaults as defaultInteractions, Draw } from 'ol/interaction';
 import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
-import VectorSource from 'ol/source/Vector';
 import {
     getLayerSetting,
     HELSINKI_RAILWAY_STATION_COORDS,
@@ -31,6 +30,7 @@ import {
     LinkingState,
     LinkingSwitch,
     LinkPoint,
+    PlacingOperationalPoint,
     PlacingOperationalPointArea,
 } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
@@ -106,11 +106,7 @@ import {
     operationalPointAreaPolygonStyle,
 } from 'map/layers/operational-point/operational-points-area-placing-layer';
 import Feature from 'ol/Feature';
-import { doubleClick } from 'ol/events/condition';
-import Style from 'ol/style/Style';
-import CircleStyle from 'ol/style/Circle';
-import Fill from 'ol/style/Fill';
-import Collection from 'ol/Collection';
+import { createOperationalPointsPlacingLayer } from 'map/layers/operational-point/operational-points-placing-layer';
 
 declare global {
     interface Window {
@@ -287,11 +283,6 @@ const MapView: React.FC<MapViewProps> = ({
     const { isLoading, onLayerLoading } = useIsLoadingMapLayers(map.visibleLayers);
     const mapLayers = [...map.visibleLayers].sort().join();
     const [drawInteraction, setDrawInteraction] = React.useState<Draw>();
-    const [modifyInteraction, setModifyInteraction] = React.useState<Modify>();
-    const [_modifyFeatureCollection, setModifyFeatureCollection] =
-        React.useState<Collection<Feature>>();
-    const [_modifyFeatureSource, setModifyFeatureSource] =
-        React.useState<VectorSource<Feature<Polygon>>>();
 
     const handleClusterPointClick = (clickType: ClickType) => {
         const clusterPoint = first(selection.selectedItems.clusterPoints);
@@ -360,43 +351,6 @@ const MapView: React.FC<MapViewProps> = ({
                 linkingState?.type === 'PlacingOperationalPointArea' && !linkingState.polygon,
             );
 
-            const fetaures: Collection<Feature<Polygon>> = new Collection();
-            setModifyFeatureCollection(fetaures);
-            const source = new VectorSource<Feature<Polygon>>();
-            setModifyFeatureSource(source);
-
-            const modify = new Modify({
-                deleteCondition: doubleClick,
-                style: new Style({
-                    image: new CircleStyle({
-                        radius: 7,
-                        fill: new Fill({
-                            color: 'rgba(0, 0, 0, 1.0)',
-                        }),
-                    }),
-                }),
-                wrapX: true,
-                source,
-            });
-            console.log(
-                modify.getOverlay().getUpdateWhileInteracting(),
-                modify.getOverlay().getUpdateWhileAnimating(),
-            );
-            setModifyInteraction(modify);
-
-            interactions.push(modify);
-            modify.on('modifyend', (event) => {
-                const feature = event.features.item(0) as Feature<Polygon>;
-                if (!feature) {
-                    return;
-                }
-
-                onSetOperationalPointPolygon(coordsToPolygon(getCoords(feature)));
-            });
-            modify.setActive(
-                linkingState?.type === 'PlacingOperationalPointArea' && !!linkingState.polygon,
-            );
-
             // use in the browser window.map.getPixelFromCoordinate([x,y])
             window.map = new OlMap({
                 controls: controls,
@@ -411,25 +365,9 @@ const MapView: React.FC<MapViewProps> = ({
 
     React.useEffect(() => {
         if (linkingState?.type === 'PlacingOperationalPointArea') {
-            const hasPolygon = !!linkingState.polygon;
-            drawInteraction?.setActive(!hasPolygon);
-            modifyInteraction?.setActive(hasPolygon);
-
-            if (linkingState.polygon) {
-                _modifyFeatureSource?.clear();
-                const coords = linkingState.polygon.points.map(pointToCoords);
-
-                const feature = new Feature({
-                    geometry: new Polygon([coords]),
-                });
-                feature.setStyle(operationalPointAreaPolygonStyle(false));
-                _modifyFeatureSource?.addFeature(feature);
-            } else {
-                _modifyFeatureSource?.clear();
-            }
+            drawInteraction?.setActive(!linkingState.polygon);
         } else {
             drawInteraction?.setActive(false);
-            modifyInteraction?.setActive(false);
         }
     }, [linkingState, olMap]);
 
@@ -816,11 +754,19 @@ const MapView: React.FC<MapViewProps> = ({
                             layoutContext,
                             changeTimes,
                         );
+                    case 'operational-points-placing-layer':
+                        return createOperationalPointsPlacingLayer(
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
+                            linkingState as PlacingOperationalPoint | undefined,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
                     case 'operational-points-area-placing-layer':
                         return createOperationalPointsAreaPlacingLayer(
                             existingOlLayer as GeoviiteMapLayer<Polygon>,
                             linkingState as PlacingOperationalPointArea | undefined,
                             layoutContext,
+                            olMap,
+                            onSetOperationalPointPolygon,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'debug-1m-points-layer':
@@ -854,7 +800,6 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'virtual-km-post-linking-layer': // Virtual map layers
                     case 'virtual-hide-geometry-layer':
-                    case 'operational-points-placing-layer':
                         return undefined;
                     default:
                         return exhaustiveMatchingGuard(layerName);

@@ -18,8 +18,12 @@ import { expectDefined } from 'utils/type-utils';
 import { PlacingOperationalPointArea } from 'linking/linking-model';
 import { getOperationalPoint } from 'track-layout/layout-operational-point-api';
 import { LayoutContext } from 'common/common-model';
+import { Modify } from 'ol/interaction';
+import { doubleClick } from 'ol/events/condition';
+import OlMap from 'ol/Map';
 
 const LAYER_NAME = 'operational-points-area-placing-layer';
+let modify: Modify | undefined;
 
 function intersects(
     a: number,
@@ -110,11 +114,11 @@ export const operationalPointAreaPolygonStyle = function (isNew: boolean) {
                       fill: new Fill({
                           color: fillColor,
                       }),
-                      geometry: function (feature: Feature<Polygon>) {
-                          const coordinates = getCoords(feature);
-                          const refined = coordinates;
-                          return new Polygon([refined]);
-                      },
+                      /*geometry: function (feature: Feature<Polygon>) {
+              const coordinates = getCoords(feature);
+              const refined = coordinates;
+              return new Polygon([refined]);
+          },*/
                   }),
                   new Style({
                       image: new CircleStyle({
@@ -138,10 +142,37 @@ export const createOperationalPointsAreaPlacingLayer = (
     existingOlLayer: GeoviiteMapLayer<Polygon>,
     linkingState: PlacingOperationalPointArea | undefined,
     layoutContext: LayoutContext,
+    map: OlMap,
+    onSetOperationalPointPolygon: (polygon: GvtPolygon) => void,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer => {
     const { layer, source, isLatest } = createLayer(LAYER_NAME, existingOlLayer, true);
     const selectedOperationalPointId = linkingState?.operationalPoint?.id;
+
+    const oldModify = modify;
+    if (oldModify) map.removeInteraction(oldModify);
+    modify = new Modify({
+        source: source,
+        deleteCondition: doubleClick,
+        style: new Style({
+            image: new CircleStyle({
+                radius: 5,
+                fill: new Fill({
+                    color: '#009BFF',
+                }),
+            }),
+        }),
+    });
+
+    modify.on('modifyend', (event) => {
+        const feature = event.features.item(0) as Feature<Polygon>;
+        if (!feature) {
+            return;
+        }
+
+        onSetOperationalPointPolygon(coordsToPolygon(getCoords(feature)));
+    });
+    map.addInteraction(modify);
 
     loadLayerData(
         source,
@@ -170,5 +201,8 @@ export const createOperationalPointsAreaPlacingLayer = (
                 (operationalPoint) => operationalPoint.id,
             ),
         }),
+        onRemove: () => {
+            if (modify) map.removeInteraction(modify);
+        },
     };
 };
