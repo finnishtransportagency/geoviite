@@ -46,6 +46,9 @@ import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.PublishedVersions
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
+import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
@@ -1156,6 +1159,7 @@ fun operationalPoint(
     polygon: Polygon = Polygon(Point(0.0, 0.0), Point(20.0, 0.0), Point(20.0, 20.0), Point(0.0, 20.0), Point(0.0, 0.0)),
     origin: OperationalPointOrigin = OperationalPointOrigin.GEOVIITE,
     draft: Boolean = true,
+    ratkoVersion: Int? = null,
     contextData: LayoutContextData<OperationalPoint> = createMainContext(null, draft),
 ): OperationalPoint =
     OperationalPoint(
@@ -1168,5 +1172,14 @@ fun operationalPoint(
         raideType = null,
         polygon = polygon,
         origin = origin,
+        ratkoVersion = ratkoVersion,
         contextData = contextData,
     )
+
+fun ratkoOperationalPoint(
+    oid: String,
+    name: String,
+    trackNumberOid: Oid<RatkoRouteNumber> = Oid("1.1.1.1.1"),
+    location: Point = Point(10.0, 10.0),
+    uicCode: String? = "1234",
+) = RatkoOperationalPointParse(Oid(oid), name, name, uicCode, OperationalPointRaideType.LP, location, trackNumberOid)

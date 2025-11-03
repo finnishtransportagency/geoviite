@@ -19,7 +19,7 @@ select common.create_version_fetch_function('integrations', 'ratko_operational_p
 -- types and reference data
 create table common.rinf_operational_point_type
 (
-  code int  not null primary key,
+  code      int         not null primary key,
   enum_name varchar(50) not null,
   constraint rinf_operational_point_type_name_uk unique (enum_name)
 );
@@ -59,26 +59,40 @@ create table layout.operational_point_id
 
 create table layout.operational_point
 (
-  id                 int                            not null,
-  draft              boolean                        not null,
-  design_id          int,
-  layout_context_id  text                           not null,
-  design_asset_state layout.design_asset_state,
-  origin_design_id   int,
-  name               varchar(150)                   not null,
-  abbreviation       varchar(20),
-  uic_code           varchar(20),
-  type               layout.operational_point_type,
-  location           postgis.geometry(Point, 3067),
-  state              layout.operational_point_state not null,
-  rinf_type          varchar(50),
-  polygon            postgis.geometry(Polygon, 3067),
-  origin             layout.operational_point_origin  not null,
+  id                              int                             not null,
+  draft                           boolean                         not null,
+  design_id                       int,
+  layout_context_id               text                            not null,
+  design_asset_state              layout.design_asset_state,
+  origin_design_id                int,
+  name                            varchar(150),
+  abbreviation                    varchar(20),
+  uic_code                        varchar(20),
+  type                            layout.operational_point_type,
+  location                        postgis.geometry(Point, 3067),
+  state                           layout.operational_point_state  not null,
+  rinf_type                       varchar(50),
+  polygon                         postgis.geometry(Polygon, 3067),
+  origin                          layout.operational_point_origin not null,
+  ratko_operational_point_version int,
 
   constraint operational_point_pkey primary key (id, layout_context_id),
   constraint operational_point_id_fkey foreign key (id) references layout.operational_point_id (id),
   constraint layout_context_id_check check (layout.layout_context_id(design_id, draft) = layout_context_id),
-  constraint operational_point_rinf_type_fk foreign key (rinf_type) references common.rinf_operational_point_type (enum_name)
+  constraint operational_point_rinf_type_fk foreign key (rinf_type) references common.rinf_operational_point_type (enum_name),
+  constraint ratko_points_consistency_check check
+    (case
+       when origin = 'RATKO' then ratko_operational_point_version is not null
+         and name is null
+         and abbreviation is null
+         and uic_code is null
+         and location is null
+         and type is null
+       when origin = 'GEOVIITE' then ratko_operational_point_version is null
+         and name is not null
+       else false
+     end
+    )
 );
 
 create table layout.operational_point_external_id
@@ -102,24 +116,17 @@ insert into layout.operational_point_id (
 );
 
 insert into layout.operational_point
-  (id, draft, design_id, layout_context_id, name, abbreviation, uic_code, type, location,
-   state, rinf_type, polygon, origin)
+  (id, draft, design_id, layout_context_id,
+   state, origin, ratko_operational_point_version)
   (
     select
       row_number() over (order by external_id),
       true,
       null,
       'main_draft',
-      name,
-      abbreviation,
-      -- hack for compatibility with older production database dumps: Null out empty UIC codes
-      case when uic_code != '' then uic_code end,
-      type,
-      location,
       'IN_USE',
-      null,
-      null,
-      'RATKO'
+      'RATKO',
+      version
       from integrations.ratko_operational_point
   );
 

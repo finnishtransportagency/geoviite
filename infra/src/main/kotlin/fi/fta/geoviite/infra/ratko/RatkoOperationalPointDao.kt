@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
-import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -34,7 +34,6 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
 
         deleteRemovedPoints(newPoints)
         upsertPoints(newPoints)
-        updateLayoutTablesFromIntegration()
     }
 
     private fun deleteRemovedPoints(newPoints: List<RatkoOperationalPointParse>) {
@@ -105,17 +104,12 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         )
     }
 
-    private fun updateLayoutTablesFromIntegration() {
-        val sql = "select integrations.update_operational_points_from_ratko()"
-        jdbcTemplate.execute(sql) { it.execute() }
-    }
-
     fun getChangeTime(): Instant {
         return fetchLatestChangeTime(DbTable.RATKO_OPERATIONAL_POINT)
     }
 
     @Transactional(readOnly = true)
-    fun getOperationalPoints(bbox: BoundingBox): List<RatkoOperationalPoint> {
+    fun listWithVersions(): List<Pair<RatkoOperationalPoint, Int>> {
         val sql =
             """
                 select
@@ -126,28 +120,17 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                   type,
                   postgis.st_x(location) as x,
                   postgis.st_y(location) as y,
-                  track_number_id
+                  track_number_id,
+                  version
                   from integrations.ratko_operational_point
-                  where postgis.st_contains(postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid), location)
             """
                 .trimIndent()
 
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "x_min" to bbox.x.min,
-                "x_max" to bbox.x.max,
-                "y_min" to bbox.y.min,
-                "y_max" to bbox.y.max,
-                "layout_srid" to LAYOUT_SRID.code,
-            ),
-        ) { rs, _ ->
-            toRatkoOperatingPoint(rs)
-        }
+        return jdbcTemplate.query(sql) { rs, _ -> toRatkoOperatingPoint(rs) to rs.getInt("version") }
     }
 
     @Transactional(readOnly = true)
-    fun searchOperationalPoints(searchTerm: FreeText, resultLimit: Int): List<RatkoOperationalPoint> {
+    fun fetch(oid: Oid<RatkoOperationalPoint>, version: Int): RatkoOperationalPoint {
         val sql =
             """
                 select
@@ -158,17 +141,13 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                   type,
                   postgis.st_x(location) as x,
                   postgis.st_y(location) as y,
-                  track_number_id
-                from integrations.ratko_operational_point
-                  where name ilike concat('%', regexp_replace(:searchTerm, '%|_', '\\\&'), '%') 
-                  or abbreviation ilike concat('%', regexp_replace(:searchTerm, '%|_', '\\\&'), '%')
-                  or external_id = :searchTerm
-                order by name
-                limit :resultLimit
+                  track_number_id,
+                  version
+                  from integrations.ratko_operational_point_version
+                  where external_id = :oid and version = :version 
             """
                 .trimIndent()
-
-        return jdbcTemplate.query(sql, mapOf("searchTerm" to searchTerm, "resultLimit" to resultLimit)) { rs, _ ->
+        return jdbcTemplate.queryOne(sql, mapOf("oid" to oid.toString(), "version" to version)) { rs, _ ->
             toRatkoOperatingPoint(rs)
         }
     }

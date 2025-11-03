@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
+import fi.fta.geoviite.infra.ratko.RatkoOperationalPointDao
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.validateSplitContent
@@ -41,6 +42,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
@@ -52,12 +55,14 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType.START
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType.START_AND_END
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.createMainContext
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
+import fi.fta.geoviite.infra.tracklayout.ratkoOperationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -105,6 +110,8 @@ constructor(
     val switchStructureDao: SwitchStructureDao,
     val splitDao: SplitDao,
     val publicationTestSupportService: PublicationTestSupportService,
+    val ratkoOperationalPointDao: RatkoOperationalPointDao,
+    val operationalPointDao: OperationalPointDao,
 ) : DBTestBase() {
     @BeforeEach
     fun cleanup() {
@@ -2235,14 +2242,46 @@ constructor(
 
     @Test
     fun `operational point uic code must exist and be unique`() {
+        var ext123Id: IntId<OperationalPoint>? = null
+        var extNullId: IntId<OperationalPoint>? = null
+        transactional {
+            trackNumberDao.insertExternalIdInExistingTransaction(
+                LayoutBranch.main,
+                mainDraftContext.save(trackNumber()).id,
+                Oid("1.1.1.1.1"),
+            )
+            ratkoOperationalPointDao.updateOperationalPoints(
+                listOf(
+                    ratkoOperationalPoint("1.2.3.4.5", name = "ext 123", uicCode = "123"),
+                    ratkoOperationalPoint("1.2.3.4.6", "ext 532", uicCode = ""),
+                )
+            )
+            ext123Id = operationalPointDao.createId()
+            extNullId = operationalPointDao.createId()
+            operationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, ext123Id, Oid("1.2.3.4.5"))
+            operationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, extNullId, Oid("1.2.3.4.6"))
+        }
+
         val external123 =
             mainDraftContext
-                .save(operationalPoint("ext 123", uicCode = "123", origin = OperationalPointOrigin.RATKO))
+                .save(
+                    operationalPoint(
+                        contextData = createMainContext(ext123Id!!, true),
+                        origin = OperationalPointOrigin.RATKO,
+                        ratkoVersion = 1,
+                    )
+                )
                 .id
         val internal123 = mainDraftContext.save(operationalPoint("int 123", uicCode = "123")).id
         val externalNull =
             mainDraftContext
-                .save(operationalPoint("ext null", uicCode = null, origin = OperationalPointOrigin.RATKO))
+                .save(
+                    operationalPoint(
+                        contextData = createMainContext(extNullId!!, true),
+                        origin = OperationalPointOrigin.RATKO,
+                        ratkoVersion = 1,
+                    )
+                )
                 .id
         val internalNull = mainDraftContext.save(operationalPoint("int null", uicCode = null)).id
         val internal234 = mainDraftContext.save(operationalPoint("int 234", uicCode = "234")).id
@@ -2258,7 +2297,7 @@ constructor(
                 )
             ),
             publicationValidationService
-                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(internal123))[0]
+                .validateOperationalPoints(LayoutBranch.main, DRAFT, listOf(internal123))[0]
                 .errors,
         )
         assertEquals(
@@ -2270,9 +2309,10 @@ constructor(
                 )
             ),
             publicationValidationService
-                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(external123))[0]
+                .validateOperationalPoints(LayoutBranch.main, DRAFT, listOf(external123))[0]
                 .errors,
         )
+
         assertEquals(
             listOf(
                 LayoutValidationIssue(
