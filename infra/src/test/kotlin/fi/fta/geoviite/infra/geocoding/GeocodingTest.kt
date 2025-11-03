@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.directionBetweenPoints
+import fi.fta.geoviite.infra.math.linePointAtDistance
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
@@ -242,27 +243,23 @@ class GeocodingTest {
         }
     }
 
-    /*
-        @Test
-        fun projectionLinesAndReverseGeocodingAgree() {
-            val projections =
-                (listOf(context.startProjection) +
-                    context.getProjectionLines(Resolution.ONE_METER) +
-                    listOf(context.endProjection))
-            projections.forEachIndexed { index, proj ->
-                assertNotNull(proj) // not a test assert, but they should in fact be not null
-                if (index > 0)
-                    assertTrue(
-                        projections[index - 1].address <= proj.address,
-                        "Projections should be in increasing order: index=$index prev=${projections[index-1]!!.address} next=${proj.address}",
-                    )
-                val decimals = proj.address.decimalCount()
-                assertEquals(proj.address, context.getAddress(proj.projection.start, decimals)!!.first)
-                val pointAside = linePointAtDistance(proj.projection, 1.0)
-                assertEquals(proj.address, context.getAddress(pointAside, decimals)!!.first)
-            }
+    @Test
+    fun projectionLinesAndReverseGeocodingAgree() {
+        val projections = context.getProjectionLines(Resolution.ONE_METER)
+        projections.forEachIndexed { index, proj ->
+            assertNotNull(proj) // not a test assert, but they should in fact be not null
+            if (index > 0)
+                assertTrue(
+                    projections[index - 1].address <= proj.address,
+                    "Projections should be in increasing order: index=$index prev=${projections[index-1]!!.address} next=${proj.address}",
+                )
+            val decimals = proj.address.decimalCount()
+            assertEquals(proj.address, context.getAddress(proj.projection.start, decimals)!!.first)
+            val pointAside = linePointAtDistance(proj.projection, 1.0)
+            assertEquals(proj.address, context.getAddress(pointAside, decimals)!!.first)
         }
-    */
+    }
+
     @Test
     fun projectionIsFoundForAddress() {
         listOf(
