@@ -624,7 +624,7 @@ constructor(
                 testDBService.getUnusedTrackNumber(),
                 TrackNumberDescription("TEST"),
                 LayoutState.IN_USE,
-                TrackMeter(0, 0),
+                TrackMeter.ZERO.round(3),
             )
         val tn1 = trackNumberService.insert(LayoutBranch.main, trackNumberSaveReq).id
         val tn2 =

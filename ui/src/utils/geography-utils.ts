@@ -1,6 +1,8 @@
 import { Point } from 'model/geometry';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { CoordinateSystem, TrackMeter } from 'common/common-model';
+import { CoordinateSystem, KmNumber, TrackMeter } from 'common/common-model';
+import { ADDRESS_REGEX } from 'tool-panel/track-number/dialog/track-number-edit-store';
+import { isNil } from './type-utils';
 
 export function formatToTM35FINString(gvtPoint: Point): string {
     const longitude = roundToPrecision(gvtPoint.x, Precision.coordinateMeters);
@@ -30,6 +32,24 @@ export function formatTrackMeterWithoutMeters(address: TrackMeter): string {
     ).padStart(4, '0')}`;
 }
 
+export function parseTrackMeter(address: string): TrackMeter | undefined {
+    const trimmed = address.trim();
+    if (!trimmed.match(ADDRESS_REGEX)) return undefined;
+    const parts = address.split('+');
+    if (parts.length !== 2 || isNil(parts[0]) || isNil(parts[1])) return undefined;
+    return {
+        kmNumber: padKmNumberStart(parts[0]),
+        meters: parseFloat(parts[1]),
+    };
+}
+
 export function formatWithSrid(coordinateSystem: CoordinateSystem): string {
     return `${coordinateSystem.name} ${coordinateSystem.srid}`;
+}
+
+export function padKmNumberStart(km: KmNumber): KmNumber {
+    const kmParts = km.match(/^\d+/);
+    const numbersInKm = kmParts && kmParts.length >= 1 ? kmParts[0].length : 0;
+    const lettersInKm = km.length - numbersInKm;
+    return km.padStart(4 + lettersInKm, '0');
 }

@@ -21,6 +21,9 @@ data class ReferenceLine(
 
     init {
         require(dataType == DataType.TEMP || alignmentVersion != null) { "ReferenceLine in DB must have an alignment" }
+        require(startAddress.decimalCount() == 3) {
+            "ReferenceLine start addresses should be given with 3 decimal precision"
+        }
     }
 
     override fun toLog(): String =

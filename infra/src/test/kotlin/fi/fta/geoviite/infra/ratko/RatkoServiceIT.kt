@@ -256,7 +256,7 @@ constructor(
                 newTrackNumber,
                 TrackNumberDescription("aoeu"),
                 LayoutState.IN_USE,
-                TrackMeter(KmNumber("0123"), 0),
+                TrackMeter("0123+0000.000"),
             ),
         )
         publishAndPush(trackNumbers = listOf(originalTrackNumber.id))
@@ -276,7 +276,7 @@ constructor(
                 trackNumber.trackNumberObject.number,
                 TrackNumberDescription("augh"),
                 LayoutState.DELETED,
-                TrackMeter(KmNumber("0123"), 0),
+                TrackMeter("0123+0000.000"),
             ),
         )
         publishAndPush(trackNumbers = listOf(trackNumber.id))

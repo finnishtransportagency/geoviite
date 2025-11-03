@@ -13,13 +13,13 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.util.FreeText
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -349,7 +349,7 @@ constructor(
                     trackNumber,
                     TrackNumberDescription("some description"),
                     layoutState,
-                    TrackMeter(KmNumber(5555), 5.5, 1),
+                    TrackMeter(KmNumber(5555), 5.5, 3),
                 )
             }
             .map { saveRequest -> trackNumberService.insert(LayoutBranch.main, saveRequest).id }

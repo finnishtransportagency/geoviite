@@ -348,7 +348,7 @@ constructor(
         val (tmpLine, tmpAlignment) = referenceLineService.getWithAlignmentOrThrow(MainLayoutContext.draft, officialId)
         referenceLineService.saveDraft(
             LayoutBranch.main,
-            tmpLine.copy(startAddress = TrackMeter("0002", 20)),
+            tmpLine.copy(startAddress = TrackMeter("0002+0020.000")),
             tmpAlignment.copy(
                 segments = listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
             ),
@@ -599,7 +599,7 @@ constructor(
             referenceLineDao,
             referenceLineService,
             { referenceLine(tnId, draft = true) },
-            { orig -> asMainDraft(orig.copy(startAddress = TrackMeter(12, 34))) },
+            { orig -> asMainDraft(orig.copy(startAddress = TrackMeter("0012+0034.000"))) },
         )
     }
 
@@ -1077,7 +1077,7 @@ constructor(
         )
         testDraftContext.save(
             asDesignDraft(
-                mainOfficialContext.fetch(referenceLine)!!.copy(startAddress = TrackMeter("0001+0123")),
+                mainOfficialContext.fetch(referenceLine)!!.copy(startAddress = TrackMeter("0001+0123.000")),
                 testBranch.designId,
             )
         )
@@ -1122,7 +1122,7 @@ constructor(
         )
 
         assertEquals("edited", mainOfficialContext.fetch(trackNumber)!!.number.toString())
-        assertEquals("0001+0123", mainOfficialContext.fetch(referenceLine)!!.startAddress.toString())
+        assertEquals("0001+0123.000", mainOfficialContext.fetch(referenceLine)!!.startAddress.toString())
         assertEquals("edited", mainOfficialContext.fetch(locationTrack)!!.name.toString())
         assertEquals("0123", mainOfficialContext.fetch(kmPost)!!.kmNumber.toString())
         assertEquals("edited", mainOfficialContext.fetch(switch)!!.name.toString())
@@ -1676,7 +1676,7 @@ constructor(
         locationTrackDao.insertExternalId(locationTrack, designBranch, Oid("1.2.3.4.5"))
 
         mainDraftContext.save(
-            mainOfficialContext.fetch(referenceLine)!!.copy(startAddress = TrackMeter("0123+0123")),
+            mainOfficialContext.fetch(referenceLine)!!.copy(startAddress = TrackMeter("0123+0123.000")),
             alignment(segment),
         )
         val mainPublicationResult = publishManualPublication(referenceLines = listOf(referenceLine))
