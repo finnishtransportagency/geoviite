@@ -26,14 +26,15 @@ const val OWNER = "omistaja"
 const val START_LOCATION = "alkusijainti"
 const val END_LOCATION = "loppusijainti"
 const val TRACK_KMS = "ratakilometrit"
-const val TRACK_NUMBER_KMS = "ratanumeron_kilometrit"
-const val TRACK_NUMBER_KMS_COLLECTION = "ratanumeroiden_kilometrit"
+const val TRACK_NUMBER_KMS = "ratanumeron_ratakilometrit"
+const val TRACK_NUMBER_KMS_COLLECTION = "ratanumeroiden_ratakilometrit"
 
 const val KM_NUMBER = "km_tunnus"
 const val KM_START_M = "alkupaalu"
 const val KM_END_M = "loppupaalu"
 const val KM_LENGTH = "ratakilometrin_pituus"
 const val OFFICIAL_LOCATION = "virallinen_sijainti"
+const val OFFICIAL_LOCATION_CONFIRMED = "vahvistettu"
 
 const val EXT_OPENAPI_INVALID_ARGUMENTS = "Yhden tai useamman hakuargumentin muoto oli virheellinen."
 

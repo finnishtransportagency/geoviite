@@ -26,7 +26,7 @@ constructor(private val environmentInfo: EnvironmentInfo, private val extApiConf
             .group("geoviite")
             .pathsToMatch("/geoviite/**")
             .pathsToExclude("/geoviite/dev/**")
-            .addOpenApiCustomizer(geoviiteOpenApiCustomizer(extApiConfiguration.rootURL))
+            .addOpenApiCustomizer(geoviiteOpenApiCustomizer(extApiConfiguration.soaServerURL))
             .build()
     }
 
@@ -49,7 +49,6 @@ constructor(private val environmentInfo: EnvironmentInfo, private val extApiConf
             .build()
     }
 
-    @Bean
     fun geoviiteOpenApiCustomizer(serverURL: String): OpenApiCustomizer {
         return OpenApiCustomizer { openApi ->
             openApi.info(

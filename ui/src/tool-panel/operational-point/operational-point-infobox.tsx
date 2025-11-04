@@ -11,7 +11,10 @@ import { OperationalPointOid } from 'track-layout/oid';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
-import { OperationalPoint } from 'track-layout/track-layout-model';
+import {
+    OperationalPoint,
+    operationalPointRinfTypeToTypeCode,
+} from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { useLoader } from 'utils/react-utils';
 import { getOperationalPointChangeTimes } from 'track-layout/layout-operational-point-api';
@@ -95,10 +98,6 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 iconDisabled={layoutContext.publicationState === 'OFFICIAL'}>
                 <InfoboxContent>
                     <InfoboxField
-                        label={t('tool-panel.operational-point.source')}
-                        value={t(`enum.OperationalPointOrigin.${operationalPoint.origin}`)}
-                    />
-                    <InfoboxField
                         label={t('tool-panel.operational-point.identifier')}
                         value={
                             <OperationalPointOid
@@ -123,10 +122,16 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                         label={t('tool-panel.operational-point.state')}
                         value={<LayoutState state={operationalPoint.state} />}
                     />
+                    <InfoboxField
+                        label={t('tool-panel.operational-point.source')}
+                        value={t(`enum.OperationalPointOrigin.${operationalPoint.origin}`)}
+                    />
                     {isExternal && (
                         <InfoboxField
                             label={t('tool-panel.operational-point.type-raide')}
-                            value={t(`enum.RaideType.${operationalPoint.raideType}`)}
+                            value={t(
+                                `enum.OperationalPointRaideType.${operationalPoint.raideType}`,
+                            )}
                         />
                     )}
                     <InfoboxField
@@ -135,6 +140,9 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                             operationalPoint.rinfType
                                 ? t('enum.rinf-type-full', {
                                       rinfType: operationalPoint.rinfType,
+                                      rinfTypeCode: operationalPointRinfTypeToTypeCode(
+                                          operationalPoint.rinfType,
+                                      ),
                                   })
                                 : t('tool-panel.operational-point.unset')
                         }

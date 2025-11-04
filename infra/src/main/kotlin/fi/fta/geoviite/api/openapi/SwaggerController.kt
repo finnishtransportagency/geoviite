@@ -56,13 +56,13 @@ class SwaggerController @Autowired constructor(env: Environment) {
         params = ["!url"],
     )
     fun sendGeoviiteSwaggerIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/geoviite/swagger-ui/index.html?url=$OPENAPI_GEOVIITE_PATH")
+        sendRedirect(response, "/geoviite/swagger-ui/index.html?url=$OPENAPI_GEOVIITE_PATH&validatorUrl=none")
     }
 
     @PreAuthorize(AUTH_API_GEOMETRY)
     @GetMapping("", "/", "/swagger-ui", "/swagger-ui/", params = ["!url"])
     fun sendGeoviiteSwaggerNoPrefixIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/swagger-ui/index.html?url=$openApiGeoviiteNoPrefixPath")
+        sendRedirect(response, "/swagger-ui/index.html?url=$openApiGeoviiteNoPrefixPath&validatorUrl=none")
     }
 
     @Profile("ext-api-dev-swagger")
@@ -76,7 +76,7 @@ class SwaggerController @Autowired constructor(env: Environment) {
         params = ["!url"],
     )
     fun sendGeoviiteDevSwaggerIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/geoviite/dev/swagger-ui/index.html?url=$OPENAPI_GEOVIITE_DEV_PATH")
+        sendRedirect(response, "/geoviite/dev/swagger-ui/index.html?url=$OPENAPI_GEOVIITE_DEV_PATH&validatorUrl=none")
     }
 
     @PreAuthorize(AUTH_API_FRAME_CONVERTER)
@@ -89,7 +89,7 @@ class SwaggerController @Autowired constructor(env: Environment) {
         params = ["!url"],
     )
     fun sendRataVkmSwaggerIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/rata-vkm/swagger-ui/index.html?url=$OPENAPI_RATAVKM_PATH")
+        sendRedirect(response, "/rata-vkm/swagger-ui/index.html?url=$OPENAPI_RATAVKM_PATH&validatorUrl=none")
     }
 
     @Profile("ext-api-dev-swagger")
@@ -103,7 +103,7 @@ class SwaggerController @Autowired constructor(env: Environment) {
         params = ["!url"],
     )
     fun sendRataVkmDevSwaggerIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/rata-vkm/dev/swagger-ui/index.html?url=$OPENAPI_RATAVKM_DEV_PATH")
+        sendRedirect(response, "/rata-vkm/dev/swagger-ui/index.html?url=$OPENAPI_RATAVKM_DEV_PATH&validatorUrl=none")
     }
 
     // Resource redirects (eg. swagger-ui javascript and css files)

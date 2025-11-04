@@ -32,22 +32,32 @@ import { isNilOrBlank } from 'utils/string-utils';
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
 export type LocationTrackState = 'BUILT' | 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING';
-export type RinfType =
-    | 10
-    | 20
-    | 30
-    | 40
-    | 50
-    | 60
-    | 70
-    | 80
-    | 90
-    | 100
-    | 110
-    | 120
-    | 130
-    | 140
-    | 150;
+
+export const operationalPointRinfTypes = [
+    ['STATION', 10],
+    ['SMALL_STATION', 20],
+    ['PASSENGER_TERMINAL', 30],
+    ['FREIGHT_TERMINAL', 40],
+    ['DEPOT_OR_WORKSHOP', 50],
+    ['TRAIN_TECHNICAL_SERVICES', 60],
+    ['PASSENGER_STOP', 70],
+    ['JUNCTION', 80],
+    ['BORDER_POINT', 90],
+    ['SHUNTING_YARD', 100],
+    ['TECHNICAL_CHANGE', 110],
+    ['SWITCH', 120],
+    ['PRIVATE_SIDING', 130],
+    ['DOMESTIC_BORDER_POINT', 140],
+    ['OVER_CROSSING', 150],
+] as const;
+
+export type OperationalPointRinfType = (typeof operationalPointRinfTypes)[number][0];
+export type OperationalPointRinfTypeCode = (typeof operationalPointRinfTypes)[number][1];
+
+export const operationalPointRinfTypeCodeToType = (code: OperationalPointRinfTypeCode) =>
+    operationalPointRinfTypes.find((t) => t[1] === code)?.[0];
+export const operationalPointRinfTypeToTypeCode = (type: OperationalPointRinfType) =>
+    operationalPointRinfTypes.find((t) => t[0] === type)?.[1];
 
 export const LAYOUT_SRID: Srid = 'EPSG:3067';
 
@@ -447,8 +457,8 @@ export type OperationalPoint = {
     name: string;
     abbreviation?: string;
     uicCode: UICCode;
-    rinfType: number;
-    raideType?: OperationalPointType;
+    rinfType?: OperationalPointRinfType;
+    raideType?: OperationalPointRaideType;
     location?: Point;
     polygon?: Polygon;
     state: OperationalPointState;
@@ -533,7 +543,7 @@ export type SwitchJointTrackMeter = {
     location: Point;
 };
 
-export type OperationalPointType =
+export type OperationalPointRaideType =
     | 'LP' // Liikennepaikka
     | 'LPO' // Liikennepaikan osa
     | 'OLP' // Osiin jaettu liikennepaikka

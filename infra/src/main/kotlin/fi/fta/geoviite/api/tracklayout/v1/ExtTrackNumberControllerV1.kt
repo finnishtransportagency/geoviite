@@ -29,8 +29,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
-private const val EXT_TRACK_NUMBER_TAG_V1 = "Ratanumero"
-private const val EXT_TRACK_NUMBER_COLLECTION_TAG_V1 = "Ratanumerokokoelma"
+const val EXT_TRACK_NUMBERS_TAG_V1 = "Ratanumerot"
 
 @PreAuthorize(AUTH_API_GEOMETRY)
 @GeoviiteExtApiController(
@@ -52,7 +51,7 @@ constructor(
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @GetMapping("/ratanumerot")
-    @Tag(name = EXT_TRACK_NUMBER_COLLECTION_TAG_V1)
+    @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Ratanumerokokoelman haku")
     @ApiResponses(
         value =
@@ -93,7 +92,7 @@ constructor(
     }
 
     @GetMapping("/ratanumerot/muutokset")
-    @Tag(name = EXT_TRACK_NUMBER_COLLECTION_TAG_V1)
+    @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Ratanumerokokoelman muutosten haku")
     @ApiResponses(
         value =
@@ -159,7 +158,7 @@ constructor(
     }
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}")
-    @Tag(name = EXT_TRACK_NUMBER_TAG_V1)
+    @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron haku OID-tunnuksella")
     @ApiResponses(
         value =
@@ -208,7 +207,7 @@ constructor(
     }
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset")
-    @Tag(name = EXT_TRACK_NUMBER_TAG_V1)
+    @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(
         summary = "Yksittäisen ratanumeron muutosten haku OID-tunnuksella",
         description =
@@ -290,7 +289,7 @@ constructor(
     }
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/geometria")
-    @Tag(name = EXT_TRACK_NUMBER_TAG_V1)
+    @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
     @Operation(summary = "Yksittäisen ratanumeron geometrian haku OID-tunnuksella")
     @ApiResponses(
         value =

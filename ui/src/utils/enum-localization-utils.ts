@@ -12,8 +12,9 @@ import {
     LocationTrackNamingScheme,
     LocationTrackState,
     LocationTrackType,
+    OperationalPointRinfType,
+    operationalPointRinfTypes,
     OperationalPointState,
-    RinfType,
     TopologicalConnectivityType,
     TrapPoint,
 } from 'track-layout/track-layout-model';
@@ -45,16 +46,13 @@ function values<T>(keyBase: string, enumValues: T[]): LocalizedEnum<T>[] {
     }));
 }
 
-function rinfTypeValues(): LocalizedEnum<RinfType>[] {
-    const enumValues: RinfType[] = [
-        10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150,
-    ];
-    return enumValues.map((v) => ({
-        value: v,
+function rinfTypeValues(): LocalizedEnum<OperationalPointRinfType>[] {
+    return operationalPointRinfTypes.map(([rinfType, rinfTypeCode]) => ({
+        value: rinfType,
         get name() {
-            return i18n.t(`enum.rinf-type-full`, { rinfType: v });
+            return i18n.t(`enum.rinf-type-full`, { rinfType, rinfTypeCode });
         },
-        qaId: `RinfType-${v}`,
+        qaId: `RinfType-${rinfTypeCode}`,
     }));
 }
 
@@ -220,7 +218,7 @@ export const locationTrackNameSpecifiers: LocalizedEnum<LocationTrackNameSpecifi
     ],
 );
 
-export const rinfTypes: LocalizedEnum<RinfType>[] = rinfTypeValues();
+export const rinfTypes: LocalizedEnum<OperationalPointRinfType>[] = rinfTypeValues();
 
 export const translateSwitchTrapPoint = (trapPoint: TrapPoint) =>
     switchTrapPoints.find((option) => option.value === trapPoint)?.name;

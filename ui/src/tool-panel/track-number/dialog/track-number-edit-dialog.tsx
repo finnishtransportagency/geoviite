@@ -25,15 +25,18 @@ import {
 } from './track-number-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { FieldValidationIssueType } from 'utils/validation-utils';
-import { LayoutReferenceLine, LayoutTrackNumber, LayoutTrackNumberId, } from 'track-layout/track-layout-model';
-import { formatTrackMeter } from 'utils/geography-utils';
+import {
+    LayoutReferenceLine,
+    LayoutTrackNumber,
+    LayoutTrackNumberId,
+} from 'track-layout/track-layout-model';
+import { formatTrackMeter, parseTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
 import styles from 'geoviite-design-lib/dialog/dialog.scss';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import TrackNumberRevertConfirmationDialog
-    from 'tool-panel/track-number/dialog/track-number-revert-confirmation-dialog';
+import TrackNumberRevertConfirmationDialog from 'tool-panel/track-number/dialog/track-number-revert-confirmation-dialog';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { isEqualIgnoreCase } from 'utils/string-utils';
@@ -41,6 +44,7 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
 import { UnknownAction } from 'redux';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import { isNil } from 'utils/type-utils';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -332,7 +336,17 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                             editingExistingValue: !!inEditTrackNumber,
                                         })
                                     }
-                                    onBlur={() => stateActions.onCommitField('startAddress')}
+                                    onBlur={(e) => {
+                                        const parsed = parseTrackMeter(e.target.value);
+                                        if (!isNil(parsed)) {
+                                            stateActions.onUpdateProp({
+                                                key: 'startAddress' as keyof TrackNumberSaveRequest,
+                                                value: formatTrackMeter(parsed),
+                                                editingExistingValue: !!inEditTrackNumber,
+                                            });
+                                        }
+                                        stateActions.onCommitField('startAddress');
+                                    }}
                                     disabled={saveInProgress}
                                     hasError={startAddressErrors.length > 0}
                                     wide

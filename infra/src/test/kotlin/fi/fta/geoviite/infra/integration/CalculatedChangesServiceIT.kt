@@ -20,9 +20,9 @@ import fi.fta.geoviite.infra.linking.switches.matchFittedSwitchToTracks
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -801,7 +801,10 @@ constructor(
     fun `reference line changes should be included in calculated changes`() {
         val testData = insertTestData()
         val (referenceLine, _) = testData.referenceLineAndAlignment
-        referenceLineService.saveDraft(LayoutBranch.main, referenceLine.copy(startAddress = TrackMeter(0, 500)))
+        referenceLineService.saveDraft(
+            LayoutBranch.main,
+            referenceLine.copy(startAddress = TrackMeter("0000+0500.000")),
+        )
 
         val changes = getCalculatedChanges(referenceLineIds = listOf(referenceLine.id as IntId))
 
@@ -1640,7 +1643,7 @@ constructor(
         trackNumberIds: List<IntId<LayoutTrackNumber>> = emptyList(),
         operationalPointIds: List<IntId<OperationalPoint>> = emptyList(),
     ): ValidationVersions {
-        val target = draftTransitionOrOfficialState(PublicationState.DRAFT, layoutBranch)
+        val target = LayoutContextTransition.publicationIn(layoutBranch)
         return ValidationVersions(
             target = target,
             locationTracks = locationTrackDao.fetchCandidateVersions(target.candidateContext, locationTrackIds),

@@ -111,11 +111,11 @@ with
   deletions as (
     insert into layout.operational_point
       (id, draft, design_id, layout_context_id, design_asset_state, origin_design_id, origin,
-       name, abbreviation, uic_code, type, location, state, rinf_type_code)
+       name, abbreviation, uic_code, type, location, state, rinf_type)
       (
         select
           id, true, null, 'main_draft', design_asset_state, origin_design_id, 'RATKO',
-          name, abbreviation, uic_code, type, location, 'DELETED', rinf_type_code
+          name, abbreviation, uic_code, type, location, 'DELETED', rinf_type
           from layout.operational_point
           where not exists (
             select *
@@ -136,15 +136,15 @@ insert
   into layout.operational_point
     (id, draft, design_id, layout_context_id, design_asset_state, origin_design_id, origin,
      name, abbreviation, uic_code, type, location, state,
-     rinf_type_code, polygon)
+     rinf_type, polygon)
     (
       select
         id, true, null, 'main_draft', null, null, 'RATKO',
         name, abbreviation, uic_code, type, location, 'IN_USE',
-        existing_point.rinf_type_code, existing_point.polygon
+        existing_point.rinf_type, existing_point.polygon
         from to_update
           left join lateral
-            (select rinf_type_code, polygon
+            (select rinf_type, polygon
              from layout.operational_point existing_point
              where existing_point.id = to_update.id
                and existing_point.design_id is null

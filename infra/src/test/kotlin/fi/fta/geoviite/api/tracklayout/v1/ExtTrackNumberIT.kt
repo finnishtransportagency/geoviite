@@ -38,7 +38,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -315,7 +314,7 @@ constructor(
         api.trackNumbers.assertNoModificationSince(tnOid, basePublication.uuid)
 
         initUser()
-        val newStart = TrackMeter(KmNumber("0001"), BigDecimal.TEN)
+        val newStart = TrackMeter("0001+0010.000")
         mainDraftContext.save(mainOfficialContext.fetch(rlId)!!.copy(startAddress = newStart), rlGeom)
         val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(rlId))
         assertAddressRange(getExtTrackNumber(tnOid), "0001+0010.000", "0001+0020.000")

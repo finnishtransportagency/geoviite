@@ -26,6 +26,7 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(val number: Int, v
     @JsonCreator(mode = DELEGATING) constructor(value: String) : this(parseKmNumberParts(value))
 
     companion object {
+        val kmNumberRange = 0..9999
         val extensionLength = 1..2
         private const val EXTENSION_CHARACTERS = "A-Z"
         private val extensionSanitizer = StringSanitizer(KmNumber::class, EXTENSION_CHARACTERS, extensionLength)
@@ -37,6 +38,7 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(val number: Int, v
     @JsonValue override fun toString(): String = stringValue
 
     init {
+        require(kmNumberRange.contains(number)) { "KmNumbers must be in the range of $kmNumberRange" }
         extension?.let(extensionSanitizer::assertSanitized)
     }
 
@@ -120,9 +122,9 @@ constructor(override val kmNumber: KmNumber, override val meters: BigDecimal) : 
 
         val ZERO = TrackMeter(KmNumber.ZERO, BigDecimal.ZERO)
 
-        fun capMeters(value: BigDecimal): BigDecimal = maxOf(minOf(value, maxMeterInclusive), -maxMeterInclusive)
+        fun capMeters(value: BigDecimal): BigDecimal = maxOf(minOf(value, maxMeterInclusive), BigDecimal.ZERO)
 
-        fun isMetersValid(v: BigDecimal): Boolean = -maxMeterExclusive < v && v < maxMeterExclusive
+        fun isMetersValid(v: BigDecimal): Boolean = BigDecimal.ZERO <= v && v < maxMeterExclusive
 
         fun isMetersValid(v: LineM<*>) = isMetersValid(v.distance)
 
@@ -201,7 +203,7 @@ constructor(override val kmNumber: KmNumber, override val meters: BigDecimal) : 
 }
 
 private fun getMetersFormat(decimals: Int) =
-    meterFormats[decimals] ?: throw IllegalStateException("No meters format defined for scale $decimals")
+    requireNotNull(meterFormats[decimals]) { "No meters format defined for scale $decimals" }
 
 private val meterFormats: Map<Int, DecimalFormat> by lazy {
     (0..METERS_MAX_DECIMAL_DIGITS).associateWith { decimals ->

@@ -27,14 +27,15 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
-private const val EXT_TRACK_NUMBER_KMS_TAG_V1 = "Ratanumeron tasakilometripisteet"
-private const val EXT_TRACK_NUMBER_KMS_COLLECTION_TAG_V1 = "Ratanumerokokoelman tasakilometripisteet"
-
 @PreAuthorize(AUTH_API_GEOMETRY)
 @GeoviiteExtApiController(
-    ["$EXT_TRACK_LAYOUT_BASE_PATH/paikannuspohja/v1", "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1"]
+    [
+        "/paikannuspohja/v1",
+        "$EXT_TRACK_LAYOUT_BASE_PATH/paikannuspohja/v1",
+        "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1",
+    ]
 )
-class ExtKmPostControllerV1
+class ExtTrackNumberKmControllerV1
 @Autowired
 constructor(
     private val extKmPostService: ExtTrackNumberKmServiceV1,
@@ -42,13 +43,13 @@ constructor(
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/ratakilometrit")
-    @Tag(name = EXT_TRACK_NUMBER_KMS_COLLECTION_TAG_V1)
-    @Operation(summary = "Kaikkien ratanumeroiden ratakilometrien haku")
+    @GetMapping("/ratanumerot/ratakilometrit")
+    @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
+    @Operation(summary = "Ratanumerokokoelman ratakilometrien haku")
     @ApiResponses(
         value =
             [
-                ApiResponse(responseCode = "200", description = "Ratakilometrikokoelman haku onnistui."),
+                ApiResponse(responseCode = "200", description = "Ratanumerokokoelman ratakilometrien haku onnistui."),
                 ApiResponse(
                     responseCode = "400",
                     description = EXT_OPENAPI_INVALID_ARGUMENTS,
@@ -81,12 +82,12 @@ constructor(
     }
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/ratakilometrit")
-    @Tag(name = EXT_TRACK_NUMBER_KMS_TAG_V1)
-    @Operation(summary = "Yksittäisen ratanumeron kilometrien haku OID-tunnuksella")
+    @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
+    @Operation(summary = "Yksittäisen ratanumeron ratakilometrien haku OID-tunnuksella")
     @ApiResponses(
         value =
             [
-                ApiResponse(responseCode = "200", description = "Ratanumeron kilometrien haku onnistui."),
+                ApiResponse(responseCode = "200", description = "Ratanumeron ratakilometrien haku onnistui."),
                 ApiResponse(
                     responseCode = "204",
                     description =

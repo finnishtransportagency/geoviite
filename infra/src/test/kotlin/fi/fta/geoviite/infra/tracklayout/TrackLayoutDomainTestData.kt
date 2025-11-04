@@ -307,7 +307,7 @@ fun trackNumberSaveRequest(
         number = number,
         description = TrackNumberDescription(description),
         state = state,
-        startAddress = startAddress,
+        startAddress = startAddress.round(3),
     )
 
 fun referenceLineAndAlignment(
@@ -341,7 +341,7 @@ fun referenceLine(
 ) =
     ReferenceLine(
         trackNumberId = trackNumberId,
-        startAddress = startAddress,
+        startAddress = startAddress.round(3),
         sourceId = null,
         boundingBox = alignment?.boundingBox,
         segmentCount = alignment?.segments?.size ?: 0,
@@ -958,7 +958,8 @@ fun kmPostGkLocation(
     gkLocationConfirmed: Boolean = false,
 ) = LayoutKmPostGkLocation(location = gkLocation, confirmed = gkLocationConfirmed, source = gkLocationSource)
 
-fun kmPostGkLocation(x: Double, y: Double) = kmPostGkLocation(Point(x, y))
+fun kmPostGkLocation(x: Double, y: Double, confirmed: Boolean = false): LayoutKmPostGkLocation =
+    kmPostGkLocation(Point(x, y), gkLocationConfirmed = confirmed)
 
 fun kmPostGkLocation(
     roughLayoutLocation: Point,
@@ -1148,7 +1149,7 @@ fun publishedVersions(
 fun operationalPoint(
     name: String = "name",
     abbreviation: String = name,
-    rinfType: Int? = 10,
+    rinfType: OperationalPointRinfType? = OperationalPointRinfType.STATION,
     state: OperationalPointState = OperationalPointState.IN_USE,
     uicCode: String? = "1234",
     location: Point = Point(10.0, 10.0),

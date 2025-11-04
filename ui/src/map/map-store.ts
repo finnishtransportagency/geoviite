@@ -186,7 +186,7 @@ export const initialMapState: Map = {
             },
             { name: 'switch', visible: true, qaId: 'switch-layer' },
             { name: 'km-post', visible: true, qaId: 'km-post-layer' },
-            { name: 'operational-points', visible: false, qaId: 'operational-points-layer' },
+            { name: 'operational-points', visible: true, qaId: 'operational-points-layer' },
         ],
         geometry: [
             { name: 'geometry-alignment', visible: true, qaId: 'geometry-alignment-layer' },

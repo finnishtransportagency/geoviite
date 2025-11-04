@@ -109,7 +109,8 @@ export const SwitchEditDialog = ({
     const [showDeleteOfficialConfirmDialog, setShowDeleteOfficialConfirmDialog] =
         React.useState(false);
     const [showDeleteDraftConfirmDialog, setShowDeleteDraftConfirmDialog] = React.useState(false);
-    const [switchStateCategory, setSwitchStateCategory] = React.useState<LayoutStateCategory>();
+    const [switchStateCategory, setSwitchStateCategory] =
+        React.useState<LayoutStateCategory>('EXISTING');
     const [switchDraftOidExistsInRatko, setSwitchDraftOidExistsInRatko] = React.useState(false);
     const [switchDraftOid, setSwitchDraftOid] = React.useState<string>('');
     const [switchName, setSwitchName] = React.useState<string>('');
@@ -439,7 +440,7 @@ export const SwitchEditDialog = ({
                         />
 
                         <FieldLayout
-                            label={`${t('switch-dialog.trap-point')}`}
+                            label={`${t('switch-dialog.trap-point')} *`}
                             value={
                                 <Dropdown
                                     value={trapPoint}
@@ -456,7 +457,7 @@ export const SwitchEditDialog = ({
                         </Heading>
 
                         <FieldLayout
-                            label={t('switch-dialog.owner')}
+                            label={`${t('switch-dialog.owner')} *`}
                             value={
                                 <Dropdown
                                     value={switchOwnerId}

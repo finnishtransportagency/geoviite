@@ -6,6 +6,7 @@ import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class KmNumberTest {
 
@@ -138,5 +139,32 @@ class KmNumberTest {
         assertFalse(TrackMeter("1234+1234.1234").matchesIntegerValue())
         assertTrue(TrackMeter("1234+1234.0000").matchesIntegerValue())
         assertTrue(TrackMeter("1234+1234").matchesIntegerValue())
+    }
+
+    @Test
+    fun `negative km numbers are not allowed`() {
+        assertThrows<IllegalArgumentException> { KmNumber(-1) }
+    }
+
+    @Test
+    fun `5 digit km numbers are not allowed`() {
+        assertThrows<IllegalArgumentException> { KmNumber(10000) }
+    }
+
+    @Test
+    fun `negative track meters are not allowed`() {
+        assertThrows<IllegalArgumentException> { TrackMeter(KmNumber.ZERO, -1) }
+        assertThrows<IllegalArgumentException> { TrackMeter(KmNumber.ZERO, 1) - BigDecimal.TEN }
+        assertThrows<IllegalArgumentException> { TrackMeter(KmNumber.ZERO, -0.000001, 6) }
+        assertThrows<IllegalArgumentException> { TrackMeter(KmNumber.ZERO, -0.0009, 3) }
+        assertEquals(TrackMeter.ZERO.round(3), TrackMeter(KmNumber.ZERO, -0.0001, 3))
+    }
+
+    @Test
+    fun `5 digit track meters are not allowed`() {
+        assertThrows<IllegalArgumentException> { TrackMeter(KmNumber.ZERO, 10000) }
+        assertThrows<IllegalArgumentException> { TrackMeter(KmNumber.ZERO, 9999) + BigDecimal.TEN }
+        assertThrows<IllegalArgumentException> { TrackMeter(KmNumber.ZERO, 9999.999999, 3) }
+        assertEquals(TrackMeter("0000+9999.999"), TrackMeter(KmNumber.ZERO, 9999.9991, 3))
     }
 }

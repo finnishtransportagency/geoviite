@@ -19,6 +19,8 @@ import {
 } from 'track-layout/layout-operational-point-api';
 import * as SnackBar from 'geoviite-design-lib/snackbar/snackbar';
 import infoboxStyles from 'tool-panel/infobox/infobox.module.scss';
+import { EDIT_LAYOUT } from 'user/user-model';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 type OperationalPointLocationInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -114,6 +116,7 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
                         {t('tool-panel.operational-point.focus-on-map')}
                     </Button>
                 </InfoboxButtons>
+                <PrivilegeRequired privilege={EDIT_LAYOUT}>
                 {(!layoutState.linkingState ||
                     layoutState.linkingState.type !== LinkingType.PlacingOperationalPoint) && (
                     <InfoboxButtons>
@@ -210,6 +213,7 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
                             </InfoboxButtons>
                         </React.Fragment>
                     )}
+                </PrivilegeRequired>
             </InfoboxContent>
         </Infobox>
     );

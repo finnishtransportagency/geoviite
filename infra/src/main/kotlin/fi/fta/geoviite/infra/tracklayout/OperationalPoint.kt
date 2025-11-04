@@ -7,15 +7,15 @@ import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
-import fi.fta.geoviite.infra.ratko.model.OperationalPointType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.util.StringSanitizer
 
 data class OperationalPoint(
     val name: OperationalPointName,
     val abbreviation: OperationalPointAbbreviation?,
     val uicCode: UicCode?,
-    val rinfType: Int?,
-    val raideType: OperationalPointType?,
+    val rinfType: OperationalPointRinfType?,
+    val raideType: OperationalPointRaideType?,
     val polygon: Polygon?,
     val location: Point?,
     val state: OperationalPointState,
@@ -107,9 +107,29 @@ data class OperationalPointAbbreviation @JsonCreator(mode = DELEGATING) construc
 data class InternalOperationalPointSaveRequest(
     val name: OperationalPointName,
     val abbreviation: OperationalPointAbbreviation,
-    val rinfType: Int,
+    val rinfType: OperationalPointRinfType,
     val state: OperationalPointState,
     val uicCode: UicCode,
 )
 
-data class ExternalOperationalPointSaveRequest(val rinfType: Int)
+data class ExternalOperationalPointSaveRequest(val rinfType: OperationalPointRinfType)
+
+enum class OperationalPointRinfType {
+    STATION,
+    SMALL_STATION,
+    PASSENGER_TERMINAL,
+    FREIGHT_TERMINAL,
+    DEPOT_OR_WORKSHOP,
+    TRAIN_TECHNICAL_SERVICES,
+    PASSENGER_STOP,
+    JUNCTION,
+    BORDER_POINT,
+    SHUNTING_YARD,
+    TECHNICAL_CHANGE,
+    SWITCH,
+    PRIVATE_SIDING,
+    DOMESTIC_BORDER_POINT,
+    OVER_CROSSING,
+}
+
+data class OperationalPointRinfTypeWithCode(val type: OperationalPointRinfType, val code: Int)

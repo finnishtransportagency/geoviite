@@ -35,6 +35,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.TrackNumberAndChangeTime
@@ -44,12 +45,12 @@ import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
@@ -69,6 +70,7 @@ constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val switchDao: LayoutSwitchDao,
     private val kmPostDao: LayoutKmPostDao,
+    private val operationalPointDao: OperationalPointDao,
 ) {
 
     @Transactional(readOnly = true)
@@ -89,6 +91,7 @@ constructor(
         val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(ids)
         val publishedLocationTracks = publicationDao.fetchPublishedLocationTracks(ids)
         val publishedSwitches = publicationDao.fetchPublishedSwitches(ids)
+        val publishedOperationalPoints = publicationDao.fetchPublishedOperationalPoints(ids)
         val splits = splitService.getSplitIdsByPublication(ids).mapValues { (_, splitId) -> splitService.get(splitId) }
 
         return ids.associateWith { id ->
@@ -100,6 +103,7 @@ constructor(
             val (directLocationTracks, indirectLocationTracks) =
                 publishedLocationTracks[id] ?: PublishedItemListing(listOf(), listOf())
             val (directSwitches, indirectSwitches) = publishedSwitches[id] ?: PublishedItemListing(listOf(), listOf())
+            val operationalPoints = publishedOperationalPoints[id] ?: listOf()
             val ratkoStatus = ratkoStatuses[id]
             val split = splits[id]
 
@@ -118,6 +122,7 @@ constructor(
                 locationTracks = directLocationTracks,
                 switches = directSwitches,
                 kmPosts = kmPosts,
+                operationalPoints = operationalPoints,
                 ratkoPushStatus = ratkoStatus?.status,
                 ratkoPushTime = ratkoStatus?.endTime,
                 indirectChanges =
@@ -654,6 +659,36 @@ constructor(
             compareChangeValues(changes.gkLocationConfirmed, { it }, PropKey("gk-location-confirmed")),
         )
 
+    fun diffOperationalPoint(translation: Translation, changes: OperationalPointChanges): List<PublicationChange<*>> =
+        listOfNotNull(
+            compareChangeValues(changes.name, { it }, PropKey("operational-point")),
+            compareChangeValues(changes.abbreviation, { it }, PropKey("abbreviation")),
+            compareChangeValues(changes.uicCode, { it }, PropKey("uic-code")),
+            compareChangeValues(
+                changes.rinfType,
+                { rinfType ->
+                    if (rinfType == null) null
+                    else "${translation.t("enum.OperationalPointRinfType.${rinfType.type.name}")} (${rinfType.code})"
+                },
+                PropKey("rinf-type"),
+            ),
+            compareChangeValues(
+                changes.raideType,
+                { it },
+                PropKey("raide-type"),
+                enumLocalizationKey = "OperationalPointRaideType",
+            ),
+            compareChangeValues(changes.polygon, { null }, PropKey("polygon")),
+            compareChangeValues(
+                changes.location,
+                ::formatLocation,
+                PropKey("location"),
+                remark =
+                    getPointMovedRemarkOrNull(translation, changes.location.old, changes.location.new, "moved-x-meters"),
+            ),
+            compareChangeValues(changes.state, { it }, PropKey("state"), enumLocalizationKey = "OperationalPointState"),
+        )
+
     private fun projectPointToReferenceLineAtTime(
         timestamp: Instant,
         location: Point?,
@@ -829,6 +864,8 @@ constructor(
                     PublicationLogAssetType.SWITCH ->
                         publication.allPublishedSwitches.none { it.id == publicationLogAsset.id }
                     PublicationLogAssetType.KM_POST -> publication.kmPosts.none { it.id == publicationLogAsset.id }
+                    PublicationLogAssetType.OPERATIONAL_POINT ->
+                        publication.operationalPoints.none { it.id == publicationLogAsset.id }
                 }
 
     private fun mapToPublicationTableItems(
@@ -863,6 +900,10 @@ constructor(
         val publicationSwitchChanges =
             if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.SWITCH)) mapOf()
             else publicationDao.fetchPublicationSwitchChanges(publication.id)
+        val publicationOperationalPointChanges =
+            if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.OPERATIONAL_POINT))
+                mapOf()
+            else publicationDao.fetchPublicationOperationalPointChanges(publication.id)
 
         val trackNumbersToDiff =
             publication.trackNumbers.filter { tn ->
@@ -888,11 +929,17 @@ constructor(
             publication.indirectChanges.locationTracks.filter { lt ->
                 publicationLogAsset == null || publicationLogAsset.isLocationTrack(lt.id)
             }
+        val operationalPointsToDiff =
+            publication.operationalPoints.filter { op ->
+                publicationLogAsset == null || publicationLogAsset.isOperationalPoint(op.id)
+            }
 
         // Multi-fetch the actual objects to avoid extra round-trips to DB
         val trackNumberVersions = trackNumberDao.fetchManyByVersion(trackNumbersToDiff.map { it.version })
         val referenceLineVersions = referenceLineDao.fetchManyByVersion(referenceLinesToDiff.map { it.version })
         val kmPostVersions = kmPostDao.fetchManyByVersion(kmPostsToDiff.map { it.version })
+        val operationalPointVersions =
+            operationalPointDao.fetchManyByVersion(operationalPointsToDiff.map { it.version })
         val locationTrackVersions =
             locationTrackDao.fetchManyByVersion(
                 (locationTracksToDiff + indirectLocationTracksToDiff).map { it.version }.distinct()
@@ -1036,6 +1083,24 @@ constructor(
                 )
             }
 
+        val operationalPoints =
+            operationalPointsToDiff.map { op ->
+                mapToPublicationTableItem(
+                    name = translation.t("publication-table.operational-point", localizationParams("name" to op.name)),
+                    asset = PublishedAssetOperationalPoint(operationalPointVersions.getValue(op.version)),
+                    trackNumbers = setOf(),
+                    operation = op.operation,
+                    publication = publication,
+                    propChanges =
+                        diffOperationalPoint(
+                            translation,
+                            publicationOperationalPointChanges.getOrElse(op.id) {
+                                error("Operational point changes not found: id=${op.id} version=${op.version}")
+                            },
+                        ),
+                )
+            }
+
         val calculatedLocationTracks =
             indirectLocationTracksToDiff.map { lt ->
                 val tn =
@@ -1102,6 +1167,7 @@ constructor(
                 kmPosts,
                 calculatedLocationTracks,
                 calculatedSwitches,
+                operationalPoints,
             )
             .flatten()
             .map { publicationTableItem ->

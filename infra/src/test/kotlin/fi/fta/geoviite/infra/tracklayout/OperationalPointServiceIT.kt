@@ -7,9 +7,11 @@ import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
+import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -17,8 +19,13 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class OperationalPointServiceIT @Autowired constructor(private val operationalPointService: OperationalPointService) :
-    DBTestBase() {
+class OperationalPointServiceIT
+@Autowired
+constructor(
+    private val operationalPointService: OperationalPointService,
+    private val operationalPointDao: OperationalPointDao,
+) : DBTestBase() {
+
     @BeforeEach
     fun cleanup() {
         testDBService.deleteFromTables(
@@ -85,7 +92,7 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
                     internalPointSaveRequest(
                         name = "updated",
                         abbreviation = "upd",
-                        rinfType = 20,
+                        rinfType = OperationalPointRinfType.PASSENGER_TERMINAL,
                         state = OperationalPointState.DELETED,
                         uicCode = "20202",
                     ),
@@ -93,7 +100,7 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
                 .let { version -> operationalPointService.getOrThrow(mainDraftContext.context, version.id) }
         assertEquals("updated", updated.name.toString())
         assertEquals("upd", updated.abbreviation.toString())
-        assertEquals(20, updated.rinfType)
+        assertEquals(OperationalPointRinfType.PASSENGER_TERMINAL, updated.rinfType)
         assertEquals(OperationalPointState.DELETED, updated.state)
         assertEquals("20202", updated.uicCode.toString())
     }
@@ -112,9 +119,13 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
         val original = testDBService.save(operationalPoint("external", origin = OperationalPointOrigin.RATKO))
         val updated =
             operationalPointService
-                .update(LayoutBranch.main, original.id, externalPointSaveRequest(rinfType = 30))
+                .update(
+                    LayoutBranch.main,
+                    original.id,
+                    externalPointSaveRequest(rinfType = OperationalPointRinfType.FREIGHT_TERMINAL),
+                )
                 .let { version -> operationalPointService.get(mainDraftContext.context, version.id)!! }
-        assertEquals(30, updated.rinfType)
+        assertEquals(OperationalPointRinfType.FREIGHT_TERMINAL, updated.rinfType)
     }
 
     @Test
@@ -122,7 +133,11 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
         val internal = operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("internal")).id
 
         assertThrows<SavingFailureException> {
-            operationalPointService.update(LayoutBranch.main, internal, externalPointSaveRequest(rinfType = 30))
+            operationalPointService.update(
+                LayoutBranch.main,
+                internal,
+                externalPointSaveRequest(rinfType = OperationalPointRinfType.FREIGHT_TERMINAL),
+            )
         }
     }
 
@@ -145,10 +160,23 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
         assertEquals(area, updated.polygon)
     }
 
+    @Test
+    fun `publication assigns an oid to not-yet-oided operational points`() {
+        val firstDraft = operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("a"))
+        assertNull(operationalPointDao.fetchExternalId(LayoutBranch.main, firstDraft.id))
+        operationalPointService.publish(LayoutBranch.main, firstDraft)
+        val assignedOid = operationalPointDao.fetchExternalId(LayoutBranch.main, firstDraft.id)
+        assertNotNull(assignedOid)
+        operationalPointService.update(LayoutBranch.main, firstDraft.id, internalPointSaveRequest("b"))
+        operationalPointService.publish(LayoutBranch.main, firstDraft)
+        val oidAfterSecondPublication = operationalPointDao.fetchExternalId(LayoutBranch.main, firstDraft.id)
+        assertEquals(assignedOid.oid, oidAfterSecondPublication?.oid)
+    }
+
     private fun internalPointSaveRequest(
         name: String = "name",
         abbreviation: String = name,
-        rinfType: Int = 10,
+        rinfType: OperationalPointRinfType = OperationalPointRinfType.SMALL_STATION,
         state: OperationalPointState = OperationalPointState.IN_USE,
         uicCode: String = "10101",
     ) =
@@ -160,5 +188,6 @@ class OperationalPointServiceIT @Autowired constructor(private val operationalPo
             UicCode(uicCode),
         )
 
-    private fun externalPointSaveRequest(rinfType: Int = 10) = ExternalOperationalPointSaveRequest(rinfType)
+    private fun externalPointSaveRequest(rinfType: OperationalPointRinfType = OperationalPointRinfType.SMALL_STATION) =
+        ExternalOperationalPointSaveRequest(rinfType)
 }

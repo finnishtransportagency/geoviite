@@ -58,3 +58,5 @@ springdoc:
     path: /swagger-ui.html
     defaultModelsExpandDepth: -1
     query-config-enabled: true
+    validatorUrl: none
+    disable-swagger-default-url: true

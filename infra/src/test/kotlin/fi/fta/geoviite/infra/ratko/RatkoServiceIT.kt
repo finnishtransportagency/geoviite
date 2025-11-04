@@ -33,7 +33,7 @@ import fi.fta.geoviite.infra.publication.PublicationResult
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
-import fi.fta.geoviite.infra.ratko.model.OperationalPointType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetState
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
@@ -90,6 +90,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
 import fi.fta.geoviite.infra.tracklayout.OperationalPointService
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -255,7 +256,7 @@ constructor(
                 newTrackNumber,
                 TrackNumberDescription("aoeu"),
                 LayoutState.IN_USE,
-                TrackMeter(KmNumber("0123"), 0),
+                TrackMeter("0123+0000.000"),
             ),
         )
         publishAndPush(trackNumbers = listOf(originalTrackNumber.id))
@@ -275,7 +276,7 @@ constructor(
                 trackNumber.trackNumberObject.number,
                 TrackNumberDescription("augh"),
                 LayoutState.DELETED,
-                TrackMeter(KmNumber("0123"), 0),
+                TrackMeter("0123+0000.000"),
             ),
         )
         publishAndPush(trackNumbers = listOf(trackNumber.id))
@@ -1242,7 +1243,7 @@ constructor(
         name: String,
         trackNumberOid: Oid<RatkoRouteNumber>,
         location: Point = Point(10.0, 10.0),
-    ) = RatkoOperationalPointParse(Oid(oid), name, name, "1234", OperationalPointType.LP, location, trackNumberOid)
+    ) = RatkoOperationalPointParse(Oid(oid), name, name, "1234", OperationalPointRaideType.LP, location, trackNumberOid)
 
     @Test
     fun fetchAndFindOperatingPoints() {
@@ -1258,7 +1259,7 @@ constructor(
                 "Kannustamo",
                 "KST",
                 "123101431",
-                OperationalPointType.LPO,
+                OperationalPointRaideType.LPO,
                 Point(100.0, 100.0),
                 Oid("5.5.5.5.5"),
             )
@@ -1277,7 +1278,7 @@ constructor(
         assertEquals("Kannustamo", pointFromIntegrationTable.name)
         assertEquals("KST", pointFromIntegrationTable.abbreviation)
         assertEquals("123101431", pointFromIntegrationTable.uicCode)
-        assertEquals(OperationalPointType.LPO, pointFromIntegrationTable.type)
+        assertEquals(OperationalPointRaideType.LPO, pointFromIntegrationTable.type)
         assertEquals(Point(100.0, 100.0), pointFromIntegrationTable.location)
         assertEquals(trackNumberId, pointFromIntegrationTable.trackNumberId)
 
@@ -1296,7 +1297,7 @@ constructor(
         assertEquals("Kannustamo", pointFromLayoutTable.name.toString())
         assertEquals("KST", pointFromLayoutTable.abbreviation.toString())
         assertEquals("123101431", pointFromLayoutTable.uicCode.toString())
-        assertEquals(OperationalPointType.LPO, pointFromLayoutTable.raideType)
+        assertEquals(OperationalPointRaideType.LPO, pointFromLayoutTable.raideType)
         assertEquals(Point(100.0, 100.0), pointFromLayoutTable.location)
     }
 
@@ -1428,29 +1429,57 @@ constructor(
         // operating points have been imported from Ratko, now users make some changes and publish some of them
         val layoutPoints = operationalPointDao.list(mainDraftContext.context, false)
         mainDraftContext
-            .save(layoutPoints.find { it.name.toString() == "Kannustamo" }!!.copy(rinfType = 20))
+            .save(
+                layoutPoints
+                    .find { it.name.toString() == "Kannustamo" }!!
+                    .copy(rinfType = OperationalPointRinfType.SMALL_STATION)
+            )
             .let(mainOfficialContext::moveFrom)
-        mainDraftContext.save(layoutPoints.find { it.name.toString() == "Turpeela" }!!.copy(rinfType = 40))
+        mainDraftContext.save(
+            layoutPoints
+                .find { it.name.toString() == "Turpeela" }!!
+                .copy(rinfType = OperationalPointRinfType.FREIGHT_TERMINAL)
+        )
         mainDraftContext
-            .save(layoutPoints.find { it.name.toString() == "Liukuainen" }!!.copy(rinfType = 20))
+            .save(
+                layoutPoints
+                    .find { it.name.toString() == "Liukuainen" }!!
+                    .copy(rinfType = OperationalPointRinfType.SMALL_STATION)
+            )
             .let(mainOfficialContext::moveFrom)
-        mainDraftContext.save(layoutPoints.find { it.name.toString() == "Surmankäki" }!!.copy(rinfType = 40))
+        mainDraftContext.save(
+            layoutPoints
+                .find { it.name.toString() == "Surmankäki" }!!
+                .copy(rinfType = OperationalPointRinfType.FREIGHT_TERMINAL)
+        )
 
         fakeRatko.hasOperationalPoints(listOf(turpeela, kannustamo))
         ratkoService.updateOperationalPointsFromRatko()
 
         // deleted versions retain user-assigned rinf codes
         val afterFirstUpdate = operationalPointDao.list(mainDraftContext.context, true)
-        assertEquals(20, afterFirstUpdate.find { it.name.toString() == "Liukuainen" }?.rinfType)
-        assertEquals(40, afterFirstUpdate.find { it.name.toString() == "Surmankäki" }?.rinfType)
+        assertEquals(
+            OperationalPointRinfType.SMALL_STATION,
+            afterFirstUpdate.find { it.name.toString() == "Liukuainen" }?.rinfType,
+        )
+        assertEquals(
+            OperationalPointRinfType.FREIGHT_TERMINAL,
+            afterFirstUpdate.find { it.name.toString() == "Surmankäki" }?.rinfType,
+        )
 
         fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = "Turpasauna"), kannustamo.copy(name = "Nujertamo")))
         ratkoService.updateOperationalPointsFromRatko()
 
         // renamed versions retain user-assigned rinf codes
         val afterSecondUpdate = operationalPointDao.list(mainDraftContext.context, true)
-        assertEquals(40, afterSecondUpdate.find { it.name.toString() == "Turpasauna" }?.rinfType)
-        assertEquals(20, afterSecondUpdate.find { it.name.toString() == "Nujertamo" }?.rinfType)
+        assertEquals(
+            OperationalPointRinfType.FREIGHT_TERMINAL,
+            afterSecondUpdate.find { it.name.toString() == "Turpasauna" }?.rinfType,
+        )
+        assertEquals(
+            OperationalPointRinfType.SMALL_STATION,
+            afterSecondUpdate.find { it.name.toString() == "Nujertamo" }?.rinfType,
+        )
     }
 
     @Test

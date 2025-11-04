@@ -2,13 +2,12 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.publication.ValidationTarget
+import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
@@ -89,7 +88,7 @@ class LayoutKmPostDao(
     }
 
     fun fetchVersionsForPublication(
-        target: ValidationTarget,
+        target: LayoutContextTransition,
         trackNumberIds: List<IntId<LayoutTrackNumber>>,
         kmPostIdsToPublish: List<IntId<LayoutKmPost>>,
     ): Map<IntId<LayoutTrackNumber>, List<LayoutRowVersion<LayoutKmPost>>> {
