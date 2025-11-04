@@ -44,7 +44,7 @@ import {
     CandidateDataProperties,
     getSwitchLocation,
 } from 'map/layers/utils/publication-candidate-highlight-utils';
-import { renderOperationalPointFeature } from 'map/layers/operational-point/operational-points-layer-utils';
+import { renderOperationalPointCircleFeature } from 'map/layers/operational-point/operational-points-layer-utils';
 import { getOperationalPoints } from 'track-layout/layout-operational-point-api';
 
 let shownSwitchesCompare = '';
@@ -117,7 +117,11 @@ const createFeatures = (
         .filter(filterNotEmpty);
     const opFeatures = operationalPoints
         .flatMap((operationalPoint) =>
-            renderOperationalPointFeature(operationalPoint, 'DELETED', operationalPoint.location),
+            renderOperationalPointCircleFeature(
+                operationalPoint,
+                'DELETED',
+                operationalPoint.location,
+            ),
         )
         .filter(filterNotEmpty);
 

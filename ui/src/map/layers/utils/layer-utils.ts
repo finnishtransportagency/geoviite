@@ -1,6 +1,6 @@
 import Feature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
-import { Geometry, LineString, Point as OlPoint, Polygon } from 'ol/geom';
+import { Geometry, LineString, MultiPoint, Point as OlPoint, Polygon } from 'ol/geom';
 import { GeometryPlanLayout, LAYOUT_SRID, PlanAndStatus } from 'track-layout/track-layout-model';
 import { VisiblePlanLayout } from 'selection/selection-model';
 import { LayerItemSearchResult, SearchItemsOptions } from 'map/layers/utils/layer-model';
@@ -90,6 +90,20 @@ export function getDistancePointAndPolygon(point: OlPoint, polygon: Polygon): nu
     const polyCenter = centroid(polygon);
     return getPlanarDistancePointAndPoint(point, polyCenter);
 }
+
+export const getFeatureCoords = (
+    feature: Feature<MultiPoint | LineString | Polygon>,
+): Coordinate[] => {
+    const geom = feature.getGeometry();
+    const coords = geom?.getCoordinates()?.[0];
+    const unified: Coordinate[] =
+        Array.isArray(coords) && Array.isArray(coords[0])
+            ? (coords as Coordinate[])
+            : Array.isArray(coords) && !Array.isArray(coords[0])
+              ? ([coords] as Coordinate[])
+              : [];
+    return unified.map((c) => (Array.isArray(c) ? c.map((v: number) => v) : c));
+};
 
 /**
  * Return the shortest distance between the point and the geometry in meters

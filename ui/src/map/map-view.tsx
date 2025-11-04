@@ -49,7 +49,7 @@ import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
 import { createAlignmentLinkingLayer } from 'map/layers/alignment/alignment-linking-layer';
 import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
-import { GeoviiteMapLayer, pointToCoords } from 'map/layers/utils/layer-utils';
+import { GeoviiteMapLayer, getFeatureCoords, pointToCoords } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
 import { createSwitchLayer } from 'map/layers/switch/switch-layer';
 import {
@@ -74,7 +74,7 @@ import { createDuplicateTracksHighlightLayer } from 'map/layers/highlight/duplic
 import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
 import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/track-number-end-point-addresses-layer';
-import { GvtPolygon, Point, Rectangle } from 'model/geometry';
+import { coordsToPolygon, GvtPolygon, Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -99,14 +99,10 @@ import { createDebugGeometryGraphLayer } from 'map/layers/debug/debug-geometry-g
 import { PlanDownloadState } from 'map/plan-download/plan-download-store';
 import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
 import { createDebugProjectionLinesLayer } from 'map/layers/debug/debug-projection-lines-layer';
-import {
-    coordsToPolygon,
-    createOperationalPointsAreaPlacingLayer,
-    getCoords,
-    operationalPointAreaPolygonStyle,
-} from 'map/layers/operational-point/operational-points-area-placing-layer';
+import { createOperationalPointsAreaPlacingLayer } from 'map/layers/operational-point/operational-points-area-placing-layer';
 import Feature from 'ol/Feature';
 import { createOperationalPointsPlacingLayer } from 'map/layers/operational-point/operational-points-placing-layer';
+import { operationalPointAreaPolygonStyle } from 'map/layers/operational-point/operational-points-layer-utils';
 
 declare global {
     interface Window {
@@ -238,6 +234,27 @@ function useIsLoadingMapLayers(visibleLayers: MapLayerName[]): {
     return { isLoading, onLayerLoading };
 }
 
+const createOperationalPointAreaDrawInteraction = (
+    onSetOperationalPointPolygon: (polygon: GvtPolygon) => void,
+    linkingState: LinkingState | undefined,
+): Draw => {
+    const draw = new Draw({
+        type: 'Polygon',
+        style: operationalPointAreaPolygonStyle(true),
+    });
+    draw.on('drawend', function (event) {
+        const feature = event.feature as Feature<Polygon>;
+        if (!feature) {
+            return;
+        }
+
+        const coords = getFeatureCoords(feature);
+        onSetOperationalPointPolygon(coordsToPolygon(coords));
+    });
+    draw.setActive(linkingState?.type === 'PlacingOperationalPointArea' && !linkingState.polygon);
+
+    return draw;
+};
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
@@ -282,7 +299,8 @@ const MapView: React.FC<MapViewProps> = ({
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
     const { isLoading, onLayerLoading } = useIsLoadingMapLayers(map.visibleLayers);
     const mapLayers = [...map.visibleLayers].sort().join();
-    const [drawInteraction, setDrawInteraction] = React.useState<Draw>();
+    const [operationalPointAreaDrawInteraction, setOperationalPointAreaDrawInteraction] =
+        React.useState<Draw>();
 
     const handleClusterPointClick = (clickType: ClickType) => {
         const clusterPoint = first(selection.selectedItems.clusterPoints);
@@ -330,26 +348,12 @@ const MapView: React.FC<MapViewProps> = ({
                 new DragPan({ condition: (event) => event.originalEvent.which === 2 }),
             );
 
-            const draw = new Draw({
-                type: 'Polygon',
-                style: operationalPointAreaPolygonStyle(true),
-            });
-            setDrawInteraction(draw);
-
-            interactions.push(draw);
-            draw.on('drawend', function (event) {
-                const feature = event.feature as Feature<Polygon>;
-                if (!feature) {
-                    return;
-                }
-
-                const coords = getCoords(feature);
-                onSetOperationalPointPolygon(coordsToPolygon(coords));
-            });
-
-            draw.setActive(
-                linkingState?.type === 'PlacingOperationalPointArea' && !linkingState.polygon,
+            const draw = createOperationalPointAreaDrawInteraction(
+                onSetOperationalPointPolygon,
+                linkingState,
             );
+            setOperationalPointAreaDrawInteraction(draw);
+            interactions.push(draw);
 
             // use in the browser window.map.getPixelFromCoordinate([x,y])
             window.map = new OlMap({
@@ -365,9 +369,9 @@ const MapView: React.FC<MapViewProps> = ({
 
     React.useEffect(() => {
         if (linkingState?.type === 'PlacingOperationalPointArea') {
-            drawInteraction?.setActive(!linkingState.polygon);
+            operationalPointAreaDrawInteraction?.setActive(!linkingState.polygon);
         } else {
-            drawInteraction?.setActive(false);
+            operationalPointAreaDrawInteraction?.setActive(false);
         }
     }, [linkingState, olMap]);
 
