@@ -24,43 +24,48 @@ import { doubleClick } from 'ol/events/condition';
 import OlMap from 'ol/Map';
 
 const LAYER_NAME = 'operational-points-area-placing-layer';
-let modify: Modify | undefined;
 
 export const createOperationalPointsAreaPlacingLayer = (
     existingOlLayer: GeoviiteMapLayer<OlPolygon>,
     linkingState: PlacingOperationalPointArea | undefined,
     layoutContext: LayoutContext,
     map: OlMap,
+    modifyInteraction: Modify | undefined,
+    setModifyInteraction: React.Dispatch<React.SetStateAction<Modify | undefined>>,
     onSetOperationalPointPolygon: (polygon: Polygon) => void,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer => {
     const { layer, source, isLatest } = createLayer(LAYER_NAME, existingOlLayer, true);
     const selectedOperationalPointId = linkingState?.operationalPoint?.id;
 
-    const oldModify = modify;
-    if (oldModify) map.removeInteraction(oldModify);
-    modify = new Modify({
-        source: source,
-        deleteCondition: doubleClick,
-        style: new Style({
-            image: new CircleStyle({
-                radius: 5,
-                fill: new Fill({
-                    color: '#009BFF',
+    setModifyInteraction((previousModify) => {
+        if (previousModify) {
+            map.removeInteraction(previousModify);
+        }
+        const modify = new Modify({
+            source: source,
+            deleteCondition: doubleClick,
+            style: new Style({
+                image: new CircleStyle({
+                    radius: 5,
+                    fill: new Fill({
+                        color: '#009BFF',
+                    }),
                 }),
             }),
-        }),
-    });
+        });
+        modify.on('modifyend', (event) => {
+            const feature = event.features.item(0) as Feature<OlPolygon>;
+            if (!feature) {
+                return;
+            }
 
-    modify.on('modifyend', (event) => {
-        const feature = event.features.item(0) as Feature<OlPolygon>;
-        if (!feature) {
-            return;
-        }
+            onSetOperationalPointPolygon(coordsToPolygon(getFeatureCoords(feature)));
+        });
+        map.addInteraction(modify);
 
-        onSetOperationalPointPolygon(coordsToPolygon(getFeatureCoords(feature)));
+        return modify;
     });
-    map.addInteraction(modify);
 
     loadLayerData(
         source,
@@ -90,7 +95,7 @@ export const createOperationalPointsAreaPlacingLayer = (
             ),
         }),
         onRemove: () => {
-            if (modify) map.removeInteraction(modify);
+            if (modifyInteraction) map.removeInteraction(modifyInteraction);
         },
     };
 };
