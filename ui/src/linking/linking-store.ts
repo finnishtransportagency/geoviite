@@ -280,7 +280,7 @@ export const linkingReducers = {
             type: LinkingType.PlacingOperationalPointArea,
             state: 'setup',
             operationalPoint: payload,
-            polygon: payload.polygon,
+            area: payload.polygon,
             issues: [],
         };
     },
@@ -292,7 +292,7 @@ export const linkingReducers = {
         { payload }: PayloadAction<Polygon>,
     ): void => {
         if (state.linkingState?.type === LinkingType.PlacingOperationalPointArea) {
-            state.linkingState.polygon = payload;
+            state.linkingState.area = payload;
         }
     },
     selectOnlyLayoutSwitchForGeometrySwitchLinking: (

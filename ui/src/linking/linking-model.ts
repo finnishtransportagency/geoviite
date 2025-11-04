@@ -197,7 +197,7 @@ export type PlacingOperationalPoint = LinkingBaseType & {
 export type PlacingOperationalPointArea = LinkingBaseType & {
     type: LinkingType.PlacingOperationalPointArea;
     operationalPoint: OperationalPoint;
-    polygon?: Polygon;
+    area?: Polygon;
 };
 
 export type KmPostSimpleFields = {

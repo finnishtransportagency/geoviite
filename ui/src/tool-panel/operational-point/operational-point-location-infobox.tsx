@@ -75,13 +75,13 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
     const savePolygon = () => {
         if (
             layoutState.linkingState?.type === LinkingType.PlacingOperationalPointArea &&
-            !!layoutState.linkingState.polygon
+            !!layoutState.linkingState.area
         ) {
             try {
                 setLocationUpdateInProgress(true);
                 updateOperationalPointArea(
                     layoutState.linkingState.operationalPoint.id,
-                    layoutState.linkingState.polygon,
+                    layoutState.linkingState.area,
                     layoutContext,
                 );
                 SnackBar.success('tool-panel.operational-point.location-update-succeeded');
@@ -117,102 +117,104 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
                     </Button>
                 </InfoboxButtons>
                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                {(!layoutState.linkingState ||
-                    layoutState.linkingState.type !== LinkingType.PlacingOperationalPoint) && (
-                    <InfoboxButtons>
-                        <Button
-                            variant={ButtonVariant.SECONDARY}
-                            size={ButtonSize.SMALL}
-                            disabled={
-                                layoutContext.publicationState === 'OFFICIAL' ||
-                                !!layoutState.linkingState ||
-                                isExternal
-                            }
-                            onClick={onStartPlacingLocation}
-                            title={
-                                isExternal
-                                    ? t(
-                                          'tool-panel.operational-point.cannot-set-location-for-external',
-                                      )
-                                    : undefined
-                            }>
-                            {t('tool-panel.operational-point.set-location')}
-                        </Button>
-                    </InfoboxButtons>
-                )}
-                {layoutState.linkingState &&
-                    layoutState.linkingState.type === LinkingType.PlacingOperationalPoint && (
-                        <React.Fragment>
-                            <p className={infoboxStyles['infobox__guide-text']}>
-                                {t('tool-panel.operational-point.set-location-help')}
-                            </p>
-                            <InfoboxButtons>
-                                <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    size={ButtonSize.SMALL}
-                                    disabled={locationUpdateInProgress}
-                                    onClick={onStopPlacingLocation}>
-                                    {t('button.cancel')}
-                                </Button>
-                                <Button
-                                    variant={ButtonVariant.PRIMARY}
-                                    size={ButtonSize.SMALL}
-                                    disabled={
-                                        !layoutState.linkingState.location ||
-                                        locationUpdateInProgress
-                                    }
-                                    isProcessing={locationUpdateInProgress}
-                                    onClick={saveLocation}>
-                                    {t('button.save')}
-                                </Button>
-                            </InfoboxButtons>
-                        </React.Fragment>
+                    {(!layoutState.linkingState ||
+                        layoutState.linkingState.type !== LinkingType.PlacingOperationalPoint) && (
+                        <InfoboxButtons>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                size={ButtonSize.SMALL}
+                                disabled={
+                                    layoutContext.publicationState === 'OFFICIAL' ||
+                                    !!layoutState.linkingState ||
+                                    isExternal
+                                }
+                                onClick={onStartPlacingLocation}
+                                title={
+                                    isExternal
+                                        ? t(
+                                              'tool-panel.operational-point.cannot-set-location-for-external',
+                                          )
+                                        : undefined
+                                }>
+                                {t('tool-panel.operational-point.set-location')}
+                            </Button>
+                        </InfoboxButtons>
                     )}
-                {(!layoutState.linkingState ||
-                    layoutState.linkingState.type !== LinkingType.PlacingOperationalPointArea) && (
-                    <InfoboxButtons>
-                        <Button
-                            variant={ButtonVariant.SECONDARY}
-                            size={ButtonSize.SMALL}
-                            disabled={
-                                layoutContext.publicationState === 'OFFICIAL' ||
-                                !!layoutState.linkingState
-                            }
-                            onClick={onStartPlacingArea}>
-                            {t('tool-panel.operational-point.set-area')}
-                        </Button>
-                    </InfoboxButtons>
-                )}
-                {layoutState.linkingState &&
-                    layoutState.linkingState.type === LinkingType.PlacingOperationalPointArea && (
-                        <React.Fragment>
-                            <p className={infoboxStyles['infobox__guide-text']}>
-                                {operationalPoint.polygon
-                                    ? t('tool-panel.operational-point.update-area-help')
-                                    : t('tool-panel.operational-point.insert-area-help')}
-                            </p>
-                            <InfoboxButtons>
-                                <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    size={ButtonSize.SMALL}
-                                    disabled={locationUpdateInProgress}
-                                    onClick={onStopPlacingArea}>
-                                    {t('button.cancel')}
-                                </Button>
-                                <Button
-                                    variant={ButtonVariant.PRIMARY}
-                                    size={ButtonSize.SMALL}
-                                    disabled={
-                                        !layoutState.linkingState.polygon ||
-                                        locationUpdateInProgress
-                                    }
-                                    isProcessing={locationUpdateInProgress}
-                                    onClick={savePolygon}>
-                                    {t('button.save')}
-                                </Button>
-                            </InfoboxButtons>
-                        </React.Fragment>
+                    {layoutState.linkingState &&
+                        layoutState.linkingState.type === LinkingType.PlacingOperationalPoint && (
+                            <React.Fragment>
+                                <p className={infoboxStyles['infobox__guide-text']}>
+                                    {t('tool-panel.operational-point.set-location-help')}
+                                </p>
+                                <InfoboxButtons>
+                                    <Button
+                                        variant={ButtonVariant.SECONDARY}
+                                        size={ButtonSize.SMALL}
+                                        disabled={locationUpdateInProgress}
+                                        onClick={onStopPlacingLocation}>
+                                        {t('button.cancel')}
+                                    </Button>
+                                    <Button
+                                        variant={ButtonVariant.PRIMARY}
+                                        size={ButtonSize.SMALL}
+                                        disabled={
+                                            !layoutState.linkingState.location ||
+                                            locationUpdateInProgress
+                                        }
+                                        isProcessing={locationUpdateInProgress}
+                                        onClick={saveLocation}>
+                                        {t('button.save')}
+                                    </Button>
+                                </InfoboxButtons>
+                            </React.Fragment>
+                        )}
+                    {(!layoutState.linkingState ||
+                        layoutState.linkingState.type !==
+                            LinkingType.PlacingOperationalPointArea) && (
+                        <InfoboxButtons>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                size={ButtonSize.SMALL}
+                                disabled={
+                                    layoutContext.publicationState === 'OFFICIAL' ||
+                                    !!layoutState.linkingState
+                                }
+                                onClick={onStartPlacingArea}>
+                                {t('tool-panel.operational-point.set-area')}
+                            </Button>
+                        </InfoboxButtons>
                     )}
+                    {layoutState.linkingState &&
+                        layoutState.linkingState.type ===
+                            LinkingType.PlacingOperationalPointArea && (
+                            <React.Fragment>
+                                <p className={infoboxStyles['infobox__guide-text']}>
+                                    {operationalPoint.polygon
+                                        ? t('tool-panel.operational-point.update-area-help')
+                                        : t('tool-panel.operational-point.insert-area-help')}
+                                </p>
+                                <InfoboxButtons>
+                                    <Button
+                                        variant={ButtonVariant.SECONDARY}
+                                        size={ButtonSize.SMALL}
+                                        disabled={locationUpdateInProgress}
+                                        onClick={onStopPlacingArea}>
+                                        {t('button.cancel')}
+                                    </Button>
+                                    <Button
+                                        variant={ButtonVariant.PRIMARY}
+                                        size={ButtonSize.SMALL}
+                                        disabled={
+                                            !layoutState.linkingState.area ||
+                                            locationUpdateInProgress
+                                        }
+                                        isProcessing={locationUpdateInProgress}
+                                        onClick={savePolygon}>
+                                        {t('button.save')}
+                                    </Button>
+                                </InfoboxButtons>
+                            </React.Fragment>
+                        )}
                 </PrivilegeRequired>
             </InfoboxContent>
         </Infobox>

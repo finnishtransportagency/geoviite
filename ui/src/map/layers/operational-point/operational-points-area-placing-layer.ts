@@ -75,7 +75,7 @@ export const createOperationalPointsAreaPlacingLayer = (
             ? getOperationalPoint(selectedOperationalPointId, layoutContext)
             : Promise.resolve(undefined),
         () => {
-            const coords = linkingState?.polygon?.points?.map(pointToCoords);
+            const coords = linkingState?.area?.points?.map(pointToCoords);
             if (!coords) return [];
 
             const feature = new Feature({

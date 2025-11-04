@@ -251,7 +251,7 @@ const createOperationalPointAreaDrawInteraction = (
         const coords = getFeatureCoords(feature);
         onSetOperationalPointPolygon(coordsToPolygon(coords));
     });
-    draw.setActive(linkingState?.type === 'PlacingOperationalPointArea' && !linkingState.polygon);
+    draw.setActive(linkingState?.type === 'PlacingOperationalPointArea' && !linkingState.area);
 
     return draw;
 };
@@ -371,7 +371,7 @@ const MapView: React.FC<MapViewProps> = ({
 
     React.useEffect(() => {
         if (linkingState?.type === 'PlacingOperationalPointArea') {
-            operationalPointAreaDrawInteraction?.setActive(!linkingState.polygon);
+            operationalPointAreaDrawInteraction?.setActive(!linkingState.area);
         } else {
             operationalPointAreaDrawInteraction?.setActive(false);
         }
