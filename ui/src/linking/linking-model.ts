@@ -26,7 +26,7 @@ import {
     GeometryPlanId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { GvtPolygon, Point } from 'model/geometry';
+import { Polygon, Point } from 'model/geometry';
 import {
     JointNumber,
     KmNumber,
@@ -197,7 +197,7 @@ export type PlacingOperationalPoint = LinkingBaseType & {
 export type PlacingOperationalPointArea = LinkingBaseType & {
     type: LinkingType.PlacingOperationalPointArea;
     operationalPoint: OperationalPoint;
-    polygon?: GvtPolygon;
+    polygon?: Polygon;
 };
 
 export type KmPostSimpleFields = {

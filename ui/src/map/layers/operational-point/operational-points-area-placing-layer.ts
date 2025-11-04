@@ -1,10 +1,10 @@
 import { Feature } from 'ol';
-import { Polygon } from 'ol/geom';
+import { Polygon as OlPolygon } from 'ol/geom';
 import Style from 'ol/style/Style';
 import CircleStyle from 'ol/style/Circle.js';
 import Fill from 'ol/style/Fill';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { coordsToPolygon, GvtPolygon, Rectangle } from 'model/geometry';
+import { coordsToPolygon, Polygon, Rectangle } from 'model/geometry';
 import {
     findMatchingOperationalPoints,
     operationalPointAreaPolygonStyle,
@@ -27,11 +27,11 @@ const LAYER_NAME = 'operational-points-area-placing-layer';
 let modify: Modify | undefined;
 
 export const createOperationalPointsAreaPlacingLayer = (
-    existingOlLayer: GeoviiteMapLayer<Polygon>,
+    existingOlLayer: GeoviiteMapLayer<OlPolygon>,
     linkingState: PlacingOperationalPointArea | undefined,
     layoutContext: LayoutContext,
     map: OlMap,
-    onSetOperationalPointPolygon: (polygon: GvtPolygon) => void,
+    onSetOperationalPointPolygon: (polygon: Polygon) => void,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer => {
     const { layer, source, isLatest } = createLayer(LAYER_NAME, existingOlLayer, true);
@@ -53,7 +53,7 @@ export const createOperationalPointsAreaPlacingLayer = (
     });
 
     modify.on('modifyend', (event) => {
-        const feature = event.features.item(0) as Feature<Polygon>;
+        const feature = event.features.item(0) as Feature<OlPolygon>;
         if (!feature) {
             return;
         }
@@ -74,7 +74,7 @@ export const createOperationalPointsAreaPlacingLayer = (
             if (!coords) return [];
 
             const feature = new Feature({
-                geometry: new Polygon([coords]),
+                geometry: new OlPolygon([coords]),
             });
             feature.setStyle(operationalPointAreaPolygonStyle(false));
             return [feature];

@@ -25,7 +25,7 @@ import styles from './map.module.scss';
 import { MapTool, MapToolActivateOptions, MapToolWithButton } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
-import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
+import { LineString, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
 import {
     LinkingState,
     LinkingSwitch,
@@ -74,7 +74,7 @@ import { createDuplicateTracksHighlightLayer } from 'map/layers/highlight/duplic
 import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
 import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/track-number-end-point-addresses-layer';
-import { coordsToPolygon, GvtPolygon, Point, Rectangle } from 'model/geometry';
+import { coordsToPolygon, Polygon, Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -130,7 +130,7 @@ export type MapViewProps = {
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
     onClosePlanDownloadPopup: () => void;
-    onSetOperationalPointPolygon: (polygon: GvtPolygon) => void;
+    onSetOperationalPointPolygon: (polygon: Polygon) => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
@@ -235,7 +235,7 @@ function useIsLoadingMapLayers(visibleLayers: MapLayerName[]): {
 }
 
 const createOperationalPointAreaDrawInteraction = (
-    onSetOperationalPointPolygon: (polygon: GvtPolygon) => void,
+    onSetOperationalPointPolygon: (polygon: Polygon) => void,
     linkingState: LinkingState | undefined,
 ): Draw => {
     const draw = new Draw({
@@ -243,7 +243,7 @@ const createOperationalPointAreaDrawInteraction = (
         style: operationalPointAreaPolygonStyle(true),
     });
     draw.on('drawend', function (event) {
-        const feature = event.feature as Feature<Polygon>;
+        const feature = event.feature as Feature<OlPolygon>;
         if (!feature) {
             return;
         }
@@ -744,7 +744,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'plan-area-layer':
                         return createPlanAreaLayer(
                             mapTiles,
-                            existingOlLayer as GeoviiteMapLayer<Polygon>,
+                            existingOlLayer as GeoviiteMapLayer<OlPolygon>,
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -766,7 +766,7 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'operational-points-area-placing-layer':
                         return createOperationalPointsAreaPlacingLayer(
-                            existingOlLayer as GeoviiteMapLayer<Polygon>,
+                            existingOlLayer as GeoviiteMapLayer<OlPolygon>,
                             linkingState as PlacingOperationalPointArea | undefined,
                             layoutContext,
                             olMap,

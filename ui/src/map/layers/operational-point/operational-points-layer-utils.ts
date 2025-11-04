@@ -13,7 +13,7 @@ import { fieldComparator } from 'utils/array-utils';
 import Style from 'ol/style/Style';
 import { Circle, Fill, Stroke, Text } from 'ol/style';
 import Feature, { FeatureLike } from 'ol/Feature';
-import { LineString, MultiPoint, Point as OlPoint, Polygon } from 'ol/geom';
+import { LineString, MultiPoint, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
 import mapStyles from 'map/map.module.scss';
 import CircleStyle from 'ol/style/Circle';
 
@@ -183,7 +183,7 @@ export const renderOperationalPointCircleFeature = (
 };
 
 export const operationalPointAreaPolygonStyle = function (isNew: boolean) {
-    return function (feature: Feature<Polygon>) {
+    return function (feature: Feature<OlPolygon>) {
         const coords = getFeatureCoords(feature);
         const isValid = isValidPolygon(coords, isNew);
         const lineColor = isValid ? '#009BFF' : 'red';

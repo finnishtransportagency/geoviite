@@ -29,7 +29,7 @@ import { getChangeTimes, updateOperationalPointsChangeTime } from 'common/change
 import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/internal-operational-point-edit-store';
 import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
-import { GvtPolygon, Point } from 'model/geometry';
+import { Polygon, Point } from 'model/geometry';
 
 type OriginInUri = 'internal' | 'external';
 type OperationalPointSaveRequest =
@@ -180,10 +180,10 @@ export const updateExternalOperationalPoint = (
 
 export const updateOperationalPointArea = async (
     id: OperationalPointId,
-    polygon: GvtPolygon,
+    polygon: Polygon,
     layoutContext: LayoutContext,
 ): Promise<OperationalPointId> => {
-    const result = await putNonNull<GvtPolygon, OperationalPointId>(
+    const result = await putNonNull<Polygon, OperationalPointId>(
         `${layoutUri('operational-points', layoutContext, id)}/location`,
         polygon,
     );

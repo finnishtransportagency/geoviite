@@ -1,4 +1,4 @@
-import { Polygon } from 'ol/geom';
+import { Polygon as OlPolygon } from 'ol/geom';
 import { Coordinate } from 'ol/coordinate';
 import { Range, Srid } from 'common/common-model';
 import { expectCoordinate, expectDefined } from 'utils/type-utils';
@@ -31,14 +31,14 @@ export type BoundingBox = {
     y: Range<number>;
 };
 
-export type Rectangle = Polygon;
+export type Rectangle = OlPolygon;
 
-export type GvtPolygon = {
+export type Polygon = {
     points: Point[];
     bouundingBox?: BoundingBox;
 };
 
-export const coordsToPolygon = (coords: Coordinate[]): GvtPolygon => ({
+export const coordsToPolygon = (coords: Coordinate[]): Polygon => ({
     points: coords.map(([x, y]) => ({ x: x ?? 0, y: y ?? 0 })),
 });
 

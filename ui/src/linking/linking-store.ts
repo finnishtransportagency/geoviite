@@ -31,7 +31,7 @@ import { angleDiffRads, directionBetweenPoints } from 'utils/math-utils';
 import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 import { draftLayoutContext, LayoutContext, LayoutContextMode } from 'common/common-model';
 import { brand } from 'common/brand';
-import { GvtPolygon } from 'model/geometry';
+import { Polygon } from 'model/geometry';
 
 export const linkingReducers = {
     startAlignmentLinking: (
@@ -289,7 +289,7 @@ export const linkingReducers = {
     },
     setOperationalPointArea: (
         state: TrackLayoutState,
-        { payload }: PayloadAction<GvtPolygon>,
+        { payload }: PayloadAction<Polygon>,
     ): void => {
         if (state.linkingState?.type === LinkingType.PlacingOperationalPointArea) {
             state.linkingState.polygon = payload;

@@ -1,6 +1,6 @@
 import Feature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
-import { Geometry, LineString, MultiPoint, Point as OlPoint, Polygon } from 'ol/geom';
+import { Geometry, LineString, MultiPoint, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
 import { GeometryPlanLayout, LAYOUT_SRID, PlanAndStatus } from 'track-layout/track-layout-model';
 import { VisiblePlanLayout } from 'selection/selection-model';
 import { LayerItemSearchResult, SearchItemsOptions } from 'map/layers/utils/layer-model';
@@ -31,7 +31,7 @@ register(proj4);
  *
  * @param polygon
  */
-export function centroid(polygon: Polygon): OlPoint {
+export function centroid(polygon: OlPolygon): OlPoint {
     const points = polygon
         .getLinearRing(0)
         ?.getCoordinates()
@@ -86,13 +86,13 @@ export function getDistancePointAndLine(olPoint: OlPoint, line: LineString): num
     return Math.sqrt(minSquaredDistance);
 }
 
-export function getDistancePointAndPolygon(point: OlPoint, polygon: Polygon): number {
+export function getDistancePointAndPolygon(point: OlPoint, polygon: OlPolygon): number {
     const polyCenter = centroid(polygon);
     return getPlanarDistancePointAndPoint(point, polyCenter);
 }
 
 export const getFeatureCoords = (
-    feature: Feature<MultiPoint | LineString | Polygon>,
+    feature: Feature<MultiPoint | LineString | OlPolygon>,
 ): Coordinate[] => {
     const geom = feature.getGeometry();
     const coords = geom?.getCoordinates()?.[0];
@@ -116,7 +116,7 @@ export function getDistance(point: OlPoint, geom: Geometry): number {
         return getPlanarDistancePointAndPoint(point, geom);
     } else if (geom instanceof LineString) {
         return getDistancePointAndLine(point, geom);
-    } else if (geom instanceof Polygon) {
+    } else if (geom instanceof OlPolygon) {
         return getDistancePointAndPolygon(point, geom);
     }
     throw `Unsupported geometry type in "getDistance"`;

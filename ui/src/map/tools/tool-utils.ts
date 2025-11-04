@@ -1,4 +1,4 @@
-import { Polygon } from 'ol/geom';
+import { Polygon as OlPolygon } from 'ol/geom';
 import OlMap from 'ol/Map';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { mergePartialItemSearchResults } from 'map/layers/utils/layer-utils';
@@ -12,7 +12,7 @@ import { expectCoordinate } from 'utils/type-utils';
 export function getDefaultHitArea(map: OlMap, coordinate: number[], tolerance = 10): Rectangle {
     const pixel = map.getPixelFromCoordinate(coordinate);
     const [x, y] = expectCoordinate(pixel);
-    return new Polygon([
+    return new OlPolygon([
         [
             map.getCoordinateFromPixel([x - tolerance, y - tolerance]),
             map.getCoordinateFromPixel([x - tolerance, y + tolerance]),

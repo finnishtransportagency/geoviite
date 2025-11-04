@@ -5,7 +5,7 @@ import {
     GeometryPlanLayoutId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { BoundingBox, GeometryPoint, GvtPolygon, Point } from 'model/geometry';
+import { BoundingBox, GeometryPoint, Polygon, Point } from 'model/geometry';
 import {
     CoordinateSystem,
     DataType,
@@ -450,7 +450,7 @@ export type OperationalPoint = {
     rinfType: number;
     raideType?: OperationalPointType;
     location?: Point;
-    polygon?: GvtPolygon;
+    polygon?: Polygon;
     state: OperationalPointState;
 } & LayoutAssetFields;
 
