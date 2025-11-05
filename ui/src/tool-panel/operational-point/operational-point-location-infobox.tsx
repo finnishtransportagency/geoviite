@@ -21,6 +21,8 @@ import * as SnackBar from 'geoviite-design-lib/snackbar/snackbar';
 import infoboxStyles from 'tool-panel/infobox/infobox.module.scss';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { isValidPolygon } from 'model/geometry';
+import { pointToCoords } from 'map/layers/utils/layer-utils';
 
 type OperationalPointLocationInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -51,6 +53,12 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
 
     const [locationUpdateInProgress, setLocationUpdateInProgress] = React.useState(false);
     const isExternal = operationalPoint.origin === 'RATKO';
+
+    const validPolygon =
+        layoutState.linkingState?.type === LinkingType.PlacingOperationalPointArea &&
+        layoutState.linkingState.area
+            ? isValidPolygon(layoutState.linkingState.area.points.map(pointToCoords), false)
+            : true;
 
     const saveLocation = () => {
         if (
@@ -205,8 +213,9 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
                                         variant={ButtonVariant.PRIMARY}
                                         size={ButtonSize.SMALL}
                                         disabled={
+                                            locationUpdateInProgress ||
                                             !layoutState.linkingState.area ||
-                                            locationUpdateInProgress
+                                            !validPolygon
                                         }
                                         isProcessing={locationUpdateInProgress}
                                         onClick={savePolygon}>
