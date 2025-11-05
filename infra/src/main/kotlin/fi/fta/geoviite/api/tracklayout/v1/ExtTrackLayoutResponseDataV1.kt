@@ -88,7 +88,9 @@ enum class ExtTrackKmTypeV1(val value: String) {
 @Schema(name = "Tasakilometripisteen virallisen sijainnin vahvistus", type = "string")
 enum class ExtKmPostLocationConfirmedV1(val value: String) {
     CONFIRMED("vahvistettu"),
-    NOT_CONFIRMED("ei vahvistettu"),
+    NOT_CONFIRMED("ei vahvistettu");
+
+    @JsonValue override fun toString() = value
 }
 
 @Schema(name = "Koordinaattisijainti")
