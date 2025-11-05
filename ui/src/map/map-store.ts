@@ -56,6 +56,7 @@ export const layersToShowByProxy: LayerCollection = {
         'switch-layer',
     ],
     'operational-points-placing-layer': ['operational-points-layer'],
+    'operational-points-area-placing-layer': ['operational-points-layer'],
 };
 
 export const layersToHideByProxy: LayerCollection = {
@@ -137,7 +138,6 @@ export const initialMapState: Map = {
         'location-track-split-alignment-layer',
         'reference-line-selected-alignment-layer',
         'operational-points-layer',
-        //'operational-points-area-placing-layer',
     ],
     layerMenu: {
         layout: [

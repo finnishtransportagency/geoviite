@@ -1,6 +1,12 @@
 import Feature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
-import { Geometry, LineString, MultiPoint, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
+import {
+    Geometry,
+    LineString,
+    Point as OlPoint,
+    Polygon as OlPolygon,
+    SimpleGeometry,
+} from 'ol/geom';
 import { GeometryPlanLayout, LAYOUT_SRID, PlanAndStatus } from 'track-layout/track-layout-model';
 import { VisiblePlanLayout } from 'selection/selection-model';
 import { LayerItemSearchResult, SearchItemsOptions } from 'map/layers/utils/layer-model';
@@ -16,7 +22,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { MapLayerName, MapTile } from 'map/map-model';
 import VectorLayer from 'ol/layer/Vector';
 import BaseLayer from 'ol/layer/Base';
-import { expectCoordinate, tuple } from 'utils/type-utils';
+import { expectCoordinate, isArray, tuple } from 'utils/type-utils';
 import { LayoutContext } from 'common/common-model';
 
 export type GeoviiteMapLayer<T extends Geometry> = VectorLayer<VectorSource<Feature<T>>>;
@@ -91,19 +97,21 @@ export function getDistancePointAndPolygon(point: OlPoint, polygon: OlPolygon): 
     return getPlanarDistancePointAndPoint(point, polyCenter);
 }
 
-export const getFeatureCoords = (
-    feature: Feature<MultiPoint | LineString | OlPolygon>,
-): Coordinate[] => {
-    const geom = feature.getGeometry();
-    const coords = geom?.getCoordinates()?.[0];
-    const unified: Coordinate[] =
-        Array.isArray(coords) && Array.isArray(coords[0])
-            ? (coords as Coordinate[])
-            : Array.isArray(coords) && !Array.isArray(coords[0])
-              ? ([coords] as Coordinate[])
-              : [];
-    return unified.map((c) => (Array.isArray(c) ? c.map((v: number) => v) : c));
+const isCoordinateArray = (value: unknown): value is Coordinate[] =>
+    isArray(value) && value.length > 0 && isArray(value[0]);
+
+const coordsToArray = (coords: Coordinate | Coordinate[] | undefined): Coordinate[] => {
+    if (!isArray(coords)) {
+        return [];
+    } else if (isCoordinateArray(coords)) {
+        return coords;
+    } else {
+        return [coords];
+    }
 };
+
+export const getFeatureCoords = (feature: Feature<SimpleGeometry>): Coordinate[] =>
+    coordsToArray(feature.getGeometry()?.getCoordinates()?.[0]);
 
 /**
  * Return the shortest distance between the point and the geometry in meters

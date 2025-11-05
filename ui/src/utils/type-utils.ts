@@ -32,6 +32,8 @@ export function ensureAllKeys<TKey>() {
     };
 }
 
+export const isArray = (value: unknown): value is unknown[] => Array.isArray(value);
+
 /**
  * This variable is used as the return type in a switch statement's
  * default case. Using it increases type safety; the compiler will

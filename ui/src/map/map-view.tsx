@@ -6,7 +6,7 @@ import {
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
-import { defaults as defaultInteractions, Draw, Modify } from 'ol/interaction';
+import { defaults as defaultInteractions, Draw } from 'ol/interaction';
 import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
@@ -301,8 +301,6 @@ const MapView: React.FC<MapViewProps> = ({
     const mapLayers = [...map.visibleLayers].sort().join();
     const [operationalPointAreaDrawInteraction, setOperationalPointAreaDrawInteraction] =
         React.useState<Draw>();
-    const [operationalPointAreaModifyInteraction, setOperationalPointAreaModifyInteraction] =
-        React.useState<Modify>();
 
     const handleClusterPointClick = (clickType: ClickType) => {
         const clusterPoint = first(selection.selectedItems.clusterPoints);
@@ -367,6 +365,12 @@ const MapView: React.FC<MapViewProps> = ({
 
             setOlMap(window.map);
         }
+
+        return () => {
+            if (operationalPointAreaDrawInteraction) {
+                olMap?.removeInteraction(operationalPointAreaDrawInteraction);
+            }
+        };
     }, []);
 
     React.useEffect(() => {
@@ -772,8 +776,6 @@ const MapView: React.FC<MapViewProps> = ({
                             linkingState as PlacingOperationalPointArea | undefined,
                             layoutContext,
                             olMap,
-                            operationalPointAreaModifyInteraction,
-                            setOperationalPointAreaModifyInteraction,
                             onSetOperationalPointPolygon,
                             (loading) => onLayerLoading(layerName, loading),
                         );
