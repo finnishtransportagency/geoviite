@@ -1,6 +1,6 @@
 import mapStyles from 'map/map.module.scss';
 import Feature from 'ol/Feature';
-import { Polygon } from 'ol/geom';
+import { Polygon as OlPolygon } from 'ol/geom';
 import { Stroke, Style, Text } from 'ol/style';
 import { MapLayerName, MapTile } from 'map/map-model';
 import { PlanArea } from 'track-layout/track-layout-model';
@@ -18,9 +18,9 @@ function deduplicatePlanAreas(planAreas: PlanArea[]): PlanArea[] {
     return [...new Map(planAreas.map((area) => [area.id, area])).values()];
 }
 
-function createPlanFeature(planArea: PlanArea): Feature<Polygon> {
+function createPlanFeature(planArea: PlanArea): Feature<OlPolygon> {
     const coordinates = planArea.polygon.map(pointToCoords);
-    const feature = new Feature({ geometry: new Polygon([coordinates]) });
+    const feature = new Feature({ geometry: new OlPolygon([coordinates]) });
 
     feature.setStyle(
         new Style({
@@ -47,7 +47,7 @@ const layerName: MapLayerName = 'plan-area-layer';
 
 export function createPlanAreaLayer(
     mapTiles: MapTile[],
-    existingOlLayer: GeoviiteMapLayer<Polygon> | undefined,
+    existingOlLayer: GeoviiteMapLayer<OlPolygon> | undefined,
     changeTimes: ChangeTimes,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {

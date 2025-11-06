@@ -14,7 +14,7 @@ import { Rectangle } from 'model/geometry';
 import {
     findMatchingOperationalPoints,
     OperationalPointFeatureMode,
-    renderOperationalPointFeature,
+    renderOperationalPointCircleFeature,
 } from 'map/layers/operational-point/operational-points-layer-utils';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 
@@ -66,7 +66,7 @@ export function createOperationalPointLayer(
             ? points
                   .filter((point) => !isBeingMoved(point.id))
                   .map((point) =>
-                      renderOperationalPointFeature(
+                      renderOperationalPointCircleFeature(
                           point,
                           operationalPointFeatureMode(point.id, selection),
                       ),

@@ -15,7 +15,7 @@ import {
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { Point, Rectangle } from 'model/geometry';
 import Feature from 'ol/Feature';
-import { Point as OlPoint, Polygon } from 'ol/geom';
+import { Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
 import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
@@ -35,6 +35,7 @@ export type KmPostIconType = 'NORMAL' | 'DELETED';
  * Steps of km post skip step
  */
 const kmPostSteps = [1, 2, 5, 10, 20, 50, 100];
+
 export function getKmPostStepByResolution(resolution: number): number {
     return kmPostSteps.find((step) => step * 10 >= resolution) || 0;
 }
@@ -46,7 +47,7 @@ export function createKmPostFeature(
     isLinked: ((kmPost: LayoutKmPost) => boolean) | undefined,
     resolution: number,
     planId: string | undefined,
-): [Feature<OlPoint>, Feature<Polygon>] {
+): [Feature<OlPoint>, Feature<OlPolygon>] {
     const location = kmPost.layoutLocation as Point;
     const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
 
@@ -65,7 +66,7 @@ export function createKmPostFeature(
     const width = 35 * resolution;
     const height = 15 * resolution;
     const clickableX = location.x - 5 * resolution; // offset x a bit
-    const polygon = new Polygon([
+    const polygon = new OlPolygon([
         [
             [clickableX, location.y - height / 2],
             [clickableX + width, location.y - height / 2],

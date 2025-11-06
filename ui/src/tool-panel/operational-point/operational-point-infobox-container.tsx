@@ -55,6 +55,18 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
         delegates.hideLayers(['operational-points-placing-layer']);
     };
 
+    const startPlacingOperationalPointArea = () => {
+        if (operationalPoint) {
+            delegates.startPlacingOperationalPointArea(operationalPoint);
+            delegates.showLayers(['operational-points-area-placing-layer']);
+        }
+    };
+
+    const stopPlacingOperationalPointArea = () => {
+        delegates.stopPlacingOperationalPointArea();
+        delegates.hideLayers(['operational-points-area-placing-layer']);
+    };
+
     return (
         <React.Fragment>
             {operationalPoint && (
@@ -70,6 +82,8 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
                     onUnselect={delegates.onUnselect}
                     onStartPlacingLocation={startPlacingOperationalPoint}
                     onStopPlacingLocation={stopPlacingOperationalPoint}
+                    onStartPlacingArea={startPlacingOperationalPointArea}
+                    onStopPlacingArea={stopPlacingOperationalPointArea}
                     onShowOnMap={showOnMap}
                 />
             )}

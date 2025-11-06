@@ -26,7 +26,7 @@ import {
     GeometryPlanId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { Point } from 'model/geometry';
+import { Polygon, Point } from 'model/geometry';
 import {
     JointNumber,
     KmNumber,
@@ -63,7 +63,8 @@ export type LinkingState =
     | LinkingGeometrySwitch
     | LinkingLayoutSwitch
     | LinkingKmPost
-    | PlacingOperationalPoint;
+    | PlacingOperationalPoint
+    | PlacingOperationalPointArea;
 
 export type PreliminaryLinkingGeometry = {
     type: LinkingType.UnknownAlignment;
@@ -193,6 +194,12 @@ export type PlacingOperationalPoint = LinkingBaseType & {
     location?: Point;
 };
 
+export type PlacingOperationalPointArea = LinkingBaseType & {
+    type: LinkingType.PlacingOperationalPointArea;
+    operationalPoint: OperationalPoint;
+    area?: Polygon;
+};
+
 export type KmPostSimpleFields = {
     kmNumber: KmNumber;
     state?: LayoutState;
@@ -222,6 +229,7 @@ export enum LinkingType {
     PlacingLayoutSwitch = 'PlacingLayoutSwitch',
     LinkingKmPost = 'LinkingKmPost',
     PlacingOperationalPoint = 'PlacingOperationalPoint',
+    PlacingOperationalPointArea = 'PlacingOperationalPointArea',
     UnknownAlignment = 'UnknownAlignment',
 }
 

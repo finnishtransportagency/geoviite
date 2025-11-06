@@ -4,7 +4,7 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { PlacingOperationalPoint } from 'linking/linking-model';
 import { OperationalPoint } from 'track-layout/track-layout-model';
-import { renderOperationalPointFeature } from 'map/layers/operational-point/operational-points-layer-utils';
+import { renderOperationalPointCircleFeature } from 'map/layers/operational-point/operational-points-layer-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 
 const LAYER_NAME: MapLayerName = 'operational-points-placing-layer';
@@ -22,7 +22,7 @@ export const createOperationalPointsPlacingLayer = (
         operationalPoint === undefined || !linkingState?.location
             ? []
             : [
-                  renderOperationalPointFeature(
+                  renderOperationalPointCircleFeature(
                       operationalPoint,
                       'SELECTED',
                       linkingState?.location,

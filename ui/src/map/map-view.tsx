@@ -6,7 +6,7 @@ import {
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
-import { defaults as defaultInteractions } from 'ol/interaction';
+import { defaults as defaultInteractions, Draw } from 'ol/interaction';
 import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
@@ -25,12 +25,13 @@ import styles from './map.module.scss';
 import { MapTool, MapToolActivateOptions, MapToolWithButton } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
-import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
+import { LineString, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
 import {
     LinkingState,
     LinkingSwitch,
     LinkPoint,
     PlacingOperationalPoint,
+    PlacingOperationalPointArea,
 } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
@@ -48,7 +49,7 @@ import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
 import { createAlignmentLinkingLayer } from 'map/layers/alignment/alignment-linking-layer';
 import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
-import { GeoviiteMapLayer, pointToCoords } from 'map/layers/utils/layer-utils';
+import { GeoviiteMapLayer, getFeatureCoords, pointToCoords } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
 import { createSwitchLayer } from 'map/layers/switch/switch-layer';
 import {
@@ -73,7 +74,7 @@ import { createDuplicateTracksHighlightLayer } from 'map/layers/highlight/duplic
 import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
 import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/track-number-end-point-addresses-layer';
-import { Point, Rectangle } from 'model/geometry';
+import { coordsToPolygon, Polygon, Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -98,7 +99,10 @@ import { createDebugGeometryGraphLayer } from 'map/layers/debug/debug-geometry-g
 import { PlanDownloadState } from 'map/plan-download/plan-download-store';
 import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
 import { createDebugProjectionLinesLayer } from 'map/layers/debug/debug-projection-lines-layer';
+import { createOperationalPointsAreaPlacingLayer } from 'map/layers/operational-point/operational-points-area-placing-layer';
+import Feature from 'ol/Feature';
 import { createOperationalPointsPlacingLayer } from 'map/layers/operational-point/operational-points-placing-layer';
+import { operationalPointAreaPolygonStyle } from 'map/layers/operational-point/operational-points-layer-utils';
 
 declare global {
     interface Window {
@@ -126,6 +130,7 @@ export type MapViewProps = {
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
     onClosePlanDownloadPopup: () => void;
+    onSetOperationalPointPolygon: (polygon: Polygon) => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
@@ -229,6 +234,27 @@ function useIsLoadingMapLayers(visibleLayers: MapLayerName[]): {
     return { isLoading, onLayerLoading };
 }
 
+const createOperationalPointAreaDrawInteraction = (
+    onSetOperationalPointPolygon: (polygon: Polygon) => void,
+    linkingState: LinkingState | undefined,
+): Draw => {
+    const draw = new Draw({
+        type: 'Polygon',
+        style: operationalPointAreaPolygonStyle(true),
+    });
+    draw.on('drawend', function (event) {
+        const feature = event.feature as Feature<OlPolygon>;
+        if (!feature) {
+            return;
+        }
+
+        const coords = getFeatureCoords(feature);
+        onSetOperationalPointPolygon(coordsToPolygon(coords));
+    });
+    draw.setActive(linkingState?.type === 'PlacingOperationalPointArea' && !linkingState.area);
+
+    return draw;
+};
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
@@ -250,6 +276,7 @@ const MapView: React.FC<MapViewProps> = ({
     onClosePlanDownloadPopup,
     onClickLocation,
     onMapLayerChange,
+    onSetOperationalPointPolygon,
     mapLayerMenuGroups,
     visibleLayerNames,
     publicationCandidates,
@@ -272,6 +299,8 @@ const MapView: React.FC<MapViewProps> = ({
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
     const { isLoading, onLayerLoading } = useIsLoadingMapLayers(map.visibleLayers);
     const mapLayers = [...map.visibleLayers].sort().join();
+    const [operationalPointAreaDrawInteraction, setOperationalPointAreaDrawInteraction] =
+        React.useState<Draw>();
 
     const handleClusterPointClick = (clickType: ClickType) => {
         const clusterPoint = first(selection.selectedItems.clusterPoints);
@@ -319,6 +348,13 @@ const MapView: React.FC<MapViewProps> = ({
                 new DragPan({ condition: (event) => event.originalEvent.which === 2 }),
             );
 
+            const draw = createOperationalPointAreaDrawInteraction(
+                onSetOperationalPointPolygon,
+                linkingState,
+            );
+            setOperationalPointAreaDrawInteraction(draw);
+            interactions.push(draw);
+
             // use in the browser window.map.getPixelFromCoordinate([x,y])
             window.map = new OlMap({
                 controls: controls,
@@ -329,7 +365,21 @@ const MapView: React.FC<MapViewProps> = ({
 
             setOlMap(window.map);
         }
+
+        return () => {
+            if (operationalPointAreaDrawInteraction) {
+                olMap?.removeInteraction(operationalPointAreaDrawInteraction);
+            }
+        };
     }, []);
+
+    React.useEffect(() => {
+        if (linkingState?.type === 'PlacingOperationalPointArea') {
+            operationalPointAreaDrawInteraction?.setActive(!linkingState.area);
+        } else {
+            operationalPointAreaDrawInteraction?.setActive(false);
+        }
+    }, [linkingState, olMap]);
 
     // Track map view port changes
     React.useEffect(() => {
@@ -700,7 +750,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'plan-area-layer':
                         return createPlanAreaLayer(
                             mapTiles,
-                            existingOlLayer as GeoviiteMapLayer<Polygon>,
+                            existingOlLayer as GeoviiteMapLayer<OlPolygon>,
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -718,6 +768,15 @@ const MapView: React.FC<MapViewProps> = ({
                         return createOperationalPointsPlacingLayer(
                             existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             linkingState as PlacingOperationalPoint | undefined,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
+                    case 'operational-points-area-placing-layer':
+                        return createOperationalPointsAreaPlacingLayer(
+                            existingOlLayer as GeoviiteMapLayer<OlPolygon>,
+                            linkingState as PlacingOperationalPointArea | undefined,
+                            layoutContext,
+                            olMap,
+                            onSetOperationalPointPolygon,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'debug-1m-points-layer':

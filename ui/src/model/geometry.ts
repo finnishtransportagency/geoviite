@@ -1,7 +1,7 @@
-import { Polygon } from 'ol/geom';
+import { Polygon as OlPolygon } from 'ol/geom';
 import { Coordinate } from 'ol/coordinate';
 import { Range, Srid } from 'common/common-model';
-import { expectCoordinate } from 'utils/type-utils';
+import { expectCoordinate, expectDefined } from 'utils/type-utils';
 
 export enum CoordinateSystem {
     TM35FIN = 'TM35FIN',
@@ -31,7 +31,63 @@ export type BoundingBox = {
     y: Range<number>;
 };
 
-export type Rectangle = Polygon;
+export type Rectangle = OlPolygon;
+
+export type Polygon = {
+    points: Point[];
+    bouundingBox?: BoundingBox;
+};
+
+export const coordsToPolygon = (coords: Coordinate[]): Polygon => ({
+    points: coords.map(([x, y]) => ({ x: x ?? 0, y: y ?? 0 })),
+});
+
+const shortenLineFromBothEnds = (line: Line, amount: number): Line => {
+    const hypot = Math.hypot(line.end.x - line.start.x, line.end.y - line.start.y);
+    const normalized =
+        hypot === 0
+            ? { x: 0, y: 0 }
+            : {
+                  x: (line.end.x - line.start.x) / hypot,
+                  y: (line.end.y - line.start.y) / hypot,
+              };
+    const adjustedStart = {
+        x: line.start.x + normalized.x * amount,
+        y: line.start.y + normalized.y * amount,
+    };
+    const adjustedEnd = {
+        x: line.end.x - normalized.x * amount,
+        y: line.end.y - normalized.y * amount,
+    };
+    return { start: adjustedStart, end: adjustedEnd };
+};
+
+export function isValidPolygon(coords: Coordinate[], ignoreLastSegment: boolean) {
+    const allPolygonSegments = coords
+        .slice(0, -1)
+        .map((startCoordinate, index, coordinatesExceptLoopback) => {
+            const endCoordinate = expectDefined(
+                coordinatesExceptLoopback[(index + 1) % coordinatesExceptLoopback.length],
+            );
+            return [startCoordinate, endCoordinate] as const;
+        });
+    const relevantSegments = ignoreLastSegment
+        ? allPolygonSegments.slice(0, -1)
+        : allPolygonSegments;
+
+    return !relevantSegments
+        .map(([start, end]) =>
+            shortenLineFromBothEnds(
+                createLine(coordsToPoint(start), coordsToPoint(end)),
+                0.0000001,
+            ),
+        )
+        .some((segmentLine, index, segmentLines) =>
+            segmentLines.some(
+                (line2, index2) => index !== index2 && linesIntersect(segmentLine, line2),
+            ),
+        );
+}
 
 export function coordsToPoint(coords: Coordinate): Point {
     const [x, y] = expectCoordinate(coords);
@@ -129,7 +185,7 @@ function intersects(
     s: number,
 ): boolean {
     const det = (c - a) * (s - q) - (r - p) * (d - b);
-    if (det === 0) {
+    if (det > -0.0001 && det < 0.0001) {
         return false;
     } else {
         const lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;

@@ -29,7 +29,7 @@ import { getChangeTimes, updateOperationalPointsChangeTime } from 'common/change
 import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/internal-operational-point-edit-store';
 import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
-import { Point } from 'model/geometry';
+import { Polygon, Point } from 'model/geometry';
 
 type OriginInUri = 'internal' | 'external';
 type OperationalPointSaveRequest =
@@ -177,6 +177,19 @@ export const updateExternalOperationalPoint = (
     layoutContext: LayoutContext,
 ): Promise<OperationalPointId> =>
     updateOperationalPoint(id, 'external', updatedOperationalPoint, layoutContext);
+
+export const updateOperationalPointArea = async (
+    id: OperationalPointId,
+    polygon: Polygon,
+    layoutContext: LayoutContext,
+): Promise<OperationalPointId> => {
+    const result = await putNonNull<Polygon, OperationalPointId>(
+        `${layoutUri('operational-points', layoutContext, id)}/location`,
+        polygon,
+    );
+    await updateOperationalPointsChangeTime();
+    return result;
+};
 
 export async function deleteDraftOperationalPoint(
     layoutContext: LayoutContext,

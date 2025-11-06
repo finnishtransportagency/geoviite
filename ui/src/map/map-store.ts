@@ -56,6 +56,7 @@ export const layersToShowByProxy: LayerCollection = {
         'switch-layer',
     ],
     'operational-points-placing-layer': ['operational-points-layer'],
+    'operational-points-area-placing-layer': ['operational-points-layer'],
 };
 
 export const layersToHideByProxy: LayerCollection = {

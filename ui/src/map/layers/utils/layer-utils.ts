@@ -1,6 +1,12 @@
 import Feature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
-import { Geometry, LineString, Point as OlPoint, Polygon } from 'ol/geom';
+import {
+    Geometry,
+    LineString,
+    Point as OlPoint,
+    Polygon as OlPolygon,
+    SimpleGeometry,
+} from 'ol/geom';
 import { GeometryPlanLayout, LAYOUT_SRID, PlanAndStatus } from 'track-layout/track-layout-model';
 import { VisiblePlanLayout } from 'selection/selection-model';
 import { LayerItemSearchResult, SearchItemsOptions } from 'map/layers/utils/layer-model';
@@ -16,7 +22,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { MapLayerName, MapTile } from 'map/map-model';
 import VectorLayer from 'ol/layer/Vector';
 import BaseLayer from 'ol/layer/Base';
-import { expectCoordinate, tuple } from 'utils/type-utils';
+import { expectCoordinate, isArray, tuple } from 'utils/type-utils';
 import { LayoutContext } from 'common/common-model';
 
 export type GeoviiteMapLayer<T extends Geometry> = VectorLayer<VectorSource<Feature<T>>>;
@@ -31,7 +37,7 @@ register(proj4);
  *
  * @param polygon
  */
-export function centroid(polygon: Polygon): OlPoint {
+export function centroid(polygon: OlPolygon): OlPoint {
     const points = polygon
         .getLinearRing(0)
         ?.getCoordinates()
@@ -86,10 +92,26 @@ export function getDistancePointAndLine(olPoint: OlPoint, line: LineString): num
     return Math.sqrt(minSquaredDistance);
 }
 
-export function getDistancePointAndPolygon(point: OlPoint, polygon: Polygon): number {
+export function getDistancePointAndPolygon(point: OlPoint, polygon: OlPolygon): number {
     const polyCenter = centroid(polygon);
     return getPlanarDistancePointAndPoint(point, polyCenter);
 }
+
+const isCoordinateArray = (value: unknown): value is Coordinate[] =>
+    isArray(value) && value.length > 0 && isArray(value[0]);
+
+const coordsToArray = (coords: Coordinate | Coordinate[] | undefined): Coordinate[] => {
+    if (!isArray(coords)) {
+        return [];
+    } else if (isCoordinateArray(coords)) {
+        return coords;
+    } else {
+        return [coords];
+    }
+};
+
+export const getFeatureCoords = (feature: Feature<SimpleGeometry>): Coordinate[] =>
+    coordsToArray(feature.getGeometry()?.getCoordinates()?.[0]);
 
 /**
  * Return the shortest distance between the point and the geometry in meters
@@ -102,7 +124,7 @@ export function getDistance(point: OlPoint, geom: Geometry): number {
         return getPlanarDistancePointAndPoint(point, geom);
     } else if (geom instanceof LineString) {
         return getDistancePointAndLine(point, geom);
-    } else if (geom instanceof Polygon) {
+    } else if (geom instanceof OlPolygon) {
         return getDistancePointAndPolygon(point, geom);
     }
     throw `Unsupported geometry type in "getDistance"`;

@@ -273,6 +273,7 @@ export function getSelectableItemTypes(
         case LinkingType.PlacingLayoutSwitch:
         case LinkingType.LinkingLayoutSwitch:
         case LinkingType.PlacingOperationalPoint:
+        case LinkingType.PlacingOperationalPointArea:
             return [];
         case LinkingType.LinkingGeometrySwitch:
             return ['switches'];

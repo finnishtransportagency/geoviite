@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LineString, Polygon } from 'ol/geom';
+import { LineString, Polygon as OlPolygon } from 'ol/geom';
 import { MapToolWithButton } from 'map/tools/tool-model';
 import { Draw } from 'ol/interaction';
 import { createBox } from 'ol/interaction/Draw.js';
@@ -23,8 +23,8 @@ export enum SelectMode {
     Subtract = 'subtract',
 }
 
-function getPolygon(bbox: BoundingBox): Polygon {
-    return new Polygon([
+function getPolygon(bbox: BoundingBox): OlPolygon {
+    return new OlPolygon([
         [
             [bbox.x.min, bbox.y.min],
             [bbox.x.max, bbox.y.min],

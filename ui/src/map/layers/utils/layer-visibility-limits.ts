@@ -40,6 +40,7 @@ const mapLayerOrder: MapLayerName[] = [
     'plan-area-layer',
     'operational-points-layer',
     'operational-points-placing-layer',
+    'operational-points-area-placing-layer',
     'debug-1m-points-layer',
     'debug-layer',
     'debug-geometry-graph-layer',
