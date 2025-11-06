@@ -569,6 +569,12 @@ constructor(
 
     fun getPublicationByUuidOrLatest(branchType: LayoutBranchType, publicationUuid: Uuid<Publication>?): Publication {
         return publicationUuid?.let { uuid -> getPublicationWithType(branchType, uuid) }
-            ?: publicationDao.fetchLatestPublications(branchType, count = 1).single()
+            ?: getLatestPublication(branchType)
     }
+
+    fun getLatestPublication(branchType: LayoutBranchType): Publication =
+        publicationDao.fetchLatestPublications(branchType, count = 1).single()
+
+    fun listPublications(branchType: LayoutBranchType, comparison: PublicationComparison? = null): List<Publication> =
+        publicationDao.list(branchType, comparison?.from?.id, comparison?.to?.id).reversed()
 }
