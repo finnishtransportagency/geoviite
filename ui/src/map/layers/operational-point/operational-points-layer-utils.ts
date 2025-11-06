@@ -195,7 +195,7 @@ export const renderOperationalPointAreaFeature = (
     const feature = new Feature({
         geometry: new OlPolygon([coords]),
     });
-    feature.setStyle(operationalPointAreaPolygonStyle(featureMode, areaEditMode));
+    feature.setStyle(operationalPointPolygonStylesFunc(featureMode, areaEditMode));
     return feature;
 };
 
@@ -278,11 +278,12 @@ const polygonFillStyle = (
         }),
     });
 
-export const operationalPointAreaPolygonStyle = function (
-    featureMode: OperationalPointFeatureMode,
-    areaEditMode: OperationalPointAreaEditMode | undefined,
-) {
-    return function (feature: Feature<OlPolygon>) {
+export const operationalPointPolygonStylesFunc =
+    (
+        featureMode: OperationalPointFeatureMode,
+        areaEditMode: OperationalPointAreaEditMode | undefined,
+    ) =>
+    (feature: Feature<OlPolygon>): Style[] => {
         const coords = getFeatureCoords(feature);
         const isValid = isValidPolygon(coords, areaEditMode === 'ADDING');
 
@@ -294,7 +295,6 @@ export const operationalPointAreaPolygonStyle = function (
               ].filter(filterNotEmpty)
             : [];
     };
-};
 
 export const operationalPointFeatureModeBySelection = (
     operationalPointId: OperationalPointId,

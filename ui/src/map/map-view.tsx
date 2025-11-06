@@ -102,7 +102,7 @@ import { createDebugProjectionLinesLayer } from 'map/layers/debug/debug-projecti
 import { createOperationalPointsAreaPlacingLayer } from 'map/layers/operational-point/operational-points-area-placing-layer';
 import Feature from 'ol/Feature';
 import { createOperationalPointsPlacingLayer } from 'map/layers/operational-point/operational-points-placing-layer';
-import { operationalPointAreaPolygonStyle } from 'map/layers/operational-point/operational-points-layer-utils';
+import { operationalPointPolygonStylesFunc } from 'map/layers/operational-point/operational-points-layer-utils';
 import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
 
 declare global {
@@ -241,7 +241,7 @@ const createOperationalPointAreaDrawInteraction = (
 ): Draw => {
     const draw = new Draw({
         type: 'Polygon',
-        style: operationalPointAreaPolygonStyle('SELECTED', 'ADDING'),
+        style: operationalPointPolygonStylesFunc('SELECTED', 'ADDING'),
     });
     draw.on('drawend', function (event) {
         const feature = event.feature as Feature<OlPolygon>;
