@@ -1456,6 +1456,7 @@
         "plan-area": "Suunnitelman alueet",
         "geometry-km-post": "Suunnitelman tasakilometripisteet",
         "operational-points": "Toiminnalliset pisteet",
+        "operational-point-areas": "Toiminnallisten pisteiden alueet",
         "debug-1m": "Tasametripisteet",
         "debug-projection-lines": "Geokoodauksen projektioviivat",
         "debug": "Debug",

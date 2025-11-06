@@ -56,7 +56,11 @@ export const layersToShowByProxy: LayerCollection = {
         'switch-layer',
     ],
     'operational-points-placing-layer': ['operational-points-layer'],
-    'operational-points-area-placing-layer': ['operational-points-layer'],
+    'operational-points-area-placing-layer': [
+        'operational-points-layer',
+        'operational-points-area-layer',
+    ],
+    'operational-points-area-layer': ['operational-points-layer'],
 };
 
 export const layersToHideByProxy: LayerCollection = {
@@ -110,6 +114,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'plan-area': ['plan-area-layer'],
     'geometry-km-post': ['geometry-km-post-layer'],
     'operational-points': ['operational-points-layer'],
+    'operational-point-areas': ['operational-points-area-layer'],
     'debug-1m': ['debug-1m-points-layer'],
     'debug-projection-lines': ['debug-projection-lines-layer'],
     'debug': ['debug-layer'],
@@ -186,7 +191,18 @@ export const initialMapState: Map = {
             },
             { name: 'switch', visible: true, qaId: 'switch-layer' },
             { name: 'km-post', visible: true, qaId: 'km-post-layer' },
-            { name: 'operational-points', visible: true, qaId: 'operational-points-layer' },
+            {
+                name: 'operational-points',
+                visible: true,
+                qaId: 'operational-points-layer',
+                subMenu: [
+                    {
+                        name: 'operational-point-areas',
+                        visible: false,
+                        qaId: 'operational-points-area-layer',
+                    },
+                ],
+            },
         ],
         geometry: [
             { name: 'geometry-alignment', visible: true, qaId: 'geometry-alignment-layer' },

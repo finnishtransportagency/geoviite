@@ -103,6 +103,7 @@ import { createOperationalPointsAreaPlacingLayer } from 'map/layers/operational-
 import Feature from 'ol/Feature';
 import { createOperationalPointsPlacingLayer } from 'map/layers/operational-point/operational-points-placing-layer';
 import { operationalPointAreaPolygonStyle } from 'map/layers/operational-point/operational-points-layer-utils';
+import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
 
 declare global {
     interface Window {
@@ -240,7 +241,7 @@ const createOperationalPointAreaDrawInteraction = (
 ): Draw => {
     const draw = new Draw({
         type: 'Polygon',
-        style: operationalPointAreaPolygonStyle(true),
+        style: operationalPointAreaPolygonStyle('SELECTED', 'ADDING'),
     });
     draw.on('drawend', function (event) {
         const feature = event.feature as Feature<OlPolygon>;
@@ -759,6 +760,15 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             olView,
+                            selection,
+                            linkingState,
+                            layoutContext,
+                            changeTimes,
+                        );
+                    case 'operational-points-area-layer':
+                        return createOperationalPointAreaLayer(
+                            mapTiles,
+                            existingOlLayer as GeoviiteMapLayer<OlPolygon>,
                             selection,
                             linkingState,
                             layoutContext,

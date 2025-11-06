@@ -7,14 +7,13 @@ import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/
 import { coordsToPolygon, Polygon, Rectangle } from 'model/geometry';
 import {
     findMatchingOperationalPoints,
-    operationalPointAreaPolygonStyle,
+    renderOperationalPointAreaFeature,
 } from 'map/layers/operational-point/operational-points-layer-utils';
 import {
     createLayer,
     GeoviiteMapLayer,
     getFeatureCoords,
     loadLayerData,
-    pointToCoords,
 } from 'map/layers/utils/layer-utils';
 import { PlacingOperationalPointArea } from 'linking/linking-model';
 import { getOperationalPoint } from 'track-layout/layout-operational-point-api';
@@ -71,16 +70,10 @@ export const createOperationalPointsAreaPlacingLayer = (
         selectedOperationalPointId
             ? getOperationalPoint(selectedOperationalPointId, layoutContext)
             : Promise.resolve(undefined),
-        () => {
-            const coords = linkingState?.area?.points?.map(pointToCoords);
-            if (!coords) return [];
-
-            const feature = new Feature({
-                geometry: new OlPolygon([coords]),
-            });
-            feature.setStyle(operationalPointAreaPolygonStyle(false));
-            return [feature];
-        },
+        () =>
+            linkingState?.area
+                ? [renderOperationalPointAreaFeature(linkingState?.area, 'SELECTED', 'MODIFYING')]
+                : [],
     );
 
     return {
