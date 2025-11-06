@@ -92,7 +92,7 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
                     layoutState.linkingState.area,
                     layoutContext,
                 );
-                SnackBar.success('tool-panel.operational-point.location-update-succeeded');
+                SnackBar.success('tool-panel.operational-point.area-update-succeeded');
                 onStopPlacingArea();
             } finally {
                 setLocationUpdateInProgress(false);
