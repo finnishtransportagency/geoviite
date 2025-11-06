@@ -1,38 +1,30 @@
 import { MapLayerName, MapTile } from 'map/map-model';
-import { Point as OlPoint } from 'ol/geom';
-import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { Polygon as OlPolygon } from 'ol/geom';
+import { MapLayer } from 'map/layers/utils/layer-model';
 import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { getOperationalPoints } from 'track-layout/layout-operational-point-api';
 import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
-import OlView from 'ol/View';
 import { ChangeTimes } from 'common/common-slice';
 import { filterNotEmpty } from 'utils/array-utils';
-import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { LayoutContext } from 'common/common-model';
 import { Selection } from 'selection/selection-model';
-import { Rectangle } from 'model/geometry';
 import {
-    findMatchingOperationalPoints,
     operationalPointFeatureModeBySelection,
-    renderOperationalPointCircleFeature,
+    renderOperationalPointAreaFeature,
 } from 'map/layers/operational-point/operational-points-layer-utils';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 
-const LAYER_NAME: MapLayerName = 'operational-points-layer';
+const LAYER_NAME: MapLayerName = 'operational-points-area-layer';
 
-export function createOperationalPointLayer(
+export function createOperationalPointAreaLayer(
     mapTiles: MapTile[],
-    existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
-    olView: OlView,
+    existingOlLayer: GeoviiteMapLayer<OlPolygon> | undefined,
     selection: Selection,
     linkingState: LinkingState | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
 ): MapLayer {
-    const { layer, source, isLatest } = createLayer(LAYER_NAME, existingOlLayer, true, true);
-    const resolution = olView.getResolution() || 0;
-
-    const showOperationalPoints = resolution <= Limits.OPERATIONAL_POINTS_SMALL;
+    const { layer, source, isLatest } = createLayer(LAYER_NAME, existingOlLayer, true);
 
     const getOperationalPointsFromApi = async () => {
         return (
@@ -45,33 +37,29 @@ export function createOperationalPointLayer(
     };
     const onLoadingChange = () => {};
 
-    const isBeingMoved = (id: OperationalPointId) =>
+    const isBeingEdited = (id: OperationalPointId) =>
         linkingState &&
-        linkingState.type === LinkingType.PlacingOperationalPoint &&
+        linkingState.type === LinkingType.PlacingOperationalPointArea &&
         linkingState.operationalPoint.id === id &&
-        !!linkingState.location;
+        !!linkingState.area;
 
     const createFeatures = (points: OperationalPoint[]) =>
-        showOperationalPoints
-            ? points
-                  .filter((point) => !isBeingMoved(point.id))
-                  .map((point) =>
-                      renderOperationalPointCircleFeature(
-                          point,
+        points
+            .filter((point) => !isBeingEdited(point.id))
+            .map((point) => {
+                return point.polygon
+                    ? renderOperationalPointAreaFeature(
+                          point.polygon,
                           operationalPointFeatureModeBySelection(point.id, selection),
-                      ),
-                  )
-                  .filter(filterNotEmpty)
-            : [];
+                          undefined,
+                      )
+                    : undefined;
+            })
+            .filter(filterNotEmpty);
     loadLayerData(source, isLatest, onLoadingChange, getOperationalPointsFromApi(), createFeatures);
 
     return {
         name: LAYER_NAME,
         layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => ({
-            operationalPoints: findMatchingOperationalPoints(hitArea, source, options).map(
-                (operationalPoint) => operationalPoint.id,
-            ),
-        }),
     };
 }

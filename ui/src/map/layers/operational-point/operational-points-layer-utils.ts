@@ -1,21 +1,22 @@
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { isValidPolygon, Point, Rectangle } from 'model/geometry';
+import { isValidPolygon, Point, Polygon, Rectangle } from 'model/geometry';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { OperationalPoint } from 'track-layout/track-layout-model';
+import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
 import {
     findMatchingEntities,
     getFeatureCoords,
     pointToCoords,
 } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
-import { fieldComparator } from 'utils/array-utils';
+import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
 import Style from 'ol/style/Style';
 import { Circle, Fill, Stroke, Text } from 'ol/style';
 import Feature, { FeatureLike } from 'ol/Feature';
 import { LineString, MultiPoint, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
 import mapStyles from 'map/map.module.scss';
 import CircleStyle from 'ol/style/Circle';
+import { Selection } from 'selection/selection-model';
 
 export const OPERATIONAL_POINT_FEATURE_DATA_PROPERTY = 'operational-point-data';
 
@@ -26,6 +27,8 @@ export enum OperationalPointCircleFeatureSize {
 }
 
 export type OperationalPointFeatureMode = 'DELETED' | 'HIGHLIGHTED' | 'SELECTED' | 'REGULAR';
+
+export type OperationalPointAreaEditMode = 'ADDING' | 'MODIFYING';
 
 const OPERATIONAL_POINT_FEATURE_SIZE_LIMITS: {
     style: OperationalPointCircleFeatureSize;
@@ -182,44 +185,126 @@ export const renderOperationalPointCircleFeature = (
     return feature;
 };
 
-export const operationalPointAreaPolygonStyle = function (isNew: boolean) {
-    return function (feature: Feature<OlPolygon>) {
+export const renderOperationalPointAreaFeature = (
+    area: Polygon,
+    featureMode: OperationalPointFeatureMode,
+    areaEditMode: OperationalPointAreaEditMode | undefined,
+): Feature<OlPolygon> => {
+    const coords = area.points.map(pointToCoords);
+
+    const feature = new Feature({
+        geometry: new OlPolygon([coords]),
+    });
+    feature.setStyle(operationalPointPolygonStylesFunc(featureMode, areaEditMode));
+    return feature;
+};
+
+const operationalPointLineColor = (mode: OperationalPointFeatureMode) => {
+    switch (mode) {
+        case 'DELETED':
+            return 'red';
+        case 'HIGHLIGHTED':
+        case 'SELECTED':
+            return '#009BFF';
+        case 'REGULAR':
+            return 'rgba(133, 133, 133, 0.53)';
+        default:
+            return exhaustiveMatchingGuard(mode);
+    }
+};
+
+const operationalPointFillColor = (mode: OperationalPointFeatureMode) => {
+    switch (mode) {
+        case 'DELETED':
+            return 'rgba(255, 150, 0, 0.1)';
+        case 'HIGHLIGHTED':
+        case 'SELECTED':
+            return '#009BFF35';
+        case 'REGULAR':
+            return 'rgba(208, 208, 208, 0.38)';
+        default:
+            return exhaustiveMatchingGuard(mode);
+    }
+};
+
+const operationalPointEditLineColor = (isValid: boolean) => (isValid ? '#009BFF' : 'red');
+const operationalPointEditFillColor = (isValid: boolean) =>
+    isValid ? '#009BFF35' : 'rgba(255, 150, 0, 0.1)';
+
+const polygonLineStyle = (
+    editMode: OperationalPointAreaEditMode | undefined,
+    featureMode: OperationalPointFeatureMode,
+    isValid: boolean,
+): Style => {
+    return new Style({
+        stroke: new Stroke({
+            color: editMode
+                ? operationalPointEditLineColor(isValid)
+                : operationalPointLineColor(featureMode),
+            width: editMode ? 2 : 1,
+        }),
+        geometry: function (feature: Feature<LineString>) {
+            const coordinates = getFeatureCoords(feature);
+            const refined = editMode === 'ADDING' ? coordinates.slice(0, -1) : coordinates;
+            return new LineString(refined);
+        },
+    });
+};
+const polygonPointStyle = (isValid: boolean): Style =>
+    new Style({
+        image: new CircleStyle({
+            radius: 5,
+            fill: new Fill({
+                color: operationalPointEditLineColor(isValid),
+            }),
+        }),
+        geometry: function (feature: Feature<MultiPoint>) {
+            // return the coordinates of the first ring of the polygon
+            const coordinates = getFeatureCoords(feature).slice(0, -1);
+            return new MultiPoint(coordinates);
+        },
+    });
+
+const polygonFillStyle = (
+    editMode: OperationalPointAreaEditMode | undefined,
+    isValid: boolean,
+    featureMode: OperationalPointFeatureMode,
+): Style =>
+    new Style({
+        fill: new Fill({
+            color: editMode
+                ? operationalPointEditFillColor(isValid)
+                : operationalPointFillColor(featureMode),
+        }),
+    });
+
+export const operationalPointPolygonStylesFunc =
+    (
+        featureMode: OperationalPointFeatureMode,
+        areaEditMode: OperationalPointAreaEditMode | undefined,
+    ) =>
+    (feature: Feature<OlPolygon>): Style[] => {
         const coords = getFeatureCoords(feature);
-        const isValid = isValidPolygon(coords, isNew);
-        const lineColor = isValid ? '#009BFF' : 'red';
-        const fillColor = isValid ? '#009BFF35' : 'rgba(255, 150, 0, 0.1)';
+        const isValid = isValidPolygon(coords, areaEditMode === 'ADDING');
+
         return coords.length
             ? [
-                  new Style({
-                      stroke: new Stroke({
-                          color: lineColor,
-                          width: 2,
-                      }),
-                      geometry: function (feature: Feature<LineString>) {
-                          const coordinates = getFeatureCoords(feature);
-                          const refined = isNew ? coordinates.slice(0, -1) : coordinates;
-                          return new LineString(refined);
-                      },
-                  }),
-                  new Style({
-                      fill: new Fill({
-                          color: fillColor,
-                      }),
-                  }),
-                  new Style({
-                      image: new CircleStyle({
-                          radius: 5,
-                          fill: new Fill({
-                              color: lineColor,
-                          }),
-                      }),
-                      geometry: function (feature: Feature<MultiPoint>) {
-                          // return the coordinates of the first ring of the polygon
-                          const coordinates = getFeatureCoords(feature).slice(0, -1);
-                          return new MultiPoint(coordinates);
-                      },
-                  }),
-              ]
+                  polygonLineStyle(areaEditMode, featureMode, isValid),
+                  polygonFillStyle(areaEditMode, isValid, featureMode),
+                  areaEditMode ? polygonPointStyle(isValid) : undefined,
+              ].filter(filterNotEmpty)
             : [];
     };
+
+export const operationalPointFeatureModeBySelection = (
+    operationalPointId: OperationalPointId,
+    selection: Selection,
+): OperationalPointFeatureMode => {
+    if (selection.selectedItems.operationalPoints.includes(operationalPointId)) {
+        return 'SELECTED';
+    } else if (selection.highlightedItems.operationalPoints.includes(operationalPointId)) {
+        return 'HIGHLIGHTED';
+    } else {
+        return 'REGULAR';
+    }
 };

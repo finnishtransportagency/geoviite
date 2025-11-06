@@ -62,7 +62,7 @@ const shortenLineFromBothEnds = (line: Line, amount: number): Line => {
     return { start: adjustedStart, end: adjustedEnd };
 };
 
-export function isValidPolygon(coords: Coordinate[], ignoreLastSegment: boolean) {
+export function isValidPolygon(coords: Coordinate[], ignoreLastSegment: boolean): boolean {
     const allPolygonSegments = coords
         .slice(0, -1)
         .map((startCoordinate, index, coordinatesExceptLoopback) => {
@@ -185,7 +185,7 @@ function intersects(
     s: number,
 ): boolean {
     const det = (c - a) * (s - q) - (r - p) * (d - b);
-    if (det > -0.0001 && det < 0.0001) {
+    if (Math.abs(det) < 0.0001) {
         return false;
     } else {
         const lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
