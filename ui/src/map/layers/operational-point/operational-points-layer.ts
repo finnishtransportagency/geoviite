@@ -13,22 +13,12 @@ import { Selection } from 'selection/selection-model';
 import { Rectangle } from 'model/geometry';
 import {
     findMatchingOperationalPoints,
-    OperationalPointFeatureMode,
+    operationalPointFeatureModeBySelection,
     renderOperationalPointCircleFeature,
 } from 'map/layers/operational-point/operational-points-layer-utils';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 
 const LAYER_NAME: MapLayerName = 'operational-points-layer';
-
-const operationalPointFeatureMode = (
-    operationalPointId: OperationalPointId,
-    selection: Selection,
-): OperationalPointFeatureMode => {
-    if (selection.selectedItems.operationalPoints.includes(operationalPointId)) return 'SELECTED';
-    if (selection.highlightedItems.operationalPoints.includes(operationalPointId))
-        return 'HIGHLIGHTED';
-    return 'REGULAR';
-};
 
 export function createOperationalPointLayer(
     mapTiles: MapTile[],
@@ -68,7 +58,7 @@ export function createOperationalPointLayer(
                   .map((point) =>
                       renderOperationalPointCircleFeature(
                           point,
-                          operationalPointFeatureMode(point.id, selection),
+                          operationalPointFeatureModeBySelection(point.id, selection),
                       ),
                   )
                   .filter(filterNotEmpty)

@@ -300,8 +300,11 @@ export const operationalPointFeatureModeBySelection = (
     operationalPointId: OperationalPointId,
     selection: Selection,
 ): OperationalPointFeatureMode => {
-    if (selection.selectedItems.operationalPoints.includes(operationalPointId)) return 'SELECTED';
-    if (selection.highlightedItems.operationalPoints.includes(operationalPointId))
+    if (selection.selectedItems.operationalPoints.includes(operationalPointId)) {
+        return 'SELECTED';
+    } else if (selection.highlightedItems.operationalPoints.includes(operationalPointId)) {
         return 'HIGHLIGHTED';
-    return 'REGULAR';
+    } else {
+        return 'REGULAR';
+    }
 };
