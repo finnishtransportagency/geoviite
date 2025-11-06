@@ -92,7 +92,10 @@ export const createOperationalPointsAreaPlacingLayer = (
             ),
         }),
         onRemove: () => {
-            if (modify) map.removeInteraction(modify);
+            if (modify) {
+                map.removeInteraction(modify);
+                modify = undefined;
+            }
         },
     };
 };

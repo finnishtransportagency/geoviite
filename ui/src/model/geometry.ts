@@ -185,7 +185,7 @@ function intersects(
     s: number,
 ): boolean {
     const det = (c - a) * (s - q) - (r - p) * (d - b);
-    if (det > -0.0001 && det < 0.0001) {
+    if (Math.abs(det) < 0.0001) {
         return false;
     } else {
         const lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
