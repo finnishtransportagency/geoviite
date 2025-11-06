@@ -37,7 +37,7 @@ export function createOperationalPointAreaLayer(
     };
     const onLoadingChange = () => {};
 
-    const isBeingMoved = (id: OperationalPointId) =>
+    const isBeingEdited = (id: OperationalPointId) =>
         linkingState &&
         linkingState.type === LinkingType.PlacingOperationalPointArea &&
         linkingState.operationalPoint.id === id &&
@@ -45,7 +45,7 @@ export function createOperationalPointAreaLayer(
 
     const createFeatures = (points: OperationalPoint[]) =>
         points
-            .filter((point) => !isBeingMoved(point.id))
+            .filter((point) => !isBeingEdited(point.id))
             .map((point) => {
                 return point.polygon
                     ? renderOperationalPointAreaFeature(

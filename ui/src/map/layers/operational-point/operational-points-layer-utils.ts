@@ -213,10 +213,6 @@ const operationalPointLineColor = (mode: OperationalPointFeatureMode) => {
     }
 };
 
-const operationalPointEditLineColor = (isValid: boolean) => (isValid ? '#009BFF' : 'red');
-const operationalPointEditFillColor = (isValid: boolean) =>
-    isValid ? '#009BFF35' : 'rgba(255, 150, 0, 0.1)';
-
 const operationalPointFillColor = (mode: OperationalPointFeatureMode) => {
     switch (mode) {
         case 'DELETED':
@@ -230,6 +226,10 @@ const operationalPointFillColor = (mode: OperationalPointFeatureMode) => {
             return exhaustiveMatchingGuard(mode);
     }
 };
+
+const operationalPointEditLineColor = (isValid: boolean) => (isValid ? '#009BFF' : 'red');
+const operationalPointEditFillColor = (isValid: boolean) =>
+    isValid ? '#009BFF35' : 'rgba(255, 150, 0, 0.1)';
 
 const polygonLineStyle = (
     editMode: OperationalPointAreaEditMode | undefined,
