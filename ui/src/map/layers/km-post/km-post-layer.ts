@@ -61,7 +61,10 @@ export function createKmPostLayer(
         const isSelected = (kmPost: LayoutKmPost) => {
             return selection.selectedItems.kmPosts.some((k) => k === kmPost.id);
         };
-        return createKmPostFeatures(kmPosts, isSelected, 'layoutKmPost', resolution);
+        const isHighlighted = (kmPost: LayoutKmPost) => {
+            return selection.highlightedItems.kmPosts.some((k) => k === kmPost.id);
+        };
+        return createKmPostFeatures(kmPosts, isSelected, isHighlighted, 'layoutKmPost', resolution);
     };
 
     const onLoadingChange = (loading: boolean, kmPosts: LayoutKmPost[] | undefined) => {

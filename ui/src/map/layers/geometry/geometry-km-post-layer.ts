@@ -53,6 +53,11 @@ export function createGeometryKmPostLayer(
                 ({ geometryId }) => geometryId === kmPost.sourceId,
             );
         };
+        const isHighlighted = (kmPost: LayoutKmPost) => {
+            return selection.highlightedItems.geometryKmPostIds.some(
+                ({ geometryId }) => geometryId === kmPost.sourceId,
+            );
+        };
 
         const visibleKmPosts = manuallySetPlan
             ? manuallySetPlan.kmPosts.map((p) => p.sourceId)
@@ -78,6 +83,7 @@ export function createGeometryKmPostLayer(
             return createKmPostFeatures(
                 kmPosts,
                 isSelected,
+                isHighlighted,
                 'geometryKmPost',
                 resolution,
                 plan.id,

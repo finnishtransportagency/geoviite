@@ -43,6 +43,7 @@ export function getKmPostStepByResolution(resolution: number): number {
 export function createKmPostFeature(
     kmPost: LayoutKmPost,
     isSelected: (kmPost: LayoutKmPost) => boolean,
+    isHighlighted: (kmPost: LayoutKmPost) => boolean,
     kmPostType: 'layoutKmPost' | 'geometryKmPost',
     isLinked: ((kmPost: LayoutKmPost) => boolean) | undefined,
     resolution: number,
@@ -52,13 +53,15 @@ export function createKmPostFeature(
     const feature = new Feature({ geometry: new OlPoint(pointToCoords(location)) });
 
     const selected = isSelected(kmPost);
+    const highlighted = isHighlighted(kmPost);
 
     feature.setStyle(
         new Style({
-            zIndex: selected ? 1 : 0,
-            renderer: selected
-                ? getSelectedKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost))
-                : getKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost)),
+            zIndex: highlighted ? 2 : selected ? 1 : 0,
+            renderer:
+                selected || highlighted
+                    ? getSelectedKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost))
+                    : getKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost)),
         }),
     );
 
@@ -101,6 +104,7 @@ export const createKmPostBadgeFeature = (
 export function createKmPostFeatures(
     kmPosts: LayoutKmPost[],
     isSelected: (kmPost: LayoutKmPost) => boolean,
+    isHighlighted: (kmPost: LayoutKmPost) => boolean,
     kmPostType: KmPostType,
     resolution: number,
     planId?: GeometryPlanId,
@@ -109,7 +113,15 @@ export function createKmPostFeatures(
     return kmPosts
         .filter((kmPost) => kmPost.layoutLocation)
         .flatMap((kmPost) =>
-            createKmPostFeature(kmPost, isSelected, kmPostType, isLinked, resolution, planId),
+            createKmPostFeature(
+                kmPost,
+                isSelected,
+                isHighlighted,
+                kmPostType,
+                isLinked,
+                resolution,
+                planId,
+            ),
         );
 }
 
