@@ -473,7 +473,7 @@ export function createSwitchFeature(
 
     switchFeature.setStyle(
         selected || highlighted
-            ? getSelectedSwitchStyle(layoutSwitch, linked, valid)
+            ? getSelectedSwitchStyle(layoutSwitch, highlighted, linked, valid)
             : getUnselectedSwitchStyle(
                   layoutSwitch,
                   largeSymbol,
@@ -496,28 +496,15 @@ export function createSwitchFeature(
                   feature.setStyle(
                       getSwitchJointStyle(
                           joint,
+                          highlighted,
                           // Again, use presentation joint as main joint if found, otherwise use first one
                           presentationJoint
                               ? joint.number === presentationJointNumber
                               : index === 0,
-                          true,
+                          !validationResult || validationResult.errors.length === 0,
                           disabled,
                       ),
                   );
-
-                  if (validationResult?.errors?.length) {
-                      feature.setStyle(
-                          getSwitchJointStyle(
-                              joint,
-                              // Again, use presentation joint as main joint if found, otherwise use first one
-                              presentationJoint
-                                  ? joint.number === presentationJointNumber
-                                  : index === 0,
-                              false,
-                              disabled,
-                          ),
-                      );
-                  }
 
                   return feature;
               })
@@ -542,23 +529,25 @@ function getUnselectedSwitchStyle(
 
 function getSelectedSwitchStyle(
     layoutSwitch: LayoutSwitch,
+    highlighted: boolean,
     linked: boolean,
     valid: boolean = true,
 ): Style {
     return new Style({
-        zIndex: 1,
+        zIndex: highlighted ? 2 : 1,
         renderer: getSelectedSwitchLabelRenderer(layoutSwitch, linked, valid),
     });
 }
 
 function getSwitchJointStyle(
     joint: LayoutSwitchJoint,
+    highlighted: boolean,
     mainJoint: boolean,
     valid: boolean = true,
     disabled: boolean = false,
 ): Style {
     return new Style({
-        zIndex: mainJoint ? 3 : 2,
+        zIndex: (mainJoint ? 3 : 2) + (highlighted ? 1 : 0),
         renderer: getJointRenderer(joint, mainJoint, valid, disabled),
     });
 }
