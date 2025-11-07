@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
 const val EXT_TRACK_LAYOUT_VERSIONS_TAG_V1 = "Rataverkon versiot"
@@ -34,6 +35,38 @@ const val EXT_TRACK_LAYOUT_VERSIONS_TAG_V1 = "Rataverkon versiot"
 )
 class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publicationService: PublicationService) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    @GetMapping("/rataverkko/versiot/{${TRACK_LAYOUT_VERSION}}")
+    @Tag(name = EXT_TRACK_LAYOUT_VERSIONS_TAG_V1)
+    @Operation(summary = "Rataverkon version haku")
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "Rataverkon version haku onnistui."),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_NOT_FOUND,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
+    fun extGetTrackLayoutVersion(
+        @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
+        @PathVariable(TRACK_LAYOUT_VERSION)
+        version: Uuid<Publication>
+    ): ExtTrackLayoutVersionV1 {
+        return publicationService.getPublicationWithType(LayoutBranchType.MAIN, version).let(::ExtTrackLayoutVersionV1)
+    }
 
     @GetMapping("/rataverkko/versiot/uusin")
     @Tag(name = EXT_TRACK_LAYOUT_VERSIONS_TAG_V1)
@@ -77,12 +110,10 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
                 ),
             ]
     )
-    fun extGetTrackLayoutVersionCollection(): ResponseEntity<ExtTrackLayoutVersionCollectionResponseV1> {
+    fun extGetTrackLayoutVersionCollection(): ExtTrackLayoutVersionCollectionResponseV1 {
         return publicationService
             .listPublications(LayoutBranchType.MAIN)
-            .takeIf { publications -> publications.isNotEmpty() }
-            ?.let(::ExtTrackLayoutVersionCollectionResponseV1)
-            .let(::toResponse)
+            .let(::ExtTrackLayoutVersionCollectionResponseV1)
     }
 
     @GetMapping("/rataverkko/versiot/muutokset")
@@ -92,6 +123,11 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
         value =
             [
                 ApiResponse(responseCode = "200", description = "Rataverkon versiokokoelman muutosten haku onnistui."),
+                ApiResponse(
+                    responseCode = "204",
+                    description = "Muutoksia vertailtavien versioiden välillä ei ole.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
                 ApiResponse(
                     responseCode = "400",
                     description = EXT_OPENAPI_INVALID_ARGUMENTS,
