@@ -21,6 +21,8 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
+import fi.fta.geoviite.infra.ratko.RatkoTestService
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTarget
@@ -51,6 +53,8 @@ import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
+import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
+import fi.fta.geoviite.infra.tracklayout.OperationalPointService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
@@ -66,6 +70,7 @@ import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
+import fi.fta.geoviite.infra.tracklayout.ratkoOperationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -122,7 +127,10 @@ constructor(
     val splitDao: SplitDao,
     val splitService: SplitService,
     val layoutDesignDao: LayoutDesignDao,
+    val ratkoTestService: RatkoTestService,
 ) : DBTestBase() {
+
+    @Autowired private lateinit var operationalPointService: OperationalPointService
 
     @BeforeEach
     fun cleanup() {
@@ -1945,6 +1953,47 @@ constructor(
         )
         val editedOfficial = mainOfficialContext.fetch(id)!!
         assertEquals("Lordistan", editedOfficial.name.toString())
+    }
+
+    @Test
+    fun `external operational point creation and edit can be published`() {
+        val pointId = ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", "Aaponen"))[0]
+        operationalPointDao.save(
+            operationalPointDao
+                .fetchVersion(mainDraftContext.context, pointId)!!
+                .let(operationalPointDao::fetch)
+                .copy(
+                    polygon =
+                        Polygon(
+                            Point(0.0, 0.0),
+                            Point(0.0, 20.0),
+                            Point(20.0, 20.0),
+                            Point(20.0, 0.0),
+                            Point(0.0, 0.0),
+                        ),
+                    rinfType = OperationalPointRinfType.STATION,
+                )
+        )
+
+        val candidates =
+            publicationService.collectPublicationCandidates(LayoutContextTransition.publicationIn(LayoutBranch.main))
+        assertEquals(1, candidates.operationalPoints.size)
+        assertEquals("Aaponen", candidates.operationalPoints[0].name.toString())
+        publicationService.publishManualPublication(
+            LayoutBranch.main,
+            PublicationRequest(publicationRequestIds(operationalPoints = listOf(pointId)), PublicationMessage.of("aa")),
+        )
+        assertEquals("Aaponen", operationalPointService.get(mainOfficialContext.context, pointId)!!.name.toString())
+        ratkoTestService.updateRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", "Beepponen"))
+        val editCandidates =
+            publicationService.collectPublicationCandidates(LayoutContextTransition.publicationIn(LayoutBranch.main))
+        assertEquals(1, editCandidates.operationalPoints.size)
+        assertEquals("Beepponen", editCandidates.operationalPoints[0].name.toString())
+        publicationService.publishManualPublication(
+            LayoutBranch.main,
+            PublicationRequest(publicationRequestIds(operationalPoints = listOf(pointId)), PublicationMessage.of("bee")),
+        )
+        assertEquals("Beepponen", operationalPointService.get(mainOfficialContext.context, pointId)!!.name.toString())
     }
 
     private fun touchAsDraftAndPublish(
