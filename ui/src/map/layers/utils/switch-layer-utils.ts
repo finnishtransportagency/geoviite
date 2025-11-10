@@ -546,8 +546,13 @@ function getSwitchJointStyle(
     valid: boolean = true,
     disabled: boolean = false,
 ): Style {
+    // Z-index logic
+    // 1: non-selected switches (no joints visible)
+    // 2: selected switch (joints visible) regular joints so it's not covered by other switches
+    // 3: selected switch main joint, so it's not covered by regular ones
+    // +10: for highlighted (joints also visible) same joint-ordering as above, but draw over all
     return new Style({
-        zIndex: (mainJoint ? 3 : 2) + (highlighted ? 1 : 0),
+        zIndex: (mainJoint ? 3 : 2) + (highlighted ? 10 : 0),
         renderer: getJointRenderer(joint, mainJoint, valid, disabled),
     });
 }
