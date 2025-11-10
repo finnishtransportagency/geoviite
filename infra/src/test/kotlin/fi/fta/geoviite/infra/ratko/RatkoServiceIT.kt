@@ -1267,7 +1267,7 @@ constructor(
         val pointsFromLayoutTable =
             operationalPointService.list(
                 LayoutBranch.main.draft,
-                bbox = boundingBoxAroundPoint(Point(95.0, 95.0), 10.0),
+                locationBbox = boundingBoxAroundPoint(Point(95.0, 95.0), 10.0),
                 ids = null,
             )
         assertEquals(1, pointsFromLayoutTable.size)

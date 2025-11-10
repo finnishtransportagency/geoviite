@@ -2,7 +2,7 @@ import { MapLayerName, MapTile } from 'map/map-model';
 import { Point as OlPoint } from 'ol/geom';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
-import { getOperationalPoints } from 'track-layout/layout-operational-point-api';
+import { getOperationalPointsByLocation } from 'track-layout/layout-operational-point-api';
 import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
 import OlView from 'ol/View';
 import { ChangeTimes } from 'common/common-slice';
@@ -38,7 +38,11 @@ export function createOperationalPointLayer(
         return (
             await Promise.all(
                 mapTiles.map((tile) =>
-                    getOperationalPoints(tile, layoutContext, changeTimes.operationalPoints),
+                    getOperationalPointsByLocation(
+                        tile,
+                        layoutContext,
+                        changeTimes.operationalPoints,
+                    ),
                 ),
             )
         ).flat();

@@ -22,14 +22,16 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao, privat
 
     fun list(
         context: LayoutContext,
-        bbox: BoundingBox? = null,
+        locationBbox: BoundingBox? = null,
+        polygonBbox: BoundingBox? = null,
         ids: List<IntId<OperationalPoint>>? = null,
     ): List<OperationalPoint> =
         dao.fetchMany(
             dao.fetchVersions(
                 context,
                 includeDeleted = false,
-                searchBox = if (bbox == null) null else SearchOperationalPointsByLocation(bbox),
+                locationBbox = locationBbox,
+                polygonBbox = polygonBbox,
                 ids = ids,
             )
         )

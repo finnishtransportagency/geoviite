@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
@@ -43,14 +42,6 @@ enum class OperationalPointState {
 
     fun isRemoved() = this == DELETED
 }
-
-sealed interface OperationalPointSearchBbox {
-    val bbox: BoundingBox
-}
-
-data class SearchOperationalPointsByPolygon(override val bbox: BoundingBox) : OperationalPointSearchBbox
-
-data class SearchOperationalPointsByLocation(override val bbox: BoundingBox) : OperationalPointSearchBbox
 
 data class UicCode @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
     companion object {

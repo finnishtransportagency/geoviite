@@ -45,7 +45,7 @@ import {
     getSwitchLocation,
 } from 'map/layers/utils/publication-candidate-highlight-utils';
 import { renderOperationalPointCircleFeature } from 'map/layers/operational-point/operational-points-layer-utils';
-import { getOperationalPoints } from 'track-layout/layout-operational-point-api';
+import { getOperationalPointsByLocation } from 'track-layout/layout-operational-point-api';
 
 let shownSwitchesCompare = '';
 let shownKmPostsCompare = '';
@@ -206,7 +206,7 @@ const getOperationalPointsTiledPromise = (
 ): Promise<OperationalPoint[]> =>
     Promise.all(
         mapTiles.map((t) =>
-            getOperationalPoints(t, layerLayoutContext, changeTimes.operationalPoints),
+            getOperationalPointsByLocation(t, layerLayoutContext, changeTimes.operationalPoints),
         ),
     ).then((operationalPoints) => {
         return operationalPoints

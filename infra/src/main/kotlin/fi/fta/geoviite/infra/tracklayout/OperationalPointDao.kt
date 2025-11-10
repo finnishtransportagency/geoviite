@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
@@ -102,13 +103,14 @@ class OperationalPointDao(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
     ): List<LayoutRowVersion<OperationalPoint>> =
-        fetchVersions(layoutContext, includeDeleted, ids = null, searchBox = null)
+        fetchVersions(layoutContext, includeDeleted, ids = null, locationBbox = null, polygonBbox = null)
 
     fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         ids: List<IntId<OperationalPoint>>?,
-        searchBox: OperationalPointSearchBbox?,
+        locationBbox: BoundingBox? = null,
+        polygonBbox: BoundingBox? = null,
     ): List<LayoutRowVersion<OperationalPoint>> {
         val idsFragment = if (ids == null) "true" else if (ids.isEmpty()) "false" else "id = any(:ids)"
         val sql =
@@ -122,11 +124,10 @@ class OperationalPointDao(
                  )
                 where (:include_deleted = true or op.state != 'DELETED')
                   and $idsFragment
-                  and ((:search_target::text is null)
-                       or (:search_target = 'location' and 
-                             postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid), opv_location))
-                       or (:search_target = 'polygon' and
-                             postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid), polygon)))
+                  and  (:lx_min::double precision is null or 
+                         postgis.st_intersects(postgis.st_makeenvelope(:lx_min, :ly_min, :lx_max, :ly_max, :layout_srid), opv_location))
+                  and (:px_min::double precision is null or
+                         postgis.st_intersects(postgis.st_makeenvelope(:px_min, :py_min, :px_max, :py_max, :layout_srid), polygon))
             """
                 .trimIndent()
         val params =
@@ -134,16 +135,14 @@ class OperationalPointDao(
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
                 "include_deleted" to includeDeleted,
-                "search_target" to
-                    when (searchBox) {
-                        null -> null
-                        is SearchOperationalPointsByLocation -> "location"
-                        is SearchOperationalPointsByPolygon -> "polygon"
-                    },
-                "x_min" to searchBox?.bbox?.x?.min,
-                "x_max" to searchBox?.bbox?.x?.max,
-                "y_min" to searchBox?.bbox?.y?.min,
-                "y_max" to searchBox?.bbox?.y?.max,
+                "lx_min" to locationBbox?.x?.min,
+                "lx_max" to locationBbox?.x?.max,
+                "ly_min" to locationBbox?.y?.min,
+                "ly_max" to locationBbox?.y?.max,
+                "px_min" to polygonBbox?.x?.min,
+                "px_max" to polygonBbox?.x?.max,
+                "py_min" to polygonBbox?.y?.min,
+                "py_max" to polygonBbox?.y?.max,
                 "layout_srid" to LAYOUT_SRID.code,
             ) + if (ids != null) mapOf("ids" to ids.map { it.intValue }.toTypedArray()) else mapOf()
 
