@@ -10,8 +10,10 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import io.swagger.v3.oas.annotations.media.Schema
@@ -77,6 +79,61 @@ enum class ExtTrackNumberStateV1(val value: String) {
     }
 }
 
+@Schema(name = "Vaihteen tilakategoria", type = "string")
+enum class ExtSwitchStateV1(val value: String) {
+    EXISTING("olemassaoleva kohde"),
+    NOT_EXISTING("poistunut kohde");
+
+    @JsonValue fun jsonValue() = value
+
+    companion object {
+        fun of(switchState: LayoutStateCategory): ExtSwitchStateV1 {
+            return when (switchState) {
+                LayoutStateCategory.EXISTING -> EXISTING
+                LayoutStateCategory.NOT_EXISTING -> NOT_EXISTING
+            }
+        }
+    }
+}
+
+@Schema(name = "Vaihteen kätisyys", type = "string")
+enum class ExtSwitchHandV1(val value: String) {
+    RIGHT("oikea"),
+    LEFT("vasen"),
+    NONE("ei määritelty");
+
+    @JsonValue override fun toString() = value
+
+    companion object {
+        fun of(hand: SwitchHand): ExtSwitchHandV1 {
+            return when (hand) {
+                SwitchHand.RIGHT -> RIGHT
+                SwitchHand.LEFT -> LEFT
+                SwitchHand.NONE -> NONE
+            }
+        }
+    }
+}
+
+@Schema(name = "Vaihteen turvavaihde status", type = "string")
+enum class ExtSwitchTrapPointV1(val value: String) {
+    YES("kyllä"),
+    NO("ei"),
+    UNKNOWN("ei tiedossa");
+
+    @JsonValue override fun toString() = value
+
+    companion object {
+        fun of(isTrapPoint: Boolean?): ExtSwitchTrapPointV1 {
+            return when (isTrapPoint) {
+                null -> UNKNOWN
+                true -> YES
+                false -> NO
+            }
+        }
+    }
+}
+
 @Schema(name = "Ratakilometrin tyyppi", type = "string")
 enum class ExtTrackKmTypeV1(val value: String) {
     TRACK_NUMBER_START("ratanumeron alku"),
@@ -117,7 +174,7 @@ data class ExtKmPostOfficialLocationV1(
 
 @Schema(name = "Osoitepiste")
 @JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty("rataosoite") val trackAddress: String?) {
+data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty(TRACK_ADDRESS) val trackAddress: String?) {
 
     constructor(x: Double, y: Double, address: TrackMeter?) : this(x, y, address?.formatFixedDecimals(3))
 
