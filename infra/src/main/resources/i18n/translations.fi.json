@@ -993,6 +993,7 @@
             "reference-line-prefix": "Pituusmittauslinjan",
             "switch-prefix": "Vaihteen",
             "km-post-prefix": "Tasakilometripisteen",
+            "operational-point-prefix": "Toiminnallisen pisteen",
             "integrity": "eheys",
             "all-ok": "Kaikki OK",
             "errors": "Virheet",

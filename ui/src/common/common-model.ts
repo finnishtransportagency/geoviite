@@ -5,6 +5,7 @@ import {
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
+    OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { compare } from 'utils/array-utils';
@@ -108,7 +109,8 @@ export type AssetId =
     | ReferenceLineId
     | LocationTrackId
     | LayoutSwitchId
-    | LayoutKmPostId;
+    | LayoutKmPostId
+    | OperationalPointId;
 
 const TRACK_METER_REGEX = /^([0-9]{1,4})([a-zA-Z]{0,2})\+([0-9]{4}(?:.[0-9]{1,4})?)$/;
 const KM_NUMBER_REGEX = /^([0-9]{4})([a-zA-Z]{0,2})$/;

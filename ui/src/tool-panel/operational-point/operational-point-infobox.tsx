@@ -24,6 +24,7 @@ import { refreshOperationalPointSelection } from 'track-layout/track-layout-reac
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/operational-point-edit-dialog-container';
 import { OperationalPointLocationInfobox } from 'tool-panel/operational-point/operational-point-location-infobox';
+import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 
 type OperationalPointInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -164,6 +165,13 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 onStopPlacingLocation={onStopPlacingLocation}
                 onStartPlacingArea={onStartPlacingArea}
                 onStopPlacingArea={onStopPlacingArea}
+            />
+            <AssetValidationInfoboxContainer
+                contentVisible={visibilities.validation}
+                onContentVisibilityChange={() => visibilityChange('validation')}
+                idAndType={{ id: operationalPoint.id, type: 'OPERATIONAL_POINT' }}
+                layoutContext={layoutContext}
+                changeTime={changeTimes.operationalPoints}
             />
             <Infobox
                 contentVisible={visibilities.log}
