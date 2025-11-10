@@ -36,7 +36,7 @@ const val EXT_TRACK_LAYOUT_VERSIONS_TAG_V1 = "Rataverkon versiot"
 class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publicationService: PublicationService) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/rataverkko/versiot/{${TRACK_LAYOUT_VERSION}}")
+    @GetMapping("/versiot/{${TRACK_LAYOUT_VERSION}}")
     @Tag(name = EXT_TRACK_LAYOUT_VERSIONS_TAG_V1)
     @Operation(summary = "Rataverkon version haku")
     @ApiResponses(
@@ -68,7 +68,7 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
         return publicationService.getPublicationWithType(LayoutBranchType.MAIN, version).let(::ExtTrackLayoutVersionV1)
     }
 
-    @GetMapping("/rataverkko/versiot/uusin")
+    @GetMapping("/versiot/uusin")
     @Tag(name = EXT_TRACK_LAYOUT_VERSIONS_TAG_V1)
     @Operation(summary = "Rataverkon uusimman version haku")
     @ApiResponses(
@@ -91,13 +91,18 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
         return publicationService.getLatestPublication(LayoutBranchType.MAIN).let(::ExtTrackLayoutVersionV1)
     }
 
-    @GetMapping("/rataverkko/versiot")
+    @GetMapping("/versiot")
     @Tag(name = EXT_TRACK_LAYOUT_VERSIONS_TAG_V1)
     @Operation(summary = "Rataverkon versiokokoelman haku")
     @ApiResponses(
         value =
             [
                 ApiResponse(responseCode = "200", description = "Rataverkon versiokokoelman haku onnistui."),
+                ApiResponse(
+                    responseCode = "204",
+                    description = "Rataverkon versioita ei ole saatavilla.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
                 ApiResponse(
                     responseCode = "400",
                     description = EXT_OPENAPI_INVALID_ARGUMENTS,
@@ -110,13 +115,21 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
                 ),
             ]
     )
-    fun extGetTrackLayoutVersionCollection(): ExtTrackLayoutVersionCollectionResponseV1 {
+    fun extGetTrackLayoutVersionCollection(): ResponseEntity<ExtTrackLayoutVersionCollectionResponseV1> {
         return publicationService
             .listPublications(LayoutBranchType.MAIN)
-            .let(::ExtTrackLayoutVersionCollectionResponseV1)
+            .takeIf { publications -> publications.isNotEmpty() }
+            ?.let { publications ->
+                ExtTrackLayoutVersionCollectionResponseV1(
+                    trackLayoutVersionFrom = publications.first().uuid,
+                    trackLayoutVersionTo = publications.last().uuid,
+                    versions = publications.map(::ExtTrackLayoutVersionV1),
+                )
+            }
+            .let(::toResponse)
     }
 
-    @GetMapping("/rataverkko/versiot/muutokset")
+    @GetMapping("/versiot/muutokset")
     @Tag(name = EXT_TRACK_LAYOUT_VERSIONS_TAG_V1)
     @Operation(summary = "Rataverkon versiokokoelman muutosten haku")
     @ApiResponses(
@@ -155,8 +168,14 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
             .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
             .takeIf { versions -> versions.areDifferent() }
             ?.let { versions -> publicationService.listPublications(LayoutBranchType.MAIN, versions) }
-            ?.takeIf { publications -> publications.isNotEmpty() }
-            ?.let(::ExtTrackLayoutVersionCollectionResponseV1)
+            ?.takeIf { publications -> publications.size > 1 }
+            ?.let { publications ->
+                ExtTrackLayoutVersionCollectionResponseV1(
+                    trackLayoutVersionFrom = publications.first().uuid,
+                    trackLayoutVersionTo = publications.last().uuid,
+                    versions = publications.drop(1).map(::ExtTrackLayoutVersionV1),
+                )
+            }
             .let(::toResponse)
     }
 }

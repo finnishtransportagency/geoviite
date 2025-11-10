@@ -29,12 +29,4 @@ data class ExtTrackLayoutVersionCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val trackLayoutVersionFrom: Uuid<Publication>,
     @JsonProperty(TRACK_LAYOUT_VERSION_TO) val trackLayoutVersionTo: Uuid<Publication>,
     @JsonProperty(TRACK_LAYOUT_VERSIONS) val versions: List<ExtTrackLayoutVersionV1>,
-) {
-    constructor(
-        publications: List<Publication>
-    ) : this(
-        trackLayoutVersionFrom = publications.first().uuid,
-        trackLayoutVersionTo = publications.last().uuid,
-        versions = publications.map(::ExtTrackLayoutVersionV1),
-    )
-}
+)
