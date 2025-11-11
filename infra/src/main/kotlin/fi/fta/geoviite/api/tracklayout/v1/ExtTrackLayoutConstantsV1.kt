@@ -68,6 +68,8 @@ const val EXT_OPENAPI_NO_MODIFICATIONS_BETWEEN_VERSIONS =
 
 const val EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION = "Sijaintiraiteen OID-tunnus."
 
+const val EXT_OPENAPI_SWITCH_OID_DESCRIPTION = "Vaihteen OID-tunnus."
+
 const val EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION = "Ratanumeron OID-tunnus."
 
 const val EXT_OPENAPI_COORDINATE_SYSTEM =
@@ -84,6 +86,9 @@ const val EXT_OPENAPI_ADDRESS_POINT_FILTER_END =
 
 const val EXT_OPENAPI_LOCATION_TRACK_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
     "Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa."
+
+const val EXT_OPENAPI_SWITCH_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
+    "Vaihdetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa."
 
 const val EXT_OPENAPI_TRACK_NUMBER_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
     "Ratanumeroa ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa."

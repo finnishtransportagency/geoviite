@@ -31,8 +31,7 @@ data class ExtSwitchJointV1(
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtSwitchTrackJointV1(
     @JsonProperty(SWITCH_JOINT_NUMBER) val jointNumber: Int,
-    @JsonProperty(TRACK_ADDRESS) val address: String,
-    @JsonProperty(COORDINATE_LOCATION) val location: ExtCoordinateV1,
+    @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1,
 )
 
 @Schema(name = "Vaihde")

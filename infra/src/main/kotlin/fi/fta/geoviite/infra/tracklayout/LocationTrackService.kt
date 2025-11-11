@@ -46,11 +46,11 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.processFlattened
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATIONAL_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -336,6 +336,14 @@ class LocationTrackService(
         moment: Instant,
     ): Pair<LocationTrack, DbLocationTrackGeometry>? {
         return dao.fetchOfficialVersionAtMoment(branch, id, moment)?.let(::getWithGeometryInternal)
+    }
+
+    @Transactional(readOnly = true)
+    fun listOfficialWithGeometryAtMoment(
+        branch: LayoutBranch,
+        moment: Instant,
+    ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
+        return dao.fetchManyOfficialVersionsAtMoment(branch, null, moment).let(::getManyWithGeometries)
     }
 
     @Transactional(readOnly = true)
