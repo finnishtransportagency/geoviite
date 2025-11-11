@@ -42,26 +42,6 @@ export const coordsToPolygon = (coords: Coordinate[]): Polygon => ({
     points: coords.map(([x, y]) => ({ x: x ?? 0, y: y ?? 0 })),
 });
 
-const shortenLineFromBothEnds = (line: Line, amount: number): Line => {
-    const hypot = Math.hypot(line.end.x - line.start.x, line.end.y - line.start.y);
-    const normalized =
-        hypot === 0
-            ? { x: 0, y: 0 }
-            : {
-                  x: (line.end.x - line.start.x) / hypot,
-                  y: (line.end.y - line.start.y) / hypot,
-              };
-    const adjustedStart = {
-        x: line.start.x + normalized.x * amount,
-        y: line.start.y + normalized.y * amount,
-    };
-    const adjustedEnd = {
-        x: line.end.x - normalized.x * amount,
-        y: line.end.y - normalized.y * amount,
-    };
-    return { start: adjustedStart, end: adjustedEnd };
-};
-
 export function isValidPolygon(coords: Coordinate[], ignoreLastSegment: boolean): boolean {
     const allPolygonSegments = coords
         .slice(0, -1)
@@ -76,16 +56,9 @@ export function isValidPolygon(coords: Coordinate[], ignoreLastSegment: boolean)
         : allPolygonSegments;
 
     return !relevantSegments
-        .map(([start, end]) =>
-            shortenLineFromBothEnds(
-                createLine(coordsToPoint(start), coordsToPoint(end)),
-                0.0000001,
-            ),
-        )
+        .map(([start, end]) => createLine(coordsToPoint(start), coordsToPoint(end)))
         .some((segmentLine, index, segmentLines) =>
-            segmentLines.some(
-                (line2, index2) => index !== index2 && linesIntersect(segmentLine, line2),
-            ),
+            segmentLines.slice(index + 2).some((line2) => linesIntersect(segmentLine, line2)),
         );
 }
 
