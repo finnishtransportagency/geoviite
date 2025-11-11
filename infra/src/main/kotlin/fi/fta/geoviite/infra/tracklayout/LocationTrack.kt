@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
-import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.StringSanitizer
 
@@ -320,7 +319,7 @@ data class SwitchOnLocationTrack(
     val address: TrackMeter?,
     val location: Point?,
     val distance: LineM<LocationTrackM>?,
-    val nearestOperatingPoint: RatkoOperationalPoint?,
+    val nearestOperationalPoint: OperationalPoint?,
 )
 
 enum class DuplicateEndPointType {

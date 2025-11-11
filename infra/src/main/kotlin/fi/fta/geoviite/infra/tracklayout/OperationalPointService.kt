@@ -48,6 +48,7 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao, privat
                 polygon = null,
                 location = null,
                 origin = OperationalPointOrigin.GEOVIITE,
+                ratkoVersion = null,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
             ),
         )

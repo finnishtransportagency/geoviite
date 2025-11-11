@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.util.getBooleanOrNull
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
 import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getPointOrNull
@@ -74,8 +75,9 @@ class OperationalPointDao(
                   op.rinf_type,
                   rt.code as rinf_type_code,
                   postgis.st_astext(op.polygon) as polygon,
+                  op.ratko_operational_point_version,
                   op.origin
-                from layout.operational_point_version op
+                from layout.operational_point_version_view op
                   left join common.rinf_operational_point_type rt on op.rinf_type = rt.enum_name
                 where not op.deleted
             """
@@ -112,12 +114,17 @@ class OperationalPointDao(
         val sql =
             """
                 select id, design_id, draft, version
-                from layout.operational_point_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                where (:include_deleted = true or state != 'DELETED')
+                from layout.operational_point_in_layout_context(:publication_state::layout.publication_state, :design_id) op
+                  cross join lateral (
+                    select location as opv_location
+                    from layout.operational_point_version_view opv
+                    where opv.id = op.id and opv.version = op.version and opv.layout_context_id = op.layout_context_id
+                 )
+                where (:include_deleted = true or op.state != 'DELETED')
                   and $idsFragment
                   and ((:search_target::text is null)
                        or (:search_target = 'location' and 
-                             postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid), location))
+                             postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid), opv_location))
                        or (:search_target = 'polygon' and
                              postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid), polygon)))
             """
@@ -148,6 +155,45 @@ class OperationalPointDao(
     @Transactional fun save(item: OperationalPoint): LayoutRowVersion<OperationalPoint> = save(item, NoParams.instance)
 
     @Transactional
+    fun insertRatkoPoint(id: IntId<OperationalPoint>, ratkoPointVersion: Int): LayoutRowVersion<OperationalPoint> {
+        val sql =
+            """
+                insert into
+                  layout.operational_point(
+                    id,
+                    draft,
+                    design_id,
+                    layout_context_id,
+                    state,
+                    origin,
+                    ratko_operational_point_version
+                )
+                values (
+                  :id,
+                  true,
+                  null,
+                  'main_draft',
+                  'IN_USE',
+                  'RATKO',
+                  :ratko_operational_point_version
+                )
+                returning id, design_id, draft, version
+            """
+                .trimIndent()
+
+        jdbcTemplate.setUser()
+        val response: LayoutRowVersion<OperationalPoint> =
+            jdbcTemplate.queryForObject(
+                sql,
+                mapOf("id" to id.intValue, "ratko_operational_point_version" to ratkoPointVersion),
+            ) { rs, _ ->
+                rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+            } ?: throw IllegalStateException("Failed to save operational point")
+        logger.daoAccess(INSERT, OperationalPoint::class, response)
+        return response
+    }
+
+    @Transactional
     override fun save(item: OperationalPoint, params: NoParams): LayoutRowVersion<OperationalPoint> {
         val id = item.id as? IntId ?: createId()
 
@@ -169,7 +215,8 @@ class OperationalPointDao(
                     state,
                     rinf_type,
                     polygon,
-                    origin
+                    origin,
+                    ratko_operational_point_version
                 )
                 values (
                   :id,
@@ -186,7 +233,8 @@ class OperationalPointDao(
                   :state::layout.operational_point_state,
                   :rinf_type,
                   postgis.st_polygonfromtext(:polygon_wkt, :srid),
-                  :origin::layout.operational_point_origin
+                  :origin::layout.operational_point_origin,
+                  :ratko_operational_point_version
                 )
                 on conflict (id, layout_context_id) do update set
                   design_asset_state = excluded.design_asset_state,
@@ -198,34 +246,52 @@ class OperationalPointDao(
                   location = excluded.location,
                   state = excluded.state,
                   rinf_type = excluded.rinf_type,
-                  polygon = excluded.polygon
+                  polygon = excluded.polygon,
+                  ratko_operational_point_version = excluded.ratko_operational_point_version
                 returning id, design_id, draft, version
             """
                 .trimIndent()
         jdbcTemplate.setUser()
+
+        val commonParams =
+            mapOf(
+                "layout_context_id" to item.layoutContext.toSqlString(),
+                "draft" to item.isDraft,
+                "id" to id.intValue,
+                "design_asset_state" to item.designAssetState?.name,
+                "design_id" to item.contextData.designId?.intValue,
+                "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
+                "polygon_wkt" to item.polygon?.toWkt(),
+                "state" to item.state.name,
+                "origin" to item.origin.name,
+                "srid" to LAYOUT_SRID.code,
+                "rinf_type" to item.rinfType?.name,
+                "ratko_operational_point_version" to item.ratkoVersion,
+            )
+        val originParams =
+            when (item.origin) {
+                OperationalPointOrigin.RATKO ->
+                    mapOf(
+                        "name" to null,
+                        "abbreviation" to null,
+                        "uic_code" to null,
+                        "type" to null,
+                        "location_x" to null,
+                        "location_y" to null,
+                    )
+                OperationalPointOrigin.GEOVIITE ->
+                    mapOf(
+                        "name" to item.name.toString(),
+                        "abbreviation" to item.abbreviation?.toString(),
+                        "uic_code" to item.uicCode?.toString(),
+                        "type" to item.raideType?.name,
+                        "location_x" to item.location?.x,
+                        "location_y" to item.location?.y,
+                    )
+            }
+
         val response: LayoutRowVersion<OperationalPoint> =
-            jdbcTemplate.queryForObject(
-                sql,
-                mapOf(
-                    "layout_context_id" to item.layoutContext.toSqlString(),
-                    "draft" to item.isDraft,
-                    "id" to id.intValue,
-                    "design_asset_state" to item.designAssetState?.name,
-                    "design_id" to item.contextData.designId?.intValue,
-                    "origin_design_id" to item.contextData.originBranch?.designId?.intValue,
-                    "name" to item.name.toString(),
-                    "abbreviation" to item.abbreviation?.toString(),
-                    "uic_code" to item.uicCode?.toString(),
-                    "type" to item.raideType?.name,
-                    "location_x" to item.location?.x,
-                    "location_y" to item.location?.y,
-                    "polygon_wkt" to item.polygon?.toWkt(),
-                    "state" to item.state.name,
-                    "origin" to item.origin.name,
-                    "srid" to LAYOUT_SRID.code,
-                    "rinf_type" to item.rinfType?.name,
-                ),
-            ) { rs, _ ->
+            jdbcTemplate.queryForObject(sql, commonParams + originParams) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save operational point")
         logger.daoAccess(INSERT, OperationalPoint::class, response)
@@ -245,6 +311,7 @@ class OperationalPointDao(
             rinfType = rs.getEnumOrNull<OperationalPointRinfType>("rinf_type"),
             polygon = rs.getPolygonPointListOrNull("polygon")?.let(::Polygon),
             origin = rs.getEnum("origin"),
+            ratkoVersion = rs.getIntOrNull("ratko_operational_point_version"),
             contextData =
                 rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
@@ -360,7 +427,7 @@ class OperationalPointDao(
         val sql =
             """
                 select postgis.st_intersects(polygon, location) c
-                from layout.operational_point_version opv
+                from layout.operational_point_version_view opv
                 where opv.id = :id and opv.version = :version and opv.layout_context_id = :context
             """
                 .trimIndent()

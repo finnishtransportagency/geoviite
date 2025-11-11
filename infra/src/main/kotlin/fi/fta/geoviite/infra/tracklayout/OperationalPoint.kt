@@ -20,6 +20,7 @@ data class OperationalPoint(
     val location: Point?,
     val state: OperationalPointState,
     val origin: OperationalPointOrigin,
+    val ratkoVersion: Int?,
     @JsonIgnore override val contextData: LayoutContextData<OperationalPoint>,
 ) : LayoutAsset<OperationalPoint>(contextData) {
     override fun toLog(): String =

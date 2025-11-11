@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.integration.AllOids
@@ -31,6 +32,7 @@ import fi.fta.geoviite.infra.ratko.model.PushableLayoutBranch
 import fi.fta.geoviite.infra.ratko.model.PushableMainBranch
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.ratko.model.RatkoSplit
@@ -46,12 +48,18 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
+import fi.fta.geoviite.infra.tracklayout.OperationalPointState
+import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import java.time.Duration
 import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import org.springframework.transaction.support.TransactionTemplate
 
 open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
     RuntimeException(cause)
@@ -82,17 +90,120 @@ constructor(
     private val switchService: LayoutSwitchService,
     private val lockDao: LockDao,
     private val ratkoOperationalPointDao: RatkoOperationalPointDao,
+    private val layoutOperationalPointDao: OperationalPointDao,
     private val splitService: SplitService,
     private val publicationDao: PublicationDao,
     private val layoutDesignDao: LayoutDesignDao,
+    private val operationalPointDao: OperationalPointDao,
+    private val transactionTemplate: TransactionTemplate,
 ) {
+
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(240)
 
     fun updateOperationalPointsFromRatko() {
         lockDao.runWithLock(DatabaseLock.RATKO_OPERATING_POINTS_FETCH, databaseLockDuration) {
             val points = ratkoClient.fetchOperationalPoints()
-            ratkoOperationalPointDao.updateOperationalPoints(points)
+            transactionTemplate.execute {
+                ratkoOperationalPointDao.updateOperationalPoints(points)
+                updateLayoutPointsFromIntegrationTable()
+            }
+        }
+    }
+
+    private fun updateLayoutPointsFromIntegrationTable() {
+        val ratkoPointsWithVersions = ratkoOperationalPointDao.listWithVersions()
+        val ratkoPointsByOid =
+            ratkoPointsWithVersions.associateBy { (point) -> point.externalId.cast<OperationalPoint>() }
+        val layoutPoints =
+            layoutOperationalPointDao.list(LayoutBranch.main.draft, true).filter { point ->
+                point.origin == OperationalPointOrigin.RATKO
+            }
+
+        val layoutPointOids = upsertIdsForRatkoPoints(ratkoPointsWithVersions)
+        upsertObjectsForRatkoPoints(ratkoPointsWithVersions, layoutPointOids, layoutPoints)
+        val deletedPoints = markRemovedPointsAsDeleted(layoutPoints, layoutPointOids, ratkoPointsByOid)
+        updatePossiblyUpdatedPoints(
+            layoutPoints.filterNot { deletedPoints.contains(it.id) },
+            layoutPointOids,
+            ratkoPointsByOid,
+        )
+    }
+
+    private fun upsertIdsForRatkoPoints(
+        ratkoPointsWithVersions: List<Pair<RatkoOperationalPoint, Int>>
+    ): Map<IntId<OperationalPoint>, Oid<OperationalPoint>> {
+        val existingIds =
+            layoutOperationalPointDao.fetchExternalIds(LayoutBranch.main).mapValues { (_, extId) -> extId.oid }
+        val existingOidsSet = existingIds.values.toSet()
+        val createdIds =
+            ratkoPointsWithVersions
+                .filter { (ratkoPoint) -> !existingOidsSet.contains(ratkoPoint.externalId.cast()) }
+                .associate { (ratkoPoint) ->
+                    createOperationalPointIdForRatkoPoint(ratkoPoint) to ratkoPoint.externalId.cast<OperationalPoint>()
+                }
+        return existingIds + createdIds
+    }
+
+    private fun createOperationalPointIdForRatkoPoint(point: RatkoOperationalPoint): IntId<OperationalPoint> {
+        val id = layoutOperationalPointDao.createId()
+        layoutOperationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, id, point.externalId.cast())
+        return id
+    }
+
+    private fun updatePossiblyUpdatedPoints(
+        possiblyUpdatedPoints: List<OperationalPoint>,
+        layoutPointOids: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
+        ratkoPointsByOid: Map<Oid<OperationalPoint>, Pair<RatkoOperationalPoint, Int>>,
+    ) {
+        possiblyUpdatedPoints.forEach { layoutPoint ->
+            val extId = layoutPointOids.getValue(layoutPoint.id as IntId)
+            ratkoPointsByOid[extId]?.let { (currentRatkoPoint, currentRatkoPointVersion) ->
+                if (currentRatkoPointVersion > requireNotNull(layoutPoint.ratkoVersion)) {
+                    val savedRatkoPoint = ratkoOperationalPointDao.fetch(extId.cast(), layoutPoint.ratkoVersion)
+                    if (ratkoOperationalPointContentDiffers(currentRatkoPoint, savedRatkoPoint)) {
+                        operationalPointDao.save(asMainDraft(layoutPoint.copy(ratkoVersion = currentRatkoPointVersion)))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun markRemovedPointsAsDeleted(
+        layoutPoints: List<OperationalPoint>,
+        originalLayoutPointOids: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
+        ratkoPointsByOid: Map<Oid<OperationalPoint>, Pair<RatkoOperationalPoint, Int>>,
+    ): Set<IntId<OperationalPoint>> {
+        val deleted =
+            layoutPoints.filter { layoutPoint ->
+                layoutPoint.state != OperationalPointState.DELETED &&
+                    originalLayoutPointOids.contains(layoutPoint.id) &&
+                    !ratkoPointsByOid.contains(originalLayoutPointOids[layoutPoint.id])
+            }
+        deleted.forEach { layoutPoint ->
+            layoutOperationalPointDao.save(asMainDraft(layoutPoint.copy(state = OperationalPointState.DELETED)))
+        }
+        return deleted.map { it.id as IntId }.toSet()
+    }
+
+    private fun ratkoOperationalPointContentDiffers(a: RatkoOperationalPoint, b: RatkoOperationalPoint) =
+        a.name != b.name ||
+            a.abbreviation != b.abbreviation ||
+            a.type != b.type ||
+            a.location != b.location ||
+            a.uicCode != b.uicCode
+
+    private fun upsertObjectsForRatkoPoints(
+        ratkoPointsWithVersions: List<Pair<RatkoOperationalPoint, Int>>,
+        layoutPointOids: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
+        layoutPoints: List<OperationalPoint>,
+    ) {
+        val layoutPointsByOid = layoutPointOids.entries.associate { (k, v) -> v to k }
+        ratkoPointsWithVersions.forEach { (ratkoPoint, ratkoPointVersion) ->
+            val id = layoutPointsByOid[ratkoPoint.externalId.cast()]
+            if (id != null && layoutPoints.none { layoutPoint -> layoutPoint.id == id }) {
+                layoutOperationalPointDao.insertRatkoPoint(id, ratkoPointVersion)
+            }
         }
     }
 
@@ -355,8 +466,7 @@ constructor(
 
             pushSwitchChanges(
                 layoutBranch = pushableBranch,
-                publishedSwitches =
-                    publications.flatMap { it.allPublishedSwitches },
+                publishedSwitches = publications.flatMap { it.allPublishedSwitches },
                 publishedLocationTracks = publications.flatMap { it.allPublishedLocationTracks },
                 publicationTime = lastPublicationTime,
                 extIds = extIds,

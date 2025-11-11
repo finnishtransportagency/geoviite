@@ -49,7 +49,6 @@ import fi.fta.geoviite.infra.ratko.model.RatkoPlanPhase
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanState
 import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoPointStates
-import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumberStateType
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
@@ -104,6 +103,7 @@ import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.ratkoOperationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
@@ -142,7 +142,7 @@ constructor(
     val referenceLineDao: ReferenceLineDao,
     val alignmentDao: LayoutAlignmentDao,
     val ratkoService: RatkoService,
-    val ratkoLocalService: RatkoLocalService,
+    val ratkoOperationalPointDao: RatkoOperationalPointDao,
     val operationalPointService: OperationalPointService,
     val operationalPointDao: OperationalPointDao,
     val layoutTrackNumberDao: LayoutTrackNumberDao,
@@ -1238,13 +1238,6 @@ constructor(
         assertEquals("0000+0005", pushedNodes[1].point.kmM.toString())
     }
 
-    private fun operationalPoint(
-        oid: String,
-        name: String,
-        trackNumberOid: Oid<RatkoRouteNumber>,
-        location: Point = Point(10.0, 10.0),
-    ) = RatkoOperationalPointParse(Oid(oid), name, name, "1234", OperationalPointRaideType.LP, location, trackNumberOid)
-
     @Test
     fun fetchAndFindOperatingPoints() {
         val trackNumberId =
@@ -1265,22 +1258,11 @@ constructor(
             )
         fakeRatko.hasOperationalPoints(
             listOf(
-                operationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"), location = Point(10.0, 10.0)),
+                ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"), location = Point(10.0, 10.0)),
                 kannustamoOperatingPoint,
             )
         )
         ratkoService.updateOperationalPointsFromRatko()
-        val pointsFromIntegrationTable =
-            ratkoLocalService.getOperationalPoints(boundingBoxAroundPoint(Point(95.0, 95.0), 10.0))
-        assertEquals(1, pointsFromIntegrationTable.size)
-        val pointFromIntegrationTable = pointsFromIntegrationTable[0]
-        assertEquals("1.2.3.4.5", pointFromIntegrationTable.externalId.toString())
-        assertEquals("Kannustamo", pointFromIntegrationTable.name)
-        assertEquals("KST", pointFromIntegrationTable.abbreviation)
-        assertEquals("123101431", pointFromIntegrationTable.uicCode)
-        assertEquals(OperationalPointRaideType.LPO, pointFromIntegrationTable.type)
-        assertEquals(Point(100.0, 100.0), pointFromIntegrationTable.location)
-        assertEquals(trackNumberId, pointFromIntegrationTable.trackNumberId)
 
         val pointsFromLayoutTable =
             operationalPointService.list(
@@ -1288,7 +1270,7 @@ constructor(
                 bbox = boundingBoxAroundPoint(Point(95.0, 95.0), 10.0),
                 ids = null,
             )
-        assertEquals(1, pointsFromIntegrationTable.size)
+        assertEquals(1, pointsFromLayoutTable.size)
         val pointFromLayoutTable = pointsFromLayoutTable[0]
         assertEquals(
             "1.2.3.4.5",
@@ -1308,9 +1290,9 @@ constructor(
                 .saveDraft(LayoutBranch.main, trackNumber(testDBService.getUnusedTrackNumber(), draft = true))
                 .id
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
-        val turpeela = operationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
-        val kannustamo = operationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
-        val liukuainen = operationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
+        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
+        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
+        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
 
         fakeRatko.hasOperationalPoints(listOf(turpeela, kannustamo, liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
@@ -1323,9 +1305,9 @@ constructor(
                 rs.getBoolean("deleted")
             }
         )
-        val pointsFromDatabase = ratkoLocalService.getOperationalPoints(boundingBoxAroundPoint(Point(10.0, 10.0), 10.0))
+        val pointsFromDatabase = ratkoOperationalPointDao.listWithVersions()
         assertEquals(2, pointsFromDatabase.size)
-        assertEquals(listOf("Liukuainen", "Turpasauna"), pointsFromDatabase.map { it.name }.sorted())
+        assertEquals(listOf("Liukuainen", "Turpasauna"), pointsFromDatabase.map { (point) -> point.name }.sorted())
         assertEquals(
             5,
             jdbc.queryOne("""select count(*) as c from integrations.ratko_operational_point_version""") { rs, _ ->
@@ -1364,9 +1346,9 @@ constructor(
                 .saveDraft(LayoutBranch.main, trackNumber(testDBService.getUnusedTrackNumber(), draft = true))
                 .id
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
-        val turpeela = operationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
-        val kannustamo = operationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
-        val liukuainen = operationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
+        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
+        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
+        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
 
         fakeRatko.hasOperationalPoints(listOf(turpeela, kannustamo, liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
@@ -1419,10 +1401,10 @@ constructor(
                 .saveDraft(LayoutBranch.main, trackNumber(testDBService.getUnusedTrackNumber(), draft = true))
                 .id
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
-        val turpeela = operationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
-        val kannustamo = operationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
-        val liukuainen = operationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
-        val surmankaki = operationalPoint("1.2.3.4.8", "Surmankäki", Oid("5.5.5.5.5"))
+        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
+        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
+        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
+        val surmankaki = ratkoOperationalPoint("1.2.3.4.8", "Surmankäki", Oid("5.5.5.5.5"))
         fakeRatko.hasOperationalPoints(listOf(turpeela, kannustamo, liukuainen, surmankaki))
         ratkoService.updateOperationalPointsFromRatko()
 

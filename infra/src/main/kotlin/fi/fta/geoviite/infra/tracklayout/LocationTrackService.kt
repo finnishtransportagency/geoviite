@@ -35,7 +35,6 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
-import fi.fta.geoviite.infra.ratko.RatkoOperationalPointDao
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitDuplicateTrack
@@ -66,7 +65,7 @@ class LocationTrackService(
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val splitDao: SplitDao,
-    private val ratkoOperationalPointDao: RatkoOperationalPointDao,
+    private val operationalPointDao: OperationalPointDao,
     private val localizationService: LocalizationService,
     private val transactionTemplate: TransactionTemplate,
     private val trackNumberDao: LayoutTrackNumberDao,
@@ -180,8 +179,7 @@ class LocationTrackService(
     ): List<AlignmentStartAndEnd<LocationTrack>> {
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
         val trackData =
-            dao.getManyOfficialAtMoment(branch, ids, moment).let(::associateWithGeometries).map {
-                (track, geometry) ->
+            dao.getManyOfficialAtMoment(branch, ids, moment).let(::associateWithGeometries).map { (track, geometry) ->
                 // Deleted tracks are not validated for the context which might live on after track deletion
                 // Hence, we don't have a valid addressing for deleted tracks
                 val geocodingContext = produceIf(track.exists) { getGeocodingContext(track.trackNumberId) }
@@ -696,7 +694,7 @@ class LocationTrackService(
                             address?.address,
                             location,
                             mAlongAlignment,
-                            getNearestOperationalPoint(location),
+                            getNearestOperationalPoint(layoutContext, location),
                         )
                     }
 
@@ -716,11 +714,22 @@ class LocationTrackService(
         }
     }
 
-    private fun getNearestOperationalPoint(location: Point) =
-        ratkoOperationalPointDao
-            .getOperationalPoints(boundingBoxAroundPoint(location, OPERATIONAL_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE))
-            .filter { op -> op.type == OperationalPointRaideType.LPO || op.type == OperationalPointRaideType.LP }
-            .minByOrNull { operatingPoint -> lineLength(operatingPoint.location, location) }
+    private fun getNearestOperationalPoint(layoutContext: LayoutContext, location: Point) =
+        operationalPointDao
+            .fetchVersions(
+                layoutContext,
+                false,
+                ids = null,
+                searchBox =
+                    SearchOperationalPointsByLocation(
+                        boundingBoxAroundPoint(location, OPERATIONAL_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE)
+                    ),
+            )
+            .let(operationalPointDao::fetchMany)
+            .filter { op ->
+                op.raideType == OperationalPointRaideType.LPO || op.raideType == OperationalPointRaideType.LP
+            }
+            .minByOrNull { operatingPoint -> lineLength(requireNotNull(operatingPoint.location), location) }
 
     @Transactional(readOnly = true)
     fun getSwitchesForLocationTrack(

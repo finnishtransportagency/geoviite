@@ -21,6 +21,8 @@ data class Oid<T> @JsonCreator(mode = DELEGATING) constructor(private val value:
     }
 
     @JsonValue override fun toString(): String = value
+
+    fun <ToType> cast(): Oid<ToType> = Oid(value)
 }
 
 class RatkoExternalId<T>(val oid: Oid<T>, val planItemId: RatkoPlanItemId?)
