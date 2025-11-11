@@ -43,10 +43,15 @@ constructor(
             ::setupValidLocationTrack to api.locationTracks::getGeometryWithExpectedError,
             ::setupValidTrackNumber to api.trackNumbers::getWithExpectedError,
             ::setupValidTrackNumber to api.trackNumbers::getGeometryWithExpectedError,
+            ::setupValidTrackNumber to api.trackNumberKms::getWithExpectedError,
         )
 
     private val collectionErrorTests =
-        listOf(api.locationTrackCollection::getWithExpectedError, api.trackNumberCollection::getWithExpectedError)
+        listOf(
+            api.locationTrackCollection::getWithExpectedError,
+            api.trackNumberCollection::getWithExpectedError,
+            api.trackNumberKmsCollection::getWithExpectedError,
+        )
 
     private val modificationErrorTests =
         listOf(

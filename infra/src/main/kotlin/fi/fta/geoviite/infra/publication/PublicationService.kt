@@ -41,12 +41,12 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 @GeoviiteService
 class PublicationService
@@ -569,6 +569,12 @@ constructor(
 
     fun getPublicationByUuidOrLatest(branchType: LayoutBranchType, publicationUuid: Uuid<Publication>?): Publication {
         return publicationUuid?.let { uuid -> getPublicationWithType(branchType, uuid) }
-            ?: publicationDao.fetchLatestPublications(branchType, count = 1).single()
+            ?: getLatestPublication(branchType)
     }
+
+    fun getLatestPublication(branchType: LayoutBranchType): Publication =
+        publicationDao.fetchLatestPublications(branchType, count = 1).single()
+
+    fun listPublications(branchType: LayoutBranchType, comparison: PublicationComparison? = null): List<Publication> =
+        publicationDao.list(branchType, comparison?.from?.id, comparison?.to?.id).reversed()
 }

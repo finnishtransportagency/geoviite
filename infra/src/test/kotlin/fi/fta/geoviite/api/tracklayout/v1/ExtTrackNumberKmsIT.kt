@@ -72,12 +72,12 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 kmPosts = listOf(kmp13Id, kmp14Id, deletedKmp15Id, kmp16Id),
             )
         val response = api.trackNumberKms.get(tnOid)
-        assertEquals(publication.uuid, response.trackLayoutVersion)
-        assertEquals(LAYOUT_SRID, response.coordinateSystem)
-        assertEquals(trackNumber, response.trackNumberKms.trackNumber)
-        assertEquals(tnOid, response.trackNumberKms.trackNumberOid)
+        assertEquals(publication.uuid.toString(), response.rataverkon_versio)
+        assertEquals(LAYOUT_SRID.toString(), response.koordinaatisto)
+        assertEquals(trackNumber.toString(), response.ratanumeron_ratakilometrit.ratanumero)
+        assertEquals(tnOid.toString(), response.ratanumeron_ratakilometrit.ratanumero_oid)
         assertKmsMatch(
-            response.trackNumberKms.trackKms,
+            response.ratanumeron_ratakilometrit.ratakilometrit,
             ExtTrackKmV1(
                 type = ExtTrackKmTypeV1.TRACK_NUMBER_START,
                 kmNumber = KmNumber(10),
@@ -118,8 +118,11 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         // Ensure that the collection also includes the exact same response
-        val kmsInCollection = api.trackNumberKmsCollection.get().trackNumberKms.find { it.trackNumber == trackNumber }
-        assertEquals(response.trackNumberKms, kmsInCollection)
+        val kmsInCollection =
+            api.trackNumberKmsCollection.get().ratanumeroiden_ratakilometrit.find {
+                it.ratanumero == trackNumber.toString()
+            }
+        assertEquals(response.ratanumeron_ratakilometrit, kmsInCollection)
     }
 
     @Test
@@ -138,12 +141,12 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 kmPosts = listOf(kmp1Id),
             )
         val response = api.trackNumberKms.get(tnOid, COORDINATE_SYSTEM to "EPSG:4326")
-        assertEquals(publication.uuid, response.trackLayoutVersion)
-        assertEquals(Srid(4326), response.coordinateSystem)
-        assertEquals(trackNumber, response.trackNumberKms.trackNumber)
-        assertEquals(tnOid, response.trackNumberKms.trackNumberOid)
+        assertEquals(publication.uuid.toString(), response.rataverkon_versio)
+        assertEquals(Srid(4326).toString(), response.koordinaatisto)
+        assertEquals(trackNumber.toString(), response.ratanumeron_ratakilometrit.ratanumero)
+        assertEquals(tnOid.toString(), response.ratanumeron_ratakilometrit.ratanumero_oid)
         assertKmsMatch(
-            response.trackNumberKms.trackKms,
+            response.ratanumeron_ratakilometrit.ratakilometrit,
             ExtTrackKmV1(
                 type = ExtTrackKmTypeV1.TRACK_NUMBER_START,
                 kmNumber = KmNumber(0),
@@ -167,10 +170,10 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         // Ensure that the collection also includes the exact same response
         val kmsInCollection =
-            api.trackNumberKmsCollection.get(COORDINATE_SYSTEM to "EPSG:4326").trackNumberKms.find {
-                it.trackNumber == trackNumber
+            api.trackNumberKmsCollection.get(COORDINATE_SYSTEM to "EPSG:4326").ratanumeroiden_ratakilometrit.find {
+                it.ratanumero == trackNumber.toString()
             }
-        assertEquals(response.trackNumberKms, kmsInCollection)
+        assertEquals(response.ratanumeron_ratakilometrit, kmsInCollection)
     }
 
     @Test
@@ -188,12 +191,14 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             )
 
         api.trackNumberKms.get(tnOid).also { response ->
-            assertEquals(basePublication.uuid, response.trackLayoutVersion)
-            assertEquals(tnOid, response.trackNumberKms.trackNumberOid)
-            assertEquals(2, response.trackNumberKms.trackKms.size)
+            assertEquals(basePublication.uuid.toString(), response.rataverkon_versio)
+            assertEquals(tnOid.toString(), response.ratanumeron_ratakilometrit.ratanumero_oid)
+            assertEquals(2, response.ratanumeron_ratakilometrit.ratakilometrit.size)
             assertEquals(
-                response.trackNumberKms,
-                api.trackNumberKmsCollection.get().trackNumberKms.find { it.trackNumberOid == tnOid },
+                response.ratanumeron_ratakilometrit,
+                api.trackNumberKmsCollection.get().ratanumeroiden_ratakilometrit.find {
+                    it.ratanumero_oid == tnOid.toString()
+                },
             )
         }
 
@@ -202,46 +207,50 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val deletePublication = extTestDataService.publishInMain(trackNumbers = listOf(tnId))
         api.trackNumberKms.getWithEmptyBody(tnOid, httpStatus = HttpStatus.NO_CONTENT)
         api.trackNumberKms.assertDoesntExist(tnOid)
-        assertNull(api.trackNumberKmsCollection.get().trackNumberKms.find { it.trackNumberOid == tnOid })
+        assertNull(
+            api.trackNumberKmsCollection.get().ratanumeroiden_ratakilometrit.find {
+                it.ratanumero_oid == tnOid.toString()
+            }
+        )
 
         // Ensure history-fetches by specific version return the same results
         api.trackNumberKms.getAtVersion(tnOid, basePublication.uuid).also { response ->
-            assertEquals(basePublication.uuid, response.trackLayoutVersion)
-            assertEquals(tnOid, response.trackNumberKms.trackNumberOid)
-            assertEquals(2, response.trackNumberKms.trackKms.size)
+            assertEquals(basePublication.uuid.toString(), response.rataverkon_versio)
+            assertEquals(tnOid.toString(), response.ratanumeron_ratakilometrit.ratanumero_oid)
+            assertEquals(2, response.ratanumeron_ratakilometrit.ratakilometrit.size)
             assertEquals(
-                response.trackNumberKms,
-                api.trackNumberKmsCollection.getAtVersion(basePublication.uuid).trackNumberKms.find {
-                    it.trackNumberOid == tnOid
+                response.ratanumeron_ratakilometrit,
+                api.trackNumberKmsCollection.getAtVersion(basePublication.uuid).ratanumeroiden_ratakilometrit.find {
+                    it.ratanumero_oid == tnOid.toString()
                 },
             )
         }
         api.trackNumberKms.assertDoesntExistAtVersion(tnOid, deletePublication.uuid)
         assertNull(
-            api.trackNumberKmsCollection.getAtVersion(deletePublication.uuid).trackNumberKms.find {
-                it.trackNumberOid == tnOid
+            api.trackNumberKmsCollection.getAtVersion(deletePublication.uuid).ratanumeroiden_ratakilometrit.find {
+                it.ratanumero_oid == tnOid.toString()
             }
         )
     }
 
-    fun assertKmsMatch(actual: List<ExtTrackKmV1>, vararg expected: ExtTrackKmV1) {
+    fun assertKmsMatch(actual: List<ExtTestTrackKmV1>, vararg expected: ExtTrackKmV1) {
         expected.forEachIndexed { index, expectedKm ->
             val actualKm = actual[index]
             assertNotNull(actual, "A km is missing in the response: index=$index expected=$expectedKm")
-            assertEquals(expectedKm.type, actualKm.type)
-            assertEquals(expectedKm.kmNumber, actualKm.kmNumber)
-            assertEquals(expectedKm.startM, actualKm.startM)
-            assertEquals(expectedKm.endM, actualKm.endM)
+            assertEquals(expectedKm.type.value, actualKm.tyyppi)
+            assertEquals(expectedKm.kmNumber.toString(), actualKm.km_tunnus)
+            assertEquals(expectedKm.startM.toString(), actualKm.alkupaalu)
+            assertEquals(expectedKm.endM.toString(), actualKm.loppupaalu)
             assertEquals(expectedKm.endM, expectedKm.startM + expectedKm.kmLength)
-            assertEquals(expectedKm.officialLocation != null, actualKm.officialLocation != null)
-            if (expectedKm.officialLocation != null && actualKm.officialLocation != null) {
+            assertEquals(expectedKm.officialLocation != null, actualKm.virallinen_sijainti != null)
+            if (expectedKm.officialLocation != null && actualKm.virallinen_sijainti != null) {
                 assertTrue(
-                    isSame(expectedKm.officialLocation, actualKm.officialLocation),
+                    isSame(expectedKm.officialLocation, actualKm.virallinen_sijainti),
                     "KMs do not match (official location): expected=$expectedKm actualKm=$actualKm",
                 )
             }
             assertTrue(
-                isSame(expectedKm.location, actualKm.location),
+                isSame(expectedKm.location, actualKm.sijainti),
                 "KMs do not match (layout location): expected=$expectedKm actualKm=$actualKm",
             )
         }
@@ -252,13 +261,14 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
     }
 
-    fun isSame(expected: ExtKmPostOfficialLocationV1, actual: ExtKmPostOfficialLocationV1): Boolean =
+    fun isSame(expected: ExtKmPostOfficialLocationV1, actual: ExtTestKmPostOfficialLocationV1): Boolean =
         // X & Y checked with a tolerance
         abs(expected.x - actual.x) < LAYOUT_M_DELTA &&
             abs(expected.y - actual.y) < LAYOUT_M_DELTA &&
-            // Confirm all other fields by ignoring x/y
-            expected.copy(x = actual.x, y = actual.y) == actual
+            // Confirm other fields
+            expected.srid.toString() == actual.koordinaatisto &&
+            expected.confirmed.value == actual.vahvistettu
 
-    fun isSame(expected: ExtCoordinateV1, actual: ExtCoordinateV1): Boolean =
+    fun isSame(expected: ExtCoordinateV1, actual: ExtTestCoordinateV1): Boolean =
         abs(expected.x - actual.x) < LAYOUT_M_DELTA && abs(expected.y - actual.y) < LAYOUT_M_DELTA
 }

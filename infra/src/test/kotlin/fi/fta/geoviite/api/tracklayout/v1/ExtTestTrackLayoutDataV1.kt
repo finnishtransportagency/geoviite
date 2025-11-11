@@ -1,5 +1,15 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+data class ExtTestTrackLayoutVersionV1(val rataverkon_versio: String, val aikaleima: String, val kuvaus: String)
+
+data class ExtTestTrackLayoutVersionCollectionResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val rataverkon_versiot: List<ExtTestTrackLayoutVersionV1>,
+)
+
+data class ExtTestCoordinateV1(val x: Double, val y: Double)
+
 data class ExtTestAddressPointV1(val x: Double, val y: Double, val rataosoite: String?)
 
 data class ExtTestLocationTrackV1(
@@ -95,6 +105,41 @@ data class ExtTestModifiedTrackNumberCollectionResponseV1(
     val loppuversio: String,
     val koordinaatisto: String,
     val ratanumerot: List<ExtTestTrackNumberV1>,
+)
+
+data class ExtTestKmPostOfficialLocationV1(
+    val x: Double,
+    val y: Double,
+    val koordinaatisto: String,
+    val vahvistettu: String,
+)
+
+data class ExtTestTrackKmV1(
+    val tyyppi: String,
+    val km_tunnus: String,
+    val alkupaalu: String,
+    val loppupaalu: String,
+    val ratakilometrin_pituus: String,
+    val virallinen_sijainti: ExtTestKmPostOfficialLocationV1?,
+    val sijainti: ExtTestCoordinateV1,
+)
+
+data class ExtTestTrackNumberKmsV1(
+    val ratanumero: String,
+    val ratanumero_oid: String,
+    val ratakilometrit: List<ExtTestTrackKmV1>,
+)
+
+data class ExtTestTrackKmsResponseV1(
+    val rataverkon_versio: String,
+    val koordinaatisto: String,
+    val ratanumeron_ratakilometrit: ExtTestTrackNumberKmsV1,
+)
+
+data class ExtTestTrackKmsCollectionResponseV1(
+    val rataverkon_versio: String,
+    val koordinaatisto: String,
+    val ratanumeroiden_ratakilometrit: List<ExtTestTrackNumberKmsV1>,
 )
 
 data class ExtTestErrorResponseV1(val virheviesti: String, val korrelaatiotunnus: String, val aikaleima: String)

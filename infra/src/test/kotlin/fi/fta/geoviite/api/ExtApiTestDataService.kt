@@ -160,10 +160,27 @@ constructor(
         locationTracks: List<IntId<LocationTrack>> = emptyList(),
         switches: List<IntId<LayoutSwitch>> = emptyList(),
         kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
+    ): Publication =
+        publishInBranch(
+            LayoutBranch.main,
+            trackNumbers = trackNumbers,
+            referenceLines = referenceLines,
+            locationTracks = locationTracks,
+            switches = switches,
+            kmPosts = kmPosts,
+        )
+
+    fun publishInBranch(
+        branch: LayoutBranch,
+        trackNumbers: List<IntId<LayoutTrackNumber>> = emptyList(),
+        referenceLines: List<IntId<ReferenceLine>> = emptyList(),
+        locationTracks: List<IntId<LocationTrack>> = emptyList(),
+        switches: List<IntId<LayoutSwitch>> = emptyList(),
+        kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
     ): Publication {
         return publicationTestSupportService
             .publish(
-                LayoutBranch.main,
+                branch,
                 publicationRequestIds(
                     trackNumbers = trackNumbers,
                     referenceLines = referenceLines,

@@ -769,7 +769,11 @@ class PublicationDao(
             .also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
     }
 
-    fun list(branchType: LayoutBranchType): List<Publication> {
+    fun list(
+        branchType: LayoutBranchType,
+        from: IntId<Publication>? = null,
+        to: IntId<Publication>? = null,
+    ): List<Publication> {
         val sql =
             """
                 select
@@ -784,11 +788,13 @@ class PublicationDao(
                   parent_publication_id
                 from publication.publication
                 where case when :branch_type = 'MAIN' then design_id is null else design_id is not null end
+                  and (:from_id::int is null or id >= :from_id)
+                  and (:to_id::int is null or id <= :to_id)
                 order by id desc
             """
                 .trimIndent()
 
-        val params = mapOf("branch_type" to branchType.name)
+        val params = mapOf("branch_type" to branchType.name, "from_id" to from?.intValue, "to_id" to to?.intValue)
 
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
