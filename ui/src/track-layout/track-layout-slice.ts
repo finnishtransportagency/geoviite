@@ -29,7 +29,11 @@ import {
     officialMainLayoutContext,
     PublicationState,
 } from 'common/common-model';
-import { GeometryPlanLayout, LocationTrackId, SwitchSplitPoint, } from 'track-layout/track-layout-model';
+import {
+    GeometryPlanLayout,
+    LocationTrackId,
+    SwitchSplitPoint,
+} from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { first } from 'utils/array-utils';
 import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
@@ -99,6 +103,7 @@ export type KmPostInfoboxVisibilities = {
 export type OperationalPointInfoboxVisibilities = {
     basic: boolean;
     location: boolean;
+    validation: boolean;
     log: boolean;
 };
 
@@ -164,6 +169,7 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
     operationalPoint: {
         basic: true,
         location: true,
+        validation: true,
         log: true,
     },
     geometryAlignment: {

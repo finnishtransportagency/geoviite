@@ -10,8 +10,10 @@ import {
     LayoutKmPostId,
     LayoutSwitchId,
     LayoutTrackNumberId,
+    OperationalPointId,
 } from 'track-layout/track-layout-model';
 import { getTrackNumberValidation } from 'track-layout/layout-track-number-api';
+import { getOperationalPointValidation } from 'track-layout/layout-operational-point-api';
 
 export type AssetIdAndType =
     | {
@@ -19,7 +21,8 @@ export type AssetIdAndType =
           id: LayoutTrackNumberId;
       }
     | { type: 'SWITCH'; id: LayoutSwitchId }
-    | { type: 'KM_POST'; id: LayoutKmPostId };
+    | { type: 'KM_POST'; id: LayoutKmPostId }
+    | { type: 'OPERATIONAL_POINT'; id: OperationalPointId };
 
 type AssetValidationInfoboxProps = {
     idAndType: AssetIdAndType;
@@ -47,6 +50,8 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
                 return getKmPostValidation(layoutContext, idAndType.id);
             case 'SWITCH':
                 return getSwitchValidation(layoutContext, idAndType.id);
+            case 'OPERATIONAL_POINT':
+                return getOperationalPointValidation(layoutContext, idAndType.id);
             default:
                 return exhaustiveMatchingGuard(type);
         }

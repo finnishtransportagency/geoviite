@@ -29,7 +29,8 @@ import { getChangeTimes, updateOperationalPointsChangeTime } from 'common/change
 import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/internal-operational-point-edit-store';
 import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
-import { Polygon, Point } from 'model/geometry';
+import { Point, Polygon } from 'model/geometry';
+import { ValidatedOperationalPoint } from 'publication/publication-model';
 
 type OriginInUri = 'internal' | 'external';
 type OperationalPointSaveRequest =
@@ -239,3 +240,12 @@ export const cancelOperationalPoint = async (
     id: OperationalPointId,
 ): Promise<void> =>
     postNonNull(`${layoutUriByBranch('operational-points', design)}/${id}/cancel`, '');
+
+export async function getOperationalPointValidation(
+    layoutContext: LayoutContext,
+    id: OperationalPointId,
+): Promise<ValidatedOperationalPoint | undefined> {
+    return getNullable<ValidatedOperationalPoint>(
+        `${layoutUri('operational-points', layoutContext, id)}/validation`,
+    );
+}

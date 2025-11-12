@@ -323,6 +323,7 @@ export type ValidatedLocationTrack = ValidatedAsset<LocationTrackId>;
 export type ValidatedReferenceLine = ValidatedAsset<ReferenceLineId>;
 export type ValidatedSwitch = ValidatedAsset<LayoutSwitchId>;
 export type ValidatedKmPost = ValidatedAsset<LayoutKmPostId>;
+export type ValidatedOperationalPoint = ValidatedAsset<OperationalPointId>;
 
 export type PublicationRequest = {
     content: PublicationRequestIds;

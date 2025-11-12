@@ -13,7 +13,13 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
-type AssetType = 'TRACK_NUMBER' | 'REFERENCE_LINE' | 'LOCATION_TRACK' | 'SWITCH' | 'KM_POST';
+type AssetType =
+    | 'TRACK_NUMBER'
+    | 'REFERENCE_LINE'
+    | 'LOCATION_TRACK'
+    | 'SWITCH'
+    | 'KM_POST'
+    | 'OPERATIONAL_POINT';
 
 type AssetValidationInfoboxProps = {
     type: AssetType;
@@ -37,6 +43,8 @@ const typePrefix = (type: AssetType) => {
             return 'tool-panel.validation.switch-prefix';
         case 'KM_POST':
             return 'tool-panel.validation.km-post-prefix';
+        case 'OPERATIONAL_POINT':
+            return 'tool-panel.validation.operational-point-prefix';
         default:
             return exhaustiveMatchingGuard(type);
     }
