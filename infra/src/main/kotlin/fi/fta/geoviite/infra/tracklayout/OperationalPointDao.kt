@@ -422,10 +422,10 @@ class OperationalPointDao(
             .groupBy({ it.first }, { it.second })
     }
 
-    fun polygonContainsLocation(rowVersion: LayoutRowVersion<OperationalPoint>): Boolean? {
+    fun getGeometryQuality(rowVersion: LayoutRowVersion<OperationalPoint>): OperationalPointGeometryQuality? {
         val sql =
             """
-                select postgis.st_intersects(polygon, location) c
+                select postgis.st_intersects(polygon, location) contains, postgis.st_issimple(polygon) is_simple 
                 from layout.operational_point_version_view opv
                 where opv.id = :id and opv.version = :version and opv.layout_context_id = :context
             """
@@ -436,6 +436,14 @@ class OperationalPointDao(
                 "version" to rowVersion.version,
                 "context" to rowVersion.context.toSqlString(),
             )
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> rs.getBooleanOrNull("c") }
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
+            val polygonContainsLocation = rs.getBooleanOrNull("contains")
+            val polygonIsSimple = rs.getBooleanOrNull("is_simple")
+            if (polygonContainsLocation !== null && polygonIsSimple !== null)
+                OperationalPointGeometryQuality(polygonContainsLocation, polygonIsSimple)
+            else null
+        }
     }
 }
+
+data class OperationalPointGeometryQuality(val polygonContainsLocation: Boolean, val polygonIsSimple: Boolean)

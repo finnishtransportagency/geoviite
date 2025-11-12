@@ -689,15 +689,15 @@ constructor(
                 validate(operationalPoint.location != null) { "$VALIDATION_OPERATIONAL_POINT.location-missing" },
             )
 
-        val polygonLocationIssues =
+        val geometryQuality = operationalPointDao.getGeometryQuality(operationalPointVersion)
+        val geometryQualityIssues =
             listOfNotNull(
-                validate(
-                    operationalPoint.polygon == null ||
-                        operationalPoint.location == null ||
-                        requireNotNull(operationalPointDao.polygonContainsLocation(operationalPointVersion))
-                ) {
+                validate(geometryQuality?.polygonContainsLocation ?: true) {
                     "$VALIDATION_OPERATIONAL_POINT.location-outside-polygon"
-                }
+                },
+                validate(geometryQuality?.polygonIsSimple ?: true) {
+                    "$VALIDATION_OPERATIONAL_POINT.polygon-is-not-simple"
+                },
             )
 
         return nameDuplicationIssues +
@@ -706,7 +706,7 @@ constructor(
             rinfCodeIssues +
             polygonOverlapIssues +
             locationIssues +
-            polygonLocationIssues
+            geometryQualityIssues
     }
 
     private fun validateGeocodingContext(

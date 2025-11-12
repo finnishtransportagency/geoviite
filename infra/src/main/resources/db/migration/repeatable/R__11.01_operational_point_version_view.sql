@@ -19,6 +19,8 @@ select
   op.origin,
   op.ratko_operational_point_version,
   op.deleted,
+  op.change_user,
+  op.change_time,
   op.expiry_time
   from layout.operational_point_version op
     left join layout.operational_point_external_id ext_id

@@ -463,8 +463,9 @@ class PublicationDao(
                   candidate_operational_point.design_asset_state,
                   postgis.st_x(candidate_operational_point.location) as point_x,
                   postgis.st_y(candidate_operational_point.location) as point_y
-                from layout.operational_point candidate_operational_point
-                where draft = (:candidate_state = 'DRAFT')
+                from layout.operational_point_version_view candidate_operational_point
+                where candidate_operational_point.expiry_time is null
+                  and draft = (:candidate_state = 'DRAFT')
                   and design_id is not distinct from :candidate_design_id
                   and not (design_id is not null and not draft and (design_asset_state = 'CANCELLED' or exists (
                     select * from layout.operational_point drafted_cancellation

@@ -18,7 +18,7 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
-import fi.fta.geoviite.infra.ratko.RatkoOperationalPointDao
+import fi.fta.geoviite.infra.ratko.RatkoTestService
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.validateSplitContent
@@ -42,9 +42,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.OperationalPoint
-import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
-import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
@@ -55,7 +52,6 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType.START
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType.START_AND_END
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
-import fi.fta.geoviite.infra.tracklayout.createMainContext
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
@@ -110,8 +106,7 @@ constructor(
     val switchStructureDao: SwitchStructureDao,
     val splitDao: SplitDao,
     val publicationTestSupportService: PublicationTestSupportService,
-    val ratkoOperationalPointDao: RatkoOperationalPointDao,
-    val operationalPointDao: OperationalPointDao,
+    val ratkoTestService: RatkoTestService,
 ) : DBTestBase() {
     @BeforeEach
     fun cleanup() {
@@ -2242,47 +2237,24 @@ constructor(
 
     @Test
     fun `operational point uic code must exist and be unique`() {
-        var ext123Id: IntId<OperationalPoint>? = null
-        var extNullId: IntId<OperationalPoint>? = null
-        transactional {
-            trackNumberDao.insertExternalIdInExistingTransaction(
-                LayoutBranch.main,
-                mainDraftContext.save(trackNumber()).id,
-                Oid("1.1.1.1.1"),
-            )
-            ratkoOperationalPointDao.updateOperationalPoints(
-                listOf(
+        val (external123, externalNull) =
+            ratkoTestService
+                .setupRatkoOperationalPoints(
                     ratkoOperationalPoint("1.2.3.4.5", name = "ext 123", uicCode = "123"),
-                    ratkoOperationalPoint("1.2.3.4.6", "ext 532", uicCode = ""),
+                    ratkoOperationalPoint("1.2.3.4.6", "ext null", uicCode = ""),
                 )
-            )
-            ext123Id = operationalPointDao.createId()
-            extNullId = operationalPointDao.createId()
-            operationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, ext123Id, Oid("1.2.3.4.5"))
-            operationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, extNullId, Oid("1.2.3.4.6"))
-        }
+                .let { it[0] to it[1] }
 
-        val external123 =
-            mainDraftContext
-                .save(
-                    operationalPoint(
-                        contextData = createMainContext(ext123Id!!, true),
-                        origin = OperationalPointOrigin.RATKO,
-                        ratkoVersion = 1,
-                    )
-                )
-                .id
+        val somePolygon = operationalPoint().polygon
+        val someRinfType = operationalPoint().rinfType
+        mainDraftContext.save(
+            mainDraftContext.fetch(external123)!!.copy(polygon = somePolygon, rinfType = someRinfType)
+        )
+        mainDraftContext.save(
+            mainDraftContext.fetch(externalNull)!!.copy(polygon = somePolygon, rinfType = someRinfType)
+        )
+
         val internal123 = mainDraftContext.save(operationalPoint("int 123", uicCode = "123")).id
-        val externalNull =
-            mainDraftContext
-                .save(
-                    operationalPoint(
-                        contextData = createMainContext(extNullId!!, true),
-                        origin = OperationalPointOrigin.RATKO,
-                        ratkoVersion = 1,
-                    )
-                )
-                .id
         val internalNull = mainDraftContext.save(operationalPoint("int null", uicCode = null)).id
         val internal234 = mainDraftContext.save(operationalPoint("int 234", uicCode = "234")).id
         mainDraftContext.save(operationalPoint("other 234", uicCode = "234")).id
@@ -2351,6 +2323,43 @@ constructor(
             listOf<LayoutValidationIssue>(),
             publicationValidationService
                 .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(internal345))[0]
+                .errors,
+        )
+    }
+
+    @Test
+    fun `operational point polygon must be simple`() {
+        val complex =
+            mainDraftContext
+                .save(
+                    operationalPoint(
+                        name = "complexpoly",
+                        location = Point(2.5, 2.5),
+                        uicCode = "123",
+                        polygon =
+                            Polygon(
+                                Point(0.0, 0.0),
+                                Point(10.0, 0.0),
+                                Point(10.0, 10.0),
+                                Point(5.0, 10.0),
+                                Point(5.0, 5.0),
+                                Point(15.0, 5.0),
+                                Point(15.0, 15.0),
+                                Point(0.0, 15.0),
+                                Point(0.0, 0.0),
+                            ),
+                    )
+                )
+                .id
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.ERROR,
+                    "validation.layout.operational-point.polygon-is-not-simple",
+                )
+            ),
+            publicationValidationService
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(complex))[0]
                 .errors,
         )
     }

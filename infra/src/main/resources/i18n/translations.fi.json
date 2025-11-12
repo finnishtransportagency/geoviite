@@ -1784,7 +1784,8 @@
                 "overlapping-polygon-draft-in-main": "Toiminnallisen pisteen polygoni on päällekkäin paikannuspohjan luonnoksen kanssa: {{duplicateNames}}",
                 "rinf-code-missing": "RINF-tyyppi puuttuu",
                 "polygon-missing": "Polygoni puuttuu",
-                "location-outside-polygon": "Pistemäinen sijainti on polygonin ulkopuolella"
+                "location-outside-polygon": "Pistemäinen sijainti on alueen ulkopuolella",
+                "polygon-is-not-simple": "Alueen muoto ei ole yksinkertainen polygoni"
             },
             "geocoding": {
                 "sharp-angle": "Raiteen {{locationTrack}} tasametripisteet menevät taaksepäin, koska kulma ratanumeron {{trackNumber}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{kmNumbers}}",

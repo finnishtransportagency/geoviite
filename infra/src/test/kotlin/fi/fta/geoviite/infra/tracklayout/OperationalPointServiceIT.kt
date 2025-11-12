@@ -2,14 +2,12 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
-import fi.fta.geoviite.infra.ratko.RatkoOperationalPointDao
+import fi.fta.geoviite.infra.ratko.RatkoTestService
 import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -27,8 +25,7 @@ class OperationalPointServiceIT
 constructor(
     private val operationalPointService: OperationalPointService,
     private val operationalPointDao: OperationalPointDao,
-    private val trackNumberDao: LayoutTrackNumberDao,
-    private val ratkoOperationalPointDao: RatkoOperationalPointDao,
+    private val ratkoTestService: RatkoTestService,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -119,25 +116,14 @@ constructor(
 
     @Test
     fun `cannot update external operational point with internal request`() {
-        var extId: IntId<OperationalPoint>? = null
-        transactional {
-            trackNumberDao.insertExternalIdInExistingTransaction(
-                LayoutBranch.main,
-                mainDraftContext.save(trackNumber()).id,
-                Oid("1.1.1.1.1"),
-            )
-            ratkoOperationalPointDao.updateOperationalPoints(
-                listOf(ratkoOperationalPoint("1.2.3.4.5", name = "external"))
-            )
-            extId = operationalPointDao.createId()
-            operationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, extId, Oid("1.2.3.4.5"))
-        }
+        val externalPointId =
+            ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
 
         val external =
             testDBService
                 .save(
                     operationalPoint(
-                        contextData = createMainContext(extId!!, true),
+                        contextData = createMainContext(externalPointId, true),
                         origin = OperationalPointOrigin.RATKO,
                         ratkoVersion = 1,
                     )
@@ -151,24 +137,13 @@ constructor(
 
     @Test
     fun `can update external operational point`() {
-        var extId: IntId<OperationalPoint>? = null
-        transactional {
-            trackNumberDao.insertExternalIdInExistingTransaction(
-                LayoutBranch.main,
-                mainDraftContext.save(trackNumber()).id,
-                Oid("1.1.1.1.1"),
-            )
-            ratkoOperationalPointDao.updateOperationalPoints(
-                listOf(ratkoOperationalPoint("1.2.3.4.5", name = "external"))
-            )
-            extId = operationalPointDao.createId()
-            operationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, extId, Oid("1.2.3.4.5"))
-        }
+        val externalPointId =
+            ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
 
         val original =
             testDBService.save(
                 operationalPoint(
-                    contextData = createMainContext(extId!!, true),
+                    contextData = createMainContext(externalPointId, true),
                     origin = OperationalPointOrigin.RATKO,
                     ratkoVersion = 1,
                 )
