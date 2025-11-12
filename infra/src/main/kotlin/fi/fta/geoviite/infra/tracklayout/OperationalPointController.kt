@@ -41,19 +41,40 @@ class OperationalPointController(
         @PathVariable("id") id: IntId<OperationalPoint>,
     ): ResponseEntity<OperationalPoint> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return toResponse(operationalPointService.list(context, bbox = null, ids = listOf(id)).firstOrNull())
+        return toResponse(operationalPointService.list(context, ids = listOf(id)).firstOrNull())
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}")
-    fun getOperatingPoints(
+    fun getOperatingPointsByIds(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("bbox", required = false) bbox: BoundingBox?,
         @RequestParam("ids", required = false) ids: List<IntId<OperationalPoint>>?,
     ): List<OperationalPoint> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return operationalPointService.list(context, bbox, ids)
+        return operationalPointService.list(context, ids = ids)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/by-location")
+    fun getOperatingPointsByLocation(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @RequestParam("bbox") bbox: BoundingBox,
+    ): List<OperationalPoint> {
+        val context = LayoutContext.of(layoutBranch, publicationState)
+        return operationalPointService.list(context, locationBbox = bbox)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/by-polygon")
+    fun getOperatingPointsByPolygon(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @RequestParam("bbox") bbox: BoundingBox,
+    ): List<OperationalPoint> {
+        val context = LayoutContext.of(layoutBranch, publicationState)
+        return operationalPointService.list(context, polygonBbox = bbox)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

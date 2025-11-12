@@ -63,7 +63,7 @@ constructor(
         assertEquals(
             listOf(a.id),
             operationalPointService
-                .list(mainDraftContext.context, bbox = BoundingBox(100.0..200.0, 400.0..500.0))
+                .list(mainDraftContext.context, locationBbox = BoundingBox(100.0..200.0, 400.0..500.0))
                 .sortedBy { it.name.toString() }
                 .map { it.id },
         )
@@ -74,7 +74,7 @@ constructor(
                 .list(
                     mainDraftContext.context,
                     ids = listOf(a.id, b.id),
-                    bbox = BoundingBox(100.0..200.0, 400.0..500.0),
+                    locationBbox = BoundingBox(100.0..200.0, 400.0..500.0),
                 )
                 .sortedBy { it.name.toString() }
                 .map { it.id },
@@ -83,7 +83,11 @@ constructor(
         assertEquals(
             listOf<DomainId<OperationalPoint>>(),
             operationalPointService
-                .list(mainDraftContext.context, ids = listOf(b.id), bbox = BoundingBox(100.0..200.0, 400.0..500.0))
+                .list(
+                    mainDraftContext.context,
+                    ids = listOf(b.id),
+                    locationBbox = BoundingBox(100.0..200.0, 400.0..500.0),
+                )
                 .sortedBy { it.name.toString() }
                 .map { it.id },
         )
@@ -223,6 +227,40 @@ constructor(
         operationalPointService.publish(LayoutBranch.main, firstDraft)
         val oidAfterSecondPublication = operationalPointDao.fetchExternalId(LayoutBranch.main, firstDraft.id)
         assertEquals(assignedOid.oid, oidAfterSecondPublication?.oid)
+    }
+
+    @Test
+    fun `can list operational points by polygon`() {
+        val a =
+            mainDraftContext.save(
+                operationalPoint(
+                    location = Point(7.0, 7.0),
+                    polygon =
+                        Polygon(Point(0.0, 0.0), Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 10.0), Point(0.0, 0.0)),
+                )
+            )
+        assertEquals(
+            listOf<OperationalPoint>(),
+            operationalPointService.list(mainDraftContext.context, locationBbox = BoundingBox(0.0..5.0, 0.0..5.0)),
+        )
+        assertEquals(
+            listOf(a.id),
+            operationalPointService.list(mainDraftContext.context, polygonBbox = BoundingBox(0.0..5.0, 0.0..5.0)).map {
+                it.id
+            },
+        )
+        // it's arbitrary that we consider this a match when the bounding box only meets the polygon, but let's pick a
+        // behavior to fix
+        assertEquals(
+            listOf(a.id),
+            operationalPointService
+                .list(mainDraftContext.context, polygonBbox = BoundingBox(10.0..20.0, 10.0..20.0))
+                .map { it.id },
+        )
+        assertEquals(
+            listOf<OperationalPoint>(),
+            operationalPointService.list(mainDraftContext.context, polygonBbox = BoundingBox(15.0..20.0, 15.0..20.0)),
+        )
     }
 
     private fun internalPointSaveRequest(

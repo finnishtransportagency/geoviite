@@ -720,10 +720,7 @@ class LocationTrackService(
                 layoutContext,
                 false,
                 ids = null,
-                searchBox =
-                    SearchOperationalPointsByLocation(
-                        boundingBoxAroundPoint(location, OPERATIONAL_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE)
-                    ),
+                locationBbox = boundingBoxAroundPoint(location, OPERATIONAL_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE),
             )
             .let(operationalPointDao::fetchMany)
             .filter { op ->

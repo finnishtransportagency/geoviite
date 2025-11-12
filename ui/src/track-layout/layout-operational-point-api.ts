@@ -43,7 +43,9 @@ const mapTileCacheKey = (mapTileId: string, layoutContext: LayoutContext) =>
 
 const operationalPointsCache = asyncCache<string, OperationalPoint | undefined>();
 const allOperationalPointsCache = asyncCache<string, OperationalPoint[]>();
-const operationalPointsTileCache = asyncCache<string, OperationalPoint[]>();
+const operationalPointsLocationTileCache = asyncCache<string, OperationalPoint[]>();
+const operationalPointsPolygonTileCache = asyncCache<string, OperationalPoint[]>();
+
 const operationalPointOidsCache = asyncCache<
     OperationalPointId,
     { [key in LayoutBranch]?: Oid } | undefined
@@ -58,19 +60,37 @@ const operationalPointUriByOrigin = (
     return id ? `${base}/${id}` : base;
 };
 
-export async function getOperationalPoints(
+export async function getOperationalPointsByLocation(
     mapTile: MapTile,
     layoutContext: LayoutContext,
     changeTime: TimeStamp,
 ): Promise<OperationalPoint[]> {
-    return operationalPointsTileCache.get(
+    return operationalPointsLocationTileCache.get(
         changeTime,
         mapTileCacheKey(mapTile.id, layoutContext),
         () => {
             const params = queryParams({ bbox: bboxString(mapTile.area) });
 
             return getNonNull<OperationalPoint[]>(
-                `${layoutUri('operational-points', layoutContext)}${params}`,
+                `${layoutUri('operational-points', layoutContext)}/by-location${params}`,
+            );
+        },
+    );
+}
+
+export async function getOperationalPointsByPolygon(
+    mapTile: MapTile,
+    layoutContext: LayoutContext,
+    changeTime: TimeStamp,
+): Promise<OperationalPoint[]> {
+    return operationalPointsPolygonTileCache.get(
+        changeTime,
+        mapTileCacheKey(mapTile.id, layoutContext),
+        () => {
+            const params = queryParams({ bbox: bboxString(mapTile.area) });
+
+            return getNonNull<OperationalPoint[]>(
+                `${layoutUri('operational-points', layoutContext)}/by-polygon${params}`,
             );
         },
     );
