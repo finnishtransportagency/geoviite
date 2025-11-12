@@ -93,6 +93,22 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             ExtTestTrackKmsCollectionResponseV1::class,
         )
 
+    val switch =
+        AssetApi<Oid<*>, ExtTestSwitchResponseV1, ExtTestModifiedSwitchResponseV1, Nothing>(
+            assetUrl = { oid -> "/geoviite/paikannuspohja/v1/vaihteet/${oid}" },
+            ExtTestSwitchResponseV1::class,
+            modifiedUrl = { oid -> "/geoviite/paikannuspohja/v1/vaihteet/${oid}/muutokset" },
+            ExtTestModifiedSwitchResponseV1::class,
+        )
+
+    val switchCollection =
+        AssetCollectionApi(
+            assetCollectionUrl = { "/geoviite/paikannuspohja/v1/vaihteet" },
+            ExtTestSwitchCollectionResponseV1::class,
+            modifiedAssetCollectionUrl = { "/geoviite/paikannuspohja/v1/vaihteet/muutokset" },
+            ExtTestModifiedSwitchCollectionResponseV1::class,
+        )
+
     inner class AssetApi<
         AssetId : Any,
         AssetResponse : Any,

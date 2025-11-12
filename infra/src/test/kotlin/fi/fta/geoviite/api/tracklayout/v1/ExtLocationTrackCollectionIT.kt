@@ -371,15 +371,15 @@ constructor(
         val trackGeom = trackGeometryOfSegments(segment(Point(20.0, 0.0), Point(40.0, 0.0)))
         val (trackId1, trackOid1) =
             mainDraftContext.save(locationTrack(trackNumberId1), trackGeom).id.let {
-                it to testDBService.generateLocationTrackOid(it, LayoutBranch.main)
+                it to mainDraftContext.generateOid(it)
             }
         val (trackId2, trackOid2) =
             mainDraftContext.save(locationTrack(trackNumberId1), trackGeom).id.let {
-                it to testDBService.generateLocationTrackOid(it, LayoutBranch.main)
+                it to mainDraftContext.generateOid(it)
             }
         val (trackId3, _) =
             mainDraftContext.save(locationTrack(trackNumberId2), trackGeom).id.let {
-                it to testDBService.generateLocationTrackOid(it, LayoutBranch.main)
+                it to mainDraftContext.generateOid(it)
             }
 
         val basePublication =
@@ -395,9 +395,7 @@ constructor(
 
         initUser()
         mainDraftContext.save(
-            mainOfficialContext
-                .fetch(referenceLineId1)!!
-                .copy(startAddress = TrackMeter("0001+0010.000")),
+            mainOfficialContext.fetch(referenceLineId1)!!.copy(startAddress = TrackMeter("0001+0010.000")),
             alignment(segment),
         )
         val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(referenceLineId1))
