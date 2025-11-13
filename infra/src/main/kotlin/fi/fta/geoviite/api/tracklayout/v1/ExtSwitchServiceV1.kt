@@ -26,11 +26,11 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class ExtSwitchServiceV1
@@ -124,20 +124,18 @@ constructor(
         val branch = publications.to.layoutBranch.branch
         val startMoment = publications.from.publicationTime
         val endMoment = publications.to.publicationTime
-        return publicationDao
-            .fetchPublishedSwitchBetween(id, startMoment, endMoment)
-            ?.let(switchDao::fetch)
-            ?.let { switch ->
-                val moment = publications.to.publicationTime
-                val locationTrackJoints = getSwitchTrackLinks(branch, moment, setOf(id))[id] ?: emptyList()
-                val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
-                ExtModifiedSwitchResponseV1(
-                    trackLayoutVersionFrom = publications.from.uuid,
-                    trackLayoutVersionTo = publications.to.uuid,
-                    coordinateSystem = coordinateSystem,
-                    switch = createExtSwitch(oid, switch, coordinateSystem, locationTrackJoints, getGeocodingContext),
-                )
-            } ?: layoutAssetVersionsAreTheSame(id, publications)
+        return publicationDao.fetchPublishedSwitchBetween(id, startMoment, endMoment)?.let(switchDao::fetch)?.let {
+            switch ->
+            val moment = publications.to.publicationTime
+            val locationTrackJoints = getSwitchTrackLinks(branch, moment, setOf(id))[id] ?: emptyList()
+            val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
+            ExtModifiedSwitchResponseV1(
+                trackLayoutVersionFrom = publications.from.uuid,
+                trackLayoutVersionTo = publications.to.uuid,
+                coordinateSystem = coordinateSystem,
+                switch = createExtSwitch(oid, switch, coordinateSystem, locationTrackJoints, getGeocodingContext),
+            )
+        } ?: layoutAssetVersionsAreTheSame(id, publications)
     }
 
     private fun createSwitchCollectionResponse(
@@ -175,6 +173,7 @@ constructor(
             }
     }
 
+    // TODO: do data collection and parallelization as it is with location tracks
     private fun createExtSwitches(
         branch: LayoutBranch,
         moment: Instant,
