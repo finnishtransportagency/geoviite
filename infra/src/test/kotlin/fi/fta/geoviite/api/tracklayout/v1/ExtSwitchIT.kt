@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.linkedTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -475,16 +476,42 @@ constructor(
     }
 
     @Test
-    fun `Deleted switches have no track addresses exposed through the API`() {
-        TODO()
-        // Single + collection fetch
-    }
+    fun `Deleted tracks don't show up as part of a switch`() {
+        val switch =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                listOf(switchJoint(1, Point(0.0, 0.0)) to switchJoint(2, Point(10.0, 0.0))),
+            )
+        val switchOid = switch.switch.oid
+        val baseVersion = extTestDataService.publishInMain(listOf(switch)).uuid
+        api.switch.get(switchOid).let { response ->
+            assertEquals(baseVersion.toString(), response.rataverkon_versio)
+            assertEquals(
+                switch.tracks.map { it.oid.toString() }.toSet(),
+                response.vaihde.raidelinkit.map { it.sijaintiraide_oid }.toSet(),
+            )
+        }
 
-    private fun assertSingleAndMultiFetchReturnSameObjects() {
-        //        for ((oid, _) in changed) {
-        //            assertEquals(api.switch.get(oid).vaihde, api.switchCollection.get())
-        //        }
-        TODO()
+        initUser()
+        mainDraftContext.mutate(switch.tracks[0].id) { lt -> lt.copy(state = LocationTrackState.DELETED) }
+        val updateVersion = extTestDataService.publishInMain(locationTracks = switch.tracks.map { it.id }).uuid
+
+        api.switch.get(switchOid).let { response ->
+            assertEquals(updateVersion.toString(), response.rataverkon_versio)
+            assertEquals(emptyList<String>(), response.vaihde.raidelinkit.map { it.sijaintiraide_oid })
+        }
+        api.switch.getAtVersion(switchOid, baseVersion).let { response ->
+            assertEquals(baseVersion.toString(), response.rataverkon_versio)
+            assertEquals(
+                switch.tracks.map { it.oid.toString() }.toSet(),
+                response.vaihde.raidelinkit.map { it.sijaintiraide_oid }.toSet(),
+            )
+        }
+        api.switch.getModifiedSince(switchOid, baseVersion).let { response ->
+            assertEquals(baseVersion.toString(), response.alkuversio)
+            assertEquals(updateVersion.toString(), response.loppuversio)
+            assertEquals(emptyList<String>(), response.vaihde.raidelinkit.map { it.sijaintiraide_oid })
+        }
     }
 
     private fun assertChangesSince(

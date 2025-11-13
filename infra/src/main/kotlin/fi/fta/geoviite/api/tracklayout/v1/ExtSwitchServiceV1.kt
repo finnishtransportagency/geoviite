@@ -262,7 +262,8 @@ constructor(
         // However, due to caching (of tracks & switch-links inside track geometries), it's faster than re-resolving
         // the versions from nodes in DB
         // For small switch-counts, this might not actually be the case, but those fetches are fast anyhow
-        val tracksAndGeoms = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment)
+        val tracksAndGeoms =
+            locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, includeDeleted = false)
         val trackOids = locationTrackDao.fetchExternalIds(branch)
         return tracksAndGeoms
             .flatMap { (track, geom) ->
