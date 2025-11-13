@@ -74,7 +74,7 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberCollection(
+    fun getExtTrackNumberCollection(
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
@@ -124,7 +124,7 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberCollectionModifications(
+    fun getExtTrackNumberCollectionModifications(
         @Parameter(
             description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
             schema = Schema(type = "string", format = "uuid"),
@@ -187,7 +187,7 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumber(
+    fun getExtTrackNumber(
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         oid: Oid<LayoutTrackNumber>,
@@ -250,7 +250,7 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberModifications(
+    fun getExtTrackNumberModifications(
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         trackNumberOid: Oid<LayoutTrackNumber>,
@@ -318,7 +318,7 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberGeometry(
+    fun getExtTrackNumberGeometry(
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         oid: Oid<LayoutTrackNumber>,

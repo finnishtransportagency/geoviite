@@ -63,7 +63,7 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
                 ),
             ]
     )
-    fun extGetSwitchCollection(
+    fun getExtSwitchCollection(
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
@@ -104,7 +104,7 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
                 ),
             ]
     )
-    fun extGetSwitchCollectionModifications(
+    fun getExtSwitchCollectionModifications(
         @Parameter(
             description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
             schema = Schema(type = "string", format = "uuid"),
@@ -156,7 +156,7 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
                 ),
             ]
     )
-    fun extGetSwitch(
+    fun getExtSwitch(
         @Parameter(description = EXT_OPENAPI_SWITCH_OID_DESCRIPTION)
         @PathVariable(SWITCH_OID_PARAM)
         oid: Oid<LayoutSwitch>,
@@ -213,7 +213,7 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
                 ),
             ]
     )
-    fun extGetSwitchModifications(
+    fun getExtSwitchModifications(
         @Parameter(description = EXT_OPENAPI_SWITCH_OID_DESCRIPTION)
         @PathVariable(SWITCH_OID_PARAM)
         oid: Oid<LayoutSwitch>,
