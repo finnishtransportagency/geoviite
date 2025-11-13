@@ -67,7 +67,7 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberKmsCollection(
+    fun getExtTrackNumberKmsCollection(
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
@@ -111,7 +111,7 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberKms(
+    fun getExtTrackNumberKms(
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         oid: Oid<LayoutTrackNumber>,
