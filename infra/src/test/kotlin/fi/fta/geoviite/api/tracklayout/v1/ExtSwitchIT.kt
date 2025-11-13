@@ -33,6 +33,7 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNull
 import org.springframework.beans.factory.annotation.Autowired
@@ -507,11 +508,30 @@ constructor(
                 response.vaihde.raidelinkit.map { it.sijaintiraide_oid }.toSet(),
             )
         }
+    }
+
+    // TODO: GVT-3404 Enable test when track deletion produces a calculated change in switch
+    @Disabled("GVT-3404 - track deletion does not produce calculated change in switch")
+    @Test
+    fun `Track deletion shows up as a (calculated) change in ext-api switches`() {
+        val switch =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                listOf(switchJoint(1, Point(0.0, 0.0)) to switchJoint(2, Point(10.0, 0.0))),
+            )
+        val switchOid = switch.switch.oid
+        val baseVersion = extTestDataService.publishInMain(listOf(switch)).uuid
+
+        initUser()
+        mainDraftContext.mutate(switch.tracks[0].id) { lt -> lt.copy(state = LocationTrackState.DELETED) }
+        val updateVersion = extTestDataService.publishInMain(locationTracks = switch.tracks.map { it.id }).uuid
+
         api.switch.getModifiedSince(switchOid, baseVersion).let { response ->
             assertEquals(baseVersion.toString(), response.alkuversio)
             assertEquals(updateVersion.toString(), response.loppuversio)
             assertEquals(emptyList<String>(), response.vaihde.raidelinkit.map { it.sijaintiraide_oid })
         }
+        api.switch.assertNoModificationSince(switchOid, updateVersion)
     }
 
     private fun assertChangesSince(
