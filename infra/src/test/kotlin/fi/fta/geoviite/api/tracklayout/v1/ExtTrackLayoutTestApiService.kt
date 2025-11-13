@@ -163,6 +163,14 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             )
         }
 
+        fun getModifiedSince(
+            id: AssetId,
+            fromVersion: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+        ): AssetModificationResponse {
+            return getModified(id, TRACK_LAYOUT_VERSION_FROM to fromVersion.toString(), *params)
+        }
+
         fun getModifiedBetween(
             id: AssetId,
             fromVersion: Uuid<Publication>,
@@ -199,6 +207,21 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             return getModifiedWithEmptyBody(
                 id,
                 TRACK_LAYOUT_VERSION_FROM to layoutVersion.toString(),
+                *params,
+                httpStatus = HttpStatus.NO_CONTENT,
+            )
+        }
+
+        fun assertNoModificationBetween(
+            id: AssetId,
+            from: Uuid<Publication>,
+            to: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+        ) {
+            return getModifiedWithEmptyBody(
+                id,
+                TRACK_LAYOUT_VERSION_FROM to from.toString(),
+                TRACK_LAYOUT_VERSION_TO to to.toString(),
                 *params,
                 httpStatus = HttpStatus.NO_CONTENT,
             )
@@ -308,6 +331,19 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         fun assertNoModificationSince(layoutVersion: Uuid<Publication>, vararg params: Pair<String, String>) {
             return getModifiedWithEmptyBody(
                 TRACK_LAYOUT_VERSION_FROM to layoutVersion.toString(),
+                *params,
+                httpStatus = HttpStatus.NO_CONTENT,
+            )
+        }
+
+        fun assertNoModificationBetween(
+            from: Uuid<Publication>,
+            to: Uuid<Publication>,
+            vararg params: Pair<String, String>,
+        ) {
+            return getModifiedWithEmptyBody(
+                TRACK_LAYOUT_VERSION_FROM to from.toString(),
+                TRACK_LAYOUT_VERSION_TO to to.toString(),
                 *params,
                 httpStatus = HttpStatus.NO_CONTENT,
             )
