@@ -13,9 +13,12 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -25,14 +28,19 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.linkedTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
-import java.util.*
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchJoint
+import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import org.junit.jupiter.api.Assertions.assertNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.util.*
 
 data class GeocodableTrack(
     val layoutContext: LayoutContext,
@@ -73,9 +81,9 @@ class ExtApiTestDataServiceV1
 @Autowired
 constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
-    private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
+    private val switchDao: LayoutSwitchDao,
     private val publicationTestSupportService: PublicationTestSupportService,
     private val publicationDao: PublicationDao,
 ) : DBTestBase() {
@@ -148,11 +156,59 @@ constructor(
             insertTrackNumberAndReferenceLine(layoutContext, trackNumberName, segments, startAddress)
         val oid =
             someOid<LayoutTrackNumber>().also { oid ->
-                layoutTrackNumberDao.insertExternalId(trackNumberId, layoutContext.context.branch, oid)
+                trackNumberDao.insertExternalId(trackNumberId, layoutContext.context.branch, oid)
             }
 
         return Triple(trackNumberId, referenceLineId, oid)
     }
+
+    data class IdAndOid<T>(val id: IntId<T>, val oid: Oid<T>)
+
+    data class SwitchAndTrackIds(
+        val switch: IdAndOid<LayoutSwitch>,
+        val tracks: List<IdAndOid<LocationTrack>>,
+        val trackNumber: IdAndOid<LayoutTrackNumber>,
+        val referenceLineId: IntId<ReferenceLine>,
+    )
+
+    fun insertSwitchAndTracks(
+        layoutContext: TestLayoutContext,
+        joints: List<Pair<LayoutSwitchJoint, LayoutSwitchJoint>> =
+            listOf(switchJoint(1, Point(0.0, 0.0)) to switchJoint(2, Point(10.0, 0.0))),
+        structure: SwitchStructure = switchStructureYV60_300_1_9(),
+    ): SwitchAndTrackIds {
+        val allJoints = joints.flatMap { listOf(it.first, it.second) }.distinctBy { it.number }
+        val switchId = layoutContext.save(switch(structure.id, allJoints)).id
+        val savedSwitch = layoutContext.fetch(switchId)!!
+
+        val segment =
+            segment(
+                Point(allJoints.minOf { it.location.x }, allJoints.minOf { it.location.y }),
+                Point(allJoints.maxOf { it.location.x }, allJoints.maxOf { it.location.y }),
+            )
+        val (trackNumberId, referenceLineId) =
+            insertTrackNumberAndReferenceLine(layoutContext, segments = listOf(segment))
+        val trackIds =
+            joints.map { (start, end) ->
+                val geom = linkedTrackGeometry(savedSwitch, start.number, end.number, structure)
+                layoutContext.save(locationTrack(trackNumberId), geom).id
+            }
+
+        return SwitchAndTrackIds(
+            switch = IdAndOid(switchId, layoutContext.generateOid(switchId)),
+            tracks = trackIds.map { id -> IdAndOid(id, layoutContext.generateOid(id)) },
+            trackNumber = IdAndOid(trackNumberId, layoutContext.generateOid(trackNumberId)),
+            referenceLineId = referenceLineId,
+        )
+    }
+
+    fun publishInMain(switchAndTrackIds: List<SwitchAndTrackIds>): Publication =
+        publishInMain(
+            trackNumbers = switchAndTrackIds.map { it.trackNumber.id },
+            referenceLines = switchAndTrackIds.map { it.referenceLineId },
+            locationTracks = switchAndTrackIds.flatMap { it.tracks.map { track -> track.id } },
+            switches = switchAndTrackIds.map { it.switch.id },
+        )
 
     fun publishInMain(
         trackNumbers: List<IntId<LayoutTrackNumber>> = emptyList(),

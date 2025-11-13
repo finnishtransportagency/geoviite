@@ -2589,9 +2589,9 @@ class PublicationDao(
               plt.version
             from publication.location_track plt
               join publication.publication publication on plt.publication_id = publication.id
-            where design_id is null 
+            where publication.design_id is null
               and (:track_id::int is null or plt.id = :track_id)
-              and publication.publication_time > :start_time 
+              and publication.publication_time > :start_time
               and publication.publication_time <= :end_time
             order by plt.id, publication.publication_time desc
         """
@@ -2631,9 +2631,9 @@ class PublicationDao(
               ptn.version
             from publication.track_number ptn
               join publication.publication publication on ptn.publication_id = publication.id
-            where design_id is null
+            where publication.design_id is null
               and (:tn_id::int is null or ptn.id = :tn_id)
-              and publication.publication_time > :start_time 
+              and publication.publication_time > :start_time
               and publication.publication_time <= :end_time
             order by ptn.id, publication.publication_time desc
         """
@@ -2643,6 +2643,48 @@ class PublicationDao(
                 "start_time" to Timestamp.from(exclusiveStartMoment),
                 "end_time" to Timestamp.from(inclusiveEndMoment),
                 "tn_id" to id?.intValue,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
+    }
+
+    fun fetchPublishedSwitchBetween(
+        id: IntId<LayoutSwitch>,
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): LayoutRowVersion<LayoutSwitch>? =
+        fetchPublishedSwitchesBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id).singleOrNull()
+
+    fun fetchPublishedSwitchesBetween(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): List<LayoutRowVersion<LayoutSwitch>> =
+        fetchPublishedSwitchesBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id = null)
+
+    private fun fetchPublishedSwitchesBetweenInternal(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+        id: IntId<LayoutSwitch>?,
+    ): List<LayoutRowVersion<LayoutSwitch>> {
+        val sql =
+            """
+            select distinct on (ps.id)
+              ps.id,
+              ps.layout_context_id,
+              ps.version
+            from publication.switch ps
+              join publication.publication publication on ps.publication_id = publication.id
+            where publication.design_id is null
+              and (:switch_id::int is null or ps.id = :switch_id)
+              and publication.publication_time > :start_time
+              and publication.publication_time <= :end_time
+            order by ps.id, publication.publication_time desc
+        """
+
+        val params =
+            mapOf(
+                "start_time" to Timestamp.from(exclusiveStartMoment),
+                "end_time" to Timestamp.from(inclusiveEndMoment),
+                "switch_id" to id?.intValue,
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
     }

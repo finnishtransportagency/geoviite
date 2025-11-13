@@ -4,7 +4,6 @@ import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
@@ -49,7 +48,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     fun `Track number kms API should return correct kms`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val tnId = mainDraftContext.createLayoutTrackNumber(trackNumber).id
-        val tnOid = testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        val tnOid = mainDraftContext.generateOid(tnId)
         val rlGeom = alignment(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter(10, 100)), rlGeom).id
         val kmp13Id =
@@ -129,7 +128,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     fun `Track number kms API respects the coordinate system argument`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val tnId = mainDraftContext.createLayoutTrackNumber(trackNumber).id
-        val tnOid = testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        val tnOid = mainDraftContext.generateOid(tnId)
         val rlGeom = alignment(segment(Point(1000.0, 1000.0), Point(2000.0, 1000.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter.ZERO), rlGeom).id
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(1500.0, 1002.0))).id
@@ -179,7 +178,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     @Test
     fun `A deleted track number has no kms`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val tnOid = testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        val tnOid = mainDraftContext.generateOid(tnId)
         val rlGeom = alignment(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter.ZERO), rlGeom).id
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(500.0, 0.0))).id

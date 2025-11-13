@@ -588,6 +588,23 @@ fun trackGeometry(vararg edges: LayoutEdge, trackId: IntId<LocationTrack>? = nul
 fun trackGeometry(edges: List<LayoutEdge>, trackId: IntId<LocationTrack>? = null): TmpLocationTrackGeometry =
     TmpLocationTrackGeometry.of(edges, trackId)
 
+fun linkedTrackGeometry(
+    switch: LayoutSwitch,
+    startJoint: JointNumber,
+    endJoint: JointNumber,
+    structure: SwitchStructure,
+) =
+    trackGeometry(
+        listOf(
+            edge(
+                segments =
+                    listOf(segment(switch.getJoint(startJoint)!!.location, switch.getJoint(endJoint)!!.location)),
+                startInnerSwitch = SwitchLink(switch.id as IntId, startJoint, structure),
+                endInnerSwitch = SwitchLink(switch.id as IntId, endJoint, structure),
+            )
+        )
+    )
+
 fun edge(
     segments: List<LayoutSegment>,
     startInnerSwitch: SwitchLink? = null,

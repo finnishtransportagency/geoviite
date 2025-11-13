@@ -383,6 +383,24 @@ class TestDBService(
             else -> error("Unknown asset type: ${T::class.simpleName}")
         }
 
+    @Suppress("UNCHECKED_CAST")
+    final inline fun <reified T : LayoutAsset<T>> generateOid(id: IntId<T>, branch: LayoutBranch): Oid<T> =
+        someOid<T>().also { oid: Oid<T> ->
+            when (T::class) {
+                LayoutTrackNumber::class ->
+                    trackNumberDao.insertExternalId(
+                        id as IntId<LayoutTrackNumber>,
+                        branch,
+                        oid as Oid<LayoutTrackNumber>,
+                    )
+                LocationTrack::class ->
+                    locationTrackDao.insertExternalId(id as IntId<LocationTrack>, branch, oid as Oid<LocationTrack>)
+                LayoutSwitch::class ->
+                    switchDao.insertExternalId(id as IntId<LayoutSwitch>, branch, oid as Oid<LayoutSwitch>)
+                else -> error("Unsupported asset type for Oid generation: ${T::class.simpleName}")
+            }
+        }
+
     fun createLayoutDesign(): IntId<LayoutDesign> = layoutDesignDao.insert(layoutDesign(getUnusedDesignName()))
 
     fun createDesignBranch(): DesignBranch = LayoutBranch.design(createLayoutDesign())
@@ -412,15 +430,6 @@ class TestDBService(
         val targetContext = testContext(targetBranch ?: original.branch, DRAFT)
         return targetContext.copyFrom(officialVersion, mutate = mutate)
     }
-
-    fun generateTrackNumberOid(id: IntId<LayoutTrackNumber>, branch: LayoutBranch): Oid<LayoutTrackNumber> =
-        someOid<LayoutTrackNumber>().also { oid -> trackNumberDao.insertExternalId(id, branch, oid) }
-
-    fun generateLocationTrackOid(id: IntId<LocationTrack>, branch: LayoutBranch): Oid<LocationTrack> =
-        someOid<LocationTrack>().also { oid -> locationTrackDao.insertExternalId(id, branch, oid) }
-
-    fun generateSwitchOid(id: IntId<LayoutSwitch>, branch: LayoutBranch): Oid<LayoutSwitch> =
-        someOid<LayoutSwitch>().also { oid -> switchDao.insertExternalId(id, branch, oid) }
 }
 
 data class TestLayoutContext(val context: LayoutContext, val testService: TestDBService) : TestDB by testService {
@@ -456,6 +465,9 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
 
     fun saveTrackNumber(asset: LayoutTrackNumber): LayoutRowVersion<LayoutTrackNumber> =
         testService.save(testService.updateContext(asset, context))
+
+    inline fun <reified T : LayoutAsset<T>> generateOid(id: IntId<T>): Oid<T> =
+        testService.generateOid(id, context.branch)
 
     /**
      * Copies the asset identified by [rowVersion] to the current context. Note, that this does not create linking to

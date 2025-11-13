@@ -304,7 +304,7 @@ constructor(
     @Test
     fun `Track number modification API should show modifications for calculated change`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val tnOid = testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        val tnOid = mainDraftContext.generateOid(tnId)
         val rlGeom = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
 
@@ -346,7 +346,7 @@ constructor(
     @Test
     fun `Deleted track numbers have no addresses exposed through the API`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val tnOid = testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        val tnOid = mainDraftContext.generateOid(tnId)
         val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
         val startWithAddress = ExtTestAddressPointV1(0.0, 0.0, "0000+0000.000")

@@ -32,10 +32,10 @@ interface IExternalIdDao<T : LayoutAsset<T>> {
 
     fun fetchExternalIdsWithInheritance(
         branch: LayoutBranch,
-        ids: List<IntId<T>>? = null,
+        ids: Collection<IntId<T>>? = null,
     ): Map<IntId<T>, RatkoExternalId<T>>
 
-    fun fetchExternalIds(branch: LayoutBranch, ids: List<IntId<T>>? = null): Map<IntId<T>, RatkoExternalId<T>>
+    fun fetchExternalIds(branch: LayoutBranch, ids: Collection<IntId<T>>? = null): Map<IntId<T>, RatkoExternalId<T>>
 
     fun fetchExternalIdsByBranch(id: IntId<T>): Map<LayoutBranch, RatkoExternalId<T>>
 
@@ -108,15 +108,15 @@ class ExternalIdDao<T : LayoutAsset<T>>(
 
     override fun fetchExternalIdsWithInheritance(
         branch: LayoutBranch,
-        ids: List<IntId<T>>?,
+        ids: Collection<IntId<T>>?,
     ): Map<IntId<T>, RatkoExternalId<T>> = fetchExternalIds(branch, ids, withInheritance = true)
 
-    override fun fetchExternalIds(branch: LayoutBranch, ids: List<IntId<T>>?): Map<IntId<T>, RatkoExternalId<T>> =
+    override fun fetchExternalIds(branch: LayoutBranch, ids: Collection<IntId<T>>?): Map<IntId<T>, RatkoExternalId<T>> =
         fetchExternalIds(branch, ids, withInheritance = false)
 
     private fun fetchExternalIds(
         branch: LayoutBranch,
-        ids: List<IntId<T>>?,
+        ids: Collection<IntId<T>>?,
         withInheritance: Boolean,
     ): Map<IntId<T>, RatkoExternalId<T>> {
         if (ids != null && ids.isEmpty()) {

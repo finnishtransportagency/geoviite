@@ -341,13 +341,13 @@ constructor(
     @Test
     fun `Location track modification API should show modifications for calculated change`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        mainDraftContext.generateOid(tnId)
         val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
 
         val trackGeom = trackGeometryOfSegments(segment(Point(20.0, 0.0), Point(40.0, 0.0)))
         val trackId = mainDraftContext.save(locationTrack(tnId), trackGeom).id
-        val trackOid = testDBService.generateLocationTrackOid(trackId, LayoutBranch.main)
+        val trackOid = mainDraftContext.generateOid(trackId)
 
         val basePublication =
             extTestDataService.publishInMain(
@@ -388,13 +388,13 @@ constructor(
     @Test
     fun `Deleted tracks have no addresses exposed through the API`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        testDBService.generateTrackNumberOid(tnId, LayoutBranch.main)
+        mainDraftContext.generateOid(tnId)
         val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
 
         val trackGeom = trackGeometryOfSegments(segment(Point(10.0, 0.0), Point(90.0, 0.0)))
         val trackId = mainDraftContext.save(locationTrack(tnId), trackGeom).id
-        val trackOid = testDBService.generateLocationTrackOid(trackId, LayoutBranch.main)
+        val trackOid = mainDraftContext.generateOid(trackId)
         val initPublication =
             extTestDataService.publishInMain(
                 trackNumbers = listOf(tnId),

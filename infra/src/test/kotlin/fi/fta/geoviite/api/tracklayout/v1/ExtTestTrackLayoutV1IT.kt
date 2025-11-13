@@ -8,12 +8,15 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
+import fi.fta.geoviite.infra.tracklayout.switchJoint
+import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -44,6 +47,7 @@ constructor(
             ::setupValidTrackNumber to api.trackNumbers::getWithExpectedError,
             ::setupValidTrackNumber to api.trackNumbers::getGeometryWithExpectedError,
             ::setupValidTrackNumber to api.trackNumberKms::getWithExpectedError,
+            ::setupValidSwitch to api.switch::getWithExpectedError,
         )
 
     private val collectionErrorTests =
@@ -51,18 +55,21 @@ constructor(
             api.locationTrackCollection::getWithExpectedError,
             api.trackNumberCollection::getWithExpectedError,
             api.trackNumberKmsCollection::getWithExpectedError,
+            api.switchCollection::getWithExpectedError,
         )
 
     private val modificationErrorTests =
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getModifiedWithExpectedError,
             ::setupValidTrackNumber to api.trackNumbers::getModifiedWithExpectedError,
+            ::setupValidSwitch to api.switch::getModifiedWithExpectedError,
         )
 
     private val collectionModificationErrorTests =
         listOf(
             api.locationTrackCollection::getModifiedWithExpectedError,
             api.trackNumberCollection::getModifiedWithExpectedError,
+            api.switchCollection::getModifiedWithExpectedError,
         )
 
     private val geometryErrorTests =
@@ -77,24 +84,28 @@ constructor(
             ::setupValidLocationTrack to api.locationTracks::getGeometryWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumbers::getWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumbers::getGeometryWithEmptyBody,
+            ::setupValidSwitch to api.switch::getWithEmptyBody,
         )
 
     private val collectionNoContentTests =
         listOf(
             ::setupValidLocationTrackCollection to api.locationTrackCollection::getModifiedWithEmptyBody,
             ::setupValidTrackNumberCollection to api.trackNumberCollection::getModifiedWithEmptyBody,
+            ::setupValidSwitchCollection to api.switchCollection::getModifiedWithEmptyBody,
         )
 
     private val noContentModificationTests =
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getModifiedWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumbers::getModifiedWithEmptyBody,
+            ::setupValidSwitch to api.switch::getModifiedWithEmptyBody,
         )
 
     private val modificationSuccessTests =
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getModified,
             ::setupValidTrackNumber to api.trackNumbers::getModified,
+            ::setupValidSwitch to api.switch::getModified,
         )
 
     @BeforeEach
@@ -475,5 +486,29 @@ constructor(
             referenceLines = listOf(referenceLineId),
             locationTracks = tracks,
         )
+    }
+
+    private fun setupValidSwitch(): Oid<LayoutSwitch> {
+        val structure = switchStructureYV60_300_1_9()
+        val joint1 = switchJoint(1, Point(0.0, 0.0))
+        val joint2 = switchJoint(2, Point(100.0, 0.0))
+        val ids = extTestDataService.insertSwitchAndTracks(mainDraftContext, listOf(joint1 to joint2), structure)
+
+        extTestDataService.publishInMain(listOf(ids))
+
+        return ids.switch.oid
+    }
+
+    private fun setupValidSwitchCollection(): Publication {
+        val structure = switchStructureYV60_300_1_9()
+
+        val ids =
+            listOf(1, 2, 3).map { idx ->
+                val joint1 = switchJoint(1, Point(idx * 0.0, 0.0))
+                val joint2 = switchJoint(2, Point(idx * 100.0, 0.0))
+                extTestDataService.insertSwitchAndTracks(mainDraftContext, listOf(joint1 to joint2), structure)
+            }
+
+        return extTestDataService.publishInMain(ids)
     }
 }
