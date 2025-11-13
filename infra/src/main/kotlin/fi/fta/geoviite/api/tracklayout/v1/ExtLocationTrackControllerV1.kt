@@ -34,7 +34,10 @@ private const val EXT_LOCATION_TRACKS_TAG_V1 = "Sijaintiraiteet"
         "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1",
     ]
 )
-class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocationTrackServiceV1) {
+class ExtLocationTrackControllerV1(
+    private val extLocationTrackService: ExtLocationTrackServiceV1,
+    private val extLocationTrackGeometryService: ExtLocationTrackGeometryServiceV1,
+) {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -285,7 +288,7 @@ class ExtLocationTrackControllerV1(private val extLocationTrackService: ExtLocat
         @RequestParam(ADDRESS_POINT_FILTER_END, required = false)
         addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1? = null,
     ): ResponseEntity<ExtLocationTrackGeometryResponseV1> =
-        extLocationTrackService
+        extLocationTrackGeometryService
             .getExtLocationTrackGeometry(
                 oid,
                 trackLayoutVersion,
