@@ -45,6 +45,8 @@ const val EXT_OPENAPI_SERVER_ERROR = "Palvelussa tapahtui sisäinen virhe. Ota t
 const val EXT_OPENAPI_TRACK_LAYOUT_VERSION =
     "Rataverkon UUID-tunnus, johon haku kohdistetaan. Oletuksena haussa käytetään uusinta rataverkon versiota."
 
+const val EXT_OPENAPI_TRACK_LAYOUT_VERSION_DESCRIPTION = "Rataverkon UUID-tunnus."
+
 const val EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM = "Rataverkon UUID-tunnus, josta lähtien vertaillaan."
 
 const val EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO =

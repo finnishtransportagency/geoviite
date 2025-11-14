@@ -61,7 +61,7 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
             ]
     )
     fun extGetTrackLayoutVersion(
-        @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_DESCRIPTION)
         @PathVariable(TRACK_LAYOUT_VERSION)
         version: Uuid<Publication>
     ): ExtTrackLayoutVersionV1 {
