@@ -14,11 +14,12 @@ import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
@@ -104,13 +105,11 @@ constructor(
     ): ExtSwitchResponseV1? {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
-        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
         return switchDao.getOfficialAtMoment(branch, id, moment)?.let { switch ->
-            val locationTrackJoints = getSwitchTrackLinks(branch, moment, setOf(id))[id] ?: emptyList()
             ExtSwitchResponseV1(
                 trackLayoutVersion = publication.uuid,
                 coordinateSystem = coordinateSystem,
-                switch = createExtSwitch(oid, switch, coordinateSystem, locationTrackJoints, getGeocodingContext),
+                switch = createExtSwitch(getSwitchData(oid, switch, branch, moment), coordinateSystem),
             )
         }
     }
@@ -126,14 +125,11 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao.fetchPublishedSwitchBetween(id, startMoment, endMoment)?.let(switchDao::fetch)?.let {
             switch ->
-            val moment = publications.to.publicationTime
-            val locationTrackJoints = getSwitchTrackLinks(branch, moment, setOf(id))[id] ?: emptyList()
-            val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
             ExtModifiedSwitchResponseV1(
                 trackLayoutVersionFrom = publications.from.uuid,
                 trackLayoutVersionTo = publications.to.uuid,
                 coordinateSystem = coordinateSystem,
-                switch = createExtSwitch(oid, switch, coordinateSystem, locationTrackJoints, getGeocodingContext),
+                switch = createExtSwitch(getSwitchData(oid, switch, branch, endMoment), coordinateSystem),
             )
         } ?: layoutAssetVersionsAreTheSame(id, publications)
     }
@@ -173,110 +169,130 @@ constructor(
             }
     }
 
-    // TODO: do data collection and parallelization as it is with location tracks
     private fun createExtSwitches(
         branch: LayoutBranch,
         moment: Instant,
         coordinateSystem: Srid,
         switches: List<LayoutSwitch>,
     ): List<ExtSwitchV1> {
-        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
-        val externalSwitchIds = switchDao.fetchExternalIds(branch)
-        val switchTrackLinks = getSwitchTrackLinks(branch, moment)
-        return switches
-            .map { switch ->
-                val id = switch.id as IntId
-                val oid = requireNotNull(externalSwitchIds[id]?.oid) { "Switch oid not found for id=$id" }
-                val locationTrackJoints = switchTrackLinks[id] ?: emptyList()
-                createExtSwitch(oid, switch, coordinateSystem, locationTrackJoints, getGeocodingContext)
-            }
-            .sortedBy { it.switchOid.toString() }
+        return getSwitchData(switches, branch, moment)
+            .parallelStream()
+            .map { switchData -> createExtSwitch(switchData, coordinateSystem) }
+            .toList()
     }
 
-    private fun createExtSwitch(
-        oid: Oid<LayoutSwitch>,
-        switch: LayoutSwitch,
-        coordinateSystem: Srid,
-        locationTrackJoints: List<SwitchTrackJoints>,
-        getGeocodingContext: (IntId<LayoutTrackNumber>) -> GeocodingContext<ReferenceLineM>?,
-    ): ExtSwitchV1 {
-        val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-        val owner =
-            requireNotNull(switchLibraryService.getSwitchOwner(switch.ownerId)) {
-                "Switch owner not found for id=${switch.ownerId}"
-            }
+    private fun createExtSwitch(data: SwitchData, coordinateSystem: Srid): ExtSwitchV1 {
         return ExtSwitchV1(
-            switchOid = oid,
-            switchName = switch.name,
-            type = structure.type,
-            hand = ExtSwitchHandV1.of(structure.hand),
-            presentationJointNumber = structure.presentationJointNumber.intValue,
-            stateCategory = ExtSwitchStateV1.of(switch.stateCategory),
-            owner = owner.name,
-            trapPoint = ExtSwitchTrapPointV1.of(switch.trapPoint),
+            switchOid = data.oid,
+            switchName = data.switch.name,
+            type = data.structure.type,
+            hand = ExtSwitchHandV1.of(data.structure.hand),
+            presentationJointNumber = data.structure.presentationJointNumber.intValue,
+            stateCategory = ExtSwitchStateV1.of(data.switch.stateCategory),
+            owner = data.owner.name,
+            trapPoint = ExtSwitchTrapPointV1.of(data.switch.trapPoint),
             switchJoints =
-                switch.joints
-                    .sortedBy { it.number.intValue }
-                    .map { joint ->
-                        ExtSwitchJointV1(
-                            jointNumber = joint.number.intValue,
-                            location = toExtCoordinate(joint.location, coordinateSystem),
-                        )
-                    },
+                data.switch.joints.map { joint ->
+                    ExtSwitchJointV1(
+                        jointNumber = joint.number.intValue,
+                        location = toExtCoordinate(joint.location, coordinateSystem),
+                    )
+                },
             trackLinks =
-                locationTrackJoints
-                    .sortedBy { it.locationTrackOid.toString() }
-                    .map { trackJoints ->
-                        val geocodingContext =
-                            requireNotNull(getGeocodingContext(trackJoints.trackNumberId)) {
-                                "Geocoding context not found for track number id=${trackJoints.trackNumberId} linked to switch oid=$oid"
-                            }
-                        ExtSwitchTrackLinkV1(
-                            locationTrackOid = trackJoints.locationTrackOid,
-                            joints =
-                                trackJoints.jointLocations.map { (link, location) ->
-                                    val addressPoint =
-                                        requireNotNull(geocodingContext.toAddressPoint(location)?.first) {
-                                            "Address calculation failed for location=$location, trackNumberId=${trackJoints.trackNumberId} linked to switch oid=$oid"
-                                        }
-                                    ExtSwitchTrackJointV1(
-                                        jointNumber = link.jointNumber.intValue,
-                                        location = toExtAddressPoint(addressPoint, coordinateSystem),
-                                    )
-                                },
-                        )
-                    },
+                data.trackLinks.map { trackJoints ->
+                    ExtSwitchTrackLinkV1(
+                        locationTrackOid = trackJoints.locationTrackOid,
+                        joints =
+                            trackJoints.jointLocations.map { (link, location) ->
+                                val addressPoint =
+                                    requireNotNull(trackJoints.geocodingContext.toAddressPoint(location)?.first) {
+                                        "Address calculation failed: trackNumber=${trackJoints.geocodingContext.trackNumber} location=$location switchOid=${data.oid}"
+                                    }
+                                ExtSwitchTrackJointV1(
+                                    jointNumber = link.jointNumber.intValue,
+                                    location = toExtAddressPoint(addressPoint, coordinateSystem),
+                                )
+                            },
+                    )
+                },
         )
     }
 
     data class SwitchTrackJoints(
         val locationTrackOid: Oid<LocationTrack>,
-        val trackNumberId: IntId<LayoutTrackNumber>,
+        val geocodingContext: GeocodingContext<ReferenceLineM>,
         val jointLocations: List<Pair<SwitchLink, AlignmentPoint<LocationTrackM>>>,
     )
+
+    data class SwitchData(
+        val oid: Oid<LayoutSwitch>,
+        val switch: LayoutSwitch,
+        val structure: SwitchStructure,
+        val owner: SwitchOwner,
+        val trackLinks: List<SwitchTrackJoints>,
+    )
+
+    private fun getSwitchData(
+        oid: Oid<LayoutSwitch>,
+        switch: LayoutSwitch,
+        branch: LayoutBranch,
+        moment: Instant,
+    ): SwitchData {
+        val id = switch.id as IntId
+        return SwitchData(
+            oid = oid,
+            switch = switch,
+            structure = switchLibraryService.getSwitchStructure(switch.switchStructureId),
+            owner = switchLibraryService.getSwitchOwner(switch.ownerId),
+            trackLinks = getSwitchTrackLinks(branch, moment, setOf(id))[id] ?: emptyList(),
+        )
+    }
+
+    private fun getSwitchData(switches: List<LayoutSwitch>, branch: LayoutBranch, moment: Instant): List<SwitchData> {
+        val externalSwitchIds = switchDao.fetchExternalIds(branch)
+        val trackLinks = getSwitchTrackLinks(branch, moment, switches.map { it.id as IntId }.toSet())
+        return switches.map { switch ->
+            val id = switch.id as IntId
+            SwitchData(
+                oid = requireNotNull(externalSwitchIds[id]?.oid) { "Switch oid not found for id=$id" },
+                switch = switch,
+                structure = switchLibraryService.getSwitchStructure(switch.switchStructureId),
+                owner = switchLibraryService.getSwitchOwner(switch.ownerId),
+                trackLinks = trackLinks[id] ?: emptyList(),
+            )
+        }
+    }
 
     private fun getSwitchTrackLinks(
         branch: LayoutBranch,
         moment: Instant,
-        switchIds: Set<IntId<LayoutSwitch>>? = null,
+        switchIds: Set<IntId<LayoutSwitch>>,
     ): Map<IntId<LayoutSwitch>, List<SwitchTrackJoints>> {
         // This naive implementation simply iterates all tracks on the given moment
         // However, due to caching (of tracks & switch-links inside track geometries), it's faster than re-resolving
         // the versions from nodes in DB
         // For small switch-counts, this might not actually be the case, but those fetches are fast anyhow
         val tracksAndGeoms =
-            locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, includeDeleted = false)
-        val trackOids = locationTrackDao.fetchExternalIds(branch)
+            locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, includeDeleted = false).filter {
+                (t, _) ->
+                t.switchIds.any(switchIds::contains)
+            }
+        val trackOids = locationTrackDao.fetchExternalIds(branch, tracksAndGeoms.map { it.first.id as IntId })
+        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
         return tracksAndGeoms
             .flatMap { (track, geom) ->
                 val trackOid =
                     requireNotNull(trackOids[track.id]?.oid) { "Location track oid not found for id=${track.id}" }
                 track.switchIds.mapNotNull { switchId ->
-                    produceIf(switchIds == null || switchIds.contains(switchId)) {
+                    produceIf(switchIds.contains(switchId)) {
+                        val geocodingContext =
+                            requireNotNull(getGeocodingContext(track.trackNumberId)) {
+                                "Geocoding context not found: trackNumberId=${track.trackNumberId} linkedTrackId=${track.id}"
+                            }
                         switchId to
                             SwitchTrackJoints(
                                 locationTrackOid = trackOid,
-                                trackNumberId = track.trackNumberId,
+                                geocodingContext = geocodingContext,
                                 jointLocations = geom.getSwitchLocations(switchId),
                             )
                     }

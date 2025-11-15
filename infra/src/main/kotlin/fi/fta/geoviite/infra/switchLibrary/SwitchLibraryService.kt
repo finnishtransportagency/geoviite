@@ -37,7 +37,10 @@ class SwitchLibraryService(
 
     fun getSwitchOwners(): List<SwitchOwner> = owners
 
-    fun getSwitchOwner(ownerId: IntId<SwitchOwner>): SwitchOwner? = ownersById[ownerId]
+    fun getSwitchOwnersById(): Map<IntId<SwitchOwner>, SwitchOwner> = ownersById
+
+    fun getSwitchOwner(id: IntId<SwitchOwner>): SwitchOwner =
+        ownersById[id] ?: throw NoSuchEntityException(SwitchOwner::class, id)
 
     fun getInframodelAliases(): Map<String, String> {
         return switchStructureDao.getInfraModelAliases()
