@@ -31,7 +31,6 @@ import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
 class ExtSwitchServiceV1
@@ -48,7 +47,6 @@ constructor(
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @Transactional(readOnly = true)
     fun getExtSwitchCollection(
         trackLayoutVersion: Uuid<Publication>?,
         coordinateSystem: Srid?,
