@@ -175,6 +175,7 @@ fun layoutSwitch(name: String, jointPoints: List<Point>, switchStructure: Switch
         source = GeometrySource.GENERATED,
         contextData = LayoutContextData.newOfficial(LayoutBranch.main),
         draftOid = null,
+        operationalPointId = null,
     )
 
 fun switchJoint(location: Point) =

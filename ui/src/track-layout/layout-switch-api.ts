@@ -13,6 +13,7 @@ import {
     LayoutSwitch,
     LayoutSwitchId,
     LayoutSwitchJointConnection,
+    OperationalPointId,
 } from 'track-layout/track-layout-model';
 import {
     deleteNonNull,
@@ -47,6 +48,10 @@ const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 const switchValidationCache = asyncCache<string, ValidatedSwitch>();
 const tiledSwitchValidationCache = asyncCache<string, ValidatedSwitch[]>();
 const switchOidsCache = asyncCache<LayoutSwitchId, { [key in LayoutBranch]?: Oid } | undefined>();
+const switchesWithinOperationalPointCache = asyncCache<
+    string,
+    SwitchWithOperationalPointPolygonInclusions[]
+>();
 
 const cacheKey = (id: LayoutSwitchId, layoutContext: LayoutContext) =>
     `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
@@ -238,6 +243,36 @@ export async function getSwitchOids(
 export async function getSwitchOidPresence(oid: Oid): Promise<SwitchOidPresence> {
     return getNonNull<SwitchOidPresence>(`${TRACK_LAYOUT_URI}/switches/oid_presence/${oid}`);
 }
+
+export async function assignOperationalPoint(
+    branch: LayoutBranch,
+    switchId: LayoutSwitchId,
+    operationalPointId: OperationalPointId | undefined,
+): Promise<LayoutSwitchId> {
+    return postNonNull<OperationalPointId | undefined, LayoutSwitchId>(
+        `${layoutUriByBranch('switches', branch, switchId)}/operational-point`,
+        operationalPointId,
+    );
+}
+
+export async function findOperationalPointSwitches(
+    context: LayoutContext,
+    operationalPointId: OperationalPointId,
+): Promise<SwitchWithOperationalPointPolygonInclusions[]> {
+    const changeTimes = getChangeTimes();
+    const changeTime = getMaxTimestamp(changeTimes.layoutSwitch, changeTimes.operationalPoints);
+    const key = `${context.publicationState}_${context.branch}_${operationalPointId}`;
+    return switchesWithinOperationalPointCache.get(changeTime, key, () =>
+        getNonNull<SwitchWithOperationalPointPolygonInclusions[]>(
+            `${layoutUri('switches', context)}/by-operational-point/${operationalPointId}`,
+        ),
+    );
+}
+
+export type SwitchWithOperationalPointPolygonInclusions = {
+    switchId: LayoutSwitchId;
+    withinPolygon: OperationalPointId[];
+};
 
 export type SwitchOidPresence = {
     existsInRatko?: boolean;

@@ -45,6 +45,7 @@ data class LayoutSwitch(
     val trapPoint: Boolean?,
     val ownerId: IntId<SwitchOwner>,
     val source: GeometrySource,
+    val operationalPointId: IntId<OperationalPoint>?,
     val draftOid: Oid<LayoutSwitch>?,
     @JsonIgnore override val contextData: LayoutContextData<LayoutSwitch>,
 ) : LayoutAsset<LayoutSwitch>(contextData) {

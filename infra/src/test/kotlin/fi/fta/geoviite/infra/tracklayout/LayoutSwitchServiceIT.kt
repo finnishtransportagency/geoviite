@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -529,6 +530,90 @@ constructor(
 
         assertTrue(intIdMatchFunction(intIdTerm.toString(), switch1))
         assertTrue(oidMatchFunction(oidTerm.toString(), switch2))
+    }
+
+    @Test
+    fun `findSwitchesRelatedToOperationalPoint happy cases`() {
+        val poly = Polygon(Point(0.0, 0.0), Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 10.0), Point(0.0, 0.0))
+        // a goes from ( 0,  0) to (10, 10)
+        // b goes from ( 5,  5) to (15, 15)
+        // c goes from (11, 11) to (21, 21) (so it doesn't intersect with a at all)
+        val opA = mainOfficialContext.save(operationalPoint("a", polygon = poly)).id
+        val opB = mainOfficialContext.save(operationalPoint("b", polygon = poly.moveBy(Point(5.0, 5.0)))).id
+        val opC = mainOfficialContext.save(operationalPoint("c", polygon = poly.moveBy(Point(11.0, 11.0)))).id
+
+        fun switch(operationalPointId: IntId<OperationalPoint>? = null, vararg locations: Point) =
+            mainOfficialContext
+                .save(
+                    switch(
+                        joints =
+                            locations.mapIndexed { index, location ->
+                                LayoutSwitchJoint(JointNumber(index), SwitchJointRole.MAIN, location, null)
+                            },
+                        operationalPointId = operationalPointId,
+                    )
+                )
+                .id
+
+        val switchOnlyInA = switch(null, Point(2.0, 2.0))
+        val switchOnlyInB = switch(null, Point(12.0, 7.0))
+        val switchOnlyInC = switch(null, Point(17.0, 17.0))
+        val switchInABOverlap = switch(null, Point(7.0, 7.0))
+        val switchInAAndB = switch(null, Point(2.0, 2.0), Point(12.0, 7.0))
+        val switchInAAndC = switch(null, Point(2.0, 2.0), Point(17.0, 17.0))
+
+        val switchAOnlyInA = switch(opA, Point(2.0, 2.0))
+        val switchAOnlyInB = switch(opA, Point(12.0, 7.0))
+        val switchAOnlyInC = switch(opA, Point(17.0, 17.0))
+        val switchAInABOverlap = switch(opA, Point(7.0, 7.0))
+        val switchAInAAndB = switch(opA, Point(2.0, 2.0), Point(12.0, 7.0))
+        val switchANoJoints = switch(opA)
+        val switchAElsewhere = switch(opA, Point(30.0, 30.0))
+
+        fun s(switchId: IntId<LayoutSwitch>, vararg operationalPointIds: IntId<OperationalPoint>) =
+            SwitchWithOperationalPointPolygonInclusions(switchId, operationalPointIds.toList())
+
+        fun sortResults(r: List<SwitchWithOperationalPointPolygonInclusions>) =
+            r.map { sp -> sp.copy(withinPolygon = sp.withinPolygon.sortedBy { it.intValue }) }
+                .sortedBy { it.switchId.intValue }
+
+        assertEquals(
+            sortResults(
+                listOf(
+                    s(switchOnlyInA, opA),
+                    s(switchInABOverlap, opA, opB),
+                    s(switchInAAndB, opA, opB),
+                    s(switchAOnlyInA, opA),
+                    s(switchAOnlyInB, opB),
+                    s(switchAOnlyInC, opC),
+                    s(switchAInABOverlap, opA, opB),
+                    s(switchAInAAndB, opA, opB),
+                    s(switchANoJoints),
+                    s(switchAElsewhere),
+                    s(switchInAAndC, opA, opC),
+                )
+            ),
+            sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opA)),
+        )
+
+        assertEquals(
+            sortResults(
+                listOf(
+                    s(switchOnlyInB, opB),
+                    s(switchInABOverlap, opA, opB),
+                    s(switchInAAndB, opA, opB),
+                    s(switchAOnlyInB, opB),
+                    s(switchAInABOverlap, opA, opB),
+                    s(switchAInAAndB, opA, opB),
+                )
+            ),
+            sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opB)),
+        )
+
+        assertEquals(
+            sortResults(listOf(s(switchOnlyInC, opC), s(switchAOnlyInC, opC), s(switchInAAndC, opA, opC))),
+            sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opC)),
+        )
     }
 
     private fun insertDraft(
