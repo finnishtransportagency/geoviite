@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
-import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.publication.Publication
@@ -81,8 +80,9 @@ constructor(
         coordinateSystem: Srid?,
     ): ExtModifiedLocationTrackResponseV1? {
         val publications = publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
+        val id = idLookup(oid) // Lookup before change check to produce consistent error if oid is not found
         return if (publications.areDifferent()) {
-            createLocationTrackModificationResponse(oid, idLookup(oid), publications, coordinateSystem ?: LAYOUT_SRID)
+            createLocationTrackModificationResponse(oid, id, publications, coordinateSystem ?: LAYOUT_SRID)
         } else {
             publicationsAreTheSame(trackLayoutVersionFrom)
         }
@@ -173,11 +173,6 @@ constructor(
     }
 
     private fun createExtLocationTrack(data: LocationTrackData, coordinateSystem: Srid): ExtLocationTrackV1 {
-        val trackNumberName = data.trackNumber.number
-        val (startLocation, endLocation) =
-            AlignmentStartAndEnd.of(data.track.id as IntId, data.geometry, data.geocodingContext)
-                .let { startAndEnd -> layoutAlignmentStartAndEndToCoordinateSystem(coordinateSystem, startAndEnd) }
-                .let { startAndEnd -> startAndEnd.start to startAndEnd.end }
         return ExtLocationTrackV1(
             locationTrackOid = data.oid,
             locationTrackName = data.track.name,
@@ -185,9 +180,9 @@ constructor(
             locationTrackState = ExtLocationTrackStateV1.of(data.track.state),
             locationTrackDescription = data.track.description,
             locationTrackOwner = locationTrackService.getLocationTrackOwner(data.track.ownerId).name,
-            startLocation = startLocation?.let(::ExtAddressPointV1),
-            endLocation = endLocation?.let(::ExtAddressPointV1),
-            trackNumberName = trackNumberName,
+            startLocation = data.geometry.start?.let { p -> getEndPoint(p, data.geocodingContext, coordinateSystem) },
+            endLocation = data.geometry.end?.let { p -> getEndPoint(p, data.geocodingContext, coordinateSystem) },
+            trackNumberName = data.trackNumber.number,
             trackNumberOid = data.trackNumberOid,
         )
     }
@@ -236,7 +231,7 @@ constructor(
         val locationTrackIds = tracksAndGeoms.map { (track, _) -> track.id as IntId }
         val distinctTrackNumberIds = tracksAndGeoms.map { (track, _) -> track.trackNumberId }.distinct()
 
-        val geocodingContexts = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
+        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
         val trackNumbers =
             layoutTrackNumberDao.getManyOfficialAtMoment(branch, distinctTrackNumberIds, moment).associateBy {
                 trackNumber ->
@@ -262,7 +257,7 @@ constructor(
                         ?: throw ExtTrackNumberNotFoundV1(
                             "track number was not found for branch=$branch, trackNumberId=${track.trackNumberId}, moment=$moment"
                         ),
-                geocodingContext = produceIf(track.exists) { geocodingContexts(track.trackNumberId) },
+                geocodingContext = produceIf(track.exists) { getGeocodingContext(track.trackNumberId) },
             )
         }
     }

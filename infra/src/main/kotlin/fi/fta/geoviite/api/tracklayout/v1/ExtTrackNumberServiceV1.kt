@@ -7,13 +7,18 @@ import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import java.time.Instant
 import org.slf4j.Logger
@@ -28,7 +33,10 @@ constructor(
     private val referenceLineService: ReferenceLineService,
     private val publicationDao: PublicationDao,
     private val publicationService: PublicationService,
+    private val geocodingService: GeocodingService,
+    private val referenceLineDao: ReferenceLineDao,
 ) {
+
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun getExtTrackNumberCollection(
@@ -89,10 +97,11 @@ constructor(
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
         return layoutTrackNumberDao.getOfficialAtMoment(branch, id, moment)?.let { trackNumber ->
+            val data = getTrackNumberData(branch, moment, oid, trackNumber)
             ExtTrackNumberResponseV1(
                 trackLayoutVersion = publication.uuid,
                 coordinateSystem = coordinateSystem,
-                trackNumber = createExtTrackNumber(oid, trackNumber, branch, moment, coordinateSystem),
+                trackNumber = createExtTrackNumber(data, coordinateSystem),
             )
         }
     }
@@ -110,11 +119,12 @@ constructor(
             .fetchPublishedTrackNumberBetween(id, startMoment, endMoment)
             ?.let(layoutTrackNumberDao::fetch)
             ?.let { trackNumber ->
+                val data = getTrackNumberData(branch, endMoment, oid, trackNumber)
                 ExtModifiedTrackNumberResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
                     coordinateSystem = coordinateSystem,
-                    trackNumber = createExtTrackNumber(oid, trackNumber, branch, endMoment, coordinateSystem),
+                    trackNumber = createExtTrackNumber(data, coordinateSystem),
                 )
             } ?: layoutAssetVersionsAreTheSame(id, publications)
     }
@@ -126,10 +136,12 @@ constructor(
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
         val trackNumbers = layoutTrackNumberDao.listOfficialAtMoment(branch, moment).filter { it.exists }
+        val trackNumberData = getTrackNumberData(branch, moment, trackNumbers)
         return ExtTrackNumberCollectionResponseV1(
             trackLayoutVersion = publication.uuid,
             coordinateSystem = coordinateSystem,
-            trackNumberCollection = extGetTrackNumberCollection(branch, moment, trackNumbers, coordinateSystem),
+            trackNumberCollection =
+                trackNumberData.parallelStream().map { data -> createExtTrackNumber(data, coordinateSystem) }.toList(),
         )
     }
 
@@ -145,82 +157,78 @@ constructor(
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(layoutTrackNumberDao::fetchMany)
             ?.let { modifiedTrackNumbers ->
+                val trackNumberData = getTrackNumberData(branch, endMoment, modifiedTrackNumbers)
                 ExtModifiedTrackNumberCollectionResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
                     coordinateSystem = coordinateSystem,
                     trackNumberCollection =
-                        extGetTrackNumberCollection(branch, endMoment, modifiedTrackNumbers, coordinateSystem),
+                        trackNumberData
+                            .parallelStream()
+                            .map { data -> createExtTrackNumber(data, coordinateSystem) }
+                            .toList(),
                 )
             } ?: layoutAssetCollectionWasUnmodified<LayoutTrackNumber>(publications)
     }
 
-    fun extGetTrackNumberCollection(
+    private fun createExtTrackNumber(data: TrackNumberData, coordinateSystem: Srid): ExtTrackNumberV1 {
+        return ExtTrackNumberV1(
+            trackNumberOid = data.oid,
+            trackNumber = data.trackNumber.number,
+            trackNumberDescription = data.trackNumber.description,
+            trackNumberState = data.trackNumber.state.let(ExtTrackNumberStateV1::of),
+            startLocation = data.geometry?.start?.let { p -> getEndPoint(p, data.geocodingContext, coordinateSystem) },
+            endLocation = data.geometry?.end?.let { p -> getEndPoint(p, data.geocodingContext, coordinateSystem) },
+        )
+    }
+
+    data class TrackNumberData(
+        val oid: Oid<LayoutTrackNumber>,
+        val trackNumber: LayoutTrackNumber,
+        // Note: the geocoding context has the same geometry, but this one can exist for deteled
+        // TrackNumbers as well, unlike the geocoding context
+        val geometry: LayoutAlignment?,
+        val geocodingContext: GeocodingContext<ReferenceLineM>?,
+    )
+
+    private fun getTrackNumberData(
+        branch: LayoutBranch,
+        moment: Instant,
+        oid: Oid<LayoutTrackNumber>,
+        trackNumber: LayoutTrackNumber,
+    ): TrackNumberData {
+        val id = trackNumber.id as IntId
+        val referenceLineGeometry =
+            trackNumber.referenceLineId
+                ?.let { rlId -> referenceLineDao.fetchOfficialVersionAtMoment(branch, rlId, moment) }
+                ?.let(referenceLineService::getWithAlignment)
+                ?.second
+        val geocodingContext = geocodingService.getGeocodingContextAtMoment(branch, id, moment)
+        return TrackNumberData(oid, trackNumber, referenceLineGeometry, geocodingContext)
+    }
+
+    private fun getTrackNumberData(
         branch: LayoutBranch,
         moment: Instant,
         trackNumbers: List<LayoutTrackNumber>,
-        coordinateSystem: Srid,
-    ): List<ExtTrackNumberV1> {
-        val trackNumberIds = trackNumbers.map { trackNumber -> trackNumber.id as IntId }
-
-        val referenceLineStartsAndEnds =
-            referenceLineService
-                .getStartAndEndAtMoment(
-                    branch,
-                    trackNumbers.mapNotNull { trackNumber -> trackNumber.referenceLineId },
-                    moment,
-                )
-                .associateBy { it.id }
-
+    ): List<TrackNumberData> {
+        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
+        val trackNumberIds = trackNumbers.map { it.id as IntId }
         val externalTrackNumberIds = layoutTrackNumberDao.fetchExternalIds(branch, trackNumberIds)
-
+        val referenceLineIds = trackNumbers.mapNotNull { it.referenceLineId }
+        val referenceLines =
+            referenceLineDao
+                .fetchManyOfficialVersionsAtMoment(branch, referenceLineIds, moment)
+                .let { versions -> referenceLineService.getManyWithAlignments(versions) }
+                .associate { it.first.id as IntId to it.second }
         return trackNumbers.map { trackNumber ->
-            val (startLocation, endLocation) =
-                referenceLineStartsAndEnds[trackNumber.referenceLineId]?.let { startAndEnd ->
-                    layoutAlignmentStartAndEndToCoordinateSystem(coordinateSystem, startAndEnd).let {
-                        convertedStartAndEnd ->
-                        convertedStartAndEnd.start to convertedStartAndEnd.end
-                    }
-                } ?: (null to null)
-
-            val trackNumberOid =
-                externalTrackNumberIds[trackNumber.id]?.oid
-                    ?: throw ExtOidNotFoundExceptionV1(
-                        "track number oid not found, layoutTrackNumberId=${trackNumber.id}"
-                    )
-
-            ExtTrackNumberV1(
-                trackNumberOid = trackNumberOid,
-                trackNumber = trackNumber.number,
-                trackNumberDescription = trackNumber.description,
-                trackNumberState = trackNumber.state.let(ExtTrackNumberStateV1::of),
-                startLocation = startLocation?.let(::ExtAddressPointV1),
-                endLocation = endLocation?.let(::ExtAddressPointV1),
-            )
+            val id = trackNumber.id as IntId
+            val oid =
+                requireNotNull(externalTrackNumberIds[id]?.oid) {
+                    "track number oid not found, layoutTrackNumberId=$id"
+                }
+            val referenceLineGeometry = trackNumber.referenceLineId?.let(referenceLines::get)
+            TrackNumberData(oid, trackNumber, referenceLineGeometry, getGeocodingContext(id))
         }
-    }
-
-    fun createExtTrackNumber(
-        oid: Oid<LayoutTrackNumber>,
-        trackNumber: LayoutTrackNumber,
-        branch: LayoutBranch,
-        moment: Instant,
-        coordinateSystem: Srid,
-    ): ExtTrackNumberV1 {
-        val (startLocation, endLocation) =
-            referenceLineService
-                .getStartAndEndAtMoment(branch, listOf(trackNumber.referenceLineId as IntId), moment)
-                .firstOrNull()
-                ?.let { startAndEnd -> layoutAlignmentStartAndEndToCoordinateSystem(coordinateSystem, startAndEnd) }
-                ?.let { startAndEnd -> startAndEnd.start to startAndEnd.end } ?: (null to null)
-
-        return ExtTrackNumberV1(
-            trackNumberOid = oid,
-            trackNumber = trackNumber.number,
-            trackNumberDescription = trackNumber.description,
-            trackNumberState = trackNumber.state.let(ExtTrackNumberStateV1::of),
-            startLocation = startLocation?.let(::ExtAddressPointV1),
-            endLocation = endLocation?.let(::ExtAddressPointV1),
-        )
     }
 }
