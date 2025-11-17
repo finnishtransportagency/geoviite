@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -20,10 +21,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtTrackNumberServiceV1
@@ -136,12 +137,10 @@ constructor(
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
         val trackNumbers = layoutTrackNumberDao.listOfficialAtMoment(branch, moment).filter { it.exists }
-        val trackNumberData = getTrackNumberData(branch, moment, trackNumbers)
         return ExtTrackNumberCollectionResponseV1(
             trackLayoutVersion = publication.uuid,
             coordinateSystem = coordinateSystem,
-            trackNumberCollection =
-                trackNumberData.parallelStream().map { data -> createExtTrackNumber(data, coordinateSystem) }.toList(),
+            trackNumberCollection = createExtTrackNumbers(branch, moment, coordinateSystem, trackNumbers),
         )
     }
 
@@ -156,29 +155,37 @@ constructor(
             .fetchPublishedTrackNumbersBetween(startMoment, endMoment)
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(layoutTrackNumberDao::fetchMany)
-            ?.let { modifiedTrackNumbers ->
-                val trackNumberData = getTrackNumberData(branch, endMoment, modifiedTrackNumbers)
+            ?.let { trackNumbers ->
                 ExtModifiedTrackNumberCollectionResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
                     coordinateSystem = coordinateSystem,
-                    trackNumberCollection =
-                        trackNumberData
-                            .parallelStream()
-                            .map { data -> createExtTrackNumber(data, coordinateSystem) }
-                            .toList(),
+                    trackNumberCollection = createExtTrackNumbers(branch, endMoment, coordinateSystem, trackNumbers),
                 )
             } ?: layoutAssetCollectionWasUnmodified<LayoutTrackNumber>(publications)
     }
 
+    private fun createExtTrackNumbers(
+        branch: LayoutBranch,
+        moment: Instant,
+        coordinateSystem: Srid,
+        trackNumbers: List<LayoutTrackNumber>,
+    ): List<ExtTrackNumberV1> {
+        return getTrackNumberData(branch, moment, trackNumbers)
+            .parallelStream()
+            .map { data -> createExtTrackNumber(data, coordinateSystem) }
+            .toList()
+    }
+
     private fun createExtTrackNumber(data: TrackNumberData, coordinateSystem: Srid): ExtTrackNumberV1 {
+        val toEndPoint = { p: IPoint -> toExtAddressPoint(p, data.geocodingContext, coordinateSystem) }
         return ExtTrackNumberV1(
             trackNumberOid = data.oid,
             trackNumber = data.trackNumber.number,
             trackNumberDescription = data.trackNumber.description,
             trackNumberState = data.trackNumber.state.let(ExtTrackNumberStateV1::of),
-            startLocation = data.geometry?.start?.let { p -> getEndPoint(p, data.geocodingContext, coordinateSystem) },
-            endLocation = data.geometry?.end?.let { p -> getEndPoint(p, data.geocodingContext, coordinateSystem) },
+            startLocation = data.geometry?.start?.let(toEndPoint),
+            endLocation = data.geometry?.end?.let(toEndPoint),
         )
     }
 
@@ -213,20 +220,19 @@ constructor(
         trackNumbers: List<LayoutTrackNumber>,
     ): List<TrackNumberData> {
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
-        val trackNumberIds = trackNumbers.map { it.id as IntId }
-        val externalTrackNumberIds = layoutTrackNumberDao.fetchExternalIds(branch, trackNumberIds)
-        val referenceLineIds = trackNumbers.mapNotNull { it.referenceLineId }
+        val extIds = layoutTrackNumberDao.fetchExternalIds(branch, trackNumbers.map { it.id as IntId })
         val referenceLines =
             referenceLineDao
-                .fetchManyOfficialVersionsAtMoment(branch, referenceLineIds, moment)
+                .fetchManyOfficialVersionsAtMoment(branch, trackNumbers.mapNotNull { it.referenceLineId }, moment)
                 .let { versions -> referenceLineService.getManyWithAlignments(versions) }
                 .associate { it.first.id as IntId to it.second }
         return trackNumbers.map { trackNumber ->
             val id = trackNumber.id as IntId
             val oid =
-                requireNotNull(externalTrackNumberIds[id]?.oid) {
-                    "track number oid not found, layoutTrackNumberId=$id"
-                }
+                extIds[id]?.oid
+                    ?: throw ExtOidNotFoundExceptionV1(
+                        "track number oid was not found: branch=$branch trackNumberId=$id"
+                    )
             val referenceLineGeometry = trackNumber.referenceLineId?.let(referenceLines::get)
             TrackNumberData(oid, trackNumber, referenceLineGeometry, getGeocodingContext(id))
         }

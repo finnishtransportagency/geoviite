@@ -251,8 +251,13 @@ constructor(
         val trackLinks = getSwitchTrackLinks(branch, moment, switches.map { it.id as IntId }.toSet())
         return switches.map { switch ->
             val id = switch.id as IntId
+            val oid =
+                externalSwitchIds[id]?.oid
+                    ?: throw ExtOidNotFoundExceptionV1(
+                        "switch oid was not found: branch=$branch trackNumberId=$id moment=$moment"
+                    )
             SwitchData(
-                oid = requireNotNull(externalSwitchIds[id]?.oid) { "Switch oid not found for id=$id" },
+                oid = oid,
                 switch = switch,
                 structure = switchLibraryService.getSwitchStructure(switch.switchStructureId),
                 owner = switchLibraryService.getSwitchOwner(switch.ownerId),

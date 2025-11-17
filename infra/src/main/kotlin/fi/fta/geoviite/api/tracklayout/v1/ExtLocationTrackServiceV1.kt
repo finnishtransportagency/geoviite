@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -140,12 +141,10 @@ constructor(
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
         val tracksAndGeoms = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, false)
-        val data = getLocationTrackData(branch, moment, tracksAndGeoms)
         return ExtLocationTrackCollectionResponseV1(
             trackLayoutVersion = publication.uuid,
             coordinateSystem = coordinateSystem,
-            locationTrackCollection =
-                data.parallelStream().map { d -> createExtLocationTrack(d, coordinateSystem) }.toList(),
+            locationTrackCollection = createExtLocationTracks(branch, moment, coordinateSystem, tracksAndGeoms),
         )
     }
 
@@ -160,19 +159,31 @@ constructor(
             .fetchPublishedLocationTracksBetween(startMoment, endMoment)
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(locationTrackService::getManyWithGeometries)
-            ?.let { tracksAndGeoms -> getLocationTrackData(branch, endMoment, tracksAndGeoms) }
-            ?.let { data ->
+            ?.let { tracksAndGeoms ->
                 ExtModifiedLocationTrackCollectionResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
                     coordinateSystem = coordinateSystem,
                     locationTrackCollection =
-                        data.parallelStream().map { d -> createExtLocationTrack(d, coordinateSystem) }.toList(),
+                        createExtLocationTracks(branch, endMoment, coordinateSystem, tracksAndGeoms),
                 )
             } ?: layoutAssetCollectionWasUnmodified<LocationTrack>(publications)
     }
 
+    private fun createExtLocationTracks(
+        branch: LayoutBranch,
+        moment: Instant,
+        coordinateSystem: Srid,
+        tracksAndGeoms: List<Pair<LocationTrack, LocationTrackGeometry>>,
+    ): List<ExtLocationTrackV1> {
+        return getLocationTrackData(branch, moment, tracksAndGeoms)
+            .parallelStream()
+            .map { data -> createExtLocationTrack(data, coordinateSystem) }
+            .toList()
+    }
+
     private fun createExtLocationTrack(data: LocationTrackData, coordinateSystem: Srid): ExtLocationTrackV1 {
+        val toEndPoint = { p: IPoint -> toExtAddressPoint(p, data.geocodingContext, coordinateSystem) }
         return ExtLocationTrackV1(
             locationTrackOid = data.oid,
             locationTrackName = data.track.name,
@@ -180,8 +191,8 @@ constructor(
             locationTrackState = ExtLocationTrackStateV1.of(data.track.state),
             locationTrackDescription = data.track.description,
             locationTrackOwner = locationTrackService.getLocationTrackOwner(data.track.ownerId).name,
-            startLocation = data.geometry.start?.let { p -> getEndPoint(p, data.geocodingContext, coordinateSystem) },
-            endLocation = data.geometry.end?.let { p -> getEndPoint(p, data.geocodingContext, coordinateSystem) },
+            startLocation = data.geometry.start?.let(toEndPoint),
+            endLocation = data.geometry.end?.let(toEndPoint),
             trackNumberName = data.trackNumber.number,
             trackNumberOid = data.trackNumberOid,
         )
@@ -210,12 +221,12 @@ constructor(
             trackNumberOid =
                 layoutTrackNumberDao.fetchExternalId(branch, track.trackNumberId)?.oid
                     ?: throw ExtOidNotFoundExceptionV1(
-                        "track number oid was not found, branch=$branch, trackNumberId=${track.trackNumberId}"
+                        "track number oid was not found: branch=$branch trackNumberId=${track.trackNumberId}"
                     ),
             trackNumber =
                 layoutTrackNumberDao.getOfficialAtMoment(branch, track.trackNumberId, moment)
                     ?: throw ExtTrackNumberNotFoundV1(
-                        "track number was not found for branch=$branch, trackNumberId=${track.trackNumberId}, moment=$moment"
+                        "track number was not found: branch=$branch trackNumberId=${track.trackNumberId} moment=$moment"
                     ),
             geocodingContext =
                 produceIf(track.exists) {
@@ -244,18 +255,18 @@ constructor(
             LocationTrackData(
                 oid =
                     externalLocationTrackIds[track.id]?.oid
-                        ?: throw ExtOidNotFoundExceptionV1("location track oid not found, locationTrackId=${track.id}"),
+                        ?: throw ExtOidNotFoundExceptionV1("location track oid not found: locationTrackId=${track.id}"),
                 track = track,
                 geometry = geom,
                 trackNumberOid =
                     externalTrackNumberIds[track.trackNumberId]?.oid
                         ?: throw ExtOidNotFoundExceptionV1(
-                            "track number oid was not found, branch=$branch, trackNumberId=${track.trackNumberId}"
+                            "track number oid was not found: branch=$branch trackNumberId=${track.trackNumberId}"
                         ),
                 trackNumber =
                     trackNumbers[track.trackNumberId]
                         ?: throw ExtTrackNumberNotFoundV1(
-                            "track number was not found for branch=$branch, trackNumberId=${track.trackNumberId}, moment=$moment"
+                            "track number was not found: branch=$branch trackNumberId=${track.trackNumberId} moment=$moment"
                         ),
                 geocodingContext = produceIf(track.exists) { getGeocodingContext(track.trackNumberId) },
             )

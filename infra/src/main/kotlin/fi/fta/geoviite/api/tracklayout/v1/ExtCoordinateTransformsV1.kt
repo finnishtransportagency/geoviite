@@ -7,13 +7,11 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
-import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
-import fi.fta.geoviite.infra.tracklayout.AnyM
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 
-internal fun <T : AnyM<T>> getEndPoint(
-    point: AlignmentPoint<T>,
+internal fun toExtAddressPoint(
+    point: IPoint,
     geocodingContext: GeocodingContext<ReferenceLineM>?,
     targetCoordinateSystem: Srid,
 ): ExtAddressPointV1 {
