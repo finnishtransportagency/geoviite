@@ -21,16 +21,16 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.time.Instant
 
 @GeoviiteService
 class ExtTrackNumberServiceV1
 @Autowired
 constructor(
-    private val layoutTrackNumberDao: LayoutTrackNumberDao,
+    private val trackNumberDao: LayoutTrackNumberDao,
     private val referenceLineService: ReferenceLineService,
     private val publicationDao: PublicationDao,
     private val publicationService: PublicationService,
@@ -67,7 +67,8 @@ constructor(
         coordinateSystem: Srid?,
     ): ExtTrackNumberResponseV1? {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-        return createTrackNumberResponse(oid, idLookup(oid), publication, coordinateSystem ?: LAYOUT_SRID)
+        val id = idLookup(trackNumberDao, oid)
+        return createTrackNumberResponse(oid, id, publication, coordinateSystem ?: LAYOUT_SRID)
     }
 
     fun getExtTrackNumberModifications(
@@ -77,17 +78,14 @@ constructor(
         coordinateSystem: Srid?,
     ): ExtModifiedTrackNumberResponseV1? {
         val publications = publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
-        val id = idLookup(oid) // Lookup before change check to produce consistent error if oid is not found
+        // Lookup before change check to produce consistent error if oid is not found
+        val id = idLookup(trackNumberDao, oid)
         return if (publications.areDifferent()) {
             createTrackNumberModificationResponse(oid, id, publications, coordinateSystem ?: LAYOUT_SRID)
         } else {
             publicationsAreTheSame(trackLayoutVersionFrom)
         }
     }
-
-    private fun idLookup(oid: Oid<LayoutTrackNumber>): IntId<LayoutTrackNumber> =
-        layoutTrackNumberDao.lookupByExternalId(oid)?.id
-            ?: throw ExtOidNotFoundExceptionV1("track number lookup failed for oid=$oid")
 
     private fun createTrackNumberResponse(
         oid: Oid<LayoutTrackNumber>,
@@ -97,7 +95,7 @@ constructor(
     ): ExtTrackNumberResponseV1? {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
-        return layoutTrackNumberDao.getOfficialAtMoment(branch, id, moment)?.let { trackNumber ->
+        return trackNumberDao.getOfficialAtMoment(branch, id, moment)?.let { trackNumber ->
             val data = getTrackNumberData(branch, moment, oid, trackNumber)
             ExtTrackNumberResponseV1(
                 trackLayoutVersion = publication.uuid,
@@ -118,7 +116,7 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchPublishedTrackNumberBetween(id, startMoment, endMoment)
-            ?.let(layoutTrackNumberDao::fetch)
+            ?.let(trackNumberDao::fetch)
             ?.let { trackNumber ->
                 val data = getTrackNumberData(branch, endMoment, oid, trackNumber)
                 ExtModifiedTrackNumberResponseV1(
@@ -136,7 +134,7 @@ constructor(
     ): ExtTrackNumberCollectionResponseV1 {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
-        val trackNumbers = layoutTrackNumberDao.listOfficialAtMoment(branch, moment).filter { it.exists }
+        val trackNumbers = trackNumberDao.listOfficialAtMoment(branch, moment).filter { it.exists }
         return ExtTrackNumberCollectionResponseV1(
             trackLayoutVersion = publication.uuid,
             coordinateSystem = coordinateSystem,
@@ -154,7 +152,7 @@ constructor(
         return publicationDao
             .fetchPublishedTrackNumbersBetween(startMoment, endMoment)
             .takeIf { versions -> versions.isNotEmpty() }
-            ?.let(layoutTrackNumberDao::fetchMany)
+            ?.let(trackNumberDao::fetchMany)
             ?.let { trackNumbers ->
                 ExtModifiedTrackNumberCollectionResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
@@ -220,7 +218,7 @@ constructor(
         trackNumbers: List<LayoutTrackNumber>,
     ): List<TrackNumberData> {
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
-        val extIds = layoutTrackNumberDao.fetchExternalIds(branch, trackNumbers.map { it.id as IntId })
+        val extIds = trackNumberDao.fetchExternalIds(branch, trackNumbers.map { it.id as IntId })
         val referenceLines =
             referenceLineDao
                 .fetchManyOfficialVersionsAtMoment(branch, trackNumbers.mapNotNull { it.referenceLineId }, moment)
@@ -228,11 +226,7 @@ constructor(
                 .associate { it.first.id as IntId to it.second }
         return trackNumbers.map { trackNumber ->
             val id = trackNumber.id as IntId
-            val oid =
-                extIds[id]?.oid
-                    ?: throw ExtOidNotFoundExceptionV1(
-                        "track number oid was not found: branch=$branch trackNumberId=$id"
-                    )
+            val oid = extIds[id]?.oid ?: throwOidNotFound(branch, id)
             val referenceLineGeometry = trackNumber.referenceLineId?.let(referenceLines::get)
             TrackNumberData(oid, trackNumber, referenceLineGeometry, getGeocodingContext(id))
         }

@@ -74,7 +74,8 @@ constructor(
         coordinateSystem: Srid?,
     ): ExtSwitchResponseV1? {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-        return createExtSwitchResponse(oid, idLookup(oid), publication, coordinateSystem ?: LAYOUT_SRID)
+        val id = idLookup(switchDao, oid)
+        return createExtSwitchResponse(oid, id, publication, coordinateSystem ?: LAYOUT_SRID)
     }
 
     fun getExtSwitchModifications(
@@ -84,16 +85,14 @@ constructor(
         coordinateSystem: Srid?,
     ): ExtModifiedSwitchResponseV1? =
         publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo).let { publications ->
-            val id = idLookup(oid) // Lookup before change check to produce consistent error if oid is not found
+            // Lookup before change check to produce consistent error if oid is not found
+            val id = idLookup(switchDao, oid)
             if (publications.areDifferent()) {
                 createSwitchModificationResponse(oid, id, publications, coordinateSystem ?: LAYOUT_SRID)
             } else {
                 publicationsAreTheSame(trackLayoutVersionFrom)
             }
         }
-
-    private fun idLookup(oid: Oid<LayoutSwitch>): IntId<LayoutSwitch> =
-        switchDao.lookupByExternalId(oid)?.id ?: throw ExtOidNotFoundExceptionV1("switch lookup failed, oid=$oid")
 
     private fun createExtSwitchResponse(
         oid: Oid<LayoutSwitch>,
@@ -247,17 +246,12 @@ constructor(
     }
 
     private fun getSwitchData(switches: List<LayoutSwitch>, branch: LayoutBranch, moment: Instant): List<SwitchData> {
-        val externalSwitchIds = switchDao.fetchExternalIds(branch)
+        val switchExtIds = switchDao.fetchExternalIds(branch)
         val trackLinks = getSwitchTrackLinks(branch, moment, switches.map { it.id as IntId }.toSet())
         return switches.map { switch ->
             val id = switch.id as IntId
-            val oid =
-                externalSwitchIds[id]?.oid
-                    ?: throw ExtOidNotFoundExceptionV1(
-                        "switch oid was not found: branch=$branch trackNumberId=$id moment=$moment"
-                    )
             SwitchData(
-                oid = oid,
+                oid = switchExtIds[id]?.oid ?: throwOidNotFound(branch, id),
                 switch = switch,
                 structure = switchLibraryService.getSwitchStructure(switch.switchStructureId),
                 owner = switchLibraryService.getSwitchOwner(switch.ownerId),
@@ -280,12 +274,11 @@ constructor(
                 (t, _) ->
                 t.switchIds.any(switchIds::contains)
             }
-        val trackOids = locationTrackDao.fetchExternalIds(branch, tracksAndGeoms.map { it.first.id as IntId })
+        val trackExtIds = locationTrackDao.fetchExternalIds(branch, tracksAndGeoms.map { it.first.id as IntId })
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
         return tracksAndGeoms
             .flatMap { (track, geom) ->
-                val trackOid =
-                    requireNotNull(trackOids[track.id]?.oid) { "Location track oid not found for id=${track.id}" }
+                val trackOid = trackExtIds[track.id]?.oid ?: throwOidNotFound(branch, track.id)
                 track.switchIds.mapNotNull { switchId ->
                     produceIf(switchIds.contains(switchId)) {
                         val geocodingContext =

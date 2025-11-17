@@ -23,16 +23,16 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtLocationTrackServiceV1
 @Autowired
 constructor(
-    private val layoutTrackNumberDao: LayoutTrackNumberDao,
+    private val trackNumberDao: LayoutTrackNumberDao,
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
     private val publicationService: PublicationService,
@@ -57,7 +57,7 @@ constructor(
         publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo).let { publications ->
             if (publications.areDifferent()) {
                 createLocationTrackCollectionModificationResponse(
-                    publications,
+                    publications = publications,
                     coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
                 )
             } else {
@@ -71,7 +71,8 @@ constructor(
         coordinateSystem: Srid?,
     ): ExtLocationTrackResponseV1? {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-        return createLocationTrackResponse(oid, idLookup(oid), publication, coordinateSystem ?: LAYOUT_SRID)
+        val id = idLookup(locationTrackDao, oid)
+        return createLocationTrackResponse(oid, id, publication, coordinateSystem ?: LAYOUT_SRID)
     }
 
     fun getExtLocationTrackModifications(
@@ -81,17 +82,14 @@ constructor(
         coordinateSystem: Srid?,
     ): ExtModifiedLocationTrackResponseV1? {
         val publications = publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
-        val id = idLookup(oid) // Lookup before change check to produce consistent error if oid is not found
+        // Lookup before change check to produce consistent error if oid is not found
+        val id = idLookup(locationTrackDao, oid)
         return if (publications.areDifferent()) {
             createLocationTrackModificationResponse(oid, id, publications, coordinateSystem ?: LAYOUT_SRID)
         } else {
             publicationsAreTheSame(trackLayoutVersionFrom)
         }
     }
-
-    private fun idLookup(oid: Oid<LocationTrack>): IntId<LocationTrack> =
-        locationTrackDao.lookupByExternalId(oid)?.id
-            ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
 
     private fun createLocationTrackResponse(
         oid: Oid<LocationTrack>,
@@ -218,16 +216,10 @@ constructor(
             oid = oid,
             track = track,
             geometry = geometry,
-            trackNumberOid =
-                layoutTrackNumberDao.fetchExternalId(branch, track.trackNumberId)?.oid
-                    ?: throw ExtOidNotFoundExceptionV1(
-                        "track number oid was not found: branch=$branch trackNumberId=${track.trackNumberId}"
-                    ),
+            trackNumberOid = oidLookup(trackNumberDao, branch, track.trackNumberId),
             trackNumber =
-                layoutTrackNumberDao.getOfficialAtMoment(branch, track.trackNumberId, moment)
-                    ?: throw ExtTrackNumberNotFoundV1(
-                        "track number was not found: branch=$branch trackNumberId=${track.trackNumberId} moment=$moment"
-                    ),
+                trackNumberDao.getOfficialAtMoment(branch, track.trackNumberId, moment)
+                    ?: throwTrackNumberNotFound(branch, moment, track.trackNumberId),
             geocodingContext =
                 produceIf(track.exists) {
                     geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
@@ -244,30 +236,21 @@ constructor(
 
         val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
         val trackNumbers =
-            layoutTrackNumberDao.getManyOfficialAtMoment(branch, distinctTrackNumberIds, moment).associateBy {
-                trackNumber ->
+            trackNumberDao.getManyOfficialAtMoment(branch, distinctTrackNumberIds, moment).associateBy { trackNumber ->
                 trackNumber.id
             }
 
-        val externalLocationTrackIds = locationTrackDao.fetchExternalIds(branch, locationTrackIds)
-        val externalTrackNumberIds = layoutTrackNumberDao.fetchExternalIds(branch, distinctTrackNumberIds)
+        val locationTrackExtIds = locationTrackDao.fetchExternalIds(branch, locationTrackIds)
+        val trackNumberExtIds = trackNumberDao.fetchExternalIds(branch, distinctTrackNumberIds)
         return tracksAndGeoms.map { (track, geom) ->
             LocationTrackData(
-                oid =
-                    externalLocationTrackIds[track.id]?.oid
-                        ?: throw ExtOidNotFoundExceptionV1("location track oid not found: locationTrackId=${track.id}"),
+                oid = locationTrackExtIds[track.id]?.oid ?: throwOidNotFound(branch, track.id),
                 track = track,
                 geometry = geom,
                 trackNumberOid =
-                    externalTrackNumberIds[track.trackNumberId]?.oid
-                        ?: throw ExtOidNotFoundExceptionV1(
-                            "track number oid was not found: branch=$branch trackNumberId=${track.trackNumberId}"
-                        ),
+                    trackNumberExtIds[track.trackNumberId]?.oid ?: throwOidNotFound(branch, track.trackNumberId),
                 trackNumber =
-                    trackNumbers[track.trackNumberId]
-                        ?: throw ExtTrackNumberNotFoundV1(
-                            "track number was not found: branch=$branch trackNumberId=${track.trackNumberId} moment=$moment"
-                        ),
+                    trackNumbers[track.trackNumberId] ?: throwTrackNumberNotFound(branch, moment, track.trackNumberId),
                 geocodingContext = produceIf(track.exists) { getGeocodingContext(track.trackNumberId) },
             )
         }
