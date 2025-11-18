@@ -43,9 +43,9 @@ constructor(
     private val errorTests =
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getWithExpectedError,
-            ::setupValidLocationTrack to api.locationTracks::getGeometryWithExpectedError,
+            ::setupValidLocationTrack to api.locationTrackGeometry::getWithExpectedError,
             ::setupValidTrackNumber to api.trackNumbers::getWithExpectedError,
-            ::setupValidTrackNumber to api.trackNumbers::getGeometryWithExpectedError,
+            ::setupValidTrackNumber to api.trackNumberGeometry::getWithExpectedError,
             ::setupValidTrackNumber to api.trackNumberKms::getWithExpectedError,
             ::setupValidSwitch to api.switch::getWithExpectedError,
         )
@@ -74,16 +74,17 @@ constructor(
 
     private val geometryErrorTests =
         listOf(
-            ::setupValidLocationTrack to api.locationTracks::getGeometryWithExpectedError,
-            ::setupValidTrackNumber to api.trackNumbers::getGeometryWithExpectedError,
+            ::setupValidLocationTrack to api.locationTrackGeometry::getWithExpectedError,
+            ::setupValidTrackNumber to api.trackNumberGeometry::getWithExpectedError,
         )
 
     private val noContentTests =
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getWithEmptyBody,
-            ::setupValidLocationTrack to api.locationTracks::getGeometryWithEmptyBody,
+            ::setupValidLocationTrack to api.locationTrackGeometry::getWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumbers::getWithEmptyBody,
-            ::setupValidTrackNumber to api.trackNumbers::getGeometryWithEmptyBody,
+            ::setupValidTrackNumber to api.trackNumberGeometry::getWithEmptyBody,
+            ::setupValidTrackNumber to api.trackNumberKms::getWithEmptyBody,
             ::setupValidSwitch to api.switch::getWithEmptyBody,
         )
 

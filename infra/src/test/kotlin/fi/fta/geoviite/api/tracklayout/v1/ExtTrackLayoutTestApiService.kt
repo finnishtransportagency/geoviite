@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import kotlin.reflect.KClass
 import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
@@ -16,7 +15,7 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
     val testApiConnection = TestApi(testApiMapper, mockMvc)
 
     val trackLayoutVersion =
-        AssetApi<Uuid<Publication>, ExtTestTrackLayoutVersionV1, Nothing, Nothing>(
+        AssetApi<Uuid<Publication>, ExtTestTrackLayoutVersionV1, Nothing>(
             assetUrl = { uuid -> "/geoviite/paikannuspohja/v1/versiot/${uuid}" },
             assetClazz = ExtTestTrackLayoutVersionV1::class,
         )
@@ -36,91 +35,84 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         )
 
     val locationTracks =
-        AssetApi<
-            Oid<*>,
-            ExtTestLocationTrackResponseV1,
-            ExtTestModifiedLocationTrackResponseV1,
-            ExtTestLocationTrackGeometryResponseV1,
-        >(
+        AssetApi<Oid<*>, ExtTestLocationTrackResponseV1, ExtTestModifiedLocationTrackResponseV1>(
             assetUrl = { oid -> "/geoviite/paikannuspohja/v1/sijaintiraiteet/${oid}" },
-            ExtTestLocationTrackResponseV1::class,
+            assetClazz = ExtTestLocationTrackResponseV1::class,
             modifiedUrl = { oid -> "/geoviite/paikannuspohja/v1/sijaintiraiteet/${oid}/muutokset" },
-            ExtTestModifiedLocationTrackResponseV1::class,
-            geometryUrl = { oid -> "/geoviite/paikannuspohja/v1/sijaintiraiteet/${oid}/geometria" },
-            ExtTestLocationTrackGeometryResponseV1::class,
+            modifiedClazz = ExtTestModifiedLocationTrackResponseV1::class,
+        )
+
+    val locationTrackGeometry =
+        AssetApi<Oid<*>, ExtTestLocationTrackGeometryResponseV1, ExtTestModifiedLocationTrackGeometryResponseV1>(
+            assetUrl = { oid -> "/geoviite/paikannuspohja/v1/sijaintiraiteet/${oid}/geometria" },
+            assetClazz = ExtTestLocationTrackGeometryResponseV1::class,
+            modifiedUrl = { oid -> "/geoviite/paikannuspohja/v1/sijaintiraiteet/${oid}/geometria/muutokset" },
+            modifiedClazz = ExtTestModifiedLocationTrackGeometryResponseV1::class,
         )
 
     val trackNumbers =
-        AssetApi<
-            Oid<*>,
-            ExtTestTrackNumberResponseV1,
-            ExtTestModifiedTrackNumberResponseV1,
-            ExtTestTrackNumberGeometryResponseV1,
-        >(
+        AssetApi<Oid<*>, ExtTestTrackNumberResponseV1, ExtTestModifiedTrackNumberResponseV1>(
             assetUrl = { oid -> "/geoviite/paikannuspohja/v1/ratanumerot/${oid}" },
-            ExtTestTrackNumberResponseV1::class,
+            assetClazz = ExtTestTrackNumberResponseV1::class,
             modifiedUrl = { oid -> "/geoviite/paikannuspohja/v1/ratanumerot/${oid}/muutokset" },
-            ExtTestModifiedTrackNumberResponseV1::class,
-            geometryUrl = { oid -> "/geoviite/paikannuspohja/v1/ratanumerot/${oid}/geometria" },
-            ExtTestTrackNumberGeometryResponseV1::class,
+            modifiedClazz = ExtTestModifiedTrackNumberResponseV1::class,
+        )
+
+    val trackNumberGeometry =
+        AssetApi<Oid<*>, ExtTestTrackNumberGeometryResponseV1, Nothing>(
+            assetUrl = { oid -> "/geoviite/paikannuspohja/v1/ratanumerot/${oid}/geometria" },
+            assetClazz = ExtTestTrackNumberGeometryResponseV1::class,
         )
 
     val locationTrackCollection =
         AssetCollectionApi(
             assetCollectionUrl = { "/geoviite/paikannuspohja/v1/sijaintiraiteet" },
-            ExtTestLocationTrackCollectionResponseV1::class,
+            assetCollectionClazz = ExtTestLocationTrackCollectionResponseV1::class,
             modifiedAssetCollectionUrl = { "/geoviite/paikannuspohja/v1/sijaintiraiteet/muutokset" },
-            ExtTestModifiedLocationTrackCollectionResponseV1::class,
+            modifiedAssetCollectionClazz = ExtTestModifiedLocationTrackCollectionResponseV1::class,
         )
 
     val trackNumberCollection =
         AssetCollectionApi(
             assetCollectionUrl = { "/geoviite/paikannuspohja/v1/ratanumerot" },
-            ExtTestTrackNumberCollectionResponseV1::class,
+            assetCollectionClazz = ExtTestTrackNumberCollectionResponseV1::class,
             modifiedAssetCollectionUrl = { "/geoviite/paikannuspohja/v1/ratanumerot/muutokset" },
-            ExtTestModifiedTrackNumberCollectionResponseV1::class,
+            modifiedAssetCollectionClazz = ExtTestModifiedTrackNumberCollectionResponseV1::class,
         )
 
     val trackNumberKms =
-        AssetApi<Oid<LayoutTrackNumber>, ExtTestTrackKmsResponseV1, Nothing, Nothing>(
+        AssetApi<Oid<*>, ExtTestTrackKmsResponseV1, Nothing>(
             assetUrl = { oid -> "/geoviite/paikannuspohja/v1/ratanumerot/${oid}/ratakilometrit" },
-            ExtTestTrackKmsResponseV1::class,
+            assetClazz = ExtTestTrackKmsResponseV1::class,
         )
 
     val trackNumberKmsCollection =
         AssetCollectionApi<ExtTestTrackKmsCollectionResponseV1, Nothing>(
             assetCollectionUrl = { "/geoviite/paikannuspohja/v1/ratanumerot/ratakilometrit" },
-            ExtTestTrackKmsCollectionResponseV1::class,
+            assetCollectionClazz = ExtTestTrackKmsCollectionResponseV1::class,
         )
 
     val switch =
-        AssetApi<Oid<*>, ExtTestSwitchResponseV1, ExtTestModifiedSwitchResponseV1, Nothing>(
+        AssetApi<Oid<*>, ExtTestSwitchResponseV1, ExtTestModifiedSwitchResponseV1>(
             assetUrl = { oid -> "/geoviite/paikannuspohja/v1/vaihteet/${oid}" },
-            ExtTestSwitchResponseV1::class,
+            assetClazz = ExtTestSwitchResponseV1::class,
             modifiedUrl = { oid -> "/geoviite/paikannuspohja/v1/vaihteet/${oid}/muutokset" },
-            ExtTestModifiedSwitchResponseV1::class,
+            modifiedClazz = ExtTestModifiedSwitchResponseV1::class,
         )
 
     val switchCollection =
         AssetCollectionApi(
             assetCollectionUrl = { "/geoviite/paikannuspohja/v1/vaihteet" },
-            ExtTestSwitchCollectionResponseV1::class,
+            assetCollectionClazz = ExtTestSwitchCollectionResponseV1::class,
             modifiedAssetCollectionUrl = { "/geoviite/paikannuspohja/v1/vaihteet/muutokset" },
-            ExtTestModifiedSwitchCollectionResponseV1::class,
+            modifiedAssetCollectionClazz = ExtTestModifiedSwitchCollectionResponseV1::class,
         )
 
-    inner class AssetApi<
-        AssetId : Any,
-        AssetResponse : Any,
-        AssetModificationResponse : Any,
-        AssetGeometryResponse : Any,
-    >(
+    inner class AssetApi<AssetId : Any, AssetResponse : Any, AssetModificationResponse : Any>(
         private val assetUrl: (String) -> String,
         private val assetClazz: KClass<AssetResponse>,
         private val modifiedUrl: ((String) -> String)? = null,
         private val modifiedClazz: KClass<AssetModificationResponse>? = null,
-        private val geometryUrl: ((String) -> String)? = null,
-        private val geometryClazz: KClass<AssetGeometryResponse>? = null,
     ) {
         fun get(id: AssetId, vararg params: Pair<String, String>): AssetResponse {
             return internalGet(assetClazz, assetUrl(id.toString()), params.toMap())
@@ -230,47 +222,6 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
         fun getModifiedWithEmptyBody(id: AssetId, vararg params: Pair<String, String>, httpStatus: HttpStatus) {
             require(modifiedUrl != null) { "Modifications not supported for this asset type" }
             internalGetWithoutBody(modifiedUrl(id.toString()), params.toMap(), httpStatus)
-        }
-
-        fun getGeometry(id: AssetId, vararg params: Pair<String, String>): AssetGeometryResponse {
-            require(geometryUrl != null) { "Geometry not supported for this asset type" }
-            return internalGet(requireNotNull(geometryClazz), geometryUrl(id.toString()), params.toMap())
-        }
-
-        fun getGeometryAt(
-            id: AssetId,
-            layoutVersion: Uuid<Publication>,
-            vararg params: Pair<String, String>,
-        ): AssetGeometryResponse {
-            return getGeometry(id, TRACK_LAYOUT_VERSION to layoutVersion.toString(), *params)
-        }
-
-        fun getGeometryWithExpectedError(
-            id: String,
-            vararg params: Pair<String, String>,
-            httpStatus: HttpStatus,
-        ): ExtTestErrorResponseV1 {
-            require(geometryUrl != null) { "Geometry not supported for this asset type" }
-            return internalGet(ExtTestErrorResponseV1::class, geometryUrl(id), params.toMap(), httpStatus)
-        }
-
-        fun getGeometryWithEmptyBody(id: AssetId, vararg params: Pair<String, String>, httpStatus: HttpStatus) {
-            require(geometryUrl != null) { "Geometry not supported for this asset type" }
-            internalGetWithoutBody(geometryUrl(id.toString()), params.toMap(), httpStatus)
-        }
-
-        fun getGeometryWithEmptyBodyAt(
-            id: AssetId,
-            layoutVersion: Uuid<Publication>,
-            vararg params: Pair<String, String>,
-            httpStatus: HttpStatus,
-        ) {
-            return getGeometryWithEmptyBody(
-                id,
-                TRACK_LAYOUT_VERSION to layoutVersion.toString(),
-                *params,
-                httpStatus = httpStatus,
-            )
         }
     }
 
