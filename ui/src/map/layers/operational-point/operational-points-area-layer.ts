@@ -5,7 +5,7 @@ import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/l
 import { getOperationalPointsByPolygon } from 'track-layout/layout-operational-point-api';
 import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
 import { ChangeTimes } from 'common/common-slice';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 import { Selection } from 'selection/selection-model';
 import {
@@ -37,7 +37,9 @@ export function createOperationalPointAreaLayer(
                     ),
                 ),
             )
-        ).flat();
+        )
+            .flat()
+            .filter(filterUniqueById((point) => point.id));
     };
     const onLoadingChange = () => {};
 

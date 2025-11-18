@@ -133,6 +133,19 @@
     operationalPointColor: vayla-design.$color-black-default;
     selectedOrHighlightedOperationalPointColor: geoviite-design.$color-geoviite-blue;
     deletedOperationalPointColor: vayla-design.$color-red-default;
+
+    operationalPointAreaExteriorColor: rgba(vayla-design.$color-black-lighter, 0.53);
+    operationalPointAreaFillColor: rgba(vayla-design.$color-white-darker, 0.38);
+    invalidOrDeletedOperationalPointAreaExteriorColor: geoviite-design.$color-geoviite-map-red;
+    invalidOrDeletedOperationalPointAreaFillColor: rgba(
+        geoviite-design.$color-geoviite-cadmium,
+        0.1
+    );
+    selectedOrHighlightedOperationalPointAreaExteriorColor: geoviite-design.$color-geoviite-blue;
+    selectedOrHighlightedOperationalPointAreaFillColor: rgba(
+        geoviite-design.$color-geoviite-blue,
+        0.21
+    );
 }
 
 //Measure tooltip styling

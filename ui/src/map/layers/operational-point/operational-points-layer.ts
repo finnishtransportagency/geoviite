@@ -6,7 +6,7 @@ import { getOperationalPointsByLocation } from 'track-layout/layout-operational-
 import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
 import OlView from 'ol/View';
 import { ChangeTimes } from 'common/common-slice';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { LayoutContext } from 'common/common-model';
 import { Selection } from 'selection/selection-model';
@@ -45,7 +45,9 @@ export function createOperationalPointLayer(
                     ),
                 ),
             )
-        ).flat();
+        )
+            .flat()
+            .filter(filterUniqueById((point) => point.id));
     };
     const onLoadingChange = () => {};
 
