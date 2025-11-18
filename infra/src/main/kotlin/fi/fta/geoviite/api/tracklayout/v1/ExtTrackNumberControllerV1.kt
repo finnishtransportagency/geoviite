@@ -2,14 +2,10 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
-import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
-import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -43,7 +39,6 @@ class ExtTrackNumberControllerV1
 constructor(
     private val extTrackNumberService: ExtTrackNumberServiceV1,
     private val extTrackNumberGeometryService: ExtTrackNumberGeometryServiceV1,
-    private val publicationService: PublicationService,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -293,18 +288,15 @@ constructor(
         @Parameter(description = EXT_OPENAPI_ADDRESS_POINT_FILTER_END)
         @RequestParam(ADDRESS_POINT_FILTER_END, required = false)
         addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1? = null,
-    ): ResponseEntity<ExtTrackNumberGeometryResponseV1> {
-        return publicationService
-            .getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-            .let { publication ->
-                extTrackNumberGeometryService.createGeometryResponse(
-                    oid,
-                    publication,
-                    resolution = extResolution?.toResolution() ?: Resolution.ONE_METER,
-                    coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
-                    addressFilter = createAddressFilter(addressFilterStart, addressFilterEnd),
-                )
-            }
+    ): ResponseEntity<ExtTrackNumberGeometryResponseV1> =
+        extTrackNumberGeometryService
+            .getExtTrackNumberGeometry(
+                oid,
+                trackLayoutVersion,
+                extResolution,
+                coordinateSystem,
+                addressFilterStart,
+                addressFilterEnd,
+            )
             .let(::toResponse)
-    }
 }

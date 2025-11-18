@@ -1,7 +1,6 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
@@ -30,31 +29,27 @@ constructor(
 ) {
     fun getExtLocationTrackGeometry(
         oid: Oid<LocationTrack>,
-        trackLayoutVersion: Uuid<Publication>? = null,
-        extResolution: ExtResolutionV1? = null,
-        coordinateSystem: Srid? = null,
-        addressFilterStart: ExtMaybeTrackKmOrTrackMeterV1? = null,
-        addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1? = null,
+        trackLayoutVersion: Uuid<Publication>?,
+        extResolution: ExtResolutionV1?,
+        coordinateSystem: Srid?,
+        addressFilterStart: ExtMaybeTrackKmOrTrackMeterV1?,
+        addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1?,
     ): ExtLocationTrackGeometryResponseV1? {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
         val resolution = extResolution?.toResolution() ?: Resolution.ONE_METER
         val coordinateSystem = coordinateSystem ?: LAYOUT_SRID
         val addressFilter = createAddressFilter(addressFilterStart, addressFilterEnd)
-        return createGeometryResponse(oid, idLookup(oid), publication, resolution, coordinateSystem, addressFilter)
+        return createGeometryResponse(oid, publication, resolution, coordinateSystem, addressFilter)
     }
-
-    private fun idLookup(oid: Oid<LocationTrack>): IntId<LocationTrack> =
-        locationTrackDao.lookupByExternalId(oid)?.id
-            ?: throw ExtOidNotFoundExceptionV1("location track lookup failed, oid=$oid")
 
     private fun createGeometryResponse(
         oid: Oid<LocationTrack>,
-        id: IntId<LocationTrack>,
         publication: Publication,
         resolution: Resolution,
         coordinateSystem: Srid,
         addressFilter: AddressFilter,
     ): ExtLocationTrackGeometryResponseV1? {
+        val id = idLookup(locationTrackDao, oid)
         return locationTrackDao
             .fetchOfficialVersionAtMoment(publication.layoutBranch.branch, id, publication.publicationTime)
             ?.let(locationTrackDao::fetch)
