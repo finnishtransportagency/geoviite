@@ -199,7 +199,7 @@ export const renderOperationalPointAreaFeature = (
     return feature;
 };
 
-const operationalPointAreaBorderColor = (
+const operationalPointAreaExteriorColor = (
     editMode: OperationalPointAreaEditMode | undefined,
     featureMode: OperationalPointFeatureMode,
     isValid: boolean,
@@ -298,7 +298,7 @@ const operationalPointAreaStyleProps = (
     areaEditMode: OperationalPointAreaEditMode | undefined,
     isValid: boolean,
 ): OperationalPointAreaStyleProperties => ({
-    exteriorColor: operationalPointAreaBorderColor(areaEditMode, featureMode, isValid),
+    exteriorColor: operationalPointAreaExteriorColor(areaEditMode, featureMode, isValid),
     fillColor: operationalPointAreaFillColor(areaEditMode, featureMode, isValid),
     borderWidth: areaEditMode ? 2 : 1,
     drawLastLineSegment: !areaEditMode || areaEditMode !== 'ADDING',
