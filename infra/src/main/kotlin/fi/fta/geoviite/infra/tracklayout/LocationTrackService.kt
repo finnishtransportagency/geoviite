@@ -339,6 +339,17 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
+    fun listOfficialWithGeometryAtMoment(
+        branch: LayoutBranch,
+        moment: Instant,
+        includeDeleted: Boolean = false,
+    ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
+        return dao.fetchManyOfficialVersionsAtMoment(branch, null, moment).let(::getManyWithGeometries).let { list ->
+            if (includeDeleted) list else list.filter { (track, _) -> track.exists }
+        }
+    }
+
+    @Transactional(readOnly = true)
     fun getWithGeometry(version: LayoutRowVersion<LocationTrack>): Pair<LocationTrack, DbLocationTrackGeometry> {
         return getWithGeometryInternal(version)
     }

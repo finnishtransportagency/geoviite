@@ -30,6 +30,7 @@ const val END_LOCATION = "loppusijainti"
 const val TRACK_KMS = "ratakilometrit"
 const val TRACK_NUMBER_KMS = "ratanumeron_ratakilometrit"
 const val TRACK_NUMBER_KMS_COLLECTION = "ratanumeroiden_ratakilometrit"
+const val TRACK_ADDRESS = "rataosoite"
 
 const val KM_NUMBER = "km_tunnus"
 const val KM_START_M = "alkupaalu"
@@ -37,6 +38,18 @@ const val KM_END_M = "loppupaalu"
 const val KM_LENGTH = "ratakilometrin_pituus"
 const val OFFICIAL_LOCATION = "virallinen_sijainti"
 const val OFFICIAL_LOCATION_CONFIRMED = "vahvistettu"
+
+const val SWITCH = "vaihde"
+const val SWITCH_COLLECTION = "vaihteet"
+const val SWITCH_OID = "vaihde_oid"
+const val SWITCH_NAME = "vaihdetunnus"
+const val SWITCH_HAND = "katisyys"
+const val SWITCH_JOINTS = "pisteet"
+const val SWITCH_JOINT_NUMBER = "numero"
+const val PRESENTATION_JOINT_NUMBER = "esityspisteen_numero"
+const val STATE_CATEGORY = "tilakategoria"
+const val TRAP_POINT = "turvavaihde"
+const val SWITCH_TRACK_LINKS = "raidelinkit"
 
 const val EXT_OPENAPI_INVALID_ARGUMENTS = "Yhden tai useamman hakuargumentin muoto oli virheellinen."
 
@@ -57,6 +70,8 @@ const val EXT_OPENAPI_NO_MODIFICATIONS_BETWEEN_VERSIONS =
 
 const val EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION = "Sijaintiraiteen OID-tunnus."
 
+const val EXT_OPENAPI_SWITCH_OID_DESCRIPTION = "Vaihteen OID-tunnus."
+
 const val EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION = "Ratanumeron OID-tunnus."
 
 const val EXT_OPENAPI_COORDINATE_SYSTEM =
@@ -73,6 +88,9 @@ const val EXT_OPENAPI_ADDRESS_POINT_FILTER_END =
 
 const val EXT_OPENAPI_LOCATION_TRACK_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
     "Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa."
+
+const val EXT_OPENAPI_SWITCH_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
+    "Vaihdetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa."
 
 const val EXT_OPENAPI_TRACK_NUMBER_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
     "Ratanumeroa ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa."

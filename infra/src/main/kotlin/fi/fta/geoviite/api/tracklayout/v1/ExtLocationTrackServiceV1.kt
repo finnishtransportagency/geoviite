@@ -12,10 +12,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtLocationTrackServiceV1
@@ -38,8 +38,7 @@ constructor(
                 ?: throw ExtOidNotFoundExceptionV1("location track lookup failed for oid=$oid")
 
         return locationTrackDao
-            .fetchOfficialVersionAtMoment(publication.layoutBranch.branch, locationTrackId, publication.publicationTime)
-            ?.let(locationTrackDao::fetch)
+            .getOfficialAtMoment(publication.layoutBranch.branch, locationTrackId, publication.publicationTime)
             ?.let { locationTrack ->
                 ExtLocationTrackResponseV1(
                     trackLayoutVersion = publication.uuid,

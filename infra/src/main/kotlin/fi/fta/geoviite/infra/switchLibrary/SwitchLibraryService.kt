@@ -14,8 +14,12 @@ class SwitchLibraryService(
     private val structures: List<SwitchStructure> by lazy { switchStructureDao.fetchSwitchStructures() }
 
     private val structuresById: Map<IntId<SwitchStructure>, SwitchStructure> by lazy {
-        structures.associateBy { switchStructure -> switchStructure.id }
+        structures.associateBy { structure -> structure.id }
     }
+
+    private val owners: List<SwitchOwner> by lazy { switchOwnerDao.fetchSwitchOwners() }
+
+    private val ownersById: Map<IntId<SwitchOwner>, SwitchOwner> by lazy { owners.associateBy { owner -> owner.id } }
 
     fun getDefaultSwitchOwner(): SwitchOwner {
         return requireNotNull(getSwitchOwner(IntId(1))) { "Default switch owner not found" }
@@ -25,28 +29,19 @@ class SwitchLibraryService(
 
     fun getSwitchStructuresById(): Map<IntId<SwitchStructure>, SwitchStructure> = structuresById
 
-    fun getSwitchStructure(id: IntId<SwitchStructure>): SwitchStructure {
-        return getOrThrow(id)
-    }
+    fun getSwitchStructure(id: IntId<SwitchStructure>): SwitchStructure =
+        structuresById[id] ?: throw NoSuchEntityException(SwitchStructure::class, id)
 
-    fun getPresentationJointNumber(id: IntId<SwitchStructure>): JointNumber {
-        return getOrThrow(id).presentationJointNumber
-    }
+    fun getPresentationJointNumber(id: IntId<SwitchStructure>): JointNumber =
+        getSwitchStructure(id).presentationJointNumber
 
-    fun getSwitchOwners(): List<SwitchOwner> {
-        return switchOwnerDao.fetchSwitchOwners()
-    }
+    fun getSwitchOwners(): List<SwitchOwner> = owners
 
-    fun getSwitchOwner(ownerId: IntId<SwitchOwner>): SwitchOwner? {
-        return switchOwnerDao.fetchSwitchOwners().find { it.id == ownerId }
-    }
+    fun getSwitchOwner(ownerId: IntId<SwitchOwner>): SwitchOwner? = ownersById[ownerId]
 
     fun getInframodelAliases(): Map<String, String> {
         return switchStructureDao.getInfraModelAliases()
     }
-
-    private fun getOrThrow(id: IntId<SwitchStructure>) =
-        structuresById[id] ?: throw NoSuchEntityException(SwitchStructure::class, id)
 
     @Transactional
     fun replaceExistingSwitchStructures(newSwitchStructures: List<SwitchStructureData>) {
