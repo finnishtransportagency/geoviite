@@ -199,63 +199,77 @@ export const renderOperationalPointAreaFeature = (
     return feature;
 };
 
-const operationalPointLineColor = (mode: OperationalPointFeatureMode) => {
-    switch (mode) {
-        case 'DELETED':
-            return 'red';
-        case 'HIGHLIGHTED':
-        case 'SELECTED':
-            return '#009BFF';
-        case 'REGULAR':
-            return 'rgba(133, 133, 133, 0.53)';
-        default:
-            return exhaustiveMatchingGuard(mode);
-    }
-};
-
-const operationalPointFillColor = (mode: OperationalPointFeatureMode) => {
-    switch (mode) {
-        case 'DELETED':
-            return 'rgba(255, 150, 0, 0.1)';
-        case 'HIGHLIGHTED':
-        case 'SELECTED':
-            return '#009BFF35';
-        case 'REGULAR':
-            return 'rgba(208, 208, 208, 0.38)';
-        default:
-            return exhaustiveMatchingGuard(mode);
-    }
-};
-
-const operationalPointEditLineColor = (isValid: boolean) => (isValid ? '#009BFF' : 'red');
-const operationalPointEditFillColor = (isValid: boolean) =>
-    isValid ? '#009BFF35' : 'rgba(255, 150, 0, 0.1)';
-
-const polygonLineStyle = (
+const operationalPointAreaExteriorColor = (
     editMode: OperationalPointAreaEditMode | undefined,
     featureMode: OperationalPointFeatureMode,
     isValid: boolean,
+) => {
+    if (editMode) {
+        return isValid
+            ? mapStyles.selectedOrHighlightedOperationalPointAreaExteriorColor
+            : mapStyles.invalidOrDeletedOperationalPointAreaExteriorColor;
+    } else {
+        switch (featureMode) {
+            case 'DELETED':
+                return mapStyles.invalidOrDeletedOperationalPointAreaExteriorColor;
+            case 'HIGHLIGHTED':
+            case 'SELECTED':
+                return mapStyles.selectedOrHighlightedOperationalPointAreaExteriorColor;
+            case 'REGULAR':
+                return mapStyles.operationalPointAreaExteriorColor;
+            default:
+                return exhaustiveMatchingGuard(featureMode);
+        }
+    }
+};
+
+const operationalPointAreaFillColor = (
+    editMode: OperationalPointAreaEditMode | undefined,
+    featureMode: OperationalPointFeatureMode,
+    isValid: boolean,
+): string => {
+    if (editMode) {
+        return isValid
+            ? mapStyles.selectedOrHighlightedOperationalPointAreaFillColor
+            : mapStyles.invalidOrDeletedOperationalPointAreaFillColor;
+    } else {
+        switch (featureMode) {
+            case 'DELETED':
+                return mapStyles.invalidOrDeletedOperationalPointAreaFillColor;
+            case 'HIGHLIGHTED':
+            case 'SELECTED':
+                return mapStyles.selectedOrHighlightedOperationalPointAreaFillColor;
+            case 'REGULAR':
+                return mapStyles.operationalPointAreaFillColor;
+            default:
+                return exhaustiveMatchingGuard(featureMode);
+        }
+    }
+};
+
+const polygonLineStyle = (
+    borderColor: string,
+    borderWidth: number,
+    drawLastLineSegment: boolean,
 ): Style => {
     return new Style({
         stroke: new Stroke({
-            color: editMode
-                ? operationalPointEditLineColor(isValid)
-                : operationalPointLineColor(featureMode),
-            width: editMode ? 2 : 1,
+            color: borderColor,
+            width: borderWidth,
         }),
         geometry: function (feature: Feature<LineString>) {
             const coordinates = getFeatureCoords(feature);
-            const refined = editMode === 'ADDING' ? coordinates.slice(0, -1) : coordinates;
+            const refined = !drawLastLineSegment ? coordinates.slice(0, -1) : coordinates;
             return new LineString(refined);
         },
     });
 };
-const polygonPointStyle = (isValid: boolean): Style =>
+const polygonPointStyle = (lineColor: string): Style =>
     new Style({
         image: new CircleStyle({
             radius: 5,
             fill: new Fill({
-                color: operationalPointEditLineColor(isValid),
+                color: lineColor,
             }),
         }),
         geometry: function (feature: Feature<MultiPoint>) {
@@ -265,18 +279,30 @@ const polygonPointStyle = (isValid: boolean): Style =>
         },
     });
 
-const polygonFillStyle = (
-    editMode: OperationalPointAreaEditMode | undefined,
-    isValid: boolean,
-    featureMode: OperationalPointFeatureMode,
-): Style =>
+const polygonFillStyle = (fillColor: string): Style =>
     new Style({
         fill: new Fill({
-            color: editMode
-                ? operationalPointEditFillColor(isValid)
-                : operationalPointFillColor(featureMode),
+            color: fillColor,
         }),
     });
+
+type OperationalPointAreaStyleProperties = {
+    exteriorColor: string;
+    fillColor: string;
+    borderWidth: number;
+    drawLastLineSegment: boolean;
+};
+
+const operationalPointAreaStyleProps = (
+    featureMode: OperationalPointFeatureMode,
+    areaEditMode: OperationalPointAreaEditMode | undefined,
+    isValid: boolean,
+): OperationalPointAreaStyleProperties => ({
+    exteriorColor: operationalPointAreaExteriorColor(areaEditMode, featureMode, isValid),
+    fillColor: operationalPointAreaFillColor(areaEditMode, featureMode, isValid),
+    borderWidth: areaEditMode ? 2 : 1,
+    drawLastLineSegment: !areaEditMode || areaEditMode !== 'ADDING',
+});
 
 export const operationalPointPolygonStylesFunc =
     (
@@ -286,12 +312,17 @@ export const operationalPointPolygonStylesFunc =
     (feature: Feature<OlPolygon>): Style[] => {
         const coords = getFeatureCoords(feature);
         const isValid = isValidPolygon(coords, areaEditMode === 'ADDING');
+        const styleProps = operationalPointAreaStyleProps(featureMode, areaEditMode, isValid);
 
         return coords.length
             ? [
-                  polygonLineStyle(areaEditMode, featureMode, isValid),
-                  polygonFillStyle(areaEditMode, isValid, featureMode),
-                  areaEditMode ? polygonPointStyle(isValid) : undefined,
+                  polygonLineStyle(
+                      styleProps.exteriorColor,
+                      styleProps.borderWidth,
+                      styleProps.drawLastLineSegment,
+                  ),
+                  polygonFillStyle(styleProps.fillColor),
+                  areaEditMode ? polygonPointStyle(styleProps.exteriorColor) : undefined,
               ].filter(filterNotEmpty)
             : [];
     };
