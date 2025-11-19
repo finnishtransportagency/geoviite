@@ -565,6 +565,33 @@ data class SplitTargetResult(
     val operation: SplitTargetOperation,
 )
 
+fun findPartialDuplicateCuttingPoint(sourceGeometry:LocationTrackGeometry, duplicateGeometry: LocationTrackGeometry, requestedSwitch: Pair<IntId<LayoutSwitch>, JointNumber>?): SplitPoint {
+    val sourceSplitPoints = collectSplitPoints(sourceGeometry)
+    val targetSplitPoints = collectSplitPoints(duplicateGeometry)
+    val lastSharedSplitPoint =
+        requireNotNull(
+            targetSplitPoints.lastOrNull { targetSplitPoint ->
+                sourceSplitPoints.any { sourceSplitPoint ->
+                    sourceSplitPoint.isSame(targetSplitPoint)
+                }
+            },
+            { "Failed to find a shared split point from split source and target tracks" },
+        )
+    val splitPointByRequestedSwitch =
+        requestedSwitch?.let {
+            val (switchId, jointNumber) = requestedSwitch
+            requireNotNull(
+                targetSplitPoints.find { targetSplitPoint ->
+                    targetSplitPoint is SwitchSplitPoint &&
+                        targetSplitPoint.switchId == switchId &&
+                        targetSplitPoint.jointNumber == jointNumber
+                },
+                { "Failed to find a switch split point by requested switch" },
+            )
+        }
+    return splitPointByRequestedSwitch ?: lastSharedSplitPoint
+}
+
 fun splitLocationTrack(
     track: LocationTrack,
     sourceGeometry: LocationTrackGeometry,
@@ -580,35 +607,17 @@ fun splitLocationTrack(
                 target.duplicate?.let { dup ->
                     when (dup.operation) {
                         SplitTargetDuplicateOperation.TRANSFER -> {
-                            val sourceSplitPoints = collectSplitPoints(sourceGeometry)
-                            val targetSplitPoints = collectSplitPoints(dup.geometry)
-                            val lastSharedSplitPoint =
-                                requireNotNull(
-                                    targetSplitPoints.lastOrNull { targetSplitPoint ->
-                                        sourceSplitPoints.any { sourceSplitPoint ->
-                                            sourceSplitPoint.isSame(targetSplitPoint)
-                                        }
-                                    },
-                                    { "Failed to find a shared split point from split source and target tracks" },
-                                )
-                            val requestedSwitchSplitPoint =
-                                nextSwitch?.let {
-                                    requireNotNull(
-                                        targetSplitPoints.find { targetSplitPoint ->
-                                            targetSplitPoint is SwitchSplitPoint &&
-                                                targetSplitPoint.switchId == nextSwitch.id &&
-                                                targetSplitPoint.jointNumber == nextSwitch.jointNumber
-                                        },
-                                        { "Failed to find a switch split point by requested switch" },
-                                    )
-                                }
-                            val endSplitPoint = requestedSwitchSplitPoint ?: lastSharedSplitPoint
+                            val cuttingPoint = findPartialDuplicateCuttingPoint(
+                                sourceGeometry = sourceGeometry,
+                                duplicateGeometry = dup.geometry,
+                                nextSwitch?.let { switch -> switch.id to switch.jointNumber }
+                            )
 
                             val replacementIndices =
                                 findSplitEdgeIndices(
                                     dup.geometry,
                                     target.startSwitch,
-                                    endSplitPoint,
+                                    cuttingPoint,
                                 )
 
                             val newEdges = connectPartialDuplicateEdges(dup.geometry, edges, replacementIndices)
