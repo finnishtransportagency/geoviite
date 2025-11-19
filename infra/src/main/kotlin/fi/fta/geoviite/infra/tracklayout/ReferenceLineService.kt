@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 class ReferenceLineService(
@@ -188,6 +187,13 @@ class ReferenceLineService(
     }
 
     @Transactional(readOnly = true)
+    fun getManyWithAlignments(
+        versions: List<LayoutRowVersion<ReferenceLine>>
+    ): List<Pair<ReferenceLine, LayoutAlignment>> {
+        return dao.fetchMany(versions).let(::associateWithAlignments)
+    }
+
+    @Transactional(readOnly = true)
     fun listWithAlignments(
         layoutContext: LayoutContext,
         includeDeleted: Boolean = false,
@@ -200,26 +206,6 @@ class ReferenceLineService(
             })
             .let { list -> filterByBoundingBox(list, boundingBox) }
             .let(::associateWithAlignments)
-    }
-
-    fun getStartAndEndAtMoment(
-        branch: LayoutBranch,
-        ids: List<IntId<ReferenceLine>>,
-        moment: Instant,
-    ): List<AlignmentStartAndEnd<ReferenceLine>> {
-        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
-        val referenceLineData =
-            dao.getManyOfficialAtMoment(branch, ids, moment).let(::associateWithAlignments).map {
-                (referenceLine, geometry) ->
-                Triple(referenceLine, geometry, getGeocodingContext(referenceLine.trackNumberId))
-            }
-
-        return referenceLineData
-            .parallelStream()
-            .map { (referenceLine, alignment, ctx) ->
-                AlignmentStartAndEnd.of(referenceLine.id as IntId, alignment, ctx)
-            }
-            .toList()
     }
 
     @Transactional(readOnly = true)

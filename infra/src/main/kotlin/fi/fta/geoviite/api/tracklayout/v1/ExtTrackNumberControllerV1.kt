@@ -2,16 +2,11 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
-import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
-import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -44,9 +39,6 @@ class ExtTrackNumberControllerV1
 constructor(
     private val extTrackNumberService: ExtTrackNumberServiceV1,
     private val extTrackNumberGeometryService: ExtTrackNumberGeometryServiceV1,
-    private val extTrackNumberCollectionService: ExtTrackNumberCollectionServiceV1,
-    private val publicationService: PublicationService,
-    private val layoutTrackNumberDao: LayoutTrackNumberDao,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -74,22 +66,15 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberCollection(
+    fun getExtTrackNumberCollection(
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
-    ): ExtTrackNumberCollectionResponseV1 {
-        return publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion).let {
-            publication ->
-            extTrackNumberCollectionService.createTrackNumberCollectionResponse(
-                publication,
-                coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
-            )
-        }
-    }
+    ): ExtTrackNumberCollectionResponseV1 =
+        extTrackNumberService.getExtTrackNumberCollection(trackLayoutVersion, coordinateSystem)
 
     @GetMapping("/ratanumerot/muutokset")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
@@ -124,7 +109,7 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberCollectionModifications(
+    fun getExtTrackNumberCollectionModifications(
         @Parameter(
             description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
             schema = Schema(type = "string", format = "uuid"),
@@ -141,21 +126,10 @@ constructor(
         )
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
-    ): ResponseEntity<ExtModifiedTrackNumberCollectionResponseV1> {
-        return publicationService
-            .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
-            .let { publications ->
-                if (publications.areDifferent()) {
-                    extTrackNumberCollectionService.createTrackNumberCollectionModificationResponse(
-                        publications,
-                        coordinateSystem ?: LAYOUT_SRID,
-                    )
-                } else {
-                    publicationsAreTheSame(trackLayoutVersionFrom)
-                }
-            }
+    ): ResponseEntity<ExtModifiedTrackNumberCollectionResponseV1> =
+        extTrackNumberService
+            .getExtTrackNumberCollectionModifications(trackLayoutVersionFrom, trackLayoutVersionTo, coordinateSystem)
             .let(::toResponse)
-    }
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
@@ -187,7 +161,7 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumber(
+    fun getExtTrackNumber(
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         oid: Oid<LayoutTrackNumber>,
@@ -197,14 +171,8 @@ constructor(
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
-    ): ResponseEntity<ExtTrackNumberResponseV1> {
-        return publicationService
-            .getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-            .let { publication ->
-                extTrackNumberService.createTrackNumberResponse(oid, publication, coordinateSystem ?: LAYOUT_SRID)
-            }
-            .let(::toResponse)
-    }
+    ): ResponseEntity<ExtTrackNumberResponseV1> =
+        extTrackNumberService.getExtTrackNumber(oid, trackLayoutVersion, coordinateSystem).let(::toResponse)
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/muutokset")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
@@ -250,10 +218,10 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberModifications(
+    fun getExtTrackNumberModifications(
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
-        trackNumberOid: Oid<LayoutTrackNumber>,
+        oid: Oid<LayoutTrackNumber>,
         @Parameter(
             description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
             schema = Schema(type = "string", format = "uuid"),
@@ -266,27 +234,10 @@ constructor(
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
-    ): ResponseEntity<ExtModifiedTrackNumberResponseV1> {
-        return publicationService
-            .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
-            .let { publications ->
-                val trackNumberId =
-                    layoutTrackNumberDao.lookupByExternalId(trackNumberOid)?.id
-                        ?: throw ExtOidNotFoundExceptionV1("track number lookup failed, oid=$trackNumberOid")
-
-                if (publications.areDifferent()) {
-                    extTrackNumberService.createTrackNumberModificationResponse(
-                        trackNumberOid,
-                        trackNumberId,
-                        publications,
-                        coordinateSystem ?: LAYOUT_SRID,
-                    )
-                } else {
-                    publicationsAreTheSame(trackLayoutVersionFrom)
-                }
-            }
+    ): ResponseEntity<ExtModifiedTrackNumberResponseV1> =
+        extTrackNumberService
+            .getExtTrackNumberModifications(oid, trackLayoutVersionFrom, trackLayoutVersionTo, coordinateSystem)
             .let(::toResponse)
-    }
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/geometria")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
@@ -318,7 +269,7 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberGeometry(
+    fun getExtTrackNumberGeometry(
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         oid: Oid<LayoutTrackNumber>,
@@ -337,18 +288,15 @@ constructor(
         @Parameter(description = EXT_OPENAPI_ADDRESS_POINT_FILTER_END)
         @RequestParam(ADDRESS_POINT_FILTER_END, required = false)
         addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1? = null,
-    ): ResponseEntity<ExtTrackNumberGeometryResponseV1> {
-        return publicationService
-            .getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-            .let { publication ->
-                extTrackNumberGeometryService.createGeometryResponse(
-                    oid,
-                    publication,
-                    resolution = extResolution?.toResolution() ?: Resolution.ONE_METER,
-                    coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
-                    addressFilter = createAddressFilter(addressFilterStart, addressFilterEnd),
-                )
-            }
+    ): ResponseEntity<ExtTrackNumberGeometryResponseV1> =
+        extTrackNumberGeometryService
+            .getExtTrackNumberGeometry(
+                oid,
+                trackLayoutVersion,
+                extResolution,
+                coordinateSystem,
+                addressFilterStart,
+                addressFilterEnd,
+            )
             .let(::toResponse)
-    }
 }

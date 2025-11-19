@@ -172,7 +172,7 @@ data class GeocodingKm<M : GeocodingAlignmentM<M>>(
 ) {
     val length = referenceLineM.max.distance - referenceLineM.min.distance
     val endMeters = TrackMeter.capMeters(startMeters + round(length, METERS_MAX_DECIMAL_DIGITS))
-    val referenceLineMRounded = roundTo3Decimals(referenceLineM.min.distance)
+    val referenceLineMRounded: Range<BigDecimal> = referenceLineM.map { m -> roundTo3Decimals(m.distance) }
     val startAddress = TrackMeter(kmNumber, startMeters)
     val endAddress = TrackMeter(kmNumber, endMeters)
 
@@ -687,7 +687,15 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     private fun findKm(targetDistance: LineM<M>): GeocodingKm<M> {
         val target = roundTo3Decimals(targetDistance) // Round to 1mm to work around small imprecision
         if (target < BigDecimal.ZERO) throw GeocodingFailureException("Cannot geocode with negative distance")
-        return kms.findLast { km -> km.referenceLineMRounded <= target }
+        return kms.binarySearch { km ->
+                when {
+                    !km.endInclusive && km.referenceLineMRounded.max <= target -> -1
+                    km.endInclusive && km.referenceLineMRounded.max < target -> -1
+                    km.referenceLineMRounded.min > target -> 1
+                    else -> 0
+                }
+            }
+            .let(kms::getOrNull)
             ?: throw GeocodingFailureException("Target point is not within the reference line length")
     }
 
