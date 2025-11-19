@@ -565,15 +565,17 @@ data class SplitTargetResult(
     val operation: SplitTargetOperation,
 )
 
-fun findPartialDuplicateCuttingPoint(sourceGeometry:LocationTrackGeometry, duplicateGeometry: LocationTrackGeometry, requestedSwitch: Pair<IntId<LayoutSwitch>, JointNumber>?): SplitPoint {
+fun findPartialDuplicateCuttingPoint(
+    sourceGeometry: LocationTrackGeometry,
+    duplicateGeometry: LocationTrackGeometry,
+    requestedSwitch: Pair<IntId<LayoutSwitch>, JointNumber>?,
+): SplitPoint {
     val sourceSplitPoints = collectSplitPoints(sourceGeometry)
     val targetSplitPoints = collectSplitPoints(duplicateGeometry)
     val lastSharedSplitPoint =
         requireNotNull(
             targetSplitPoints.lastOrNull { targetSplitPoint ->
-                sourceSplitPoints.any { sourceSplitPoint ->
-                    sourceSplitPoint.isSame(targetSplitPoint)
-                }
+                sourceSplitPoints.any { sourceSplitPoint -> sourceSplitPoint.isSame(targetSplitPoint) }
             },
             { "Failed to find a shared split point from split source and target tracks" },
         )
@@ -607,11 +609,12 @@ fun splitLocationTrack(
                 target.duplicate?.let { dup ->
                     when (dup.operation) {
                         SplitTargetDuplicateOperation.TRANSFER -> {
-                            val cuttingPoint = findPartialDuplicateCuttingPoint(
-                                sourceGeometry = sourceGeometry,
-                                duplicateGeometry = dup.geometry,
-                                nextSwitch?.let { switch -> switch.id to switch.jointNumber }
-                            )
+                            val cuttingPoint =
+                                findPartialDuplicateCuttingPoint(
+                                    sourceGeometry = sourceGeometry,
+                                    duplicateGeometry = dup.geometry,
+                                    nextSwitch?.let { switch -> switch.id to switch.jointNumber },
+                                )
 
                             val replacementIndices =
                                 findSplitEdgeIndices(
@@ -866,7 +869,8 @@ private fun findNodeIndex(
                 }
             isMatchingNode
         }
-        .takeIf { it >= startIndex } ?: throw Exception("Failed to find index by split point $splitPoint!")
+        .takeIf { it >= startIndex }
+        .let { requireNotNull(it) { "Failed to find index by split point $splitPoint!" } }
 
 private fun cutEdges(geometry: LocationTrackGeometry, indices: ClosedRange<Int>): List<LayoutEdge> =
     geometry.edges.subList(indices.start, indices.endInclusive + 1)
