@@ -130,6 +130,14 @@ class LayoutSwitchController(
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/{${LAYOUT_BRANCH}}/{id}/operational-point")
+    fun assignSwitchOperationalPoint(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable("id") switchId: IntId<LayoutSwitch>,
+        @RequestBody operationalPointId: IntId<OperationalPoint>?,
+    ): IntId<LayoutSwitch> = switchService.assignOperationalPoint(branch, switchId, operationalPointId)
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @DeleteMapping("/{${LAYOUT_BRANCH}}/draft/{id}")
     fun deleteDraftSwitch(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
@@ -166,4 +174,16 @@ class LayoutSwitchController(
     @GetMapping("/oid_presence/{oid}")
     fun getSwitchOidPresence(@PathVariable("oid") oid: Oid<LayoutSwitch>): SwitchOidPresence =
         switchService.checkOidPresence(oid)
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/by-operational-point/{operationalPointId}")
+    fun findSwitchesWithinOperationalPointPolygon(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("operationalPointId") operationalPointId: IntId<OperationalPoint>,
+    ): List<SwitchWithOperationalPointPolygonInclusions> =
+        switchService.findSwitchesRelatedToOperationalPoint(
+            LayoutContext.of(branch, publicationState),
+            operationalPointId,
+        )
 }

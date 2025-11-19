@@ -27,4 +27,6 @@ data class Polygon(val points: List<Point>) {
                 // Cannot actually happen, since polygon has at least 4 points
                 "Failed to create bounding box for polygon: $this"
             }
+
+    fun moveBy(vector: Point) = Polygon(points.map { it + vector })
 }
