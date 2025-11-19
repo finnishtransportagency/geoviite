@@ -23,6 +23,8 @@ import fi.fta.geoviite.infra.publication.ValidationContext
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType
+import fi.fta.geoviite.infra.tracklayout.EndpointSplitPoint
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
@@ -41,14 +43,19 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import fi.fta.geoviite.infra.tracklayout.SplitPoint
+import fi.fta.geoviite.infra.tracklayout.SwitchSplitPoint
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
+import fi.fta.geoviite.infra.tracklayout.TrackBoundary
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
+import fi.fta.geoviite.infra.tracklayout.collectSplitPoints
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 const val MAX_SPLIT_GEOM_ADJUSTMENT = 5.0
 
@@ -573,8 +580,38 @@ fun splitLocationTrack(
                 target.duplicate?.let { dup ->
                     when (dup.operation) {
                         SplitTargetDuplicateOperation.TRANSFER -> {
-                            val replacedIndices = findSplitEdgeIndices(dup.geometry, target.startSwitch, nextSwitch)
-                            val newEdges = connectPartialDuplicateEdges(dup.geometry, edges, replacedIndices)
+                            val sourceSplitPoints = collectSplitPoints(sourceGeometry)
+                            val targetSplitPoints = collectSplitPoints(dup.geometry)
+                            val lastSharedSplitPoint =
+                                requireNotNull(
+                                    targetSplitPoints.lastOrNull { targetSplitPoint ->
+                                        sourceSplitPoints.any { sourceSplitPoint ->
+                                            sourceSplitPoint.isSame(targetSplitPoint)
+                                        }
+                                    },
+                                    { "Failed to find a shared split point from split source and target tracks" },
+                                )
+                            val requestedSwitchSplitPoint =
+                                nextSwitch?.let {
+                                    requireNotNull(
+                                        targetSplitPoints.find { targetSplitPoint ->
+                                            targetSplitPoint is SwitchSplitPoint &&
+                                                targetSplitPoint.switchId == nextSwitch.id &&
+                                                targetSplitPoint.jointNumber == nextSwitch.jointNumber
+                                        },
+                                        { "Failed to find a switch split point by requested switch" },
+                                    )
+                                }
+                            val endSplitPoint = requestedSwitchSplitPoint ?: lastSharedSplitPoint
+
+                            val replacementIndices =
+                                findSplitEdgeIndices(
+                                    dup.geometry,
+                                    target.startSwitch,
+                                    endSplitPoint,
+                                )
+
+                            val newEdges = connectPartialDuplicateEdges(dup.geometry, edges, replacementIndices)
                             updateSplitTargetForTransferAssets(
                                 duplicateTrack = dup.track,
                                 topologicalConnectivityType = connectivityType,
@@ -758,13 +795,27 @@ private fun findSplitEdgeIndices(
 ): IntRange {
     val startIndex =
         startSwitch?.let { (s, j) ->
-            findIndex(geometry, 0, s, j) ?: throwSwitchSegmentMappingFailure(geometry, startSwitch)
+            findNodeIndex(geometry, 0, s, j) ?: throwSwitchSegmentMappingFailure(geometry, startSwitch)
         } ?: 0
     val endIndex =
         endSwitch?.let { (s, j) ->
-            findIndex(geometry, startIndex, s, j)?.let(Int::dec)
+            findNodeIndex(geometry, startIndex, s, j)?.let(Int::dec)
                 ?: throwSwitchSegmentMappingFailure(geometry, endSwitch)
         } ?: geometry.edges.lastIndex
+
+    return (startIndex..endIndex)
+}
+
+private fun findSplitEdgeIndices(
+    geometry: LocationTrackGeometry,
+    startSwitch: SplitPointSwitch?,
+    endSplitPoint: SplitPoint,
+): IntRange {
+    val startIndex =
+        startSwitch?.let { (s, j) ->
+            findNodeIndex(geometry, 0, s, j) ?: throwSwitchSegmentMappingFailure(geometry, startSwitch)
+        } ?: 0
+    val endIndex = findNodeIndex(geometry, startIndex, endSplitPoint) - 1
 
     return (startIndex..endIndex)
 }
@@ -778,12 +829,35 @@ private fun throwSwitchSegmentMappingFailure(geometry: LocationTrackGeometry, sw
     )
 }
 
-private fun findIndex(
+private fun findNodeIndex(
     geometry: LocationTrackGeometry,
     startIndex: Int,
     switchId: IntId<LayoutSwitch>,
     joint: JointNumber,
 ): Int? = geometry.nodes.indexOfFirst { node -> node.containsJoint(switchId, joint) }.takeIf { it >= startIndex }
+
+private fun findNodeIndex(
+    geometry: LocationTrackGeometry,
+    startIndex: Int,
+    splitPoint: SplitPoint,
+): Int =
+    geometry.nodes
+        .indexOfFirst { node ->
+            val isMatchingNode =
+                when (splitPoint) {
+                    is SwitchSplitPoint -> node.containsJoint(splitPoint.switchId, splitPoint.jointNumber)
+                    is EndpointSplitPoint -> {
+                        val trackBoundaryType =
+                            when (splitPoint.endPointType) {
+                                DuplicateEndPointType.START -> TrackBoundaryType.START
+                                DuplicateEndPointType.END -> TrackBoundaryType.END
+                            }
+                        node.ports.any { port -> port is TrackBoundary && port.type == trackBoundaryType }
+                    }
+                }
+            isMatchingNode
+        }
+        .takeIf { it >= startIndex } ?: throw Exception("Failed to find index by split point $splitPoint!")
 
 private fun cutEdges(geometry: LocationTrackGeometry, indices: ClosedRange<Int>): List<LayoutEdge> =
     geometry.edges.subList(indices.start, indices.endInclusive + 1)
