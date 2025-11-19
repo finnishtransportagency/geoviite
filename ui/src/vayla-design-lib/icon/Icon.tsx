@@ -1,5 +1,4 @@
 import React from 'react';
-import addSvg from './glyphs/action/add.svg';
 import subtractSvg from './glyphs/action/subtract.svg';
 import copySvg from './glyphs/action/copy.svg';
 import downloadSvg from './glyphs/action/download.svg';
@@ -116,7 +115,7 @@ const iconNameToSvgMap = {
     Target: targetSvg,
     Clear: clearSvg,
     SelectArea: selectArea,
-    Add: addSvg,
+    Add: appendSvg,
     Subtract: subtractSvg,
 
     // Misc
