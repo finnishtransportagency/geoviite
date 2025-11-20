@@ -2654,6 +2654,53 @@ class PublicationDao(
             .firstOrNull()
     }
 
+    fun fetchPublishedTrackNumberGeomsBetween(
+        trackNumberId: IntId<LayoutTrackNumber>,
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): Pair<LayoutRowVersion<LayoutTrackNumber>?, LayoutRowVersion<LayoutTrackNumber>>? {
+        val sql =
+            """
+            select
+              ptn.id,
+              ptn.layout_context_id,
+              ptn.version,
+              (
+                select version
+                  from layout.track_number_at(:start_time) tn
+                  where tn.id = ptn.id and tn.layout_context_id = ptn.layout_context_id
+              ) as old_version
+              from publication.track_number ptn
+                inner join publication.publication publication on ptn.publication_id = publication.id
+              where publication.design_id is null
+                and ptn.id = :track_number_id
+                and publication.publication_time > :start_time
+                and publication.publication_time <= :end_time
+                and exists(
+                  select 1
+                    from publication.track_number_km ptnkm
+                    where ptnkm.track_number_id = ptn.id and ptnkm.publication_id = publication.id
+                )
+              order by ptn.id, publication.publication_time desc
+              limit 1
+        """
+
+        val params =
+            mapOf(
+                "start_time" to Timestamp.from(exclusiveStartMoment),
+                "end_time" to Timestamp.from(inclusiveEndMoment),
+                "track_number_id" to trackNumberId.intValue,
+            )
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                val oldVersion =
+                    rs.getLayoutRowVersionOrNull<LayoutTrackNumber>("id", "layout_context_id", "old_version")
+                val newVersion = rs.getLayoutRowVersion<LayoutTrackNumber>("id", "layout_context_id", "version")
+                oldVersion to newVersion
+            }
+            .firstOrNull()
+    }
+
     fun fetchPublishedTrackNumberBetween(
         id: IntId<LayoutTrackNumber>,
         exclusiveStartMoment: Instant,
