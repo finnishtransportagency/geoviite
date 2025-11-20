@@ -63,6 +63,8 @@ constructor(
             ::setupValidLocationTrack to api.locationTracks::getModifiedWithExpectedError,
             ::setupValidTrackNumber to api.trackNumbers::getModifiedWithExpectedError,
             ::setupValidSwitch to api.switch::getModifiedWithExpectedError,
+            ::setupValidTrackNumber to api.trackNumberGeometry::getModifiedWithExpectedError,
+            ::setupValidLocationTrack to api.locationTrackGeometry::getModifiedWithExpectedError,
         )
 
     private val collectionModificationErrorTests =
@@ -98,14 +100,18 @@ constructor(
     private val noContentModificationTests =
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getModifiedWithEmptyBody,
+            ::setupValidLocationTrack to api.locationTrackGeometry::getModifiedWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumbers::getModifiedWithEmptyBody,
+            ::setupValidTrackNumber to api.trackNumberGeometry::getModifiedWithEmptyBody,
             ::setupValidSwitch to api.switch::getModifiedWithEmptyBody,
         )
 
     private val modificationSuccessTests =
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getModified,
+            ::setupValidLocationTrack to api.locationTrackGeometry::getModified,
             ::setupValidTrackNumber to api.trackNumbers::getModified,
+            ::setupValidTrackNumber to api.trackNumberGeometry::getModified,
             ::setupValidSwitch to api.switch::getModified,
         )
 
