@@ -95,6 +95,14 @@ data class ExtTestTrackNumberGeometryResponseV1(
     val osoitevali: ExtTestGeometryIntervalV1?,
 )
 
+data class ExtTestModifiedTrackNumberGeometryResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val ratanumero_oid: String,
+    val koordinaatisto: String,
+    val osoitevalit: List<ExtTestGeometryIntervalV1>,
+)
+
 data class ExtTestTrackNumberCollectionResponseV1(
     val rataverkon_versio: String,
     val koordinaatisto: String,
