@@ -55,12 +55,12 @@ export const layersToShowByProxy: LayerCollection = {
         'location-track-split-badge-layer',
         'switch-layer',
     ],
-    'operational-points-placing-layer': ['operational-points-layer'],
+    'operational-points-placing-layer': ['operational-points-icon-layer'],
     'operational-points-area-placing-layer': [
-        'operational-points-layer',
+        'operational-points-icon-layer',
         'operational-points-area-layer',
     ],
-    'operational-points-area-layer': ['operational-points-layer'],
+    'operational-points-area-layer': ['operational-points-icon-layer'],
 };
 
 export const layersToHideByProxy: LayerCollection = {
@@ -85,6 +85,7 @@ export const relatedMapLayers: LayerCollection = {
         'location-track-background-layer',
         'location-track-badge-layer',
     ],
+    'operational-points-icon-layer': ['operational-points-badge-layer'],
     'reference-line-alignment-layer': [
         'reference-line-background-layer',
         'reference-line-badge-layer',
@@ -113,7 +114,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'geometry-switch': ['geometry-switch-layer'],
     'plan-area': ['plan-area-layer'],
     'geometry-km-post': ['geometry-km-post-layer'],
-    'operational-points': ['operational-points-layer'],
+    'operational-points': ['operational-points-icon-layer', 'operational-points-badge-layer'],
     'operational-point-areas': ['operational-points-area-layer'],
     'debug-1m': ['debug-1m-points-layer'],
     'debug-projection-lines': ['debug-projection-lines-layer'],
@@ -142,7 +143,8 @@ export const initialMapState: Map = {
         'location-track-selected-alignment-layer',
         'location-track-split-alignment-layer',
         'reference-line-selected-alignment-layer',
-        'operational-points-layer',
+        'operational-points-icon-layer',
+        'operational-points-badge-layer',
     ],
     layerMenu: {
         layout: [

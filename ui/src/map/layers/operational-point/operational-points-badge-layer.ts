@@ -10,18 +10,18 @@ import { LayoutContext } from 'common/common-model';
 import { Selection } from 'selection/selection-model';
 import { Rectangle } from 'model/geometry';
 import {
+    filterByResolution,
     findMatchingOperationalPoints,
     getOperationalPointsFromApi,
     isBeingMoved,
     operationalPointFeatureModeBySelection,
-    renderOperationalPointCircleFeature,
-    filterByResolution,
+    renderOperationalPointTextFeature,
 } from 'map/layers/operational-point/operational-points-layer-utils';
 import { LinkingState } from 'linking/linking-model';
 
-const LAYER_NAME: MapLayerName = 'operational-points-icon-layer';
+const LAYER_NAME: MapLayerName = 'operational-points-badge-layer';
 
-export function createOperationalPointIconLayer(
+export function createOperationalPointBadgeLayer(
     mapTiles: MapTile[],
     existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     olView: OlView,
@@ -30,7 +30,7 @@ export function createOperationalPointIconLayer(
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
 ): MapLayer {
-    const { layer, source, isLatest } = createLayer(LAYER_NAME, existingOlLayer, true);
+    const { layer, source, isLatest } = createLayer(LAYER_NAME, existingOlLayer, true, true);
     const resolution = olView.getResolution() || 0;
     const onLoadingChange = () => {};
 
@@ -41,7 +41,7 @@ export function createOperationalPointIconLayer(
                     !isBeingMoved(linkingState, point.id) && filterByResolution(point, resolution),
             )
             .map((point) =>
-                renderOperationalPointCircleFeature(
+                renderOperationalPointTextFeature(
                     point,
                     operationalPointFeatureModeBySelection(point.id, selection),
                 ),
