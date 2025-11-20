@@ -403,6 +403,6 @@ export const getOperationalPointsFromApi = async (
         .filter(filterUniqueById((point) => point.id));
 
 export const filterByResolution = (point: OperationalPoint, resolution: number) => {
-    if (resolution <= Limits.OPERATIONAL_POINTS_SMALL) return true;
+    if (resolution <= Limits.OPERATIONAL_POINTS_ALL_TYPES_SHOW) return true;
     else return point.raideType === 'OLP';
 };
