@@ -149,7 +149,9 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             label={t('operational-point-dialog.type-raide')}
                             value={
                                 state.existingOperationalPoint &&
-                                t(`enum.RaideType.${state.existingOperationalPoint.raideType}`)
+                                t(
+                                    `enum.OperationalPointRaideType.${state.existingOperationalPoint.raideType}`,
+                                )
                             }
                         />
                         <FieldLayout
