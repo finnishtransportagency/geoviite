@@ -611,16 +611,18 @@ fun edge(
     startOuterSwitch: SwitchLink? = null,
     endInnerSwitch: SwitchLink? = null,
     endOuterSwitch: SwitchLink? = null,
+    startTrackBoundary: NodeConnection? = null,
+    endTrackBoundary: NodeConnection? = null,
 ) =
     TmpLayoutEdge(
         startNode =
             if (startInnerSwitch != null || startOuterSwitch != null)
                 NodeConnection.switch(inner = startInnerSwitch, outer = startOuterSwitch)
-            else PlaceHolderNodeConnection,
+            else if (startTrackBoundary != null) startTrackBoundary else PlaceHolderNodeConnection,
         endNode =
             if (endInnerSwitch != null || endOuterSwitch != null)
                 NodeConnection.switch(inner = endInnerSwitch, outer = endOuterSwitch)
-            else PlaceHolderNodeConnection,
+            else if (endTrackBoundary != null) endTrackBoundary else PlaceHolderNodeConnection,
         segments = segments,
     )
 
