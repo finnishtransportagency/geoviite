@@ -86,7 +86,7 @@ import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/l
 import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/location-track-selected-alignment-layer';
 import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
-import { createOperationalPointLayer } from 'map/layers/operational-point/operational-points-layer';
+import { createOperationalPointIconLayer } from 'map/layers/operational-point/operational-points-icon-layer';
 import { layersCoveringLayers } from 'map/map-store';
 import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
@@ -104,6 +104,7 @@ import Feature from 'ol/Feature';
 import { createOperationalPointsPlacingLayer } from 'map/layers/operational-point/operational-points-placing-layer';
 import { operationalPointPolygonStylesFunc } from 'map/layers/operational-point/operational-points-layer-utils';
 import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
+import { createOperationalPointBadgeLayer } from 'map/layers/operational-point/operational-points-badge-layer';
 
 declare global {
     interface Window {
@@ -755,8 +756,18 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
                         );
-                    case 'operational-points-layer':
-                        return createOperationalPointLayer(
+                    case 'operational-points-icon-layer':
+                        return createOperationalPointIconLayer(
+                            mapTiles,
+                            existingOlLayer as GeoviiteMapLayer<OlPoint>,
+                            olView,
+                            selection,
+                            linkingState,
+                            layoutContext,
+                            changeTimes,
+                        );
+                    case 'operational-points-badge-layer':
+                        return createOperationalPointBadgeLayer(
                             mapTiles,
                             existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             olView,

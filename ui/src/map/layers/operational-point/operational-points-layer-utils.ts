@@ -9,7 +9,7 @@ import {
     pointToCoords,
 } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
-import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
+import { fieldComparator, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import Style from 'ol/style/Style';
 import { Circle, Fill, Stroke, Text } from 'ol/style';
 import Feature, { FeatureLike } from 'ol/Feature';
@@ -17,10 +17,14 @@ import { LineString, MultiPoint, Point as OlPoint, Polygon as OlPolygon } from '
 import mapStyles from 'map/map.module.scss';
 import CircleStyle from 'ol/style/Circle';
 import { Selection } from 'selection/selection-model';
+import { LinkingState, LinkingType } from 'linking/linking-model';
+import { getOperationalPointsByLocation } from 'track-layout/layout-operational-point-api';
+import { MapTile } from 'map/map-model';
+import { LayoutContext, TimeStamp } from 'common/common-model';
 
 export const OPERATIONAL_POINT_FEATURE_DATA_PROPERTY = 'operational-point-data';
 
-export enum OperationalPointCircleFeatureSize {
+export enum OperationalPointLocationFeatureSize {
     Large,
     Medium,
     Small,
@@ -30,47 +34,45 @@ export type OperationalPointFeatureMode = 'DELETED' | 'HIGHLIGHTED' | 'SELECTED'
 
 export type OperationalPointAreaEditMode = 'ADDING' | 'MODIFYING';
 
-const OPERATIONAL_POINT_FEATURE_SIZE_LIMITS: {
-    style: OperationalPointCircleFeatureSize;
+const OPERATIONAL_POINT_FEATURE_SIZE_UPPER_LIMITS: {
+    featureSize: OperationalPointLocationFeatureSize;
     resolutionUpperLimit: number;
 }[] = [
     {
-        style: OperationalPointCircleFeatureSize.Large,
+        featureSize: OperationalPointLocationFeatureSize.Large,
         resolutionUpperLimit: Limits.OPERATIONAL_POINTS_LARGE,
     },
     {
-        style: OperationalPointCircleFeatureSize.Medium,
+        featureSize: OperationalPointLocationFeatureSize.Medium,
         resolutionUpperLimit: Limits.OPERATIONAL_POINTS_MEDIUM,
-    },
-    {
-        style: OperationalPointCircleFeatureSize.Small,
-        resolutionUpperLimit: Limits.OPERATIONAL_POINTS_SMALL,
     },
 ];
 
 export const operationalPointStyleResolutionsSmallestFirst =
-    OPERATIONAL_POINT_FEATURE_SIZE_LIMITS.sort(fieldComparator((a) => a.resolutionUpperLimit));
+    OPERATIONAL_POINT_FEATURE_SIZE_UPPER_LIMITS.sort(
+        fieldComparator((a) => a.resolutionUpperLimit),
+    );
 
-export const featureStyleRadius = (size: OperationalPointCircleFeatureSize) => {
+export const featureStyleRadius = (size: OperationalPointLocationFeatureSize) => {
     switch (size) {
-        case OperationalPointCircleFeatureSize.Small:
+        case OperationalPointLocationFeatureSize.Small:
             return 4;
-        case OperationalPointCircleFeatureSize.Medium:
+        case OperationalPointLocationFeatureSize.Medium:
             return 5;
-        case OperationalPointCircleFeatureSize.Large:
+        case OperationalPointLocationFeatureSize.Large:
             return 6;
         default:
             return exhaustiveMatchingGuard(size);
     }
 };
 
-export const featureStyleOffsetX = (size: OperationalPointCircleFeatureSize) => {
+export const featureStyleOffsetX = (size: OperationalPointLocationFeatureSize) => {
     switch (size) {
-        case OperationalPointCircleFeatureSize.Small:
+        case OperationalPointLocationFeatureSize.Small:
             return 10;
-        case OperationalPointCircleFeatureSize.Medium:
+        case OperationalPointLocationFeatureSize.Medium:
             return 12;
-        case OperationalPointCircleFeatureSize.Large:
+        case OperationalPointLocationFeatureSize.Large:
             return 14;
         default:
             return exhaustiveMatchingGuard(size);
@@ -78,13 +80,13 @@ export const featureStyleOffsetX = (size: OperationalPointCircleFeatureSize) => 
 };
 
 const fontString = (fontSizePx: number) => `${fontSizePx}px "Open Sans"`;
-export const featureStyleFont = (size: OperationalPointCircleFeatureSize) => {
+export const featureStyleFont = (size: OperationalPointLocationFeatureSize) => {
     switch (size) {
-        case OperationalPointCircleFeatureSize.Small:
+        case OperationalPointLocationFeatureSize.Small:
             return fontString(11);
-        case OperationalPointCircleFeatureSize.Medium:
+        case OperationalPointLocationFeatureSize.Medium:
             return fontString(14);
-        case OperationalPointCircleFeatureSize.Large:
+        case OperationalPointLocationFeatureSize.Large:
             return fontString(16);
         default:
             return exhaustiveMatchingGuard(size);
@@ -118,12 +120,10 @@ export const findMatchingOperationalPoints = (
     );
 
 const createOperationalPointCircleStyle = (
-    operationalPointName: string,
     featureMode: OperationalPointFeatureMode,
-    size: OperationalPointCircleFeatureSize,
+    size: OperationalPointLocationFeatureSize,
 ): Style => {
     const color = featureColor(featureMode);
-    const drawText = featureMode !== 'DELETED';
 
     const styleArgs = {
         image: new Circle({
@@ -135,6 +135,16 @@ const createOperationalPointCircleStyle = (
             color: 'white',
         }),
     };
+    return new Style(styleArgs);
+};
+
+const createOperationalPointTextStyle = (
+    operationalPointName: string,
+    featureMode: OperationalPointFeatureMode,
+    size: OperationalPointLocationFeatureSize,
+): Style => {
+    const color = featureColor(featureMode);
+
     const textArgs = {
         text: new Text({
             text: operationalPointName,
@@ -147,22 +157,33 @@ const createOperationalPointCircleStyle = (
         }),
     };
 
-    return new Style({ ...styleArgs, ...(drawText ? textArgs : {}) });
+    return new Style(textArgs);
 };
 
-function getOperationalPointCircleStyleForFeature(
+function getOperationalPointTextStyleForFeature(
     feature: FeatureLike,
     resolution: number,
     featureMode: OperationalPointFeatureMode,
 ): Style | undefined {
     const point = feature.get(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY) as OperationalPoint;
-    const smallestResolutionConf = operationalPointStyleResolutionsSmallestFirst.find(
-        (styleResolution) => resolution <= styleResolution.resolutionUpperLimit,
-    );
+    const locationFeatureSize =
+        operationalPointStyleResolutionsSmallestFirst.find(
+            (styleResolution) => resolution <= styleResolution.resolutionUpperLimit,
+        )?.featureSize ?? OperationalPointLocationFeatureSize.Small;
 
-    return smallestResolutionConf
-        ? createOperationalPointCircleStyle(point.name, featureMode, smallestResolutionConf.style)
-        : undefined;
+    return createOperationalPointTextStyle(point.name, featureMode, locationFeatureSize);
+}
+
+function getOperationalPointCircleStyleForFeature(
+    resolution: number,
+    featureMode: OperationalPointFeatureMode,
+): Style | undefined {
+    const locationFeatureSize =
+        operationalPointStyleResolutionsSmallestFirst.find(
+            (styleResolution) => resolution <= styleResolution.resolutionUpperLimit,
+        )?.featureSize ?? OperationalPointLocationFeatureSize.Small;
+
+    return createOperationalPointCircleStyle(featureMode, locationFeatureSize);
 }
 
 export const renderOperationalPointCircleFeature = (
@@ -178,8 +199,28 @@ export const renderOperationalPointCircleFeature = (
         geometry: new OlPoint(pointToCoords(location)),
     });
     feature.set(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY, point);
+    feature.setStyle((_, resolution) =>
+        getOperationalPointCircleStyleForFeature(resolution, featureMode),
+    );
+
+    return feature;
+};
+
+export const renderOperationalPointTextFeature = (
+    point: OperationalPoint,
+    featureMode: OperationalPointFeatureMode,
+    location: Point | undefined = point.location,
+): Feature<OlPoint> | undefined => {
+    if (!location) {
+        return undefined;
+    }
+
+    const feature = new Feature({
+        geometry: new OlPoint(pointToCoords(location)),
+    });
+    feature.set(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY, point);
     feature.setStyle((feature, resolution) =>
-        getOperationalPointCircleStyleForFeature(feature, resolution, featureMode),
+        getOperationalPointTextStyleForFeature(feature, resolution, featureMode),
     );
 
     return feature;
@@ -338,4 +379,30 @@ export const operationalPointFeatureModeBySelection = (
     } else {
         return 'REGULAR';
     }
+};
+
+export const isBeingMoved = (linkingState: LinkingState | undefined, id: OperationalPointId) =>
+    linkingState &&
+    linkingState.type === LinkingType.PlacingOperationalPoint &&
+    linkingState.operationalPoint.id === id &&
+    !!linkingState.location;
+
+export const getOperationalPointsFromApi = async (
+    mapTiles: MapTile[],
+    layoutContext: LayoutContext,
+    operationalPointChangeTime: TimeStamp,
+) =>
+    (
+        await Promise.all(
+            mapTiles.map((tile) =>
+                getOperationalPointsByLocation(tile, layoutContext, operationalPointChangeTime),
+            ),
+        )
+    )
+        .flat()
+        .filter(filterUniqueById((point) => point.id));
+
+export const filterByResolution = (point: OperationalPoint, resolution: number) => {
+    if (resolution <= Limits.OPERATIONAL_POINTS_ALL_TYPES_SHOW) return true;
+    else return point.raideType === 'OLP';
 };
