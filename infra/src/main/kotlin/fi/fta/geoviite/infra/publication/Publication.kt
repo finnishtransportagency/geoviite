@@ -755,7 +755,7 @@ data class OperationalPointChanges(
     val uicCode: Change<UicCode>,
     val rinfType: Change<OperationalPointRinfTypeWithCode?>,
     val raideType: Change<OperationalPointRaideType?>,
-    val polygon: Change<Polygon>,
+    val polygon: Change<Polygon?>,
     val location: Change<Point>,
     val state: Change<OperationalPointState>,
 )
