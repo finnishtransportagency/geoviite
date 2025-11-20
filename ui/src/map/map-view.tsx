@@ -86,7 +86,7 @@ import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/l
 import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/location-track-selected-alignment-layer';
 import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
-import { createOperationalPointIconLayer } from 'map/layers/operational-point/operational-points-layer';
+import { createOperationalPointIconLayer } from 'map/layers/operational-point/operational-points-icon-layer';
 import { layersCoveringLayers } from 'map/map-store';
 import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
