@@ -79,7 +79,7 @@ data class OperationalPointName @JsonCreator(mode = DELEGATING) constructor(priv
 
 data class OperationalPointAbbreviation @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
     companion object {
-        val allowedLength = 0..20
+        val allowedLength = 1..20
         val sanitizer =
             StringSanitizer(
                 OperationalPointAbbreviation::class,
@@ -98,7 +98,7 @@ data class OperationalPointAbbreviation @JsonCreator(mode = DELEGATING) construc
 
 data class InternalOperationalPointSaveRequest(
     val name: OperationalPointName,
-    val abbreviation: OperationalPointAbbreviation,
+    val abbreviation: OperationalPointAbbreviation?,
     val rinfType: OperationalPointRinfType,
     val state: OperationalPointState,
     val uicCode: UicCode,

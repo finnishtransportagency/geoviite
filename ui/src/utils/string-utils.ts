@@ -17,6 +17,9 @@ export function isEmpty(str: string) {
 
 const equalsIgnoreCaseCollator = new Intl.Collator(i18next.language, { sensitivity: 'accent' });
 
+export const compareIgnoreCase = (a: string, b: string): number =>
+    equalsIgnoreCaseCollator.compare(a, b);
+
 export const isEqualIgnoreCase = (str1: string, str2: string): boolean =>
     equalsIgnoreCaseCollator.compare(str1, str2) === 0;
 

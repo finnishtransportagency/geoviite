@@ -45,7 +45,6 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.processFlattened
-import fi.fta.geoviite.infra.util.produceIf
 import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
@@ -170,26 +169,6 @@ class LocationTrackService(
         return tracksAndGeometries.map { (track, geometry) ->
             AlignmentStartAndEnd.of(track.id as IntId, geometry, getGeocodingContext(track.trackNumberId))
         }
-    }
-
-    fun getStartAndEndAtMoment(
-        branch: LayoutBranch,
-        ids: List<IntId<LocationTrack>>,
-        moment: Instant,
-    ): List<AlignmentStartAndEnd<LocationTrack>> {
-        val getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment)
-        val trackData =
-            dao.getManyOfficialAtMoment(branch, ids, moment).let(::associateWithGeometries).map { (track, geometry) ->
-                // Deleted tracks are not validated for the context which might live on after track deletion
-                // Hence, we don't have a valid addressing for deleted tracks
-                val geocodingContext = produceIf(track.exists) { getGeocodingContext(track.trackNumberId) }
-                Triple(track, geometry, geocodingContext)
-            }
-
-        return trackData
-            .parallelStream()
-            .map { (track, alignment, ctx) -> AlignmentStartAndEnd.of(track.id as IntId, alignment, ctx) }
-            .toList()
     }
 
     @Transactional

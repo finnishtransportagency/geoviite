@@ -2,13 +2,10 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
-import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -37,10 +34,7 @@ import org.springframework.web.bind.annotation.RequestParam
 )
 class ExtTrackNumberKmControllerV1
 @Autowired
-constructor(
-    private val extKmPostService: ExtTrackNumberKmServiceV1,
-    private val publicationService: PublicationService,
-) {
+constructor(private val extTrackNumberKmsService: ExtTrackNumberKmServiceV1) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @GetMapping("/ratanumerot/ratakilometrit")
@@ -67,19 +61,15 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberKmsCollection(
+    fun getExtTrackNumberKmsCollection(
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
         trackLayoutVersion: Uuid<Publication>?,
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
-    ): ExtTrackKmsCollectionResponseV1 {
-        return publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion).let {
-            publication ->
-            extKmPostService.createTrackNumberKmsCollectionResponse(publication, coordinateSystem ?: LAYOUT_SRID)
-        }
-    }
+    ): ExtTrackKmsCollectionResponseV1 =
+        extTrackNumberKmsService.getExtTrackNumberKmsCollection(trackLayoutVersion, coordinateSystem)
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}/ratakilometrit")
     @Tag(name = EXT_TRACK_NUMBERS_TAG_V1)
@@ -111,7 +101,7 @@ constructor(
                 ),
             ]
     )
-    fun extGetTrackNumberKms(
+    fun getExtTrackNumberKms(
         @Parameter(description = EXT_OPENAPI_TRACK_NUMBER_OID_DESCRIPTION)
         @PathVariable(TRACK_NUMBER_OID)
         oid: Oid<LayoutTrackNumber>,
@@ -121,12 +111,6 @@ constructor(
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: Srid?,
-    ): ResponseEntity<ExtTrackKmsResponseV1> {
-        return publicationService
-            .getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-            .let { publication ->
-                extKmPostService.createTrackKmResponse(oid, publication, coordinateSystem ?: LAYOUT_SRID)
-            }
-            .let(::toResponse)
-    }
+    ): ResponseEntity<ExtTrackKmsResponseV1> =
+        extTrackNumberKmsService.getExtTrackNumberKms(oid, trackLayoutVersion, coordinateSystem).let(::toResponse)
 }

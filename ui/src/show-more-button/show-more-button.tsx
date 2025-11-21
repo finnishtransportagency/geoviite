@@ -5,11 +5,13 @@ import { Button, ButtonProps, ButtonSize, ButtonVariant } from 'vayla-design-lib
 type ShowMoreButtonProps = {
     expanded: boolean;
     onShowMore: () => void;
+    showMoreText?: string;
 } & ButtonProps;
 
 export const ShowMoreButton: React.FC<ShowMoreButtonProps> = ({
     expanded,
     onShowMore,
+    showMoreText,
     ...props
 }) => {
     const { t } = useTranslation();
@@ -19,7 +21,7 @@ export const ShowMoreButton: React.FC<ShowMoreButtonProps> = ({
             size={ButtonSize.SMALL}
             {...props}
             onClick={() => onShowMore()}>
-            {expanded ? t('button.show-less') : t('button.show-more')}
+            {expanded ? t('button.show-less') : (showMoreText ?? t('button.show-more'))}
         </Button>
     );
 };

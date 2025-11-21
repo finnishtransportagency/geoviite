@@ -141,6 +141,7 @@ fun toLayoutSwitch(
         source = GeometrySource.PLAN,
         contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
         draftOid = null,
+        operationalPointId = null,
     )
 
 fun toLayoutSwitches(

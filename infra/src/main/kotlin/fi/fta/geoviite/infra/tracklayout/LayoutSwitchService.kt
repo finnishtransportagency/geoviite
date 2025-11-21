@@ -48,6 +48,7 @@ constructor(
                 source = GeometrySource.GENERATED,
                 contextData = LayoutContextData.newDraft(branch, id = null),
                 draftOid = request.draftOid,
+                operationalPointId = null,
             )
 
         return saveDraft(branch, switch).id
@@ -79,6 +80,20 @@ constructor(
             )
         return saveDraft(branch, updatedLayoutSwitch).id
     }
+
+    @Transactional
+    fun assignOperationalPoint(
+        branch: LayoutBranch,
+        id: IntId<LayoutSwitch>,
+        operationalPointId: IntId<OperationalPoint>?,
+    ): IntId<LayoutSwitch> =
+        saveDraft(branch, dao.getOrThrow(branch.draft, id).copy(operationalPointId = operationalPointId)).id
+
+    fun findSwitchesRelatedToOperationalPoint(
+        context: LayoutContext,
+        operationalPointId: IntId<OperationalPoint>,
+    ): List<SwitchWithOperationalPointPolygonInclusions> =
+        dao.findSwitchesRelatedToOperationalPoint(context, operationalPointId)
 
     @Transactional
     fun clearSwitchInformationFromTracks(branch: LayoutBranch, layoutSwitchId: IntId<LayoutSwitch>) {
@@ -249,3 +264,13 @@ private fun structureMatchesType(structure: SwitchStructure, searchString: Strin
 fun switchMatchesBbox(switch: LayoutSwitch, bbox: BoundingBox?, includeSwitchesWithNoJoints: Boolean) =
     (includeSwitchesWithNoJoints && switch.joints.isEmpty()) ||
         (bbox?.let { bb -> (switch.joints.any { joint -> bb.contains(joint.location) }) } ?: true)
+
+data class OperationalPointSwitches(
+    val withinPolygon: List<IntId<LayoutSwitch>>,
+    val linked: List<SwitchWithOperationalPointPolygonInclusions>,
+)
+
+data class SwitchWithOperationalPointPolygonInclusions(
+    val switchId: IntId<LayoutSwitch>,
+    val withinPolygon: List<IntId<OperationalPoint>>,
+)

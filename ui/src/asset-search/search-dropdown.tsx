@@ -133,7 +133,9 @@ function createOperationalPointOptionItem(
             operationalPoint: operationalPoint,
             type: SearchItemType.OPERATIONAL_POINT,
         } as const,
-        `${operationalPoint.name}, ${operationalPoint.abbreviation}`,
+        operationalPoint.abbreviation === undefined
+            ? operationalPoint.name
+            : `${operationalPoint.name}, ${operationalPoint.abbreviation}`,
         `operational-point-${operationalPoint.name}`,
     );
 }

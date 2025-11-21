@@ -1,13 +1,17 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.AddressFilter
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -21,20 +25,33 @@ constructor(
     private val geocodingDao: GeocodingDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
+    private val publicationService: PublicationService,
 ) {
-    fun createGeometryResponse(
+    fun getExtLocationTrackGeometry(
+        oid: Oid<LocationTrack>,
+        trackLayoutVersion: Uuid<Publication>?,
+        extResolution: ExtResolutionV1?,
+        coordinateSystem: Srid?,
+        addressFilterStart: ExtMaybeTrackKmOrTrackMeterV1?,
+        addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1?,
+    ): ExtLocationTrackGeometryResponseV1? {
+        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
+        val resolution = extResolution?.toResolution() ?: Resolution.ONE_METER
+        val coordinateSystem = coordinateSystem ?: LAYOUT_SRID
+        val addressFilter = createAddressFilter(addressFilterStart, addressFilterEnd)
+        return createGeometryResponse(oid, publication, resolution, coordinateSystem, addressFilter)
+    }
+
+    private fun createGeometryResponse(
         oid: Oid<LocationTrack>,
         publication: Publication,
         resolution: Resolution,
         coordinateSystem: Srid,
         addressFilter: AddressFilter,
     ): ExtLocationTrackGeometryResponseV1? {
-        val locationTrackId =
-            locationTrackDao.lookupByExternalId(oid)?.id
-                ?: throw ExtOidNotFoundExceptionV1("location track lookup failed for oid=$oid")
-
+        val id = idLookup(locationTrackDao, oid)
         return locationTrackDao
-            .fetchOfficialVersionAtMoment(publication.layoutBranch.branch, locationTrackId, publication.publicationTime)
+            .fetchOfficialVersionAtMoment(publication.layoutBranch.branch, id, publication.publicationTime)
             ?.let(locationTrackDao::fetch)
             // Deleted tracks have no geometry in API since there's no guarantee of geocodable addressing
             ?.takeIf { it.exists }

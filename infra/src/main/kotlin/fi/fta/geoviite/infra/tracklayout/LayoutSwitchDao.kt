@@ -21,7 +21,9 @@ import fi.fta.geoviite.infra.util.getBooleanOrNull
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
 import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getJointNumber
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getNullableDoubleArray
@@ -34,6 +36,9 @@ import fi.fta.geoviite.infra.util.toDbId
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.plus
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -187,6 +192,7 @@ class LayoutSwitchDao(
                     state_category,
                     trap_point,
                     owner_id,
+                    operational_point_id,
                     draft,
                     design_asset_state,
                     design_id,
@@ -203,6 +209,7 @@ class LayoutSwitchDao(
                   :state_category::layout.state_category,
                   :trap_point,
                   :owner_id,
+                  :operational_point_id,
                   :draft,
                   :design_asset_state::layout.design_asset_state,
                   :design_id,
@@ -217,6 +224,7 @@ class LayoutSwitchDao(
                   state_category = excluded.state_category,
                   trap_point = excluded.trap_point,
                   owner_id = excluded.owner_id,
+                  operational_point_id = excluded.operational_point_id,
                   design_asset_state = excluded.design_asset_state,
                   source = excluded.source,
                   draft_oid = excluded.draft_oid,
@@ -237,6 +245,7 @@ class LayoutSwitchDao(
                     "state_category" to item.stateCategory.name,
                     "trap_point" to item.trapPoint,
                     "owner_id" to item.ownerId?.intValue,
+                    "operational_point_id" to item.operationalPointId?.intValue,
                     "draft" to item.isDraft,
                     "design_asset_state" to item.designAssetState?.name,
                     "design_id" to item.contextData.designId?.intValue,
@@ -317,6 +326,7 @@ class LayoutSwitchDao(
                   sv.source,
                   sv.origin_design_id,
                   sv.draft_oid,
+                  sv.operational_point_id,
                   coalesce(joint_numbers, '{}') as joint_numbers,
                   coalesce(joint_roles, '{}') as joint_roles,
                   coalesce(joint_x_values, '{}') as joint_x_values,
@@ -379,7 +389,8 @@ class LayoutSwitchDao(
                   joint_y_values,
                   joint_location_accuracies,
                   s.draft_oid,
-                  s.origin_design_id
+                  s.origin_design_id,
+                  s.operational_point_id
                 from layout.switch s
                   left join lateral
                     (select coalesce(array_agg(jv.number order by jv.number), '{}') as joint_numbers,
@@ -425,6 +436,7 @@ class LayoutSwitchDao(
             ownerId = rs.getIntId("owner_id"),
             source = rs.getEnum("source"),
             draftOid = rs.getOidOrNull("draft_oid"),
+            operationalPointId = rs.getIntIdOrNull("operational_point_id"),
             contextData =
                 rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
@@ -594,6 +606,114 @@ class LayoutSwitchDao(
             rs.getString("name").let(::SwitchName)
         }
 
+    @Transactional(readOnly = true)
+    fun findSwitchesRelatedToOperationalPoint(
+        context: LayoutContext,
+        operationalPointId: IntId<OperationalPoint>,
+    ): List<SwitchWithOperationalPointPolygonInclusions> {
+        val withinPolygon = getSwitchJointsWithinOperationalPointArea(context, operationalPointId)
+        val around = getSwitchesAndOperationalPointInclusions(context, operationalPointId, withinPolygon)
+
+        return (withinPolygon.map { it.switchId to it.operationalPoints + operationalPointId } +
+                around.map { it.switchId to it.withinPolygon })
+            .groupBy({ (switchId) -> switchId }, { (_, operationalPoints) -> operationalPoints })
+            .map { (switchId, operationalPoints) ->
+                SwitchWithOperationalPointPolygonInclusions(switchId, operationalPoints.flatten().distinct())
+            }
+    }
+
+    private fun getSwitchJointsWithinOperationalPointArea(
+        context: LayoutContext,
+        id: IntId<OperationalPoint>,
+    ): List<SwitchJointWithOverlappingOperationalPoints> {
+        val sql =
+            """
+                with other_operational_points_overlapping_query_point as materialized (
+                  select other_point.id, other_point.polygon
+                    from layout.operational_point_in_layout_context(:publication_state::layout.publication_state,
+                                                                    :design_id) query_point
+                      join layout.operational_point_in_layout_context(:publication_state::layout.publication_state,
+                                                                      :design_id) other_point
+                           on postgis.st_intersects(query_point.polygon, other_point.polygon) and query_point.id != other_point.id
+                    where query_point.id = :operational_point_id
+                )
+                select switch_version_joint.switch_id, switch_version_joint.number, overlapping_operational_point_ids
+                  from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) switch
+                    join layout.switch_version_joint
+                         on switch_version_joint.switch_id = switch.id
+                           and switch_version_joint.switch_layout_context_id = switch.layout_context_id
+                           and switch_version_joint.switch_version = switch.version
+                    join (
+                    select *
+                      from layout.operational_point_in_layout_context(:publication_state::layout.publication_state,
+                                                                      :design_id) operational_point
+                      where operational_point.id = :operational_point_id
+                  ) operational_point
+                         on postgis.st_intersects(switch_version_joint.location, operational_point.polygon)
+                    cross join lateral
+                    (select coalesce(array_agg(op.id), '{}') as overlapping_operational_point_ids
+                       from other_operational_points_overlapping_query_point op
+                       where postgis.st_intersects(switch_version_joint.location, op.polygon));
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "operational_point_id" to id.intValue,
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            SwitchJointWithOverlappingOperationalPoints(
+                rs.getIntId("switch_id"),
+                rs.getJointNumber("number"),
+                rs.getIntIdArray("overlapping_operational_point_ids"),
+            )
+        }
+    }
+
+    private fun getSwitchesAndOperationalPointInclusions(
+        context: LayoutContext,
+        operationalPointId: IntId<OperationalPoint>,
+        jointsWithinPolygon: List<SwitchJointWithOverlappingOperationalPoints>,
+    ): List<SwitchWithOperationalPointPolygonInclusions> {
+        val sql =
+            """
+                select switch.id, operational_point_ids
+                  from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) switch
+                    cross join lateral (
+                    select coalesce(array_agg(distinct operational_point.id), '{}') as operational_point_ids
+                      from layout.operational_point_in_layout_context(:publication_state::layout.publication_state,
+                                                                      :design_id) operational_point
+                        join layout.switch_version_joint
+                             on postgis.st_intersects(operational_point.polygon, switch_version_joint.location)
+                      where switch_version_joint.switch_id = switch.id
+                        and switch_version_joint.switch_layout_context_id = switch.layout_context_id
+                        and switch_version_joint.switch_version = switch.version
+                        and not exists (
+                        select *
+                          from unnest(:switch_joint_switch_ids, :switch_joint_switch_numbers) e(switch_id, number)
+                          where switch_version_joint.switch_id = e.switch_id
+                            and switch_version_joint.number = e.number
+                      )
+                    )
+                  where (switch.operational_point_id = :operational_point_id
+                    or switch.id = any (:switch_ids));
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "operational_point_id" to operationalPointId.intValue,
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+                "switch_joint_switch_ids" to jointsWithinPolygon.map { it.switchId.intValue }.toTypedArray(),
+                "switch_joint_switch_numbers" to jointsWithinPolygon.map { it.jointNumber.intValue }.toTypedArray(),
+                "switch_ids" to jointsWithinPolygon.map { it.switchId.intValue }.distinct().toTypedArray(),
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            SwitchWithOperationalPointPolygonInclusions(rs.getIntId("id"), rs.getIntIdArray("operational_point_ids"))
+        }
+    }
+
     fun findSwitchesNearTrack(
         branch: LayoutBranch,
         trackVersion: LayoutRowVersion<LocationTrack>,
@@ -643,3 +763,9 @@ class LayoutSwitchDao(
         insertExternalIdInExistingTransaction(branch, id, oid)
     }
 }
+
+private data class SwitchJointWithOverlappingOperationalPoints(
+    val switchId: IntId<LayoutSwitch>,
+    val jointNumber: JointNumber,
+    val operationalPoints: List<IntId<OperationalPoint>>,
+)

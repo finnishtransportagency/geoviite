@@ -111,7 +111,7 @@ constructor(
             val switchOid = RatkoOid<RatkoSwitchAsset>(layoutSwitchExternalId.oid)
 
             val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
-            val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
+            val switchOwner = switchLibraryService.getSwitchOwner(layoutSwitch.ownerId)
 
             val updatedRatkoSwitch =
                 convertToRatkoSwitch(
@@ -264,7 +264,7 @@ constructor(
     ) {
         try {
             val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
-            val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
+            val switchOwner = switchLibraryService.getSwitchOwner(layoutSwitch.ownerId)
 
             val ratkoSwitch =
                 convertToRatkoSwitch(

@@ -60,7 +60,7 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
                 ),
             ]
     )
-    fun extGetTrackLayoutVersion(
+    fun getExtTrackLayoutVersion(
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_DESCRIPTION)
         @PathVariable(TRACK_LAYOUT_VERSION)
         version: Uuid<Publication>
@@ -87,7 +87,7 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
                 ),
             ]
     )
-    fun extGetLatestTrackLayoutVersion(): ExtTrackLayoutVersionV1 {
+    fun getExtLatestTrackLayoutVersion(): ExtTrackLayoutVersionV1 {
         return publicationService.getLatestPublication(LayoutBranchType.MAIN).let(::ExtTrackLayoutVersionV1)
     }
 
@@ -115,7 +115,7 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
                 ),
             ]
     )
-    fun extGetTrackLayoutVersionCollection(): ResponseEntity<ExtTrackLayoutVersionCollectionResponseV1> {
+    fun getExtTrackLayoutVersionCollection(): ResponseEntity<ExtTrackLayoutVersionCollectionResponseV1> {
         return publicationService
             .listPublications(LayoutBranchType.MAIN)
             .takeIf { publications -> publications.isNotEmpty() }
@@ -153,7 +153,7 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
                 ),
             ]
     )
-    fun extGetModifiedTrackLayoutVersionCollection(
+    fun getExtModifiedTrackLayoutVersionCollection(
         @Parameter(
             description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
             schema = Schema(type = "string", format = "uuid"),

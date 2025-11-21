@@ -909,6 +909,7 @@ fun switch(
     id: IntId<LayoutSwitch>? = null,
     draft: Boolean = false,
     ownerId: IntId<SwitchOwner> = switchOwnerVayla().id,
+    operationalPointId: IntId<OperationalPoint>? = null,
     contextData: LayoutContextData<LayoutSwitch> = createMainContext(id, draft),
     draftOid: Oid<LayoutSwitch>? = null,
 ) =
@@ -923,6 +924,7 @@ fun switch(
         source = GENERATED,
         contextData = contextData,
         draftOid = draftOid,
+        operationalPointId = operationalPointId,
     )
 
 fun parsedSwitchName(prefix: String, shortNumberPart: String) =

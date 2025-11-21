@@ -287,7 +287,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                             label={t('operational-point-dialog.abbreviation')}
                             value={
                                 <TextField
-                                    value={state.operationalPoint.abbreviation}
+                                    value={state.operationalPoint.abbreviation ?? ''}
                                     onChange={(e) => updateProp('abbreviation', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('abbreviation')}
                                     hasError={visibleAbbreviationErrors.length > 0}

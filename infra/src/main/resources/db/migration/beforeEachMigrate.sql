@@ -1,1 +1,1 @@
-set session geoviite.edit_user to 'INIT';
+set session geoviite.edit_user to 'Geoviite';
