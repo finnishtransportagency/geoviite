@@ -26,6 +26,7 @@ import { OperationalPointEditDialogContainer } from 'tool-panel/operational-poin
 import { OperationalPointLocationInfobox } from 'tool-panel/operational-point/operational-point-location-infobox';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { OperationalPointSwitchesInfobox } from 'tool-panel/operational-point/operational-point-switches-infobox';
+import { EnvRestricted } from 'environment/env-restricted';
 
 type OperationalPointInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -167,15 +168,17 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 onStartPlacingArea={onStartPlacingArea}
                 onStopPlacingArea={onStopPlacingArea}
             />
-            {operationalPoint.polygon && (
-                <OperationalPointSwitchesInfobox
-                    contentVisible={visibilities.switches}
-                    onVisibilityChange={visibilityChange}
-                    layoutContext={layoutContext}
-                    operationalPoint={operationalPoint}
-                    changeTimes={changeTimes}
-                />
-            )}
+            <EnvRestricted restrictTo={'dev'}>
+                {operationalPoint.polygon && (
+                    <OperationalPointSwitchesInfobox
+                        contentVisible={visibilities.switches}
+                        onVisibilityChange={visibilityChange}
+                        layoutContext={layoutContext}
+                        operationalPoint={operationalPoint}
+                        changeTimes={changeTimes}
+                    />
+                )}
+            </EnvRestricted>
             <AssetValidationInfoboxContainer
                 contentVisible={visibilities.validation}
                 onContentVisibilityChange={() => visibilityChange('validation')}
