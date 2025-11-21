@@ -105,7 +105,7 @@ export const initialInternalOperationalPointEditState: InternalOperationalPointE
     isSaving: false,
     operationalPoint: {
         name: '',
-        abbreviation: '',
+        abbreviation: undefined,
         rinfType: undefined,
         state: 'IN_USE',
         uicCode: '',
@@ -142,7 +142,11 @@ const internalOperationalPointEditSlice = createSlice({
             }: PayloadAction<PropEdit<InternalOperationalPointSaveRequest, TKey>>,
         ) {
             if (state.operationalPoint) {
-                state.operationalPoint[propEdit.key] = propEdit.value;
+                if (propEdit.key === 'abbreviation' && propEdit.value === '') {
+                    state.operationalPoint.abbreviation = undefined;
+                } else {
+                    state.operationalPoint[propEdit.key] = propEdit.value;
+                }
                 state.validationIssues = validateInternalOperationalPoint(state.operationalPoint);
 
                 if (
