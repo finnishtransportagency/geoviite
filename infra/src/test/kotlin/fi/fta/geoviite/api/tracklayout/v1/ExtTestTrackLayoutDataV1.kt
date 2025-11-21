@@ -41,6 +41,7 @@ data class ExtTestLocationTrackGeometryResponseV1(
 data class ExtTestModifiedLocationTrackGeometryResponseV1(
     val alkuversio: String,
     val loppuversio: String,
+    val sijaintiraide_oid: String,
     val koordinaatisto: String,
     val osoitevalit: List<ExtTestGeometryIntervalV1>,
 )
@@ -150,20 +151,11 @@ data class ExtTestGeometryIntervalV1(
     val pisteet: List<ExtTestAddressPointV1>,
 )
 
-data class ExtTestSwitchJointV1(
-    val numero: Int,
-    val sijainti: ExtTestCoordinateV1,
-)
+data class ExtTestSwitchJointV1(val numero: Int, val sijainti: ExtTestCoordinateV1)
 
-data class ExtTestSwitchTrackJointV1(
-    val numero: Int,
-    val sijainti: ExtTestAddressPointV1,
-)
+data class ExtTestSwitchTrackJointV1(val numero: Int, val sijainti: ExtTestAddressPointV1)
 
-data class ExtTestSwitchTrackLinkV1(
-    val sijaintiraide_oid: String,
-    val pisteet: List<ExtTestSwitchTrackJointV1>,
-)
+data class ExtTestSwitchTrackLinkV1(val sijaintiraide_oid: String, val pisteet: List<ExtTestSwitchTrackJointV1>)
 
 data class ExtTestSwitchV1(
     val vaihde_oid: String,

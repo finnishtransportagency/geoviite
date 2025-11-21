@@ -58,6 +58,7 @@ data class ExtLocationTrackModifiedGeometryResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val trackLayoutVersionFrom: Uuid<Publication>,
     @JsonProperty(TRACK_LAYOUT_VERSION_TO) val trackLayoutVersionTo: Uuid<Publication>,
     @JsonProperty(LOCATION_TRACK_OID) val locationTrackOid: Oid<LocationTrack>,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
     @JsonProperty(TRACK_INTERVALS) val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
 

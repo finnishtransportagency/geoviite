@@ -298,4 +298,72 @@ class ExtLocationTrackControllerV1(
                 addressFilterEnd,
             )
             .let(::toResponse)
+
+    @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}/geometria/muutokset")
+    @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
+    @Operation(summary = "Yksittäisen sijaintiraiteen geometrian muutosten haku OID-tunnuksella")
+    @ApiResponses(
+        value =
+            [
+                ApiResponse(responseCode = "200", description = "Sijaintiraiteen geometrian muutosten haku onnistui."),
+                ApiResponse(
+                    responseCode = "204",
+                    description =
+                        "Sijaintiraiteen OID-tunnus löytyi, mutta geometrian muutoksia vertailtavien versioiden välillä ei ole.",
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "400",
+                    description = EXT_OPENAPI_INVALID_ARGUMENTS,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "404",
+                    description = EXT_OPENAPI_LOCATION_TRACK_OR_TRACK_LAYOUT_VERSION_NOT_FOUND,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+                ApiResponse(
+                    responseCode = "500",
+                    description = EXT_OPENAPI_SERVER_ERROR,
+                    content = [Content(schema = Schema(hidden = true))],
+                ),
+            ]
+    )
+    fun getExtLocationTrackGeometryModifications(
+        @Parameter(description = EXT_OPENAPI_LOCATION_TRACK_OID_DESCRIPTION)
+        @PathVariable(LOCATION_TRACK_OID_PARAM)
+        oid: Oid<LocationTrack>,
+        @Parameter(
+            description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
+            schema = Schema(type = "string", format = "uuid"),
+        )
+        @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
+        trackLayoutVersionFrom: Uuid<Publication>,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO, schema = Schema(type = "string", format = "uuid"))
+        @RequestParam(TRACK_LAYOUT_VERSION_TO, required = false)
+        trackLayoutVersionTo: Uuid<Publication>?,
+        @Parameter(description = EXT_OPENAPI_RESOLUTION)
+        @RequestParam(ADDRESS_POINT_RESOLUTION, required = false)
+        extResolution: ExtResolutionV1? = null,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
+        @RequestParam(COORDINATE_SYSTEM, required = false)
+        coordinateSystem: Srid? = null,
+        @Parameter(description = EXT_OPENAPI_ADDRESS_POINT_FILTER_START)
+        @RequestParam(ADDRESS_POINT_FILTER_START, required = false)
+        addressFilterStart: ExtMaybeTrackKmOrTrackMeterV1? = null,
+        @Parameter(description = EXT_OPENAPI_ADDRESS_POINT_FILTER_END)
+        @RequestParam(ADDRESS_POINT_FILTER_END, required = false)
+        addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1? = null,
+    ): ResponseEntity<ExtLocationTrackModifiedGeometryResponseV1> =
+        extLocationTrackGeometryService
+            .getExtLocationTrackGeometryModifications(
+                oid,
+                trackLayoutVersionFrom,
+                trackLayoutVersionTo,
+                extResolution,
+                coordinateSystem,
+                addressFilterStart,
+                addressFilterEnd,
+            )
+            .let(::toResponse)
 }

@@ -490,9 +490,12 @@ interface ISegment : ISegmentGeometry, ISegmentFields {
     @get:JsonIgnore val geometry: SegmentGeometry
 
     fun <M : AlignmentM<M>> getClosestPointM(segmentStartM: LineM<M>, target: IPoint): Pair<LineM<M>, IntersectType> =
-        findClosestSegmentPointM(0..segmentPoints.lastIndex, target).let { (segmentM, intersect) ->
+        getClosestPointM(target).let { (segmentM, intersect) ->
             (segmentM.segmentToAlignmentM(segmentStartM)) to intersect
         }
+
+    fun getClosestPointM(target: IPoint): Pair<LineM<SegmentM>, IntersectType> =
+        findClosestSegmentPointM(0..segmentPoints.lastIndex, target)
 
     private fun findClosestSegmentPointM(range: IntRange, target: IPoint): Pair<LineM<SegmentM>, IntersectType> {
         if (range.first == range.last) {
