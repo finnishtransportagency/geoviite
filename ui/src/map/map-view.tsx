@@ -105,6 +105,7 @@ import { createOperationalPointsPlacingLayer } from 'map/layers/operational-poin
 import { operationalPointPolygonStylesFunc } from 'map/layers/operational-point/operational-points-layer-utils';
 import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
 import { createOperationalPointBadgeLayer } from 'map/layers/operational-point/operational-points-badge-layer';
+import { searchItemsFromMap } from 'map/tools/tool-utils';
 
 declare global {
     interface Window {
@@ -363,6 +364,10 @@ const MapView: React.FC<MapViewProps> = ({
                 interactions: interactions,
                 target: olMapContainer.current as HTMLElement,
                 view: getOlViewByDomainViewport(map.viewport),
+            });
+
+            window.map.on('pointermove', (evt) => {
+                searchItemsFromMap(evt.pixel, evt.map, {});
             });
 
             setOlMap(window.map);

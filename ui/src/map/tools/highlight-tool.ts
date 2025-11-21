@@ -2,7 +2,9 @@ import OlMap from 'ol/Map';
 import { MapTool, MapToolActivateOptions } from './tool-model';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { debounce } from 'ts-debounce';
-import { getDefaultHitArea, searchItemsFromLayers } from 'map/tools/tool-utils';
+import { getDefaultHitArea, searchItemsFromLayers, searchItemsFromMap } from 'map/tools/tool-utils';
+import { mergePartialItemSearchResults } from 'map/layers/utils/layer-utils';
+import { createEmptyItemCollections } from 'selection/selection-store';
 
 let currentItemsCompare = '';
 export const highlightTool: MapTool = {
@@ -11,7 +13,10 @@ export const highlightTool: MapTool = {
         const debouncedMoveHandlerHighlight = debounce(
             ({ coordinate }) => {
                 const hitArea = getDefaultHitArea(map, coordinate);
-                const items = searchItemsFromLayers(hitArea, layers, { limit: 1 });
+                const itemsFromLayers = searchItemsFromLayers(hitArea, layers, { limit: 1 });
+                const itemsFromMap = createEmptyItemCollections(); //searchItemsFromMap(coordinate, map, { limit: 1 });
+                const items = mergePartialItemSearchResults(itemsFromLayers, itemsFromMap);
+
                 const itemsCompare = JSON.stringify(items);
                 if (currentItemsCompare !== itemsCompare) {
                     options.onHighlightItems(items);

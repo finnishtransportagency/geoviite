@@ -11,7 +11,7 @@ import {
 import VectorSource from 'ol/source/Vector';
 import { fieldComparator, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import Style from 'ol/style/Style';
-import { Circle, Fill, Stroke, Text } from 'ol/style';
+import { Circle, Fill, Stroke } from 'ol/style';
 import Feature, { FeatureLike } from 'ol/Feature';
 import { LineString, MultiPoint, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
 import mapStyles from 'map/map.module.scss';
@@ -21,6 +21,8 @@ import { LinkingState, LinkingType } from 'linking/linking-model';
 import { getOperationalPointsByLocation } from 'track-layout/layout-operational-point-api';
 import { MapTile } from 'map/map-model';
 import { LayoutContext, TimeStamp } from 'common/common-model';
+import { Coordinate } from 'ol/coordinate';
+import { State } from 'ol/render';
 
 export const OPERATIONAL_POINT_FEATURE_DATA_PROPERTY = 'operational-point-data';
 
@@ -80,14 +82,18 @@ export const featureStyleOffsetX = (size: OperationalPointLocationFeatureSize) =
 };
 
 const fontString = (fontSizePx: number) => `${fontSizePx}px "Open Sans"`;
-export const featureStyleFont = (size: OperationalPointLocationFeatureSize) => {
+
+export const featureFontHeight = (
+    size: OperationalPointLocationFeatureSize,
+    pixelRatio: number,
+) => {
     switch (size) {
         case OperationalPointLocationFeatureSize.Small:
-            return fontString(11);
+            return 11 * pixelRatio;
         case OperationalPointLocationFeatureSize.Medium:
-            return fontString(14);
+            return 14 * pixelRatio;
         case OperationalPointLocationFeatureSize.Large:
-            return fontString(16);
+            return 16 * pixelRatio;
         default:
             return exhaustiveMatchingGuard(size);
     }
@@ -141,38 +147,104 @@ const createOperationalPointCircleStyle = (
 const createOperationalPointTextStyle = (
     operationalPointName: string,
     featureMode: OperationalPointFeatureMode,
-    size: OperationalPointLocationFeatureSize,
 ): Style => {
     const color = featureColor(featureMode);
 
-    const textArgs = {
-        text: new Text({
-            text: operationalPointName,
-            fill: new Fill({ color }),
-            textAlign: 'left',
-            backgroundFill: new Fill({ color: 'rgba(255, 255, 255, 0.85)' }),
-            scale: 1,
-            offsetX: featureStyleOffsetX(size),
-            font: featureStyleFont(size),
-        }),
-    };
+    const stylerooni = new Style({
+        renderer: (coordinates: Coordinate, state: State) => {
+            const size =
+                operationalPointStyleResolutionsSmallestFirst.find(
+                    (styleResolution) => state.resolution <= styleResolution.resolutionUpperLimit,
+                )?.featureSize ?? OperationalPointLocationFeatureSize.Small;
 
-    return new Style(textArgs);
+            const x = (coordinates[0] ?? 0) + featureStyleOffsetX(size);
+            const y = coordinates[1] ?? 0;
+            console.log('renderer', coordinates);
+            const ctx = state.context;
+            const labelTextStroke = color;
+            const fontSize = featureFontHeight(size, state.pixelRatio);
+            const borderWidth = 4 * state.pixelRatio;
+
+            ctx.strokeStyle = labelTextStroke;
+            ctx.lineWidth = 1;
+            ctx.textAlign = 'left';
+            ctx.font = fontString(fontSize);
+            const _textMeasurements = ctx.measureText(operationalPointName);
+
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.strokeStyle = 'white';
+            drawRect(
+                x - borderWidth,
+                y - (fontSize + borderWidth * 2) / 2,
+                _textMeasurements.width * state.pixelRatio + borderWidth * 2,
+                fontSize + borderWidth * 2,
+                ctx,
+            );
+            ctx.restore();
+
+            ctx.beginPath();
+            ctx.fillStyle = color;
+            ctx.fillText(operationalPointName, x, y + borderWidth);
+            ctx.restore();
+        },
+    });
+
+    stylerooni.setHitDetectionRenderer((coordinates: Coordinate, state: State) => {
+        const size =
+            operationalPointStyleResolutionsSmallestFirst.find(
+                (styleResolution) => state.resolution <= styleResolution.resolutionUpperLimit,
+            )?.featureSize ?? OperationalPointLocationFeatureSize.Small;
+        const x = (coordinates[0] ?? 0) + featureStyleOffsetX(size);
+        const y = coordinates[1] ?? 0;
+
+        console.log('hitbox', coordinates);
+        const ctx = state.context;
+        const fontSize = featureFontHeight(size, state.pixelRatio);
+        const borderWidth = 4 * state.pixelRatio;
+        console.log(state, state.pixelRatio);
+
+        ctx.lineWidth = 1;
+        ctx.textAlign = 'left';
+        ctx.font = fontString(fontSize);
+
+        ctx.beginPath();
+        const _textMeasurements = ctx.measureText(operationalPointName);
+        ctx.fillStyle = 'black';
+        ctx.strokeStyle = 'black';
+        drawRect(
+            x - borderWidth,
+            y - (fontSize + borderWidth * 2) / 2,
+            _textMeasurements.width * state.pixelRatio + borderWidth * 2,
+            fontSize + borderWidth * 2,
+            ctx,
+        );
+        ctx.restore();
+    });
+    return stylerooni;
 };
 
 function getOperationalPointTextStyleForFeature(
     feature: FeatureLike,
-    resolution: number,
     featureMode: OperationalPointFeatureMode,
 ): Style | undefined {
     const point = feature.get(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY) as OperationalPoint;
-    const locationFeatureSize =
-        operationalPointStyleResolutionsSmallestFirst.find(
-            (styleResolution) => resolution <= styleResolution.resolutionUpperLimit,
-        )?.featureSize ?? OperationalPointLocationFeatureSize.Small;
 
-    return createOperationalPointTextStyle(point.name, featureMode, locationFeatureSize);
+    return createOperationalPointTextStyle(point.name, featureMode);
 }
+
+const drawRect = (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    ctx: CanvasRenderingContext2D,
+) => {
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.fill();
+    ctx.stroke();
+};
 
 function getOperationalPointCircleStyleForFeature(
     resolution: number,
@@ -219,9 +291,7 @@ export const renderOperationalPointTextFeature = (
         geometry: new OlPoint(pointToCoords(location)),
     });
     feature.set(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY, point);
-    feature.setStyle((feature, resolution) =>
-        getOperationalPointTextStyleForFeature(feature, resolution, featureMode),
-    );
+    feature.setStyle((feature) => getOperationalPointTextStyleForFeature(feature, featureMode));
 
     return feature;
 };
