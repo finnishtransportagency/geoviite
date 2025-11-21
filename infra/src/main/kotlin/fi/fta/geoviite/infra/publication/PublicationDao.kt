@@ -1701,11 +1701,11 @@ class PublicationDao(
                   postgis.st_astext(point_version.polygon) as polygon,
                   postgis.st_astext(old_point_version.polygon) as old_polygon
                 from publication.operational_point point
-                  left join layout.operational_point_version point_version
+                  left join layout.operational_point_version_view point_version
                           on point_version.id = point.id
                             and point_version.layout_context_id = point.layout_context_id
                             and point_version.version = point.version
-                  left join layout.operational_point_version old_point_version
+                  left join layout.operational_point_version_view old_point_version
                           on old_point_version.id = point.id
                             and old_point_version.layout_context_id = point.base_layout_context_id
                             and old_point_version.version = point.base_version
@@ -1732,7 +1732,9 @@ class PublicationDao(
                                 rs.getEnumOrNull<OperationalPointRaideType>(field)
                             },
                         polygon =
-                            rs.getChange("polygon") { field -> rs.getPolygonPointListOrNull(field)?.let(::Polygon) },
+                            rs.getNullableChange("polygon") { field ->
+                                rs.getPolygonPointListOrNull(field)?.let(::Polygon)
+                            },
                         location = rs.getChangePoint("point_x", "point_y"),
                         state = rs.getChange("state") { field -> rs.getEnumOrNull<OperationalPointState>(field) },
                     )
@@ -2732,7 +2734,7 @@ class PublicationDao(
                   layout.infer_operation_from_operational_point_state_transition(opc.old_state, opc.state) as operation,
                   opv.name
                 from publication.operational_point pop
-                  inner join layout.operational_point_version opv using (id, layout_context_id, version)
+                  inner join layout.operational_point_version_view opv using (id, layout_context_id, version)
                   inner join layout.operational_point_change_view opc using (id, layout_context_id, version)
                 where publication_id = any(array[:publication_ids]::int[])
             """

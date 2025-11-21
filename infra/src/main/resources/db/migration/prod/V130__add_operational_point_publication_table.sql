@@ -17,4 +17,22 @@ create table publication.operational_point
     foreign key (id, layout_context_id, version)
       references layout.operational_point_version (id, layout_context_id, version),
   constraint publication_operational_point_publication_fk foreign key (publication_id) references publication.publication (id)
+);
+
+with publication_id as (insert into publication.publication (publication_user, publication_time, message, cause)
+    values
+      ('Geoviite', now(), 'Toiminnallisten pisteiden automaattinen sisäänluku', 'MANUAL')
+  returning id
 )
+insert
+  into publication.operational_point
+    (publication_id, id, version, layout_context_id)
+    (
+      select
+        publication_id.id,
+        op.id,
+        op.version,
+        op.layout_context_id
+        from publication_id,
+          layout.operational_point op
+    );

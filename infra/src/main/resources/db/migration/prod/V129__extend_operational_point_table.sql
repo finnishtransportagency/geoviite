@@ -121,9 +121,9 @@ insert into layout.operational_point
   (
     select
       row_number() over (order by external_id),
-      true,
+      false,
       null,
-      'main_draft',
+      'main_official',
       'IN_USE',
       'RATKO',
       version
