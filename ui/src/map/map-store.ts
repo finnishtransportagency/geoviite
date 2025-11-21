@@ -116,6 +116,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'geometry-km-post': ['geometry-km-post-layer'],
     'operational-points': ['operational-points-icon-layer', 'operational-points-badge-layer'],
     'operational-point-areas': ['operational-points-area-layer'],
+    'signal-asset': ['signal-asset-layer'],
     'debug-1m': ['debug-1m-points-layer'],
     'debug-projection-lines': ['debug-projection-lines-layer'],
     'debug': ['debug-layer'],
@@ -145,6 +146,7 @@ export const initialMapState: Map = {
         'reference-line-selected-alignment-layer',
         'operational-points-icon-layer',
         'operational-points-badge-layer',
+        'signal-asset-layer',
     ],
     layerMenu: {
         layout: [
