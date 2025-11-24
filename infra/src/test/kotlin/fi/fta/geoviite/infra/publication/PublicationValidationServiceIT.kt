@@ -57,6 +57,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.moveOperationalPointBy
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.ratkoOperationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -2241,24 +2242,30 @@ constructor(
             ratkoTestService
                 .setupRatkoOperationalPoints(
                     ratkoOperationalPoint("1.2.3.4.5", name = "ext 123", uicCode = "123"),
-                    ratkoOperationalPoint("1.2.3.4.6", "ext null", uicCode = ""),
+                    ratkoOperationalPoint("1.2.3.4.6", "ext null", uicCode = "", location = Point(55.0, 55.0)),
                 )
                 .let { it[0] to it[1] }
 
-        val somePolygon = operationalPoint().polygon
+        val somePolygon = operationalPoint().polygon!!
         val someRinfType = operationalPoint().rinfType
         mainDraftContext.save(
             mainDraftContext.fetch(external123)!!.copy(polygon = somePolygon, rinfType = someRinfType)
         )
         mainDraftContext.save(
-            mainDraftContext.fetch(externalNull)!!.copy(polygon = somePolygon, rinfType = someRinfType)
+            mainDraftContext
+                .fetch(externalNull)!!
+                .copy(polygon = somePolygon.moveBy(Point(50.0, 50.0)), rinfType = someRinfType)
         )
 
-        val internal123 = mainDraftContext.save(operationalPoint("int 123", uicCode = "123")).id
-        val internalNull = mainDraftContext.save(operationalPoint("int null", uicCode = null)).id
-        val internal234 = mainDraftContext.save(operationalPoint("int 234", uicCode = "234")).id
-        mainDraftContext.save(operationalPoint("other 234", uicCode = "234")).id
-        val internal345 = mainDraftContext.save(operationalPoint("int 345", uicCode = "345")).id
+        val internal123 =
+            mainDraftContext.save(moveOperationalPointBy(operationalPoint("int 123", uicCode = "123"), 100.0, 100.0)).id
+        val internalNull =
+            mainDraftContext.save(moveOperationalPointBy(operationalPoint("int null", uicCode = null), 150.0, 150.0)).id
+        val internal234 =
+            mainDraftContext.save(moveOperationalPointBy(operationalPoint("int 234", uicCode = "234"), 200.0, 200.0)).id
+        mainDraftContext.save(moveOperationalPointBy(operationalPoint("other 234", uicCode = "234"), 250.0, 250.0)).id
+        val internal345 =
+            mainDraftContext.save(moveOperationalPointBy(operationalPoint("int 345", uicCode = "345"), 300.0, 300.0)).id
 
         assertEquals(
             listOf(
@@ -2422,9 +2429,36 @@ constructor(
     @Test
     fun `operational point name and abbreviation must be unique`() {
         val aa = mainDraftContext.save(operationalPoint(name = "aName", abbreviation = "aAbbrev", uicCode = "1")).id
-        val ab = mainDraftContext.save(operationalPoint(name = "aName", abbreviation = "bAbbrev", uicCode = "2")).id
-        val ba = mainDraftContext.save(operationalPoint(name = "bName", abbreviation = "aAbbrev", uicCode = "3")).id
-        val bb = mainDraftContext.save(operationalPoint(name = "bName", abbreviation = "bAbbrev", uicCode = "4")).id
+        val ab =
+            mainDraftContext
+                .save(
+                    moveOperationalPointBy(
+                        operationalPoint(name = "aName", abbreviation = "bAbbrev", uicCode = "2"),
+                        50.0,
+                        50.0,
+                    )
+                )
+                .id
+        val ba =
+            mainDraftContext
+                .save(
+                    moveOperationalPointBy(
+                        operationalPoint(name = "bName", abbreviation = "aAbbrev", uicCode = "3"),
+                        100.0,
+                        100.0,
+                    )
+                )
+                .id
+        val bb =
+            mainDraftContext
+                .save(
+                    moveOperationalPointBy(
+                        operationalPoint(name = "bName", abbreviation = "bAbbrev", uicCode = "4"),
+                        150.0,
+                        150.0,
+                    )
+                )
+                .id
         assertEquals(
             listOf(
                 // aName, aAbbrev
@@ -2476,6 +2510,39 @@ constructor(
             publicationValidationService
                 .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(rinfless))[0]
                 .errors,
+        )
+    }
+
+    @Test
+    fun `operational points can be validated without having a draft`() {
+        val poly = operationalPoint().polygon
+        val a = mainOfficialContext.save(operationalPoint(name = "a", polygon = poly)).id
+        val b = mainOfficialContext.save(operationalPoint(name = "b", uicCode = "1235", polygon = poly)).id
+        val c =
+            mainOfficialContext
+                .save(
+                    operationalPoint(
+                        name = "c",
+                        uicCode = "1236",
+                        location = Point(55.0, 55.0),
+                        polygon = poly?.moveBy(Point(50.0, 50.0)),
+                    )
+                )
+                .id
+
+        assertEquals(
+            listOf<LayoutValidationIssue>(),
+            publicationValidationService.validateOperationalPoints(LayoutBranch.main, OFFICIAL, listOf(c))[0].errors,
+        )
+        assertEquals(
+            listOf<LayoutValidationIssue>(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.FATAL,
+                    "validation.layout.operational-point.overlapping-polygon-official",
+                    mapOf("duplicateNames" to "b"),
+                )
+            ),
+            publicationValidationService.validateOperationalPoints(LayoutBranch.main, OFFICIAL, listOf(a))[0].errors,
         )
     }
 

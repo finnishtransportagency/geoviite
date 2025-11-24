@@ -350,12 +350,6 @@ class OperationalPointDao(
         publicationCandidateIds: List<IntId<OperationalPoint>>? = null,
         checkIds: List<IntId<OperationalPoint>>? = null,
     ): Map<IntId<OperationalPoint>, List<IntId<OperationalPoint>>> {
-        require(
-            publicationCandidateIds == null || checkIds == null || checkIds.all(publicationCandidateIds::contains)
-        ) {
-            "Making checkIds not a subset of publicationCandidateIds is not supported"
-        }
-
         val (candidateIdSqlFragment, candidateIdSqlParams) =
             if (publicationCandidateIds == null) "true" to mapOf()
             else if (publicationCandidateIds.isEmpty()) "false" to mapOf()
@@ -382,22 +376,23 @@ class OperationalPointDao(
                                                                 :base_design_id::int) base_point
                 where not ($candidateIdSqlFragment) and polygon is not null
             ), check_points as not materialized (
-              select * from candidate_points where $checkIdSqlFragment
+              select * from candidate_points where ($checkIdSqlFragment)
+              union all
+              select * from base_points where ($checkIdSqlFragment)
+            ), comparison_points as not materialized (
+              select * from candidate_points where not ($checkIdSqlFragment)
+              union all
+              select * from base_points where not ($checkIdSqlFragment)
             )
             (select point.id as point_id, other.id as other_id
              from check_points point
-               join base_points other
-                 on postgis.st_overlaps(point.polygon, other.polygon))
-            union all
-            (select point.id as point_id, other.id as other_id
-             from check_points point
-               join (select * from candidate_points where not ($checkIdSqlFragment)) other
-                 on postgis.st_overlaps(point.polygon, other.polygon))
+               join comparison_points other
+                 on postgis.st_intersects(point.polygon, other.polygon))
             union all
             (select point_id, other_id
              from check_points a
                join check_points b
-                 on a.id < b.id and postgis.st_overlaps(a.polygon, b.polygon)
+                 on a.id < b.id and postgis.st_intersects(a.polygon, b.polygon)
                cross join lateral (
                  select a.id as point_id, b.id as other_id
                  union all
