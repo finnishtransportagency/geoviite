@@ -24,8 +24,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
-import org.springframework.beans.factory.annotation.Autowired
 import java.time.Instant
+import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class ExtLocationTrackGeometryServiceV1
@@ -88,8 +88,8 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchPublishedLocationTrackGeomsBetween(id, startMoment, endMoment)
-            ?.let { (old, new) -> old?.let(locationTrackDao::fetch) to locationTrackDao.fetch(new) }
-            ?.takeIf { (old, new) -> old?.exists == true || new.exists }
+            ?.let { (oldV, newV) -> oldV?.let(locationTrackDao::fetch) to locationTrackDao.fetch(newV) }
+            ?.takeIf { (oldTrack, newTrack) -> oldTrack?.exists == true || newTrack.exists }
             ?.let { (oldTrack, newTrack) ->
                 val oldPoints =
                     oldTrack
@@ -217,7 +217,7 @@ constructor(
             }
         }
 
-        fun reset() {
+        private fun reset() {
             start = null
             end = null
             points.clear()
