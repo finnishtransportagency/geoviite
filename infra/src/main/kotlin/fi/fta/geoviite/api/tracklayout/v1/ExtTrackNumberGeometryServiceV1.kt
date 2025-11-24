@@ -19,8 +19,8 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtTrackNumberGeometryServiceV1
@@ -50,10 +50,10 @@ constructor(
         oid: Oid<LayoutTrackNumber>,
         trackLayoutVersionFrom: Uuid<Publication>,
         trackLayoutVersionTo: Uuid<Publication>?,
-        extResolution: ExtResolutionV1? = null,
-        coordinateSystem: Srid? = null,
-        addressFilterStart: ExtMaybeTrackKmOrTrackMeterV1? = null,
-        addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1? = null,
+        extResolution: ExtResolutionV1?,
+        coordinateSystem: Srid?,
+        addressFilterStart: ExtMaybeTrackKmOrTrackMeterV1?,
+        addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1?,
     ): ExtTrackNumberModifiedGeometryResponseV1? {
         val publications = publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
         // Lookup before change check to produce consistent error if oid is not found
