@@ -85,7 +85,7 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchPublishedLocationTrackGeomsBetween(id, startMoment, endMoment)
-            ?.let { (oldV, newV) -> oldV?.let(locationTrackDao::fetch) to locationTrackDao.fetch(newV) }
+            ?.map(locationTrackDao::fetch)
             ?.takeIf { (oldTrack, newTrack) -> oldTrack?.exists == true || newTrack.exists }
             ?.let { (oldTrack, newTrack) ->
                 val oldPoints =

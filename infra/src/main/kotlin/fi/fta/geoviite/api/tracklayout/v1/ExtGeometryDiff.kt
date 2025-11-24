@@ -113,7 +113,7 @@ private class RangeBuilder<M : AnyM<M>>(val coordinateSystem: Srid) {
         }
     }
 
-    fun reset() {
+    private fun reset() {
         start = null
         end = null
         points.clear()

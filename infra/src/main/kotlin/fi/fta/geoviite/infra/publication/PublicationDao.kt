@@ -2612,7 +2612,7 @@ class PublicationDao(
         trackId: IntId<LocationTrack>,
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
-    ): Pair<LayoutRowVersion<LocationTrack>?, LayoutRowVersion<LocationTrack>>? {
+    ): Change<LayoutRowVersion<LocationTrack>>? {
         val sql =
             """
             select
@@ -2649,7 +2649,7 @@ class PublicationDao(
             .query(sql, params) { rs, _ ->
                 val oldVersion = rs.getLayoutRowVersionOrNull<LocationTrack>("id", "layout_context_id", "old_version")
                 val newVersion = rs.getLayoutRowVersion<LocationTrack>("id", "layout_context_id", "version")
-                oldVersion to newVersion
+                Change(oldVersion, newVersion)
             }
             .firstOrNull()
     }
@@ -2658,7 +2658,7 @@ class PublicationDao(
         trackNumberId: IntId<LayoutTrackNumber>,
         exclusiveStartMoment: Instant,
         inclusiveEndMoment: Instant,
-    ): Pair<LayoutRowVersion<LayoutTrackNumber>?, LayoutRowVersion<LayoutTrackNumber>>? {
+    ): Change<LayoutRowVersion<LayoutTrackNumber>>? {
         val sql =
             """
             select
@@ -2696,7 +2696,7 @@ class PublicationDao(
                 val oldVersion =
                     rs.getLayoutRowVersionOrNull<LayoutTrackNumber>("id", "layout_context_id", "old_version")
                 val newVersion = rs.getLayoutRowVersion<LayoutTrackNumber>("id", "layout_context_id", "version")
-                oldVersion to newVersion
+                Change(oldVersion, newVersion)
             }
             .firstOrNull()
     }

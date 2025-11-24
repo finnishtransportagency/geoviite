@@ -81,15 +81,15 @@ constructor(
         val endMoment = publications.to.publicationTime
         return publicationDao
             .fetchPublishedTrackNumberGeomsBetween(id, startMoment, endMoment)
-            ?.let { (old, new) -> old?.let(trackNumberDao::fetch) to trackNumberDao.fetch(new) }
-            ?.takeIf { (old, new) -> old?.exists == true || new.exists }
-            ?.let { (oldTrackNumber, newTrackNumber) ->
+            ?.map(trackNumberDao::fetch)
+            ?.takeIf { (oldTn, newTn) -> oldTn?.exists == true || newTn.exists }
+            ?.let { (oldTn, newTn) ->
                 val oldPoints =
-                    oldTrackNumber
+                    oldTn
                         ?.takeIf { it.exists }
                         ?.let { _ -> getAddressPoints(branch, startMoment, id, resolution, addressFilter) }
                 val newPoints =
-                    newTrackNumber
+                    newTn
                         .takeIf { it.exists }
                         ?.let { _ -> getAddressPoints(branch, endMoment, id, resolution, addressFilter) }
                 ExtTrackNumberModifiedGeometryResponseV1(
