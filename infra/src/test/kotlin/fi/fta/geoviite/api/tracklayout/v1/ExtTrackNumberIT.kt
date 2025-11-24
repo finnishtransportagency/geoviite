@@ -35,7 +35,6 @@ import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
@@ -257,7 +256,7 @@ constructor(
         Resolution.entries
             .map { it.meters }
             .forEach { resolution ->
-                val response = api.trackNumbers.getGeometry(oid, "osoitepistevali" to resolution.toString())
+                val response = api.trackNumberGeometry.get(oid, "osoitepistevali" to resolution.toString())
                 assertGeometryIntervalAddressResolution(requireNotNull(response.osoitevali), resolution, startM, endM)
             }
     }
@@ -289,7 +288,7 @@ constructor(
         Resolution.entries
             .map { it.meters }
             .forEach { resolution ->
-                val response = api.trackNumbers.getGeometry(oid, "osoitepistevali" to resolution.toString())
+                val response = api.trackNumberGeometry.get(oid, "osoitepistevali" to resolution.toString())
                 assertNotNull(response.osoitevali)
                 assertEquals(intervalStartAddress, response.osoitevali.alkuosoite.let(::TrackMeter))
                 assertEquals(intervalEndAddress, response.osoitevali.loppuosoite.let(::TrackMeter))
@@ -357,7 +356,7 @@ constructor(
         val initPublication =
             extTestDataService.publishInMain(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
 
-        assertEquals(101, api.trackNumbers.getGeometry(tnOid).osoitevali?.pisteet?.size)
+        assertEquals(101, api.trackNumberGeometry.get(tnOid).osoitevali?.pisteet?.size)
         api.trackNumbers.get(tnOid).also { tn ->
             assertEquals(startWithAddress, tn.ratanumero.alkusijainti)
             assertEquals(endWithAddress, tn.ratanumero.loppusijainti)
@@ -367,18 +366,18 @@ constructor(
         mainDraftContext.save(mainDraftContext.fetch(tnId)!!.copy(state = LayoutState.DELETED))
         val deletePublication = extTestDataService.publishInMain(trackNumbers = listOf(tnId))
 
-        api.trackNumbers.getGeometryWithEmptyBody(tnOid, httpStatus = HttpStatus.NO_CONTENT)
+        api.trackNumberGeometry.assertDoesntExist(tnOid)
         api.trackNumbers.get(tnOid).also { tn ->
             assertEquals(startWithoutAddress, tn.ratanumero.alkusijainti)
             assertEquals(endWithoutAddress, tn.ratanumero.loppusijainti)
         }
 
-        assertEquals(101, api.trackNumbers.getGeometryAt(tnOid, initPublication.uuid).osoitevali?.pisteet?.size)
+        assertEquals(101, api.trackNumberGeometry.getAtVersion(tnOid, initPublication.uuid).osoitevali?.pisteet?.size)
         api.trackNumbers.getAtVersion(tnOid, initPublication.uuid).also { tn ->
             assertEquals(startWithAddress, tn.ratanumero.alkusijainti)
             assertEquals(endWithAddress, tn.ratanumero.loppusijainti)
         }
-        api.trackNumbers.getGeometryWithEmptyBodyAt(tnOid, deletePublication.uuid, httpStatus = HttpStatus.NO_CONTENT)
+        api.trackNumberGeometry.assertDoesntExistAtVersion(tnOid, deletePublication.uuid)
         api.trackNumbers.getAtVersion(tnOid, deletePublication.uuid).also { tn ->
             assertEquals(startWithoutAddress, tn.ratanumero.alkusijainti)
             assertEquals(endWithoutAddress, tn.ratanumero.loppusijainti)

@@ -7,11 +7,16 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.Resolution
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -27,6 +32,7 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,6 +41,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+
+const val COORDINATE_DELTA = 0.001
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -166,6 +174,52 @@ constructor(
     }
 
     @Test
+    fun `Official geometry is returned at correct track layout version state`() {
+        val (trackNumberId, referenceLineId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                segments = listOf(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+                startAddress = TrackMeter("0001+0100.000"),
+            )
+
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val trackId = mainDraftContext.save(locationTrack(trackNumberId), geometry).id
+        val oid = mainDraftContext.generateOid(trackId)
+
+        val publication1 =
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(trackNumberId),
+                referenceLines = listOf(referenceLineId),
+                locationTracks = listOf(trackId),
+            )
+
+        api.locationTrackGeometry.get(oid).also { response ->
+            assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
+            assertGeometryMatches(response, oid, "0001+0100.000", "0001+0200.000", geometry, 101)
+        }
+
+        val newGeometry = trackGeometryOfSegments(segment(Point(10.0, 10.0), Point(90.0, 10.0)))
+        initUser()
+        mainDraftContext.fetch(trackId).also { track -> mainDraftContext.save(track!!, newGeometry) }
+
+        val publication2 = extTestDataService.publishInMain(locationTracks = listOf(trackId))
+        api.locationTrackGeometry.get(oid).also { response ->
+            assertEquals(publication2.uuid.toString(), response.rataverkon_versio)
+            assertGeometryMatches(response, oid, "0001+0110.000", "0001+0190.000", newGeometry, 81)
+        }
+
+        api.locationTrackGeometry.getAtVersion(oid, publication2.uuid).also { response ->
+            assertEquals(publication2.uuid.toString(), response.rataverkon_versio)
+            assertGeometryMatches(response, oid, "0001+0110.000", "0001+0190.000", newGeometry, 81)
+        }
+
+        api.locationTrackGeometry.getAtVersion(oid, publication1.uuid).also { response ->
+            assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
+            assertGeometryMatches(response, oid, "0001+0100.000", "0001+0200.000", geometry, 101)
+        }
+    }
+
+    @Test
     fun `Location track geometry api returns points at addresses divisible by resolution`() {
         // Purposefully chosen to not be exactly divisible by any resolution
         val startM = 0.125
@@ -199,7 +253,7 @@ constructor(
         Resolution.entries
             .map { it.meters }
             .forEach { resolution ->
-                val response = api.locationTracks.getGeometry(oid, "osoitepistevali" to resolution.toString())
+                val response = api.locationTrackGeometry.get(oid, "osoitepistevali" to resolution.toString())
                 assertGeometryIntervalAddressResolution(requireNotNull(response.osoitevali), resolution, startM, endM)
             }
     }
@@ -241,7 +295,7 @@ constructor(
         Resolution.entries
             .map { it.meters }
             .forEach { resolution ->
-                val response = api.locationTracks.getGeometry(oid, "osoitepistevali" to resolution.toString())
+                val response = api.locationTrackGeometry.get(oid, "osoitepistevali" to resolution.toString())
                 assertNotNull(response.osoitevali)
                 assertEquals(intervalStartAddress, response.osoitevali.alkuosoite.let(::TrackMeter))
                 assertEquals(intervalEndAddress, response.osoitevali.loppuosoite.let(::TrackMeter))
@@ -386,6 +440,41 @@ constructor(
     }
 
     @Test
+    fun `Deleted tracks don't have geometry`() {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+        val (trackNumberId, referenceLineId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                segments = listOf(segment),
+                startAddress = TrackMeter("0001+0100.000"),
+            )
+        val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
+        val oid = mainDraftContext.generateOid(trackId)
+
+        val publication1 =
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(trackNumberId),
+                referenceLines = listOf(referenceLineId),
+                locationTracks = listOf(trackId),
+            )
+
+        api.locationTrackGeometry.get(oid).also { response ->
+            assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
+        }
+
+        initUser()
+        mainDraftContext.mutate(trackId) { track -> track.copy(state = LocationTrackState.DELETED) }
+
+        extTestDataService.publishInMain(locationTracks = listOf(trackId))
+
+        api.locationTrackGeometry.getWithEmptyBody(oid, httpStatus = HttpStatus.NO_CONTENT)
+
+        api.locationTrackGeometry.getAtVersion(oid, publication1.uuid).also { response ->
+            assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
+        }
+    }
+
+    @Test
     fun `Deleted tracks have no addresses exposed through the API`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
         mainDraftContext.generateOid(tnId)
@@ -406,7 +495,6 @@ constructor(
         val endWithAddress = ExtTestAddressPointV1(90.0, 0.0, "0000+0090.000")
         val endWithoutAddress = ExtTestAddressPointV1(90.0, 0.0, null)
 
-        assertEquals(81, api.locationTracks.getGeometry(trackOid).osoitevali?.pisteet?.size)
         api.locationTracks.get(trackOid).also { track ->
             assertEquals(startWithAddress, track.sijaintiraide.alkusijainti)
             assertEquals(endWithAddress, track.sijaintiraide.loppusijainti)
@@ -417,28 +505,291 @@ constructor(
         mainDraftContext.saveLocationTrack(origTrack.copy(state = LocationTrackState.DELETED) to origGeom)
         val deletePublication = extTestDataService.publishInMain(locationTracks = listOf(trackId))
 
-        api.locationTracks.getGeometryWithEmptyBody(trackOid, httpStatus = HttpStatus.NO_CONTENT)
         api.locationTracks.get(trackOid).also { track ->
             assertEquals(startWithoutAddress, track.sijaintiraide.alkusijainti)
             assertEquals(endWithoutAddress, track.sijaintiraide.loppusijainti)
         }
-        assertEquals(81, api.locationTracks.getGeometryAt(trackOid, initPublication.uuid).osoitevali?.pisteet?.size)
         api.locationTracks.getAtVersion(trackOid, initPublication.uuid).also { track ->
             assertEquals(startWithAddress, track.sijaintiraide.alkusijainti)
             assertEquals(endWithAddress, track.sijaintiraide.loppusijainti)
         }
-        api.locationTracks.getGeometryWithEmptyBodyAt(
-            trackOid,
-            deletePublication.uuid,
-            httpStatus = HttpStatus.NO_CONTENT,
-        )
         api.locationTracks.getAtVersion(trackOid, deletePublication.uuid).also { track ->
             assertEquals(startWithoutAddress, track.sijaintiraide.alkusijainti)
             assertEquals(endWithoutAddress, track.sijaintiraide.loppusijainti)
         }
     }
 
+    @Test
+    fun `Geometry modifications show correct diffs`() {
+        val (trackNumberId, referenceLineId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                segments = listOf(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+                startAddress = TrackMeter("0001+0100.000"),
+            )
+        val publication0 =
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(trackNumberId),
+                referenceLines = listOf(referenceLineId),
+            )
+
+        // Publication 1 adds a new track
+        val geometry1 =
+            trackGeometryOfSegments(
+                segment(Point(20.0, 0.0), Point(40.0, 0.0)),
+                segment(Point(40.0, 0.0), Point(60.0, 0.0)),
+                segment(Point(60.0, 0.0), Point(80.0, 0.0)),
+            )
+        val trackId = mainDraftContext.save(locationTrack(trackNumberId), geometry1).id
+        val oid = mainDraftContext.generateOid(trackId)
+
+        val publication1 = extTestDataService.publishInMain(locationTracks = listOf(trackId))
+
+        api.locationTrackGeometry.get(oid).also { response ->
+            assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
+            assertGeometryMatches(response, oid, "0001+0120.000", "0001+0180.000", geometry1, 61)
+        }
+        api.locationTrackGeometry.assertNoModificationSince(oid, publication1.uuid)
+        // Modification since 0 shows the full geometry
+        api.locationTrackGeometry.getModifiedSince(oid, publication0.uuid).also { response ->
+            assertGeometryModificationMetadata(response, oid, publication0, publication1, LAYOUT_SRID, 1)
+            assertIntervalMatches(response.osoitevalit[0], "0001+0120.000", "0001+0180.000", geometry1, 61)
+        }
+
+        // Publication 2 modifies the geometry -> modifications show the diff
+        val geometry2 =
+            trackGeometryOfSegments(
+                // Shorten the beginning
+                segment(Point(30.0, 0.0), Point(40.0, 0.0)),
+                // Bend in the middle
+                segment(Point(40.0, 0.0), Point(42.0, 2.0)),
+                segment(Point(42.0, 2.0), Point(58.0, 2.0)),
+                segment(Point(58.0, 2.0), Point(60.0, 0.0)),
+                // Extend the end
+                segment(Point(60.0, 0.0), Point(90.0, 0.0)),
+            )
+        initUser()
+        mainDraftContext.save(mainDraftContext.fetch(trackId)!!, geometry2)
+        val publication2 = extTestDataService.publishInMain(locationTracks = listOf(trackId))
+
+        api.locationTrackGeometry.get(oid).also { response ->
+            assertEquals(publication2.uuid.toString(), response.rataverkon_versio)
+            assertGeometryMatches(response, oid, "0001+0130.000", "0001+0190.000", geometry2, 61)
+        }
+        api.locationTrackGeometry.assertNoModificationSince(oid, publication2.uuid)
+        // Modification since 1 show the edits
+        api.locationTrackGeometry.getModifiedSince(oid, publication1.uuid).also { response ->
+            assertGeometryModificationMetadata(response, oid, publication1, publication2, LAYOUT_SRID, 3)
+            assertEmptyInterval(response.osoitevalit[0], "0001+0120.000", "0001+0129.000")
+            assertIntervalMatches(
+                response.osoitevalit[1],
+                "0001+0141.000",
+                "0001+0159.000",
+                geometry2,
+                19,
+                Point(41.0, 1.0),
+                Point(59.0, 1.0),
+            )
+            assertIntervalMatches(
+                response.osoitevalit[2],
+                "0001+0181.000",
+                "0001+0190.000",
+                geometry2,
+                10,
+                Point(81.0, 0.0),
+                Point(90.0, 0.0),
+            )
+        }
+        // Modification since 0 shows the full geometry at latest version
+        api.locationTrackGeometry.getModifiedSince(oid, publication0.uuid).also { response ->
+            assertGeometryModificationMetadata(response, oid, publication0, publication2, LAYOUT_SRID, 1)
+            assertIntervalMatches(response.osoitevalit[0], "0001+0130.000", "0001+0190.000", geometry2, 61)
+        }
+
+        // Publication 3 removes the geometry
+        initUser()
+        mainDraftContext.save(mainDraftContext.fetch(trackId)!!.copy(state = LocationTrackState.DELETED), geometry2)
+        val publication3 = extTestDataService.publishInMain(locationTracks = listOf(trackId))
+
+        api.locationTrackGeometry.assertNoModificationSince(oid, publication3.uuid)
+
+        // Modifications since 2 show the state-2 address range emptied
+        api.locationTrackGeometry.getModifiedSince(oid, publication2.uuid).also { response ->
+            assertGeometryModificationMetadata(response, oid, publication2, publication3, LAYOUT_SRID, 1)
+            assertEmptyInterval(response.osoitevalit[0], "0001+0130.000", "0001+0190.000")
+        }
+
+        // Modifications since 1 show the state-1 address range emptied
+        api.locationTrackGeometry.getModifiedSince(oid, publication1.uuid).also { response ->
+            assertGeometryModificationMetadata(response, oid, publication1, publication3, LAYOUT_SRID, 1)
+            assertEmptyInterval(response.osoitevalit[0], "0001+0120.000", "0001+0180.000")
+        }
+
+        // Modifications since 0 show nothing as there was no geometry at either state
+        api.locationTrackGeometry.assertNoModificationSince(oid, publication0.uuid)
+    }
+
+    @Test
+    fun `Geometry modifications API shows calculated changes correctly`() {
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        mainDraftContext.generateOid(tnId)
+        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
+
+        val trackGeom = trackGeometryOfSegments(segment(Point(20.0, 0.0), Point(40.0, 0.0)))
+        val trackId = mainDraftContext.save(locationTrack(tnId), trackGeom).id
+        val oid = mainDraftContext.generateOid(trackId)
+
+        val basePub =
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(tnId),
+                referenceLines = listOf(rlId),
+                locationTracks = listOf(trackId),
+            )
+        api.locationTrackGeometry.get(oid).osoitevali!!.also { interval ->
+            assertEquals("0000+0020.000", interval.alkuosoite)
+            assertEquals("0000+0040.000", interval.loppuosoite)
+        }
+        api.locationTrackGeometry.assertNoModificationSince(oid, basePub.uuid)
+
+        initUser()
+        mainDraftContext.save(
+            mainOfficialContext.fetch(rlId)!!.copy(startAddress = TrackMeter("0001+0010.000")),
+            rlGeom,
+        )
+        val rlPub = extTestDataService.publishInMain(referenceLines = listOf(rlId))
+        api.locationTrackGeometry.get(oid).osoitevali!!.also { interval ->
+            assertEquals("0001+0030.000", interval.alkuosoite)
+            assertEquals("0001+0050.000", interval.loppuosoite)
+        }
+        api.locationTrackGeometry.getModifiedBetween(oid, basePub.uuid, rlPub.uuid).also { response ->
+            assertGeometryModificationMetadata(response, oid, basePub, rlPub, LAYOUT_SRID, 1)
+            // Address range is [min(old,new), max(old,new)]
+            assertIntervalMatches(
+                response.osoitevalit[0],
+                "0000+0020.000",
+                "0001+0050.000",
+                trackGeom,
+                21,
+                Point(20.0, 0.0),
+                Point(40.0, 0.0),
+            )
+        }
+        api.locationTrackGeometry.assertNoModificationSince(oid, rlPub.uuid)
+
+        initUser()
+        val kmpId = mainDraftContext.save(kmPost(tnId, KmNumber(4), gkLocation = kmPostGkLocation(30.0, 0.0))).id
+        val kmpPub = extTestDataService.publishInMain(kmPosts = listOf(kmpId))
+
+        api.locationTrackGeometry.get(oid).osoitevali!!.also { interval ->
+            assertEquals("0001+0030.000", interval.alkuosoite)
+            assertEquals("0004+0010.000", interval.loppuosoite)
+        }
+        // Mods since rl publication
+        api.locationTrackGeometry.getModifiedBetween(oid, rlPub.uuid, kmpPub.uuid).also { response ->
+            assertGeometryModificationMetadata(response, oid, rlPub, kmpPub, LAYOUT_SRID, 1)
+            // Address range is [added-km-post, end] -> mod-range start is min(old,new) of the change point
+            assertIntervalMatches(
+                response.osoitevalit[0],
+                "0001+0040.000",
+                "0004+0010.000",
+                trackGeom,
+                11,
+                Point(30.0, 0.0),
+                Point(40.0, 0.0),
+            )
+        }
+        api.locationTrackGeometry.assertNoModificationSince(oid, kmpPub.uuid)
+
+        // Mods since base publication
+        api.locationTrackGeometry.getModifiedBetween(oid, basePub.uuid, kmpPub.uuid).also { response ->
+            assertGeometryModificationMetadata(response, oid, basePub, kmpPub, LAYOUT_SRID, 1)
+            // Address range is [min(old,new), max(old,new)]
+            assertIntervalMatches(
+                response.osoitevalit[0],
+                "0000+0020.000",
+                "0004+0010.000",
+                trackGeom,
+                21,
+                Point(20.0, 0.0),
+                Point(40.0, 0.0),
+            )
+        }
+    }
+
     private fun getExtLocationTrack(oid: Oid<LocationTrack>, publication: Publication? = null): ExtTestLocationTrackV1 =
         (publication?.uuid?.let { uuid -> api.locationTracks.getAtVersion(oid, uuid) } ?: api.locationTracks.get(oid))
             .sijaintiraide
+}
+
+private fun assertGeometryModificationMetadata(
+    response: ExtTestModifiedLocationTrackGeometryResponseV1,
+    oid: Oid<LocationTrack>,
+    fromVersion: Publication,
+    toVersion: Publication,
+    coordinateSystem: Srid,
+    intervals: Int,
+) {
+    assertEquals(oid.toString(), response.sijaintiraide_oid)
+    assertEquals(fromVersion.uuid.toString(), response.alkuversio)
+    assertEquals(toVersion.uuid.toString(), response.loppuversio)
+    assertEquals(coordinateSystem.toString(), response.koordinaatisto)
+    assertEquals(intervals, response.osoitevalit.size)
+}
+
+private fun assertGeometryMatches(
+    response: ExtTestLocationTrackGeometryResponseV1,
+    oid: Oid<LocationTrack>,
+    startAddress: String,
+    endAddress: String,
+    geometry: LocationTrackGeometry,
+    pointCount: Int,
+) {
+    assertEquals(LAYOUT_SRID.toString(), response.koordinaatisto)
+    assertEquals(oid.toString(), response.sijaintiraide_oid)
+    assertIntervalMatches(response.osoitevali, startAddress, endAddress, geometry, pointCount)
+}
+
+private fun assertIntervalMatches(
+    interval: ExtTestGeometryIntervalV1?,
+    startAddress: String,
+    endAddress: String,
+    geometry: LocationTrackGeometry,
+    pointCount: Int,
+    start: IPoint = geometry.start!!,
+    end: IPoint = geometry.end!!,
+) {
+    assertNotNull(interval, "Interval is null: expected=[$startAddress..$endAddress]")
+    val getError = { field: String, expectedValue: Any ->
+        "Interval $field incorrect: expected=$expectedValue interval=$interval"
+    }
+    assertEquals(startAddress, interval.alkuosoite, getError("start address", startAddress))
+    assertEquals(endAddress, interval.loppuosoite, getError("end address", endAddress))
+
+    assertEquals(start.x, interval.pisteet.first().x, COORDINATE_DELTA, getError("start x coordinate", start.x))
+    assertEquals(start.y, interval.pisteet.first().y, COORDINATE_DELTA, getError("start y coordinate", start.y))
+    assertEquals(end.x, interval.pisteet.last().x, COORDINATE_DELTA, getError("end x coordinate", end.x))
+    assertEquals(end.y, interval.pisteet.last().y, COORDINATE_DELTA, getError("end y coordinate", end.y))
+
+    var previousAddress: TrackMeter? = null
+    for (p in interval.pisteet) {
+        val point = Point(p.x, p.y)
+        val pointOnLine = geometry.getClosestPoint(point)!!.first
+        assertEquals(0.0, lineLength(point, pointOnLine), COORDINATE_DELTA)
+        assertNotNull(p.rataosoite)
+        previousAddress =
+            TrackMeter(p.rataosoite).also { address ->
+                assertTrue(address >= TrackMeter(startAddress))
+                assertTrue(address <= TrackMeter(endAddress))
+                if (previousAddress != null) assertTrue(address > previousAddress)
+            }
+    }
+    assertEquals(pointCount, interval.pisteet.size)
+}
+
+private fun assertEmptyInterval(interval: ExtTestGeometryIntervalV1?, startAddress: String, endAddress: String) {
+    assertNotNull(interval)
+    assertEquals(startAddress, interval.alkuosoite)
+    assertEquals(endAddress, interval.loppuosoite)
+    assertTrue(interval.pisteet.isEmpty())
 }
