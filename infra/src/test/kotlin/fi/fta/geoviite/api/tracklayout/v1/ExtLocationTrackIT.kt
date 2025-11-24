@@ -10,9 +10,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.Resolution
-import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -32,13 +30,11 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
@@ -464,11 +460,10 @@ constructor(
 
         initUser()
         mainDraftContext.mutate(trackId) { track -> track.copy(state = LocationTrackState.DELETED) }
+        val publication2 = extTestDataService.publishInMain(locationTracks = listOf(trackId))
 
-        extTestDataService.publishInMain(locationTracks = listOf(trackId))
-
-        api.locationTrackGeometry.getWithEmptyBody(oid, httpStatus = HttpStatus.NO_CONTENT)
-
+        api.locationTrackGeometry.assertDoesntExist(oid)
+        api.locationTrackGeometry.assertDoesntExistAtVersion(oid, publication2.uuid)
         api.locationTrackGeometry.getAtVersion(oid, publication1.uuid).also { response ->
             assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
         }
@@ -556,7 +551,7 @@ constructor(
             assertIntervalMatches(response.osoitevalit[0], "0001+0120.000", "0001+0180.000", geometry1, 61)
         }
 
-        // Publication 2 modifies the geometry -> modifications show the diff
+        // Publication 2 modifies the geometry
         val geometry2 =
             trackGeometryOfSegments(
                 // Shorten the beginning
@@ -748,48 +743,4 @@ private fun assertGeometryMatches(
     assertEquals(LAYOUT_SRID.toString(), response.koordinaatisto)
     assertEquals(oid.toString(), response.sijaintiraide_oid)
     assertIntervalMatches(response.osoitevali, startAddress, endAddress, geometry, pointCount)
-}
-
-private fun assertIntervalMatches(
-    interval: ExtTestGeometryIntervalV1?,
-    startAddress: String,
-    endAddress: String,
-    geometry: LocationTrackGeometry,
-    pointCount: Int,
-    start: IPoint = geometry.start!!,
-    end: IPoint = geometry.end!!,
-) {
-    assertNotNull(interval, "Interval is null: expected=[$startAddress..$endAddress]")
-    val getError = { field: String, expectedValue: Any ->
-        "Interval $field incorrect: expected=$expectedValue interval=$interval"
-    }
-    assertEquals(startAddress, interval.alkuosoite, getError("start address", startAddress))
-    assertEquals(endAddress, interval.loppuosoite, getError("end address", endAddress))
-
-    assertEquals(start.x, interval.pisteet.first().x, COORDINATE_DELTA, getError("start x coordinate", start.x))
-    assertEquals(start.y, interval.pisteet.first().y, COORDINATE_DELTA, getError("start y coordinate", start.y))
-    assertEquals(end.x, interval.pisteet.last().x, COORDINATE_DELTA, getError("end x coordinate", end.x))
-    assertEquals(end.y, interval.pisteet.last().y, COORDINATE_DELTA, getError("end y coordinate", end.y))
-
-    var previousAddress: TrackMeter? = null
-    for (p in interval.pisteet) {
-        val point = Point(p.x, p.y)
-        val pointOnLine = geometry.getClosestPoint(point)!!.first
-        assertEquals(0.0, lineLength(point, pointOnLine), COORDINATE_DELTA)
-        assertNotNull(p.rataosoite)
-        previousAddress =
-            TrackMeter(p.rataosoite).also { address ->
-                assertTrue(address >= TrackMeter(startAddress))
-                assertTrue(address <= TrackMeter(endAddress))
-                if (previousAddress != null) assertTrue(address > previousAddress)
-            }
-    }
-    assertEquals(pointCount, interval.pisteet.size)
-}
-
-private fun assertEmptyInterval(interval: ExtTestGeometryIntervalV1?, startAddress: String, endAddress: String) {
-    assertNotNull(interval)
-    assertEquals(startAddress, interval.alkuosoite)
-    assertEquals(endAddress, interval.loppuosoite)
-    assertTrue(interval.pisteet.isEmpty())
 }
