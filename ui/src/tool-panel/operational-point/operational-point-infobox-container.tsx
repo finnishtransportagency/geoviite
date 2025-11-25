@@ -84,6 +84,9 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
                     onStopPlacingLocation={stopPlacingOperationalPoint}
                     onStartPlacingArea={startPlacingOperationalPointArea}
                     onStopPlacingArea={stopPlacingOperationalPointArea}
+                    startFreshSpecificItemPublicationLogSearch={
+                        delegates.startFreshSpecificItemPublicationLogSearch
+                    }
                     onShowOnMap={showOnMap}
                 />
             )}

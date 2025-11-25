@@ -15,8 +15,7 @@ import { negComparator } from 'utils/array-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { useAppNavigate } from 'common/navigate';
-import { SearchablePublicationLogItem } from 'publication/log/publication-log';
-import { SearchItemValue } from 'asset-search/search-dropdown';
+import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { SortableTableHeader } from 'vayla-design-lib/table/sortable-table-header';
 import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
 import { LayoutContext } from 'common/common-model';
@@ -27,9 +26,7 @@ export type PublicationTableProps = {
     sortInfo: TableSorting<SortablePublicationTableProps>;
     onSortChange: (sortInfo: TableSorting<SortablePublicationTableProps>) => void;
     isLoading?: boolean;
-    displaySingleItemHistory: (
-        item: SearchItemValue<SearchablePublicationLogItem> | undefined,
-    ) => void;
+    displaySingleItemHistory: (item: SearchItemValue<SearchItemType> | undefined) => void;
     publicationDisplayMode: PublicationDisplayMode;
 };
 

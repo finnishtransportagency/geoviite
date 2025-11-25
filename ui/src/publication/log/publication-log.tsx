@@ -38,6 +38,7 @@ import { TFunction } from 'i18next';
 import {
     kmPostSearchItemName,
     locationTrackSearchItemName,
+    operationalPointItemName,
 } from 'asset-search/search-dropdown-item';
 import { useMemoizedDate, useRateLimitedTwoPartEffect } from 'utils/react-utils';
 import { endOfDay, startOfDay } from 'date-fns';
@@ -84,14 +85,8 @@ const PublicationLogTableHeading: React.FC<PublicationLogTableHeadingProps> = ({
     );
 };
 
-export type SearchablePublicationLogItem =
-    | SearchItemType.LOCATION_TRACK
-    | SearchItemType.TRACK_NUMBER
-    | SearchItemType.SWITCH
-    | SearchItemType.KM_POST;
-
 function searchableItemIdAndType(
-    item: SearchItemValue<SearchablePublicationLogItem>,
+    item: SearchItemValue<SearchItemType>,
 ): PublishableObjectIdAndType {
     switch (item.type) {
         case SearchItemType.LOCATION_TRACK:
@@ -102,13 +97,15 @@ function searchableItemIdAndType(
             return { type: item.type, id: item.layoutSwitch.id };
         case SearchItemType.KM_POST:
             return { type: item.type, id: item.kmPost.id };
+        case SearchItemType.OPERATIONAL_POINT:
+            return { type: item.type, id: item.operationalPoint.id };
         default:
             return exhaustiveMatchingGuard(item);
     }
 }
 
 function getSearchableItemName(
-    item: SearchItemValue<SearchablePublicationLogItem>,
+    item: SearchItemValue<SearchItemType>,
     trackNumbers: LayoutTrackNumber[],
     t: TFunction<'translation', undefined>,
 ): string {
@@ -121,13 +118,15 @@ function getSearchableItemName(
             return item.layoutSwitch.name;
         case SearchItemType.KM_POST:
             return kmPostSearchItemName(item.kmPost, trackNumbers, t);
+        case SearchItemType.OPERATIONAL_POINT:
+            return operationalPointItemName(item.operationalPoint, t);
         default:
             return exhaustiveMatchingGuard(item);
     }
 }
 
 const isValidPublicationLogSearchRange = (
-    specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
+    specificItem: SearchItemValue<SearchItemType> | undefined,
     start: Date | undefined,
     end: Date | undefined,
 ): boolean => {
@@ -140,7 +139,7 @@ const isValidPublicationLogSearchRange = (
 type SearchParams = {
     startDate: Date | undefined;
     endDate: Date | undefined;
-    specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined;
+    specificItem: SearchItemValue<SearchItemType> | undefined;
     sortInfo: TableSorting<SortablePublicationTableProps>;
 };
 
@@ -168,7 +167,7 @@ function searchParamsAffectingVisibleRowsDiffer(
 function usePublicationLogSearch(
     startDate: Date | undefined,
     endDate: Date | undefined,
-    specificItem: SearchItemValue<SearchablePublicationLogItem> | undefined,
+    specificItem: SearchItemValue<SearchItemType> | undefined,
     sortInfo: TableSorting<SortablePublicationTableProps>,
 ): { pagedPublications: Page<PublicationTableItem> | undefined; isLoading: boolean } {
     const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
@@ -356,6 +355,7 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ layoutContext }) => {
                                     SearchItemType.SWITCH,
                                     SearchItemType.TRACK_NUMBER,
                                     SearchItemType.KM_POST,
+                                    SearchItemType.OPERATIONAL_POINT,
                                 ]}
                                 wide={false}
                                 useAnchorElementWidth={true}

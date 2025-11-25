@@ -21,8 +21,7 @@ import {
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
-import { SearchItemValue } from 'asset-search/search-dropdown';
-import { SearchablePublicationLogItem } from 'publication/log/publication-log';
+import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { TableSorting } from 'utils/table-utils';
 
 export type PublicationDetailsViewProps = {
@@ -61,9 +60,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
         });
     }, [publication.id, changeTime]);
 
-    const displaySingleItemHistory = (
-        item: SearchItemValue<SearchablePublicationLogItem> | undefined,
-    ) => {
+    const displaySingleItemHistory = (item: SearchItemValue<SearchItemType> | undefined) => {
         trackLayoutActionDelegates.startFreshSpecificItemPublicationLogSearch(item);
         navigate('publication-search');
     };

@@ -2305,11 +2305,8 @@
     },
     "asset-search": {
         "location-track": "{{locationTrack}}, {{description}}",
-        "location-track-deleted": "{{locationTrack}} (Poistettu), {{description}}",
-        "km-post": "{{kmPost}}, ratanumerolla {{trackNumber}}",
-        "km-post-deleted": "{{kmPost}} (Poistettu), ratanumerolla {{trackNumber}}",
-        "switch-deleted": "{{switch}} (Poistunut kohde)",
-        "track-number-deleted": "{{trackNumber}} (Poistettu)"
+        "operational-point": "{{name}}, {{abbreviation}}",
+        "km-post": "{{kmPost}}, ratanumerolla {{trackNumber}}"
     },
     "privilege": {
         "view-basic": "Geoviitteen käyttö",
