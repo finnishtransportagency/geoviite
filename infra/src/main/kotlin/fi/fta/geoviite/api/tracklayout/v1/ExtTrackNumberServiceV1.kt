@@ -99,7 +99,7 @@ constructor(
             val data = getTrackNumberData(branch, moment, oid, trackNumber)
             ExtTrackNumberResponseV1(
                 trackLayoutVersion = publication.uuid,
-                coordinateSystem = coordinateSystem,
+                coordinateSystem = ExtSridV1(coordinateSystem),
                 trackNumber = createExtTrackNumber(data, coordinateSystem),
             )
         }
@@ -122,7 +122,7 @@ constructor(
                 ExtModifiedTrackNumberResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
-                    coordinateSystem = coordinateSystem,
+                    coordinateSystem = ExtSridV1(coordinateSystem),
                     trackNumber = createExtTrackNumber(data, coordinateSystem),
                 )
             } ?: layoutAssetVersionsAreTheSame(id, publications)
@@ -137,7 +137,7 @@ constructor(
         val trackNumbers = trackNumberDao.listOfficialAtMoment(branch, moment).filter { it.exists }
         return ExtTrackNumberCollectionResponseV1(
             trackLayoutVersion = publication.uuid,
-            coordinateSystem = coordinateSystem,
+            coordinateSystem = ExtSridV1(coordinateSystem),
             trackNumberCollection = createExtTrackNumbers(branch, moment, coordinateSystem, trackNumbers),
         )
     }
@@ -157,7 +157,7 @@ constructor(
                 ExtModifiedTrackNumberCollectionResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
-                    coordinateSystem = coordinateSystem,
+                    coordinateSystem = ExtSridV1(coordinateSystem),
                     trackNumberCollection = createExtTrackNumbers(branch, endMoment, coordinateSystem, trackNumbers),
                 )
             } ?: layoutAssetCollectionWasUnmodified<LayoutTrackNumber>(publications)

@@ -65,7 +65,7 @@ constructor(
                     geocodingService.getGeocodingContextAtMoment(branch, trackNumber.id as IntId, moment)
                 ExtTrackKmsResponseV1(
                     trackLayoutVersion = publication.uuid,
-                    coordinateSystem = coordinateSystem,
+                    coordinateSystem = ExtSridV1(coordinateSystem),
                     trackNumberKms = getExtTrackKms(trackNumberOid, trackNumber, geocodingContext, coordinateSystem),
                 )
             }
@@ -89,7 +89,7 @@ constructor(
             }
         return ExtTrackKmsCollectionResponseV1(
             trackLayoutVersion = publication.uuid,
-            coordinateSystem = coordinateSystem,
+            coordinateSystem = ExtSridV1(coordinateSystem),
             trackNumberKms =
                 trackNumbers.map { tn ->
                     val oid = trackNumberExtIds[tn.id as IntId]?.oid ?: throwOidNotFound(branch, tn.id)

@@ -3,7 +3,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geometry.MetaDataName
@@ -52,7 +51,7 @@ data class ExtSwitchV1(
 @Schema(name = "Vastaus: Vaihde")
 data class ExtSwitchResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(SWITCH) val switch: ExtSwitchV1,
 )
 
@@ -60,14 +59,14 @@ data class ExtSwitchResponseV1(
 data class ExtModifiedSwitchResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val trackLayoutVersionFrom: Uuid<Publication>,
     @JsonProperty(TRACK_LAYOUT_VERSION_TO) val trackLayoutVersionTo: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(SWITCH) val switch: ExtSwitchV1,
 )
 
 @Schema(name = "Vastaus: Vaihdekokoelma")
 data class ExtSwitchCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(SWITCH_COLLECTION) val switchCollection: List<ExtSwitchV1>,
 )
 
@@ -75,6 +74,6 @@ data class ExtSwitchCollectionResponseV1(
 data class ExtModifiedSwitchCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val trackLayoutVersionFrom: Uuid<Publication>,
     @JsonProperty(TRACK_LAYOUT_VERSION_TO) val trackLayoutVersionTo: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(SWITCH_COLLECTION) val switchCollection: List<ExtSwitchV1>,
 )
