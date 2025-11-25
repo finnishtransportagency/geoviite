@@ -51,6 +51,7 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { LayoutSwitchLinkingInfoboxContainer } from 'tool-panel/switch/layout-switch-linking-infobox-container';
 import { OperationalPointInfoboxContainer } from './operational-point/operational-point-infobox-container';
 import { getManyOperationalPoints } from 'track-layout/layout-operational-point-api';
+import { createClassName } from 'vayla-design-lib/utils';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -102,6 +103,16 @@ const linkingStateLayoutAlignmentTabType = (type: MapAlignmentType) => {
             return exhaustiveMatchingGuard(type);
     }
 };
+
+type LockedTab = {
+    activeTab: ToolPanelTab;
+    isLocked: true;
+};
+type UnlockedTab = {
+    activeTab: ToolPanelTab | undefined;
+    isLocked: false;
+};
+type ActiveTab = LockedTab | UnlockedTab;
 
 const ToolPanel: React.FC<ToolPanelProps> = ({
     planIds,
@@ -553,27 +564,35 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 
     const lockedAsset = getLockedAsset();
 
-    const getActiveTab = () => {
+    const getActiveTab = (): ActiveTab => {
         const lockedTab = tabs.find((t) => isSameAsset(t.asset, lockedAsset));
         const selectedTab = tabs.find((t) => isSameAsset(t.asset, selectedAsset));
         const firstTab = first(tabs);
 
-        return lockedTab ?? selectedTab ?? firstTab;
+        return lockedTab
+            ? { activeTab: lockedTab, isLocked: true }
+            : { activeTab: selectedTab ?? firstTab, isLocked: false };
     };
 
-    const activeTab = getActiveTab();
+    const { activeTab, isLocked } = getActiveTab();
     return (
         <div className="tool-panel">
             {tabs.length > 1 && (
                 <div className="tool-panel__tab-bar" qa-id="tool-panel-tabs">
                     {tabs.map((t, tabIndex) => {
                         const active = activeTab ? t.asset === activeTab.asset : tabIndex === 0;
+                        const disabled = isLocked && !isSameAsset(t.asset, lockedAsset);
+                        const className = createClassName(
+                            'tool-panel__tab-header',
+                            disabled && 'tool-panel__tab-header--disabled',
+                        );
                         return (
                             <TabHeader
-                                className={'tool-panel__tab-header'}
+                                className={className}
                                 size={TabHeaderSize.Small}
                                 key={t.asset.type + '_' + t.asset.id}
                                 selected={active}
+                                disabled={disabled}
                                 onClick={() => changeTab(t.asset)}>
                                 {t.title}
                             </TabHeader>

@@ -179,4 +179,9 @@
     &:hover {
         background-color: vayla-design.$color-blue-lighter;
     }
+
+    &--disabled {
+        pointer-events: none;
+        color: vayla-design.$color-black-lighter;
+    }
 }
