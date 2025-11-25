@@ -35,7 +35,7 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
                 trackLayoutState.layoutContext,
                 changeTimes.operationalPoints,
             ),
-        [operationalPointId, changeTimes.operationalPoints],
+        [operationalPointId, trackLayoutState.layoutContext, changeTimes.operationalPoints],
     );
 
     const showOnMap = () => {
