@@ -527,6 +527,15 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     t.asset.id === linkingState.geometryKmPostId
                 );
             })?.asset;
+        } else if (
+            linkingState?.type === LinkingType.PlacingOperationalPoint ||
+            linkingState?.type === LinkingType.PlacingOperationalPointArea
+        ) {
+            return tabs.find(
+                (t) =>
+                    t.asset.type === 'OPERATIONAL_POINT' &&
+                    t.asset.id === linkingState.operationalPoint.id,
+            )?.asset;
         } else if (splittingState) {
             return tabs.find(
                 (t) =>

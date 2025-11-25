@@ -98,7 +98,9 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 title={t('tool-panel.operational-point.basic-info-heading')}
                 qa-id="operational-point-infobox-basic"
                 onEdit={openEditDialog}
-                iconDisabled={layoutContext.publicationState === 'OFFICIAL'}>
+                iconDisabled={
+                    layoutContext.publicationState === 'OFFICIAL' || !!layoutState.linkingState
+                }>
                 <InfoboxContent>
                     <InfoboxField
                         label={t('tool-panel.operational-point.identifier')}

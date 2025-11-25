@@ -128,6 +128,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         (layoutContextMode === 'DESIGN' && !currentDesignExists) ||
         linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
         linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
+        linkingState?.type === LinkingType.PlacingOperationalPoint ||
+        linkingState?.type === LinkingType.PlacingOperationalPointArea ||
         !!splittingState;
 
     const showDesignIdSelector =
