@@ -1175,7 +1175,8 @@ fun operationalPoint(
     state: OperationalPointState = OperationalPointState.IN_USE,
     uicCode: String? = "1234",
     location: Point = Point(10.0, 10.0),
-    polygon: Polygon = Polygon(Point(0.0, 0.0), Point(20.0, 0.0), Point(20.0, 20.0), Point(0.0, 20.0), Point(0.0, 0.0)),
+    polygon: Polygon? =
+        Polygon(Point(0.0, 0.0), Point(20.0, 0.0), Point(20.0, 20.0), Point(0.0, 20.0), Point(0.0, 0.0)),
     origin: OperationalPointOrigin = OperationalPointOrigin.GEOVIITE,
     draft: Boolean = true,
     ratkoVersion: Int? = null,
@@ -1194,6 +1195,9 @@ fun operationalPoint(
         ratkoVersion = ratkoVersion,
         contextData = contextData,
     )
+
+fun moveOperationalPointBy(point: OperationalPoint, x: Double, y: Double) =
+    point.copy(location = point.location?.plus(Point(x, y)), polygon = point.polygon?.moveBy(Point(x, y)))
 
 fun ratkoOperationalPoint(
     oid: String,
