@@ -82,20 +82,19 @@ constructor(
             ?.map(trackNumberDao::fetch)
             ?.takeIf { (oldTn, newTn) -> oldTn?.exists == true || newTn.exists }
             ?.let { (oldTn, newTn) ->
-                val oldPoints =
-                    oldTn
-                        ?.takeIf { it.exists }
-                        ?.let { _ -> getAddressPoints(branch, startMoment, id, resolution, addressFilter) }
-                val newPoints =
-                    newTn
-                        .takeIf { it.exists }
-                        ?.let { _ -> getAddressPoints(branch, endMoment, id, resolution, addressFilter) }
+                val (oldGeometry, oldPoints) =
+                    getAlignmentAndAddressPoints(branch, startMoment, oldTn, resolution, addressFilter)
+                val (newGeometry, newPoints) =
+                    getAlignmentAndAddressPoints(branch, endMoment, newTn, resolution, addressFilter)
                 ExtTrackNumberModifiedGeometryResponseV1(
                     trackLayoutVersionFrom = ExtLayoutVersionV1(publications.from),
                     trackLayoutVersionTo = ExtLayoutVersionV1(publications.to),
                     trackNumberOid = ExtOidV1(oid),
                     coordinateSystem = ExtSridV1(coordinateSystem),
-                    trackIntervals = createModifiedCenterLineIntervals(oldPoints, newPoints, coordinateSystem),
+                    trackIntervals =
+                        createModifiedCenterLineIntervals(oldPoints, newPoints, coordinateSystem) { start, end ->
+                            isGeometryChanged(start, end, oldGeometry, newGeometry)
+                        },
                 )
             }
     }
@@ -148,4 +147,20 @@ constructor(
         geocodingService
             .getGeocodingContextAtMoment(branch, trackNumberId, moment)
             ?.getReferenceLineAddressesWithResolution(resolution, addressFilter)
+
+    private fun getAlignmentAndAddressPoints(
+        branch: LayoutBranch,
+        moment: Instant,
+        trackNumber: LayoutTrackNumber?,
+        resolution: Resolution,
+        addressFilter: AddressFilter,
+    ): Pair<IAlignment<ReferenceLineM>?, AlignmentAddresses<ReferenceLineM>?> =
+        trackNumber
+            ?.takeIf { it.exists }
+            ?.let { tn -> tn.id as IntId }
+            ?.let { id ->
+                geocodingService.getGeocodingContextAtMoment(branch, id, moment)?.let { ctx ->
+                    ctx.referenceLineGeometry to ctx.getReferenceLineAddressesWithResolution(resolution, addressFilter)
+                }
+            } ?: (null to null)
 }
