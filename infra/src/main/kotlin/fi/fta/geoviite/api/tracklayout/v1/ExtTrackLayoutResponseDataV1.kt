@@ -140,7 +140,7 @@ const val FI_YES = "kyllä"
 const val FI_NO = "ei"
 const val FI_UNKNOWN = "ei tiedossa"
 
-@Schema(name = "Vaihteen turvavaihde status", type = "string", allowableValues = [FI_YES, FI_NO, FI_UNKNOWN])
+@Schema(name = "Vaihteen turvavaihdestatus", type = "string", allowableValues = [FI_YES, FI_NO, FI_UNKNOWN])
 enum class ExtSwitchTrapPointV1(val value: String) {
     YES(FI_YES),
     NO(FI_NO),
