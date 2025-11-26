@@ -650,6 +650,17 @@ constructor(
     ): List<LayoutValidationIssue>? {
         val operationalPoint = validationContext.getOperationalPoint(id) ?: return null
         val operationalPointVersion = requireNotNull(operationalPoint.version)
+
+        return if (!operationalPoint.exists) listOf()
+        else validateExistingOperationalPoint(id, validationContext, operationalPoint, operationalPointVersion)
+    }
+
+    private fun validateExistingOperationalPoint(
+        id: IntId<OperationalPoint>,
+        validationContext: ValidationContext,
+        operationalPoint: OperationalPoint,
+        operationalPointVersion: LayoutRowVersion<OperationalPoint>,
+    ): List<LayoutValidationIssue> {
         val nameDuplicationIssues =
             validateOperationalPointNameDuplication(
                 operationalPoint,

@@ -42,6 +42,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
@@ -2109,6 +2110,21 @@ constructor(
             ),
             validatedDeleted.validatedAsPublicationUnit.locationTracks[0].issues,
         )
+    }
+
+    @Test
+    fun `operational points are allowed to overlap with deleted ones`() {
+        val op = operationalPoint()
+        val a = mainDraftContext.save(op).id
+        val b = mainDraftContext.save(op.copy(state = OperationalPointState.DELETED)).id
+
+        val validated =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(operationalPoints = listOf(a, b)),
+            )
+        assertEquals(listOf<LayoutValidationIssue>(), validated.validatedAsPublicationUnit.operationalPoints[0].issues)
+        assertEquals(listOf<LayoutValidationIssue>(), validated.validatedAsPublicationUnit.operationalPoints[1].issues)
     }
 
     @Test
