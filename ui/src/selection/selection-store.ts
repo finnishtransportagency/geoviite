@@ -24,8 +24,7 @@ import {
 import { PublicationId, PublicationSearch } from 'publication/publication-model';
 import { defaultPublicationSearch } from 'publication/publication-utils';
 import { TimeStamp } from 'common/common-model';
-import { SearchablePublicationLogItem } from 'publication/log/publication-log';
-import { SearchItemValue } from 'asset-search/search-dropdown';
+import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
@@ -347,9 +346,7 @@ export const selectionReducers = {
     },
     startFreshSpecificItemPublicationLogSearch: (
         state: Selection,
-        {
-            payload: newSearchItem,
-        }: PayloadAction<SearchItemValue<SearchablePublicationLogItem> | undefined>,
+        { payload: newSearchItem }: PayloadAction<SearchItemValue<SearchItemType> | undefined>,
     ) => {
         if (!state.publicationSearch) {
             state.publicationSearch = { ...defaultPublicationSearch };
@@ -360,9 +357,7 @@ export const selectionReducers = {
     },
     setSelectedPublicationSearchSearchableItem: (
         state: Selection,
-        {
-            payload: newSearchItem,
-        }: PayloadAction<SearchItemValue<SearchablePublicationLogItem> | undefined>,
+        { payload: newSearchItem }: PayloadAction<SearchItemValue<SearchItemType> | undefined>,
     ) => {
         if (!state.publicationSearch) {
             state.publicationSearch = { ...defaultPublicationSearch };

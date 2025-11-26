@@ -4,6 +4,7 @@ import {
     LayoutKmPost,
     LayoutLocationTrack,
     LayoutTrackNumber,
+    OperationalPoint,
 } from 'track-layout/track-layout-model';
 import styles from './search-dropdown.scss';
 
@@ -43,4 +44,13 @@ export const kmPostSearchItemName = (
     t('asset-search.km-post', {
         kmPost: kmPost.kmNumber,
         trackNumber: trackNumbers.find((tn) => tn.id === kmPost.trackNumberId)?.number,
+    });
+
+export const operationalPointItemName = (
+    point: OperationalPoint,
+    t: TFunction<'translation', undefined>,
+) =>
+    t('asset-search.operational-point', {
+        name: point.name,
+        abbreviation: point.abbreviation,
     });

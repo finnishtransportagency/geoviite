@@ -43,6 +43,8 @@ import {
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
+    OperationalPoint,
+    OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { SortablePublicationTableProps } from 'publication/table/publication-table-utils';
@@ -321,26 +323,30 @@ export type PublishableObjectIdAndType =
     | ReferenceLineIdAndType
     | LocationTrackIdAndType
     | SwitchIdAndType
-    | KmPostIdAndType;
+    | KmPostIdAndType
+    | OperationalPointIdAndType;
 
 export type TrackNumberIdAndType = { id: LayoutTrackNumberId; type: 'TRACK_NUMBER' };
 export type ReferenceLineIdAndType = { id: ReferenceLineId; type: 'REFERENCE_LINE' };
 export type LocationTrackIdAndType = { id: LocationTrackId; type: 'LOCATION_TRACK' };
 export type SwitchIdAndType = { id: LayoutSwitchId; type: 'SWITCH' };
 export type KmPostIdAndType = { id: LayoutKmPostId; type: 'KM_POST' };
+export type OperationalPointIdAndType = { id: OperationalPointId; type: 'OPERATIONAL_POINT' };
 
 export type PublishedAsset =
     | PublishedAssetTrackNumber
     | PublishedAssetReferenceLine
     | PublishedAssetLocationTrack
     | PublishedAssetSwitch
-    | PublishedAssetKmPost;
+    | PublishedAssetKmPost
+    | PublishedAssetOperationalPoint;
 
 export type PublishedAssetTrackNumber = { asset: LayoutTrackNumber; type: 'TRACK_NUMBER' };
 export type PublishedAssetReferenceLine = { asset: LayoutReferenceLine; type: 'REFERENCE_LINE' };
 export type PublishedAssetLocationTrack = { asset: LayoutLocationTrack; type: 'LOCATION_TRACK' };
 export type PublishedAssetSwitch = { asset: LayoutSwitch; type: 'SWITCH' };
 export type PublishedAssetKmPost = { asset: LayoutKmPost; type: 'KM_POST' };
+export type PublishedAssetOperationalPoint = { asset: OperationalPoint; type: 'OPERATIONAL_POINT' };
 
 export const getPublicationsCsvUri = (
     fromDate?: Date,

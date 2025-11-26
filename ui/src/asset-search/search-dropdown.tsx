@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import {
     kmPostSearchItemName,
     locationTrackSearchItemName,
+    operationalPointItemName,
     SearchDropdownItem,
 } from 'asset-search/search-dropdown-item';
 
@@ -127,6 +128,7 @@ type OperationalPointItemValue = {
 
 function createOperationalPointOptionItem(
     operationalPoint: OperationalPoint,
+    t: TFunction<'translation', undefined>,
 ): Item<OperationalPointItemValue> {
     return dropdownOption(
         {
@@ -137,6 +139,11 @@ function createOperationalPointOptionItem(
             ? operationalPoint.name
             : `${operationalPoint.name}, ${operationalPoint.abbreviation}`,
         `operational-point-${operationalPoint.name}`,
+        <SearchDropdownItem
+            name={operationalPointItemName(operationalPoint, t)}
+            isDeleted={operationalPoint.state === 'DELETED'}
+            deletedPhrase={t('enum.OperationalPointState.DELETED')}
+        />,
     );
 }
 
@@ -170,7 +177,7 @@ async function getOptions(
     });
 
     return [
-        searchResult.operationalPoints.map(createOperationalPointOptionItem),
+        searchResult.operationalPoints.map((op) => createOperationalPointOptionItem(op, t)),
         locationTrackOptions,
         searchResult.switches.map((sw) => createSwitchOptionItem(sw, t)),
         searchResult.trackNumbers.map((tn) => createTrackNumberOptionItem(tn, t)),

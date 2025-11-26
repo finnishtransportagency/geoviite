@@ -27,6 +27,10 @@ import { OperationalPointLocationInfobox } from 'tool-panel/operational-point/op
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { OperationalPointSwitchesInfobox } from 'tool-panel/operational-point/operational-point-switches-infobox';
 import { EnvRestricted } from 'environment/env-restricted';
+import { useHasPublicationLog } from 'publication/publication-utils';
+import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
+import { useAppNavigate } from 'common/navigate';
 
 type OperationalPointInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -43,6 +47,7 @@ type OperationalPointInfoboxProps = {
     onStopPlacingLocation: () => void;
     onStartPlacingArea: () => void;
     onStopPlacingArea: () => void;
+    startFreshSpecificItemPublicationLogSearch: (item: SearchItemValue<SearchItemType>) => void;
 };
 
 export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = ({
@@ -60,8 +65,11 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     onStopPlacingLocation,
     onStartPlacingArea,
     onStopPlacingArea,
+    startFreshSpecificItemPublicationLogSearch,
 }) => {
     const { t } = useTranslation();
+    const navigate = useAppNavigate();
+
     const visibilityChange = (key: keyof OperationalPointInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
@@ -89,6 +97,24 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
         onSelect,
         onUnselect,
     );
+
+    const hasPublicationLog = useHasPublicationLog(
+        operationalPoint.id,
+        getLocationTrack,
+        changeInfo?.changed,
+    );
+
+    const openPublicationLogButtonTitle = hasPublicationLog
+        ? undefined
+        : t('tool-panel.location-track.publication-log-unavailable');
+
+    const openPublicationLog = React.useCallback(() => {
+        startFreshSpecificItemPublicationLogSearch({
+            type: SearchItemType.OPERATIONAL_POINT,
+            operationalPoint,
+        });
+        navigate('publication-search');
+    }, [operationalPoint, changeInfo]);
 
     return (
         <React.Fragment>
@@ -212,7 +238,9 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                                 <Button
                                     variant={ButtonVariant.SECONDARY}
                                     size={ButtonSize.SMALL}
-                                    disabled={true}>
+                                    title={openPublicationLogButtonTitle}
+                                    disabled={!hasPublicationLog}
+                                    onClick={openPublicationLog}>
                                     {t('tool-panel.show-in-publication-log')}
                                 </Button>
                             </InfoboxButtons>

@@ -14,7 +14,6 @@ import {
     PublicationTableWithoutDetails,
 } from 'publication/table/publication-table-details';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
-import { SearchablePublicationLogItem } from 'publication/log/publication-log';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { PublishedAsset } from 'publication/publication-api';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
@@ -27,7 +26,7 @@ type PublicationTableRowProps = {
     detailsVisible: boolean;
     detailsVisibleToggle: (id: PublicationId) => void;
     displaySinglePublication: (id: PublicationId) => void;
-    displayItemHistory: (item: SearchItemValue<SearchablePublicationLogItem>) => void;
+    displayItemHistory: (item: SearchItemValue<SearchItemType>) => void;
     allLayoutTrackNumbers: LayoutTrackNumber[];
 } & PublicationTableItem;
 
@@ -56,7 +55,7 @@ const PublicationTableMessage: React.FC<PublicationTableMessageProps> = ({
 const getTrackNumberForReferenceLine = (
     asset: PublishedAsset,
     trackNumbers: LayoutTrackNumber[],
-): SearchItemValue<SearchablePublicationLogItem> | undefined => {
+): SearchItemValue<SearchItemType> | undefined => {
     if (asset.type !== 'REFERENCE_LINE') {
         return undefined;
     } else {
@@ -69,7 +68,7 @@ const getTrackNumberForReferenceLine = (
 const assetToSearchItem = (
     asset: PublishedAsset,
     trackNumbers: LayoutTrackNumber[],
-): SearchItemValue<SearchablePublicationLogItem> | undefined => {
+): SearchItemValue<SearchItemType> | undefined => {
     switch (asset.type) {
         case 'TRACK_NUMBER':
             return { trackNumber: asset.asset, type: SearchItemType.TRACK_NUMBER };
@@ -81,6 +80,8 @@ const assetToSearchItem = (
             return { layoutSwitch: asset.asset, type: SearchItemType.SWITCH };
         case 'KM_POST':
             return { kmPost: asset.asset, type: SearchItemType.KM_POST };
+        case 'OPERATIONAL_POINT':
+            return { operationalPoint: asset.asset, type: SearchItemType.OPERATIONAL_POINT };
         default:
             return undefined;
     }
