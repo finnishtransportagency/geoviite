@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.IPoint
@@ -14,17 +13,16 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtTrackNumberServiceV1
@@ -41,49 +39,49 @@ constructor(
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun getExtTrackNumberCollection(
-        trackLayoutVersion: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        layoutVersion: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtTrackNumberCollectionResponseV1 {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-        return createTrackNumberCollectionResponse(publication, coordinateSystem = coordinateSystem ?: LAYOUT_SRID)
+        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
+        return createTrackNumberCollectionResponse(publication, coordinateSystem(extCoordinateSystem))
     }
 
     fun getExtTrackNumberCollectionModifications(
-        trackLayoutVersionFrom: Uuid<Publication>,
-        trackLayoutVersionTo: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        layoutVersionFrom: ExtLayoutVersionV1,
+        layoutVersionTo: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtModifiedTrackNumberCollectionResponseV1? {
-        val publications = publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
+        val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         return if (publications.areDifferent()) {
-            createTrackNumberCollectionModificationResponse(publications, coordinateSystem ?: LAYOUT_SRID)
+            createTrackNumberCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem))
         } else {
-            publicationsAreTheSame(trackLayoutVersionFrom)
+            publicationsAreTheSame(layoutVersionFrom.value)
         }
     }
 
     fun getExtTrackNumber(
-        oid: Oid<LayoutTrackNumber>,
-        trackLayoutVersion: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        oid: ExtOidV1<LayoutTrackNumber>,
+        layoutVersion: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtTrackNumberResponseV1? {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-        val id = idLookup(trackNumberDao, oid)
-        return createTrackNumberResponse(oid, id, publication, coordinateSystem ?: LAYOUT_SRID)
+        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
+        val id = idLookup(trackNumberDao, oid.value)
+        return createTrackNumberResponse(oid.value, id, publication, coordinateSystem(extCoordinateSystem))
     }
 
     fun getExtTrackNumberModifications(
-        oid: Oid<LayoutTrackNumber>,
-        trackLayoutVersionFrom: Uuid<Publication>,
-        trackLayoutVersionTo: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        oid: ExtOidV1<LayoutTrackNumber>,
+        layoutVersionFrom: ExtLayoutVersionV1,
+        layoutVersionTo: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtModifiedTrackNumberResponseV1? {
-        val publications = publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
+        val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         // Lookup before change check to produce consistent error if oid is not found
-        val id = idLookup(trackNumberDao, oid)
+        val id = idLookup(trackNumberDao, oid.value)
         return if (publications.areDifferent()) {
-            createTrackNumberModificationResponse(oid, id, publications, coordinateSystem ?: LAYOUT_SRID)
+            createTrackNumberModificationResponse(oid.value, id, publications, coordinateSystem(extCoordinateSystem))
         } else {
-            publicationsAreTheSame(trackLayoutVersionFrom)
+            publicationsAreTheSame(layoutVersionFrom.value)
         }
     }
 
@@ -98,7 +96,7 @@ constructor(
         return trackNumberDao.getOfficialAtMoment(branch, id, moment)?.let { trackNumber ->
             val data = getTrackNumberData(branch, moment, oid, trackNumber)
             ExtTrackNumberResponseV1(
-                trackLayoutVersion = publication.uuid,
+                layoutVersion = ExtLayoutVersionV1(publication),
                 coordinateSystem = ExtSridV1(coordinateSystem),
                 trackNumber = createExtTrackNumber(data, coordinateSystem),
             )
@@ -120,8 +118,8 @@ constructor(
             ?.let { trackNumber ->
                 val data = getTrackNumberData(branch, endMoment, oid, trackNumber)
                 ExtModifiedTrackNumberResponseV1(
-                    trackLayoutVersionFrom = publications.from.uuid,
-                    trackLayoutVersionTo = publications.to.uuid,
+                    layoutVersionFrom = ExtLayoutVersionV1(publications.from),
+                    layoutVersionTo = ExtLayoutVersionV1(publications.to),
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     trackNumber = createExtTrackNumber(data, coordinateSystem),
                 )
@@ -136,7 +134,7 @@ constructor(
         val moment = publication.publicationTime
         val trackNumbers = trackNumberDao.listOfficialAtMoment(branch, moment).filter { it.exists }
         return ExtTrackNumberCollectionResponseV1(
-            trackLayoutVersion = publication.uuid,
+            layoutVersion = ExtLayoutVersionV1(publication.uuid),
             coordinateSystem = ExtSridV1(coordinateSystem),
             trackNumberCollection = createExtTrackNumbers(branch, moment, coordinateSystem, trackNumbers),
         )
@@ -155,8 +153,8 @@ constructor(
             ?.let(trackNumberDao::fetchMany)
             ?.let { trackNumbers ->
                 ExtModifiedTrackNumberCollectionResponseV1(
-                    trackLayoutVersionFrom = publications.from.uuid,
-                    trackLayoutVersionTo = publications.to.uuid,
+                    layoutVersionFrom = ExtLayoutVersionV1(publications.from),
+                    layoutVersionTo = ExtLayoutVersionV1(publications.to),
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     trackNumberCollection = createExtTrackNumbers(branch, endMoment, coordinateSystem, trackNumbers),
                 )
@@ -178,7 +176,7 @@ constructor(
     private fun createExtTrackNumber(data: TrackNumberData, coordinateSystem: Srid): ExtTrackNumberV1 {
         val toEndPoint = { p: IPoint -> toExtAddressPoint(p, data.geocodingContext, coordinateSystem) }
         return ExtTrackNumberV1(
-            trackNumberOid = data.oid,
+            trackNumberOid = ExtOidV1(data.oid),
             trackNumber = data.trackNumber.number,
             trackNumberDescription = data.trackNumber.description,
             trackNumberState = data.trackNumber.state.let(ExtTrackNumberStateV1::of),

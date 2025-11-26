@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.IPoint
@@ -14,7 +13,6 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -42,52 +40,50 @@ constructor(
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun getExtLocationTrackCollection(
-        trackLayoutVersion: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        layoutVersion: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtLocationTrackCollectionResponseV1 {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-        return createLocationTrackCollectionResponse(publication, coordinateSystem ?: LAYOUT_SRID)
+        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
+        return createLocationTrackCollectionResponse(publication, coordinateSystem(extCoordinateSystem))
     }
 
     fun getExtLocationTrackCollectionModifications(
-        trackLayoutVersionFrom: Uuid<Publication>,
-        trackLayoutVersionTo: Uuid<Publication>?,
-        coordinateSystem: Srid?,
-    ) =
-        publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo).let { publications ->
+        layoutVersionFrom: ExtLayoutVersionV1,
+        layoutVersionTo: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
+    ): ExtModifiedLocationTrackCollectionResponseV1? =
+        publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value).let { publications
+            ->
             if (publications.areDifferent()) {
-                createLocationTrackCollectionModificationResponse(
-                    publications = publications,
-                    coordinateSystem = coordinateSystem ?: LAYOUT_SRID,
-                )
+                createLocationTrackCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem))
             } else {
-                publicationsAreTheSame(trackLayoutVersionFrom)
+                publicationsAreTheSame(layoutVersionFrom.value)
             }
         }
 
     fun getExtLocationTrack(
-        oid: Oid<LocationTrack>,
-        trackLayoutVersion: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        oid: ExtOidV1<LocationTrack>,
+        layoutVersion: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtLocationTrackResponseV1? {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-        val id = idLookup(locationTrackDao, oid)
-        return createLocationTrackResponse(oid, id, publication, coordinateSystem ?: LAYOUT_SRID)
+        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
+        val id = idLookup(locationTrackDao, oid.value)
+        return createLocationTrackResponse(oid.value, id, publication, coordinateSystem(extCoordinateSystem))
     }
 
     fun getExtLocationTrackModifications(
-        oid: Oid<LocationTrack>,
-        trackLayoutVersionFrom: Uuid<Publication>,
-        trackLayoutVersionTo: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        oid: ExtOidV1<LocationTrack>,
+        layoutVersionFrom: ExtLayoutVersionV1,
+        layoutVersionTo: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtModifiedLocationTrackResponseV1? {
-        val publications = publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
+        val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         // Lookup before change check to produce consistent error if oid is not found
-        val id = idLookup(locationTrackDao, oid)
+        val id = idLookup(locationTrackDao, oid.value)
         return if (publications.areDifferent()) {
-            createLocationTrackModificationResponse(oid, id, publications, coordinateSystem ?: LAYOUT_SRID)
+            createLocationTrackModificationResponse(oid.value, id, publications, coordinateSystem(extCoordinateSystem))
         } else {
-            publicationsAreTheSame(trackLayoutVersionFrom)
+            publicationsAreTheSame(layoutVersionFrom.value)
         }
     }
 
@@ -102,7 +98,7 @@ constructor(
         return locationTrackService.getOfficialWithGeometryAtMoment(branch, id, moment)?.let { (track, geometry) ->
             val data = getLocationTrackData(branch, moment, oid, track, geometry)
             ExtLocationTrackResponseV1(
-                trackLayoutVersion = publication.uuid,
+                layoutVersion = ExtLayoutVersionV1(publication),
                 coordinateSystem = ExtSridV1(coordinateSystem),
                 locationTrack = createExtLocationTrack(data, coordinateSystem),
             )
@@ -124,8 +120,8 @@ constructor(
             ?.let { (track, geometry) ->
                 val data = getLocationTrackData(branch, endMoment, oid, track, geometry)
                 ExtModifiedLocationTrackResponseV1(
-                    trackLayoutVersionFrom = publications.from.uuid,
-                    trackLayoutVersionTo = publications.to.uuid,
+                    layoutVersionFrom = ExtLayoutVersionV1(publications.from),
+                    layoutVersionTo = ExtLayoutVersionV1(publications.to),
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     locationTrack = createExtLocationTrack(data, coordinateSystem),
                 )
@@ -140,7 +136,7 @@ constructor(
         val moment = publication.publicationTime
         val tracksAndGeoms = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, false)
         return ExtLocationTrackCollectionResponseV1(
-            trackLayoutVersion = publication.uuid,
+            layoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),
             locationTrackCollection = createExtLocationTracks(branch, moment, coordinateSystem, tracksAndGeoms),
         )
@@ -159,8 +155,8 @@ constructor(
             ?.let(locationTrackService::getManyWithGeometries)
             ?.let { tracksAndGeoms ->
                 ExtModifiedLocationTrackCollectionResponseV1(
-                    trackLayoutVersionFrom = publications.from.uuid,
-                    trackLayoutVersionTo = publications.to.uuid,
+                    layoutVersionFrom = ExtLayoutVersionV1(publications.from),
+                    layoutVersionTo = ExtLayoutVersionV1(publications.to),
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     locationTrackCollection =
                         createExtLocationTracks(branch, endMoment, coordinateSystem, tracksAndGeoms),
@@ -183,7 +179,7 @@ constructor(
     private fun createExtLocationTrack(data: LocationTrackData, coordinateSystem: Srid): ExtLocationTrackV1 {
         val toEndPoint = { p: IPoint -> toExtAddressPoint(p, data.geocodingContext, coordinateSystem) }
         return ExtLocationTrackV1(
-            locationTrackOid = data.oid,
+            locationTrackOid = ExtOidV1(data.oid),
             locationTrackName = data.track.name,
             locationTrackType = ExtLocationTrackTypeV1.of(data.track.type),
             locationTrackState = ExtLocationTrackStateV1.of(data.track.state),
@@ -192,7 +188,7 @@ constructor(
             startLocation = data.geometry.start?.let(toEndPoint),
             endLocation = data.geometry.end?.let(toEndPoint),
             trackNumberName = data.trackNumber.number,
-            trackNumberOid = data.trackNumberOid,
+            trackNumberOid = ExtOidV1(data.trackNumberOid),
         )
     }
 

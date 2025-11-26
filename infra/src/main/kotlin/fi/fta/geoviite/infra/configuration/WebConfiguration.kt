@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMEST
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterLocationTrackTypeV1
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterStringV1
 import fi.fta.geoviite.api.openapi.YamlPlaceholderTransformer
+import fi.fta.geoviite.api.tracklayout.v1.ExtLayoutVersionV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtMaybeTrackKmOrTrackMeterV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtResolutionV1
+import fi.fta.geoviite.api.tracklayout.v1.ExtSridV1
 import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
@@ -96,10 +98,7 @@ constructor(
         if (extApiEnabled && extApiStaticUrl.isNotEmpty() && extApiStaticResourcesPath.isNotEmpty()) {
             logger.info("Static file serving enabled, url=$extApiStaticUrl, resources=$extApiStaticResourcesPath")
 
-            val replacements =
-                mapOf(
-                    GEOVIITE_SUPPORT_EMAIL to environmentInfo.geoviiteSupportEmailAddress,
-                )
+            val replacements = mapOf(GEOVIITE_SUPPORT_EMAIL to environmentInfo.geoviiteSupportEmailAddress)
 
             registry
                 .addResourceHandler(extApiStaticUrl)
@@ -189,6 +188,8 @@ constructor(
 
             registry.addStringConstructorConverter { ExtResolutionV1.fromValue(it) }
             registry.addStringConstructorConverter { ::ExtMaybeTrackKmOrTrackMeterV1 }
+            registry.addStringConstructorConverter { value: String -> ExtSridV1(value) }
+            registry.addStringConstructorConverter { value: String -> ExtLayoutVersionV1(value) }
         }
     }
 

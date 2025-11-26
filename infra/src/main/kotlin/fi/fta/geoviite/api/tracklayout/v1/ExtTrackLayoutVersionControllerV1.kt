@@ -3,8 +3,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
 import fi.fta.geoviite.infra.common.LayoutBranchType
-import fi.fta.geoviite.infra.common.Uuid
-import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -63,9 +61,11 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
     fun getExtTrackLayoutVersion(
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_DESCRIPTION)
         @PathVariable(TRACK_LAYOUT_VERSION)
-        version: Uuid<Publication>
+        version: ExtLayoutVersionV1
     ): ExtTrackLayoutVersionV1 {
-        return publicationService.getPublicationWithType(LayoutBranchType.MAIN, version).let(::ExtTrackLayoutVersionV1)
+        return publicationService
+            .getPublicationWithType(LayoutBranchType.MAIN, version.value)
+            .let(::ExtTrackLayoutVersionV1)
     }
 
     @GetMapping("/versiot/uusin")
@@ -121,8 +121,8 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
             .takeIf { publications -> publications.isNotEmpty() }
             ?.let { publications ->
                 ExtTrackLayoutVersionCollectionResponseV1(
-                    trackLayoutVersionFrom = publications.first().uuid,
-                    trackLayoutVersionTo = publications.last().uuid,
+                    layoutVersionFrom = ExtLayoutVersionV1(publications.first()),
+                    layoutVersionTo = ExtLayoutVersionV1(publications.last()),
                     versions = publications.map(::ExtTrackLayoutVersionV1),
                 )
             }
@@ -154,25 +154,22 @@ class ExtTrackLayoutVersionControllerV1 @Autowired constructor(private val publi
             ]
     )
     fun getExtModifiedTrackLayoutVersionCollection(
-        @Parameter(
-            description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
-            schema = Schema(type = "string", format = "uuid"),
-        )
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM)
         @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
-        trackLayoutVersionFrom: Uuid<Publication>,
-        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO, schema = Schema(type = "string", format = "uuid"))
+        layoutVersionFrom: ExtLayoutVersionV1,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO)
         @RequestParam(TRACK_LAYOUT_VERSION_TO, required = false)
-        trackLayoutVersionTo: Uuid<Publication>?,
+        layoutVersionTo: ExtLayoutVersionV1?,
     ): ResponseEntity<ExtTrackLayoutVersionCollectionResponseV1> {
         return publicationService
-            .getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
+            .getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
             .takeIf { versions -> versions.areDifferent() }
             ?.let { versions -> publicationService.listPublications(LayoutBranchType.MAIN, versions) }
             ?.takeIf { publications -> publications.size > 1 }
             ?.let { publications ->
                 ExtTrackLayoutVersionCollectionResponseV1(
-                    trackLayoutVersionFrom = publications.first().uuid,
-                    trackLayoutVersionTo = publications.last().uuid,
+                    layoutVersionFrom = ExtLayoutVersionV1(publications.first()),
+                    layoutVersionTo = ExtLayoutVersionV1(publications.last()),
                     versions = publications.drop(1).map(::ExtTrackLayoutVersionV1),
                 )
             }

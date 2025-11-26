@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.publication.Publication
@@ -17,7 +16,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -48,49 +46,50 @@ constructor(
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun getExtSwitchCollection(
-        trackLayoutVersion: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        layoutVersion: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtSwitchCollectionResponseV1 {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-        return createSwitchCollectionResponse(publication, coordinateSystem ?: LAYOUT_SRID)
+        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
+        return createSwitchCollectionResponse(publication, coordinateSystem(extCoordinateSystem))
     }
 
     fun getExtSwitchCollectionModifications(
-        trackLayoutVersionFrom: Uuid<Publication>,
-        trackLayoutVersionTo: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        layoutVersionFrom: ExtLayoutVersionV1,
+        layoutVersionTo: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtModifiedSwitchCollectionResponseV1? {
-        val publications = publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
+        val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         return if (publications.areDifferent()) {
-            createSwitchCollectionModificationResponse(publications, coordinateSystem ?: LAYOUT_SRID)
+            createSwitchCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem))
         } else {
-            publicationsAreTheSame(trackLayoutVersionFrom)
+            publicationsAreTheSame(layoutVersionFrom.value)
         }
     }
 
     fun getExtSwitch(
-        oid: Oid<LayoutSwitch>,
-        trackLayoutVersion: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        oid: ExtOidV1<LayoutSwitch>,
+        layoutVersion: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtSwitchResponseV1? {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-        val id = idLookup(switchDao, oid)
-        return createExtSwitchResponse(oid, id, publication, coordinateSystem ?: LAYOUT_SRID)
+        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
+        val id = idLookup(switchDao, oid.value)
+        return createExtSwitchResponse(oid.value, id, publication, coordinateSystem(extCoordinateSystem))
     }
 
     fun getExtSwitchModifications(
-        oid: Oid<LayoutSwitch>,
-        trackLayoutVersionFrom: Uuid<Publication>,
-        trackLayoutVersionTo: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        oid: ExtOidV1<LayoutSwitch>,
+        layoutVersionFrom: ExtLayoutVersionV1,
+        layoutVersionTo: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtModifiedSwitchResponseV1? =
-        publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo).let { publications ->
+        publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value).let { publications
+            ->
             // Lookup before change check to produce consistent error if oid is not found
-            val id = idLookup(switchDao, oid)
+            val id = idLookup(switchDao, oid.value)
             if (publications.areDifferent()) {
-                createSwitchModificationResponse(oid, id, publications, coordinateSystem ?: LAYOUT_SRID)
+                createSwitchModificationResponse(oid.value, id, publications, coordinateSystem(extCoordinateSystem))
             } else {
-                publicationsAreTheSame(trackLayoutVersionFrom)
+                publicationsAreTheSame(layoutVersionFrom.value)
             }
         }
 
@@ -104,7 +103,7 @@ constructor(
         val moment = publication.publicationTime
         return switchDao.getOfficialAtMoment(branch, id, moment)?.let { switch ->
             ExtSwitchResponseV1(
-                trackLayoutVersion = publication.uuid,
+                layoutVersion = ExtLayoutVersionV1(publication),
                 coordinateSystem = ExtSridV1(coordinateSystem),
                 switch = createExtSwitch(getSwitchData(oid, switch, branch, moment), coordinateSystem),
             )
@@ -123,8 +122,8 @@ constructor(
         return publicationDao.fetchPublishedSwitchBetween(id, startMoment, endMoment)?.let(switchDao::fetch)?.let {
             switch ->
             ExtModifiedSwitchResponseV1(
-                trackLayoutVersionFrom = publications.from.uuid,
-                trackLayoutVersionTo = publications.to.uuid,
+                layoutVersionFrom = ExtLayoutVersionV1(publications.from),
+                layoutVersionTo = ExtLayoutVersionV1(publications.to),
                 coordinateSystem = ExtSridV1(coordinateSystem),
                 switch = createExtSwitch(getSwitchData(oid, switch, branch, endMoment), coordinateSystem),
             )
@@ -139,7 +138,7 @@ constructor(
         val moment = publication.publicationTime
         val switches = switchDao.listOfficialAtMoment(branch, moment).filter { it.exists }
         return ExtSwitchCollectionResponseV1(
-            trackLayoutVersion = publication.uuid,
+            layoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),
             switchCollection = createExtSwitches(branch, moment, coordinateSystem, switches),
         )
@@ -158,8 +157,8 @@ constructor(
             ?.let(switchDao::fetchMany)
             ?.let { modifiedSwitches ->
                 ExtModifiedSwitchCollectionResponseV1(
-                    trackLayoutVersionFrom = publications.from.uuid,
-                    trackLayoutVersionTo = publications.to.uuid,
+                    layoutVersionFrom = ExtLayoutVersionV1(publications.from),
+                    layoutVersionTo = ExtLayoutVersionV1(publications.to),
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     switchCollection = createExtSwitches(branch, endMoment, coordinateSystem, modifiedSwitches),
                 )
@@ -180,7 +179,7 @@ constructor(
 
     private fun createExtSwitch(data: SwitchData, coordinateSystem: Srid): ExtSwitchV1 {
         return ExtSwitchV1(
-            switchOid = data.oid,
+            switchOid = ExtOidV1(data.oid),
             switchName = data.switch.name,
             type = data.structure.type,
             hand = ExtSwitchHandV1.of(data.structure.hand),
@@ -198,7 +197,7 @@ constructor(
             trackLinks =
                 data.trackLinks.map { trackJoints ->
                     ExtSwitchTrackLinkV1(
-                        locationTrackOid = trackJoints.locationTrackOid,
+                        locationTrackOid = ExtOidV1(trackJoints.locationTrackOid),
                         joints =
                             trackJoints.jointLocations.map { (link, location) ->
                                 val addressPoint =

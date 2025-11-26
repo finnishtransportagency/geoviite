@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.AddressFilter
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -15,7 +14,6 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
@@ -32,39 +30,39 @@ constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
 ) {
     fun getExtTrackNumberGeometry(
-        oid: Oid<LayoutTrackNumber>,
-        trackLayoutVersion: Uuid<Publication>?,
+        oid: ExtOidV1<LayoutTrackNumber>,
+        layoutVersion: ExtLayoutVersionV1?,
         extResolution: ExtResolutionV1?,
-        coordinateSystem: Srid?,
+        extCoordinateSystem: ExtSridV1?,
         addressFilterStart: ExtMaybeTrackKmOrTrackMeterV1?,
         addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1?,
     ): ExtTrackNumberGeometryResponseV1? {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
+        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
+        val coordinateSystem = coordinateSystem(extCoordinateSystem)
         val resolution = extResolution?.toResolution() ?: Resolution.ONE_METER
-        val coordinateSystem = coordinateSystem ?: LAYOUT_SRID
         val addressFilter = createAddressFilter(addressFilterStart, addressFilterEnd)
-        return createGeometryResponse(oid, publication, resolution, coordinateSystem, addressFilter)
+        return createGeometryResponse(oid.value, publication, resolution, coordinateSystem, addressFilter)
     }
 
     fun getExtTrackNumberGeometryModifications(
-        oid: Oid<LayoutTrackNumber>,
-        trackLayoutVersionFrom: Uuid<Publication>,
-        trackLayoutVersionTo: Uuid<Publication>?,
+        oid: ExtOidV1<LayoutTrackNumber>,
+        layoutVersionFrom: ExtLayoutVersionV1,
+        layoutVersionTo: ExtLayoutVersionV1?,
         extResolution: ExtResolutionV1?,
-        coordinateSystem: Srid?,
+        extCoordinateSystem: ExtSridV1?,
         addressFilterStart: ExtMaybeTrackKmOrTrackMeterV1?,
         addressFilterEnd: ExtMaybeTrackKmOrTrackMeterV1?,
     ): ExtTrackNumberModifiedGeometryResponseV1? {
-        val publications = publicationService.getPublicationsToCompare(trackLayoutVersionFrom, trackLayoutVersionTo)
+        val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         // Lookup before change check to produce consistent error if oid is not found
-        val id = idLookup(trackNumberDao, oid)
+        val id = idLookup(trackNumberDao, oid.value)
+        val coordinateSystem = coordinateSystem(extCoordinateSystem)
         val resolution = extResolution?.toResolution() ?: Resolution.ONE_METER
-        val coordinateSystem = coordinateSystem ?: LAYOUT_SRID
         val addressFilter = createAddressFilter(addressFilterStart, addressFilterEnd)
         return if (publications.areDifferent()) {
-            createGeometryModificationResponse(oid, id, publications, resolution, coordinateSystem, addressFilter)
+            createGeometryModificationResponse(oid.value, id, publications, resolution, coordinateSystem, addressFilter)
         } else {
-            publicationsAreTheSame(trackLayoutVersionFrom)
+            publicationsAreTheSame(layoutVersionFrom.value)
         }
     }
 
@@ -93,9 +91,9 @@ constructor(
                         .takeIf { it.exists }
                         ?.let { _ -> getAddressPoints(branch, endMoment, id, resolution, addressFilter) }
                 ExtTrackNumberModifiedGeometryResponseV1(
-                    trackLayoutVersionFrom = publications.from.uuid,
-                    trackLayoutVersionTo = publications.to.uuid,
-                    trackNumberOid = oid,
+                    trackLayoutVersionFrom = ExtLayoutVersionV1(publications.from),
+                    trackLayoutVersionTo = ExtLayoutVersionV1(publications.to),
+                    trackNumberOid = ExtOidV1(oid),
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     trackIntervals = createModifiedCenterLineIntervals(oldPoints, newPoints, coordinateSystem),
                 )
@@ -120,8 +118,8 @@ constructor(
             ?.let { _ ->
                 val filteredAddressPoints = getAddressPoints(branch, moment, trackNumberId, resolution, addressFilter)
                 ExtTrackNumberGeometryResponseV1(
-                    trackLayoutVersion = publication.uuid,
-                    trackNumberOid = oid,
+                    trackLayoutVersion = ExtLayoutVersionV1(publication),
+                    trackNumberOid = ExtOidV1(oid),
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     trackInterval =
                         // Address points are null for example in case when the user provided

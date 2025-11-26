@@ -6,13 +6,11 @@ import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -33,20 +31,22 @@ constructor(
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun getExtTrackNumberKmsCollection(
-        trackLayoutVersion: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        trackLayoutVersion: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtTrackKmsCollectionResponseV1 {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-        return createTrackNumberKmsCollectionResponse(publication, coordinateSystem ?: LAYOUT_SRID)
+        val publication =
+            publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion?.value)
+        return createTrackNumberKmsCollectionResponse(publication, coordinateSystem(extCoordinateSystem))
     }
 
     fun getExtTrackNumberKms(
-        oid: Oid<LayoutTrackNumber>,
-        trackLayoutVersion: Uuid<Publication>?,
-        coordinateSystem: Srid?,
+        oid: ExtOidV1<LayoutTrackNumber>,
+        trackLayoutVersion: ExtLayoutVersionV1?,
+        extCoordinateSystem: ExtSridV1?,
     ): ExtTrackKmsResponseV1? {
-        val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion)
-        return createTrackKmResponse(oid, publication, coordinateSystem ?: LAYOUT_SRID)
+        val publication =
+            publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, trackLayoutVersion?.value)
+        return createTrackKmResponse(oid.value, publication, coordinateSystem(extCoordinateSystem))
     }
 
     private fun createTrackKmResponse(
@@ -64,7 +64,7 @@ constructor(
                 val geocodingContext =
                     geocodingService.getGeocodingContextAtMoment(branch, trackNumber.id as IntId, moment)
                 ExtTrackKmsResponseV1(
-                    trackLayoutVersion = publication.uuid,
+                    trackLayoutVersion = ExtLayoutVersionV1(publication),
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     trackNumberKms = getExtTrackKms(trackNumberOid, trackNumber, geocodingContext, coordinateSystem),
                 )
@@ -88,7 +88,7 @@ constructor(
                 it.id to geocodingService.getGeocodingContextAtMoment(branch, it.id as IntId, moment)
             }
         return ExtTrackKmsCollectionResponseV1(
-            trackLayoutVersion = publication.uuid,
+            trackLayoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),
             trackNumberKms =
                 trackNumbers.map { tn ->
@@ -106,7 +106,7 @@ constructor(
     ): ExtTrackNumberKmsV1 {
         return ExtTrackNumberKmsV1(
             trackNumber = trackNumber.number,
-            trackNumberOid = trackNumberOid,
+            trackNumberOid = ExtOidV1(trackNumberOid),
             trackKms =
                 geocodingContext?.kms?.map { km ->
                     val kmPost = geocodingContext.kmPosts.find { kmp -> kmp.kmNumber == km.kmNumber }

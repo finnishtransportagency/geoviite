@@ -1,15 +1,18 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.api.tracklayout.v1.ExtKmPostLocationConfirmedV1.CONFIRMED
 import fi.fta.geoviite.api.tracklayout.v1.ExtKmPostLocationConfirmedV1.NOT_CONFIRMED
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.geocoding.AlignmentEndPoint
+import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.LayoutState
@@ -214,21 +217,51 @@ data class ExtKmPostOfficialLocationV1(
 
 @Schema(name = "Osoitepiste")
 @JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtAddressPointV1(val x: Double, val y: Double, @JsonProperty(TRACK_ADDRESS) val trackAddress: String?) {
-
-    constructor(x: Double, y: Double, address: TrackMeter?) : this(x, y, address?.formatFixedDecimals(3))
-
-    constructor(point: AlignmentEndPoint) : this(point.point.x, point.point.y, point.address)
-}
+data class ExtAddressPointV1(
+    val x: Double,
+    val y: Double,
+    @Schema(type = "string", example = "0012+0123.456") @JsonProperty(TRACK_ADDRESS) val trackAddress: String?,
+)
 
 @Schema(name = "Osoiteväli")
 data class ExtCenterLineTrackIntervalV1(
-    @JsonProperty("alkuosoite") val startAddress: String,
-    @JsonProperty("loppuosoite") val endAddress: String,
+    @Schema(type = "string", example = "0012+0123.456") @JsonProperty("alkuosoite") val startAddress: String,
+    @Schema(type = "string", example = "0012+0123.456") @JsonProperty("loppuosoite") val endAddress: String,
     @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
 )
 
-@Schema(description = "Koordinaattijärjestelmän EPSG-koodi, esim. \"EPSG:3067\"", type = "string")
-data class ExtSridV1(private val value: Srid) {
+@Schema(
+    description = "Koordinaattijärjestelmän EPSG-koodi",
+    type = "string",
+    format = "epsg-code",
+    pattern = "^EPSG:\\d{4}$",
+    example = "EPSG:3067",
+)
+data class ExtSridV1(val value: Srid) {
     @JsonValue override fun toString() = value.toString()
+
+    @JsonCreator(mode = DELEGATING) constructor(value: String) : this(Srid(value))
+}
+
+@Schema(description = "Rataverkon version yksilöivä tunniste", type = "string", format = "uuid")
+data class ExtLayoutVersionV1(val value: Uuid<Publication>) {
+    @JsonValue override fun toString() = value.toString()
+
+    @JsonCreator(mode = DELEGATING) constructor(value: String) : this(Uuid<Publication>(value))
+
+    constructor(publication: Publication) : this(publication.uuid)
+}
+
+@Schema(
+    type = "string",
+    format = "oid",
+    // If we give an example value (for field descriptions), swagger fills it in as a default value in "try it out"
+    // See Swagger issue: https://github.com/swagger-api/swagger-ui/issues/5776
+    // example = "1.2.246.578.13.123456",
+    // Workaround: this can also be assigned per-field in the json data classes
+)
+data class ExtOidV1<T>(val value: Oid<T>) {
+    @JsonValue override fun toString() = value.toString()
+
+    @JsonCreator(mode = DELEGATING) constructor(value: String) : this(Oid<T>(value))
 }

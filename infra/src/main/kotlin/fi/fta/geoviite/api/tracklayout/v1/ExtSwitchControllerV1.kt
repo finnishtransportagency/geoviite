@@ -2,10 +2,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
-import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.Uuid
-import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -64,13 +60,13 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
             ]
     )
     fun getExtSwitchCollection(
-        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION)
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
-        trackLayoutVersion: Uuid<Publication>?,
-        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
+        layoutVersion: ExtLayoutVersionV1?,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
-        coordinateSystem: Srid?,
-    ): ExtSwitchCollectionResponseV1 = extSwitchService.getExtSwitchCollection(trackLayoutVersion, coordinateSystem)
+        extCoordinateSystem: ExtSridV1?,
+    ): ExtSwitchCollectionResponseV1 = extSwitchService.getExtSwitchCollection(layoutVersion, extCoordinateSystem)
 
     @GetMapping("/vaihteet/muutokset")
     @Tag(name = EXT_SWITCH_TAG_V1)
@@ -105,25 +101,18 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
             ]
     )
     fun getExtSwitchCollectionModifications(
-        @Parameter(
-            description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
-            schema = Schema(type = "string", format = "uuid"),
-        )
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM)
         @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
-        trackLayoutVersionFrom: Uuid<Publication>,
-        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO, schema = Schema(type = "string", format = "uuid"))
+        layoutVersionFrom: ExtLayoutVersionV1,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO)
         @RequestParam(TRACK_LAYOUT_VERSION_TO, required = false)
-        trackLayoutVersionTo: Uuid<Publication>?,
-        @Parameter(
-            name = COORDINATE_SYSTEM,
-            description = EXT_OPENAPI_COORDINATE_SYSTEM,
-            schema = Schema(type = "string", format = "string"),
-        )
+        layoutVersionTo: ExtLayoutVersionV1?,
+        @Parameter(name = COORDINATE_SYSTEM, description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
-        coordinateSystem: Srid?,
+        extCoordinateSystem: ExtSridV1?,
     ): ResponseEntity<ExtModifiedSwitchCollectionResponseV1> =
         extSwitchService
-            .getExtSwitchCollectionModifications(trackLayoutVersionFrom, trackLayoutVersionTo, coordinateSystem)
+            .getExtSwitchCollectionModifications(layoutVersionFrom, layoutVersionTo, extCoordinateSystem)
             .let(::toResponse)
 
     @GetMapping("/vaihteet/{$SWITCH_OID_PARAM}")
@@ -159,15 +148,15 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
     fun getExtSwitch(
         @Parameter(description = EXT_OPENAPI_SWITCH_OID_DESCRIPTION)
         @PathVariable(SWITCH_OID_PARAM)
-        oid: Oid<LayoutSwitch>,
-        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION, schema = Schema(type = "string", format = "uuid"))
+        oid: ExtOidV1<LayoutSwitch>,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION)
         @RequestParam(TRACK_LAYOUT_VERSION, required = false)
-        trackLayoutVersion: Uuid<Publication>?,
-        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
+        layoutVersion: ExtLayoutVersionV1?,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
-        coordinateSystem: Srid?,
+        extCoordinateSystem: ExtSridV1?,
     ): ResponseEntity<ExtSwitchResponseV1> =
-        extSwitchService.getExtSwitch(oid, trackLayoutVersion, coordinateSystem).let(::toResponse)
+        extSwitchService.getExtSwitch(oid, layoutVersion, extCoordinateSystem).let(::toResponse)
 
     @GetMapping("/vaihteet/{$SWITCH_OID_PARAM}/muutokset")
     @Tag(name = EXT_SWITCH_TAG_V1)
@@ -216,21 +205,18 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
     fun getExtSwitchModifications(
         @Parameter(description = EXT_OPENAPI_SWITCH_OID_DESCRIPTION)
         @PathVariable(SWITCH_OID_PARAM)
-        oid: Oid<LayoutSwitch>,
-        @Parameter(
-            description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM,
-            schema = Schema(type = "string", format = "uuid"),
-        )
+        oid: ExtOidV1<LayoutSwitch>,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM)
         @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
-        trackLayoutVersionFrom: Uuid<Publication>,
-        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO, schema = Schema(type = "string", format = "uuid"))
+        layoutVersionFrom: ExtLayoutVersionV1,
+        @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO)
         @RequestParam(TRACK_LAYOUT_VERSION_TO, required = false)
-        trackLayoutVersionTo: Uuid<Publication>?,
-        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM, schema = Schema(type = "string", format = "string"))
+        layoutVersionTo: ExtLayoutVersionV1?,
+        @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
-        coordinateSystem: Srid?,
+        extCoordinateSystem: ExtSridV1?,
     ): ResponseEntity<ExtModifiedSwitchResponseV1> =
         extSwitchService
-            .getExtSwitchModifications(oid, trackLayoutVersionFrom, trackLayoutVersionTo, coordinateSystem)
+            .getExtSwitchModifications(oid, layoutVersionFrom, layoutVersionTo, extCoordinateSystem)
             .let(::toResponse)
 }
