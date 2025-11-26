@@ -678,7 +678,12 @@ constructor(
                 PropKey("raide-type"),
                 enumLocalizationKey = "OperationalPointRaideType",
             ),
-            compareChangeValues(changes.polygon, { null }, PropKey("polygon")),
+            compareChangeValues(
+                changes.polygon,
+                { null },
+                PropKey("polygon"),
+                getOperationalPointAreaRemarkOrNull(translation, changes.polygon.old, changes.polygon.new),
+            ),
             compareChangeValues(
                 changes.location,
                 ::formatLocation,

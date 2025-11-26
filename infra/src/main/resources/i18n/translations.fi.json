@@ -1887,7 +1887,10 @@
             "switch-link-added-singular": "Vaihde {{value}} linkitetty",
             "switch-link-added-plural": "Vaihteet {{value}} linkitetty",
             "switch-link-removed-singular": "Vaihteen {{value}} linkitys purettu",
-            "switch-link-removed-plural": "Vaihteiden {{value}} linkitys purettu"
+            "switch-link-removed-plural": "Vaihteiden {{value}} linkitys purettu",
+            "operational-point-area-changed": "Alue muuttunut",
+            "operational-point-area-added": "Alue lisätty",
+            "operational-point-area-cleared": "Alue tyhjennetty"
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
@@ -1930,7 +1933,7 @@
             "uic-code": "UIC-tunnus",
             "rinf-type": "RINF-tyyppi",
             "raide-type": "RAIDE-tyyppi",
-            "polygon": "Polygoni",
+            "polygon": "Alue",
             "linked-switches": "Vaihdelinkitykset"
         }
     },
