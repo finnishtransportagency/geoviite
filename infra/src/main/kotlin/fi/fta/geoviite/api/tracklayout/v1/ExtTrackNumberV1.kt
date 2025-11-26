@@ -3,7 +3,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.common.Uuid
@@ -25,7 +24,7 @@ data class ExtTrackNumberV1(
 @Schema(name = "Vastaus: Ratanumero")
 data class ExtTrackNumberResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_NUMBER) val trackNumber: ExtTrackNumberV1,
 )
 
@@ -33,7 +32,7 @@ data class ExtTrackNumberResponseV1(
 data class ExtModifiedTrackNumberResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val trackLayoutVersionFrom: Uuid<Publication>,
     @JsonProperty(TRACK_LAYOUT_VERSION_TO) val trackLayoutVersionTo: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_NUMBER) val trackNumber: ExtTrackNumberV1,
 )
 
@@ -42,7 +41,7 @@ data class ExtModifiedTrackNumberResponseV1(
 data class ExtTrackNumberGeometryResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
     @JsonProperty(TRACK_NUMBER_OID) val trackNumberOid: Oid<LayoutTrackNumber>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_INTERVAL) val trackInterval: ExtCenterLineTrackIntervalV1?,
 )
 
@@ -50,7 +49,7 @@ data class ExtTrackNumberGeometryResponseV1(
 data class ExtTrackNumberModifiedGeometryResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val trackLayoutVersionFrom: Uuid<Publication>,
     @JsonProperty(TRACK_LAYOUT_VERSION_TO) val trackLayoutVersionTo: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_NUMBER_OID) val trackNumberOid: Oid<LayoutTrackNumber>,
     @JsonProperty(TRACK_INTERVALS) val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
 )
@@ -58,7 +57,7 @@ data class ExtTrackNumberModifiedGeometryResponseV1(
 @Schema(name = "Vastaus: Ratanumerokokoelma")
 data class ExtTrackNumberCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_NUMBER_COLLECTION) val trackNumberCollection: List<ExtTrackNumberV1>,
 )
 
@@ -66,6 +65,6 @@ data class ExtTrackNumberCollectionResponseV1(
 data class ExtModifiedTrackNumberCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val trackLayoutVersionFrom: Uuid<Publication>,
     @JsonProperty(TRACK_LAYOUT_VERSION_TO) val trackLayoutVersionTo: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_NUMBER_COLLECTION) val trackNumberCollection: List<ExtTrackNumberV1>,
 )

@@ -23,10 +23,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.time.Instant
 
 @GeoviiteService
 class ExtLocationTrackServiceV1
@@ -103,7 +103,7 @@ constructor(
             val data = getLocationTrackData(branch, moment, oid, track, geometry)
             ExtLocationTrackResponseV1(
                 trackLayoutVersion = publication.uuid,
-                coordinateSystem = coordinateSystem,
+                coordinateSystem = ExtSridV1(coordinateSystem),
                 locationTrack = createExtLocationTrack(data, coordinateSystem),
             )
         }
@@ -126,7 +126,7 @@ constructor(
                 ExtModifiedLocationTrackResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
-                    coordinateSystem = coordinateSystem,
+                    coordinateSystem = ExtSridV1(coordinateSystem),
                     locationTrack = createExtLocationTrack(data, coordinateSystem),
                 )
             } ?: layoutAssetVersionsAreTheSame(id, publications)
@@ -141,7 +141,7 @@ constructor(
         val tracksAndGeoms = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, false)
         return ExtLocationTrackCollectionResponseV1(
             trackLayoutVersion = publication.uuid,
-            coordinateSystem = coordinateSystem,
+            coordinateSystem = ExtSridV1(coordinateSystem),
             locationTrackCollection = createExtLocationTracks(branch, moment, coordinateSystem, tracksAndGeoms),
         )
     }
@@ -161,7 +161,7 @@ constructor(
                 ExtModifiedLocationTrackCollectionResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
-                    coordinateSystem = coordinateSystem,
+                    coordinateSystem = ExtSridV1(coordinateSystem),
                     locationTrackCollection =
                         createExtLocationTracks(branch, endMoment, coordinateSystem, tracksAndGeoms),
                 )

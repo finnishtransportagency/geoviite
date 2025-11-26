@@ -19,8 +19,8 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import org.springframework.beans.factory.annotation.Autowired
 import java.time.Instant
+import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class ExtTrackNumberGeometryServiceV1
@@ -96,7 +96,7 @@ constructor(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
                     trackNumberOid = oid,
-                    coordinateSystem = coordinateSystem,
+                    coordinateSystem = ExtSridV1(coordinateSystem),
                     trackIntervals = createModifiedCenterLineIntervals(oldPoints, newPoints, coordinateSystem),
                 )
             }
@@ -122,7 +122,7 @@ constructor(
                 ExtTrackNumberGeometryResponseV1(
                     trackLayoutVersion = publication.uuid,
                     trackNumberOid = oid,
-                    coordinateSystem = coordinateSystem,
+                    coordinateSystem = ExtSridV1(coordinateSystem),
                     trackInterval =
                         // Address points are null for example in case when the user provided
                         // address filter is outside the track boundaries.

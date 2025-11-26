@@ -100,7 +100,7 @@ constructor(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
                     locationTrackOid = oid,
-                    coordinateSystem = coordinateSystem,
+                    coordinateSystem = ExtSridV1(coordinateSystem),
                     trackIntervals = createModifiedCenterLineIntervals(oldPoints, newPoints, coordinateSystem),
                 )
             }
@@ -126,7 +126,7 @@ constructor(
                 ExtLocationTrackGeometryResponseV1(
                     trackLayoutVersion = publication.uuid,
                     locationTrackOid = oid,
-                    coordinateSystem = coordinateSystem,
+                    coordinateSystem = ExtSridV1(coordinateSystem),
                     trackInterval =
                         // Address points are null for example in case when the user provided
                         // address filter is outside the track boundaries.

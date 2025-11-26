@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.publication.Publication
@@ -36,13 +35,13 @@ data class ExtTrackKmV1(
 @Schema(name = "Vastaus: Ratanumeron ratakilometrit")
 data class ExtTrackKmsResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_NUMBER_KMS) val trackNumberKms: ExtTrackNumberKmsV1,
 )
 
 @Schema(name = "Vastaus: Ratanumerokokoelman ratakilometrit")
 data class ExtTrackKmsCollectionResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: Uuid<Publication>,
-    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: Srid,
+    @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
     @JsonProperty(TRACK_NUMBER_KMS_COLLECTION) val trackNumberKms: List<ExtTrackNumberKmsV1>,
 )

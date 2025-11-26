@@ -105,7 +105,7 @@ constructor(
         return switchDao.getOfficialAtMoment(branch, id, moment)?.let { switch ->
             ExtSwitchResponseV1(
                 trackLayoutVersion = publication.uuid,
-                coordinateSystem = coordinateSystem,
+                coordinateSystem = ExtSridV1(coordinateSystem),
                 switch = createExtSwitch(getSwitchData(oid, switch, branch, moment), coordinateSystem),
             )
         }
@@ -125,7 +125,7 @@ constructor(
             ExtModifiedSwitchResponseV1(
                 trackLayoutVersionFrom = publications.from.uuid,
                 trackLayoutVersionTo = publications.to.uuid,
-                coordinateSystem = coordinateSystem,
+                coordinateSystem = ExtSridV1(coordinateSystem),
                 switch = createExtSwitch(getSwitchData(oid, switch, branch, endMoment), coordinateSystem),
             )
         } ?: layoutAssetVersionsAreTheSame(id, publications)
@@ -140,7 +140,7 @@ constructor(
         val switches = switchDao.listOfficialAtMoment(branch, moment).filter { it.exists }
         return ExtSwitchCollectionResponseV1(
             trackLayoutVersion = publication.uuid,
-            coordinateSystem = coordinateSystem,
+            coordinateSystem = ExtSridV1(coordinateSystem),
             switchCollection = createExtSwitches(branch, moment, coordinateSystem, switches),
         )
     }
@@ -160,7 +160,7 @@ constructor(
                 ExtModifiedSwitchCollectionResponseV1(
                     trackLayoutVersionFrom = publications.from.uuid,
                     trackLayoutVersionTo = publications.to.uuid,
-                    coordinateSystem = coordinateSystem,
+                    coordinateSystem = ExtSridV1(coordinateSystem),
                     switchCollection = createExtSwitches(branch, endMoment, coordinateSystem, modifiedSwitches),
                 )
             }
