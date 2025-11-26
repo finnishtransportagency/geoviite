@@ -23,7 +23,13 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
-import { draftLayoutContext, JointNumber, LayoutContext, SwitchOwnerId, TrackMeter, } from 'common/common-model';
+import {
+    draftLayoutContext,
+    JointNumber,
+    LayoutContext,
+    SwitchOwnerId,
+    TrackMeter,
+} from 'common/common-model';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
 import { BoundingBox, Point } from 'model/geometry';
 import { PlacingLayoutSwitch } from 'linking/linking-model';
@@ -262,6 +268,11 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
+                            qaId="switch-owner"
+                            label={t('tool-panel.switch.layout.owner')}
+                            value={getOwnerName(layoutSwitch?.ownerId)}
+                        />
+                        <InfoboxField
                             label={t('tool-panel.switch.layout.km-m')}
                             value={
                                 (switchJointTrackMeters && (
@@ -371,19 +382,6 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             )}
                         </InfoboxContentSpread>
                     )}
-                </InfoboxContent>
-            </Infobox>
-            <Infobox
-                contentVisible={visibilities.additionalInfo}
-                onContentVisibilityChange={() => visibilityChange('additionalInfo')}
-                title={t('tool-panel.switch.layout.additional-heading')}
-                qa-id="switch-additional-infobox">
-                <InfoboxContent>
-                    <InfoboxField
-                        qaId="switch-owner"
-                        label={t('tool-panel.switch.layout.owner')}
-                        value={getOwnerName(layoutSwitch?.ownerId)}
-                    />
                 </InfoboxContent>
             </Infobox>
             {layoutSwitch && (
