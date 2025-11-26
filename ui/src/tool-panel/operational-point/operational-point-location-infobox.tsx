@@ -71,9 +71,10 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
                     layoutState.linkingState.operationalPoint.id,
                     layoutState.linkingState.location,
                     layoutContext,
-                );
-                SnackBar.success('tool-panel.operational-point.location-update-succeeded');
-                onStopPlacingLocation();
+                ).then(() => {
+                    SnackBar.success('tool-panel.operational-point.location-update-succeeded');
+                    onStopPlacingLocation();
+                });
             } finally {
                 setLocationUpdateInProgress(false);
             }
@@ -91,9 +92,10 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
                     layoutState.linkingState.operationalPoint.id,
                     layoutState.linkingState.area,
                     layoutContext,
-                );
-                SnackBar.success('tool-panel.operational-point.area-update-succeeded');
-                onStopPlacingArea();
+                ).then(() => {
+                    SnackBar.success('tool-panel.operational-point.area-update-succeeded');
+                    onStopPlacingArea();
+                });
             } finally {
                 setLocationUpdateInProgress(false);
             }

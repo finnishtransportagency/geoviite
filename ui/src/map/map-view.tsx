@@ -758,32 +758,26 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'operational-points-icon-layer':
                         return createOperationalPointIconLayer(
-                            mapTiles,
                             existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             olView,
                             selection,
                             linkingState,
                             layoutContext,
-                            changeTimes,
                         );
                     case 'operational-points-badge-layer':
                         return createOperationalPointBadgeLayer(
-                            mapTiles,
                             existingOlLayer as GeoviiteMapLayer<OlPoint>,
                             olView,
                             selection,
                             linkingState,
                             layoutContext,
-                            changeTimes,
                         );
                     case 'operational-points-area-layer':
                         return createOperationalPointAreaLayer(
-                            mapTiles,
                             existingOlLayer as GeoviiteMapLayer<OlPolygon>,
                             selection,
                             linkingState,
                             layoutContext,
-                            changeTimes,
                         );
                     case 'operational-points-placing-layer':
                         return createOperationalPointsPlacingLayer(

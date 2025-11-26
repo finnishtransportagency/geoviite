@@ -9,7 +9,7 @@ import {
     pointToCoords,
 } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
-import { fieldComparator, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
+import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
 import Style from 'ol/style/Style';
 import { Circle, Fill, Stroke, Text } from 'ol/style';
 import Feature, { FeatureLike } from 'ol/Feature';
@@ -18,9 +18,8 @@ import mapStyles from 'map/map.module.scss';
 import CircleStyle from 'ol/style/Circle';
 import { Selection } from 'selection/selection-model';
 import { LinkingState, LinkingType } from 'linking/linking-model';
-import { getOperationalPointsByLocation } from 'track-layout/layout-operational-point-api';
-import { MapTile } from 'map/map-model';
-import { LayoutContext, TimeStamp } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
+import { getAllOperationalPoints } from 'track-layout/layout-operational-point-api';
 
 export const OPERATIONAL_POINT_FEATURE_DATA_PROPERTY = 'operational-point-data';
 
@@ -387,20 +386,8 @@ export const isBeingMoved = (linkingState: LinkingState | undefined, id: Operati
     linkingState.operationalPoint.id === id &&
     !!linkingState.location;
 
-export const getOperationalPointsFromApi = async (
-    mapTiles: MapTile[],
-    layoutContext: LayoutContext,
-    operationalPointChangeTime: TimeStamp,
-) =>
-    (
-        await Promise.all(
-            mapTiles.map((tile) =>
-                getOperationalPointsByLocation(tile, layoutContext, operationalPointChangeTime),
-            ),
-        )
-    )
-        .flat()
-        .filter(filterUniqueById((point) => point.id));
+export const getOperationalPointsFromApi = async (layoutContext: LayoutContext) =>
+    getAllOperationalPoints(layoutContext);
 
 export const filterByResolution = (point: OperationalPoint, resolution: number) => {
     if (resolution <= Limits.OPERATIONAL_POINTS_ALL_TYPES_SHOW) return true;

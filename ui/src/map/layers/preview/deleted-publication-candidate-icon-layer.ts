@@ -45,7 +45,7 @@ import {
     getSwitchLocation,
 } from 'map/layers/utils/publication-candidate-highlight-utils';
 import { renderOperationalPointCircleFeature } from 'map/layers/operational-point/operational-points-layer-utils';
-import { getOperationalPointsByLocation } from 'track-layout/layout-operational-point-api';
+import { getAllOperationalPoints } from 'track-layout/layout-operational-point-api';
 
 let shownSwitchesCompare = '';
 let shownKmPostsCompare = '';
@@ -198,24 +198,21 @@ const getSwitchesTiledPromise = (
             .filter((s) => deletedSwitchCandidates.some((candidate) => candidate.id === s.id));
     });
 
-const getOperationalPointsTiledPromise = (
-    mapTiles: MapTile[],
+const getOperationalPointsPromise = (
     layerLayoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     deletedOperationalPointCandidates: OperationalPointPublicationCandidate[],
 ): Promise<OperationalPoint[]> =>
-    Promise.all(
-        mapTiles.map((t) =>
-            getOperationalPointsByLocation(t, layerLayoutContext, changeTimes.operationalPoints),
-        ),
-    ).then((operationalPoints) => {
-        return operationalPoints
-            .flat()
-            .filter(filterUniqueById((s) => s.id))
-            .filter((op) =>
-                deletedOperationalPointCandidates.some((candidate) => candidate.id === op.id),
-            );
-    });
+    getAllOperationalPoints(layerLayoutContext, changeTimes.operationalPoints).then(
+        (operationalPoints) => {
+            return operationalPoints
+                .flat()
+                .filter(filterUniqueById((s) => s.id))
+                .filter((op) =>
+                    deletedOperationalPointCandidates.some((candidate) => candidate.id === op.id),
+                );
+        },
+    );
 
 export function createDeletedPublicationCandidateIconLayer(
     mapTiles: MapTile[],
@@ -265,8 +262,7 @@ export function createDeletedPublicationCandidateIconLayer(
             : Promise.resolve([]);
     const operationalPointsPromise =
         deletedOperationalPointCandidates.length > 0
-            ? getOperationalPointsTiledPromise(
-                  mapTiles,
+            ? getOperationalPointsPromise(
                   layerLayoutContext,
                   changeTimes,
                   deletedOperationalPointCandidates,

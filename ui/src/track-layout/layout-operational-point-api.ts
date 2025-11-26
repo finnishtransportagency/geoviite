@@ -1,15 +1,6 @@
 import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
-import {
-    deleteNonNull,
-    getNonNull,
-    getNullable,
-    postNonNull,
-    putNonNull,
-    queryParams,
-} from 'api/api-fetch';
+import { deleteNonNull, getNonNull, getNullable, postNonNull, putNonNull } from 'api/api-fetch';
 import { asyncCache } from 'cache/cache';
-import { MapTile } from 'map/map-model';
-import { bboxString } from 'common/common-api';
 import {
     DesignBranch,
     LayoutAssetChangeInfo,
@@ -28,7 +19,6 @@ import {
 import { getChangeTimes, updateOperationalPointsChangeTime } from 'common/change-time-api';
 import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/internal-operational-point-edit-store';
 import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
-import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { Point, Polygon } from 'model/geometry';
 import { ValidatedOperationalPoint } from 'publication/publication-model';
 
@@ -37,16 +27,7 @@ type OperationalPointSaveRequest =
     | InternalOperationalPointSaveRequest
     | ExternalOperationalPointSaveRequest;
 
-const singlePointCacheKey = (id: OperationalPointId, layoutContext: LayoutContext) =>
-    `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
-const mapTileCacheKey = (mapTileId: string, layoutContext: LayoutContext) =>
-    `${mapTileId}_${layoutContext.publicationState}_${layoutContext.branch}`;
-
-const operationalPointsCache = asyncCache<string, OperationalPoint | undefined>();
 const allOperationalPointsCache = asyncCache<string, OperationalPoint[]>();
-const operationalPointsLocationTileCache = asyncCache<string, OperationalPoint[]>();
-const operationalPointsPolygonTileCache = asyncCache<string, OperationalPoint[]>();
-
 const operationalPointOidsCache = asyncCache<
     OperationalPointId,
     { [key in LayoutBranch]?: Oid } | undefined
@@ -61,49 +42,13 @@ const operationalPointUriByOrigin = (
     return id ? `${base}/${id}` : base;
 };
 
-export async function getOperationalPointsByLocation(
-    mapTile: MapTile,
-    layoutContext: LayoutContext,
-    changeTime: TimeStamp,
-): Promise<OperationalPoint[]> {
-    return operationalPointsLocationTileCache.get(
-        changeTime,
-        mapTileCacheKey(mapTile.id, layoutContext),
-        () => {
-            const params = queryParams({ bbox: bboxString(mapTile.area) });
-
-            return getNonNull<OperationalPoint[]>(
-                `${layoutUri('operational-points', layoutContext)}/by-location${params}`,
-            );
-        },
-    );
-}
-
-export async function getOperationalPointsByPolygon(
-    mapTile: MapTile,
-    layoutContext: LayoutContext,
-    changeTime: TimeStamp,
-): Promise<OperationalPoint[]> {
-    return operationalPointsPolygonTileCache.get(
-        changeTime,
-        mapTileCacheKey(mapTile.id, layoutContext),
-        () => {
-            const params = queryParams({ bbox: bboxString(mapTile.area) });
-
-            return getNonNull<OperationalPoint[]>(
-                `${layoutUri('operational-points', layoutContext)}/by-polygon${params}`,
-            );
-        },
-    );
-}
-
 export const getOperationalPoint = async (
     id: OperationalPointId,
     layoutContext: LayoutContext,
     changeTime: TimeStamp = getChangeTimes().operationalPoints,
 ): Promise<OperationalPoint | undefined> =>
-    operationalPointsCache.get(changeTime, singlePointCacheKey(id, layoutContext), () =>
-        getNullable<OperationalPoint>(`${layoutUri('operational-points', layoutContext)}/${id}`),
+    getAllOperationalPoints(layoutContext, changeTime).then((points) =>
+        points.find((op) => op.id === id),
     );
 
 export const getManyOperationalPoints = async (
@@ -111,26 +56,13 @@ export const getManyOperationalPoints = async (
     layoutContext: LayoutContext,
     changeTime: TimeStamp,
 ): Promise<OperationalPoint[]> =>
-    operationalPointsCache
-        .getMany(
-            changeTime,
-            ids,
-            (id) => singlePointCacheKey(id, layoutContext),
-            (ids) =>
-                getNonNull<OperationalPoint[]>(
-                    `${layoutUri('operational-points', layoutContext)}${queryParams({
-                        ids,
-                    })}`,
-                ).then((ops) => {
-                    const opMap = indexIntoMap(ops);
-                    return (id) => opMap.get(id);
-                }),
-        )
-        .then((ops) => ops.filter(filterNotEmpty));
+    getAllOperationalPoints(layoutContext, changeTime).then((points) =>
+        points.filter((op) => ids.includes(op.id)),
+    );
 
 export const getAllOperationalPoints = (
     layoutContext: LayoutContext,
-    changeTime: TimeStamp,
+    changeTime: TimeStamp = getChangeTimes().operationalPoints,
 ): Promise<OperationalPoint[]> =>
     allOperationalPointsCache.get(
         changeTime,
@@ -188,7 +120,8 @@ export const updateInternalOperationalPointLocation = async (
         `${operationalPointUriByOrigin('internal', layoutContext, id)}/location`,
         location,
     );
-    await updateOperationalPointsChangeTime();
+    const newChangeTime = await updateOperationalPointsChangeTime();
+    await getAllOperationalPoints(layoutContext, newChangeTime); // Invalidate cache
     return result;
 };
 
@@ -208,7 +141,8 @@ export const updateOperationalPointArea = async (
         `${layoutUri('operational-points', layoutContext, id)}/location`,
         polygon,
     );
-    await updateOperationalPointsChangeTime();
+    const newChangeTime = await updateOperationalPointsChangeTime();
+    await getAllOperationalPoints(layoutContext, newChangeTime); // Invalidate cache
     return result;
 };
 
