@@ -206,7 +206,6 @@ const getOperationalPointsPromise = (
     getAllOperationalPoints(layerLayoutContext, changeTimes.operationalPoints).then(
         (operationalPoints) => {
             return operationalPoints
-                .flat()
                 .filter(filterUniqueById((s) => s.id))
                 .filter((op) =>
                     deletedOperationalPointCandidates.some((candidate) => candidate.id === op.id),
