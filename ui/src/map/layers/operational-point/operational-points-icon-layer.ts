@@ -31,9 +31,8 @@ export function createOperationalPointIconLayer(
     const resolution = olView.getResolution() || 0;
     const onLoadingChange = () => {};
 
-    const createFeatures = (points: OperationalPoint[]) => {
-        console.log('refreshing layer features');
-        return points
+    const createFeatures = (points: OperationalPoint[]) =>
+        points
             .filter(
                 (point) =>
                     !isBeingMoved(linkingState, point.id) && filterByResolution(point, resolution),
@@ -45,7 +44,7 @@ export function createOperationalPointIconLayer(
                 ),
             )
             .filter(filterNotEmpty);
-    };
+    
     loadLayerData(
         source,
         isLatest,
