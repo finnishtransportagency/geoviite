@@ -1474,7 +1474,7 @@ constructor(
                 ),
                 PublicationChange(PropKey("uic-code"), ChangeValue(UicCode("123"), UicCode("321")), null),
                 PublicationChange(PropKey("rinf-type"), ChangeValue("Asema (10)", "Asema (pieni) (20)"), null),
-                PublicationChange(PropKey("polygon"), ChangeValue(null, null), null),
+                PublicationChange(PropKey("polygon"), ChangeValue(null, null), remark = "Alue muuttunut"),
                 PublicationChange(
                     PropKey("location"),
                     ChangeValue("20.000 E, 20.000 N", "25.000 E, 20.000 N"),
