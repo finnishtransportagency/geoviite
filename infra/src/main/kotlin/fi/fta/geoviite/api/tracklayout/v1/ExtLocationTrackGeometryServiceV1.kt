@@ -96,12 +96,6 @@ constructor(
                         ?.let { track -> getAddressPoints(branch, endMoment, track, resolution, addressFilter) }
                 val oldGeometry = oldTrack?.version?.let { alignmentDao.fetch(it) }
                 val newGeometry = newTrack.getVersionOrThrow().let { alignmentDao.fetch(it) }
-                println(
-                    "oldState=${oldTrack?.state} geocoded=${oldPoints != null} oldGeom=${oldGeometry?.segments?.map { it.geometry.id }}"
-                )
-                println(
-                    "newState=${newTrack.state} geocoded=${newPoints != null} newGeom=${newGeometry.segments.map { it.geometry.id }}"
-                )
                 ExtLocationTrackModifiedGeometryResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),
                     layoutVersionTo = ExtLayoutVersionV1(publications.to),
@@ -109,9 +103,7 @@ constructor(
                     coordinateSystem = ExtSridV1(coordinateSystem),
                     trackIntervals =
                         createModifiedCenterLineIntervals(oldPoints, newPoints, coordinateSystem) { start, end ->
-                            isGeometryChanged(start, end, oldGeometry, newGeometry).also {
-                                println("interaval changed: result=$it start=$start end=$end")
-                            }
+                            isGeometryChanged(start, end, oldGeometry, newGeometry)
                         },
                 )
             }
