@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import kotlin.math.abs
@@ -71,6 +72,18 @@ fun getAddressMovedRemarkOrNull(translation: Translation, oldAddress: TrackMeter
             key = "moved-x-meters",
             value = formatDistance(lengthDifference(newAddress.meters, oldAddress.meters)),
         )
+    } else {
+        null
+    }
+}
+
+fun getOperationalPointAreaRemarkOrNull(translation: Translation, oldArea: Polygon?, newArea: Polygon?): String? {
+    return if (oldArea != null && newArea != null && oldArea != newArea) {
+        publicationChangeRemark(translation = translation, key = "operational-point-area-changed")
+    } else if (oldArea == null && newArea != null) {
+        publicationChangeRemark(translation = translation, key = "operational-point-area-added")
+    } else if (oldArea != null && newArea == null) {
+        publicationChangeRemark(translation = translation, key = "operational-point-area-cleared")
     } else {
         null
     }

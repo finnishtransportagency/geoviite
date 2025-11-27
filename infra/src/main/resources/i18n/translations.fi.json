@@ -1795,12 +1795,12 @@
                 "duplicate-uic-code-draft-in-main": "Pisteen UIC-tunnus {{uicCode}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä luonnostilassa: {{duplicateNames}}",
                 "uic-code-missing": "UIC-tunnus puuttuu",
                 "location-missing": "Pistemäinen sijainti puuttuu",
-                "overlapping-polygon-official": "Pisteen polygoni on päällekkäin toisen paikannuspohjan toiminnallisella pisteen kanssa: {{duplicateNames}}",
-                "overlapping-polygon-draft": "Muutosjoukossa on päällekkäisiä toiminnallisten pisteiden polygoneita: {{duplicateNames}}",
-                "overlapping-polygon-draft-in-main": "Toiminnallisen pisteen polygoni on päällekkäin paikannuspohjan luonnoksen kanssa: {{duplicateNames}}",
+                "overlapping-polygon-official": "Toiminnallisen pisteen alue on päällekkäin toisen toiminnallisen pisteen alueen kanssa: {{duplicateNames}}",
+                "overlapping-polygon-draft": "Muutosjoukossa on päällekkäisiä toiminnallisten pisteiden alueita: {{duplicateNames}}",
+                "overlapping-polygon-draft-in-main": "Toiminnallisen pisteen alue on päällekkäin paikannuspohjan luonnoksen kanssa: {{duplicateNames}}",
                 "rinf-code-missing": "RINF-tyyppi puuttuu",
-                "polygon-missing": "Polygoni puuttuu",
-                "location-outside-polygon": "Pistemäinen sijainti on alueen ulkopuolella",
+                "polygon-missing": "Alue puuttuu",
+                "location-outside-polygon": "Pistemäinen sijainti on toiminnallisen pisteen alueen ulkopuolella",
                 "polygon-is-not-simple": "Alueen muoto ei ole yksinkertainen polygoni"
             },
             "geocoding": {
@@ -1887,7 +1887,10 @@
             "switch-link-added-singular": "Vaihde {{value}} linkitetty",
             "switch-link-added-plural": "Vaihteet {{value}} linkitetty",
             "switch-link-removed-singular": "Vaihteen {{value}} linkitys purettu",
-            "switch-link-removed-plural": "Vaihteiden {{value}} linkitys purettu"
+            "switch-link-removed-plural": "Vaihteiden {{value}} linkitys purettu",
+            "operational-point-area-changed": "Alue muuttunut",
+            "operational-point-area-added": "Alue lisätty",
+            "operational-point-area-cleared": "Alue tyhjennetty"
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
@@ -1930,7 +1933,7 @@
             "uic-code": "UIC-tunnus",
             "rinf-type": "RINF-tyyppi",
             "raide-type": "RAIDE-tyyppi",
-            "polygon": "Polygoni",
+            "polygon": "Alue",
             "linked-switches": "Vaihdelinkitykset"
         }
     },
