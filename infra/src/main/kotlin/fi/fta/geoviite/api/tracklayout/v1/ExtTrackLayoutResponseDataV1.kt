@@ -234,7 +234,7 @@ data class ExtCenterLineTrackIntervalV1(
     description = "Koordinaattijärjestelmän EPSG-koodi",
     type = "string",
     format = "epsg-code",
-    pattern = "^EPSG:\\d{4}$",
+    pattern = "^EPSG:\\d{4,5}$",
     example = "EPSG:3067",
 )
 data class ExtSridV1(val value: Srid) {
