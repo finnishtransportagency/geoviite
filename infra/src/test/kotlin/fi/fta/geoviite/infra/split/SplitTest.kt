@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_T
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.NodeConnection
+import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -152,6 +153,378 @@ class SplitTest {
     }
 
     @Test
+    fun `start of the partial duplicate geometry is replaced correctly in split`() {
+        /*
+         *            /      partial duplicate
+         *     ______/
+         *  ---A-----B---    source track
+         *      \
+         *       \           branching track (does not participate splitting)
+         *
+         * A partial duplicate has overlapping geometry between switch A and switch B.
+         * The overlapping part of the duplicate geometry should be replaced.
+         *
+         */
+        val sourceTrack = locationTrack(trackNumberId = IntId(123), draft = false)
+        val switchA = IntId<LayoutSwitch>(1)
+        val switchB = IntId<LayoutSwitch>(2)
+
+        val sourceGeometry =
+            trackGeometry(
+                edge(
+                    listOf(linearSegment(0..10)), //
+                    endOuterSwitch = switchLinkYV(switchA, 1),
+                ),
+                edge(
+                    listOf(linearSegment(10..20)),
+                    startInnerSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+                edge(
+                    listOf(linearSegment(20..30)),
+                    startInnerSwitch = switchLinkKV(switchB, 1),
+                ),
+            )
+
+        val duplicateTrack = locationTrack(trackNumberId = IntId(456), draft = false)
+        val duplicateGeometry =
+            trackGeometry(
+                edge(
+                    // create a slightly different geometry for overlapping part to verify that geometry is replaced
+                    listOf(
+                        segment(Point(10.0, 0.0), Point(15.0, 1.0)), //
+                        segment(Point(15.0, 1.0), Point(20.0, 0.0)),
+                    ),
+                    startInnerSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+                edge(
+                    listOf(segment(Point(20.0, 0.0), Point(25.0, 5.0))),
+                    startInnerSwitch = switchLinkKV(switchB, 1),
+                ),
+            )
+
+        val targets =
+            listOf(
+                targetParams(null, null, "non-duplicate-part 1"),
+                targetParams(
+                    switchA,
+                    JointNumber(1),
+                    "duplicate part",
+                    duplicate = duplicateTrack to duplicateGeometry,
+                    operation = SplitTargetDuplicateOperation.TRANSFER,
+                ),
+                targetParams(switchB, JointNumber(1), "non-duplicate-part 2"),
+            )
+        val resultTracks = splitLocationTrack(sourceTrack, sourceGeometry, targets)
+
+        val modifiedPartialDuplicate = resultTracks[1]
+        assertEquals(targets.size, resultTracks.size)
+        assertEdgesMatch(sourceGeometry.edges.subList(1, 2), modifiedPartialDuplicate.geometry.edges.subList(0, 1))
+        assertEdgesMatch(duplicateGeometry.edges.subList(1, 2), modifiedPartialDuplicate.geometry.edges.subList(1, 2))
+    }
+
+    @Test
+    fun `end of the partial duplicate geometry is replaced correctly in split`() {
+        /*
+         *   \                partial duplicate
+         *    \_______
+         *  ---A-----B----    source track
+         *            \
+         *             \      branching track (does not participate splitting)
+         *
+         * A partial duplicate has overlapping geometry between switch A and switch B.
+         * The overlapping part of the duplicate geometry should be replaced.
+         *
+         */
+        val sourceTrack = locationTrack(trackNumberId = IntId(123), draft = false)
+        val switchA = IntId<LayoutSwitch>(1)
+        val switchB = IntId<LayoutSwitch>(2)
+
+        val sourceGeometry =
+            trackGeometry(
+                edge(
+                    listOf(linearSegment(0..10)), //
+                    endInnerSwitch = switchLinkYV(switchA, 1),
+                ),
+                edge(
+                    listOf(linearSegment(10..20)),
+                    startOuterSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+                edge(
+                    listOf(linearSegment(20..30)),
+                    startInnerSwitch = switchLinkKV(switchB, 1),
+                ),
+            )
+
+        val duplicateTrack = locationTrack(trackNumberId = IntId(456), draft = false)
+        val duplicateGeometry =
+            trackGeometry(
+                edge(
+                    listOf(segment(Point(0.0, 5.0), Point(10.0, 0.0))),
+                    endInnerSwitch = switchLinkKV(switchA, 1),
+                ),
+                edge(
+                    // create a slightly different geometry for overlapping part to verify that geometry is replaced
+                    listOf(
+                        segment(Point(10.0, 0.0), Point(15.0, 1.0)), //
+                        segment(Point(15.0, 1.0), Point(20.0, 0.0)),
+                    ),
+                    startOuterSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+            )
+
+        val targets =
+            listOf(
+                targetParams(null, null, "non-duplicate-part 1"),
+                targetParams(
+                    switchA,
+                    JointNumber(1),
+                    "duplicate part",
+                    duplicate = duplicateTrack to duplicateGeometry,
+                    operation = SplitTargetDuplicateOperation.TRANSFER,
+                ),
+                targetParams(switchB, JointNumber(1), "non-duplicate-part 2"),
+            )
+        val resultTracks = splitLocationTrack(sourceTrack, sourceGeometry, targets)
+
+        val modifiedPartialDuplicate = resultTracks[1]
+        assertEquals(targets.size, resultTracks.size)
+        assertEdgesMatch(sourceGeometry.edges.subList(1, 2), modifiedPartialDuplicate.geometry.edges.subList(1, 2))
+        assertEdgesMatch(duplicateGeometry.edges.subList(0, 1), modifiedPartialDuplicate.geometry.edges.subList(0, 1))
+    }
+
+    @Test
+    fun `middle of the partial duplicate geometry is replaced correctly in split`() {
+        /*
+         *   \         /      partial duplicate
+         *    \_______/
+         *  ---A-----B----    source track
+         *
+         * A partial duplicate has overlapping geometry between switch A and switch B.
+         * The overlapping part of the duplicate geometry should be replaced.
+         *
+         */
+        val sourceTrack = locationTrack(trackNumberId = IntId(123), draft = false)
+        val switchA = IntId<LayoutSwitch>(1)
+        val switchB = IntId<LayoutSwitch>(2)
+
+        val sourceGeometry =
+            trackGeometry(
+                edge(
+                    listOf(linearSegment(0..10)), //
+                    endInnerSwitch = switchLinkYV(switchA, 1),
+                ),
+                edge(
+                    listOf(linearSegment(10..20)),
+                    startOuterSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+                edge(
+                    listOf(linearSegment(20..30)),
+                    startInnerSwitch = switchLinkKV(switchB, 1),
+                ),
+            )
+
+        val duplicateTrack = locationTrack(trackNumberId = IntId(456), draft = false)
+        val duplicateGeometry =
+            trackGeometry(
+                edge(
+                    listOf(segment(Point(0.0, 5.0), Point(10.0, 0.0))),
+                    endInnerSwitch = switchLinkKV(switchA, 1),
+                ),
+                edge(
+                    // create a slightly different geometry for overlapping part to verify that geometry is replaced
+                    listOf(
+                        segment(Point(10.0, 0.0), Point(15.0, 1.0)), //
+                        segment(Point(15.0, 1.0), Point(20.0, 0.0)),
+                    ),
+                    startOuterSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+                edge(
+                    listOf(segment(Point(20.0, 0.0), Point(30.0, 5.0))),
+                    startInnerSwitch = switchLinkKV(switchB, 1),
+                ),
+            )
+
+        val targets =
+            listOf(
+                targetParams(null, null, "non-duplicate-part 1"),
+                targetParams(
+                    switchA,
+                    JointNumber(1),
+                    "duplicate part",
+                    duplicate = duplicateTrack to duplicateGeometry,
+                    operation = SplitTargetDuplicateOperation.TRANSFER,
+                ),
+                targetParams(switchB, JointNumber(1), "non-duplicate-part 2"),
+            )
+        val resultTracks = splitLocationTrack(sourceTrack, sourceGeometry, targets)
+
+        val modifiedPartialDuplicate = resultTracks[1]
+        assertEquals(targets.size, resultTracks.size)
+        assertEdgesMatch(sourceGeometry.edges.subList(1, 2), modifiedPartialDuplicate.geometry.edges.subList(1, 2))
+        assertEdgesMatch(duplicateGeometry.edges.subList(0, 1), modifiedPartialDuplicate.geometry.edges.subList(0, 1))
+        assertEdgesMatch(duplicateGeometry.edges.subList(2, 3), modifiedPartialDuplicate.geometry.edges.subList(2, 3))
+    }
+
+    @Test
+    fun `overlapping part of the continuing partial duplicate geometry is replaced correctly in split`() {
+        /*
+         *             /     partial duplicate (continues after source track)
+         *     _______/
+         *  ---A-----B       source track (some other track continues from switch B)
+         *      \
+         *       \           branching track (does not participate splitting)
+         *
+         * A partial duplicate has overlapping geometry between switch A and switch B.
+         * The overlapping part of the duplicate geometry should be replaced.
+         *
+         */
+        val sourceTrack = locationTrack(trackNumberId = IntId(123), draft = false)
+        val switchA = IntId<LayoutSwitch>(1)
+        val switchB = IntId<LayoutSwitch>(2)
+
+        val sourceGeometry =
+            trackGeometry(
+                edge(
+                    listOf(linearSegment(0..10)), //
+                    endOuterSwitch = switchLinkYV(switchA, 1),
+                ),
+                edge(
+                    listOf(linearSegment(10..20)),
+                    startInnerSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+            )
+
+        val duplicateTrack = locationTrack(trackNumberId = IntId(456), draft = false)
+        val duplicateGeometry =
+            trackGeometry(
+                edge(
+                    // create a slightly different geometry for overlapping part to verify that geometry is replaced
+                    listOf(
+                        segment(Point(10.0, 0.0), Point(15.0, 1.0)), //
+                        segment(Point(15.0, 1.0), Point(20.0, 0.0)),
+                    ),
+                    startInnerSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+                edge(
+                    listOf(segment(Point(20.0, 0.0), Point(25.0, 5.0))),
+                    startInnerSwitch = switchLinkKV(switchB, 1),
+                ),
+            )
+
+        val targets =
+            listOf(
+                targetParams(null, null, "non-duplicate-part 1"),
+                targetParams(
+                    switchA,
+                    JointNumber(1),
+                    "duplicate part",
+                    duplicate = duplicateTrack to duplicateGeometry,
+                    operation = SplitTargetDuplicateOperation.TRANSFER,
+                ),
+                targetParams(switchB, JointNumber(1), "non-duplicate-part 2"),
+            )
+        val resultTracks = splitLocationTrack(sourceTrack, sourceGeometry, targets)
+
+        val modifiedPartialDuplicate = resultTracks[1]
+        assertEquals(targets.size, resultTracks.size)
+        assertEdgesMatch(sourceGeometry.edges.subList(1, 2), modifiedPartialDuplicate.geometry.edges.subList(0, 1))
+        assertEdgesMatch(duplicateGeometry.edges.subList(1, 2), modifiedPartialDuplicate.geometry.edges.subList(1, 2))
+    }
+
+    @Test
+    fun `end of the boundary ending partial duplicate geometry is replaced correctly in split`() {
+        /*
+         *   \                partial duplicate (ends at X, no switch)
+         *    \__________X
+         *  ---A-----B---X    source track (ends at X, no switch)
+         *            \
+         *             \      branching track (does not participate splitting)
+         *
+         * A partial duplicate has overlapping geometry between switch A and X.
+         * The overlapping part of the duplicate geometry should be replaced.
+         *
+         */
+        val sourceTrack = locationTrack(id = IntId(1), trackNumberId = IntId(123), draft = false)
+        val switchA = IntId<LayoutSwitch>(1)
+        val switchB = IntId<LayoutSwitch>(2)
+
+        val sourceGeometry =
+            trackGeometry(
+                edge(
+                    listOf(linearSegment(0..10)), //
+                    endInnerSwitch = switchLinkYV(switchA, 1),
+                ),
+                edge(
+                    listOf(linearSegment(10..20)),
+                    startOuterSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+                edge(
+                    listOf(linearSegment(20..30)),
+                    startInnerSwitch = switchLinkKV(switchB, 1),
+                    endTrackBoundary = NodeConnection.trackBoundary(sourceTrack.id as IntId, TrackBoundaryType.END),
+                ),
+                trackId = sourceTrack.id,
+            )
+
+        val duplicateTrack = locationTrack(id = IntId(2), trackNumberId = IntId(456), draft = false)
+        val duplicateGeometry =
+            trackGeometry(
+                edge(
+                    listOf(segment(Point(0.0, 5.0), Point(10.0, 0.0))),
+                    endInnerSwitch = switchLinkKV(switchA, 1),
+                ),
+                edge(
+                    // create a slightly different geometry for overlapping part to verify that geometry is
+                    // replaced
+                    listOf(
+                        segment(Point(10.0, 0.0), Point(15.0, 1.0)), //
+                        segment(Point(15.0, 1.0), Point(20.0, 0.0)),
+                    ),
+                    startOuterSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+                edge(
+                    // create a slightly different geometry for overlapping part to verify that geometry is
+                    // replaced
+                    listOf(
+                        segment(Point(20.0, 0.0), Point(25.0, 1.0)), //
+                        segment(Point(25.0, 1.0), Point(30.0, 0.0)),
+                    ),
+                    startInnerSwitch = switchLinkYV(switchB, 1),
+                    endTrackBoundary = NodeConnection.trackBoundary(duplicateTrack.id as IntId, TrackBoundaryType.END),
+                ),
+                trackId = duplicateTrack.id,
+            )
+
+        val targets =
+            listOf(
+                targetParams(null, null, "non-duplicate-part 1"),
+                targetParams(
+                    switchA,
+                    JointNumber(1),
+                    "duplicate part",
+                    duplicate = duplicateTrack to duplicateGeometry,
+                    operation = SplitTargetDuplicateOperation.TRANSFER,
+                ),
+            )
+        val resultTracks = splitLocationTrack(sourceTrack, sourceGeometry, targets)
+
+        val modifiedPartialDuplicate = resultTracks[1]
+        assertEquals(targets.size, resultTracks.size)
+        assertEdgesMatch(sourceGeometry.edges.subList(1, 3), modifiedPartialDuplicate.geometry.edges.subList(1, 3))
+        assertEdgesMatch(duplicateGeometry.edges.subList(0, 1), modifiedPartialDuplicate.geometry.edges.subList(0, 1))
+    }
+
+    @Test
     fun `Combining edges works when replacement extends over the replaced geom`() {
         val switchLink1_1 = switchLinkYV(IntId(123), 1)
         val switchLink1_2 = switchLinkYV(IntId(123), 2)
@@ -209,7 +582,9 @@ class SplitTest {
                     .copy(segments = listOf(Point(0.0, 0.0) to Point(10.0, 0.0), Point(10.0, 0.0) to Point(11.0, 0.0))),
                 EdgeTestData(replacementEdge),
                 EdgeTestData(origEdge3)
-                    .copy(segments = listOf(Point(19.0, 0.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))),
+                    .copy(
+                        segments = listOf(Point(19.0, 0.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))
+                    ),
             ),
             result.map { edge -> EdgeTestData(edge) },
         )
@@ -242,7 +617,9 @@ class SplitTest {
                     .copy(segments = listOf(Point(0.0, 0.0) to Point(10.0, 0.0), Point(10.0, 0.0) to Point(11.0, 1.0))),
                 EdgeTestData(replacementEdge),
                 EdgeTestData(origEdge3)
-                    .copy(segments = listOf(Point(19.0, 1.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))),
+                    .copy(
+                        segments = listOf(Point(19.0, 1.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))
+                    ),
             ),
             result.map { edge -> EdgeTestData(edge) },
         )
@@ -275,7 +652,9 @@ class SplitTest {
                     .copy(segments = listOf(Point(0.0, 0.0) to Point(8.0, 0.0), Point(8.0, 0.0) to Point(9.0, 1.0))),
                 EdgeTestData(replacementEdge),
                 EdgeTestData(origEdge3)
-                    .copy(segments = listOf(Point(21.0, 1.0) to Point(22.0, 0.0), Point(22.0, 0.0) to Point(30.0, 0.0))),
+                    .copy(
+                        segments = listOf(Point(21.0, 1.0) to Point(22.0, 0.0), Point(22.0, 0.0) to Point(30.0, 0.0))
+                    ),
             ),
             result.map { edge -> EdgeTestData(edge) },
         )
@@ -327,6 +706,14 @@ private fun assertEdgesMatch(expectedEdges: List<LayoutEdge>, result: LocationTr
     assertEquals(expectedEdges.size, result.edges.size)
     expectedEdges.forEachIndexed { index, expected ->
         val actual = result.edges[index]
+        assertMatches(expected, actual)
+    }
+}
+
+private fun assertEdgesMatch(expectedEdges: List<LayoutEdge>, resultEdges: List<LayoutEdge>) {
+    assertEquals(expectedEdges.size, resultEdges.size)
+    expectedEdges.forEachIndexed { index, expected ->
+        val actual = resultEdges[index]
         assertMatches(expected, actual)
     }
 }

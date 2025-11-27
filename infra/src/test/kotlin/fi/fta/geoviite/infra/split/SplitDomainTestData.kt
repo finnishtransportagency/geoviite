@@ -39,6 +39,7 @@ fun targetParams(
     descriptionBase: String = "split desc $name $switchId $switchJoint",
     descriptionSuffixType: LocationTrackDescriptionSuffix = LocationTrackDescriptionSuffix.NONE,
     duplicate: Pair<LocationTrack, LocationTrackGeometry>? = null,
+    operation: SplitTargetDuplicateOperation = SplitTargetDuplicateOperation.OVERWRITE,
 ): SplitTargetParams {
     return SplitTargetParams(
         startSwitch =
@@ -50,9 +51,7 @@ fun targetParams(
         request =
             SplitRequestTarget(
                 duplicateTrack =
-                    (duplicate?.first?.id as? IntId)?.let { id ->
-                        SplitRequestTargetDuplicate(id, SplitTargetDuplicateOperation.OVERWRITE)
-                    },
+                    (duplicate?.first?.id as? IntId)?.let { id -> SplitRequestTargetDuplicate(id, operation) },
                 startAtSwitchId = switchId,
                 namingScheme = LocationTrackNamingScheme.FREE_TEXT,
                 nameFreeText = LocationTrackNameFreeTextPart(name),
@@ -60,9 +59,6 @@ fun targetParams(
                 descriptionBase = LocationTrackDescriptionBase(descriptionBase),
                 descriptionSuffix = descriptionSuffixType,
             ),
-        duplicate =
-            duplicate?.let { (track, geometry) ->
-                SplitTargetDuplicate(SplitTargetDuplicateOperation.OVERWRITE, track, geometry)
-            },
+        duplicate = duplicate?.let { (track, geometry) -> SplitTargetDuplicate(operation, track, geometry) },
     )
 }
