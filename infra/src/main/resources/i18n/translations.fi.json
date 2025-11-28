@@ -1931,8 +1931,8 @@
             "operational-point": "Nimi",
             "abbreviation": "Lyhenne",
             "uic-code": "UIC-tunnus",
-            "rinf-type": "RINF-tyyppi",
-            "raide-type": "RAIDE-tyyppi",
+            "rinf-type": "Tyyppi (RINF)",
+            "raide-type": "Tyyppi (RATO)",
             "polygon": "Alue",
             "linked-switches": "Vaihdelinkitykset"
         }
