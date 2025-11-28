@@ -50,7 +50,9 @@ export const operationalPointItemName = (
     point: OperationalPoint,
     t: TFunction<'translation', undefined>,
 ) =>
-    t('asset-search.operational-point', {
-        name: point.name,
-        abbreviation: point.abbreviation,
-    });
+    !point.abbreviation
+        ? point.name
+        : t('asset-search.operational-point', {
+              name: point.name,
+              abbreviation: point.abbreviation,
+          });
