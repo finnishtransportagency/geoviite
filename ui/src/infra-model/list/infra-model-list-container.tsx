@@ -24,7 +24,10 @@ export const InfraModelListContainer: React.FC<InfraModelListContainerProps> = (
     const state = useInfraModelAppSelector((state) => state.infraModelList);
     const navigate = useAppNavigate();
 
-    const onSelectPlan = (planId: GeometryPlanId) => navigate('inframodel-edit', planId);
+    const onSelectPlan = React.useCallback(
+        (planId: GeometryPlanId) => navigate('inframodel-edit', planId),
+        [],
+    );
 
     return (
         <InfraModelListView

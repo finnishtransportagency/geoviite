@@ -9,6 +9,7 @@ import {
     PVInitiallyUnsorted,
     PVTableSortInformation,
 } from 'infra-model/projektivelho/pv-file-list-utils';
+import { reuseListElements } from 'utils/array-utils';
 
 export type SearchState = 'idle' | 'start' | 'search';
 
@@ -120,7 +121,7 @@ export const infraModelListReducers = {
             objectEquals(params.searchParams, state.searchParams)
         ) {
             state.searchState = 'idle';
-            state.plans = params.plans;
+            state.plans = reuseListElements(params.plans, state.plans, (plan) => plan.id);
             state.totalCount = params.totalCount;
             if (state.page * state.pageSize >= state.totalCount) state.page = 0;
         }

@@ -16,6 +16,7 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { GeometryPlanLinkingSummary, getGeometryPlanLinkingSummaries } from 'geometry/geometry-api';
 import { ConfirmHideInfraModel } from './confirm-hide-infra-model-dialog';
 import { InfraModelSearchResultRow } from 'infra-model/list/infra-model-search-result-row';
+import { objectEquals } from 'utils/object-utils';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
@@ -37,8 +38,8 @@ function toggleSortOrder(
             sortOrder === undefined
                 ? GeometrySortOrder.ASCENDING
                 : sortOrder === GeometrySortOrder.ASCENDING
-                ? GeometrySortOrder.DESCENDING
-                : undefined;
+                  ? GeometrySortOrder.DESCENDING
+                  : undefined;
 
         return {
             sortBy: o ? sortBy : GeometrySortBy.NO_SORTING,
@@ -77,7 +78,9 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
             setLinkingSummaries((currentLinkingSummaries) => {
                 const newLinkingSummaries = new Map(currentLinkingSummaries);
                 for (const [planId, summary] of Object.entries(plansAndSummaries)) {
-                    newLinkingSummaries.set(planId, summary);
+                    if (!objectEquals(summary, currentLinkingSummaries.get(planId))) {
+                        newLinkingSummaries.set(planId, summary);
+                    }
                 }
                 return newLinkingSummaries;
             });
@@ -276,7 +279,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                 <InfraModelSearchResultRow
                                     setConfirmHidePlan={setConfirmHidePlan}
                                     onSelectPlan={props.onSelectPlan}
-                                    linkingSummaries={linkingSummaries}
+                                    linkingSummary={linkingSummaries.get(plan.id)}
                                     plan={plan}
                                     key={plan.id}
                                 />
