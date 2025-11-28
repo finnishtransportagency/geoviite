@@ -41,6 +41,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameBetweenOperatingPoints
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameChord
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.TOPOLOGY_CALC_DISTANCE
@@ -113,7 +114,7 @@ fun validateOperationalPointNameDuplication(
         VALIDATION_OPERATIONAL_POINT,
         validationTargetType,
         operationalPoint,
-        duplicates,
+        duplicates.filter { it.state != OperationalPointState.DELETED },
     ) {
         listOf("name" to operationalPoint.name)
     }
@@ -128,7 +129,7 @@ fun validateOperationalPointAbbreviationDuplication(
         VALIDATION_OPERATIONAL_POINT,
         validationTargetType,
         operationalPoint,
-        duplicates,
+        duplicates.filter { it.state != OperationalPointState.DELETED },
     ) { contextDuplicates ->
         listOf(
             "abbreviation" to operationalPoint.abbreviation.toString(),
@@ -146,7 +147,7 @@ fun validateOperationalPointUicCodeDuplication(
         VALIDATION_OPERATIONAL_POINT,
         validationTargetType,
         operationalPoint,
-        duplicates,
+        duplicates.filter { it.state != OperationalPointState.DELETED },
     ) { contextDuplicates ->
         listOf(
             "uicCode" to operationalPoint.uicCode.toString(),
@@ -499,13 +500,7 @@ fun validateSwitchTopologicalConnectivity(
     val existingTracks = locationTracksAndGeometries.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(
-                switch.id as IntId,
-                structure,
-                existingTracks,
-                switch.name,
-                validatingTrack,
-            ),
+            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
         )
         .flatten()
 }
@@ -984,10 +979,7 @@ fun validateGeocodingContext(
             ?.let { kms ->
                 validationError(
                     "$VALIDATION_GEOCODING.km-posts-wrong-order",
-                    localizationParams(
-                        "trackNumber" to context.trackNumber,
-                        "kmNumbers" to kms.joinToString(", "),
-                    ),
+                    localizationParams("trackNumber" to context.trackNumber, "kmNumbers" to kms.joinToString(", ")),
                 )
             }
 
@@ -999,8 +991,7 @@ fun validateGeocodingContext(
                     "$VALIDATION_GEOCODING.km-posts-far-from-line" to
                         localizationParams(
                             "trackNumber" to context.trackNumber,
-                            "kmNumbers" to
-                                kmsWithFarawayPoints.joinToString(",") { point -> point.kmNumber.toString() },
+                            "kmNumbers" to kmsWithFarawayPoints.joinToString(",") { point -> point.kmNumber.toString() },
                         )
                 }
             }
@@ -1011,11 +1002,7 @@ fun validateGeocodingContext(
 
             when (issue) {
                 KmValidationIssue.NO_LOCATION ->
-                    LayoutValidationIssue(
-                        ERROR,
-                        "$VALIDATION_GEOCODING.km-post-no-location",
-                        kmPostLocalizationParams,
-                    )
+                    LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.km-post-no-location", kmPostLocalizationParams)
 
                 KmValidationIssue.IS_BEFORE_START_ADDRESS ->
                     LayoutValidationIssue(
@@ -1039,11 +1026,7 @@ fun validateGeocodingContext(
                     )
 
                 KmValidationIssue.DUPLICATE_KM ->
-                    LayoutValidationIssue(
-                        FATAL,
-                        "$VALIDATION_GEOCODING.duplicate-km-posts",
-                        kmPostLocalizationParams,
-                    )
+                    LayoutValidationIssue(FATAL, "$VALIDATION_GEOCODING.duplicate-km-posts", kmPostLocalizationParams)
 
                 KmValidationIssue.INCORRECT_ORDER ->
                     LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.km-posts-invalid", kmPostLocalizationParams)
