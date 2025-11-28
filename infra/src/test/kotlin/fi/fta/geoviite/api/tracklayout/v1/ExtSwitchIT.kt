@@ -647,7 +647,7 @@ constructor(
         assertEquals(
             when (switch.stateCategory) {
                 LayoutStateCategory.NOT_EXISTING -> "poistunut kohde"
-                LayoutStateCategory.EXISTING -> "olemassaoleva kohde"
+                LayoutStateCategory.EXISTING -> "olemassa oleva kohde"
             },
             actual.tilakategoria,
         )
