@@ -101,7 +101,8 @@ private fun createProfileSegments(
                     intersection.length?.compareTo(BigDecimal.ZERO) != 0
             ) {
                 try {
-                    val radius = intersection.radius.toDouble()
+                    val radius =
+                        abs(intersection.radius.toDouble()) * getRadiusSign(start, intersection, nextIntersection)
                     val tangents = tangentPointsOfPvi(start, intersection.point, nextIntersection.point, radius)
                     // Linear segment connecting previous point to first curve tangent
                     val connectSegment =
@@ -129,6 +130,21 @@ private fun createProfileSegments(
             return ProfileCalculationResult(intersection.point, false, listOfNotNull(segment))
         }
     }
+}
+
+private fun getRadiusSign(
+    start: Point,
+    intersection: VerticalIntersection,
+    nextIntersection: VerticalIntersection,
+): Double {
+    val leftRun = intersection.point.x - start.x
+    val rightRun = nextIntersection.point.x - intersection.point.x
+    val leftRise = intersection.point.y - start.y
+    val rightRise = nextIntersection.point.y - intersection.point.y
+
+    // segment lengths certainly can't be negative, but maybe they might be very short; so we cross-multiply
+    // (leftRise/leftRun) < (rightRise/rightRun) over the less-than sign to avoid division by zero
+    return if (leftRise * rightRun < rightRise * leftRun) 1.0 else -1.0
 }
 
 private fun createLinearIfNeeded(viName: PlanElementName, start: Point, end: Point, valid: Boolean) =

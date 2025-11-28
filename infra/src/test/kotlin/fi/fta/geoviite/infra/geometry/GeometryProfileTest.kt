@@ -175,6 +175,49 @@ class GeometryProfileTest {
     }
 
     @Test
+    fun `circular curve radius sign is ignored and calculated from the points`() {
+        val point3 = VIPoint(PlanElementName("first"), Point(1.82, 19.09))
+        val point4 =
+            VICircularCurve(PlanElementName("mid1"), Point(60.0, 19.65), BigDecimal(3000.0), BigDecimal(48.490589))
+        val point5 =
+            VICircularCurve(
+                PlanElementName("mid2"),
+                Point(304.3941, 18.052),
+                // negative radius sign is ignored as well
+                BigDecimal(-3500.0),
+                BigDecimal(40.390901),
+            )
+        val point6 =
+            VICircularCurve(
+                PlanElementName("mid3"),
+                Point(400.0002, 18.5302),
+                BigDecimal(3000.0),
+                BigDecimal(29.900281),
+            )
+        val point7 = VIPoint(PlanElementName("last"), Point(505.318, 17.92))
+        val listOfVerticalIntersectionPoints2 = listOf(point3, point4, point5, point6, point7)
+        val profile = GeometryProfile(PlanElementName("test profile 2"), listOfVerticalIntersectionPoints2)
+
+        // Exact PVI points
+        assertEquals(19.09, profile.getHeightAt(LineM(1.82)))
+        assertEquals(17.92, profile.getHeightAt(LineM(505.318)))
+
+        // Descending line
+        assertEquals(17.99, profile.getHeightAt(LineM(492.19))!!, 0.1)
+        // Ascending line
+        assertEquals(19.22, profile.getHeightAt(LineM(15.81))!!, 0.1)
+
+        // Negative descending curve
+        assertEquals(18.11, profile.getHeightAt(LineM(301.19))!!, 0.1)
+        // Negative ascending curve
+        assertEquals(18.12, profile.getHeightAt(LineM(316.19))!!, 0.1)
+        // Positivie ascending curve
+        assertEquals(19.54, profile.getHeightAt(LineM(58.75))!!, 0.1)
+        // Positive descending curve
+        assertEquals(19.53, profile.getHeightAt(LineM(76.75))!!, 0.1)
+    }
+
+    @Test
     fun profileSegmentsAreGeneratedCorrectly() {
         val pointAccuracy = 0.000000001
         val angleAccuracy = 0.000000001
