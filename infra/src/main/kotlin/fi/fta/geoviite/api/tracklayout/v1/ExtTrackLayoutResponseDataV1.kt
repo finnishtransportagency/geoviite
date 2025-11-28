@@ -96,7 +96,7 @@ enum class ExtTrackNumberStateV1(val value: String) {
     }
 }
 
-const val FI_EXISTING = "olemassaoleva kohde"
+const val FI_EXISTING = "olemassa oleva kohde"
 const val FI_NOT_EXISTING = "poistunut kohde"
 
 @Schema(name = "Vaihteen tilakategoria", type = "string", allowableValues = [FI_EXISTING, FI_NOT_EXISTING])
