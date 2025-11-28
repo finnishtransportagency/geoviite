@@ -480,7 +480,14 @@ constructor(
         // Modification since 0 shows the full geometry
         api.trackNumberGeometry.getModifiedSince(tnOid, publication0.uuid).also { response ->
             assertGeometryModificationMetadata(response, tnOid, publication0, publication1, LAYOUT_SRID, 1)
-            assertIntervalMatches(response.osoitevalit[0], "0001+0100.000", "0003+0035.000", alignment1, 101)
+            assertIntervalMatches(
+                response.osoitevalit[0],
+                ExtGeometryChangeTypeV1.GEOMETRY,
+                "0001+0100.000",
+                "0003+0035.000",
+                alignment1,
+                101,
+            )
         }
 
         // Publication 2 modifies the geometry
@@ -511,6 +518,7 @@ constructor(
             // Addressing change affects all points until next km-post
             assertIntervalMatches(
                 response.osoitevalit[0],
+                ExtGeometryChangeTypeV1.GEOMETRY,
                 "0001+0100.000",
                 "0001+0114.000",
                 alignment2,
@@ -524,6 +532,7 @@ constructor(
             // The bend adds just shy of 2 meters in length -> rounds down to +1 point -> 26 points
             assertIntervalMatches(
                 response.osoitevalit[1],
+                ExtGeometryChangeTypeV1.GEOMETRY,
                 "0002+0026.000",
                 "0002+0051.000",
                 alignment2,
@@ -536,6 +545,7 @@ constructor(
             // The added section is then from point x=100 (0036) to x=120 (0055) -> 19 meters (20 points)
             assertIntervalMatches(
                 response.osoitevalit[2],
+                ExtGeometryChangeTypeV1.GEOMETRY,
                 "0003+0036.000",
                 "0003+0055.000",
                 alignment2,
@@ -547,7 +557,14 @@ constructor(
         // Modification since 0 shows the full geometry at latest version
         api.trackNumberGeometry.getModifiedSince(tnOid, publication0.uuid).also { response ->
             assertGeometryModificationMetadata(response, tnOid, publication0, publication2, LAYOUT_SRID, 1)
-            assertIntervalMatches(response.osoitevalit[0], "0001+0100.000", "0003+0055.000", alignment2, 113)
+            assertIntervalMatches(
+                response.osoitevalit[0],
+                ExtGeometryChangeTypeV1.GEOMETRY,
+                "0001+0100.000",
+                "0003+0055.000",
+                alignment2,
+                113,
+            )
         }
 
         // Publication 3 removes the geometry
@@ -606,6 +623,7 @@ constructor(
             // Address range is [min(old,new), max(old,new)]
             assertIntervalMatches(
                 response.osoitevalit[0],
+                ExtGeometryChangeTypeV1.ADDRESSING,
                 "0001+0010.000",
                 "0001+0114.000",
                 alignment,
@@ -633,6 +651,7 @@ constructor(
             // Address range is [added-km-post, end] -> mod-range start is min(old,new) of the change point
             assertIntervalMatches(
                 response.osoitevalit[0],
+                ExtGeometryChangeTypeV1.ADDRESSING,
                 "0002+0015.000",
                 "0003+0034.000",
                 alignment,
@@ -647,6 +666,7 @@ constructor(
             // Address range is [min(old,new), max(old,new)]
             assertIntervalMatches(
                 response.osoitevalit[0],
+                ExtGeometryChangeTypeV1.ADDRESSING,
                 "0001+0010.000",
                 "0001+0114.000",
                 alignment,
@@ -656,6 +676,7 @@ constructor(
             )
             assertIntervalMatches(
                 response.osoitevalit[1],
+                ExtGeometryChangeTypeV1.ADDRESSING,
                 "0002+0015.000",
                 "0003+0034.000",
                 alignment,

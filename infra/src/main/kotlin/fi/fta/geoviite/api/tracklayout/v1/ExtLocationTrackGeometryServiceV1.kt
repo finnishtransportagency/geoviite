@@ -94,12 +94,17 @@ constructor(
                     newTrack
                         .takeIf { it.exists }
                         ?.let { track -> getAddressPoints(branch, endMoment, track, resolution, addressFilter) }
+                val oldGeometry = oldTrack?.version?.let { alignmentDao.fetch(it) }
+                val newGeometry = newTrack.getVersionOrThrow().let { alignmentDao.fetch(it) }
                 ExtLocationTrackModifiedGeometryResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),
                     layoutVersionTo = ExtLayoutVersionV1(publications.to),
                     locationTrackOid = ExtOidV1(oid),
                     coordinateSystem = ExtSridV1(coordinateSystem),
-                    trackIntervals = createModifiedCenterLineIntervals(oldPoints, newPoints, coordinateSystem),
+                    trackIntervals =
+                        createModifiedCenterLineIntervals(oldPoints, newPoints, coordinateSystem) { start, end ->
+                            isGeometryChanged(start, end, oldGeometry, newGeometry)
+                        },
                 )
             }
     }

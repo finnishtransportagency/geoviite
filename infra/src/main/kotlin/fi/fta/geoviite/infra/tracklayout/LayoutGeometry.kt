@@ -202,6 +202,16 @@ interface IAlignment<M : AlignmentM<M>> : Loggable {
     fun getSegmentAtM(m: LineM<M>): Pair<ISegment, Range<LineM<M>>>? =
         getSegmentIndexAtM(m).takeIf { i -> i >= 0 }?.let { i -> segments[i] to segmentMValues[i] }
 
+    fun getSegmentsBetween(start: IPoint, end: IPoint): List<ISegment> {
+        val startIndex = getClosestPointM(start)?.first?.let(::getSegmentIndexAtM)?.takeIf { it >= 0 }
+        val endIndex = getClosestPointM(end)?.first?.let(::getSegmentIndexAtM)?.takeIf { it >= 0 && it < segments.size }
+        return if (startIndex != null && endIndex != null) {
+            segments.subList(startIndex, endIndex + 1)
+        } else {
+            emptyList()
+        }
+    }
+
     fun findClosestSegmentIndex(target: IPoint): Int? {
         return approximateClosestSegmentIndex(target)?.let { approximation ->
             var index = approximation

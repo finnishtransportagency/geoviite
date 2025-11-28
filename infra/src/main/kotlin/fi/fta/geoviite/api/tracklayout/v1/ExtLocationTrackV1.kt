@@ -65,7 +65,7 @@ data class ExtLocationTrackModifiedGeometryResponseV1(
     @JsonProperty(LOCATION_TRACK_OID)
     val locationTrackOid: ExtOidV1<LocationTrack>,
     @JsonProperty(COORDINATE_SYSTEM) val coordinateSystem: ExtSridV1,
-    @JsonProperty(TRACK_INTERVALS) val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
+    @JsonProperty(TRACK_INTERVALS) val trackIntervals: List<ExtModifiedCenterLineTrackIntervalV1>,
 )
 
 @Schema(name = "Vastaus: Sijaintiraidekokoelma")
