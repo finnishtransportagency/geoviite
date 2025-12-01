@@ -188,6 +188,21 @@ enum class ExtKmPostLocationConfirmedV1(val value: String) {
     @JsonValue override fun toString() = value
 }
 
+const val FI_GEOMETRY = "geometria"
+const val FI_ADDRESSING = "osoitteisto"
+
+@Schema(
+    name = "Tasakilometripisteen virallisen sijainnin vahvistus",
+    type = "string",
+    allowableValues = [FI_GEOMETRY, FI_ADDRESSING],
+)
+enum class ExtGeometryChangeTypeV1(val value: String) {
+    GEOMETRY(FI_GEOMETRY),
+    ADDRESSING(FI_ADDRESSING);
+
+    @JsonValue override fun toString() = value
+}
+
 @Schema(name = "Koordinaattisijainti")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtCoordinateV1(val x: Double, val y: Double) {
@@ -227,6 +242,14 @@ data class ExtAddressPointV1(
 data class ExtCenterLineTrackIntervalV1(
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("alkuosoite") val startAddress: String,
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("loppuosoite") val endAddress: String,
+    @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
+)
+
+@Schema(name = "Muuttunut osoiteväli")
+data class ExtModifiedCenterLineTrackIntervalV1(
+    @Schema(type = "string", example = "0012+0123.456") @JsonProperty("alkuosoite") val startAddress: String,
+    @Schema(type = "string", example = "0012+0123.456") @JsonProperty("loppuosoite") val endAddress: String,
+    @JsonProperty("muutostyyppi") val changeType: ExtGeometryChangeTypeV1,
     @JsonProperty("pisteet") val addressPoints: List<ExtAddressPointV1>,
 )
 

@@ -1,35 +1,62 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.tracklayout.AnyM
+import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
+
+fun isGeometryChanged(start: IPoint, end: IPoint, oldGeometry: IAlignment<*>?, newGeometry: IAlignment<*>?): Boolean =
+    when {
+        oldGeometry == null && newGeometry == null -> false
+        oldGeometry == null || newGeometry == null -> true
+        else -> {
+            val oldGeoms = getGeometryIdsBetweenPoints(oldGeometry, start, end)
+            val newGeoms = getGeometryIdsBetweenPoints(newGeometry, start, end)
+            oldGeoms != newGeoms
+        }
+    }
+
+private fun getGeometryIdsBetweenPoints(alignment: IAlignment<*>, start: IPoint, end: IPoint) =
+    alignment.getSegmentsBetween(start, end).map { it.geometry.id as IntId }
 
 fun <M : AnyM<M>> createModifiedCenterLineIntervals(
     oldPoints: AlignmentAddresses<M>?,
     newPoints: AlignmentAddresses<M>?,
     coordinateSystem: Srid,
-): List<ExtCenterLineTrackIntervalV1> =
+    isGeometryChange: (start: IPoint, end: IPoint) -> Boolean,
+): List<ExtModifiedCenterLineTrackIntervalV1> =
     when {
         oldPoints == null && newPoints == null -> error("Must have some points to compare")
         oldPoints == null -> {
             // Full new interval was added
-            listOf(toExtInterval(newPoints!!, coordinateSystem))
+            listOf(
+                ExtModifiedCenterLineTrackIntervalV1(
+                    startAddress = newPoints!!.startPoint.address.formatFixedDecimals(3),
+                    endAddress = newPoints.endPoint.address.formatFixedDecimals(3),
+                    changeType = ExtGeometryChangeTypeV1.GEOMETRY,
+                    addressPoints =
+                        newPoints.allPoints.map { addressPoint -> toExtAddressPoint(addressPoint, coordinateSystem) },
+                )
+            )
         }
         newPoints == null -> {
             // All points removed on the original interval
             listOf(
-                ExtCenterLineTrackIntervalV1(
+                ExtModifiedCenterLineTrackIntervalV1(
                     startAddress = oldPoints.startPoint.address.formatFixedDecimals(3),
                     endAddress = oldPoints.endPoint.address.formatFixedDecimals(3),
+                    changeType = ExtGeometryChangeTypeV1.GEOMETRY,
                     addressPoints = emptyList(),
                 )
             )
         }
         else -> {
-            val changedIntervals = mutableListOf<ExtCenterLineTrackIntervalV1>()
+            val changedIntervals = mutableListOf<ExtModifiedCenterLineTrackIntervalV1>()
             val rangeBuilder = RangeBuilder<M>(coordinateSystem)
             var oldIndex = 0
             var newIndex = 0
@@ -61,7 +88,7 @@ fun <M : AnyM<M>> createModifiedCenterLineIntervals(
                             }
                             else -> {
                                 if (old.point.isSame(new.point, LAYOUT_COORDINATE_DELTA)) {
-                                    rangeBuilder.buildAndReset()?.let(changedIntervals::add)
+                                    rangeBuilder.buildAndReset(isGeometryChange)?.let(changedIntervals::add)
                                 } else {
                                     rangeBuilder.extendWithPoint(new)
                                 }
@@ -72,7 +99,7 @@ fun <M : AnyM<M>> createModifiedCenterLineIntervals(
                 }
             }
             // Finish range if one still exists
-            rangeBuilder.buildAndReset()?.let(changedIntervals::add)
+            rangeBuilder.buildAndReset(isGeometryChange)?.let(changedIntervals::add)
             changedIntervals
         }
     }
@@ -101,13 +128,21 @@ private class RangeBuilder<M : AnyM<M>>(val coordinateSystem: Srid) {
         }
     }
 
-    fun buildAndReset(): ExtCenterLineTrackIntervalV1? {
+    fun buildAndReset(
+        isGeometryChange: (start: IPoint, end: IPoint) -> Boolean
+    ): ExtModifiedCenterLineTrackIntervalV1? {
         val startAddress = start?.formatFixedDecimals(3)
         val endAddress = end?.formatFixedDecimals(3)
         val addressPoints = points.map { addressPoint -> toExtAddressPoint(addressPoint, coordinateSystem) }
+        val changeType =
+            if (points.isEmpty() || isGeometryChange(points.first().point, points.last().point)) {
+                ExtGeometryChangeTypeV1.GEOMETRY
+            } else {
+                ExtGeometryChangeTypeV1.ADDRESSING
+            }
         reset()
         return if (startAddress != null && endAddress != null) {
-            ExtCenterLineTrackIntervalV1(startAddress, endAddress, addressPoints)
+            ExtModifiedCenterLineTrackIntervalV1(startAddress, endAddress, changeType, addressPoints)
         } else {
             null
         }

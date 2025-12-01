@@ -86,31 +86,75 @@ fun assertIntervalMatches(
     end: IPoint = geometry.end!!,
 ) {
     assertNotNull(interval, "Interval is null: expected=[$startAddress..$endAddress]")
-    val getError = { field: String, expectedValue: Any ->
-        "Interval $field incorrect: expected=$expectedValue interval=$interval"
+    val getError = { field: String, expectedValue: Any? ->
+        "Interval $field incorrect: expected=$expectedValue interval=[$startAddress..$endAddress]"
     }
     assertEquals(startAddress, interval.alkuosoite, getError("start address", startAddress))
     assertEquals(endAddress, interval.loppuosoite, getError("end address", endAddress))
+    assertIntervalPointsMatch(interval.pisteet, startAddress, endAddress, geometry, pointCount, start, end, getError)
+}
 
-    assertEquals(start.x, interval.pisteet.first().x, COORDINATE_DELTA, getError("start x coordinate", start.x))
-    assertEquals(start.y, interval.pisteet.first().y, COORDINATE_DELTA, getError("start y coordinate", start.y))
-    assertEquals(end.x, interval.pisteet.last().x, COORDINATE_DELTA, getError("end x coordinate", end.x))
-    assertEquals(end.y, interval.pisteet.last().y, COORDINATE_DELTA, getError("end y coordinate", end.y))
+fun assertIntervalMatches(
+    interval: ExtTestModifiedGeometryIntervalV1?,
+    changeType: ExtGeometryChangeTypeV1,
+    startAddress: String,
+    endAddress: String,
+    geometry: IAlignment<*>,
+    pointCount: Int,
+    start: IPoint = geometry.start!!,
+    end: IPoint = geometry.end!!,
+) {
+    assertNotNull(interval, "Interval is null: expected=[$startAddress..$endAddress]")
+    assertEquals(changeType.value, interval.muutostyyppi)
+    val getError = { field: String, expectedValue: Any? ->
+        "Interval $field incorrect: expected=$expectedValue interval=[$startAddress..$endAddress]"
+    }
+    assertEquals(startAddress, interval.alkuosoite, getError("start address", startAddress))
+    assertEquals(endAddress, interval.loppuosoite, getError("end address", endAddress))
+    assertIntervalPointsMatch(interval.pisteet, startAddress, endAddress, geometry, pointCount, start, end, getError)
+}
 
+fun assertIntervalPointsMatch(
+    points: List<ExtTestAddressPointV1>,
+    startAddress: String,
+    endAddress: String,
+    geometry: IAlignment<*>,
+    pointCount: Int,
+    start: IPoint,
+    end: IPoint,
+    getError: (field: String, expectedValue: Any?) -> String,
+) {
+    assertEquals(start.x, points.first().x, COORDINATE_DELTA, getError("start x coordinate", start.x))
+    assertEquals(start.y, points.first().y, COORDINATE_DELTA, getError("start y coordinate", start.y))
+    assertEquals(end.x, points.last().x, COORDINATE_DELTA, getError("end x coordinate", end.x))
+    assertEquals(end.y, points.last().y, COORDINATE_DELTA, getError("end y coordinate", end.y))
     var previousAddress: TrackMeter? = null
-    for (p in interval.pisteet) {
+    points.forEachIndexed { i, p ->
         val point = Point(p.x, p.y)
         val pointOnLine = geometry.getClosestPoint(point)!!.first
-        assertEquals(0.0, lineLength(point, pointOnLine), COORDINATE_DELTA)
-        assertNotNull(p.rataosoite)
+        assertEquals(
+            0.0,
+            lineLength(point, pointOnLine),
+            COORDINATE_DELTA,
+            getError("point $i distance to line geometry", 0.0),
+        )
+        assertNotNull(p.rataosoite, getError("point should have an address at index $i", "not null"))
         previousAddress =
             TrackMeter(p.rataosoite).also { address ->
-                assertTrue(address >= TrackMeter(startAddress))
-                assertTrue(address <= TrackMeter(endAddress))
-                if (previousAddress != null) assertTrue(address > previousAddress)
+                assertTrue(
+                    address >= TrackMeter(startAddress),
+                    getError("address before interval start at index $i", "$startAddress before $address"),
+                )
+                assertTrue(
+                    address <= TrackMeter(endAddress),
+                    getError("address after interval end at index $i", "$endAddress after $address"),
+                )
+                previousAddress?.also {
+                    assertTrue(address > it, getError("address ordering at index $i", "$it before $address"))
+                }
             }
     }
-    assertEquals(pointCount, interval.pisteet.size)
+    assertEquals(pointCount, points.size, getError("point count", pointCount))
 }
 
 fun assertEmptyInterval(interval: ExtTestGeometryIntervalV1?, startAddress: String, endAddress: String) {
@@ -118,4 +162,12 @@ fun assertEmptyInterval(interval: ExtTestGeometryIntervalV1?, startAddress: Stri
     assertEquals(startAddress, interval.alkuosoite)
     assertEquals(endAddress, interval.loppuosoite)
     assertTrue(interval.pisteet.isEmpty())
+}
+
+fun assertEmptyInterval(interval: ExtTestModifiedGeometryIntervalV1?, startAddress: String, endAddress: String) {
+    assertNotNull(interval)
+    assertEquals(startAddress, interval.alkuosoite)
+    assertEquals(endAddress, interval.loppuosoite)
+    assertTrue(interval.pisteet.isEmpty())
+    assertEquals(ExtGeometryChangeTypeV1.GEOMETRY.value, interval.muutostyyppi)
 }

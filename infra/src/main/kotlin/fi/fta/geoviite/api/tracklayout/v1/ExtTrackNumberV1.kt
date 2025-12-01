@@ -56,7 +56,7 @@ data class ExtTrackNumberModifiedGeometryResponseV1(
     @Schema(example = "1.2.246.578.13.123.456")
     @JsonProperty(TRACK_NUMBER_OID)
     val trackNumberOid: ExtOidV1<LayoutTrackNumber>,
-    @JsonProperty(TRACK_INTERVALS) val trackIntervals: List<ExtCenterLineTrackIntervalV1>,
+    @JsonProperty(TRACK_INTERVALS) val trackIntervals: List<ExtModifiedCenterLineTrackIntervalV1>,
 )
 
 @Schema(name = "Vastaus: Ratanumerokokoelma")
