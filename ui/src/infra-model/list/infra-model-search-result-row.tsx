@@ -13,14 +13,14 @@ import { InfraModelDownloadButton } from 'geoviite-design-lib/infra-model-downlo
 
 type InfraModelSearchResultRowProps = {
     plan: GeometryPlanHeader;
-    linkingSummaries: Map<GeometryPlanId, GeometryPlanLinkingSummary | undefined>;
+    linkingSummary: GeometryPlanLinkingSummary | undefined;
     setConfirmHidePlan: (planId: GeometryPlanHeader | undefined) => void;
     onSelectPlan: (planId: GeometryPlanId) => void;
 };
 
-export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps> = ({
+const InfraModelSearchResultRowM: React.FC<InfraModelSearchResultRowProps> = ({
     plan,
-    linkingSummaries,
+    linkingSummary,
     setConfirmHidePlan,
     onSelectPlan,
 }) => {
@@ -29,18 +29,7 @@ export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps>
     const downloadButtonRef = React.useRef<HTMLButtonElement>(null);
     const hideButtonRef = React.useRef<HTMLButtonElement>(null);
 
-    function linkingSummaryDate(planId: GeometryPlanId) {
-        const linkingSummary = linkingSummaries.get(planId);
-        return linkingSummary?.linkedAt === undefined
-            ? ''
-            : formatDateFull(linkingSummary.linkedAt);
-    }
-
-    const linkingSummaryUsers = (planId: GeometryPlanId) =>
-        linkingSummaries.get(planId)?.linkedByUsers.join(', ') ?? '';
-
-    const isCurrentlyLinked = (planId: GeometryPlanId) =>
-        linkingSummaries.get(planId)?.currentlyLinked;
+    const isCurrentlyLinked = linkingSummary?.currentlyLinked;
 
     const targetWithinButton = (target: EventTarget) =>
         downloadButtonRef.current?.contains(target as HTMLElement) ||
@@ -76,8 +65,12 @@ export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps>
             </td>
             <td>{plan.planTime && formatDateShort(plan.planTime)}</td>
             <td>{plan.uploadTime && formatDateFull(plan.uploadTime)}</td>
-            <td>{linkingSummaryDate(plan.id)}</td>
-            <td>{linkingSummaryUsers(plan.id)}</td>
+            <td>
+                {linkingSummary?.linkedAt === undefined
+                    ? ''
+                    : formatDateFull(linkingSummary.linkedAt)}
+            </td>
+            <td>{linkingSummary?.linkedByUsers.join(', ') ?? ''}</td>
             <td>
                 <InfraModelDownloadButton
                     planHeader={plan}
@@ -91,12 +84,12 @@ export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps>
                 <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
                     <Button
                         title={
-                            isCurrentlyLinked(plan.id)
+                            isCurrentlyLinked
                                 ? t('im-form.cannot-hide-file')
                                 : t('im-form.hide-file')
                         }
                         onClick={() => setConfirmHidePlan(plan)}
-                        disabled={isCurrentlyLinked(plan.id) ?? true}
+                        disabled={isCurrentlyLinked ?? true}
                         variant={ButtonVariant.GHOST}
                         size={ButtonSize.SMALL}
                         icon={Icons.Delete}
@@ -116,3 +109,7 @@ export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps>
         </tr>
     );
 };
+
+export const InfraModelSearchResultRow: React.FC<InfraModelSearchResultRowProps> = React.memo(
+    InfraModelSearchResultRowM,
+);
