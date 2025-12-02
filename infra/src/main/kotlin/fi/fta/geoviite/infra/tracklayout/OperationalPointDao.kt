@@ -368,13 +368,13 @@ class OperationalPointDao(
                 select *
                   from layout.operational_point_in_layout_context(:candidate_publication_state::layout.publication_state,
                                                                   :candidate_design_id::int)
-                  where ($candidateIdSqlFragment) and polygon is not null
+                  where ($candidateIdSqlFragment) and polygon is not null and state != 'DELETED'
               ),
             base_points as not materialized (
               select *
                 from layout.operational_point_in_layout_context(:base_publication_state::layout.publication_state,
                                                                 :base_design_id::int) base_point
-                where not ($candidateIdSqlFragment) and polygon is not null
+                where not ($candidateIdSqlFragment) and polygon is not null and state != 'DELETED'
             ), check_points as not materialized (
               select * from candidate_points where ($checkIdSqlFragment)
               union all
