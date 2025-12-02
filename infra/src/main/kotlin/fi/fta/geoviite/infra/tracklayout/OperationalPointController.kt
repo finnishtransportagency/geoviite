@@ -128,7 +128,7 @@ class OperationalPointController(
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @DeleteMapping("/operational-points/{$LAYOUT_BRANCH}/draft/{id}")
-    fun deleteInternalOperatingPoint(
+    fun deleteOperationalPoint(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable("id") id: IntId<OperationalPoint>,
     ): IntId<OperationalPoint> {

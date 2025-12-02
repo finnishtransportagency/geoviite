@@ -133,6 +133,25 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao, privat
         return publishedVersion
     }
 
+    @Transactional
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<OperationalPoint>): LayoutRowVersion<OperationalPoint> {
+        val draftVersion = dao.fetchVersion(branch.draft, id)
+        val draft = draftVersion?.let(dao::fetch)
+        return if (draft?.origin != OperationalPointOrigin.RATKO || branch != LayoutBranch.main) {
+            dao.deleteDraft(branch, id)
+        } else {
+            // avoid deleting ID row, which the DAO's #deleteDraft would do in case this is draft-only
+            dao.deleteRow(LayoutRowId(id, branch.draft))
+
+            val draftRatkoVersion = requireNotNull(draft.ratkoVersion)
+            val officialRatkoVersion = get(branch.official, id)?.ratkoVersion
+            if (officialRatkoVersion == null || officialRatkoVersion < draftRatkoVersion) {
+                dao.insertRatkoPoint(id, draftRatkoVersion)
+            }
+            draftVersion
+        }
+    }
+
     private fun saveDraft(branch: LayoutBranch, point: OperationalPoint) = dao.save(asDraft(branch, point))
 
     fun idMatches(
