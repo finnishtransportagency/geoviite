@@ -26,21 +26,21 @@ import org.springframework.web.bind.annotation.RequestParam
         "$EXT_TRACK_LAYOUT_BASE_PATH/dev/paikannuspohja/v1",
     ]
 )
-class ExtAdministrativeTrackChangeControllerV1
+class ExtTrackBoundaryChangeControllerV1
 @Autowired
-constructor(private val extAdministrativeTrackChangeService: ExtAdministrativeTrackChangeServiceV1) {
+constructor(private val extTrackBoundaryChangeService: ExtTrackBoundaryChangeServiceV1) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/sijaintiraiteet/muutokset/hallinnolliset")
+    @GetMapping("/sijaintiraiteet/muutokset/rajat")
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
-    @Operation(summary = "Sijaintiraiteiden hallinnolliset muutokset")
+    @Operation(summary = "Sijaintiraiteiden rajojen hallinnolliset muutokset")
     @ApiResponses(
         value =
             [
                 ApiResponse(
                     responseCode = "200",
                     description =
-                        "Sijaintiraiteiden hallinnolliset muutokset haettiin onnistuneesti kahden rataverkon version välillä.",
+                        "Sijaintiraiteiden rajojen hallinnolliset muutokset haettiin onnistuneesti kahden rataverkon version välillä.",
                 ),
                 ApiResponse(
                     responseCode = "204",
@@ -64,15 +64,15 @@ constructor(private val extAdministrativeTrackChangeService: ExtAdministrativeTr
                 ),
             ]
     )
-    fun getExtAdministrativeTrackChangesCollection(
+    fun getExtTrackBoundaryChangeCollection(
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_FROM)
         @RequestParam(TRACK_LAYOUT_VERSION_FROM, required = true)
         layoutVersionFrom: ExtLayoutVersionV1,
         @Parameter(description = EXT_OPENAPI_TRACK_LAYOUT_VERSION_TO)
         @RequestParam(TRACK_LAYOUT_VERSION_TO, required = false)
         layoutVersionTo: ExtLayoutVersionV1?,
-    ): ResponseEntity<ExtAdministrativeTrackChangeResponcseV1> =
-        extAdministrativeTrackChangeService
-            .getExtAdministrativeTrackChangeCollection(layoutVersionFrom, layoutVersionTo)
+    ): ResponseEntity<ExtTrackBoundaryChangeResponseV1> =
+        extTrackBoundaryChangeService
+            .getExtTrackBoundaryChangeCollection(layoutVersionFrom, layoutVersionTo)
             .let(::toResponse)
 }

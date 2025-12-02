@@ -207,7 +207,7 @@ const val FI_SPLIT = "raiteen_jakaminen"
 const val FI_BOUNDARY_SHIFT = "vaihtumiskohdan_siirto"
 
 @Schema(name = "Hallinnollisen muutoksen tyyppi", type = "string", allowableValues = [FI_SPLIT, FI_BOUNDARY_SHIFT])
-enum class ExtAdministrativeTrackChangeTypeV1(val value: String) {
+enum class ExtTrackBoundaryChangeTypeV1(val value: String) {
     SPLIT(FI_SPLIT),
     BOUNDARY_SHIFT(FI_BOUNDARY_SHIFT);
 

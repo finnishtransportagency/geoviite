@@ -7,14 +7,14 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
-class ExtAdministrativeTrackChangeServiceV1 @Autowired constructor(private val publicationService: PublicationService) {
+class ExtTrackBoundaryChangeServiceV1 @Autowired constructor(private val publicationService: PublicationService) {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun getExtAdministrativeTrackChangeCollection(
+    fun getExtTrackBoundaryChangeCollection(
         layoutVersionFrom: ExtLayoutVersionV1,
         layoutVersionTo: ExtLayoutVersionV1?,
-    ): ExtAdministrativeTrackChangeResponcseV1? {
+    ): ExtTrackBoundaryChangeResponseV1? {
         val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         TODO("Not implemented")
     }

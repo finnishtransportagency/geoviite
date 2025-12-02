@@ -55,7 +55,7 @@ const val SOURCE_LOCATION_TRACK_OID = "geometrian_lahderaide_oid"
 const val SOURCE_LOCATION_TRACK_NAME = "geometrian_lahderaide_tunnus"
 const val TARGET_LOCATION_TRACK_OID = "geometrian_kohderaide_oid"
 const val TARGET_LOCATION_TRACK_NAME = "geometrian_kohderaide_tunnus"
-const val ADMINISTRATIVE_TRACK_CHANGES = "hallinnolliset_muutokset"
+const val TRACK_BOUNDARY_CHANGES = "rajojen_muutokset"
 const val CHANGE_COLLECTION = "muutokset"
 
 const val EXT_OPENAPI_INVALID_ARGUMENTS = "Yhden tai useamman hakuargumentin muoto oli virheellinen."

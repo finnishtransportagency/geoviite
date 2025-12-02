@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(name = "Sijaintiraiteen hallinnollinen muutos")
 @JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtAdministrativeTrackChangeV1(
+data class ExtTrackBoundaryChangeV1(
     @Schema(example = "1.2.246.578.13.123.456")
     @JsonProperty(SOURCE_LOCATION_TRACK_OID)
     val sourceLocationTrackOid: ExtOidV1<LocationTrack>,
@@ -31,19 +31,19 @@ data class ExtAdministrativeTrackChangeV1(
 
 @Schema(name = "Sijaintiraiteen hallinnollinen muutos")
 @JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtAdministrativeTrackChangesV1(
+data class ExtTrackBoundaryChangesV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: ExtLayoutVersionV1,
     @Schema(type = "string", example = "001") @JsonProperty(TRACK_NUMBER) val trackNumber: TrackNumber,
     @Schema(example = "1.2.246.578.13.123.456")
     @JsonProperty(TRACK_NUMBER_OID)
     val trackNumberOid: ExtOidV1<LayoutTrackNumber>,
-    val changeType: ExtAdministrativeTrackChangeTypeV1,
-    @JsonProperty(CHANGE_COLLECTION) val changes: List<ExtAdministrativeTrackChangeV1>,
+    val changeType: ExtTrackBoundaryChangeTypeV1,
+    @JsonProperty(CHANGE_COLLECTION) val changes: List<ExtTrackBoundaryChangeV1>,
 )
 
 @Schema(name = "Vastaus: Sijaintiraiteen hallinnolliset muutokset")
-data class ExtAdministrativeTrackChangeResponcseV1(
+data class ExtTrackBoundaryChangeResponseV1(
     @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val trackLayoutVersionFrom: ExtLayoutVersionV1,
     @JsonProperty(TRACK_LAYOUT_VERSION_TO) val trackLayoutVersionTo: ExtLayoutVersionV1,
-    @JsonProperty(ADMINISTRATIVE_TRACK_CHANGES) val administrativeChanges: List<ExtAdministrativeTrackChangesV1>,
+    @JsonProperty(TRACK_BOUNDARY_CHANGES) val boundaryChanges: List<ExtTrackBoundaryChangesV1>,
 )
