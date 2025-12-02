@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.FreeText
 import io.swagger.v3.oas.annotations.media.Schema
 
-@Schema(name = "Sijaintiraiteen hallinnollinen muutos")
+@Schema(name = "Sijaintiraiteen rajojen muutos")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtTrackBoundaryChangeV1(
     @Schema(example = "1.2.246.578.13.123.456")
@@ -29,9 +29,9 @@ data class ExtTrackBoundaryChangeV1(
     @Schema(type = "string", example = "lisätty uutena raiteena") @JsonProperty(DESCRIPTION) val description: FreeText,
 )
 
-@Schema(name = "Sijaintiraiteen hallinnollinen muutos")
+@Schema(name = "Sijaintiraiteen rajojen muutosoperaatio")
 @JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtTrackBoundaryChangesV1(
+data class ExtTrackBoundaryChangeOperationV1(
     @JsonProperty(TRACK_LAYOUT_VERSION) val trackLayoutVersion: ExtLayoutVersionV1,
     @Schema(type = "string", example = "001") @JsonProperty(TRACK_NUMBER) val trackNumber: TrackNumber,
     @Schema(example = "1.2.246.578.13.123.456")
@@ -41,9 +41,9 @@ data class ExtTrackBoundaryChangesV1(
     @JsonProperty(CHANGE_COLLECTION) val changes: List<ExtTrackBoundaryChangeV1>,
 )
 
-@Schema(name = "Vastaus: Sijaintiraiteen hallinnolliset muutokset")
+@Schema(name = "Vastaus: Sijaintiraiteiden rajojen muutokset")
 data class ExtTrackBoundaryChangeResponseV1(
-    @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val trackLayoutVersionFrom: ExtLayoutVersionV1,
-    @JsonProperty(TRACK_LAYOUT_VERSION_TO) val trackLayoutVersionTo: ExtLayoutVersionV1,
-    @JsonProperty(TRACK_BOUNDARY_CHANGES) val boundaryChanges: List<ExtTrackBoundaryChangesV1>,
+    @JsonProperty(TRACK_LAYOUT_VERSION_FROM) val layoutVersionFrom: ExtLayoutVersionV1,
+    @JsonProperty(TRACK_LAYOUT_VERSION_TO) val layoutVersionTo: ExtLayoutVersionV1,
+    @JsonProperty(TRACK_BOUNDARY_CHANGES) val boundaryChanges: List<ExtTrackBoundaryChangeOperationV1>,
 )

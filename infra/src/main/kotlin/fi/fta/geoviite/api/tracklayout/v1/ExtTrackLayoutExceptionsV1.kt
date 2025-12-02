@@ -67,6 +67,15 @@ fun throwTrackNumberNotFound(branch: LayoutBranch, moment: Instant, id: DomainId
         "${LayoutTrackNumber::class.simpleName} was not found: branch=$branch moment=$moment id=$id"
     )
 
+fun throwGeocodingContextNotFound(
+    branch: LayoutBranch,
+    moment: Instant,
+    trackNumberId: DomainId<LayoutTrackNumber>,
+): Nothing =
+    throw ExtGeocodingFailedV1(
+        "Geocoding context was not found: branch=$branch moment=$moment trackNumberId=$trackNumberId"
+    )
+
 fun throwLocationTrackNotFound(branch: LayoutBranch, moment: Instant, id: DomainId<LocationTrack>): Nothing =
     throw ExtLocationTrackNotFoundExceptionV1(
         "${LocationTrack::class.simpleName} was not found: branch=$branch moment=$moment id=$id"

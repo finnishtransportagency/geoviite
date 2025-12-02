@@ -2656,6 +2656,13 @@ class PublicationDao(
             .firstOrNull()
     }
 
+    fun fetchPublishedSplitsBetween(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): List<Pair<Publication, Split>> {
+        TODO()
+    }
+
     fun fetchPublishedTrackNumberGeomsBetween(
         trackNumberId: IntId<LayoutTrackNumber>,
         exclusiveStartMoment: Instant,
