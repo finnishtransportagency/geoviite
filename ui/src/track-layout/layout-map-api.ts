@@ -610,7 +610,7 @@ async function getLocationTrackPolyline(
 }
 
 export function toMapAlignmentResolution(tileResolution: number): number {
-    return parseFloat(Math.ceil(tileResolution * MAP_RESOLUTION_MULTIPLIER).toPrecision(1));
+    return parseFloat(Math.floor(tileResolution * MAP_RESOLUTION_MULTIPLIER).toPrecision(1));
 }
 
 export function getAlignmentMinLength(resolution: number) {
