@@ -686,6 +686,7 @@
                 "joint-alignments-location-tracks-title": "Linjan läpi kulkeva raide",
                 "joint-number-title": "Vaihteen piste",
                 "location-tracks-end-at-joint-title": "Vaihteelle päättyvä raide",
+                "switches-to-detach-title": "Vaihteen {{switchName}} limittäinen linkitys puretaan",
                 "no-alignments": "Ei raiteita",
                 "point": "piste",
                 "unpublished": "Julkaisematon",

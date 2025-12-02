@@ -93,21 +93,20 @@ constructor(
                 val switchStructure = switchStructures[index]
                 val originallyLinked = originallyLinkedByRequestIndex[index]
                 val relevantTracks =
-                    newlyMatchedByRequestIndex[index] + clearSwitchFromTracks(switchId, originallyLinked)
+                    newlyMatchedByRequestIndex[index] + clearSwitchFromTracks(originallyLinked, switchId)
                 fitGrid
                     .map(parallel = true) { fit ->
-                        SuggestedSwitchWithOriginallyLinkedTracks(
-                            matchFittedSwitchToTracks(fit, relevantTracks, layoutSwitchId = switchId),
-                            originallyLinked.keys,
-                        )
+                        val (suggestion, clearedTracks) =
+                            matchFittedSwitchToTracks(fit, relevantTracks, layoutSwitchId = switchId)
+                        SuggestedSwitchWithOriginallyLinkedTracks(suggestion, originallyLinked.keys) to clearedTracks
                     }
-                    .map { suggestion ->
+                    .map { (suggestion, clearedTracks) ->
                         val changedTracks =
                             withChangesFromLinkingSwitch(
                                 suggestion.suggestedSwitch,
                                 switchStructure,
                                 switchId,
-                                relevantTracks,
+                                clearedTracks,
                             )
                         val withTopoChanges =
                             locationTrackService.recalculateTopology(branch.draft, changedTracks, switchId)
@@ -217,9 +216,8 @@ constructor(
         layoutSwitchId: IntId<LayoutSwitch>? = null,
     ): SuggestedSwitch {
         val tracksAroundFit = findLocationTracksNearFittedSwitch(branch, fit)
-        val unlinkedOriginalTracks =
-            layoutSwitchId?.let { clearSwitchFromTracks(it, findOriginallyLinkedTracks(branch, it)) } ?: emptyMap()
-        return matchFittedSwitchToTracks(fit, tracksAroundFit + unlinkedOriginalTracks, layoutSwitchId)
+        val originalTracks = layoutSwitchId?.let { findOriginallyLinkedTracks(branch, it) } ?: emptyMap()
+        return matchFittedSwitchToTracks(fit, tracksAroundFit + originalTracks, layoutSwitchId).first
     }
 
     @Transactional
@@ -239,7 +237,7 @@ constructor(
                 suggestedSwitch,
                 switchLibraryService.getSwitchStructure(originalSwitch.switchStructureId),
                 layoutSwitchId,
-                clearSwitchFromTracks(layoutSwitchId, originalTracks),
+                clearSwitchesFromTracks(originalTracks, suggestedSwitch.detachSwitches + layoutSwitchId),
             )
         val recalc = locationTrackService.recalculateTopology(branch.draft, changedTracks, layoutSwitchId)
         saveLocationTrackChanges(branch, recalc, originalTracks)
@@ -391,9 +389,9 @@ constructor(
             null
         } else {
             val nearbyTracksForMatch =
-                findLocationTracksNearFittedSwitch(branch, fittedSwitch) +
-                    clearSwitchFromTracks(switchId, originallyLinked + changedLocationTracks)
-            val match = matchFittedSwitchToTracks(fittedSwitch, nearbyTracksForMatch, layoutSwitchId = switchId)
+                findLocationTracksNearFittedSwitch(branch, fittedSwitch) + originallyLinked + changedLocationTracks
+            val (match, clearedTracks) =
+                matchFittedSwitchToTracks(fittedSwitch, nearbyTracksForMatch, layoutSwitchId = switchId)
             locationTrackService
                 .recalculateTopology(
                     branch.draft,
@@ -401,7 +399,7 @@ constructor(
                         match,
                         switchStructure,
                         switchId,
-                        nearbyTracksForMatch.filterKeys { track -> match.trackLinks.containsKey(track) },
+                        clearedTracks.filterKeys { track -> match.trackLinks.containsKey(track) },
                     ),
                     switchId,
                 )
@@ -749,9 +747,14 @@ fun withChangesFromLinkingSwitch(
 }
 
 fun clearSwitchFromTracks(
-    switchId: IntId<LayoutSwitch>,
     tracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+    switchId: IntId<LayoutSwitch>,
 ) = tracks.mapValues { (_, track) -> track.first to track.second.withoutSwitch(switchId) }
+
+fun clearSwitchesFromTracks(
+    tracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+    switchIds: Collection<IntId<LayoutSwitch>>,
+) = switchIds.fold(tracks, ::clearSwitchFromTracks)
 
 fun createModifiedLayoutSwitchLinking(
     suggestedSwitch: SuggestedSwitch,
