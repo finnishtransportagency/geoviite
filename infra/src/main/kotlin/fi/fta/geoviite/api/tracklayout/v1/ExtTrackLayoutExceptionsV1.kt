@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.ClientException
 import fi.fta.geoviite.infra.error.ServerException
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import java.time.Instant
@@ -80,3 +81,6 @@ fun throwLocationTrackNotFound(branch: LayoutBranch, moment: Instant, id: Domain
     throw ExtLocationTrackNotFoundExceptionV1(
         "${LocationTrack::class.simpleName} was not found: branch=$branch moment=$moment id=$id"
     )
+
+fun throwLocationTrackNotFound(version: LayoutRowVersion<LocationTrack>): Nothing =
+    throw ExtLocationTrackNotFoundExceptionV1("${LocationTrack::class.simpleName} was not found: version=$version")

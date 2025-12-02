@@ -26,7 +26,9 @@ data class ExtTrackBoundaryChangeV1(
     val targetLocationTrackName: AlignmentName,
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("alkuosoite") val startAddress: String,
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("loppuosoite") val endAddress: String,
-    @Schema(type = "string", example = "lisätty uutena raiteena") @JsonProperty(DESCRIPTION) val description: FreeText,
+    @Schema(type = "string", example = "Jakaminen: luotu uutena raiteena")
+    @JsonProperty(DESCRIPTION)
+    val description: FreeText,
 )
 
 @Schema(name = "Sijaintiraiteen rajojen muutosoperaatio")
@@ -37,7 +39,7 @@ data class ExtTrackBoundaryChangeOperationV1(
     @Schema(example = "1.2.246.578.13.123.456")
     @JsonProperty(TRACK_NUMBER_OID)
     val trackNumberOid: ExtOidV1<LayoutTrackNumber>,
-    val changeType: ExtTrackBoundaryChangeTypeV1,
+    @JsonProperty(TYPE) val changeType: ExtTrackBoundaryChangeTypeV1,
     @JsonProperty(CHANGE_COLLECTION) val changes: List<ExtTrackBoundaryChangeV1>,
 )
 

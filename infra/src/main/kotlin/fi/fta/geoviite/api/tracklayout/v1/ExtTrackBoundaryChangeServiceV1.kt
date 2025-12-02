@@ -5,14 +5,15 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitTargetOperation
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -63,78 +64,98 @@ constructor(
         }
     }
 
-    private data class SplitData(
-        val publication: Publication,
-        val split: Split,
+    private data class BoundaryChangeTargetData(
+        val sourceTrackOid: Oid<LocationTrack>,
+        val sourceTrack: LocationTrack,
+        val sourceGeometry: LocationTrackGeometry,
+        val targetTrackOid: Oid<LocationTrack>,
+        val targetTrack: LocationTrack,
+        val operation: SplitTargetOperation,
+        val sourceEdgeIndices: IntRange,
+    )
+
+    private data class BoundaryChangeData(
+        val type: ExtTrackBoundaryChangeTypeV1,
+        val layoutVersion: Uuid<Publication>,
         val trackNumber: LayoutTrackNumber,
         val trackNumberOid: Oid<LayoutTrackNumber>,
         val geocodingContext: GeocodingContext<ReferenceLineM>,
-        val sourceTrack: LocationTrack,
-        val sourceTrackOid: Oid<LocationTrack>,
-        val sourceGeometry: LocationTrackGeometry,
-        val targetTracks: List<Pair<Oid<LocationTrack>, LocationTrack>>,
+        val changes: List<BoundaryChangeTargetData>,
     )
 
-    private fun getSplitData(branch: LayoutBranch, startMoment: Instant, endMoment: Instant): List<SplitData> {
+    private fun getSplitData(branch: LayoutBranch, startMoment: Instant, endMoment: Instant): List<BoundaryChangeData> {
         val splits = publicationDao.fetchPublishedSplitsBetween(startMoment, endMoment)
-        val allTrackIds = splits.flatMap { it.second.locationTracks }.distinct()
-        val locationTrackOids = locationTrackDao.fetchExternalIds(branch, allTrackIds)
+        val locationTrackOids = locationTrackDao.fetchExternalIds(branch, splits.flatMap { it.allTrackIds }.distinct())
+        val publications = publicationDao.getPublications(splits.map { it.publicationId }.toSet())
         val getTrackOid = { id: DomainId<LocationTrack> -> locationTrackOids[id]?.oid ?: throwOidNotFound(branch, id) }
-        return splits.map { (publication, split) ->
+        val sourceTracks: Map<LayoutRowVersion<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>> =
+            locationTrackService
+                .getManyWithGeometries(splits.flatMap { s -> s.targets.map { t -> t.sourceTrackVersion } }.distinct())
+                .associateBy { it.first.getVersionOrThrow() }
+        val targetTracks =
+            locationTrackDao.fetchManyByVersion(splits.flatMap { s -> s.targets.map { t -> t.sourceTrackVersion } })
+        val geocodingContexts = geocodingService.getLazyGeocodingContextsAtMultiMoment(branch)
+        return splits.map { split ->
+            val publication =
+                requireNotNull(publications[split.publicationId]) { "Publication not found: ${split.publicationId}" }
             val moment = publication.publicationTime
-            val (sourceTrack, sourceGeometry) = locationTrackService.getWithGeometry(split.sourceLocationTrackVersion)
-            val trackNumber =
-                trackNumberDao.getOfficialAtMoment(branch, sourceTrack.trackNumberId, moment)
-                    ?: throwTrackNumberNotFound(branch, moment, sourceTrack.trackNumberId)
-            val geocodingContext =
-                geocodingService.getGeocodingContextAtMoment(branch, sourceTrack.trackNumberId, moment)
-                    ?: throwGeocodingContextNotFound(branch, moment, sourceTrack.trackNumberId)
-            val trackNumberOid = oidLookup(trackNumberDao, branch, sourceTrack.trackNumberId)
-            val targetTrackIds = split.targetLocationTracks.map { it.locationTrackId }
-            val targetTracks =
-                locationTrackDao.getManyOfficialAtMoment(branch, targetTrackIds, moment).map { track ->
-                    getTrackOid(track.id) to track
+            val changeTargets =
+                split.targets.map { target ->
+                    val (sourceTrack, sourceGeometry) =
+                        sourceTracks[target.sourceTrackVersion] ?: throwLocationTrackNotFound(target.sourceTrackVersion)
+                    val targetTrack =
+                        targetTracks[target.targetTrackVersion] ?: throwLocationTrackNotFound(target.targetTrackVersion)
+                    BoundaryChangeTargetData(
+                        sourceTrackOid = getTrackOid(sourceTrack.id),
+                        sourceTrack = sourceTrack,
+                        sourceGeometry = sourceGeometry,
+                        targetTrackOid = getTrackOid(targetTrack.id),
+                        targetTrack = targetTrack,
+                        operation = target.operation,
+                        sourceEdgeIndices = target.sourceEdgeIndices,
+                    )
                 }
-            SplitData(
-                publication = publication,
-                split = split,
+            val trackNumberId = changeTargets.first().sourceTrack.trackNumberId
+            val trackNumber =
+                trackNumberDao.getOfficialAtMoment(branch, trackNumberId, moment)
+                    ?: throwTrackNumberNotFound(branch, moment, trackNumberId)
+            val geocodingContext =
+                geocodingContexts(trackNumberId, moment) ?: throwGeocodingContextNotFound(branch, moment, trackNumberId)
+            val trackNumberOid = oidLookup(trackNumberDao, branch, trackNumberId)
+            BoundaryChangeData(
+                type = ExtTrackBoundaryChangeTypeV1.SPLIT,
+                layoutVersion = publication.uuid,
                 trackNumber = trackNumber,
                 trackNumberOid = trackNumberOid,
                 geocodingContext = geocodingContext,
-                sourceTrack = sourceTrack,
-                sourceTrackOid = getTrackOid(split.sourceLocationTrackId),
-                sourceGeometry = sourceGeometry,
-                targetTracks = targetTracks,
+                changes = changeTargets,
             )
         }
     }
 
-    private fun createBoundaryChange(data: SplitData): ExtTrackBoundaryChangeOperationV1 {
+    private fun createBoundaryChange(data: BoundaryChangeData): ExtTrackBoundaryChangeOperationV1 {
         val changes: List<ExtTrackBoundaryChangeV1> =
-            data.targetTracks.map { (targetOid, targetTrack) ->
-                val targetSplit =
-                    data.split.targetLocationTracks.find { it.locationTrackId == targetTrack.id }
-                        ?: error("Target track ${targetTrack.id} not found in split ${data.split.id}")
+            data.changes.map { change ->
                 val changeDescription =
-                    when (targetSplit.operation) {
-                        SplitTargetOperation.CREATE -> "Luotu uutena raiteena"
-                        SplitTargetOperation.OVERWRITE -> "Duplikaattiraiteen geometria korvattu"
-                        SplitTargetOperation.TRANSFER -> "Duplikaattiraiteen geometria osittain korvattu"
+                    when (change.operation) {
+                        SplitTargetOperation.CREATE -> "Jakaminen: luotu uutena raiteena"
+                        SplitTargetOperation.OVERWRITE -> "Jakaminen: duplikaattiraiteen geometria korvattu"
+                        SplitTargetOperation.TRANSFER -> "Jakaminen: duplikaattiraiteen geometria korvattu osittain"
                     }
-                val (startPoint, endPoint) = data.sourceGeometry.getEdgeStartAndEnd(targetSplit.edgeIndices)
+                val (startPoint, endPoint) = change.sourceGeometry.getEdgeStartAndEnd(change.sourceEdgeIndices)
                 ExtTrackBoundaryChangeV1(
-                    sourceLocationTrackOid = ExtOidV1(data.sourceTrackOid),
-                    sourceLocationTrackName = data.sourceTrack.name,
-                    targetLocationTrackOid = ExtOidV1(targetOid),
-                    targetLocationTrackName = targetTrack.name,
+                    sourceLocationTrackOid = ExtOidV1(change.sourceTrackOid),
+                    sourceLocationTrackName = change.sourceTrack.name,
+                    targetLocationTrackOid = ExtOidV1(change.targetTrackOid),
+                    targetLocationTrackName = change.targetTrack.name,
                     startAddress = getAddress(startPoint, data.geocodingContext).toString(),
                     endAddress = getAddress(endPoint, data.geocodingContext).toString(),
                     description = FreeText(changeDescription),
                 )
             }
         return ExtTrackBoundaryChangeOperationV1(
-            trackLayoutVersion = ExtLayoutVersionV1(data.publication.uuid),
-            changeType = ExtTrackBoundaryChangeTypeV1.SPLIT,
+            trackLayoutVersion = ExtLayoutVersionV1(data.layoutVersion),
+            changeType = data.type,
             trackNumber = data.trackNumber.number,
             trackNumberOid = ExtOidV1(data.trackNumberOid),
             changes = changes,
