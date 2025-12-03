@@ -2659,7 +2659,7 @@ class PublicationDao(
             .firstOrNull()
     }
 
-    data class TrackBoundaryChangeTarget(
+    data class TrackBoundaryChangeSegment(
         val sourceTrackVersion: LayoutRowVersion<LocationTrack>,
         val sourceEdgeIndices: IntRange,
         val targetTrackVersion: LayoutRowVersion<LocationTrack>,
@@ -2668,9 +2668,9 @@ class PublicationDao(
 
     data class TrackBoundaryChange(
         val publicationId: IntId<Publication>,
-        val targets: List<TrackBoundaryChangeTarget>,
+        val segments: List<TrackBoundaryChangeSegment>,
     ) {
-        val allTrackIds = targets.flatMap { listOf(it.sourceTrackVersion.id, it.targetTrackVersion.id) }.toSet()
+        val allTrackIds = segments.flatMap { listOf(it.sourceTrackVersion.id, it.targetTrackVersion.id) }.toSet()
     }
 
     fun fetchPublishedSplitsBetween(
@@ -2693,10 +2693,11 @@ class PublicationDao(
             from publication.publication
               inner join publication.split on split.publication_id = publication.id
               inner join publication.split_target_location_track target on split.id = target.split_id
-              inner join publication.location_track target_track on target.location_track_id = target_track.id
+              inner join publication.location_track target_track on publication.id = target_track.publication_id and target.location_track_id = target_track.id
             where publication.design_id is null
                 and publication.publication_time > :start_time
                 and publication.publication_time <= :end_time
+            order by publication.id, split.source_location_track_id, target.source_start_edge_index
             """
                 .trimIndent()
         val params =
@@ -2720,7 +2721,7 @@ class PublicationDao(
                     )
                 val edgeIndexRange = rs.getInt("source_start_edge_index")..rs.getInt("source_end_edge_index")
                 val changeTarget =
-                    TrackBoundaryChangeTarget(
+                    TrackBoundaryChangeSegment(
                         sourceTrackVersion = sourceTrackVersion,
                         sourceEdgeIndices = edgeIndexRange,
                         targetTrackVersion = targetTrackVersion,

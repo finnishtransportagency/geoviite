@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.LayoutState
@@ -212,6 +213,35 @@ enum class ExtTrackBoundaryChangeTypeV1(val value: String) {
     BOUNDARY_SHIFT(FI_BOUNDARY_SHIFT);
 
     @JsonValue override fun toString() = value
+}
+
+const val FI_CREATE_NEW_TRACK = "luodaan_uutena_raiteena"
+const val FI_REPLACES_DUPLICATE = "korvaa_duplikaatin_geometrian"
+const val FI_REPLACES_DUPLICATE_PARTIAL = "korvaa_duplikaatin_geometrian_osittain"
+const val FI_TRANSFERRED_TO_OTHER_TRACK = "siirtyy_toiselle_raiteelle"
+
+@Schema(
+    name = "Hallinnollisen muutoksen tyyppi",
+    type = "string",
+    allowableValues =
+        [FI_CREATE_NEW_TRACK, FI_REPLACES_DUPLICATE, FI_REPLACES_DUPLICATE_PARTIAL, FI_TRANSFERRED_TO_OTHER_TRACK],
+)
+enum class ExtTrackBoundaryGeometryChangeTypeV1(val value: String) {
+    CREATE_NEW(FI_CREATE_NEW_TRACK),
+    REPLACE_DUPLICATE(FI_REPLACES_DUPLICATE),
+    REPLACE_DUPLICATE_PARTIAL(FI_REPLACES_DUPLICATE_PARTIAL),
+    TRANSFER_GEOMETRY(FI_TRANSFERRED_TO_OTHER_TRACK);
+
+    @JsonValue override fun toString() = value
+
+    companion object {
+        fun of(splitOperation: SplitTargetOperation): ExtTrackBoundaryGeometryChangeTypeV1 =
+            when (splitOperation) {
+                SplitTargetOperation.CREATE -> CREATE_NEW
+                SplitTargetOperation.OVERWRITE -> REPLACE_DUPLICATE
+                SplitTargetOperation.TRANSFER -> REPLACE_DUPLICATE_PARTIAL
+            }
+    }
 }
 
 @Schema(name = "Koordinaattisijainti")

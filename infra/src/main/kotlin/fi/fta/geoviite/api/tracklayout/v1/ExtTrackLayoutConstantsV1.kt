@@ -57,6 +57,7 @@ const val TARGET_LOCATION_TRACK_OID = "geometrian_kohderaide_oid"
 const val TARGET_LOCATION_TRACK_NAME = "geometrian_kohderaide_tunnus"
 const val TRACK_BOUNDARY_CHANGES = "rajojen_muutokset"
 const val CHANGE_COLLECTION = "muutokset"
+const val GEOMETRY_CHANGE_TYPE = "geometrian_muutos"
 
 const val EXT_OPENAPI_INVALID_ARGUMENTS = "Yhden tai useamman hakuargumentin muoto oli virheellinen."
 

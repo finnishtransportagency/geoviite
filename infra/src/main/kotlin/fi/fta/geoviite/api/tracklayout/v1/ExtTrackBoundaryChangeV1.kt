@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.util.FreeText
 import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(name = "Sijaintiraiteen rajojen muutos")
@@ -26,9 +25,7 @@ data class ExtTrackBoundaryChangeV1(
     val targetLocationTrackName: AlignmentName,
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("alkuosoite") val startAddress: String,
     @Schema(type = "string", example = "0012+0123.456") @JsonProperty("loppuosoite") val endAddress: String,
-    @Schema(type = "string", example = "Jakaminen: luotu uutena raiteena")
-    @JsonProperty(DESCRIPTION)
-    val description: FreeText,
+    @JsonProperty(GEOMETRY_CHANGE_TYPE) val geometryChange: ExtTrackBoundaryGeometryChangeTypeV1,
 )
 
 @Schema(name = "Sijaintiraiteen rajojen muutosoperaatio")
