@@ -552,7 +552,7 @@ private fun tryFindingNearIntersection(
             .minBy { (distance, _) -> distance }
     return if (minDistanceAndPoint.first <= MAX_LINE_INTERSECTION_DISTANCE) {
         TrackIntersection(
-            point = minDistanceAndPoint.second,
+            point = minDistanceAndPoint.second.toPoint(),
             distance = minDistanceAndPoint.first,
             alignment1 = alignment1,
             alignment2 = alignment2,
@@ -586,7 +586,7 @@ private fun getClosestPointAsIntersection(
         .mapNotNull { track -> track.getClosestPoint(desiredLocation) }
         .minByOrNull { (point, _) -> lineLength(point, desiredLocation) }
         ?.let { (closestPoint, _) ->
-            TrackIntersection(alignment1 = track1, alignment2 = track2, point = closestPoint, distance = 0.0)
+            TrackIntersection(alignment1 = track1, alignment2 = track2, point = closestPoint.toPoint(), distance = 0.0)
         }
 }
 
@@ -900,7 +900,7 @@ private fun getOriginallyLinkedTrackJoints(
         .toSet()
 
 private data class TrackIntersection(
-    val point: IPoint,
+    val point: Point,
     val distance: Double,
     val alignment1: IAlignment<LocationTrackM>,
     val alignment2: IAlignment<LocationTrackM>,
