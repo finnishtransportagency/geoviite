@@ -33,6 +33,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
@@ -2588,18 +2589,19 @@ class PublicationDao(
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
-            select distinct on (plt.id)
-              plt.id,
-              plt.layout_context_id,
-              plt.version
-            from publication.location_track plt
-              join publication.publication publication on plt.publication_id = publication.id
-            where publication.design_id is null
-              and (:track_id::int is null or plt.id = :track_id)
-              and publication.publication_time > :start_time
-              and publication.publication_time <= :end_time
-            order by plt.id, publication.publication_time desc
-        """
+                select distinct on (plt.id)
+                  plt.id,
+                  plt.layout_context_id,
+                  plt.version
+                from publication.location_track plt
+                  join publication.publication publication on plt.publication_id = publication.id
+                where publication.design_id is null
+                  and (:track_id::int is null or plt.id = :track_id)
+                  and publication.publication_time > :start_time
+                  and publication.publication_time <= :end_time
+                order by plt.id, publication.publication_time desc
+            """
+                .trimIndent()
 
         val params =
             mapOf(
@@ -2617,29 +2619,30 @@ class PublicationDao(
     ): Change<LayoutRowVersion<LocationTrack>>? {
         val sql =
             """
-            select
-              plt.id,
-              plt.layout_context_id,
-              plt.version,
-              (
-                select version
-                  from layout.location_track_at(:start_time) lt
-                  where lt.id = plt.id and lt.layout_context_id = plt.layout_context_id
-              ) as old_version
-              from publication.location_track plt
-                inner join publication.publication publication on plt.publication_id = publication.id
-              where publication.design_id is null
-                and plt.id = :track_id
-                and publication.publication_time > :start_time
-                and publication.publication_time <= :end_time
-                and exists(
-                  select 1
-                    from publication.location_track_km pltkm
-                    where pltkm.location_track_id = plt.id and pltkm.publication_id = publication.id
-                )
-              order by plt.id, publication.publication_time desc
-              limit 1
-        """
+                select
+                  plt.id,
+                  plt.layout_context_id,
+                  plt.version,
+                  (
+                    select version
+                      from layout.location_track_at(:start_time) lt
+                      where lt.id = plt.id and lt.layout_context_id = plt.layout_context_id
+                  ) as old_version
+                  from publication.location_track plt
+                    inner join publication.publication publication on plt.publication_id = publication.id
+                  where publication.design_id is null
+                    and plt.id = :track_id
+                    and publication.publication_time > :start_time
+                    and publication.publication_time <= :end_time
+                    and exists(
+                      select 1
+                        from publication.location_track_km pltkm
+                        where pltkm.location_track_id = plt.id and pltkm.publication_id = publication.id
+                    )
+                  order by plt.id, publication.publication_time desc
+                  limit 1
+            """
+                .trimIndent()
 
         val params =
             mapOf(
@@ -2656,6 +2659,82 @@ class PublicationDao(
             .firstOrNull()
     }
 
+    data class TrackBoundaryChangeSegment(
+        val sourceTrackVersion: LayoutRowVersion<LocationTrack>,
+        val sourceEdgeIndices: IntRange,
+        val targetTrackVersion: LayoutRowVersion<LocationTrack>,
+        val operation: SplitTargetOperation,
+    )
+
+    data class TrackBoundaryChange(
+        val publicationId: IntId<Publication>,
+        val segments: List<TrackBoundaryChangeSegment>,
+    ) {
+        val allTrackIds = segments.flatMap { listOf(it.sourceTrackVersion.id, it.targetTrackVersion.id) }.toSet()
+    }
+
+    fun fetchPublishedSplitsBetween(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): List<TrackBoundaryChange> {
+        val sql =
+            """
+            select
+              publication.id publication_id,
+              split.source_location_track_id source_track_id,
+              split.layout_context_id source_track_layout_context_id,
+              split.source_location_track_version source_track_version,
+              target_track.id target_track_id,
+              target_track.layout_context_id target_track_layout_context_id,
+              target_track.version target_track_version,
+              target.operation,
+              target.source_start_edge_index,
+              target.source_end_edge_index
+            from publication.publication
+              inner join publication.split on split.publication_id = publication.id
+              inner join publication.split_target_location_track target on split.id = target.split_id
+              inner join publication.location_track target_track on publication.id = target_track.publication_id and target.location_track_id = target_track.id
+            where publication.design_id is null
+                and publication.publication_time > :start_time
+                and publication.publication_time <= :end_time
+            order by publication.id, split.source_location_track_id, target.source_start_edge_index
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "start_time" to Timestamp.from(exclusiveStartMoment),
+                "end_time" to Timestamp.from(inclusiveEndMoment),
+            )
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                val sourceTrackVersion =
+                    rs.getLayoutRowVersion<LocationTrack>(
+                        "source_track_id",
+                        "source_track_layout_context_id",
+                        "source_track_version",
+                    )
+                val targetTrackVersion =
+                    rs.getLayoutRowVersion<LocationTrack>(
+                        "target_track_id",
+                        "target_track_layout_context_id",
+                        "target_track_version",
+                    )
+                val edgeIndexRange = rs.getInt("source_start_edge_index")..rs.getInt("source_end_edge_index")
+                val changeTarget =
+                    TrackBoundaryChangeSegment(
+                        sourceTrackVersion = sourceTrackVersion,
+                        sourceEdgeIndices = edgeIndexRange,
+                        targetTrackVersion = targetTrackVersion,
+                        operation = rs.getEnum("operation"),
+                    )
+                val publicationId = rs.getIntId<Publication>("publication_id")
+                publicationId to changeTarget
+            }
+            .groupBy({ it.first }, { it.second })
+            .map { (publicationId, targets) -> TrackBoundaryChange(publicationId, targets) }
+            .also { logger.daoAccess(FETCH, TrackBoundaryChange::class, it.map { it.publicationId }) }
+    }
+
     fun fetchPublishedTrackNumberGeomsBetween(
         trackNumberId: IntId<LayoutTrackNumber>,
         exclusiveStartMoment: Instant,
@@ -2663,29 +2742,30 @@ class PublicationDao(
     ): Change<LayoutRowVersion<LayoutTrackNumber>>? {
         val sql =
             """
-            select
-              ptn.id,
-              ptn.layout_context_id,
-              ptn.version,
-              (
-                select version
-                  from layout.track_number_at(:start_time) tn
-                  where tn.id = ptn.id and tn.layout_context_id = ptn.layout_context_id
-              ) as old_version
-              from publication.track_number ptn
-                inner join publication.publication publication on ptn.publication_id = publication.id
-              where publication.design_id is null
-                and ptn.id = :track_number_id
-                and publication.publication_time > :start_time
-                and publication.publication_time <= :end_time
-                and exists(
-                  select 1
-                    from publication.track_number_km ptnkm
-                    where ptnkm.track_number_id = ptn.id and ptnkm.publication_id = publication.id
-                )
-              order by ptn.id, publication.publication_time desc
-              limit 1
-        """
+                select
+                  ptn.id,
+                  ptn.layout_context_id,
+                  ptn.version,
+                  (
+                    select version
+                      from layout.track_number_at(:start_time) tn
+                      where tn.id = ptn.id and tn.layout_context_id = ptn.layout_context_id
+                  ) as old_version
+                  from publication.track_number ptn
+                    inner join publication.publication publication on ptn.publication_id = publication.id
+                  where publication.design_id is null
+                    and ptn.id = :track_number_id
+                    and publication.publication_time > :start_time
+                    and publication.publication_time <= :end_time
+                    and exists(
+                      select 1
+                        from publication.track_number_km ptnkm
+                        where ptnkm.track_number_id = ptn.id and ptnkm.publication_id = publication.id
+                    )
+                  order by ptn.id, publication.publication_time desc
+                  limit 1
+            """
+                .trimIndent()
 
         val params =
             mapOf(
@@ -2723,18 +2803,19 @@ class PublicationDao(
     ): List<LayoutRowVersion<LayoutTrackNumber>> {
         val sql =
             """
-            select distinct on (ptn.id)
-              ptn.id,
-              ptn.layout_context_id,
-              ptn.version
-            from publication.track_number ptn
-              join publication.publication publication on ptn.publication_id = publication.id
-            where publication.design_id is null
-              and (:tn_id::int is null or ptn.id = :tn_id)
-              and publication.publication_time > :start_time
-              and publication.publication_time <= :end_time
-            order by ptn.id, publication.publication_time desc
-        """
+                select distinct on (ptn.id)
+                  ptn.id,
+                  ptn.layout_context_id,
+                  ptn.version
+                from publication.track_number ptn
+                  join publication.publication publication on ptn.publication_id = publication.id
+                where publication.design_id is null
+                  and (:tn_id::int is null or ptn.id = :tn_id)
+                  and publication.publication_time > :start_time
+                  and publication.publication_time <= :end_time
+                order by ptn.id, publication.publication_time desc
+            """
+                .trimIndent()
 
         val params =
             mapOf(
@@ -2765,18 +2846,19 @@ class PublicationDao(
     ): List<LayoutRowVersion<LayoutSwitch>> {
         val sql =
             """
-            select distinct on (ps.id)
-              ps.id,
-              ps.layout_context_id,
-              ps.version
-            from publication.switch ps
-              join publication.publication publication on ps.publication_id = publication.id
-            where publication.design_id is null
-              and (:switch_id::int is null or ps.id = :switch_id)
-              and publication.publication_time > :start_time
-              and publication.publication_time <= :end_time
-            order by ps.id, publication.publication_time desc
-        """
+                select distinct on (ps.id)
+                  ps.id,
+                  ps.layout_context_id,
+                  ps.version
+                from publication.switch ps
+                  join publication.publication publication on ps.publication_id = publication.id
+                where publication.design_id is null
+                  and (:switch_id::int is null or ps.id = :switch_id)
+                  and publication.publication_time > :start_time
+                  and publication.publication_time <= :end_time
+                order by ps.id, publication.publication_time desc
+            """
+                .trimIndent()
 
         val params =
             mapOf(

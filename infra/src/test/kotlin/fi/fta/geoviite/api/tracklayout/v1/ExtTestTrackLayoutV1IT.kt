@@ -72,6 +72,7 @@ constructor(
             api.locationTrackCollection::getModifiedWithExpectedError,
             api.trackNumberCollection::getModifiedWithExpectedError,
             api.switchCollection::getModifiedWithExpectedError,
+            api.trackBoundaryCollection::getModifiedWithExpectedError,
         )
 
     private val geometryErrorTests =

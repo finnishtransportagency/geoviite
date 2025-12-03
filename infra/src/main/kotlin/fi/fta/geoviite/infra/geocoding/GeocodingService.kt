@@ -88,6 +88,20 @@ class GeocodingService(
         }
     }
 
+    fun getLazyGeocodingContextsAtMultiMoment(
+        branch: LayoutBranch
+    ): (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>? {
+        val contexts: MutableMap<Pair<IntId<LayoutTrackNumber>, Instant>, Optional<GeocodingContext<ReferenceLineM>>> =
+            mutableMapOf()
+        return { trackNumberId, moment ->
+            contexts
+                .computeIfAbsent(trackNumberId to moment) {
+                    Optional.ofNullable(getGeocodingContextAtMoment(branch, trackNumberId, moment))
+                }
+                .getOrNull()
+        }
+    }
+
     fun getLazyGeocodingContextsAtMoment(
         branch: LayoutBranch,
         moment: Instant,

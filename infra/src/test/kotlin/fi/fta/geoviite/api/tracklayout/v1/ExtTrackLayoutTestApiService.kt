@@ -74,6 +74,14 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             modifiedAssetCollectionClazz = ExtTestModifiedLocationTrackCollectionResponseV1::class,
         )
 
+    val trackBoundaryCollection =
+        AssetCollectionApi(
+            assetCollectionUrl = { "/geoviite/paikannuspohja/v1/sijaintiraiteet/rajat" },
+            assetCollectionClazz = Nothing::class,
+            modifiedAssetCollectionUrl = { "/geoviite/paikannuspohja/v1/sijaintiraiteet/rajat/muutokset" },
+            modifiedAssetCollectionClazz = ExtTestTrackBoundaryChangeResponseV1::class,
+        )
+
     val trackNumberCollection =
         AssetCollectionApi(
             assetCollectionUrl = { "/geoviite/paikannuspohja/v1/ratanumerot" },
