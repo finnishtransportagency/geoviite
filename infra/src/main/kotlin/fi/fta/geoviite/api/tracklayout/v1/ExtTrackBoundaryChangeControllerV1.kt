@@ -31,7 +31,7 @@ class ExtTrackBoundaryChangeControllerV1
 constructor(private val extTrackBoundaryChangeService: ExtTrackBoundaryChangeServiceV1) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/sijaintiraiteet/muutokset/rajat")
+    @GetMapping("/sijaintiraiteet/rajat/muutokset")
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
     @Operation(summary = "Sijaintiraiteiden rajojen hallinnolliset muutokset")
     @ApiResponses(
