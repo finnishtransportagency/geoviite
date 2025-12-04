@@ -51,8 +51,8 @@ enum class LocationTrackType {
 
 enum class LocationTrackNamingScheme {
     FREE_TEXT,
-    WITHIN_OPERATING_POINT,
-    BETWEEN_OPERATING_POINTS,
+    WITHIN_OPERATIONAL_POINT,
+    BETWEEN_OPERATIONAL_POINTS,
     TRACK_NUMBER_TRACK,
     CHORD,
 }
@@ -130,11 +130,12 @@ sealed class LocationTrackNameStructure {
                     LocationTrackNameFreeText(
                         requireNotNull(freeText) { "Naming scheme of type $scheme must have a free text part" }
                     )
-                LocationTrackNamingScheme.WITHIN_OPERATING_POINT ->
+                LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT ->
                     LocationTrackNameWithinOperatingPoint(
                         requireNotNull(freeText) { "Naming scheme of type $scheme must have a free text part" }
                     )
-                LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS -> LocationTrackNameBetweenOperatingPoints(specifier)
+                LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS ->
+                    LocationTrackNameBetweenOperatingPoints(specifier)
                 LocationTrackNamingScheme.TRACK_NUMBER_TRACK -> LocationTrackNameByTrackNumber(freeText, specifier)
                 LocationTrackNamingScheme.CHORD -> LocationTrackNameChord
             }
@@ -158,7 +159,7 @@ data class LocationTrackNameFreeText(override val freeText: LocationTrackNameFre
 
 data class LocationTrackNameWithinOperatingPoint(override val freeText: LocationTrackNameFreeTextPart) :
     LocationTrackNameStructure() {
-    override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.WITHIN_OPERATING_POINT
+    override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT
 }
 
 data class LocationTrackNameByTrackNumber(
@@ -180,7 +181,7 @@ data class LocationTrackNameByTrackNumber(
 
 data class LocationTrackNameBetweenOperatingPoints(override val specifier: LocationTrackNameSpecifier?) :
     LocationTrackNameStructure() {
-    override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS
+    override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS
 
     fun format(startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName {
         val nameString =
