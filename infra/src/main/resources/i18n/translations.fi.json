@@ -806,6 +806,7 @@
             "track-naming-scheme": "Tunnuksen muoto",
             "track-name-free-text": "Tunnus",
             "track-name-specifier": "Sijaintiraidetarkenne",
+            "track-name-specifier-placeholder": "Ei tarkennetta",
             "track-full-name": "Valmis tunnus",
             "state": "Tila",
             "description": "Kuvaus",

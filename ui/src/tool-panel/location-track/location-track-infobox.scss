@@ -173,6 +173,10 @@ $-color-warning: vayla-design.$color-lemon-dark;
     padding-bottom: 4px;
 }
 
+.location-track-infobox__split-full-name--has-errors {
+    color: vayla-design.$color-red-dark;
+}
+
 .location-track-infobox__split-operation {
     @include vayla-design.typography-caption;
     color: vayla-design.$color-black-light;
