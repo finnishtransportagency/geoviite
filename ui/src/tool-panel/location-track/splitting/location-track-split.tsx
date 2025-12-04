@@ -276,11 +276,9 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
     );
 
     const showFreeTextInput =
-        // Math.random() * 2 < 3 ||
         split.namingScheme === LocationTrackNamingScheme.FREE_TEXT ||
         split.namingScheme === LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT;
     const showNameSpecifierInput =
-        // Math.random() * 2 < 3 ||
         split.namingScheme === LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS;
     const showFullName = !showFreeTextInput;
 
