@@ -43,7 +43,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -89,7 +88,6 @@ data class SwitchJointChange(
     val locationTrackExternalId: Oid<LocationTrack>?,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val trackNumberExternalId: Oid<LayoutTrackNumber>?,
-    val locationTrackDeleted: Boolean,
 )
 
 data class SwitchChange(val switchId: IntId<LayoutSwitch>, val changedJoints: List<SwitchJointChange>)
@@ -415,7 +413,6 @@ class CalculatedChangesService(
 
     private fun processSwitchJointChangesByLocationTrackKmChange(
         switchJointChanges: List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>>,
-        locationTrackId: IntId<LocationTrack>,
         locationTrack: LocationTrack,
         filterKmNumbers: Collection<KmNumber>,
         extIds: AllOids,
@@ -430,11 +427,10 @@ class CalculatedChangesService(
                             isRemoved = false,
                             address = change.address,
                             point = change.point.toPoint(),
-                            locationTrackId = locationTrackId,
-                            locationTrackExternalId = extIds.locationTracks[locationTrackId],
+                            locationTrackId = locationTrack.id as IntId,
+                            locationTrackExternalId = extIds.locationTracks[locationTrack.id],
                             trackNumberId = locationTrack.trackNumberId,
                             trackNumberExternalId = extIds.trackNumbers[locationTrack.trackNumberId],
-                            locationTrackDeleted = locationTrack.state == LocationTrackState.DELETED,
                         )
                     }
             if (joints.isEmpty()) null else SwitchChange(switchId = switch, changedJoints = joints)
@@ -444,15 +440,21 @@ class CalculatedChangesService(
         locationTrack: LocationTrack,
         fetchSwitchById: (id: IntId<LayoutSwitch>) -> LayoutSwitch?,
         getGeocodingContext: (id: IntId<LayoutTrackNumber>) -> GeocodingContext<ReferenceLineM>?,
-    ): List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>> {
-        val geometry = alignmentDao.fetch(locationTrack.getVersionOrThrow())
-        val trackNumberId = locationTrack.trackNumberId
-        val geocodingContext = getGeocodingContext(trackNumberId)
-
-        return geocodingContext?.let { context ->
-            getSwitchJointChanges(geometry = geometry, geocodingContext = context, fetchSwitch = fetchSwitchById)
-        } ?: emptyList()
-    }
+    ): List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>> =
+        locationTrack
+            .takeIf { it.exists }
+            ?.let { track ->
+                val geometry = alignmentDao.fetch(track.getVersionOrThrow())
+                val trackNumberId = track.trackNumberId
+                val geocodingContext = getGeocodingContext(trackNumberId)
+                geocodingContext?.let { context ->
+                    getSwitchJointChanges(
+                        geometry = geometry,
+                        geocodingContext = context,
+                        fetchSwitch = fetchSwitchById,
+                    )
+                }
+            } ?: emptyList()
 
     fun getSwitchChangesFromChangedLocationTrackKms(
         fetchLocationTrackById: (id: IntId<LocationTrack>) -> LocationTrack?,
@@ -466,13 +468,7 @@ class CalculatedChangesService(
             fetchLocationTrackById(locationTrackId)
                 ?: throw NoSuchEntityException(LocationTrack::class, locationTrackId)
         val allChanges = getAllSwitchJointChanges(locationTrack, fetchSwitchById, getGeocodingContext)
-        return processSwitchJointChangesByLocationTrackKmChange(
-            allChanges,
-            locationTrackId,
-            locationTrack,
-            filterKmNumbers,
-            extIds,
-        )
+        return processSwitchJointChangesByLocationTrackKmChange(allChanges, locationTrack, filterKmNumbers, extIds)
     }
 
     fun getSwitchChangesFromChangedLocationTrackKmsByMoment(
@@ -597,10 +593,16 @@ class CalculatedChangesService(
             newLocationTrack.let { track -> changeContext.trackNumbers.getAfterIfExists(track.trackNumberId) }
 
         val oldGeocodingContext =
-            oldLocationTrack?.trackNumberId?.let { tnId -> changeContext.getGeocodingContextBefore(tnId) }
+            oldLocationTrack
+                ?.takeIf { it.exists }
+                ?.trackNumberId
+                ?.let { tnId -> changeContext.getGeocodingContextBefore(tnId) }
 
         val newGeocodingContext =
-            newLocationTrack.trackNumberId.let { tnId -> changeContext.getGeocodingContextAfter(tnId) }
+            newLocationTrack
+                .takeIf { it.exists }
+                ?.trackNumberId
+                ?.let { tnId -> changeContext.getGeocodingContextAfter(tnId) }
 
         val oldSwitches =
             oldGeometry?.let { geometry ->
@@ -641,7 +643,6 @@ class CalculatedChangesService(
                                         locationTrackExternalId = extIds.locationTracks[oldLocationTrack.id],
                                         trackNumberId = oldLocationTrack.trackNumberId,
                                         trackNumberExternalId = extIds.trackNumbers[oldLocationTrack.trackNumberId],
-                                        locationTrackDeleted = oldLocationTrack.state == LocationTrackState.DELETED,
                                     )
                                 },
                         )
@@ -666,7 +667,6 @@ class CalculatedChangesService(
                                     locationTrackExternalId = extIds.locationTracks[newLocationTrack.id],
                                     trackNumberId = newLocationTrack.trackNumberId,
                                     trackNumberExternalId = newTrackNumber?.id?.let { id -> extIds.trackNumbers[id] },
-                                    locationTrackDeleted = newLocationTrack.state == LocationTrackState.DELETED,
                                 )
                             },
                     )
@@ -857,7 +857,7 @@ private fun calculateOverlappingLocationTracks(
         .filter { (_, geometry) -> geometryContainsKilometer(geocodingContext, geometry, kilometers) }
         .map { (locationTrack, _) -> locationTrack.id as IntId }
 
-private data class SwitchJointDataHolder(val joint: LayoutSwitchJoint, val address: TrackMeter, val point: Point)
+data class SwitchJointDataHolder(val joint: LayoutSwitchJoint, val address: TrackMeter, val point: Point)
 
 private fun findSwitchJointDifferences(
     list1: List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>>,

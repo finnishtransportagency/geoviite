@@ -961,7 +961,15 @@ data class PublishedVersions(
     val switches: List<Change<LayoutRowVersion<LayoutSwitch>>>,
     val kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>>,
     val operationalPoints: List<Change<LayoutRowVersion<OperationalPoint>>>,
-)
+) {
+    init {
+        trackNumbers.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
+        referenceLines.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
+        locationTracks.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
+        switches.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
+        operationalPoints.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
+    }
+}
 
 data class PreparedPublicationRequest(
     val branch: LayoutBranch,
@@ -978,6 +986,11 @@ data class PublicationResultVersions<T : LayoutAsset<T>>(
     val completed: Pair<DesignBranch, LayoutRowVersion<T>>?,
 ) {
     val versionChange: Change<LayoutRowVersion<T>> = Change(base, published)
+
+    init {
+        base?.let { require(it.id == published.id) }
+        completed?.second?.let { require(it.id == published.id) }
+    }
 }
 
 data class PublicationComparison(val from: Publication, val to: Publication) {

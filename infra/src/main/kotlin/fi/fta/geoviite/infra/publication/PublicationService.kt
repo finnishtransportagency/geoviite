@@ -389,6 +389,11 @@ constructor(
         val switchChangesBySameKmLocationTrackChange =
             (changes.directChanges.locationTrackChanges + changes.indirectChanges.locationTrackChanges)
                 .flatMap { locationTrackChange ->
+                    // TODO: GVT-3404 GVT-3206 Why is this done?
+                    //  This just fetches all switches in changed track sections, it doesn't actually compare
+                    //  anything. They're not actual changes of the switch, not even in a "calculated" sense.
+                    //  note: In ratko integration, the same is done also. There, it's a hack to work around
+                    //  differing base states in Ratko vs Geoviite... but why would that apply here?
                     calculatedChangesService.getChangedSwitchesFromChangedLocationTrackKms(
                         versions,
                         locationTrackChange,
