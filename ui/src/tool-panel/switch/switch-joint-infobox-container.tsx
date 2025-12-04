@@ -28,6 +28,7 @@ export const SwitchJointInfoboxContainer: React.FC<SwitchJointInfoboxContainerPr
             switchAlignments={switchAlignments}
             jointConnections={jointConnections}
             topologicalJointConnections={topologicalJointConnections}
+            switchesToDetach={suggestedSwitch.detachSwitches}
             layoutContext={layoutContext}
         />
     ) : (

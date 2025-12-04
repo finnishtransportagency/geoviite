@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { JointNumber, LayoutContext, SwitchAlignment } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
-import { LayoutSwitchJointConnection, LocationTrackId } from 'track-layout/track-layout-model';
+import {
+    LayoutSwitchId,
+    LayoutSwitchJointConnection,
+    LocationTrackId,
+} from 'track-layout/track-layout-model';
 import {
     combineLocationTrackIds,
     getLocationTracksEndingAtJoints,
@@ -15,11 +19,14 @@ import { LocationTrackBadge } from 'geoviite-design-lib/alignment/location-track
 import styles from './switch-infobox.scss';
 import { TopologicalJointConnection } from 'linking/linking-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
+import { useSwitches } from 'track-layout/track-layout-react-utils';
+import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 
 type SwitchJointInfobox = {
     switchAlignments: SwitchAlignment[];
     jointConnections: LayoutSwitchJointConnection[];
     topologicalJointConnections?: TopologicalJointConnection[];
+    switchesToDetach?: LayoutSwitchId[];
     layoutContext: LayoutContext;
     onSelectLocationTrackBadge?: (locationTrackId: LocationTrackId) => void;
 };
@@ -28,6 +35,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
     switchAlignments,
     jointConnections,
     topologicalJointConnections,
+    switchesToDetach,
     layoutContext,
     onSelectLocationTrackBadge,
 }) => {
@@ -97,6 +105,8 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
         );
     }
 
+    const switchItemsToDetach = useSwitches(switchesToDetach, layoutContext);
+
     return (
         <React.Fragment>
             <dl className={styles['switch-joint-infobox__joints-container']}>
@@ -138,6 +148,15 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                     </React.Fragment>
                 )}
             </dl>
+            {switchItemsToDetach && switchItemsToDetach.length > 0 && (
+                <MessageBox>
+                    <dt className={styles['switch-joint-infobox__joint-title']}>
+                        {t('tool-panel.switch.layout.switches-to-detach-title', {
+                            switchName: switchItemsToDetach.map((s) => s.name).join(', '),
+                        })}
+                    </dt>
+                </MessageBox>
+            )}
         </React.Fragment>
     );
 };

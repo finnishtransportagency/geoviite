@@ -320,6 +320,7 @@ export type SwitchLinkingJoint = {
 export type SuggestedSwitch = {
     joints: LayoutSwitchJoint[];
     trackLinks: Record<LocationTrackId, SwitchLinkingTrackLinks>;
+    detachSwitches: LayoutSwitchId[];
 };
 
 export type GeometrySwitchSuggestionResult =

@@ -18,19 +18,32 @@ import kotlin.math.absoluteValue
 
 fun matchFittedSwitchToTracks(
     fittedSwitch: FittedSwitch,
-    clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+    tracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
     layoutSwitchId: IntId<LayoutSwitch>?,
-): SuggestedSwitch {
-    require(layoutSwitchId == null || clearedTracks.values.none { it.second.containsSwitch(layoutSwitchId) }) {
-        "Must clear switch from tracks before calling matchFittedSwitchToTracks on it"
+): Pair<SuggestedSwitch, Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>> {
+    val initiallyClearedTracks = if (layoutSwitchId == null) tracks else clearSwitchFromTracks(tracks, layoutSwitchId)
+    val trackLinks = matchToJointListsOnEdges(fittedSwitch, initiallyClearedTracks)
+    val enclosingSwitches = findEnclosingSwitches(trackLinks, initiallyClearedTracks)
+    return if (enclosingSwitches.isEmpty()) {
+        suggest(fittedSwitch, initiallyClearedTracks, trackLinks, enclosingSwitches) to initiallyClearedTracks
+    } else {
+        val fullyClearedTracks = enclosingSwitches.fold(initiallyClearedTracks, ::clearSwitchFromTracks)
+        suggest(
+            fittedSwitch,
+            fullyClearedTracks,
+            matchToJointListsOnEdges(fittedSwitch, fullyClearedTracks),
+            enclosingSwitches,
+        ) to fullyClearedTracks
     }
-    val jointsOnEdges = mapFittedSwitchToEdges(fittedSwitch, clearedTracks)
-    val adjustedJointsOnEdges = completeIncompleteJointSequences(fittedSwitch, jointsOnEdges, clearedTracks)
-    val bestLinks = pickBestLinkingByTrack(adjustedJointsOnEdges, jointsOnEdges)
+}
 
-    val linkedTracks = suggestDelinking(clearedTracks) + suggestLinking(bestLinks, clearedTracks)
-
-    return SuggestedSwitch(
+private fun suggest(
+    fittedSwitch: FittedSwitch,
+    clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+    trackLinks: Map<EdgeId, List<JointOnEdge>>,
+    detachedSwitches: Set<IntId<LayoutSwitch>>,
+) =
+    SuggestedSwitch(
         fittedSwitch.joints.map {
             LayoutSwitchJoint(
                 it.number,
@@ -39,10 +52,45 @@ fun matchFittedSwitchToTracks(
                 it.locationAccuracy,
             )
         },
-        linkedTracks,
+        suggestDelinking(clearedTracks) + suggestLinking(trackLinks, clearedTracks),
         topologicallyLinkedTracks = setOf(),
+        detachSwitches = detachedSwitches,
     )
+
+private fun matchToJointListsOnEdges(
+    fittedSwitch: FittedSwitch,
+    clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+): Map<EdgeId, List<JointOnEdge>> {
+    val jointsOnEdges = mapFittedSwitchToEdges(fittedSwitch, clearedTracks)
+    val adjustedJointsOnEdges = completeIncompleteJointSequences(fittedSwitch, jointsOnEdges, clearedTracks)
+    return pickBestLinkingByTrack(adjustedJointsOnEdges, jointsOnEdges)
 }
+
+private fun findEnclosingSwitches(
+    jointsOnEdges: Map<EdgeId, List<JointOnEdge>>,
+    clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
+): Set<IntId<LayoutSwitch>> =
+    jointsOnEdges.keys
+        .flatMap { edgeId ->
+            val edges = clearedTracks.getValue(edgeId.locationTrackId).second.edges
+            val switchesOnTrackBefore =
+                edges
+                    .subList(0, edgeId.edgeIndex + 1)
+                    .flatMap { listOf(it.startNode.switchIn?.id, it.endNode.switchIn?.id) }
+                    .dropLast(1)
+                    .filterNotNull()
+                    .toSet()
+            val switchesOnTrackAfter =
+                edges
+                    .subList(edgeId.edgeIndex, edges.size)
+                    .flatMap { listOf(it.startNode.switchIn?.id, it.endNode.switchIn?.id) }
+                    .drop(1)
+                    .filterNotNull()
+                    .toSet()
+
+            switchesOnTrackBefore.intersect(switchesOnTrackAfter)
+        }
+        .toSet()
 
 private fun pickBestLinkingByTrack(
     linking: Map<EdgeId, List<List<JointOnEdge>>>,
