@@ -750,7 +750,7 @@ constructor(
                     )
                 )
                 .id as IntId
-        
+
         val mainLineLocationTrack =
             locationTrackDao.save(
                 locationTrack(trackNumberId, draft = false),
@@ -1053,7 +1053,7 @@ constructor(
             ) to g
         }
         getDraftNameAndStructure(trackId).let { (name, structure) ->
-            assertEquals(LocationTrackNamingScheme.WITHIN_OPERATING_POINT, structure.scheme)
+            assertEquals(LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT, structure.scheme)
             assertEquals(AlignmentName("within operating point"), name)
         }
 
@@ -1105,7 +1105,7 @@ constructor(
             ) to g
         }
         getDraftNameAndStructure(trackId).let { (name, structure) ->
-            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
+            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
             assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V002"), name)
         }
@@ -1126,7 +1126,7 @@ constructor(
                 )
         }
         getDraftNameAndStructure(trackId).let { (name, structure) ->
-            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
+            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
             assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V003"), name)
         }
@@ -1141,7 +1141,7 @@ constructor(
             mainDraftContext.fetch(switch1Id)!!.copy(name = SwitchName("ABC V0999")),
         )
         getDraftNameAndStructure(trackId).let { (name, structure) ->
-            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
+            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
             assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V999-ABC V003"), name)
         }
@@ -1152,7 +1152,7 @@ constructor(
         // Make sure that switch draft revert also reverts the track name
         switchService.deleteDraft(LayoutBranch.main, switch1Id)
         getDraftNameAndStructure(trackId).let { (name, structure) ->
-            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS, structure.scheme)
+            assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
             assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V003"), name)
         }

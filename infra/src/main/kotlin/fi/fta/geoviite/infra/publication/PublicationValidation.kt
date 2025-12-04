@@ -283,7 +283,7 @@ fun validateSwitchOidDuplication(switch: LayoutSwitch, oidDuplicate: LayoutSwitc
 fun validateNameMandatedSwitchLinks(track: LocationTrack): List<LayoutValidationIssue> {
     val endSwitchesRequired =
         track.nameStructure.scheme == LocationTrackNamingScheme.CHORD ||
-            track.nameStructure.scheme == LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS
+            track.nameStructure.scheme == LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS
     val bothEndSwitchesExist = track.startSwitchId != null && track.endSwitchId != null
 
     return listOfNotNull(
@@ -500,7 +500,13 @@ fun validateSwitchTopologicalConnectivity(
     val existingTracks = locationTracksAndGeometries.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
+            validateSwitchAlignmentTopology(
+                switch.id as IntId,
+                structure,
+                existingTracks,
+                switch.name,
+                validatingTrack,
+            ),
         )
         .flatten()
 }
@@ -991,7 +997,8 @@ fun validateGeocodingContext(
                     "$VALIDATION_GEOCODING.km-posts-far-from-line" to
                         localizationParams(
                             "trackNumber" to context.trackNumber,
-                            "kmNumbers" to kmsWithFarawayPoints.joinToString(",") { point -> point.kmNumber.toString() },
+                            "kmNumbers" to
+                                kmsWithFarawayPoints.joinToString(",") { point -> point.kmNumber.toString() },
                         )
                 }
             }
