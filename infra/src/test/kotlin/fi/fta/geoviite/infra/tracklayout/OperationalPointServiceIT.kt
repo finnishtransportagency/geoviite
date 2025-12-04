@@ -40,6 +40,7 @@ constructor(
             "track_number_external_id",
             "track_number",
         )
+        testDBService.deleteFromTables("integrations", "ratko_operational_point", "ratko_operational_point_version")
     }
 
     @Test
@@ -236,6 +237,62 @@ constructor(
             listOf<OperationalPoint>(),
             operationalPointService.list(mainDraftContext.context, polygonBbox = BoundingBox(15.0..20.0, 15.0..20.0)),
         )
+    }
+
+    @Test
+    fun `deleting a draft-only external operational point draft instead resets the point`() {
+        val externalPointId =
+            ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
+
+        val point =
+            testDBService
+                .save(
+                    operationalPoint(
+                        contextData = createMainContext(externalPointId, true),
+                        origin = OperationalPointOrigin.RATKO,
+                        ratkoVersion = 1,
+                    )
+                )
+                .id
+        operationalPointService.deleteDraft(LayoutBranch.main, point)
+
+        assertEquals(null, mainDraftContext.fetch(point)?.rinfType)
+        assertEquals(1, mainDraftContext.fetch(point)?.ratkoVersion)
+    }
+
+    @Test
+    fun `deleting a drafted update to an external operational point draft instead resets the point`() {
+        val externalPointId =
+            ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
+
+        val point =
+            testDBService
+                .save(
+                    operationalPoint(
+                        contextData = createMainContext(externalPointId, false),
+                        origin = OperationalPointOrigin.RATKO,
+                        ratkoVersion = 1,
+                    )
+                )
+                .id
+        ratkoTestService.updateRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "changed external"))
+        operationalPointService.update(
+            LayoutBranch.main,
+            point,
+            ExternalOperationalPointSaveRequest(OperationalPointRinfType.SMALL_STATION),
+        )
+
+        // initially we have a pending update of the operational point's Ratko version to publish; as well as the
+        // RINF type assignment above
+        assertEquals(1, mainOfficialContext.fetch(point)?.ratkoVersion)
+        assertEquals(2, mainDraftContext.fetch(point)?.ratkoVersion)
+
+        operationalPointService.deleteDraft(LayoutBranch.main, point)
+
+        // after deleteDraft, the RINF type assignment has been cleared, but the Ratko version update is still pending
+        assertEquals(null, mainDraftContext.fetch(point)?.rinfType)
+        assertEquals(1, mainOfficialContext.fetch(point)?.ratkoVersion)
+        assertEquals(2, mainDraftContext.fetch(point)?.ratkoVersion)
     }
 
     private fun internalPointSaveRequest(
