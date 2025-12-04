@@ -62,6 +62,7 @@ import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchAndMatchingAlignments
+import fi.fta.geoviite.infra.tracklayout.switchLinkRR
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
@@ -711,6 +712,45 @@ constructor(
                 .map { it.switchId }
                 .distinct(),
         )
+    }
+
+    @Test
+    fun `linking switch over another suggests detaching the original switch, even with only split alignments`() {
+        val trackNumber = mainDraftContext.save(trackNumber()).id
+        val switchStructureId =
+            switchLibraryService.getSwitchStructures().find { it.type.toString() == "RR54-4x1:9" }!!.id
+        val existingSwitch = mainDraftContext.save(switch(switchStructureId)).id
+        val baseJointVec = Point(5.075, 1.142)
+        val tracks =
+            listOf(-1.0 to -1.0, 1.0 to 1.0, -1.0 to 1.0, 1.0 to -1.0).mapIndexed { jointNumber, signs ->
+                val (xSign, ySign) = signs
+                val jointVec = Point(baseJointVec.x * xSign, baseJointVec.y * ySign)
+                mainDraftContext.save(
+                    locationTrack(trackNumber, name = "track to $jointNumber"),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), jointVec)),
+                            startInnerSwitch = switchLinkRR(existingSwitch, 5),
+                            endInnerSwitch = switchLinkRR(existingSwitch, jointNumber),
+                        ),
+                        edge(
+                            listOf(segment(jointVec, jointVec * 2.0)),
+                            startOuterSwitch = switchLinkRR(existingSwitch, jointNumber),
+                        ),
+                    ),
+                )
+            }
+
+        val newSwitch = mainDraftContext.save(switch(switchStructureId)).id
+        val suggestion = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(0.0, 0.0), newSwitch)!!
+        assertEquals(setOf(existingSwitch), suggestion.detachSwitches)
+        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestion, newSwitch, null)
+        tracks.forEach { track ->
+            assertEquals(
+                listOf(newSwitch),
+                mainDraftContext.fetchWithGeometry(track.id)!!.second.trackSwitchLinks.map { it.switchId }.distinct(),
+            )
+        }
     }
 
     @Test
