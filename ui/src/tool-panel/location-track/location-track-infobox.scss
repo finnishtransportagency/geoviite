@@ -164,6 +164,15 @@ $-color-warning: vayla-design.$color-lemon-dark;
     }
 }
 
+.location-track-infobox__split-full-name {
+    @include vayla-design.typography-body;
+    color: vayla-design.$color-black-default;
+    display: inline-flex;
+    align-items: center;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
 .location-track-infobox__split-operation {
     @include vayla-design.typography-caption;
     color: vayla-design.$color-black-light;
@@ -240,6 +249,12 @@ $-color-warning: vayla-design.$color-lemon-dark;
 .location-track-infobox__split-item-field-label {
     .infobox__field-label {
         margin-top: 10px;
+    }
+}
+
+.location-track-infobox__split-item-field-label--low {
+    .infobox__field-label {
+        margin-top: 3px;
     }
 }
 

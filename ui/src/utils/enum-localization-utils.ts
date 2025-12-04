@@ -197,6 +197,12 @@ export const locationTrackNamingSchemes: LocalizedEnum<LocationTrackNamingScheme
     ],
 );
 
+export function locationTrackNamingSchemesFiltered(...namingSchemes: LocationTrackNamingScheme[]) {
+    return locationTrackNamingSchemes.filter(({ value: namingScheme }) =>
+        namingSchemes.includes(namingScheme),
+    );
+}
+
 export const locationTrackNameSpecifiers: LocalizedEnum<LocationTrackNameSpecifier>[] = values(
     'LocationTrackNameSpecifier',
     [
