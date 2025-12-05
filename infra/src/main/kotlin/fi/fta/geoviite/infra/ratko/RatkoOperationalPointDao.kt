@@ -20,7 +20,7 @@ fun toRatkoOperatingPoint(rs: ResultSet): RatkoOperationalPoint {
         externalId = rs.getOid("external_id"),
         name = OperationalPointName(rs.getString("name")),
         abbreviation = OperationalPointAbbreviation(rs.getString("abbreviation")),
-        uicCode = rs.getUnsafeStringOrNull("uic_code")?.toString()?.let(::UicCode),
+        uicCode = UicCode(rs.getString("uic_code")),
         type = rs.getEnum("type"),
         location = rs.getPoint("x", "y"),
         trackNumberId = rs.getIntId("track_number_id"),

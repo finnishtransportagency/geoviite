@@ -21,7 +21,7 @@ enum class OperationalPointRaideType {
 abstract class AbstractRatkoOperationalPoint(
     open val name: OperationalPointName,
     open val abbreviation: OperationalPointAbbreviation,
-    open val uicCode: UicCode?,
+    open val uicCode: UicCode,
     open val type: OperationalPointRaideType,
     open val location: Point,
 )
@@ -30,7 +30,7 @@ data class RatkoOperationalPointParse(
     val externalId: Oid<RatkoOperationalPoint>,
     override val name: OperationalPointName,
     override val abbreviation: OperationalPointAbbreviation,
-    override val uicCode: UicCode?,
+    override val uicCode: UicCode,
     override val type: OperationalPointRaideType,
     override val location: Point,
     val trackNumberExternalId: Oid<RatkoRouteNumber>,
@@ -40,7 +40,7 @@ data class RatkoOperationalPoint(
     val externalId: Oid<RatkoOperationalPoint>,
     override val name: OperationalPointName,
     override val abbreviation: OperationalPointAbbreviation,
-    override val uicCode: UicCode?,
+    override val uicCode: UicCode,
     override val type: OperationalPointRaideType,
     override val location: Point,
     val trackNumberId: IntId<LayoutTrackNumber>,
