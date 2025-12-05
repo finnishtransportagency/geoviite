@@ -42,8 +42,8 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao, privat
             branch,
             OperationalPoint(
                 state = request.state,
-                name = request.name,
-                abbreviation = request.abbreviation,
+                name = OperationalPointName(request.name.toString()),
+                abbreviation = request.abbreviation?.toString()?.let(::OperationalPointAbbreviation),
                 uicCode = request.uicCode,
                 rinfType = request.rinfType,
                 raideType = null,
@@ -72,8 +72,8 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao, privat
                 }
                 .copy(
                     state = request.state,
-                    name = request.name,
-                    abbreviation = request.abbreviation,
+                    name = OperationalPointName(request.name.toString()),
+                    abbreviation = request.abbreviation?.toString()?.let(::OperationalPointAbbreviation),
                     uicCode = request.uicCode,
                     rinfType = request.rinfType,
                 ),

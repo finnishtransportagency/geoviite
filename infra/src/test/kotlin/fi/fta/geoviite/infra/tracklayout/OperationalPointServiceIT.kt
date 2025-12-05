@@ -303,8 +303,8 @@ constructor(
         uicCode: String = "10101",
     ) =
         InternalOperationalPointSaveRequest(
-            OperationalPointName(name),
-            OperationalPointAbbreviation(abbreviation),
+            OperationalPointInputName(name),
+            OperationalPointInputAbbreviation(abbreviation),
             rinfType,
             state,
             UicCode(uicCode),

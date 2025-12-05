@@ -18,7 +18,7 @@ import { filterNotEmpty } from 'utils/array-utils';
 export const UIC_CODE_REGEX = /^[0-9]+$/g;
 export const NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 _\-\\!?]+$/g;
 const UIC_CODE_MAX_LENGTH = 20;
-const ABBREVIATION_MAX_LENGTH = 20;
+const ABBREVIATION_MAX_LENGTH = 50;
 const NAME_MAX_LENGTH = 150;
 
 export type InternalOperationalPointSaveRequest = {

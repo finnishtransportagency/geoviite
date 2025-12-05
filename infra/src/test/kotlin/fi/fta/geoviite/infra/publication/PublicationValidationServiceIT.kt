@@ -2254,11 +2254,11 @@ constructor(
 
     @Test
     fun `operational point uic code must exist and be unique`() {
-        val (external123, externalNull) =
+        val (external123, external456) =
             ratkoTestService
                 .setupRatkoOperationalPoints(
                     ratkoOperationalPoint("1.2.3.4.5", name = "ext 123", uicCode = "123"),
-                    ratkoOperationalPoint("1.2.3.4.6", "ext null", uicCode = "", location = Point(55.0, 55.0)),
+                    ratkoOperationalPoint("1.2.3.4.6", "ext null", uicCode = "456", location = Point(55.0, 55.0)),
                 )
                 .let { it[0] to it[1] }
 
@@ -2269,7 +2269,7 @@ constructor(
         )
         mainDraftContext.save(
             mainDraftContext
-                .fetch(externalNull)!!
+                .fetch(external456)!!
                 .copy(polygon = somePolygon.moveBy(Point(50.0, 50.0)), rinfType = someRinfType)
         )
 
@@ -2309,14 +2309,9 @@ constructor(
         )
 
         assertEquals(
-            listOf(
-                LayoutValidationIssue(
-                    LayoutValidationIssueType.ERROR,
-                    "validation.layout.operational-point.uic-code-missing",
-                )
-            ),
+            listOf<LayoutValidationIssue>(),
             publicationValidationService
-                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(externalNull))[0]
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(external456))[0]
                 .errors,
         )
         assertEquals(

@@ -48,7 +48,6 @@ import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.PublishedVersions
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
-import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
@@ -1204,7 +1203,18 @@ fun moveOperationalPointBy(point: OperationalPoint, x: Double, y: Double) =
 fun ratkoOperationalPoint(
     oid: String,
     name: String,
-    trackNumberOid: Oid<RatkoRouteNumber> = Oid("1.1.1.1.1"),
+    abbreviation: String = name,
+    trackNumberOid: String = "1.1.1.1.1",
     location: Point = Point(10.0, 10.0),
-    uicCode: String? = "1234",
-) = RatkoOperationalPointParse(Oid(oid), name, name, uicCode, OperationalPointRaideType.LP, location, trackNumberOid)
+    uicCode: String = "1234",
+    type: OperationalPointRaideType = OperationalPointRaideType.LP,
+) =
+    RatkoOperationalPointParse(
+        Oid(oid),
+        OperationalPointName(name),
+        OperationalPointAbbreviation(abbreviation),
+        UicCode(uicCode),
+        type,
+        location,
+        Oid(trackNumberOid),
+    )

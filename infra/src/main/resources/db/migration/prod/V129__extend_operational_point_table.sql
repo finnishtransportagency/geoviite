@@ -66,7 +66,7 @@ create table layout.operational_point
   design_asset_state              layout.design_asset_state,
   origin_design_id                int,
   name                            varchar(150),
-  abbreviation                    varchar(20),
+  abbreviation                    varchar(50),
   uic_code                        varchar(20),
   type                            layout.operational_point_type,
   location                        postgis.geometry(Point, 3067),
@@ -139,3 +139,5 @@ insert into layout.operational_point_external_id
 
 alter table layout.operational_point
   add constraint operational_point_id_fk foreign key (id) references layout.operational_point_id (id);
+
+alter table integrations.ratko_operational_point alter column name set data type varchar(150);

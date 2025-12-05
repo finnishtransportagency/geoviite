@@ -41,7 +41,6 @@ import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackType
 import fi.fta.geoviite.infra.ratko.model.RatkoMeasurementMethod
 import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
-import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItem
@@ -89,6 +88,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
 import fi.fta.geoviite.infra.tracklayout.OperationalPointService
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
@@ -1247,18 +1247,23 @@ constructor(
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
 
         val kannustamoOperatingPoint =
-            RatkoOperationalPointParse(
-                Oid("1.2.3.4.5"),
-                "Kannustamo",
-                "KST",
-                "123101431",
-                OperationalPointRaideType.LPO,
-                Point(100.0, 100.0),
-                Oid("5.5.5.5.5"),
+            ratkoOperationalPoint(
+                "1.2.3.4.5",
+                name = "Kannustamo",
+                abbreviation = "KST",
+                uicCode = "123101431",
+                type = OperationalPointRaideType.LPO,
+                location = Point(100.0, 100.0),
+                trackNumberOid = "5.5.5.5.5",
             )
         fakeRatko.hasOperationalPoints(
             listOf(
-                ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"), location = Point(10.0, 10.0)),
+                ratkoOperationalPoint(
+                    "1.2.3.4.6",
+                    "Turpeela",
+                    trackNumberOid = "5.5.5.5.5",
+                    location = Point(10.0, 10.0),
+                ),
                 kannustamoOperatingPoint,
             )
         )
@@ -1290,13 +1295,13 @@ constructor(
                 .saveDraft(LayoutBranch.main, trackNumber(testDBService.getUnusedTrackNumber(), draft = true))
                 .id
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
-        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
-        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
-        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
+        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", trackNumberOid = "5.5.5.5.5")
+        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", trackNumberOid = "5.5.5.5.5")
+        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", trackNumberOid = "5.5.5.5.5")
 
         fakeRatko.hasOperationalPoints(listOf(turpeela, kannustamo, liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
-        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = "Turpasauna"), liukuainen))
+        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = OperationalPointName("Turpasauna")), liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
         assertTrue(
             jdbc.queryOne(
@@ -1307,7 +1312,10 @@ constructor(
         )
         val pointsFromDatabase = ratkoOperationalPointDao.listWithVersions()
         assertEquals(2, pointsFromDatabase.size)
-        assertEquals(listOf("Liukuainen", "Turpasauna"), pointsFromDatabase.map { (point) -> point.name }.sorted())
+        assertEquals(
+            listOf("Liukuainen", "Turpasauna"),
+            pointsFromDatabase.map { (point) -> point.name.toString() }.sorted(),
+        )
         assertEquals(
             5,
             jdbc.queryOne("""select count(*) as c from integrations.ratko_operational_point_version""") { rs, _ ->
@@ -1346,9 +1354,9 @@ constructor(
                 .saveDraft(LayoutBranch.main, trackNumber(testDBService.getUnusedTrackNumber(), draft = true))
                 .id
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
-        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
-        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
-        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
+        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", trackNumberOid = "5.5.5.5.5")
+        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", trackNumberOid = "5.5.5.5.5")
+        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", trackNumberOid = "5.5.5.5.5")
 
         fakeRatko.hasOperationalPoints(listOf(turpeela, kannustamo, liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
@@ -1363,7 +1371,7 @@ constructor(
         operationalPointDao.fetchVersions(mainDraftContext.context, false).forEach(mainOfficialContext::moveFrom)
 
         // rename Turpeela to Turpasauna, delete Kannustamo
-        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = "Turpasauna"), liukuainen))
+        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = OperationalPointName("Turpasauna")), liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
         // TestLayoutContext::moveFrom is implemented by inserting the new row and deleting the original, which saves
         // a deletion row in the version table, so draft versions get incremented an extra time
@@ -1382,7 +1390,7 @@ constructor(
 
         // no content changes from Ratko on this update, but fakeRatko#hasOperationalPoints() only supports a single
         // fetch
-        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = "Turpasauna"), liukuainen))
+        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = OperationalPointName("Turpasauna")), liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
         // should have no updates now that the official state of everything matched the integration table already
         assertLayoutOperatingTableContent(
@@ -1401,10 +1409,10 @@ constructor(
                 .saveDraft(LayoutBranch.main, trackNumber(testDBService.getUnusedTrackNumber(), draft = true))
                 .id
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
-        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
-        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
-        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
-        val surmankaki = ratkoOperationalPoint("1.2.3.4.8", "Surmankäki", Oid("5.5.5.5.5"))
+        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", trackNumberOid = "5.5.5.5.5")
+        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", trackNumberOid = "5.5.5.5.5")
+        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", trackNumberOid = "5.5.5.5.5")
+        val surmankaki = ratkoOperationalPoint("1.2.3.4.8", "Surmankäki", trackNumberOid = "5.5.5.5.5")
         fakeRatko.hasOperationalPoints(listOf(turpeela, kannustamo, liukuainen, surmankaki))
         ratkoService.updateOperationalPointsFromRatko()
 
@@ -1449,7 +1457,12 @@ constructor(
             afterFirstUpdate.find { it.name.toString() == "Surmankäki" }?.rinfType,
         )
 
-        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = "Turpasauna"), kannustamo.copy(name = "Nujertamo")))
+        fakeRatko.hasOperationalPoints(
+            listOf(
+                turpeela.copy(name = OperationalPointName("Turpasauna")),
+                kannustamo.copy(name = OperationalPointName("Nujertamo")),
+            )
+        )
         ratkoService.updateOperationalPointsFromRatko()
 
         // renamed versions retain user-assigned rinf codes
