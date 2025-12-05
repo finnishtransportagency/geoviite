@@ -130,12 +130,13 @@ class LayoutSwitchController(
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/{${LAYOUT_BRANCH}}/{id}/operational-point")
-    fun assignSwitchOperationalPoint(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @PathVariable("id") switchId: IntId<LayoutSwitch>,
-        @RequestBody operationalPointId: IntId<OperationalPoint>?,
-    ): IntId<LayoutSwitch> = switchService.assignOperationalPoint(branch, switchId, operationalPointId)
+    @PostMapping("/{$LAYOUT_BRANCH}/assign-to-operational-point")
+    fun assignSwitches(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @RequestBody request: OperationalPointIdsAssignmentRequest,
+    ): List<IntId<LayoutSwitch>> {
+        return switchService.assignOperationalPoint(layoutBranch, request.switchIds, request.operationalPointId)
+    }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @DeleteMapping("/{${LAYOUT_BRANCH}}/draft/{id}")

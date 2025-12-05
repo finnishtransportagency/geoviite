@@ -8,7 +8,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import {
-    assignOperationalPoint,
+    assignToOperationalPoint,
     findOperationalPointSwitches,
     getSwitches,
     SwitchWithOperationalPointPolygonInclusions,
@@ -159,10 +159,10 @@ function useLinkingSwitches(
             deletePreliminaryUnlinked(id);
         });
         try {
-            await Promise.all(
-                switches.map(({ id }) =>
-                    assignOperationalPoint(layoutContext.branch, id, operationalPoint.id),
-                ),
+            await assignToOperationalPoint(
+                layoutContext.branch,
+                switches.map(({ id }) => id),
+                operationalPoint.id,
             );
             toastLinkingSuccess(t, switches, operationalPoint, 'linking');
             await updateSwitchChangeTime();
@@ -183,10 +183,10 @@ function useLinkingSwitches(
             addUnlinkingInFlight(id);
         });
         try {
-            await Promise.all(
-                switches.map(({ id }) =>
-                    assignOperationalPoint(layoutContext.branch, id, undefined),
-                ),
+            await assignToOperationalPoint(
+                layoutContext.branch,
+                switches.map(({ id }) => id),
+                undefined,
             );
             toastLinkingSuccess(t, switches, operationalPoint, 'unlinking');
             await updateSwitchChangeTime();

@@ -84,10 +84,12 @@ constructor(
     @Transactional
     fun assignOperationalPoint(
         branch: LayoutBranch,
-        id: IntId<LayoutSwitch>,
+        ids: List<IntId<LayoutSwitch>>,
         operationalPointId: IntId<OperationalPoint>?,
-    ): IntId<LayoutSwitch> =
-        saveDraft(branch, dao.getOrThrow(branch.draft, id).copy(operationalPointId = operationalPointId)).id
+    ): List<IntId<LayoutSwitch>> =
+        ids.map { id ->
+            saveDraft(branch, dao.getOrThrow(branch.draft, id).copy(operationalPointId = operationalPointId)).id
+        }
 
     fun findSwitchesRelatedToOperationalPoint(
         context: LayoutContext,
