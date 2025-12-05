@@ -653,7 +653,8 @@ class LayoutSwitchDao(
                     cross join lateral
                     (select coalesce(array_agg(op.id), '{}') as overlapping_operational_point_ids
                        from other_operational_points_overlapping_query_point op
-                       where postgis.st_intersects(switch_version_joint.location, op.polygon));
+                       where postgis.st_intersects(switch_version_joint.location, op.polygon))
+                where switch.state_category != 'NOT_EXISTING';
             """
                 .trimIndent()
         val params =
@@ -696,8 +697,9 @@ class LayoutSwitchDao(
                             and switch_version_joint.number = e.number
                       )
                     )
-                  where (switch.operational_point_id = :operational_point_id
-                    or switch.id = any (:switch_ids));
+                  where ((switch.operational_point_id = :operational_point_id
+                          or switch.id = any (:switch_ids)))
+                    and switch.state_category != 'NOT_EXISTING';
             """
                 .trimIndent()
         val params =
