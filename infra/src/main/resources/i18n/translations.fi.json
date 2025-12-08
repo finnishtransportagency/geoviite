@@ -972,6 +972,7 @@
             "cannot-set-location-for-external": "Ratkon hallinnoiman toiminnallisen pisteen sijaintia ei voi muokata",
             "unset": "Ei asetettu",
             "unpublished": "Julkaisematon",
+            "clear-area-button": "Tyhjennä",
             "switch-links": {
                 "infobox-header": "Vaihteet",
                 "attached-header": "Toiminnalliseen pisteeseen linkitetyt vaihteet ({{count}} kpl)",
