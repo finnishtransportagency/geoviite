@@ -281,9 +281,8 @@ constructor(
                 track.switchIds.mapNotNull { switchId ->
                     produceIf(switchIds.contains(switchId)) {
                         val geocodingContext =
-                            requireNotNull(getGeocodingContext(track.trackNumberId)) {
-                                "Geocoding context not found: trackNumberId=${track.trackNumberId} linkedTrackId=${track.id}"
-                            }
+                            getGeocodingContext(track.trackNumberId)
+                                ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
                         switchId to
                             SwitchTrackJoints(
                                 locationTrackOid = trackOid,

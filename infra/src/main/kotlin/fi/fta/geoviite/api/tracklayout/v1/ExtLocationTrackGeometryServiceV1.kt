@@ -19,8 +19,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtLocationTrackGeometryServiceV1
@@ -152,7 +152,7 @@ constructor(
             // Prefer using cached (full) address list when address filter is unassigned
             val geocodingContextCacheKey =
                 geocodingDao.getLayoutGeocodingContextCacheKey(branch, track.trackNumberId, moment)
-                    ?: throw ExtGeocodingFailedV1("could not get geocoding context cache key")
+                    ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
 
             geocodingService.getAddressPoints(geocodingContextCacheKey, track.getVersionOrThrow(), resolution)
         } else {
@@ -160,7 +160,7 @@ constructor(
             val geometry = alignmentDao.fetch(requireNotNull(track.version))
             val context =
                 geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
-                    ?: throw ExtGeocodingFailedV1("could not calculate address points")
+                    ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
             context.getAddressPoints(geometry, resolution, addressFilter)
         }
 }

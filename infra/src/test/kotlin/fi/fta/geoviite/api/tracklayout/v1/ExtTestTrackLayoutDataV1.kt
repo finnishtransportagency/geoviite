@@ -66,6 +66,30 @@ data class ExtTestModifiedLocationTrackCollectionResponseV1(
     val sijaintiraiteet: List<ExtTestLocationTrackV1>,
 )
 
+data class ExtTestTrackBoundaryChangeV1(
+    val geometrian_lahderaide_oid: String,
+    val geometrian_lahderaide_tunnus: String,
+    val geometrian_kohderaide_oid: String,
+    val geometrian_kohderaide_tunnus: String,
+    val alkuosoite: String,
+    val loppuosoite: String,
+    val geometrian_muutos: String,
+)
+
+data class ExtTestTrackBoundaryChangeOperationV1(
+    val rataverkon_versio: String,
+    val ratanumero: String,
+    val ratanumero_oid: String,
+    val tyyppi: String,
+    val muutokset: List<ExtTestTrackBoundaryChangeV1>,
+)
+
+data class ExtTestTrackBoundaryChangeResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val rajojen_muutokset: List<ExtTestTrackBoundaryChangeOperationV1>,
+)
+
 data class ExtTestTrackNumberV1(
     val ratanumero_oid: String,
     val ratanumero: String,
