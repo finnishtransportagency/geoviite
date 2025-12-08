@@ -1521,33 +1521,39 @@ class PublicationDao(
                                    and ltv.version = track.location_track_version
                                    and ltv.state != 'DELETED'
                       inner join lateral (
-                      -- TODO This part is wrong: we need to take both end-point nodes from all edges
-                      --   It can create duplicates if edges connect to the same port, but we just need to handle that
-                      --   The current version just skips joints if the edges connect to different ports!
-                      select
-                        start_np.switch_id as switch_id,
-                        start_np.switch_joint_number as joint_number,
-                        e.start_location as location,
-                        0 as sort
-                        from layout.location_track_version_edge first_ltv_e
-                          inner join layout.edge e on first_ltv_e.edge_id = e.id
-                          inner join layout.node_port start_np on start_np.node_id = e.start_node_id and start_np.port = e.start_node_port
-                        where first_ltv_e.location_track_id = track.location_track_id
-                          and first_ltv_e.location_track_layout_context_id = track.location_track_layout_context_id
-                          and first_ltv_e.location_track_version = track.location_track_version
-                          and first_ltv_e.edge_index = 0
-                      union all
-                      select
-                        end_np.switch_id as switch_id,
-                        end_np.switch_joint_number as joint_number,
-                        e.end_location as location,
-                        ltv_e.edge_index+1 as sort
-                        from layout.location_track_version_edge ltv_e
-                          inner join layout.edge e on ltv_e.edge_id = e.id
-                          inner join layout.node_port end_np on end_np.node_id = e.end_node_id and end_np.port = e.end_node_port
-                        where ltv_e.location_track_id = track.location_track_id
-                          and ltv_e.location_track_layout_context_id = track.location_track_layout_context_id
-                          and ltv_e.location_track_version = track.location_track_version
+                        select
+                          unnest(switch_ids) switch_id,
+                          location,
+                          unnest(joint_numbers) joint_number,
+                          unnest(sorts) sort
+                          from (
+                            select
+                             array [start_np_out.switch_id, start_np.switch_id] as switch_ids,
+                             array [ start_np_out.switch_joint_number, start_np.switch_joint_number] as joint_numbers,
+                             e.start_location as location,
+                             array [ 0, 1 ] as sorts
+                             from layout.location_track_version_edge first_ltv_e
+                               inner join layout.edge e on first_ltv_e.edge_id = e.id
+                               inner join layout.node_port start_np on start_np.node_id = e.start_node_id and start_np.port = e.start_node_port
+                               left join layout.node_port start_np_out on start_np_out.node_id = e.start_node_id and start_np_out.port != e.start_node_port
+                             where first_ltv_e.location_track_id = track.location_track_id
+                               and first_ltv_e.location_track_layout_context_id = track.location_track_layout_context_id
+                               and first_ltv_e.location_track_version = track.location_track_version
+                               and first_ltv_e.edge_index = 0
+                           union all
+                           select
+                             array [end_np.switch_id, end_np_out.switch_id] as switch_ids,
+                             array [end_np.switch_joint_number, end_np_out.switch_joint_number] as joint_numbers,
+                             e.end_location as location,
+                             array [2 + 2 * ltv_e.edge_index, 3 + 2 * ltv_e.edge_index] as sorts
+                             from layout.location_track_version_edge ltv_e
+                               inner join layout.edge e on ltv_e.edge_id = e.id
+                               inner join layout.node_port end_np on end_np.node_id = e.end_node_id and end_np.port = e.end_node_port
+                               left join layout.node_port end_np_out on end_np_out.node_id = e.end_node_id and end_np_out.port != e.end_node_port
+                             where ltv_e.location_track_id = track.location_track_id
+                               and ltv_e.location_track_layout_context_id = track.location_track_layout_context_id
+                               and ltv_e.location_track_version = track.location_track_version
+                        ) nodes
                       ) joints on true
                     where joint_number is not null
                     group by joints.switch_id
