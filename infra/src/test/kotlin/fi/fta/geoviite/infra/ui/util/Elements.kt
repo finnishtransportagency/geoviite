@@ -6,7 +6,14 @@ import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.Actions
 import org.openqa.selenium.support.ui.ExpectedCondition
-import org.openqa.selenium.support.ui.ExpectedConditions.*
+import org.openqa.selenium.support.ui.ExpectedConditions.elementToBeClickable
+import org.openqa.selenium.support.ui.ExpectedConditions.not
+import org.openqa.selenium.support.ui.ExpectedConditions.presenceOfAllElementsLocatedBy
+import org.openqa.selenium.support.ui.ExpectedConditions.presenceOfElementLocated
+import org.openqa.selenium.support.ui.ExpectedConditions.textMatches
+import org.openqa.selenium.support.ui.ExpectedConditions.textToBe
+import org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfAllElementsLocatedBy
+import org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfElementLocated
 import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -33,25 +40,31 @@ fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolea
 }
 
 fun getElementWhenVisible(by: By, timeout: Duration = defaultWait): WebElement {
-    return tryWait(timeout, visibilityOfElementLocated(by)) { "Wait for element to be visible failed: seekBy=$by" }
+    return requireNotNull(
+        tryWaitNullable(timeout, visibilityOfElementLocated(by)) { "Wait for element to be visible failed: seekBy=$by" }
+    )
 }
 
 fun getElementWhenExists(by: By, timeout: Duration = defaultWait): WebElement {
-    return tryWait(timeout, presenceOfElementLocated(by)) { "Wait for element to exists failed: seekBy=$by" }
+    return tryWaitNonNull(timeout, presenceOfElementLocated(by) as ExpectedCondition<WebElement?>) {
+        "Wait for element to exists failed: seekBy=$by"
+    }
 }
 
 fun getElementsWhenVisible(by: By, timeout: Duration = defaultWait): List<WebElement> {
-    return tryWait(timeout, visibilityOfAllElementsLocatedBy(by)) {
+    return tryWaitNonNull(timeout, visibilityOfAllElementsLocatedBy(by)) {
         "Wait for elements to be visible failed: seekBy=$by"
     }
 }
 
 fun getElementsWhenExists(by: By, timeout: Duration = defaultWait): List<WebElement> {
-    return tryWait(timeout, presenceOfAllElementsLocatedBy(by)) { "Wait for elements to exists failed: seekBy=$by" }
+    return tryWaitNonNull(timeout, presenceOfAllElementsLocatedBy(by)) {
+        "Wait for elements to exists failed: seekBy=$by"
+    }
 }
 
 fun getElementWhenClickable(by: By, timeout: Duration = defaultWait): WebElement {
-    return tryWait(timeout, elementToBeClickable(by)) { "Wait for element to be clickable, by=$by" }
+    return tryWaitNonNull(timeout, elementToBeClickable(by)) { "Wait for element to be clickable, by=$by" }
 }
 
 fun waitUntilExists(by: By, timeout: Duration = defaultWait) {
@@ -102,18 +115,56 @@ fun clickWhenClickable(by: By, timeout: Duration = defaultWait) {
 
 fun exists(by: By): Boolean = getElements(by).isNotEmpty()
 
-fun <T> tryWait(condition: ExpectedCondition<T?>, lazyErrorMessage: () -> String) =
+fun tryWait(condition: ExpectedCondition<Boolean>, lazyErrorMessage: () -> String): Boolean =
     tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
 
-fun <T> tryWait(timeout: Duration = defaultWait, condition: ExpectedCondition<T?>, lazyErrorMessage: () -> String) =
-    tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
+fun <T> tryWaitNonNull(condition: ExpectedCondition<T?>, lazyErrorMessage: () -> String): T =
+    tryWaitNonNull(defaultWait, defaultPoll, condition, lazyErrorMessage)
 
-fun <T> tryWait(
+fun <T> tryWaitNullable(condition: ExpectedCondition<T?>, lazyErrorMessage: () -> String): T? =
+    tryWaitNullable(defaultWait, defaultPoll, condition, lazyErrorMessage)
+
+fun tryWait(
+    timeout: Duration = defaultWait,
+    condition: ExpectedCondition<Boolean>,
+    lazyErrorMessage: () -> String,
+): Boolean = tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
+
+fun <T> tryWaitNonNull(
+    timeout: Duration = defaultWait,
+    condition: ExpectedCondition<T?>,
+    lazyErrorMessage: () -> String,
+): T = tryWaitNonNull(timeout, defaultPoll, condition, lazyErrorMessage)
+
+fun <T> tryWaitNullable(
+    timeout: Duration = defaultWait,
+    condition: ExpectedCondition<T?>,
+    lazyErrorMessage: () -> String,
+): T? = tryWaitNullable(timeout, defaultPoll, condition, lazyErrorMessage)
+
+fun tryWait(
+    timeout: Duration = defaultWait,
+    pollInterval: Duration = defaultPoll,
+    condition: ExpectedCondition<Boolean>,
+    lazyErrorMessage: () -> String,
+): Boolean =
+    requireNotNull(tryWaitNonNull(timeout, pollInterval, condition as ExpectedCondition<Boolean?>, lazyErrorMessage)) {
+        lazyErrorMessage()
+    }
+
+fun <T> tryWaitNonNull(
     timeout: Duration = defaultWait,
     pollInterval: Duration = defaultPoll,
     condition: ExpectedCondition<T?>,
     lazyErrorMessage: () -> String,
-): T =
+): T = requireNotNull(tryWaitNullable(timeout, pollInterval, condition, lazyErrorMessage)) { lazyErrorMessage() }
+
+fun <T> tryWaitNullable(
+    timeout: Duration = defaultWait,
+    pollInterval: Duration = defaultPoll,
+    condition: ExpectedCondition<T?>,
+    lazyErrorMessage: () -> String,
+): T? =
     try {
         WebDriverWait(browser(), timeout, pollInterval).until<T>(condition)
     } catch (e: Exception) {
