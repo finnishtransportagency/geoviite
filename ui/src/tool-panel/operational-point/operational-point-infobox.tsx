@@ -47,6 +47,7 @@ type OperationalPointInfoboxProps = {
     onStopPlacingLocation: () => void;
     onStartPlacingArea: () => void;
     onStopPlacingArea: () => void;
+    onClearArea: () => void;
     startFreshSpecificItemPublicationLogSearch: (item: SearchItemValue<SearchItemType>) => void;
 };
 
@@ -65,6 +66,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     onStopPlacingLocation,
     onStartPlacingArea,
     onStopPlacingArea,
+    onClearArea,
     startFreshSpecificItemPublicationLogSearch,
 }) => {
     const { t } = useTranslation();
@@ -195,6 +197,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 onStopPlacingLocation={onStopPlacingLocation}
                 onStartPlacingArea={onStartPlacingArea}
                 onStopPlacingArea={onStopPlacingArea}
+                onClearArea={onClearArea}
             />
             <EnvRestricted restrictTo={'dev'}>
                 {operationalPoint.polygon && (

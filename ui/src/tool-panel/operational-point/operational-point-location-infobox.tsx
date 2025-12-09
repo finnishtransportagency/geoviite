@@ -35,6 +35,7 @@ type OperationalPointLocationInfoboxProps = {
     onStopPlacingLocation: () => void;
     onStartPlacingArea: () => void;
     onStopPlacingArea: () => void;
+    onClearArea: () => void;
 };
 
 export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationInfoboxProps> = ({
@@ -48,6 +49,7 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
     onStopPlacingLocation,
     onStartPlacingArea,
     onStopPlacingArea,
+    onClearArea,
 }) => {
     const { t } = useTranslation();
 
@@ -210,6 +212,17 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
                                         disabled={locationUpdateInProgress}
                                         onClick={onStopPlacingArea}>
                                         {t('button.cancel')}
+                                    </Button>
+                                    <Button
+                                        variant={ButtonVariant.SECONDARY}
+                                        size={ButtonSize.SMALL}
+                                        disabled={
+                                            locationUpdateInProgress ||
+                                            !layoutState.linkingState.area
+                                        }
+                                        isProcessing={locationUpdateInProgress}
+                                        onClick={onClearArea}>
+                                        {t('tool-panel.operational-point.clear-area-button')}
                                     </Button>
                                     <Button
                                         variant={ButtonVariant.PRIMARY}
