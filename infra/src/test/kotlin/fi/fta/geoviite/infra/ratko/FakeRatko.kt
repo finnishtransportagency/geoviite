@@ -538,8 +538,8 @@ private fun marshallOperatingPoint(point: RatkoOperationalPointParse): RatkoOper
         properties =
             listOf(
                 RatkoAssetProperty("operational_point_type", enumValue = point.type.name),
-                RatkoAssetProperty("name", stringValue = point.name),
-                RatkoAssetProperty("operational_point_abbreviation", stringValue = point.abbreviation),
+                RatkoAssetProperty("name", stringValue = point.name.toString()),
+                RatkoAssetProperty("operational_point_abbreviation", stringValue = point.abbreviation.toString()),
                 RatkoAssetProperty("operational_point_code", integerValue = point.uicCode?.toInt()),
             ),
         locations =
