@@ -16,7 +16,7 @@ enum class DesignState {
 data class LayoutDesignName @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
     Comparable<LayoutDesignName>, CharSequence by value {
     companion object {
-        const val ALLOWED_CHARACTERS = "A-Za-zÄÖÅäöå0-9 \\-+_!?.,\"/()<>:&*#€$"
+        const val ALLOWED_CHARACTERS = "A-Za-zÄÖÅäöå0-9 \\-+_!?.,\"'\\\\/()\\[\\]<>:;&*#€$"
         val allowedLength = 1..100
         val sanitizer = StringSanitizer(LayoutDesignName::class, ALLOWED_CHARACTERS, allowedLength)
     }
