@@ -62,11 +62,13 @@ import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchAndMatchingAlignments
+import fi.fta.geoviite.infra.tracklayout.switchLinkRR
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAlignments
 import fi.fta.geoviite.infra.ui.testdata.locationTrackAndAlignmentForGeometryAlignment
 import fi.fta.geoviite.infra.ui.testdata.switchJoint
@@ -123,10 +125,11 @@ constructor(
             )
         val suggestedSwitch =
             matchFittedSwitchToTracks(
-                fittedSwitch,
-                switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
-                insertedSwitch.id as IntId,
-            )
+                    fittedSwitch,
+                    switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
+                    insertedSwitch.id as IntId,
+                )
+                .first
         val rowVersion =
             switchLinkingService.saveSwitchLinking(
                 LayoutBranch.main,
@@ -231,10 +234,11 @@ constructor(
         switchLinkingService.saveSwitchLinking(
             LayoutBranch.main,
             matchFittedSwitchToTracks(
-                fittedSwitch,
-                switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
-                insertedSwitch.id as IntId,
-            ),
+                    fittedSwitch,
+                    switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
+                    insertedSwitch.id as IntId,
+                )
+                .first,
             insertedSwitch.id as IntId,
             geometrySwitchId = null,
         )
@@ -264,10 +268,11 @@ constructor(
                     )
                 val suggestedSwitch =
                     matchFittedSwitchToTracks(
-                        fittedSwitch,
-                        switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
-                        storedSwitch.id as IntId,
-                    )
+                            fittedSwitch,
+                            switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
+                            storedSwitch.id as IntId,
+                        )
+                        .first
                 switchLinkingService.saveSwitchLinking(
                     LayoutBranch.main,
                     suggestedSwitch,
@@ -646,7 +651,110 @@ constructor(
     }
 
     @Test
-    fun `Switch linking slight overlap correction should override the original switch when the overlap correction limit is exceeded`() {
+    fun `linking one switch over another suggests detaching the original switch`() {
+        val trackNumber = mainDraftContext.save(trackNumber()).id
+        val switchStructureId =
+            switchLibraryService.getSwitchStructures().find { it.type.toString() == "YV60-300-1:9-O" }!!.id
+        val existingSwitch = mainDraftContext.save(switch(switchStructureId)).id
+        val throughTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumber, name = "through track"),
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                        endOuterSwitch = switchLinkYV(existingSwitch, 1),
+                    ),
+                    edge(
+                        listOf(segment(Point(10.0, 0.0), Point(26.6, 0.0))),
+                        startInnerSwitch = switchLinkYV(existingSwitch, 1),
+                        endInnerSwitch = switchLinkYV(existingSwitch, 5),
+                    ),
+                    edge(
+                        listOf(segment(Point(26.6, 0.0), Point(44.4, 0.0))),
+                        startInnerSwitch = switchLinkYV(existingSwitch, 5),
+                        endInnerSwitch = switchLinkYV(existingSwitch, 2),
+                    ),
+                    edge(
+                        listOf(segment(Point(44.4, 0.0), Point(50.0, 0.0))),
+                        startOuterSwitch = switchLinkYV(existingSwitch, 2),
+                    ),
+                ),
+            )
+        val branchingTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumber, name = "branching track"),
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(10.0, 0.0), Point(44.0, -2.0))),
+                        startInnerSwitch = switchLinkYV(existingSwitch, 1),
+                        endInnerSwitch = switchLinkYV(existingSwitch, 3),
+                    ),
+                    edge(
+                        listOf(segment(Point(44.0, -2.0), Point(50.0, -2.3))),
+                        startOuterSwitch = switchLinkYV(existingSwitch, 3),
+                    ),
+                ),
+            )
+        val newSwitch = mainDraftContext.save(switch(switchStructureId)).id
+        val suggestion = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(10.0, 0.0), newSwitch)!!
+        assertEquals(setOf(existingSwitch), suggestion.detachSwitches)
+        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestion, newSwitch, null)
+        assertEquals(
+            listOf(newSwitch),
+            mainDraftContext.fetchWithGeometry(throughTrack.id)!!.second.trackSwitchLinks.map { it.switchId }.distinct(),
+        )
+        assertEquals(
+            listOf(newSwitch),
+            mainDraftContext
+                .fetchWithGeometry(branchingTrack.id)!!
+                .second
+                .trackSwitchLinks
+                .map { it.switchId }
+                .distinct(),
+        )
+    }
+
+    @Test
+    fun `linking switch over another suggests detaching the original switch, even with only split alignments`() {
+        val trackNumber = mainDraftContext.save(trackNumber()).id
+        val switchStructureId =
+            switchLibraryService.getSwitchStructures().find { it.type.toString() == "RR54-4x1:9" }!!.id
+        val existingSwitch = mainDraftContext.save(switch(switchStructureId)).id
+        val baseJointVec = Point(5.075, 1.142)
+        val tracks =
+            listOf(-1.0 to -1.0, 1.0 to 1.0, -1.0 to 1.0, 1.0 to -1.0).mapIndexed { jointNumber, signs ->
+                val (xSign, ySign) = signs
+                val jointVec = Point(baseJointVec.x * xSign, baseJointVec.y * ySign)
+                mainDraftContext.save(
+                    locationTrack(trackNumber, name = "track to $jointNumber"),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), jointVec)),
+                            startInnerSwitch = switchLinkRR(existingSwitch, 5),
+                            endInnerSwitch = switchLinkRR(existingSwitch, jointNumber),
+                        ),
+                        edge(
+                            listOf(segment(jointVec, jointVec * 2.0)),
+                            startOuterSwitch = switchLinkRR(existingSwitch, jointNumber),
+                        ),
+                    ),
+                )
+            }
+
+        val newSwitch = mainDraftContext.save(switch(switchStructureId)).id
+        val suggestion = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(0.0, 0.0), newSwitch)!!
+        assertEquals(setOf(existingSwitch), suggestion.detachSwitches)
+        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestion, newSwitch, null)
+        tracks.forEach { track ->
+            assertEquals(
+                listOf(newSwitch),
+                mainDraftContext.fetchWithGeometry(track.id)!!.second.trackSwitchLinks.map { it.switchId }.distinct(),
+            )
+        }
+    }
+
+    @Test
+    fun `Switch linking slight overlap correction should fail when the overlap correction limit is exceeded`() {
         val moreThanAllowedOverlap = SWITCH_JOINT_NODE_ADJUSTMENT_TOLERANCE + 0.01
 
         val (testLocationTrack, testAlignment) =
@@ -1052,9 +1160,7 @@ constructor(
                             localizationKey =
                                 LocalizationKey.of("validation.layout.split.track-links-missing-after-relinking"),
                             params =
-                                LocalizationParams(
-                                    mapOf("switchName" to "somewhere else", "sourceName" to "topoTrack")
-                                ),
+                                LocalizationParams(mapOf("switchName" to "somewhere else", "sourceName" to "topoTrack")),
                         ),
                     ),
             )
@@ -1440,10 +1546,11 @@ constructor(
             )
         val suggestedSwitch =
             matchFittedSwitchToTracks(
-                fittedSwitch,
-                switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
-                insertedSwitch.id as IntId,
-            )
+                    fittedSwitch,
+                    switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, fittedSwitch),
+                    insertedSwitch.id as IntId,
+                )
+                .first
         val ex =
             assertThrows<LinkingFailureException> {
                 switchLinkingService.saveSwitchLinking(
@@ -1698,10 +1805,14 @@ constructor(
         switchLinkingService.saveSwitchLinking(
             LayoutBranch.main,
             matchFittedSwitchToTracks(
-                fittedSwitch,
-                clearSwitchFromTracks(newSwitchId, (nearbyTracks + farawayTracks).associateBy { it.first.id as IntId }),
-                newSwitchId,
-            ),
+                    fittedSwitch,
+                    clearSwitchFromTracks(
+                        (nearbyTracks + farawayTracks).associateBy { it.first.id as IntId },
+                        newSwitchId,
+                    ),
+                    newSwitchId,
+                )
+                .first,
             layoutSwitchId = newSwitchId,
             geometrySwitchId = null,
         )
@@ -2232,7 +2343,7 @@ fun directlyApplyFittedSwitchChangesToTracks(
     fittedSwitch: FittedSwitch,
     relevantTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): List<Pair<LocationTrack, LocationTrackGeometry>> {
-    val clearedTracks = clearSwitchFromTracks(switchId, relevantTracks.associateBy { it.first.id as IntId })
-    val suggested = matchFittedSwitchToTracks(fittedSwitch, clearedTracks, switchId)
+    val (suggested, clearedTracks) =
+        matchFittedSwitchToTracks(fittedSwitch, relevantTracks.associateBy { it.first.id as IntId }, switchId)
     return withChangesFromLinkingSwitch(suggested, fittedSwitch.switchStructure, switchId, clearedTracks)
 }

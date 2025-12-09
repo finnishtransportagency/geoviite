@@ -114,7 +114,7 @@ constructor(
                                 suggestion.suggestedSwitch,
                                 switchStructures[index],
                                 switchPlacingRequests[index].layoutSwitchId,
-                                clearSwitchFromTracks(switchPlacingRequests[index].layoutSwitchId, originalTracks),
+                                clearSwitchFromTracks(originalTracks, switchPlacingRequests[index].layoutSwitchId),
                             )
                     }
                 r

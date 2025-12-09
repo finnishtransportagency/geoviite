@@ -1578,10 +1578,11 @@ constructor(
         switchLinkingService.saveSwitchLinking(
             LayoutBranch.main,
             matchFittedSwitchToTracks(
-                suggestedFitting,
-                switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, suggestedFitting),
-                layoutSwitchId = switch.id as IntId,
-            ),
+                    suggestedFitting,
+                    switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, suggestedFitting),
+                    layoutSwitchId = switch.id as IntId,
+                )
+                .first,
             switch.id as IntId,
             geometrySwitchId = null,
         )
