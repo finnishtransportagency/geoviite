@@ -618,53 +618,24 @@ constructor(
 
     @Test
     fun `findSwitchesRelatedToOperationalPoint ignores NOT_EXISTING switches`() {
-        val operationalPoint =
-            mainDraftContext
-                .save(
-                    operationalPoint(
-                        polygon =
-                            Polygon(
-                                Point(0.0, 0.0),
-                                Point(10.0, 0.0),
-                                Point(10.0, 10.0),
-                                Point(0.0, 10.0),
-                                Point(0.0, 0.0),
-                            )
-                    )
-                )
-                .id
-        val inAreaExisting =
-            mainDraftContext
-                .save(
-                    switch(
-                        joints =
-                            listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 10.0), null))
-                    )
-                )
-                .id
-        val outOfAreaLinkedExisting =
-            mainDraftContext
-                .save(
-                    switch(
-                        joints =
-                            listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(20.0, 20.0), null)),
-                        operationalPointId = operationalPoint,
-                    )
-                )
-                .id
-        mainDraftContext.save(
-            switch(
-                joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 10.0), null)),
-                stateCategory = LayoutStateCategory.NOT_EXISTING,
+        val op =
+            operationalPoint(
+                polygon =
+                    Polygon(Point(0.0, 0.0), Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 10.0), Point(0.0, 0.0))
             )
-        )
-        mainDraftContext.save(
+        val operationalPoint = mainDraftContext.save(op).id
+        val inAreaSwitchObject =
+            switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 10.0), null)))
+        val outOfAreaLinkedSwitchObject =
             switch(
                 joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(20.0, 20.0), null)),
                 operationalPointId = operationalPoint,
-                stateCategory = LayoutStateCategory.NOT_EXISTING,
             )
-        )
+
+        val inAreaExisting = mainDraftContext.save(inAreaSwitchObject).id
+        val outOfAreaLinkedExisting = mainDraftContext.save(outOfAreaLinkedSwitchObject).id
+        mainDraftContext.save(inAreaSwitchObject.copy(stateCategory = LayoutStateCategory.NOT_EXISTING))
+        mainDraftContext.save(outOfAreaLinkedSwitchObject.copy(stateCategory = LayoutStateCategory.NOT_EXISTING))
 
         assertEquals(
             listOf(
