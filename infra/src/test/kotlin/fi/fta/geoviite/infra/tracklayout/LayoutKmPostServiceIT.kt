@@ -168,7 +168,7 @@ constructor(
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(0.0, 5.0), Point(1.0, 10.0), Point(3.0, 15.0), Point(4.0, 20.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 5.0), Point(1.0, 10.0), Point(3.0, 15.0), Point(4.0, 20.0))),
         )
         val kmPosts =
             listOf(

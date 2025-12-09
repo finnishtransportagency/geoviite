@@ -96,7 +96,6 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
@@ -105,6 +104,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.ratkoOperationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -117,10 +117,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.queryOne
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -129,6 +125,10 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -204,7 +204,7 @@ constructor(
 
     @Test
     fun testChangeSet() {
-        val referenceLineAlignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+        val referenceLineAlignmentVersion = alignmentDao.insert(referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
         val locationTrackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = false)
         val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
@@ -212,7 +212,7 @@ constructor(
         referenceLineDao.save(
             referenceLine(
                 trackNumberId = trackNumberId,
-                alignmentVersion = referenceLineAlignmentVersion,
+                geometryVersion = referenceLineAlignmentVersion,
                 draft = false,
             )
         )
@@ -621,7 +621,7 @@ constructor(
             trackNumbers = listOf(originalTrackNumber.id),
             referenceLines = listOf(originalReferenceLineVersion.id),
         )
-        mainDraftContext.save(originalReferenceLine, alignment(segment(Point(0.0, 0.0), Point(20.0, 0.0))))
+        mainDraftContext.save(originalReferenceLine, referenceLineGeometry(segment(Point(0.0, 0.0), Point(20.0, 0.0))))
         publishAndPush(referenceLines = listOf(originalReferenceLineVersion.id))
         val pushedPoints = fakeRatko.getCreatedRouteNumberPoints("1.2.3.4.5")
         assertEquals(9, pushedPoints[0].size)
@@ -645,7 +645,7 @@ constructor(
             referenceLineService.saveDraft(
                 LayoutBranch.main,
                 referenceLine(originalTrackNumber.id, draft = true),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
 
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("1.2.3.4.5"))
@@ -661,7 +661,7 @@ constructor(
                     referenceLineDao.fetchVersionByTrackNumberId(MainLayoutContext.official, originalTrackNumber.id)!!
                 )
             ),
-            alignment(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
         )
         publishAndPush(referenceLines = listOf(originalReferenceLineDaoResponse.id))
         val pushedPoints = fakeRatko.getCreatedRouteNumberPoints("1.2.3.4.5")
@@ -690,7 +690,7 @@ constructor(
             referenceLineService.saveDraft(
                 LayoutBranch.main,
                 referenceLine(originalTrackNumber.id, draft = true),
-                alignment(
+                referenceLineGeometry(
                     segment(
                         Point(0.0, 0.0),
                         Point(10.0, 0.0),
@@ -723,7 +723,7 @@ constructor(
                     referenceLineDao.fetchVersionByTrackNumberId(MainLayoutContext.official, originalTrackNumber.id)!!
                 )
             ),
-            alignment(segment(Point(0.0, 0.0), Point(40.0, 0.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))),
         )
         publishAndPush(
             // not publishing a change to location track, but we want to update its points anyway
@@ -762,7 +762,7 @@ constructor(
             referenceLineService.saveDraft(
                 LayoutBranch.main,
                 referenceLine(originalTrackNumber.id, draft = true),
-                alignment(
+                referenceLineGeometry(
                     segment(
                         Point(0.0, 0.0),
                         Point(10.0, 0.0),
@@ -1800,7 +1800,7 @@ constructor(
         val referenceLine =
             designDraftContext.save(
                 referenceLine(trackNumber.id),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
         val switch =
             designDraftContext.save(
@@ -1874,7 +1874,7 @@ constructor(
         val referenceLine =
             designDraftContext.save(
                 referenceLine(trackNumber.id),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
         val switch =
             designDraftContext.save(
@@ -2358,7 +2358,7 @@ constructor(
     ): LayoutRowVersion<ReferenceLine> =
         (if (draft) mainDraftContext else mainOfficialContext).save(
             referenceLine(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )
 
     private fun detachSwitchesFromTrack(locationTrackId: IntId<LocationTrack>) {
@@ -2482,7 +2482,7 @@ constructor(
 
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(alignment(straightGeometry.segments), trackNumber)
+                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(straightGeometry.segments), trackNumber)
                 .id
 
         val splitSourceTrackId = layoutContext.save(locationTrack(trackNumberId), straightGeometry).id

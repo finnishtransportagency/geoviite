@@ -31,7 +31,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.linkedTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -101,7 +101,7 @@ constructor(
         val usedReferenceLineId =
             referenceLineId
                 ?: layoutContext
-                    .saveReferenceLine(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments))
+                    .saveReferenceLine(referenceLineAndGeometry(trackNumberId = trackNumberId, segments = segments))
                     .id
 
         val locationTrackId =
@@ -136,7 +136,7 @@ constructor(
 
         val referenceLine =
             layoutContext.saveReferenceLine(
-                referenceLineAndAlignment(
+                referenceLineAndGeometry(
                     trackNumberId = trackNumberId,
                     segments = segments,
                     startAddress = startAddress,

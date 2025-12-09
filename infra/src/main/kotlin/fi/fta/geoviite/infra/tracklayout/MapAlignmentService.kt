@@ -123,7 +123,7 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         referenceLineIds: List<IntId<ReferenceLine>>,
     ): List<AlignmentHeader<ReferenceLine, LayoutState>> {
-        val referenceLines = referenceLineService.getManyWithAlignments(layoutContext, referenceLineIds)
+        val referenceLines = referenceLineService.getManyWithGeometries(layoutContext, referenceLineIds)
         val trackNumbers =
             trackNumberService
                 .getMany(layoutContext, referenceLines.map { (rl, _) -> rl.trackNumberId })
@@ -158,7 +158,7 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         id: IntId<ReferenceLine>,
     ): List<LineM<ReferenceLineM>> {
-        val (_, alignment) = referenceLineService.getWithAlignmentOrThrow(layoutContext, id)
+        val (_, alignment) = referenceLineService.getWithGeometryOrThrow(layoutContext, id)
         return getSegmentBorderMValues(alignment)
     }
 
@@ -174,7 +174,7 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         id: IntId<ReferenceLine>,
     ): MapAlignmentEndPoints<ReferenceLineM> {
-        val (_, alignment) = referenceLineService.getWithAlignmentOrThrow(layoutContext, id)
+        val (_, alignment) = referenceLineService.getWithGeometryOrThrow(layoutContext, id)
         return getEndPoints(alignment)
     }
 
@@ -206,7 +206,7 @@ class MapAlignmentService(
     ): List<AlignmentPolyLine<ReferenceLine, ReferenceLineM>> {
         val trackNumbers = trackNumberService.mapById(layoutContext)
         return referenceLineService
-            .listWithAlignments(layoutContext, includeDeleted = false, boundingBox = bbox)
+            .listWithGeometries(layoutContext, includeDeleted = false, boundingBox = bbox)
             .mapNotNull { (line, alignment) ->
                 val trackNumber = trackNumbers[line.trackNumberId]
                 if (trackNumber != null)
@@ -229,7 +229,7 @@ class MapAlignmentService(
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<ReferenceLine, ReferenceLineM>> {
         return referenceLineService
-            .listWithAlignments(layoutContext, boundingBox = bbox, includeDeleted = false)
+            .listWithGeometries(layoutContext, boundingBox = bbox, includeDeleted = false)
             .mapNotNull { (line, alignment) -> getMissingLinkings(line.id, REFERENCE_LINE, alignment) }
     }
 }

@@ -16,17 +16,16 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -35,6 +34,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -252,7 +252,7 @@ constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         mainOfficialContext.save(
             referenceLine(trackNumberId),
-            alignment(segment(Point(-1000.0, 0.0), Point(1000.0, 0.0))),
+            referenceLineGeometry(segment(Point(-1000.0, 0.0), Point(1000.0, 0.0))),
         )
 
         val switchStartPoints =
@@ -353,7 +353,7 @@ constructor(
 
     private fun insertSplitWithTwoTracks(): IntId<Split> {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
         val sourceTrack =
             mainOfficialContext.save(

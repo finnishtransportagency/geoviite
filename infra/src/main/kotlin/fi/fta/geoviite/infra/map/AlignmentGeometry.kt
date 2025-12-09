@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -25,6 +24,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
 import fi.fta.geoviite.infra.util.produceIf
@@ -103,16 +103,16 @@ data class AlignmentPolyLine<T, M : AlignmentM<M>>(
     override fun toLog(): String = logFormat("id" to id, "type" to alignmentType, "points" to points.size)
 }
 
-fun toAlignmentHeader(trackNumber: LayoutTrackNumber, referenceLine: ReferenceLine, alignment: LayoutAlignment?) =
+fun toAlignmentHeader(trackNumber: LayoutTrackNumber, referenceLine: ReferenceLine, geometry: ReferenceLineGeometry?) =
     ReferenceLineHeader(
         id = referenceLine.id.also { require(it is IntId) } as IntId,
         version = requireNotNull(referenceLine.version),
         trackNumberId = referenceLine.trackNumberId,
         name = AlignmentName(trackNumber.number.toString()),
         state = trackNumber.state,
-        length = alignment?.length ?: LineM(0.0),
+        length = geometry?.length ?: LineM(0.0),
         segmentCount = referenceLine.segmentCount,
-        boundingBox = alignment?.boundingBox,
+        boundingBox = geometry?.boundingBox,
     )
 
 fun toAlignmentHeader(locationTrack: LocationTrack, geometry: DbLocationTrackGeometry) =

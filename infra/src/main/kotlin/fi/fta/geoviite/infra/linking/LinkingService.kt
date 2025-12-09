@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
@@ -37,6 +36,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import org.springframework.beans.factory.annotation.Autowired
@@ -88,10 +88,10 @@ constructor(
         verifyPlanNotHidden(parameters.geometryPlanId)
 
         val referenceLineId = parameters.layoutInterval.alignmentId
-        val (referenceLine, alignment) = referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
+        val (referenceLine, geometry) = referenceLineService.getWithGeometryOrThrow(branch.draft, referenceLineId)
 
-        val newAlignment = linkGeometry(alignment, parameters)
-        return referenceLineService.saveDraft(branch, referenceLine, newAlignment).id
+        val newGeometry = linkGeometry(geometry, parameters)
+        return referenceLineService.saveDraft(branch, referenceLine, newGeometry).id
     }
 
     @Transactional
@@ -121,12 +121,15 @@ constructor(
         return linkLocationTrackGeometrySection(layoutGeometry, layoutRange, geometryAlignment, geometryRange)
     }
 
-    private fun <T> linkGeometry(layoutAlignment: LayoutAlignment, parameters: LinkingParameters<T>): LayoutAlignment {
+    private fun <T> linkGeometry(
+        referenceLineGeometry: ReferenceLineGeometry,
+        parameters: LinkingParameters<T>,
+    ): ReferenceLineGeometry {
         val geometryInterval = parameters.geometryInterval
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
         val layoutRange: Range<LineM<ReferenceLineM>> = parameters.layoutInterval.mRange.map(::LineM)
         val geometryRange: Range<LineM<PlanLayoutAlignmentM>> = parameters.geometryInterval.mRange.map(::LineM)
-        return linkLayoutGeometrySection(layoutAlignment, layoutRange, geometryAlignment, geometryRange)
+        return linkLayoutGeometrySection(referenceLineGeometry, layoutRange, geometryAlignment, geometryRange)
     }
 
     private fun saveAndUpdateTopology(
@@ -169,14 +172,12 @@ constructor(
         val referenceLineId = parameters.layoutAlignmentId
         val geometryInterval = parameters.geometryInterval
 
-        val (referenceLine, layoutAlignment) =
-            referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
+        val (referenceLine, geometry) = referenceLineService.getWithGeometryOrThrow(branch.draft, referenceLineId)
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
-        val newAlignment =
-            replaceLayoutGeometry(layoutAlignment, geometryAlignment, geometryInterval.mRange.map(::LineM))
+        val newGeometry = replaceReferenceLineGeometry(geometry, geometryAlignment, geometryInterval.mRange.map(::LineM))
 
-        return referenceLineService.saveDraft(branch, referenceLine, newAlignment).id
+        return referenceLineService.saveDraft(branch, referenceLine, newGeometry).id
     }
 
     @Transactional
@@ -189,12 +190,12 @@ constructor(
         val trackId = parameters.layoutAlignmentId
         val geometryInterval = parameters.geometryInterval
 
-        val (track, geometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, trackId)
+        val (track, trackGeometry) = locationTrackService.getWithGeometryOrThrow(branch.draft, trackId)
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
         val geomWithNewSegments =
             replaceLocationTrackGeometry(geometryAlignment, geometryInterval.mRange.map(::LineM), trackId)
-        return saveAndUpdateTopology(branch, track, geometry, geomWithNewSegments)
+        return saveAndUpdateTopology(branch, track, trackGeometry, geomWithNewSegments)
     }
 
     private fun getAlignmentLayout(
@@ -215,10 +216,10 @@ constructor(
         referenceLineId: IntId<ReferenceLine>,
         mRange: Range<Double>,
     ): IntId<ReferenceLine> {
-        val (referenceLine, alignment) = referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
-        val updatedAlignment = cutLayoutGeometry(alignment, mRange.map(::LineM))
+        val (referenceLine, geometry) = referenceLineService.getWithGeometryOrThrow(branch.draft, referenceLineId)
+        val updatedGeometry = cutReferenceLineGeometry(geometry, mRange.map(::LineM))
 
-        return referenceLineService.saveDraft(branch, referenceLine, updatedAlignment).id
+        return referenceLineService.saveDraft(branch, referenceLine, updatedGeometry).id
     }
 
     @Transactional

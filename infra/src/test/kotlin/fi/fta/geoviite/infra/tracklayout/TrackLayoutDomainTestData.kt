@@ -313,32 +313,32 @@ fun trackNumberSaveRequest(
         startAddress = startAddress.round(3),
     )
 
-fun referenceLineAndAlignment(
+fun referenceLineAndGeometry(
     trackNumberId: IntId<LayoutTrackNumber>,
     vararg segments: LayoutSegment,
     startAddress: TrackMeter = TrackMeter.ZERO,
     draft: Boolean = false,
-): Pair<ReferenceLine, LayoutAlignment> =
-    referenceLineAndAlignment(trackNumberId, segments.toList(), startAddress = startAddress, draft = draft)
+): Pair<ReferenceLine, ReferenceLineGeometry> =
+    referenceLineAndGeometry(trackNumberId, segments.toList(), startAddress = startAddress, draft = draft)
 
-fun referenceLineAndAlignment(
+fun referenceLineAndGeometry(
     trackNumberId: IntId<LayoutTrackNumber>,
     segments: List<LayoutSegment>,
     startAddress: TrackMeter = TrackMeter.ZERO,
     draft: Boolean = false,
-): Pair<ReferenceLine, LayoutAlignment> {
-    val alignment = alignment(segments)
+): Pair<ReferenceLine, ReferenceLineGeometry> {
+    val geometry = referenceLineGeometry(segments)
     val referenceLine =
-        referenceLine(trackNumberId = trackNumberId, alignment = alignment, startAddress = startAddress, draft = draft)
-    return referenceLine to alignment
+        referenceLine(trackNumberId = trackNumberId, geometry = geometry, startAddress = startAddress, draft = draft)
+    return referenceLine to geometry
 }
 
 fun referenceLine(
     trackNumberId: IntId<LayoutTrackNumber>,
-    alignment: LayoutAlignment? = null,
+    geometry: ReferenceLineGeometry? = null,
     startAddress: TrackMeter = TrackMeter.ZERO,
     id: IntId<ReferenceLine>? = null,
-    alignmentVersion: RowVersion<LayoutAlignment>? = if (id != null) someRowVersion() else null,
+    geometryVersion: RowVersion<ReferenceLineGeometry>? = if (id != null) someRowVersion() else null,
     draft: Boolean = false,
     contextData: LayoutContextData<ReferenceLine> = createMainContext(id, draft),
 ) =
@@ -346,10 +346,10 @@ fun referenceLine(
         trackNumberId = trackNumberId,
         startAddress = startAddress.round(3),
         sourceId = null,
-        boundingBox = alignment?.boundingBox,
-        segmentCount = alignment?.segments?.size ?: 0,
-        length = alignment?.length ?: LineM<ReferenceLineM>(0.0),
-        alignmentVersion = alignmentVersion,
+        boundingBox = geometry?.boundingBox,
+        segmentCount = geometry?.segments?.size ?: 0,
+        length = geometry?.length ?: LineM(0.0),
+        geometryVersion = geometryVersion,
         contextData = contextData,
     )
 
@@ -510,15 +510,17 @@ fun locationTrack(
 
 fun <T> someOid() = Oid<T>("${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}")
 
-fun someAlignment() = alignment(someSegment())
+fun someReferenceLineGeometry(): ReferenceLineGeometry = referenceLineGeometry(someSegment())
 
 fun someTrackGeometry() = trackGeometryOfSegments(someSegment())
 
-fun alignmentFromPoints(vararg points: Point) = alignment(segment(*points))
+fun referenceLineGeometryOfPoints(vararg points: Point): ReferenceLineGeometry = referenceLineGeometry(segment(*points))
 
-fun alignment(vararg segments: LayoutSegment) = alignment(segments.toList())
+fun referenceLineGeometry(vararg segments: LayoutSegment): ReferenceLineGeometry =
+    referenceLineGeometry(segments.toList())
 
-fun alignment(segments: List<LayoutSegment>) = LayoutAlignment(segments = segments)
+fun referenceLineGeometry(segments: List<LayoutSegment>): ReferenceLineGeometry =
+    ReferenceLineGeometry(segments = segments)
 
 fun trackGeometryOfSegments(vararg segments: LayoutSegment): TmpLocationTrackGeometry =
     trackGeometryOfSegments(segments.toList())
@@ -618,11 +620,11 @@ fun edge(
         startNode =
             if (startInnerSwitch != null || startOuterSwitch != null)
                 NodeConnection.switch(inner = startInnerSwitch, outer = startOuterSwitch)
-            else if (startTrackBoundary != null) startTrackBoundary else PlaceHolderNodeConnection,
+            else startTrackBoundary ?: PlaceHolderNodeConnection,
         endNode =
             if (endInnerSwitch != null || endOuterSwitch != null)
                 NodeConnection.switch(inner = endInnerSwitch, outer = endOuterSwitch)
-            else if (endTrackBoundary != null) endTrackBoundary else PlaceHolderNodeConnection,
+            else endTrackBoundary ?: PlaceHolderNodeConnection,
         segments = segments,
     )
 
@@ -681,7 +683,7 @@ fun geocodingContext(
     startAddress: TrackMeter = TrackMeter.ZERO,
     kmPosts: List<LayoutKmPost> = listOf(),
 ) =
-    alignment(segment(*referenceLinePoints.toTypedArray())).let { alignment ->
+    referenceLineGeometry(segment(*referenceLinePoints.toTypedArray())).let { alignment ->
         GeocodingContext.create(
                 trackNumber = trackNumber,
                 startAddress = startAddress,
@@ -690,14 +692,6 @@ fun geocodingContext(
             )
             .geocodingContext
     }
-
-abstract class TargetSegment
-
-class TargetSegmentStart : TargetSegment()
-
-data class TargetSegmentMiddle(val index: Int) : TargetSegment()
-
-class TargetSegmentEnd : TargetSegment()
 
 fun segment(
     vararg points: IPoint,
@@ -1031,7 +1025,7 @@ fun someKmNumber(): KmNumber {
     return KmNumber(nextInt(10000), if (Random.nextBoolean()) allowedChars.random() else null)
 }
 
-fun offsetAlignment(alignment: LayoutAlignment, amount: Point) =
+fun offsetAlignment(alignment: ReferenceLineGeometry, amount: Point) =
     alignment.copy(segments = alignment.segments.map { origSegment -> offsetSegment(origSegment, amount) })
 
 fun offsetGeometry(geometry: LocationTrackGeometry, amount: Point): LocationTrackGeometry =

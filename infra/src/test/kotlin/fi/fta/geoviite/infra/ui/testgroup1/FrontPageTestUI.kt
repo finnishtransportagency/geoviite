@@ -21,21 +21,21 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
-import java.time.Instant
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -61,8 +61,8 @@ constructor(
         trackNumberDao.insertExternalId(originalTrackNumber.id, LayoutBranch.main, Oid("1.2.3.4.5"))
         val trackNumberId = originalTrackNumber.id
         val alignmentVersion =
-            alignmentDao.insert(alignment(segment(toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0)))))
-        referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = alignmentVersion, draft = false))
+            alignmentDao.insert(referenceLineGeometry(segment(toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0)))))
+        referenceLineDao.save(referenceLine(trackNumberId, geometryVersion = alignmentVersion, draft = false))
 
         val successfulPublicationId =
             publicationDao.createPublication(

@@ -14,10 +14,10 @@ import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.OVERWRITE
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.TRANSFER
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.split.targetRequest
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
@@ -56,7 +56,7 @@ constructor(
         val tn = testDBService.getUnusedTrackNumber()
         val tnId = mainDraftContext.createLayoutTrackNumber(tn).id
         val tnOid = mainDraftContext.generateOid(tnId)
-        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(500.0, 0.0)))
+        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
 
         // Switches with main (split-point) joints at 200 and 300

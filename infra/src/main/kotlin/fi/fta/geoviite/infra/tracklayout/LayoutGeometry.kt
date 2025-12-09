@@ -7,7 +7,6 @@ import com.github.davidmoten.rtree2.geometry.Geometry
 import com.github.davidmoten.rtree2.geometry.Line
 import com.github.davidmoten.rtree2.internal.EntryDefault
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
@@ -33,7 +32,6 @@ import fi.fta.geoviite.infra.math.angleAvgRads
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
-import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.closestPointProportionOnLine
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.interpolate
@@ -59,7 +57,7 @@ enum class GeometrySource {
     GENERATED,
 }
 
-fun emptyAlignment() = LayoutAlignment(segments = listOf())
+fun emptyAlignment() = ReferenceLineGeometry(segments = listOf())
 
 data class SegmentGeometryAndMetadata<M : AlignmentM<M>>(
     val planId: IntId<GeometryPlan>?,
@@ -298,52 +296,6 @@ data class SegmentSpatialIndex(private val rtree: RTree<Int, Geometry>, private 
     fun findClosest(point: IPoint): Int? {
         return rtree.nearest(Geometries.point(point.x, point.y), maxSeekDistance, 1).firstOrNull()?.value()
     }
-}
-
-// TODO: GVT-2935 this will become reference-line only version: rename (+ format with db & non-db types?
-data class LayoutAlignment(
-    override val segments: List<LayoutSegment>,
-    val id: DomainId<LayoutAlignment> = StringId(),
-    val dataType: DataType = DataType.TEMP,
-) : IAlignment<ReferenceLineM> {
-    override val boundingBox: BoundingBox? by lazy { boundingBoxCombining(segments.map { s -> s.boundingBox }) }
-    override val segmentMValues: List<Range<LineM<ReferenceLineM>>> = calculateSegmentMValues(segments)
-    @get:JsonIgnore
-    override val segmentsWithM: List<Pair<LayoutSegment, Range<LineM<ReferenceLineM>>>>
-        get() = segments.zip(segmentMValues)
-
-    private val spatialIndex: SegmentSpatialIndex by lazy { SegmentSpatialIndex(segments) }
-
-    override fun approximateClosestSegmentIndex(target: IPoint): Int? = spatialIndex.findClosest(target)
-
-    init {
-        segments.forEachIndexed { index, segment ->
-            val m = segmentMValues[index]
-            require(abs(segment.length - (m.max.distance - m.min.distance)) < LAYOUT_M_DELTA)
-
-            if (index == 0) {
-                require(m.min.distance == 0.0) {
-                    "First segment should start at 0.0: alignment=$id firstStart=${m.min.distance}"
-                }
-            } else {
-                val previous = segments[index - 1]
-                val previousM = segmentMValues[index - 1]
-                require(previous.segmentEnd.isSame(segment.segmentStart, LAYOUT_COORDINATE_DELTA)) {
-                    "Alignment segment doesn't start where the previous one ended: " +
-                        "alignment=$id segment=$index length=${segment.length} prevLength=${previous.length} " +
-                        "diff=${lineLength(previous.segmentEnd, segment.segmentStart)}"
-                }
-                require(isSame(previousM.max.distance, m.min.distance, LAYOUT_M_DELTA)) {
-                    "Alignment segment m-calculation should be continuous: " +
-                        "alignment=$id segment=$index prev=$previousM next=$m"
-                }
-            }
-        }
-    }
-
-    fun withSegments(newSegments: List<LayoutSegment>) = copy(segments = newSegments)
-
-    override fun toLog(): String = logFormat("id" to id, "segments" to segments.size, "length" to round(length, 3))
 }
 
 data class LayoutSegmentMetadata(

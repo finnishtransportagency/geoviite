@@ -51,11 +51,11 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
         val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
         val trackNumber = designDraftContext.save(trackNumber())
-        designDraftContext.save(referenceLine(trackNumber.id), alignment)
+        designDraftContext.save(referenceLine(trackNumber.id), referenceLineGeometry)
         designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
         designDraftContext.save(switch())
         designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
@@ -113,11 +113,11 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
         val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
         val trackNumber = designDraftContext.save(trackNumber())
-        val referenceLine = designDraftContext.save(referenceLine(trackNumber.id), alignment)
+        val referenceLine = designDraftContext.save(referenceLine(trackNumber.id), referenceLineGeometry)
         val locationTrack = designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
         val switch = designDraftContext.save(switch())
         val kmPost = designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
@@ -177,11 +177,11 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
         val trackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
         val trackNumber = designDraftContext.save(trackNumber())
-        designDraftContext.save(referenceLine(trackNumber.id), alignment)
+        designDraftContext.save(referenceLine(trackNumber.id), referenceLineGeometry)
         designDraftContext.save(locationTrack(trackNumber.id), trackGeometry)
         designDraftContext.save(switch())
         designDraftContext.save(kmPost(trackNumber.id, KmNumber(123)))
@@ -200,10 +200,10 @@ constructor(
         val designBranch = testDBService.createDesignBranch()
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
 
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        mainOfficialContext.save(referenceLine(trackNumber), alignment)
+        mainOfficialContext.save(referenceLine(trackNumber), referenceLineGeometry)
         val switch =
             mainOfficialContext
                 .save(

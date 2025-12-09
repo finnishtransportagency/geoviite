@@ -44,6 +44,7 @@ class LayoutTrackNumberController(
     private val publicationValidationService: PublicationValidationService,
     private val localizationService: LocalizationService,
     private val geometryService: GeometryService,
+    private val alignmentMetadataService: AlignmentMetadataService,
 ) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -121,11 +122,11 @@ class LayoutTrackNumberController(
     fun getTrackSectionsByPlan(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<LayoutTrackNumber>,
+        @PathVariable("id") trackNumberId: IntId<LayoutTrackNumber>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
-    ): List<AlignmentPlanSection<*>> {
-        val context = LayoutContext.of(branch, publicationState)
-        return trackNumberService.getMetadataSections(context, id, boundingBox)
+    ): List<AlignmentPlanSection<ReferenceLineM>> {
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        return alignmentMetadataService.getReferenceLineMetadataSections(layoutContext, trackNumberId, boundingBox)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

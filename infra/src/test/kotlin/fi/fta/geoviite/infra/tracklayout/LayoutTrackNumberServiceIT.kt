@@ -17,6 +17,8 @@ import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.util.FreeText
+import java.math.BigDecimal
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -28,8 +30,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.math.BigDecimal
-import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -70,9 +70,9 @@ constructor(
     }
 
     @Test
-    fun deletingDraftOnlyTrackNumberDeletesItAndReferenceLineAndAlignment() {
-        val (trackNumber, referenceLine, alignment) = createTrackNumberAndReferenceLineAndAlignment()
-        assertEquals(referenceLine.alignmentVersion?.id, alignment.id as IntId)
+    fun `deleting draft only TrackNumber deletes it and ReferenceLine with geometry`() {
+        val (trackNumber, referenceLine, geometry) = createTrackNumberAndReferenceLineAndAlignment()
+        assertEquals(referenceLine.geometryVersion?.id, geometry.id as IntId)
         val trackNumberId = trackNumber.id as IntId
 
         assertDoesNotThrow { trackNumberService.deleteDraft(LayoutBranch.main, trackNumberId) }
@@ -80,7 +80,7 @@ constructor(
             referenceLineService.getOrThrow(MainLayoutContext.draft, referenceLine.id as IntId)
         }
         assertThrows<NoSuchEntityException> { trackNumberService.getOrThrow(MainLayoutContext.draft, trackNumberId) }
-        assertFalse(alignmentDao.fetchVersions().map { rv -> rv.id }.contains(alignment.id))
+        assertFalse(alignmentDao.fetchVersions().map { rv -> rv.id }.contains(geometry.id))
     }
 
     @Test
@@ -99,7 +99,7 @@ constructor(
         val trackOid = externalIdForTrackNumber()
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumber.id as IntId, trackOid)
 
-        referenceLineAndAlignment(
+        referenceLineAndGeometry(
                 trackNumberId = trackNumber.id as IntId,
                 segments =
                     listOf(
@@ -108,9 +108,9 @@ constructor(
                 startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5)),
                 draft = false,
             )
-            .let { (referenceLine, alignment) ->
+            .let { (referenceLine, geometry) ->
                 val referenceLineVersion =
-                    referenceLineDao.save(referenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
+                    referenceLineDao.save(referenceLine.copy(geometryVersion = alignmentDao.insert(geometry)))
                 referenceLineDao.fetch(referenceLineVersion)
             }
 
@@ -198,7 +198,7 @@ constructor(
         val trackNumber =
             trackNumberDao.fetch(trackNumberDao.save(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)))
 
-        referenceLineAndAlignment(
+        referenceLineAndGeometry(
                 trackNumberId = trackNumber.id as IntId,
                 segments =
                     listOf(
@@ -207,9 +207,9 @@ constructor(
                 startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5)),
                 draft = false,
             )
-            .let { (referenceLine, alignment) ->
+            .let { (referenceLine, geometry) ->
                 val referenceLineVersion =
-                    referenceLineDao.save(referenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
+                    referenceLineDao.save(referenceLine.copy(geometryVersion = alignmentDao.insert(geometry)))
 
                 referenceLineDao.fetch(referenceLineVersion)
             }
@@ -367,18 +367,18 @@ constructor(
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val designOfficialContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
 
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 0.0)))
 
         val tn1 = designDraftContext.save(trackNumber(number = TrackNumber("asdf"))).id
-        val rl1 = designOfficialContext.save(referenceLine(tn1), alignment).id
+        val rl1 = designOfficialContext.save(referenceLine(tn1), geometry).id
         assertEquals(rl1, designDraftContext.fetch(tn1)!!.referenceLineId)
 
         val tn2 = designDraftContext.save(trackNumber(number = TrackNumber("aoeu"))).id
-        val rl2 = mainOfficialContext.save(referenceLine(tn2), alignment).id
+        val rl2 = mainOfficialContext.save(referenceLine(tn2), geometry).id
         assertEquals(rl2, designDraftContext.fetch(tn2)!!.referenceLineId)
 
         val tn3 = mainDraftContext.save(trackNumber(number = TrackNumber("arst"))).id
-        val rl3 = mainOfficialContext.save(referenceLine(tn3), alignment).id
+        val rl3 = mainOfficialContext.save(referenceLine(tn3), geometry).id
         assertEquals(rl3, mainDraftContext.fetch(tn3)!!.referenceLineId)
     }
 
@@ -388,7 +388,7 @@ constructor(
         val trackNumberId =
             mainOfficialContext
                 .createLayoutTrackNumberAndReferenceLine(
-                    lineAlignment = alignment(referenceLineSegment),
+                    referenceLineGeometry = referenceLineGeometry(referenceLineSegment),
                     startAddress = TrackMeter(KmNumber(0), BigDecimal(0.0)),
                 )
                 .id
@@ -403,7 +403,7 @@ constructor(
         val trackNumberId =
             mainOfficialContext
                 .createLayoutTrackNumberAndReferenceLine(
-                    alignment(segment(Point(32.0, 0.0), Point(50.0, 0.0))),
+                    referenceLineGeometry(segment(Point(32.0, 0.0), Point(50.0, 0.0))),
                     startAddress = TrackMeter(KmNumber(0), BigDecimal(32.0)),
                 )
                 .id
@@ -445,7 +445,9 @@ constructor(
     fun `ReferenceLine polygon is resolved correctly with cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
+                .createLayoutTrackNumberAndReferenceLine(
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0)))
+                )
                 .id
 
         mainOfficialContext.saveAndFetch(
@@ -497,7 +499,7 @@ constructor(
         val id =
             mainOfficialContext
                 .createLayoutTrackNumberAndReferenceLine(
-                    alignment(segment(Point(1500.0, 0.0), Point(3500.0, 0.0))),
+                    referenceLineGeometry(segment(Point(1500.0, 0.0), Point(3500.0, 0.0))),
                     startAddress = TrackMeter(KmNumber(1), BigDecimal(500.0)),
                 )
                 .id
@@ -615,7 +617,8 @@ constructor(
         assertEquals(expected, actual, "$description expected=$expected actual=$actual")
     }
 
-    fun createTrackNumberAndReferenceLineAndAlignment(): Triple<LayoutTrackNumber, ReferenceLine, LayoutAlignment> {
+    fun createTrackNumberAndReferenceLineAndAlignment():
+        Triple<LayoutTrackNumber, ReferenceLine, ReferenceLineGeometry> {
         val saveRequest =
             TrackNumberSaveRequest(
                 testDBService.getUnusedTrackNumber(),
@@ -627,7 +630,7 @@ constructor(
         val trackNumber = trackNumberService.get(MainLayoutContext.draft, id)!!
 
         val (referenceLine, alignment) =
-            referenceLineService.getByTrackNumberWithAlignment(
+            referenceLineService.getByTrackNumberWithGeometry(
                 MainLayoutContext.draft,
                 trackNumber.id as IntId<LayoutTrackNumber>,
             )!! // Always exists, since we just created it

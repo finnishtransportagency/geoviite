@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.ILayoutAssetDao
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
@@ -33,6 +32,7 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.UicCode
 import java.util.concurrent.ConcurrentHashMap
 
@@ -128,9 +128,9 @@ class ValidationContext(
     fun getReferenceLine(id: IntId<ReferenceLine>): ReferenceLine? =
         getObject(target.baseContext, id, publicationSet.referenceLines, referenceLineDao, referenceLineVersionCache)
 
-    fun getReferenceLineWithAlignment(id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment>? =
+    fun getReferenceLineWithAlignment(id: IntId<ReferenceLine>): Pair<ReferenceLine, ReferenceLineGeometry>? =
         getObject(target.baseContext, id, publicationSet.referenceLines, referenceLineDao, referenceLineVersionCache)
-            ?.let { rl -> rl to alignmentDao.fetch(rl.getAlignmentVersionOrThrow()) }
+            ?.let { rl -> rl to alignmentDao.fetch(rl.getGeometryVersionOrThrow()) }
 
     fun getKmPost(id: IntId<LayoutKmPost>): LayoutKmPost? =
         getObject(target.baseContext, id, publicationSet.kmPosts, kmPostDao, kmPostVersionCache)

@@ -11,17 +11,17 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.TestGeometryPlanService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.IAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
@@ -583,7 +583,7 @@ constructor(
                 draft = false,
             )
         referenceLineDao.save(
-            originalReferenceLine.first.copy(alignmentVersion = alignmentDao.insert(originalReferenceLine.second))
+            originalReferenceLine.first.copy(geometryVersion = alignmentDao.insert(originalReferenceLine.second))
         )
 
         val plan =
@@ -749,23 +749,23 @@ constructor(
         waitAndClearToast("linking-succeeded")
     }
 
-    private fun createAndInsertCommonReferenceLine(trackNumber: IntId<LayoutTrackNumber>): LayoutAlignment {
+    private fun createAndInsertCommonReferenceLine(trackNumber: IntId<LayoutTrackNumber>): ReferenceLineGeometry {
         val points =
             pointsFromIncrementList(
                 DEFAULT_BASE_POINT + Point(1.0, 1.0),
                 listOf(Point(x = 2.0, y = 3.0), Point(x = 5.0, y = 12.0)),
             )
 
-        val alignment = alignment(segment(toSegmentPoints(*points.toTypedArray())))
+        val geometry = referenceLineGeometry(segment(toSegmentPoints(*points.toTypedArray())))
         val commonReferenceLine =
             referenceLine(
-                alignment = alignment,
+                geometry = geometry,
                 trackNumberId = trackNumber,
                 startAddress = TrackMeter(KmNumber(0), 0),
                 draft = false,
             )
-        referenceLineDao.save(commonReferenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
-        return alignment
+        referenceLineDao.save(commonReferenceLine.copy(geometryVersion = alignmentDao.insert(geometry)))
+        return geometry
     }
 
     private fun getGeometryAlignmentFromPlan(alignmentName: String, geometryPlan: GeometryPlan) =

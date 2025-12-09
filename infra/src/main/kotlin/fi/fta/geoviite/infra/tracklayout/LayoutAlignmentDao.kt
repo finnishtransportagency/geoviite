@@ -52,14 +52,14 @@ import fi.fta.geoviite.infra.util.getSridOrNull
 import fi.fta.geoviite.infra.util.setNullableBigDecimal
 import fi.fta.geoviite.infra.util.setNullableInt
 import fi.fta.geoviite.infra.util.setUser
-import java.math.BigDecimal
-import java.sql.ResultSet
-import java.util.stream.Collectors
-import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
+import java.sql.ResultSet
+import java.util.stream.Collectors
+import kotlin.math.abs
 
 const val NODE_CACHE_SIZE = 50000L
 const val EDGE_CACHE_SIZE = 100000L
@@ -87,13 +87,13 @@ class LayoutAlignmentDao(
     private val locationTrackGeometryCache: Cache<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> =
         Caffeine.newBuilder().maximumSize(ALIGNMENT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
-    private val alignmentsCache: Cache<RowVersion<LayoutAlignment>, LayoutAlignment> =
+    private val referenceLineGeometryCache: Cache<RowVersion<ReferenceLineGeometry>, ReferenceLineGeometry> =
         Caffeine.newBuilder().maximumSize(ALIGNMENT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
     private val segmentGeometryCache: Cache<IntId<SegmentGeometry>, SegmentGeometry> =
         Caffeine.newBuilder().maximumSize(GEOMETRY_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
-    fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
+    fun fetchVersions() = fetchRowVersions<ReferenceLineGeometry>(LAYOUT_ALIGNMENT)
 
     fun getNode(id: IntId<LayoutNode>): DbLayoutNode = requireNotNull(getNodes(listOf(id))[id])
 
@@ -503,11 +503,11 @@ class LayoutAlignmentDao(
         return geoms.size
     }
 
-    fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment =
-        if (cacheEnabled) alignmentsCache.get(alignmentVersion, ::fetchInternal) else fetchInternal(alignmentVersion)
+    fun fetch(version: RowVersion<ReferenceLineGeometry>): ReferenceLineGeometry =
+        if (cacheEnabled) referenceLineGeometryCache.get(version, ::fetchInternal) else fetchInternal(version)
 
     @Transactional(readOnly = true)
-    fun fetchMany(versions: List<RowVersion<LayoutAlignment>>): Map<RowVersion<LayoutAlignment>, LayoutAlignment> =
+    fun fetchMany(versions: List<RowVersion<ReferenceLineGeometry>>): Map<RowVersion<ReferenceLineGeometry>, ReferenceLineGeometry> =
         versions.associateWith(this::fetch)
 
     @Transactional(readOnly = true)
@@ -515,7 +515,7 @@ class LayoutAlignmentDao(
         versions: List<LayoutRowVersion<LocationTrack>>
     ): Map<LayoutRowVersion<LocationTrack>, DbLocationTrackGeometry> = versions.associateWith(this::fetch)
 
-    private fun fetchInternal(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment {
+    private fun fetchInternal(version: RowVersion<ReferenceLineGeometry>): ReferenceLineGeometry {
         val sql =
             """
                 select id, version
@@ -525,18 +525,18 @@ class LayoutAlignmentDao(
                   and deleted = false
             """
                 .trimIndent()
-        val params = mapOf("id" to alignmentVersion.id.intValue, "version" to alignmentVersion.version)
+        val params = mapOf("id" to version.id.intValue, "version" to version.version)
         return getOne(
-                alignmentVersion.id,
+                version.id,
                 jdbcTemplate.query(sql, params) { rs, _ ->
-                    LayoutAlignment(
+                    ReferenceLineGeometry(
                         dataType = DataType.STORED,
                         id = rs.getIntId("id"),
-                        segments = fetchSegments(alignmentVersion),
+                        segments = fetchSegments(version),
                     )
                 },
             )
-            .also { alignment -> logger.daoAccess(AccessType.FETCH, LayoutAlignment::class, alignment.id) }
+            .also { alignment -> logger.daoAccess(AccessType.FETCH, ReferenceLineGeometry::class, alignment.id) }
     }
 
     fun preloadAlignmentCache(): Int {
@@ -558,11 +558,11 @@ class LayoutAlignmentDao(
             """
                 .trimIndent()
 
-        data class AlignmentData(val version: RowVersion<LayoutAlignment>)
+        data class GeometryData(val version: RowVersion<ReferenceLineGeometry>)
 
-        val alignmentAndSegment =
+        val geometryAndSegment =
             jdbcTemplate.query(sql) { rs, _ ->
-                val alignmentData = AlignmentData(version = rs.getRowVersion("id", "version"))
+                val geometryData = GeometryData(version = rs.getRowVersion("id", "version"))
                 val segmentId = rs.getIndexedIdOrNull<LayoutSegment>("id", "segment_index")
                 val segment =
                     segmentId?.let { sId ->
@@ -573,23 +573,23 @@ class LayoutAlignmentDao(
                             geometryId = rs.getIntId("geometry_id"),
                         )
                     }
-                alignmentData to segment
+                geometryData to segment
             }
-        val groupedByAlignment = alignmentAndSegment.groupBy({ (a, _) -> a }, { (_, s) -> s }).entries
-        val geometries = fetchSegmentGeometries(alignmentAndSegment.mapNotNull { (_, s) -> s?.geometryId }.distinct())
-        groupedByAlignment.parallelStream().forEach { (alignmentData, segmentDatas) ->
-            alignmentsCache.get(alignmentData.version) { _ ->
-                LayoutAlignment(
-                    id = alignmentData.version.id,
+        val groupedByGeometry = geometryAndSegment.groupBy({ (a, _) -> a }, { (_, s) -> s }).entries
+        val geometries = fetchSegmentGeometries(geometryAndSegment.mapNotNull { (_, s) -> s?.geometryId }.distinct())
+        groupedByGeometry.parallelStream().forEach { (geometryData, segmentDatas) ->
+            referenceLineGeometryCache.get(geometryData.version) { _ ->
+                ReferenceLineGeometry(
+                    id = geometryData.version.id,
                     segments = createSegments(segmentDatas.filterNotNull(), geometries),
                 )
             }
         }
-        return groupedByAlignment.size
+        return groupedByGeometry.size
     }
 
     @Transactional
-    fun insert(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
+    fun insert(geometry: ReferenceLineGeometry): RowVersion<ReferenceLineGeometry> {
         val sql =
             """
                 insert into layout.alignment(
@@ -607,23 +607,23 @@ class LayoutAlignmentDao(
                 .trimIndent()
         val params =
             mapOf(
-                "polygon_string" to alignment.boundingBox?.let { bbox -> bbox.polygonFromCorners.toWkt() },
-                "segment_count" to alignment.segments.size,
-                "length" to alignment.length.distance,
+                "polygon_string" to geometry.boundingBox?.let { bbox -> bbox.polygonFromCorners.toWkt() },
+                "segment_count" to geometry.segments.size,
+                "length" to geometry.length.distance,
             )
         jdbcTemplate.setUser()
-        val id: RowVersion<LayoutAlignment> =
+        val id: RowVersion<ReferenceLineGeometry> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
                 ?: throw IllegalStateException("Failed to generate ID for new Track Layout Alignment")
-        upsertSegments(id, alignment.segmentsWithM)
-        logger.daoAccess(AccessType.INSERT, LayoutAlignment::class, id)
+        upsertSegments(id, geometry.segmentsWithM)
+        logger.daoAccess(AccessType.INSERT, ReferenceLineGeometry::class, id)
         return id
     }
 
     @Transactional
-    fun update(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
+    fun update(geometry: ReferenceLineGeometry): RowVersion<ReferenceLineGeometry> {
         val alignmentId =
-            if (alignment.id is IntId) alignment.id
+            if (geometry.id is IntId) geometry.id
             else throw IllegalArgumentException("Cannot update an alignment that isn't in DB already")
         val sql =
             """
@@ -639,26 +639,26 @@ class LayoutAlignmentDao(
         val params =
             mapOf(
                 "id" to alignmentId.intValue,
-                "polygon_string" to alignment.boundingBox?.let(BoundingBox::polygonFromCorners)?.toWkt(),
-                "segment_count" to alignment.segments.size,
-                "length" to alignment.length.distance,
+                "polygon_string" to geometry.boundingBox?.let(BoundingBox::polygonFromCorners)?.toWkt(),
+                "segment_count" to geometry.segments.size,
+                "length" to geometry.length.distance,
             )
         jdbcTemplate.setUser()
-        val result: RowVersion<LayoutAlignment> =
+        val result: RowVersion<ReferenceLineGeometry> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
                 ?: throw IllegalStateException("Failed to get new version for Track Layout Alignment")
-        logger.daoAccess(AccessType.UPDATE, LayoutAlignment::class, result.id)
-        upsertSegments(result, alignment.segmentsWithM)
+        logger.daoAccess(AccessType.UPDATE, ReferenceLineGeometry::class, result.id)
+        upsertSegments(result, geometry.segmentsWithM)
         return result
     }
 
     @Transactional
-    fun delete(id: IntId<LayoutAlignment>): IntId<LayoutAlignment> {
+    fun delete(id: IntId<ReferenceLineGeometry>): IntId<ReferenceLineGeometry> {
         val sql = "delete from layout.alignment where id = :id returning id"
         val params = mapOf("id" to id.intValue)
         jdbcTemplate.setUser()
-        val deletedRowId = getOne(id, jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutAlignment>("id") })
-        logger.daoAccess(AccessType.DELETE, LayoutAlignment::class, deletedRowId)
+        val deletedRowId = getOne(id, jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<ReferenceLineGeometry>("id") })
+        logger.daoAccess(AccessType.DELETE, ReferenceLineGeometry::class, deletedRowId)
         return deletedRowId
     }
 
@@ -742,7 +742,7 @@ class LayoutAlignmentDao(
     ): List<NodeTrackConnections> = getNodeConnectionsNearPoints(context, listOf(target), distance).first()
 
     @Transactional
-    fun deleteOrphanedAlignments(): List<IntId<LayoutAlignment>> {
+    fun deleteOrphanedRerefenceLineGeometries(): List<IntId<ReferenceLineGeometry>> {
         val sql =
             """
                 delete
@@ -752,13 +752,13 @@ class LayoutAlignmentDao(
             """
                 .trimIndent()
         jdbcTemplate.setUser()
-        val deletedAlignments =
-            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> rs.getIntId<LayoutAlignment>("id") }
-        logger.daoAccess(AccessType.DELETE, LayoutAlignment::class, deletedAlignments)
-        return deletedAlignments
+        val deletedGeometries =
+            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> rs.getIntId<ReferenceLineGeometry>("id") }
+        logger.daoAccess(AccessType.DELETE, ReferenceLineGeometry::class, deletedGeometries)
+        return deletedGeometries
     }
 
-    private fun fetchSegments(alignmentVersion: RowVersion<LayoutAlignment>): List<LayoutSegment> {
+    private fun fetchSegments(version: RowVersion<ReferenceLineGeometry>): List<LayoutSegment> {
         val sql =
             """
                 select
@@ -774,7 +774,7 @@ class LayoutAlignmentDao(
             """
                 .trimIndent()
         val params =
-            mapOf("alignment_id" to alignmentVersion.id.intValue, "alignment_version" to alignmentVersion.version)
+            mapOf("alignment_id" to version.id.intValue, "alignment_version" to version.version)
 
         val segmentData =
             jdbcTemplate.query(sql, params) { rs, _ ->
@@ -954,7 +954,7 @@ class LayoutAlignmentDao(
     }
 
     fun fetchSegmentGeometriesAndPlanMetadata(
-        alignmentVersion: RowVersion<LayoutAlignment>,
+        alignmentVersion: RowVersion<ReferenceLineGeometry>,
         metadataExternalId: Oid<*>?,
         boundingBox: BoundingBox?,
     ): List<SegmentGeometryAndMetadata<ReferenceLineM>> {
@@ -1237,7 +1237,7 @@ class LayoutAlignmentDao(
     }
 
     private fun upsertSegments(
-        alignmentId: RowVersion<LayoutAlignment>,
+        alignmentId: RowVersion<ReferenceLineGeometry>,
         segments: List<Pair<LayoutSegment, Range<out LineM<*>>>>,
     ) {
         if (segments.isNotEmpty()) {

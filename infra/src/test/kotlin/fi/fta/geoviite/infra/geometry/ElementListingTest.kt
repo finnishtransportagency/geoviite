@@ -30,15 +30,15 @@ import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.geocodingContext
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchLinkKV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.util.FileName
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
 
 private val allElementTypes = GeometryElementType.entries
 private val allTrackElementTypes = TrackGeometryElementType.entries
@@ -139,7 +139,7 @@ class ElementListingTest {
         val trackNumberId = IntId<LayoutTrackNumber>(1)
         val trackNumber = TrackNumber("4646")
         val (referenceLine, alignment) =
-            referenceLineAndAlignment(
+            referenceLineAndGeometry(
                 trackNumberId = trackNumberId,
                 segments =
                     listOf(segment(Point(0.0, 0.0) + layoutCoordinateBase, Point(50.0, 0.0) + layoutCoordinateBase)),

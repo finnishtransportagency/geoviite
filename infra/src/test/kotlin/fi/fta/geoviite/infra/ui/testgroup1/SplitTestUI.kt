@@ -11,9 +11,9 @@ import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
@@ -79,7 +79,7 @@ constructor(
         val geometry =
             trackGeometry(combineEdges(listOf(preEdge) + straightEdges1 + edge1To2 + straightEdges2 + postEdge))
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(alignment(geometry.segments), trackNumber).id
+            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(geometry.segments), trackNumber).id
         val sourceTrackId = mainOfficialContext.save(locationTrack(trackNumberId), geometry).id
         locationTrackService.insertExternalId(LayoutBranch.main, sourceTrackId, someOid())
 
