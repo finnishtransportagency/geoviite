@@ -616,6 +616,36 @@ constructor(
         )
     }
 
+    @Test
+    fun `findSwitchesRelatedToOperationalPoint ignores NOT_EXISTING switches`() {
+        val op =
+            operationalPoint(
+                polygon =
+                    Polygon(Point(0.0, 0.0), Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 10.0), Point(0.0, 0.0))
+            )
+        val operationalPoint = mainDraftContext.save(op).id
+        val inAreaSwitchObject =
+            switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 10.0), null)))
+        val outOfAreaLinkedSwitchObject =
+            switch(
+                joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(20.0, 20.0), null)),
+                operationalPointId = operationalPoint,
+            )
+
+        val inAreaExisting = mainDraftContext.save(inAreaSwitchObject).id
+        val outOfAreaLinkedExisting = mainDraftContext.save(outOfAreaLinkedSwitchObject).id
+        mainDraftContext.save(inAreaSwitchObject.copy(stateCategory = LayoutStateCategory.NOT_EXISTING))
+        mainDraftContext.save(outOfAreaLinkedSwitchObject.copy(stateCategory = LayoutStateCategory.NOT_EXISTING))
+
+        assertEquals(
+            listOf(
+                SwitchWithOperationalPointPolygonInclusions(inAreaExisting, listOf(operationalPoint)),
+                SwitchWithOperationalPointPolygonInclusions(outOfAreaLinkedExisting, listOf()),
+            ),
+            switchService.findSwitchesRelatedToOperationalPoint(mainDraftContext.context, operationalPoint),
+        )
+    }
+
     private fun insertDraft(
         locationTrack: LocationTrack,
         geometry: LocationTrackGeometry,
