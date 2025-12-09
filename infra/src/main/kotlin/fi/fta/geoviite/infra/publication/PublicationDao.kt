@@ -1469,7 +1469,7 @@ class PublicationDao(
                     where plt.publication_id = :publication_id
                       and plt.base_layout_context_id is not null
                   union all
-                  select
+                  select distinct
                     'NA' as change_side,
                     pslt.location_track_id as location_track_id,
                     pslt.location_track_layout_context_id as location_track_layout_context_id,
@@ -1479,8 +1479,8 @@ class PublicationDao(
                       and not exists (
                         select *
                         from publication.location_track plt
-                        where pslt.publication_id = :publication_id
-                          and pslt.location_track_id = plt.id
+                        where plt.publication_id = :publication_id
+                          and plt.id = pslt.location_track_id
                       )
                 ),
                 touched_joint_locations as (
@@ -1519,31 +1519,41 @@ class PublicationDao(
                                  on ltv.id = track.location_track_id
                                    and ltv.layout_context_id = track.location_track_layout_context_id
                                    and ltv.version = track.location_track_version
+                                   and ltv.state != 'DELETED'
                       inner join lateral (
-                      select
-                        start_np.switch_id as switch_id,
-                        start_np.switch_joint_number as joint_number,
-                        e.start_location as location,
-                        0 as sort
-                        from layout.location_track_version_edge first_ltv_e
-                          inner join layout.edge e on first_ltv_e.edge_id = e.id
-                          inner join layout.node_port start_np on start_np.node_id = e.start_node_id and start_np.port = e.start_node_port
-                        where first_ltv_e.location_track_id = track.location_track_id
-                          and first_ltv_e.location_track_layout_context_id = track.location_track_layout_context_id
-                          and first_ltv_e.location_track_version = track.location_track_version
-                          and first_ltv_e.edge_index = 0
-                      union all
-                      select
-                        end_np.switch_id as switch_id,
-                        end_np.switch_joint_number as joint_number,
-                        e.end_location as location,
-                        ltv_e.edge_index+1 as sort
-                        from layout.location_track_version_edge ltv_e
-                          inner join layout.edge e on ltv_e.edge_id = e.id
-                          inner join layout.node_port end_np on end_np.node_id = e.end_node_id and end_np.port = e.end_node_port
-                        where ltv_e.location_track_id = track.location_track_id
-                          and ltv_e.location_track_layout_context_id = track.location_track_layout_context_id
-                          and ltv_e.location_track_version = track.location_track_version
+                        select
+                          unnest(switch_ids) switch_id,
+                          location,
+                          unnest(joint_numbers) joint_number,
+                          unnest(sorts) sort
+                          from (
+                            select
+                             array [start_np_out.switch_id, start_np.switch_id] as switch_ids,
+                             array [ start_np_out.switch_joint_number, start_np.switch_joint_number] as joint_numbers,
+                             e.start_location as location,
+                             array [ 0, 1 ] as sorts
+                             from layout.location_track_version_edge first_ltv_e
+                               inner join layout.edge e on first_ltv_e.edge_id = e.id
+                               inner join layout.node_port start_np on start_np.node_id = e.start_node_id and start_np.port = e.start_node_port
+                               left join layout.node_port start_np_out on start_np_out.node_id = e.start_node_id and start_np_out.port != e.start_node_port
+                             where first_ltv_e.location_track_id = track.location_track_id
+                               and first_ltv_e.location_track_layout_context_id = track.location_track_layout_context_id
+                               and first_ltv_e.location_track_version = track.location_track_version
+                               and first_ltv_e.edge_index = 0
+                           union all
+                           select
+                             array [end_np.switch_id, end_np_out.switch_id] as switch_ids,
+                             array [end_np.switch_joint_number, end_np_out.switch_joint_number] as joint_numbers,
+                             e.end_location as location,
+                             array [2 + 2 * ltv_e.edge_index, 3 + 2 * ltv_e.edge_index] as sorts
+                             from layout.location_track_version_edge ltv_e
+                               inner join layout.edge e on ltv_e.edge_id = e.id
+                               inner join layout.node_port end_np on end_np.node_id = e.end_node_id and end_np.port = e.end_node_port
+                               left join layout.node_port end_np_out on end_np_out.node_id = e.end_node_id and end_np_out.port != e.end_node_port
+                             where ltv_e.location_track_id = track.location_track_id
+                               and ltv_e.location_track_layout_context_id = track.location_track_layout_context_id
+                               and ltv_e.location_track_version = track.location_track_version
+                        ) nodes
                       ) joints on true
                     where joint_number is not null
                     group by joints.switch_id
@@ -2208,8 +2218,7 @@ class PublicationDao(
                   location_track_id,
                   location_track_external_id, 
                   track_number_id,
-                  track_number_external_id,
-                  location_track_deleted)
+                  track_number_external_id)
                 values (
                   :publication_id,
                   :switch_id,
@@ -2220,8 +2229,7 @@ class PublicationDao(
                   :location_track_id,
                   :location_track_external_id,
                   :track_number_id,
-                  :track_number_external_id,
-                  :location_track_deleted
+                  :track_number_external_id
                 )
             """
                 .trimIndent(),
@@ -2240,7 +2248,6 @@ class PublicationDao(
                             "location_track_external_id" to cj.locationTrackExternalId,
                             "track_number_id" to cj.trackNumberId.intValue,
                             "track_number_external_id" to cj.trackNumberExternalId,
-                            "location_track_deleted" to cj.locationTrackDeleted,
                         )
                     }
                 }
@@ -2413,7 +2420,7 @@ class PublicationDao(
             """
                 .trimIndent()
 
-        val publishedSwitchJoints = publishedSwitchJoints(publicationIds)
+        val publishedSwitchJoints = getPublishedSwitchJoints(publicationIds)
 
         return jdbcTemplate
             .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
@@ -2437,7 +2444,7 @@ class PublicationDao(
             }
     }
 
-    private fun publishedSwitchJoints(
+    private fun getPublishedSwitchJoints(
         publicationIds: Set<IntId<Publication>>
     ): Map<IntId<Publication>, Map<IntId<LayoutSwitch>, List<SwitchJointChange>>> {
         val sql =
@@ -2453,8 +2460,7 @@ class PublicationDao(
                   location_track_id,
                   location_track_external_id,
                   track_number_id,
-                  track_number_external_id,
-                  location_track_deleted
+                  track_number_external_id
                 from publication.switch_joint
                 where publication_id = any(array[:publication_ids]::int[])
             """
@@ -2472,7 +2478,6 @@ class PublicationDao(
                         locationTrackExternalId = rs.getOidOrNull("location_track_external_id"),
                         trackNumberId = rs.getIntId("track_number_id"),
                         trackNumberExternalId = rs.getOidOrNull("track_number_external_id"),
-                        locationTrackDeleted = rs.getBoolean("location_track_deleted"),
                     )
             }
             .groupBy({ it.first.first }, { it.first.second to it.second })
