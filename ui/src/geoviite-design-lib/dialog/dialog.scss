@@ -27,7 +27,7 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
     border-radius: 4px;
     background: colors.$color-white-default;
     min-height: 200px;
-    max-height: 100%;
+    max-height: calc(100vh - 40px);
 
     &--moving {
         user-select: none;
