@@ -6,6 +6,7 @@ import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.ui.ExpectedConditions.not
 import org.openqa.selenium.support.ui.ExpectedConditions.numberOfElementsToBe
 import tryWait
+import tryWaitNonNull
 
 val byLiTag: By = By.tagName("li")
 
@@ -50,7 +51,7 @@ abstract class E2EList<T>(listBy: By, val itemsBy: By, val selectedItemBy: By? =
     fun waitUntilItemCount(count: Int): E2EList<T> = apply {
         logger.info("Wait until item count is $count")
 
-        tryWait(numberOfElementsToBe(childBy(itemsBy), count)) {
+        tryWaitNonNull(numberOfElementsToBe(childBy(itemsBy), count)) {
             "Count did not become $count. Count: ${items.count()}"
         }
     }
@@ -62,7 +63,7 @@ abstract class E2EList<T>(listBy: By, val itemsBy: By, val selectedItemBy: By? =
     }
 
     fun getElementWhenMatches(check: (T) -> Boolean): Pair<WebElement, T> =
-        tryWait({ itemElements.firstOrNull { (_, item) -> check(item) } }) {
+        tryWaitNonNull({ itemElements.firstOrNull { (_, item) -> check(item) } }) {
             "No such element in items list. Items: $itemElements"
         }
 
