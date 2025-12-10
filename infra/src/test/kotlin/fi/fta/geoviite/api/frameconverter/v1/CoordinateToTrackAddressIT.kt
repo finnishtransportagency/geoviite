@@ -25,11 +25,11 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -667,7 +667,7 @@ constructor(
     fun `Reverse geocoded address should match the returned coordinate`() {
         val referenceLineSegments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
         val trackNumberVersion =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(alignment(referenceLineSegments))
+            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(referenceLineSegments))
         val trackNumberId = trackNumberVersion.id
         val trackNumber = trackNumberDao.fetch(trackNumberVersion)
 
@@ -777,7 +777,7 @@ constructor(
         mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).let { trackNumber ->
             val referenceLine =
                 mainOfficialContext.saveReferenceLine(
-                    referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
+                    referenceLineAndGeometry(trackNumberId = trackNumber.id, segments = segments)
                 )
 
             insertGeocodableTrack(
@@ -806,7 +806,7 @@ constructor(
             val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
             val referenceLine =
                 mainOfficialContext.saveReferenceLine(
-                    referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
+                    referenceLineAndGeometry(trackNumberId = trackNumber.id, segments = segments)
                 )
 
             insertGeocodableTrack(
@@ -853,7 +853,7 @@ constructor(
         segments: List<LayoutSegment> = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
         referenceLineId: IntId<ReferenceLine> =
             layoutContext
-                .saveReferenceLine(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments))
+                .saveReferenceLine(referenceLineAndGeometry(trackNumberId = trackNumberId, segments = segments))
                 .id,
     ): GeocodableTrack {
         val locationTrackId =

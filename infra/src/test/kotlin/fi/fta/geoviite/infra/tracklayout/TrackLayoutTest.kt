@@ -87,7 +87,7 @@ class TrackLayoutTest {
     @Test
     fun nonContinuousSegmentsAreNotAllowed() {
         assertThrows<IllegalArgumentException> {
-            alignment(
+            referenceLineGeometry(
                 segment(toSegmentPoints(Point(0.0, 0.0), Point(0.0, 100.0))),
                 segment(toSegmentPoints(Point(1.0, 100.0), Point(1.0, 200.0))),
             )

@@ -51,6 +51,7 @@ class LocationTrackController(
     private val publicationValidationService: PublicationValidationService,
     private val switchLinkingService: SwitchLinkingService,
     private val geometryService: GeometryService,
+    private val alignmentMetadataService: AlignmentMetadataService,
 ) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -238,11 +239,11 @@ class LocationTrackController(
     fun getTrackSectionsByPlan(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @PathVariable("id") id: IntId<LocationTrack>,
+        @PathVariable("id") locationTrackId: IntId<LocationTrack>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection<LocationTrackM>> {
-        val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.getMetadataSections(context, id, boundingBox)
+        val layoutContext = LayoutContext.of(layoutBranch, publicationState)
+        return alignmentMetadataService.getLocationTrackMetadataSections(layoutContext, locationTrackId, boundingBox)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

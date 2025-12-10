@@ -39,7 +39,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.edge
@@ -48,19 +47,20 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.publishedVersions
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.someSegment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -554,12 +554,12 @@ constructor(
     }
 
     private fun insertAndCheck(referenceLine: ReferenceLine): Pair<LayoutRowVersion<ReferenceLine>, ReferenceLine> {
-        val dbAlignmentVersion = alignmentDao.insert(alignment())
-        val lineWithAlignment = referenceLine.copy(alignmentVersion = dbAlignmentVersion)
-        val official = referenceLineDao.save(lineWithAlignment)
+        val dbGeometryVersion = alignmentDao.insert(referenceLineGeometry())
+        val lineWithGeometry = referenceLine.copy(geometryVersion = dbGeometryVersion)
+        val official = referenceLineDao.save(lineWithGeometry)
         val fromDb = referenceLineDao.fetch(official)
         assertEquals(official.id, fromDb.id)
-        assertMatches(lineWithAlignment, fromDb, contextMatch = false)
+        assertMatches(lineWithGeometry, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, referenceLine.dataType)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)

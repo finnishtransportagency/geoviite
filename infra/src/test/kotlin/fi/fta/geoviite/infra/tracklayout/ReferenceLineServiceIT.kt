@@ -35,16 +35,16 @@ constructor(
     fun `Creating and deleting unpublished track number with reference line works`() {
         val trackNumberId = createTrackNumber() // automatically creates first version of reference line
         val (savedLine, savedAlignment) =
-            requireNotNull(referenceLineService.getByTrackNumberWithAlignment(MainLayoutContext.draft, trackNumberId)) {
+            requireNotNull(referenceLineService.getByTrackNumberWithGeometry(MainLayoutContext.draft, trackNumberId)) {
                 "Reference line was not automatically created"
             }
-        assertTrue(alignmentExists(savedLine.alignmentVersion!!.id))
-        assertEquals(savedLine.alignmentVersion.id, savedAlignment.id as IntId)
+        assertTrue(alignmentExists(savedLine.geometryVersion!!.id))
+        assertEquals(savedLine.geometryVersion.id, savedAlignment.id as IntId)
 
         trackNumberService.deleteDraft(LayoutBranch.main, trackNumberId)
         assertNull(referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId))
         assertNull(referenceLineDao.get(MainLayoutContext.draft, savedLine.id as IntId))
-        assertFalse(alignmentExists(savedLine.alignmentVersion.id))
+        assertFalse(alignmentExists(savedLine.geometryVersion.id))
     }
 
     @Test
@@ -52,7 +52,7 @@ constructor(
         val trackNumber = createAndPublishTrackNumber()
         val referenceLineId = referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumber)?.id as IntId
         publish(referenceLineId)
-        val (line, _) = referenceLineService.getWithAlignmentOrThrow(MainLayoutContext.official, referenceLineId)
+        val (line, _) = referenceLineService.getWithGeometryOrThrow(MainLayoutContext.official, referenceLineId)
         assertFalse(line.isDraft)
         assertThrows<DeletingFailureException> { referenceLineService.deleteDraft(LayoutBranch.main, referenceLineId) }
     }
@@ -76,7 +76,7 @@ constructor(
         val updatedLine = referenceLineService.get(MainLayoutContext.draft, referenceLineId)!!
         assertEquals(address, updatedLine.startAddress)
         assertEquals(trackNumberId, updatedLine.trackNumberId)
-        assertEquals(referenceLine.alignmentVersion, updatedLine.alignmentVersion)
+        assertEquals(referenceLine.geometryVersion, updatedLine.geometryVersion)
         val changeTimeAfterUpdate = referenceLineService.getChangeTime()
 
         val changeInfo = referenceLineService.getLayoutAssetChangeInfo(MainLayoutContext.draft, referenceLineId)
@@ -104,7 +104,7 @@ constructor(
         val editedDraft = getAndVerifyDraft(publishResponse.id)
         assertEquals(TrackMeter("0003+0005.000"), editedDraft.startAddress)
         // Creating a draft should duplicate the alignment
-        assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
+        assertNotEquals(published.geometryVersion!!.id, editedDraft.geometryVersion!!.id)
 
         val editResponse2 =
             referenceLineService.updateTrackNumberReferenceLine(
@@ -117,9 +117,9 @@ constructor(
 
         val editedDraft2 = referenceLineService.get(MainLayoutContext.draft, publishResponse.id)!!
         assertEquals(TrackMeter("0008+0009.000"), editedDraft2.startAddress)
-        assertNotEquals(published.alignmentVersion.id, editedDraft2.alignmentVersion!!.id)
+        assertNotEquals(published.geometryVersion.id, editedDraft2.geometryVersion!!.id)
         // Second edit to same draft should not duplicate alignment again
-        assertEquals(editedDraft.alignmentVersion.id, editedDraft2.alignmentVersion.id)
+        assertEquals(editedDraft.geometryVersion.id, editedDraft2.geometryVersion.id)
     }
 
     @Test
@@ -141,7 +141,7 @@ constructor(
         val editedDraft = getAndVerifyDraft(publishResponse.id)
         assertEquals(TrackMeter("0001+0001.000"), editedDraft.startAddress)
         // Creating a draft should duplicate the alignment
-        assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
+        assertNotEquals(published.geometryVersion!!.id, editedDraft.geometryVersion!!.id)
 
         val editedVersion2 =
             referenceLineService.saveDraft(
@@ -153,9 +153,9 @@ constructor(
 
         val editedDraft2 = getAndVerifyDraft(publishResponse.id)
         assertEquals(TrackMeter("0001+0001.000"), editedDraft2.startAddress)
-        assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
+        assertNotEquals(published.geometryVersion!!.id, editedDraft2.geometryVersion!!.id)
         // Second edit to same draft should not duplicate alignment again
-        assertEquals(editedDraft.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
+        assertEquals(editedDraft.geometryVersion!!.id, editedDraft2.geometryVersion!!.id)
     }
 
     @Test
@@ -166,7 +166,7 @@ constructor(
             referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId)!!.id as IntId
         val (publishResponse, published) = publishAndVerify(trackNumberId, referenceLineId)
 
-        val alignmentTmp = alignment(segment(2, 10.0, 20.0, 10.0, 20.0))
+        val alignmentTmp = referenceLineGeometry(segment(2, 10.0, 20.0, 10.0, 20.0))
         val editedVersion = referenceLineService.saveDraft(LayoutBranch.main, published, alignmentTmp)
         assertEquals(publishResponse.id, editedVersion.id)
         assertNotEquals(publishResponse.rowId, editedVersion.rowId)
@@ -178,9 +178,9 @@ constructor(
         )
 
         // Creating a draft should duplicate the alignment
-        assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
+        assertNotEquals(published.geometryVersion!!.id, editedDraft.geometryVersion!!.id)
 
-        val alignmentTmp2 = alignment(segment(4, 10.0, 20.0, 10.0, 20.0))
+        val alignmentTmp2 = referenceLineGeometry(segment(4, 10.0, 20.0, 10.0, 20.0))
         val editedVersion2 = referenceLineService.saveDraft(LayoutBranch.main, editedDraft, alignmentTmp2)
         assertEquals(publishResponse.id, editedVersion2.id)
         assertNotEquals(publishResponse.rowId, editedVersion2.rowId)
@@ -190,10 +190,10 @@ constructor(
             alignmentTmp2.segments.flatMap(LayoutSegment::segmentPoints),
             editedAlignment2.segments.flatMap(LayoutSegment::segmentPoints),
         )
-        assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
+        assertNotEquals(published.geometryVersion!!.id, editedDraft2.geometryVersion!!.id)
         // Second edit to same draft should not duplicate alignment again
-        assertEquals(editedDraft.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
-        assertNotEquals(editedDraft.alignmentVersion!!.version, editedDraft2.alignmentVersion!!.version)
+        assertEquals(editedDraft.geometryVersion!!.id, editedDraft2.geometryVersion!!.id)
+        assertNotEquals(editedDraft.geometryVersion!!.version, editedDraft2.geometryVersion!!.version)
     }
 
     private fun getAndVerifyDraft(id: IntId<ReferenceLine>): ReferenceLine {
@@ -203,11 +203,11 @@ constructor(
         return draft
     }
 
-    private fun getAndVerifyDraftWithAlignment(id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
-        val (draft, alignment) = referenceLineService.getWithAlignmentOrThrow(MainLayoutContext.draft, id)
+    private fun getAndVerifyDraftWithAlignment(id: IntId<ReferenceLine>): Pair<ReferenceLine, ReferenceLineGeometry> {
+        val (draft, alignment) = referenceLineService.getWithGeometryOrThrow(MainLayoutContext.draft, id)
         assertEquals(id, draft.id)
         assertTrue(draft.isDraft)
-        assertEquals(draft.alignmentVersion!!.id, alignment.id)
+        assertEquals(draft.geometryVersion!!.id, alignment.id)
         return draft to alignment
     }
 
@@ -216,26 +216,26 @@ constructor(
         referenceLineId: IntId<ReferenceLine>,
     ): Pair<LayoutRowVersion<ReferenceLine>, ReferenceLine> {
         val (draft, draftAlignment) =
-            referenceLineService.getWithAlignmentOrThrow(MainLayoutContext.draft, referenceLineId)
+            referenceLineService.getWithGeometryOrThrow(MainLayoutContext.draft, referenceLineId)
         assertTrue(draft.isDraft)
         assertEquals(draft, referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId))
         assertNull(referenceLineService.getByTrackNumber(MainLayoutContext.official, trackNumberId))
 
         val publishedVersion = publish(draft.id as IntId)
         val (published, publishedAlignment) =
-            referenceLineService.getWithAlignmentOrThrow(MainLayoutContext.official, publishedVersion.id)
+            referenceLineService.getWithGeometryOrThrow(MainLayoutContext.official, publishedVersion.id)
         val publishedByTrackNumber = referenceLineService.getByTrackNumber(MainLayoutContext.official, trackNumberId)
         assertEquals(published, publishedByTrackNumber)
         assertFalse(published.isDraft)
         assertEquals(draft.id, published.id)
         assertEquals(published.id, publishedVersion.id)
-        assertEquals(draft.alignmentVersion, published.alignmentVersion)
+        assertEquals(draft.geometryVersion, published.geometryVersion)
         assertEquals(draftAlignment, publishedAlignment)
 
         return publishedVersion to published
     }
 
-    private fun alignmentExists(id: IntId<LayoutAlignment>): Boolean {
+    private fun alignmentExists(id: IntId<ReferenceLineGeometry>): Boolean {
         val sql = "select exists(select 1 from layout.alignment where id = :id) as exists"
         val params = mapOf("id" to id.intValue)
         return jdbc.queryForObject(sql, params) { rs, _ -> rs.getBoolean("exists") } ?: error("Exists-check failed")

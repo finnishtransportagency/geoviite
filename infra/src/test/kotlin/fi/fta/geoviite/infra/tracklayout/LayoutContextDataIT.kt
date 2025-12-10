@@ -197,8 +197,8 @@ constructor(
         assertEquals(draft2, trackNumberDao.fetchVersion(MainLayoutContext.draft, draft1.id))
     }
 
-    private fun createReferenceLineAndAlignment(draft: Boolean): Pair<ReferenceLine, LayoutAlignment> =
-        referenceLineAndAlignment(
+    private fun createReferenceLineAndAlignment(draft: Boolean): Pair<ReferenceLine, ReferenceLineGeometry> =
+        referenceLineAndGeometry(
             mainOfficialContext.createLayoutTrackNumber().id,
             segment(Point(10.0, 10.0), Point(11.0, 11.0)),
             draft = draft,
@@ -212,18 +212,18 @@ constructor(
         )
 
     private fun createAndVerifyDraftLine(
-        dbLineAndAlignment: Pair<ReferenceLine, LayoutAlignment>
-    ): Pair<ReferenceLine, LayoutAlignment> {
-        val (dbLine, dbAlignment) = dbLineAndAlignment
+        dbLineAndGeometry: Pair<ReferenceLine, ReferenceLineGeometry>
+    ): Pair<ReferenceLine, ReferenceLineGeometry> {
+        val (dbLine, dbGeometry) = dbLineAndGeometry
         assertTrue(dbLine.id is IntId)
-        assertTrue(dbAlignment.id is IntId)
-        assertEquals(dbAlignment.id, dbLine.alignmentVersion?.id)
+        assertTrue(dbGeometry.id is IntId)
+        assertEquals(dbGeometry.id, dbLine.geometryVersion?.id)
         assertFalse(dbLine.isDraft)
         val draft = asMainDraft(dbLine)
         assertTrue(draft.isDraft)
         assertEquals(dbLine.id, draft.id)
         assertMatches(dbLine, draft, contextMatch = false)
-        return draft to dbAlignment
+        return draft to dbGeometry
     }
 
     private fun createAndVerifyDraftTrack(
@@ -260,7 +260,7 @@ constructor(
         return draft
     }
 
-    private fun alterLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>) =
+    private fun alterLine(lineAndAlignment: Pair<ReferenceLine, ReferenceLineGeometry>) =
         lineAndAlignment.first.copy(startAddress = lineAndAlignment.first.startAddress + 10.0) to
             lineAndAlignment.second
 
@@ -273,15 +273,15 @@ constructor(
         kmPost.copy(kmNumber = KmNumber(kmPost.kmNumber.number, (kmPost.kmNumber.extension ?: "") + "B"))
 
     private fun insertAndVerifyLine(
-        lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>
-    ): Pair<ReferenceLine, LayoutAlignment> {
-        val (line, alignment) = lineAndAlignment
+        lineAndGeometry: Pair<ReferenceLine, ReferenceLineGeometry>
+    ): Pair<ReferenceLine, ReferenceLineGeometry> {
+        val (line, geometry) = lineAndGeometry
         assertEquals(DataType.TEMP, line.dataType)
-        val alignmentVersion = alignmentDao.insert(alignment)
-        val lineWithAlignment = line.copy(alignmentVersion = alignmentVersion)
+        val geometryVersion = alignmentDao.insert(geometry)
+        val lineWithAlignment = line.copy(geometryVersion = geometryVersion)
         val lineResponse = referenceLineDao.save(lineWithAlignment)
-        val alignmentFromDb = alignmentDao.fetch(alignmentVersion)
-        assertMatches(alignment, alignmentFromDb)
+        val alignmentFromDb = alignmentDao.fetch(geometryVersion)
+        assertMatches(geometry, alignmentFromDb)
         val lineFromDb = referenceLineDao.fetch(lineResponse)
         assertEquals(DataType.STORED, lineFromDb.dataType)
         assertEquals(lineResponse.id, lineFromDb.id)
@@ -290,9 +290,9 @@ constructor(
     }
 
     private fun insertAndVerifyTrack(
-        trackAndAlignment: Pair<LocationTrack, LocationTrackGeometry>
+        trackAndGeometry: Pair<LocationTrack, LocationTrackGeometry>
     ): Pair<LocationTrack, DbLocationTrackGeometry> {
-        val (track, geometry) = trackAndAlignment
+        val (track, geometry) = trackAndGeometry
         assertEquals(DataType.TEMP, track.dataType)
         val trackResponse = locationTrackDao.save(track, geometry)
         val geometryFromDb = alignmentDao.fetch(trackResponse)

@@ -23,17 +23,17 @@ import fi.fta.geoviite.infra.geometry.geometryLine
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
@@ -128,36 +128,36 @@ class HelsinkiTestData private constructor() {
         fun westReferenceLine(
             trackNumber: IntId<LayoutTrackNumber>,
             draft: Boolean = false,
-        ): Pair<ReferenceLine, LayoutAlignment> {
+        ): Pair<ReferenceLine, ReferenceLineGeometry> {
             val points =
                 toSegmentPoints(
                     Point(x = HKI_BASE_POINT_X + 670.00, y = HKI_BASE_POINT_Y + 410.00), // etelä
                     Point(x = HKI_BASE_POINT_X + 685.00, y = HKI_BASE_POINT_Y + 500.00),
                     Point(x = HKI_BASE_POINT_X + 690.00, y = HKI_BASE_POINT_Y + 560.00), // pohjoinen
                 )
-            val alignment = alignment(segment(points))
+            val geometry = referenceLineGeometry(segment(points))
             return referenceLine(
-                alignment = alignment,
+                geometry = geometry,
                 trackNumberId = trackNumber,
                 startAddress = TrackMeter(KmNumber(2), 150),
                 draft = draft,
-            ) to alignment
+            ) to geometry
         }
 
-        fun eastReferenceLine(trackNumber: IntId<LayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
+        fun eastReferenceLine(trackNumber: IntId<LayoutTrackNumber>): Pair<ReferenceLine, ReferenceLineGeometry> {
             val points =
                 toSegmentPoints(
                     Point(x = HKI_BASE_POINT_X + 675.00, y = HKI_BASE_POINT_Y + 410.00), // etelä
                     Point(x = HKI_BASE_POINT_X + 690.00, y = HKI_BASE_POINT_Y + 500.00),
                     Point(x = HKI_BASE_POINT_X + 695.00, y = HKI_BASE_POINT_Y + 560.00), // pohjoinen
                 )
-            val alignment = alignment(segment(points))
+            val geometry = referenceLineGeometry(segment(points))
             return referenceLine(
-                alignment = alignment,
+                geometry = geometry,
                 trackNumberId = trackNumber,
                 startAddress = TrackMeter(KmNumber(2), 150),
                 draft = false,
-            ) to alignment
+            ) to geometry
         }
 
         fun eastLocationTrack(trackNumberId: IntId<LayoutTrackNumber>): Pair<LocationTrack, LocationTrackGeometry> {

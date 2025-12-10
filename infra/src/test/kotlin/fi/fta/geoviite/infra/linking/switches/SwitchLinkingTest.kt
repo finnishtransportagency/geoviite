@@ -127,7 +127,7 @@ class SwitchLinkingTest {
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
-        val alignment =
+        val trackGeometry =
             trackGeometryOfSegments(
                 segments =
                     listOf(
@@ -138,7 +138,7 @@ class SwitchLinkingTest {
                     )
             )
 
-        val tracks = listOf(locationTrack to alignment)
+        val tracks = listOf(locationTrack to trackGeometry)
 
         val suggestedSwitch =
             fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
@@ -158,7 +158,7 @@ class SwitchLinkingTest {
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
-        val alignment =
+        val trackGeometry =
             trackGeometryOfSegments(
                 segments =
                     listOf(
@@ -169,7 +169,7 @@ class SwitchLinkingTest {
                     )
             )
 
-        val tracks = listOf(locationTrack to alignment)
+        val tracks = listOf(locationTrack to trackGeometry)
 
         val suggestedSwitch =
             fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
@@ -189,7 +189,7 @@ class SwitchLinkingTest {
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
-        val alignment =
+        val trackGeometry =
             trackGeometryOfSegments(
                 segments =
                     listOf(
@@ -198,7 +198,7 @@ class SwitchLinkingTest {
                     )
             )
 
-        val tracks = listOf(locationTrack to alignment)
+        val tracks = listOf(locationTrack to trackGeometry)
 
         val suggestedSwitch =
             fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
@@ -269,7 +269,7 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun `should match with alignment regardless of direction`() {
+    fun `should match with geometry regardless of direction`() {
         val switch = asSwitchStructure(YV60_300_1_10_V())
         val joints =
             listOf(
@@ -278,7 +278,7 @@ class SwitchLinkingTest {
             )
 
         val locationTrack1 = locationTrack(IntId(1), id = IntId(1), draft = false)
-        val alignment1 =
+        val trackGeometry1 =
             trackGeometryOfSegments(
                 segments =
                     listOf(
@@ -293,7 +293,7 @@ class SwitchLinkingTest {
             )
 
         val locationTrack2 = locationTrack(IntId(1), id = IntId(2), draft = false)
-        val alignment2 =
+        val trackGeometry2 =
             trackGeometryOfSegments(
                 segments =
                     listOf(
@@ -326,7 +326,7 @@ class SwitchLinkingTest {
                     )
             )
 
-        val tracks = listOf(locationTrack1 to alignment1, locationTrack2 to alignment2)
+        val tracks = listOf(locationTrack1 to trackGeometry1, locationTrack2 to trackGeometry2)
 
         val suggestedSwitch =
             fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
@@ -343,7 +343,7 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun `should match with alignment if joint is on the line`() {
+    fun `should match with geometry if joint is on the line`() {
         val switch = asSwitchStructure(YV60_300_1_10_V())
         val joints =
             listOf(
@@ -353,7 +353,7 @@ class SwitchLinkingTest {
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
-        val alignment =
+        val trackGeometry =
             trackGeometryOfSegments(
                 segments =
                     listOf(
@@ -363,7 +363,7 @@ class SwitchLinkingTest {
                     )
             )
 
-        val tracks = listOf(locationTrack to alignment)
+        val tracks = listOf(locationTrack to trackGeometry)
 
         val suggestedSwitch =
             fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
@@ -382,7 +382,7 @@ class SwitchLinkingTest {
 
         val locationTrack = locationTrack(IntId(1), id = IntId(1), draft = false)
 
-        val alignment =
+        val trackGeometry =
             trackGeometryOfSegments(
                 segments =
                     listOf(
@@ -392,7 +392,7 @@ class SwitchLinkingTest {
                     )
             )
 
-        val tracks = listOf(locationTrack to alignment)
+        val tracks = listOf(locationTrack to trackGeometry)
 
         val suggestedSwitch =
             fitSwitch(joints, switch, tracks.map { (lt, a) -> lt to cropNothing(lt.id as IntId, a) }, null)
@@ -401,24 +401,23 @@ class SwitchLinkingTest {
     }
 
     @Test
-    fun cropAlignmentPointsShouldFindPointsInArea() {
+    fun `cropPoints should find points in area`() {
         val bbox = BoundingBox(-2.0..3.0, -10.0..10.0)
-        val locationTrackInArea =
-            locationTrackAndGeometry(
+        val trackGeometry =
+            trackGeometryOfSegments(
                 segment(Point(-4.0, 0.0), Point(-3.0, 0.0), Point(-2.0, 0.0)),
                 segment(Point(-2.0, 0.0), Point(-1.0, 0.0), Point(0.0, 0.0), Point(1.0, 0.0), Point(2.0, 0.0)),
                 segment(Point(2.0, 0.0), Point(3.0, 0.0), Point(4.0, 0.0), Point(5.0, 0.0)),
-                draft = false,
             )
-        val croppedAlignment = cropPoints(IntId(1), locationTrackInArea.second, bbox)
+        val croppedTrackGeometry = cropPoints(IntId(1), trackGeometry, bbox)
 
-        assertEquals(2, croppedAlignment.segments.size)
-        assertEquals(Point(-2.0, 0.0), croppedAlignment.firstSegmentStart?.toPoint())
-        assertEquals(Point(3.0, 0.0), croppedAlignment.lastSegmentEnd?.toPoint())
+        assertEquals(2, croppedTrackGeometry.segments.size)
+        assertEquals(Point(-2.0, 0.0), croppedTrackGeometry.firstSegmentStart?.toPoint())
+        assertEquals(Point(3.0, 0.0), croppedTrackGeometry.lastSegmentEnd?.toPoint())
     }
 
     @Test
-    fun cropAlignmentPointsShouldIgnoreSegmentsThatDoesNotHavePointsInArea() {
+    fun `cropPoints should ignore segments that do not have points in area`() {
         // Bounding box of a segment intersects with the bounding box, but the segment
         // does not contain points inside the bounding box. Crop should filter out
         // all segments/points.
@@ -429,15 +428,14 @@ class SwitchLinkingTest {
         //  □  \
         //
         //  □ = bounding box
-        //  \ = alignment
+        //  \ = geometry
 
         val bbox = BoundingBox(-5.0..-4.0, 4.0..5.0)
-        val locationTrack =
-            locationTrackAndGeometry(segment(points = arrayOf(Point(-5.0, 0.0), Point(5.0, 5.0))), draft = false)
-        val croppedAlignment = cropPoints(IntId(1), locationTrack.second, bbox)
+        val trackGeometry = trackGeometryOfSegments(segment(points = arrayOf(Point(-5.0, 0.0), Point(5.0, 5.0))))
+        val croppedTrackGeometry = cropPoints(IntId(1), trackGeometry, bbox)
 
-        assertTrue(bbox.intersects(locationTrack.second.segments.first().boundingBox))
-        assertEquals(0, croppedAlignment.segments.size)
+        assertTrue(bbox.intersects(trackGeometry.segments.first().boundingBox))
+        assertEquals(0, croppedTrackGeometry.segments.size)
     }
 
     @Test

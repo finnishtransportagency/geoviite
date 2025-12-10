@@ -5,11 +5,11 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.publication.getMaxDirectionDeltaRads
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import kotlin.math.hypot
-import kotlin.test.assertEquals
 
 class LayoutGeometryTest {
 
@@ -139,33 +139,33 @@ class LayoutGeometryTest {
         val segment = segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0), segmentPoint(20.0, 0.0, 20.0))
         assertEquals(
             PointSeekResult(locationTrackPoint(0.0, 0.0, 0.0), 0, true),
-            segment.seekPointAtM(LineM(0.0), locationTrackM(0.0), 0.0)
+            segment.seekPointAtM(LineM(0.0), locationTrackM(0.0), 0.0),
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(10.0, 0.0, 10.0), 1, true),
-            segment.seekPointAtM(LineM(0.0), locationTrackM(10.0), 0.0)
+            segment.seekPointAtM(LineM(0.0), locationTrackM(10.0), 0.0),
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(20.0, 0.0, 20.0), 2, true),
-            segment.seekPointAtM(LineM(0.0), locationTrackM(20.0), 0.0)
+            segment.seekPointAtM(LineM(0.0), locationTrackM(20.0), 0.0),
         )
 
         assertEquals(
             PointSeekResult(locationTrackPoint(0.0, 0.0, 0.0), 0, true),
-            segment.seekPointAtM(LineM(0.0), locationTrackM(-5.0), 0.0)
+            segment.seekPointAtM(LineM(0.0), locationTrackM(-5.0), 0.0),
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(20.0, 0.0, 20.0), 2, true),
-            segment.seekPointAtM(LineM(0.0), locationTrackM(25.0), 0.0)
+            segment.seekPointAtM(LineM(0.0), locationTrackM(25.0), 0.0),
         )
 
         assertEquals(
             PointSeekResult(locationTrackPoint(5.0, 0.0, 5.0), 1, false),
-            segment.seekPointAtM(LineM(0.0), locationTrackM(5.0), 0.0)
+            segment.seekPointAtM(LineM(0.0), locationTrackM(5.0), 0.0),
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(13.0, 0.0, 13.0), 2, false),
-            segment.seekPointAtM(LineM(0.0), locationTrackM(13.0), 0.0)
+            segment.seekPointAtM(LineM(0.0), locationTrackM(13.0), 0.0),
         )
     }
 
@@ -174,28 +174,28 @@ class LayoutGeometryTest {
         val segment = segment(segmentPoint(0.0, 0.0, 0.0), segmentPoint(10.0, 0.0, 10.0), segmentPoint(20.0, 0.0, 20.0))
         assertEquals(
             PointSeekResult(locationTrackPoint(0.05, 0.0, 0.05), 1, false),
-            segment.seekPointAtM(locationTrackM(0.0), LineM(0.05), 0.0)
+            segment.seekPointAtM(locationTrackM(0.0), LineM(0.05), 0.0),
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(0.0, 0.0, 0.0), 0, true),
-            segment.seekPointAtM(locationTrackM(0.0), LineM(0.05), 0.1)
+            segment.seekPointAtM(locationTrackM(0.0), LineM(0.05), 0.1),
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(0.15, 0.0, 0.15), 1, false),
-            segment.seekPointAtM(locationTrackM(0.0), LineM(0.15), 0.1)
+            segment.seekPointAtM(locationTrackM(0.0), LineM(0.15), 0.1),
         )
 
         assertEquals(
             PointSeekResult(locationTrackPoint(9.95, 0.0, 9.95), 1, false),
-            segment.seekPointAtM(locationTrackM(0.0), LineM(9.95), 0.0)
+            segment.seekPointAtM(locationTrackM(0.0), LineM(9.95), 0.0),
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(10.0, 0.0, 10.0), 1, true),
-            segment.seekPointAtM(locationTrackM(0.0), LineM(9.95), 0.1)
+            segment.seekPointAtM(locationTrackM(0.0), LineM(9.95), 0.1),
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(9.85, 0.0, 9.85), 1, false),
-            segment.seekPointAtM(locationTrackM(0.0), LineM(9.85), 0.1)
+            segment.seekPointAtM(locationTrackM(0.0), LineM(9.85), 0.1),
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(10.05, 0.0, 10.05), 2, false),
@@ -203,7 +203,7 @@ class LayoutGeometryTest {
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(10.0, 0.0, 10.0), 1, true),
-            segment.seekPointAtM(locationTrackM(0.0), LineM(10.05), 0.1)
+            segment.seekPointAtM(locationTrackM(0.0), LineM(10.05), 0.1),
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(10.15, 0.0, 10.15), 2, false),
@@ -216,7 +216,7 @@ class LayoutGeometryTest {
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(20.0, 0.0, 20.0), 2, true),
-            segment.seekPointAtM(locationTrackM(0.0), LineM(19.95), 0.1)
+            segment.seekPointAtM(locationTrackM(0.0), LineM(19.95), 0.1),
         )
         assertEquals(
             PointSeekResult(locationTrackPoint(19.85, 0.0, 19.85), 2, false),
@@ -228,7 +228,7 @@ class LayoutGeometryTest {
     fun alignmentPointAtLengthWorks() {
         val diagonalLength = hypot(5.0, 5.0)
         val alignment =
-            alignment(
+            referenceLineGeometry(
                 segment(Point(0.0, 0.0), Point(10.0, 0.0)),
                 segment(Point(10.0, 0.0), Point(15.0, 5.0), Point(15.0, 15.0)),
             )
@@ -300,27 +300,28 @@ class LayoutGeometryTest {
 
     @Test
     fun `getMaxDirectionDeltaRads with shared segment points`() {
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0)), segment(Point(1.0, 1.0), Point(2.0, 2.0)))
-        assertEquals(0.0, getMaxDirectionDeltaRads(alignment))
+        val geometry =
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 1.0)), segment(Point(1.0, 1.0), Point(2.0, 2.0)))
+        assertEquals(0.0, getMaxDirectionDeltaRads(geometry))
     }
 
     @Test
     fun `takeLast(n) with smaller last segment than n points`() {
-        val alignment =
-            alignment(
+        val geometry =
+            referenceLineGeometry(
                 segment(Point(0.0, 0.0), Point(3.0, 0.0)),
                 segment(Point(3.0001, 0.0), Point(4.0001, 0.0), Point(5.0001, 0.0)),
             )
-        assertEquals(listOf(1.0, 2.0, 3.0001, 4.0001, 5.0001), alignment.takeLast(5).map { it.x })
+        assertEquals(listOf(1.0, 2.0, 3.0001, 4.0001, 5.0001), geometry.takeLast(5).map { it.x })
     }
 
     @Test
     fun `takeFirst(n) with smaller first segment than n points`() {
-        val alignment =
-            alignment(
+        val geometry =
+            referenceLineGeometry(
                 segment(Point(0.0, 0.0), Point(3.0, 0.0)),
                 segment(Point(3.0001, 0.0), Point(4.0001, 0.0), Point(5.0001, 0.0)),
             )
-        assertEquals(listOf(0.0, 1.0, 2.0, 3.0001, 4.0001), alignment.takeFirst(5).map { it.x })
+        assertEquals(listOf(0.0, 1.0, 2.0, 3.0001, 4.0001), geometry.takeFirst(5).map { it.x })
     }
 }

@@ -5,7 +5,6 @@ import com.github.davidmoten.rtree2.geometry.Geometries
 import com.github.davidmoten.rtree2.geometry.Rectangle
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.lineLength
@@ -29,8 +28,7 @@ constructor(
             ?: error("Cache should have been created")
     }
 
-    private fun newCache(): ContextCache =
-        ContextCache(locationTrackDao::fetch, alignmentDao::fetch, alignmentDao::fetch)
+    private fun newCache(): ContextCache = ContextCache(locationTrackDao::fetch, alignmentDao::fetch)
 
     private fun refresh(cache: ContextCache, newTracks: Map<IntId<LocationTrack>, LocationTrack>): ContextCache {
         // TODO: GVT-3113 This could possibly be optimized by edges, since their geometries don't change
@@ -57,7 +55,7 @@ constructor(
 
         val newItems = newTracks.map { (id, track) -> id to (currentTracks[id] ?: addEntry(track)) }
 
-        return ContextCache(locationTrackDao::fetch, alignmentDao::fetch, alignmentDao::fetch, newNet, newItems.toMap())
+        return ContextCache(locationTrackDao::fetch, alignmentDao::fetch, newNet, newItems.toMap())
     }
 }
 
@@ -85,7 +83,6 @@ private val cacheHitComparator =
 data class ContextCache(
     private val getTrack: (LayoutRowVersion<LocationTrack>) -> LocationTrack,
     private val getGeometry: (LayoutRowVersion<LocationTrack>) -> DbLocationTrackGeometry,
-    private val getAlignment: (RowVersion<LayoutAlignment>) -> LayoutAlignment,
     val network: RTree<SpatialCacheSegment, Rectangle> = RTree.star().create(),
     val items: Map<IntId<LocationTrack>, SpatialCacheEntry> = emptyMap(),
 ) {

@@ -38,7 +38,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureElement
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureJoint
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
@@ -50,13 +49,14 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchOwnerVayla
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
@@ -123,7 +123,7 @@ fun locationTrack(
     description: String = "$name location track description",
     draft: Boolean = false,
 ): Pair<LocationTrack, LocationTrackGeometry> {
-    val geometry = trackGeometryFromPointIncrementList(basePoint, incrementPoints)
+    val geometry = trackGeometryOfSegments(segmentsFromPointIncrementList(basePoint, incrementPoints))
     val track =
         locationTrack(
             trackNumberId = trackNumber,
@@ -141,18 +141,10 @@ fun referenceLine(
     basePoint: Point,
     incrementPoints: List<Point>,
     draft: Boolean,
-): Pair<ReferenceLine, LayoutAlignment> {
-    val alignment = alignmentFromPointIncrementList(basePoint, incrementPoints)
-    val line = referenceLine(trackNumberId = trackNumber, alignment = alignment, draft = draft)
-    return line to alignment
-}
-
-private fun trackGeometryFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): LocationTrackGeometry {
-    return trackGeometryOfSegments(segmentsFromPointIncrementList(basePoint, incrementPoints))
-}
-
-private fun alignmentFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): LayoutAlignment {
-    return alignment(segmentsFromPointIncrementList(basePoint, incrementPoints))
+): Pair<ReferenceLine, ReferenceLineGeometry> {
+    val geometry = referenceLineGeometry(segmentsFromPointIncrementList(basePoint, incrementPoints))
+    val line = referenceLine(trackNumberId = trackNumber, geometry = geometry, draft = draft)
+    return line to geometry
 }
 
 private fun segmentsFromPointIncrementList(basePoint: Point, incrementPoints: List<Point>): List<LayoutSegment> {

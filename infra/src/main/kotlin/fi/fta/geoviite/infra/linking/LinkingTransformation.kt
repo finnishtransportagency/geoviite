@@ -15,7 +15,6 @@ import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LineM
@@ -25,6 +24,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.PlaceHolderNodeConnection
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentM
@@ -42,8 +42,8 @@ const val ALIGNMENT_LINKING_SNAP = 0.001
 fun cutLocationTrackGeometry(geometry: LocationTrackGeometry, mRange: Range<LineM<LocationTrackM>>) =
     TmpLocationTrackGeometry.of(slice(geometry, mRange, ALIGNMENT_LINKING_SNAP), geometry.trackId)
 
-fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<LineM<ReferenceLineM>>): LayoutAlignment =
-    tryCreateLinkedAlignment(alignment, slice(alignment, mRange, ALIGNMENT_LINKING_SNAP))
+fun cutReferenceLineGeometry(geometry: ReferenceLineGeometry, mRange: Range<LineM<ReferenceLineM>>): ReferenceLineGeometry =
+    tryCreateLinkedReferenceLineGeometry(geometry, slice(geometry, mRange, ALIGNMENT_LINKING_SNAP))
 
 fun replaceLocationTrackGeometry(
     geometryAlignment: PlanLayoutAlignment,
@@ -53,12 +53,12 @@ fun replaceLocationTrackGeometry(
     TmpLocationTrackGeometry.ofSegments(createAlignmentGeometry(geometryAlignment, geometryMRange), trackId)
 }
 
-fun replaceLayoutGeometry(
-    layoutAlignment: LayoutAlignment,
+fun replaceReferenceLineGeometry(
+    originalGeometry: ReferenceLineGeometry,
     geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<LineM<PlanLayoutAlignmentM>>,
-): LayoutAlignment =
-    tryCreateLinkedAlignment(layoutAlignment, createAlignmentGeometry(geometryAlignment, geometryMRange))
+): ReferenceLineGeometry =
+    tryCreateLinkedReferenceLineGeometry(originalGeometry, createAlignmentGeometry(geometryAlignment, geometryMRange))
 
 fun linkLocationTrackGeometrySection(
     layoutGeometry: LocationTrackGeometry,
@@ -69,11 +69,11 @@ fun linkLocationTrackGeometrySection(
     splice(layoutGeometry, layoutMRange, createAlignmentGeometry(geometryAlignment, geometryMRange))
 
 fun linkLayoutGeometrySection(
-    layoutAlignment: LayoutAlignment,
+    referenceLineGeometry: ReferenceLineGeometry,
     layoutMRange: Range<LineM<ReferenceLineM>>,
     geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<LineM<PlanLayoutAlignmentM>>,
-): LayoutAlignment = splice(layoutAlignment, layoutMRange, createAlignmentGeometry(geometryAlignment, geometryMRange))
+): ReferenceLineGeometry = splice(referenceLineGeometry, layoutMRange, createAlignmentGeometry(geometryAlignment, geometryMRange))
 
 private fun createAlignmentGeometry(
     geometryAlignment: PlanLayoutAlignment,
@@ -122,12 +122,12 @@ private fun tryCreateLinkedTrackGeometry(creator: () -> TmpLocationTrackGeometry
         )
     }
 
-private fun tryCreateLinkedAlignment(original: LayoutAlignment, newSegments: List<LayoutSegment>): LayoutAlignment =
+private fun tryCreateLinkedReferenceLineGeometry(original: ReferenceLineGeometry, newSegments: List<LayoutSegment>): ReferenceLineGeometry =
     try {
         original.withSegments(newSegments.also(::validateSegments))
     } catch (e: IllegalArgumentException) {
         throw LinkingFailureException(
-            message = "Linking selection produces invalid alignment",
+            message = "Linking selection produces invalid reference line geometry",
             cause = e,
             localizedMessageKey = "alignment-geometry",
         )
@@ -148,16 +148,16 @@ private fun validateSegments(newSegments: List<LayoutSegment>) =
     }
 
 fun splice(
-    alignment: LayoutAlignment,
+    geometry: ReferenceLineGeometry,
     mRange: Range<LineM<ReferenceLineM>>,
     added: List<LayoutSegment>,
     snapDistance: Double = ALIGNMENT_LINKING_SNAP,
-): LayoutAlignment {
-    val start = slice(alignment, Range(LineM(0.0), mRange.min), snapDistance)
+): ReferenceLineGeometry {
+    val start = slice(geometry, Range(LineM(0.0), mRange.min), snapDistance)
     val startGap = listOfNotNull(createGapIfNeeded(start, added))
-    val end = slice(alignment, Range(mRange.max, alignment.length), snapDistance)
+    val end = slice(geometry, Range(mRange.max, geometry.length), snapDistance)
     val endGap = listOfNotNull(createGapIfNeeded(added, end))
-    return tryCreateLinkedAlignment(alignment, start + startGap + added + endGap + end)
+    return tryCreateLinkedReferenceLineGeometry(geometry, start + startGap + added + endGap + end)
 }
 
 fun splice(

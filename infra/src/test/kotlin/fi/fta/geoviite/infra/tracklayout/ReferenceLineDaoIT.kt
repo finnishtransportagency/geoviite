@@ -28,11 +28,11 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
     @Test
     fun referenceLineSaveAndLoadWorks() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val alignment = alignment()
-        val alignmentVersion = alignmentDao.insert(alignment)
+        val geometry = referenceLineGeometry()
+        val geometryVersion = alignmentDao.insert(geometry)
         val referenceLine =
-            referenceLine(trackNumberId, alignment, draft = false)
-                .copy(startAddress = TrackMeter(KmNumber(10), 125.5, 3), alignmentVersion = alignmentVersion)
+            referenceLine(trackNumberId, geometry, draft = false)
+                .copy(startAddress = TrackMeter(KmNumber(10), 125.5, 3), geometryVersion = geometryVersion)
 
         assertEquals(DataType.TEMP, referenceLine.dataType)
         val version = referenceLineDao.save(referenceLine)
@@ -58,14 +58,14 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
     @Test
     fun referenceLineVersioningWorks() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val tempAlignment = alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0)))
-        val alignmentVersion = alignmentDao.insert(tempAlignment)
+        val tempGeometry = referenceLineGeometry(segment(Point(1.0, 1.0), Point(2.0, 2.0)))
+        val geometryVersion = alignmentDao.insert(tempGeometry)
         val tempTrack =
             referenceLine(
                 trackNumberId = trackNumberId,
                 startAddress = TrackMeter(12, 13),
-                alignment = tempAlignment,
-                alignmentVersion = alignmentVersion,
+                geometry = tempGeometry,
+                geometryVersion = geometryVersion,
                 draft = false,
             )
         val insertVersion = referenceLineDao.save(tempTrack)
@@ -82,9 +82,9 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
         assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(draftVersion1, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
-        val newTempAlignment = alignment(segment(Point(2.0, 2.0), Point(4.0, 4.0)))
-        val newAlignmentVersion = alignmentDao.insert(newTempAlignment)
-        val tempDraft2 = draft1.copy(alignmentVersion = newAlignmentVersion, length = newTempAlignment.length)
+        val newTempGeometry = referenceLineGeometry(segment(Point(2.0, 2.0), Point(4.0, 4.0)))
+        val newGeometryVersion = alignmentDao.insert(newTempGeometry)
+        val tempDraft2 = draft1.copy(geometryVersion = newGeometryVersion, length = newTempGeometry.length)
         val draftVersion2 = referenceLineDao.save(tempDraft2)
         val draft2 = referenceLineDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)
@@ -92,7 +92,7 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
         assertEquals(draftVersion2, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
         referenceLineDao.deleteDraft(LayoutBranch.main, id)
-        alignmentDao.deleteOrphanedAlignments()
+        alignmentDao.deleteOrphanedRerefenceLineGeometries()
         assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
@@ -110,28 +110,28 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
         val designOfficialContext = testDBService.testContext(design, PublicationState.OFFICIAL)
         val existingMainAndNearby =
             mainOfficialContext.saveReferenceLine(
-                referenceLineAndAlignment(
+                referenceLineAndGeometry(
                     mainOfficialContext.createLayoutTrackNumber().id,
                     segment(Point(0.0, 0.0), Point(1.0, 0.0)),
                 )
             )
         val existingMainButDistant =
             mainOfficialContext.saveReferenceLine(
-                referenceLineAndAlignment(
+                referenceLineAndGeometry(
                     mainOfficialContext.createLayoutTrackNumber().id,
                     segment(Point(0.0, 100.0), Point(1.0, 100.0)),
                 )
             )
         val nearbyAndMainButDeleted =
             mainOfficialContext.saveReferenceLine(
-                referenceLineAndAlignment(
+                referenceLineAndGeometry(
                     mainOfficialContext.save(trackNumber(TrackNumber("123"), state = LayoutState.DELETED)).id,
                     segment(Point(0.0, 0.0), Point(1.0, 0.0)),
                 )
             )
         val existingAndNearbyInDesign =
             mainOfficialContext.saveReferenceLine(
-                referenceLineAndAlignment(
+                referenceLineAndGeometry(
                     designOfficialContext.createLayoutTrackNumber().id,
                     segment(Point(0.0, 0.0), Point(1.0, 0.0)),
                 )

@@ -19,10 +19,9 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.geocodingContextCacheKey
 import fi.fta.geoviite.infra.tracklayout.kmPost
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
-import java.math.BigDecimal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -30,6 +29,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -112,7 +112,7 @@ constructor(private val geocodingService: GeocodingService, private val geometry
         val tnId = tnV1.id
         val rlV1 =
             mainOfficialContext.saveReferenceLine(
-                referenceLineAndAlignment(tnId, segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+                referenceLineAndGeometry(tnId, segment(Point(0.0, 0.0), Point(10.0, 0.0)))
             )
         val kmpV1 = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
         val initKey = geocodingContextCacheKey(tnId, tnV1, rlV1, kmpV1)

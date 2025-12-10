@@ -8,11 +8,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -48,7 +48,7 @@ constructor(
 
         val lineSegments = listOf((segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
         referenceLineDao.save(
-            referenceLine(trackNumberId, alignmentVersion = alignmentDao.insert(alignment(lineSegments)), draft = false)
+            referenceLine(trackNumberId, geometryVersion = alignmentDao.insert(referenceLineGeometry(lineSegments)), draft = false)
         )
         locationTrackDao.save(
             locationTrack(trackNumberId = trackNumberId, name = "foo bar", draft = false),

@@ -100,10 +100,10 @@ class LayoutKmPostService(
 
     fun getSingleKmPostLength(layoutContext: LayoutContext, id: IntId<LayoutKmPost>): Double? {
         return dao.get(layoutContext, id)?.getAsIntegral()?.let { kmPost ->
-            referenceLineService.getByTrackNumberWithAlignment(layoutContext, kmPost.trackNumberId)?.let {
-                (_, alignment) ->
-                val kmPostM = alignment.getClosestPointM(kmPost.location)?.first
-                val kmEndM = getKmEndM(layoutContext, kmPost.trackNumberId, kmPost.kmNumber, alignment)
+            referenceLineService.getByTrackNumberWithGeometry(layoutContext, kmPost.trackNumberId)?.let {
+                (_, geometry) ->
+                val kmPostM = geometry.getClosestPointM(kmPost.location)?.first
+                val kmEndM = getKmEndM(layoutContext, kmPost.trackNumberId, kmPost.kmNumber, geometry)
                 if (kmPostM == null || kmEndM == null) null else (kmEndM - kmPostM).distance
             }
         }
@@ -113,16 +113,16 @@ class LayoutKmPostService(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
         kmNumber: KmNumber,
-        referenceLineAlignment: LayoutAlignment,
+        referenceLineGeometry: ReferenceLineGeometry,
     ): LineM<ReferenceLineM>? {
         val nextKmPost =
             dao.fetchNextWithLocationAfter(layoutContext, trackNumberId, kmNumber, LayoutState.IN_USE)
                 ?.let(dao::fetch)
                 ?.getAsIntegral()
         return if (nextKmPost == null) {
-            referenceLineAlignment.length
+            referenceLineGeometry.length
         } else {
-            referenceLineAlignment.getClosestPointM(nextKmPost.location)?.first
+            referenceLineGeometry.getClosestPointM(nextKmPost.location)?.first
         }
     }
 

@@ -116,7 +116,7 @@ class ReferenceLineDao(
 
     private fun getReferenceLine(rs: ResultSet): ReferenceLine =
         ReferenceLine(
-            alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
+            geometryVersion = rs.getRowVersion("alignment_id", "alignment_version"),
             sourceId = null,
             trackNumberId = rs.getIntId("track_number_id"),
             startAddress = rs.getTrackMeter("start_address"),
@@ -174,8 +174,8 @@ class ReferenceLineDao(
                 "id" to id.intValue,
                 "track_number_id" to item.trackNumberId.intValue,
                 "alignment_id" to
-                    (item.alignmentVersion?.id?.intValue ?: error("ReferenceLine in DB needs an alignment")),
-                "alignment_version" to item.alignmentVersion.version,
+                    (item.geometryVersion?.id?.intValue ?: error("ReferenceLine in DB needs an alignment")),
+                "alignment_version" to item.geometryVersion.version,
                 "start_address" to item.startAddress.toString(),
                 "draft" to item.isDraft,
                 "design_asset_state" to item.designAssetState?.name,

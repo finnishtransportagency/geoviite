@@ -61,7 +61,6 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.UicCode
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
@@ -72,6 +71,7 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
@@ -80,12 +80,6 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
 import fi.fta.geoviite.infra.util.SortOrder
-import java.sql.Timestamp
-import java.time.Instant
-import kotlin.math.absoluteValue
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -94,6 +88,12 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import java.sql.Timestamp
+import java.time.Instant
+import kotlin.math.absoluteValue
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -133,7 +133,7 @@ constructor(
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
         val (track, geometry) = locationTrackAndGeometry(trackNumberId, draft = true)
         val draftId = locationTrackService.saveDraft(LayoutBranch.main, track, geometry).id
@@ -1007,8 +1007,8 @@ constructor(
                     .toTypedArray()
             )
 
-        val referenceLineAlignment = alignmentDao.insert(alignment(segmentWithCurveToMaxY(0.0)))
-        referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = referenceLineAlignment, draft = false))
+        val referenceLineAlignment = alignmentDao.insert(referenceLineGeometry(segmentWithCurveToMaxY(0.0)))
+        referenceLineDao.save(referenceLine(trackNumberId, geometryVersion = referenceLineAlignment, draft = false))
 
         // track that had bump to y=-10 goes to having a bump to y=10, meaning the length and ends
         // stay the same,
@@ -1050,7 +1050,7 @@ constructor(
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId1, draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
 
         val locationTrack1 =
@@ -1065,7 +1065,7 @@ constructor(
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId2, draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
 
         val locationTrack2 =
@@ -1112,7 +1112,7 @@ constructor(
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId1, draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
 
         val locationTrack1 =
@@ -1127,7 +1127,7 @@ constructor(
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId2, draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
 
         val locationTrack2 =
@@ -1161,7 +1161,7 @@ constructor(
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId1, draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
 
         publish(publicationService, trackNumbers = listOf(trackNumberId1))
@@ -1170,7 +1170,7 @@ constructor(
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId2, draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
 
         publish(publicationService, trackNumbers = listOf(trackNumberId2))
@@ -1216,7 +1216,7 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     referenceLine(trackNumberId, draft = true),
-                    alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
                 )
                 .id
 
@@ -1243,7 +1243,7 @@ constructor(
             referenceLineDao.save(
                 referenceLine(
                     trackNumberId,
-                    alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
+                    geometryVersion = alignmentDao.insert(referenceLineGeometry(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
                     draft = false,
                 )
             )
@@ -1251,7 +1251,7 @@ constructor(
             GeocodingContext.create(
                     trackNumber = trackNumber,
                     startAddress = TrackMeter.ZERO,
-                    referenceLineGeometry = referenceLineService.getWithAlignment(referenceLine).second,
+                    referenceLineGeometry = referenceLineService.getWithGeometry(referenceLine).second,
                     kmPosts = emptyList(),
                 )
                 .geocodingContext
@@ -1332,7 +1332,7 @@ constructor(
             referenceLineDao.save(
                 referenceLine(
                     trackNumberId,
-                    alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
+                    geometryVersion = alignmentDao.insert(referenceLineGeometry(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
                     draft = false,
                 )
             )
@@ -1340,7 +1340,7 @@ constructor(
             GeocodingContext.create(
                     trackNumber = trackNumber,
                     startAddress = TrackMeter.ZERO,
-                    referenceLineGeometry = referenceLineService.getWithAlignment(referenceLine).second,
+                    referenceLineGeometry = referenceLineService.getWithGeometry(referenceLine).second,
                     kmPosts = emptyList(),
                 )
                 .geocodingContext
@@ -1497,7 +1497,7 @@ constructor(
     fun `changes published in design do not confuse publication change logs`() {
         val trackNumber = mainDraftContext.save(trackNumber(TrackNumber("original")))
         val referenceLine =
-            mainDraftContext.save(referenceLine(trackNumber.id), alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+            mainDraftContext.save(referenceLine(trackNumber.id), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
         val switch =
             mainDraftContext.save(
                 switch(
@@ -1542,9 +1542,9 @@ constructor(
         referenceLineService.saveDraft(
             designBranch,
             mainOfficialContext.fetch(referenceLine.id)!!,
-            alignment(segment(Point(1.0, 0.0), Point(1.0, 10.0))),
+            referenceLineGeometry(segment(Point(1.0, 0.0), Point(1.0, 10.0))),
         )
-        mainOfficialContext.fetchWithGeometry(locationTrack.id)!!.let { (t, g) ->
+        mainOfficialContext.fetchLocationTrackWithGeometry(locationTrack.id)!!.let { (t, g) ->
             locationTrackService.saveDraft(designBranch, t.copy(name = AlignmentName("edited in design")), g)
         }
         switchService.saveDraft(

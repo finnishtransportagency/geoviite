@@ -11,13 +11,11 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutState
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
-import java.math.BigDecimal
-import kotlin.math.abs
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -30,6 +28,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
+import kotlin.math.abs
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -49,7 +49,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val trackNumber = testDBService.getUnusedTrackNumber()
         val tnId = mainDraftContext.createLayoutTrackNumber(trackNumber).id
         val tnOid = mainDraftContext.generateOid(tnId)
-        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter(10, 100)), rlGeom).id
         val kmp13Id =
             mainDraftContext.save(kmPost(tnId, KmNumber(13), gkLocation = kmPostGkLocation(300.0, 2.0, true))).id
@@ -129,7 +129,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val trackNumber = testDBService.getUnusedTrackNumber()
         val tnId = mainDraftContext.createLayoutTrackNumber(trackNumber).id
         val tnOid = mainDraftContext.generateOid(tnId)
-        val rlGeom = alignment(segment(Point(1000.0, 1000.0), Point(2000.0, 1000.0)))
+        val rlGeom = referenceLineGeometry(segment(Point(1000.0, 1000.0), Point(2000.0, 1000.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter.ZERO), rlGeom).id
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(1500.0, 1002.0))).id
 
@@ -179,7 +179,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     fun `A deleted track number has no kms`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
         val tnOid = mainDraftContext.generateOid(tnId)
-        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter.ZERO), rlGeom).id
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(500.0, 0.0))).id
         val basePublication =

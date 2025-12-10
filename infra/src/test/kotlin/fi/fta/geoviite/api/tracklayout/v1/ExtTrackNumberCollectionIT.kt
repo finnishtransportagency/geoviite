@@ -13,9 +13,9 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -353,7 +353,7 @@ constructor(
         initUser()
         mainDraftContext.save(
             mainOfficialContext.fetch(referenceLineId1)!!.copy(startAddress = TrackMeter("0001+0010.000")),
-            alignment(segment),
+            referenceLineGeometry(segment),
         )
         val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(referenceLineId1))
         assertAddressRange(getExtTrackNumberInCollection(trackNumberOid1)!!, "0001+0010.000", "0001+0020.000")
