@@ -109,4 +109,14 @@ describe('reuseListElements', () => {
         expect(changed[2]).toBe(a[1]);
         expect(changed[3]).toBe(a[1]);
     });
+
+    test('returns new list reusing instances, when only list ordering has changed', () => {
+        const a = [[1], [2], [3], [4]];
+        const r = [[4], [3], [2], [1]];
+        const changed = reuseListElements(r, a, (_) => 0);
+        expect(changed[0]).toBe(a[3]);
+        expect(changed[1]).toBe(a[2]);
+        expect(changed[2]).toBe(a[1]);
+        expect(changed[3]).toBe(a[0]);
+    });
 });
