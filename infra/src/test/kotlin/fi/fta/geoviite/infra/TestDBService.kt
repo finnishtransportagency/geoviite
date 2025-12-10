@@ -76,10 +76,10 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import java.time.Instant
-import kotlin.reflect.KClass
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
+import kotlin.reflect.KClass
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -298,12 +298,12 @@ class TestDBService(
     final inline fun <reified T : LayoutAsset<T>> fetch(rowVersion: LayoutRowVersion<T>): T =
         getReader(T::class).fetch(rowVersion)
 
-    final fun fetchWithAlignment(
+    final fun fetchReferenceLineWithGeometry(
         rowVersion: LayoutRowVersion<ReferenceLine>
     ): Pair<ReferenceLine, ReferenceLineGeometry> =
         fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.getGeometryVersionOrThrow()) }
 
-    final fun fetchWithGeometry(
+    final fun fetchLocationTrackWithGeometry(
         rowVersion: LayoutRowVersion<LocationTrack>
     ): Pair<LocationTrack, DbLocationTrackGeometry> =
         fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.getVersionOrThrow()) }

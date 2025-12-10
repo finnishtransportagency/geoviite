@@ -28,7 +28,6 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MATH
 import fi.fta.geoviite.infra.util.getIntId
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -39,6 +38,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -416,7 +416,7 @@ constructor(
         )
 
         val (track1, geometry1) =
-            testDBService.fetchWithGeometry(
+            testDBService.fetchLocationTrackWithGeometry(
                 mainOfficialContext.save(
                     locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
                     trackGeometry(
@@ -430,7 +430,7 @@ constructor(
                 )
             )
         val (track2, geometry2) =
-            testDBService.fetchWithGeometry(
+            testDBService.fetchLocationTrackWithGeometry(
                 mainOfficialContext.save(
                     locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
                     trackGeometry(
@@ -439,7 +439,7 @@ constructor(
                 )
             )
         val (track3, _) =
-            testDBService.fetchWithGeometry(
+            testDBService.fetchLocationTrackWithGeometry(
                 mainDraftContext.save(
                     locationTrack(mainDraftContext.createLayoutTrackNumber().id),
                     trackGeometry(
