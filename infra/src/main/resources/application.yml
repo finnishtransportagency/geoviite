@@ -104,6 +104,9 @@ geoviite:
         enabled: true
         cron: "0 30 3 * * *"
 
+  ratko-fake-oid-generator:
+    enabled: "${RATKO_FAKE_OID_GENERATOR_ENABLED:false}"
+
   projektivelho:
     enabled: "${PROJEKTIVELHO_ENABLED:false}"
     url: "${PROJEKTIVELHO_URL:}"

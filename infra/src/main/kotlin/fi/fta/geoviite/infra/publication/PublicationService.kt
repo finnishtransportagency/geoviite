@@ -18,7 +18,11 @@ import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.IndirectChanges
+import fi.fta.geoviite.infra.ratko.LOCATION_TRACK_FAKE_OID_CONTEXT
 import fi.fta.geoviite.infra.ratko.RatkoClient
+import fi.fta.geoviite.infra.ratko.RatkoFakeOidGenerator
+import fi.fta.geoviite.infra.ratko.SWITCH_FAKE_OID_CONTEXT
+import fi.fta.geoviite.infra.ratko.TRACK_NUMBER_FAKE_OID_CONTEXT
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -48,10 +52,6 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 
-const val TRACK_NUMBER_FAKE_OID_CONTEXT = 10001
-const val LOCATION_TRACK_FAKE_OID_CONTEXT = 10002
-const val SWITCH_FAKE_OID_CONTEXT = 139
-
 @GeoviiteService
 class PublicationService
 @Autowired
@@ -72,12 +72,21 @@ constructor(
     private val operationalPointDao: OperationalPointDao,
     private val calculatedChangesService: CalculatedChangesService,
     private val ratkoClient: RatkoClient?,
+    private val ratkoFakeOidGenerator: RatkoFakeOidGenerator?,
     private val transactionTemplate: TransactionTemplate,
     private val publicationGeometryChangeRemarksUpdateService: PublicationGeometryChangeRemarksUpdateService,
     private val splitService: SplitService,
     private val publicationValidationService: PublicationValidationService,
     private val layoutDesignDao: LayoutDesignDao,
 ) {
+
+    init {
+        val ratkoClientEnabled = ratkoClient != null
+        val ratkoFakeOidGeneratorEnabled = ratkoFakeOidGenerator != null
+        require(ratkoClientEnabled || ratkoFakeOidGeneratorEnabled) { "Either ratkoClient or ratkoFakeOidGenerator must be enabled" }
+        require(ratkoClientEnabled != ratkoFakeOidGeneratorEnabled) { "Only one of ratkoClient or ratkoFakeOidGenerator may be enabled" }
+    }
+
     @Transactional(readOnly = true)
     fun collectPublicationCandidates(transition: LayoutContextTransition): PublicationCandidates {
         return PublicationCandidates(
@@ -269,30 +278,29 @@ constructor(
         )
     }
 
-    private fun <T> generateFakeRatkoOID(contextId: Int, uniqueIdInContext: Int): RatkoOid<T> {
-        // make fake OID clearly distinct from real OIDs
-        return RatkoOid("0.0.0.0.0.0.${contextId}.${uniqueIdInContext}")
-    }
-
     private fun insertExternalIdForLocationTrack(branch: LayoutBranch, locationTrackId: IntId<LocationTrack>) {
         val locationTrackOid =
             ratkoClient?.let { s -> requireNotNull(s.getNewLocationTrackOid()) { "No OID received from RATKO" } }
-                ?: generateFakeRatkoOID(LOCATION_TRACK_FAKE_OID_CONTEXT, locationTrackId.intValue)
-        locationTrackOid.let { oid -> locationTrackService.insertExternalId(branch, locationTrackId, Oid(oid.id)) }
+                ?: ratkoFakeOidGenerator?.generateFakeRatkoOID(
+                    LOCATION_TRACK_FAKE_OID_CONTEXT, locationTrackId.intValue
+                )
+        locationTrackOid?.let { oid -> locationTrackService.insertExternalId(branch, locationTrackId, Oid(oid.id)) }
     }
 
     private fun insertExternalIdForTrackNumber(branch: LayoutBranch, trackNumberId: IntId<LayoutTrackNumber>) {
         val routeNumberOid =
             ratkoClient?.let { s -> requireNotNull(s.getNewRouteNumberOid()) { "No OID received from RATKO" } }
-                ?: generateFakeRatkoOID(TRACK_NUMBER_FAKE_OID_CONTEXT, trackNumberId.intValue)
-        routeNumberOid.let { oid -> trackNumberService.insertExternalId(branch, trackNumberId, Oid(oid.id)) }
+                ?: ratkoFakeOidGenerator?.generateFakeRatkoOID(TRACK_NUMBER_FAKE_OID_CONTEXT, trackNumberId.intValue)
+        routeNumberOid?.let { oid -> trackNumberService.insertExternalId(branch, trackNumberId, Oid(oid.id)) }
     }
 
     private fun insertExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<LayoutSwitch>) {
         val switchOid = switchDao.get(branch.draft, switchId)?.draftOid?.also(::ensureDraftIdExists)?.toString()
             ?: ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid().id) { "No OID received from RATKO" } }
-            ?: generateFakeRatkoOID<LayoutSwitch>(SWITCH_FAKE_OID_CONTEXT, switchId.intValue).toString()
-        switchOid.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(oid)) }
+            ?: ratkoFakeOidGenerator
+                ?.generateFakeRatkoOID<LayoutSwitch>(SWITCH_FAKE_OID_CONTEXT, switchId.intValue)
+                ?.toString()
+        switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(oid)) }
     }
 
     private fun ensureDraftIdExists(draftOid: Oid<LayoutSwitch>) {
