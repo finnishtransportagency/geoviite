@@ -45,7 +45,6 @@ import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
 import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
@@ -66,6 +65,7 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfTypeWithCode
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.UicCode
 import fi.fta.geoviite.infra.util.ESCAPED_NEW_LINE
@@ -828,7 +828,7 @@ data class ReferenceLineChanges(
     val length: Change<Double>,
     val startPoint: Change<Point?>,
     val endPoint: Change<Point?>,
-    val alignmentVersion: Change<RowVersion<LayoutAlignment>>,
+    val alignmentVersion: Change<RowVersion<ReferenceLineGeometry>>,
 )
 
 data class TrackNumberChanges(
@@ -961,7 +961,15 @@ data class PublishedVersions(
     val switches: List<Change<LayoutRowVersion<LayoutSwitch>>>,
     val kmPosts: List<Change<LayoutRowVersion<LayoutKmPost>>>,
     val operationalPoints: List<Change<LayoutRowVersion<OperationalPoint>>>,
-)
+) {
+    init {
+        trackNumbers.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
+        referenceLines.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
+        locationTracks.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
+        switches.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
+        operationalPoints.forEach { change -> change.old?.let { require(it.id == change.new.id) } }
+    }
+}
 
 data class PreparedPublicationRequest(
     val branch: LayoutBranch,
@@ -978,6 +986,11 @@ data class PublicationResultVersions<T : LayoutAsset<T>>(
     val completed: Pair<DesignBranch, LayoutRowVersion<T>>?,
 ) {
     val versionChange: Change<LayoutRowVersion<T>> = Change(base, published)
+
+    init {
+        base?.let { require(it.id == published.id) }
+        completed?.second?.let { require(it.id == published.id) }
+    }
 }
 
 data class PublicationComparison(val from: Publication, val to: Publication) {

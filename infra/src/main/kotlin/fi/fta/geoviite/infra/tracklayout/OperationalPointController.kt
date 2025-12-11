@@ -98,7 +98,7 @@ class OperationalPointController(
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PutMapping("/operational-points/{$LAYOUT_BRANCH}/draft/{id}/location")
+    @PutMapping("/operational-points/{$LAYOUT_BRANCH}/draft/{id}/area")
     fun updateOperatingPointPolygon(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable("id") id: IntId<OperationalPoint>,

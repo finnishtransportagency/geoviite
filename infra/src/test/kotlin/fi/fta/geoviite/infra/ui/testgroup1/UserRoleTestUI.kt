@@ -53,9 +53,9 @@ constructor(
     fun `Page navigation test`() {
         val trackNumber = trackNumber(HKI_TRACK_NUMBER_1, draft = false)
         val trackNumberId = trackNumberDao.save(trackNumber)
-        val referenceLineAndAlignment = westReferenceLine(trackNumberId.id)
-        val alignmentVersion = alignmentDao.insert(referenceLineAndAlignment.second)
-        referenceLineDao.save(referenceLineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
+        val (referenceLine, geometry) = westReferenceLine(trackNumberId.id)
+        val geometryVersion = alignmentDao.insert(geometry)
+        referenceLineDao.save(referenceLine.copy(geometryVersion = geometryVersion))
 
         val designName = "test design"
         layoutDesignDao.insert(

@@ -110,11 +110,11 @@ private fun replaceStartWithTopoSwitch(
 
 fun moveReferenceLineGeometryPointsAndUpdate(
     referenceLine: ReferenceLine,
-    alignment: LayoutAlignment,
+    geometry: ReferenceLineGeometry,
     moveFunc: (point: IPoint3DM<*>) -> Point?,
     referenceLineService: ReferenceLineService,
 ): LayoutRowVersion<ReferenceLine> =
-    referenceLineService.saveDraft(LayoutBranch.main, referenceLine, moveAlignmentPoints(alignment, moveFunc))
+    referenceLineService.saveDraft(LayoutBranch.main, referenceLine, moveAlignmentPoints(geometry, moveFunc))
 
 fun moveLocationTrackPoints(
     geometry: LocationTrackGeometry,
@@ -141,13 +141,13 @@ fun moveLocationTrackPoints(
 }
 
 fun moveAlignmentPoints(
-    alignment: LayoutAlignment,
+    geometry: ReferenceLineGeometry,
     moveFunc: (point: AlignmentPoint<ReferenceLineM>) -> Point?,
-): LayoutAlignment {
-    return alignment
+): ReferenceLineGeometry {
+    return geometry
         .copy(
             segments =
-                alignment.segmentsWithM.map { (segment, m) ->
+                geometry.segmentsWithM.map { (segment, m) ->
                     var prevPoint: IPoint3DM<*>? = null
                     val newPoints =
                         segment.segmentPoints.mapNotNull { point ->

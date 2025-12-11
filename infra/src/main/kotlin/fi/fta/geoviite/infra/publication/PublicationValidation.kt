@@ -28,7 +28,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.IAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
@@ -43,6 +42,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.TOPOLOGY_CALC_DISTANCE
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
@@ -1127,8 +1127,8 @@ fun validateAddressPoints(
     )
 }
 
-fun validateReferenceLineGeometry(alignment: LayoutAlignment): List<LayoutValidationIssue> =
-    validateGeometry(VALIDATION_REFERENCE_LINE, alignment)
+fun validateReferenceLineGeometry(geometry: ReferenceLineGeometry): List<LayoutValidationIssue> =
+    validateGeometry(VALIDATION_REFERENCE_LINE, geometry)
 
 fun validateLocationTrackGeometry(geometry: LocationTrackGeometry): List<LayoutValidationIssue> =
     validateGeometry(VALIDATION_LOCATION_TRACK, geometry) +

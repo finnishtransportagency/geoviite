@@ -27,8 +27,7 @@ export function createOperationalPointAreaLayer(
     const isBeingEdited = (id: OperationalPointId) =>
         linkingState &&
         linkingState.type === LinkingType.PlacingOperationalPointArea &&
-        linkingState.operationalPoint.id === id &&
-        !!linkingState.area;
+        linkingState.operationalPoint.id === id;
 
     const createFeatures = (points: OperationalPoint[]) =>
         points

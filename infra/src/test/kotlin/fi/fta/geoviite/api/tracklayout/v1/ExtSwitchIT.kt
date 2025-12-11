@@ -33,7 +33,6 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNull
 import org.springframework.beans.factory.annotation.Autowired
@@ -510,8 +509,6 @@ constructor(
         }
     }
 
-    // TODO: GVT-3404 Enable test when track deletion produces a calculated change in switch
-    @Disabled("GVT-3404 - track deletion does not produce calculated change in switch")
     @Test
     fun `Track deletion shows up as a (calculated) change in ext-api switches`() {
         val switch =

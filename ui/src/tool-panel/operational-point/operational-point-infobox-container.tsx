@@ -67,6 +67,10 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
         delegates.hideLayers(['operational-points-area-placing-layer']);
     };
 
+    const clearOperationalPointArea = () => {
+        delegates.setOperationalPointArea(undefined);
+    };
+
     return (
         <React.Fragment>
             {operationalPoint && (
@@ -88,6 +92,7 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
                         delegates.startFreshSpecificItemPublicationLogSearch
                     }
                     onShowOnMap={showOnMap}
+                    onClearArea={clearOperationalPointArea}
                 />
             )}
         </React.Fragment>

@@ -17,12 +17,12 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
@@ -392,7 +392,7 @@ constructor(
     fun `Location track modification API should show modifications for calculated change`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
         mainDraftContext.generateOid(tnId)
-        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
 
         val trackGeom = trackGeometryOfSegments(segment(Point(20.0, 0.0), Point(40.0, 0.0)))
@@ -473,7 +473,7 @@ constructor(
     fun `Deleted tracks have no addresses exposed through the API`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
         mainDraftContext.generateOid(tnId)
-        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
 
         val trackGeom = trackGeometryOfSegments(segment(Point(10.0, 0.0), Point(90.0, 0.0)))
@@ -496,7 +496,7 @@ constructor(
         }
 
         initUser()
-        val (origTrack, origGeom) = mainDraftContext.fetchWithGeometry(trackId)!!
+        val (origTrack, origGeom) = mainDraftContext.fetchLocationTrackWithGeometry(trackId)!!
         mainDraftContext.saveLocationTrack(origTrack.copy(state = LocationTrackState.DELETED) to origGeom)
         val deletePublication = extTestDataService.publishInMain(locationTracks = listOf(trackId))
 
@@ -644,7 +644,7 @@ constructor(
     fun `Geometry modifications API shows calculated changes correctly`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
         mainDraftContext.generateOid(tnId)
-        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
 
         val trackGeom = trackGeometryOfSegments(segment(Point(20.0, 0.0), Point(40.0, 0.0)))

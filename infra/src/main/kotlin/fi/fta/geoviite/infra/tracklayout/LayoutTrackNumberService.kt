@@ -20,7 +20,6 @@ import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.map.ALIGNMENT_POLYGON_BUFFER
 import fi.fta.geoviite.infra.map.toPolygon
-import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
@@ -29,9 +28,9 @@ import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.printCsv
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.stream.Collectors
+import org.springframework.transaction.annotation.Transactional
 
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.data"
 
@@ -45,7 +44,6 @@ class LayoutTrackNumberService(
     dao: LayoutTrackNumberDao,
     private val referenceLineService: ReferenceLineService,
     private val geocodingService: GeocodingService,
-    private val alignmentService: LayoutAlignmentService,
     private val localizationService: LocalizationService,
     private val geographyService: GeographyService,
     private val locationTrackService: LocationTrackService,
@@ -182,29 +180,6 @@ class LayoutTrackNumberService(
     }
 
     @Transactional(readOnly = true)
-    fun getMetadataSections(
-        layoutContext: LayoutContext,
-        trackNumberId: IntId<LayoutTrackNumber>,
-        boundingBox: BoundingBox?,
-    ): List<AlignmentPlanSection<ReferenceLineM>> {
-        return get(layoutContext, trackNumberId)?.let { trackNumber ->
-            val referenceLine = referenceLineService.getByTrackNumberOrThrow(layoutContext, trackNumberId)
-            val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
-
-            if (geocodingContext != null && referenceLine.alignmentVersion != null) {
-                alignmentService.getGeometryMetadataSections(
-                    referenceLine.alignmentVersion,
-                    dao.fetchExternalId(layoutContext.branch, trackNumberId)?.oid,
-                    boundingBox,
-                    geocodingContext,
-                )
-            } else {
-                null
-            }
-        } ?: listOf()
-    }
-
-    @Transactional(readOnly = true)
     fun getReferenceLinePolygon(
         layoutContext: LayoutContext,
         trackNumberId: IntId<LayoutTrackNumber>,
@@ -212,14 +187,14 @@ class LayoutTrackNumberService(
         endKm: KmNumber?,
         bufferSize: Double = ALIGNMENT_POLYGON_BUFFER,
     ): Polygon? {
-        val alignment = referenceLineService.getByTrackNumberWithAlignment(layoutContext, trackNumberId)?.second
+        val geometry = referenceLineService.getByTrackNumberWithGeometry(layoutContext, trackNumberId)?.second
         val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
 
         return if (
-            alignment != null && geocodingContext != null && cropIsWithinReferenceLine(startKm, endKm, geocodingContext)
+            geometry != null && geocodingContext != null && cropIsWithinReferenceLine(startKm, endKm, geocodingContext)
         ) {
-            getCropMRange(geocodingContext, Range(LineM(0), alignment.length), startKm, endKm)
-                ?.let { cropRange -> cropAlignment(alignment.segmentsWithM, cropRange) }
+            getCropMRange(geocodingContext, Range(LineM(0), geometry.length), startKm, endKm)
+                ?.let { cropRange -> cropAlignment(geometry.segmentsWithM, cropRange) }
                 ?.let { a -> toPolygon(a, bufferSize) }
         } else {
             null

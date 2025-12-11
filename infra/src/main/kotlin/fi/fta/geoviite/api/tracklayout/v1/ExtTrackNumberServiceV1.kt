@@ -13,10 +13,10 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import org.slf4j.Logger
@@ -190,7 +190,7 @@ constructor(
         val trackNumber: LayoutTrackNumber,
         // Note: the geocoding context has the same geometry, but this one can exist for deteled
         // TrackNumbers as well, unlike the geocoding context
-        val geometry: LayoutAlignment?,
+        val geometry: ReferenceLineGeometry?,
         val geocodingContext: GeocodingContext<ReferenceLineM>?,
     )
 
@@ -204,7 +204,7 @@ constructor(
         val referenceLineGeometry =
             trackNumber.referenceLineId
                 ?.let { rlId -> referenceLineDao.fetchOfficialVersionAtMoment(branch, rlId, moment) }
-                ?.let(referenceLineService::getWithAlignment)
+                ?.let(referenceLineService::getWithGeometry)
                 ?.second
         val geocodingContext = geocodingService.getGeocodingContextAtMoment(branch, id, moment)
         return TrackNumberData(oid, trackNumber, referenceLineGeometry, geocodingContext)
@@ -220,7 +220,7 @@ constructor(
         val referenceLines =
             referenceLineDao
                 .fetchManyOfficialVersionsAtMoment(branch, trackNumbers.mapNotNull { it.referenceLineId }, moment)
-                .let { versions -> referenceLineService.getManyWithAlignments(versions) }
+                .let { versions -> referenceLineService.getManyWithGeometries(versions) }
                 .associate { it.first.id as IntId to it.second }
         return trackNumbers.map { trackNumber ->
             val id = trackNumber.id as IntId

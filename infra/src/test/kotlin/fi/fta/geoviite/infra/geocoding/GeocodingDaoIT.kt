@@ -13,11 +13,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.geocodingContextCacheKey
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLine
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -51,8 +51,8 @@ constructor(
     @Test
     fun trackNumberWithoutKmPostsHasAContext() {
         val id = mainOfficialContext.createLayoutTrackNumber().id
-        val alignmentVersion = alignmentDao.insert(alignment())
-        referenceLineDao.save(referenceLine(id, alignmentVersion = alignmentVersion, draft = false))
+        val alignmentVersion = alignmentDao.insert(referenceLineGeometry())
+        referenceLineDao.save(referenceLine(id, geometryVersion = alignmentVersion, draft = false))
         assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
         assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, id))
     }
@@ -63,7 +63,7 @@ constructor(
         val tnId = tnOfficialVersion.id
         val tnDraft = testDBService.createDraft(tnOfficialVersion)
 
-        val rlOfficial = mainOfficialContext.saveReferenceLine(referenceLineAndAlignment(tnId))
+        val rlOfficial = mainOfficialContext.saveReferenceLine(referenceLineAndGeometry(tnId))
         val rlDraft = testDBService.createDraft(rlOfficial)
 
         val kmPost1Official = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
@@ -145,7 +145,7 @@ constructor(
         // First off, the main official versions for starting context
         val tnMainV1 = mainOfficialContext.createLayoutTrackNumber()
         val tnId = tnMainV1.id
-        val rlMainV1 = mainOfficialContext.saveReferenceLine(referenceLineAndAlignment(tnId))
+        val rlMainV1 = mainOfficialContext.saveReferenceLine(referenceLineAndGeometry(tnId))
         val kmp1MainV1 = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
         val kmp2MainV1 = mainOfficialContext.save(kmPost(tnId, KmNumber(2)))
 
@@ -265,7 +265,7 @@ constructor(
         val tnId = tnV1.id
         val rlV1 =
             mainOfficialContext.saveReferenceLine(
-                referenceLineAndAlignment(tnId, segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+                referenceLineAndGeometry(tnId, segment(Point(0.0, 0.0), Point(10.0, 0.0)))
             )
         val kmpV1 = mainOfficialContext.save(kmPost(tnId, KmNumber(1)))
         val dbTimeAfterInit = testDBService.getDbTime()

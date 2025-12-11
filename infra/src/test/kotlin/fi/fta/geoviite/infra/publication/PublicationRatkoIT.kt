@@ -33,13 +33,13 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.moveKmPostLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
@@ -49,9 +49,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.queryOne
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -59,6 +56,9 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -121,7 +121,7 @@ constructor(
         val mainTrackNumberOid = "1.2.3.4.5"
         trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid(mainTrackNumberOid))
 
-        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         // split track with two km posts, so that moving the latter one even further doesn't affect
         // the first track km at all
         mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0)))
@@ -241,7 +241,7 @@ constructor(
     @Test
     fun `switch draft oid existence is checked upon publication`() {
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
         val switch =
             mainDraftContext
                 .save(
@@ -306,7 +306,7 @@ constructor(
         val trackNumber = mainOfficialContext.save(trackNumber()).id
         val referenceLine =
             mainOfficialContext
-                .save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
                 .id
         val switch =
             mainOfficialContext
@@ -344,7 +344,7 @@ constructor(
 
         designDraftContext.save(mainOfficialContext.fetch(trackNumber)!!)
         designDraftContext.save(mainOfficialContext.fetch(referenceLine)!!)
-        designDraftContext.saveLocationTrack(mainOfficialContext.fetchWithGeometry(locationTrack)!!)
+        designDraftContext.saveLocationTrack(mainOfficialContext.fetchLocationTrackWithGeometry(locationTrack)!!)
         designDraftContext.save(mainOfficialContext.fetch(switch)!!)
         designDraftContext.save(mainOfficialContext.fetch(kmPost)!!)
 

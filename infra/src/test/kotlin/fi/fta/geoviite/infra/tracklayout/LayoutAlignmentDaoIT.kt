@@ -28,7 +28,6 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MATH
 import fi.fta.geoviite.infra.util.getIntId
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -39,6 +38,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -59,17 +59,21 @@ constructor(
 
     @Test
     fun alignmentsAreStoredAndLoadedOk() {
-        (0..20).map { seed -> alignmentWithZAndCant(seed) }.forEach { alignment -> insertAndVerify(alignment) }
+        (0..20)
+            .map { seed -> referenceLineGeometryWithZAndCant(seed) }
+            .forEach { alignment -> insertAndVerify(alignment) }
     }
 
     @Test
     fun alignmentsWithoutProfileOrCantIsStoredAndLoadedOk() {
-        (0..20).map { alignmentSeed -> alignmentWithoutZAndCant(alignmentSeed) }.forEach { a -> insertAndVerify(a) }
+        (0..20)
+            .map { alignmentSeed -> referenceLineGeometryWithoutZAndCant(alignmentSeed) }
+            .forEach { a -> insertAndVerify(a) }
     }
 
     @Test
     fun alignmentUpdateWorks() {
-        val orig = alignmentWithoutZAndCant(1, 10)
+        val orig = referenceLineGeometryWithoutZAndCant(1, 10)
 
         val insertedVersion = insertAndVerify(orig)
         val afterInsert = alignmentDao.fetch(insertedVersion)
@@ -97,7 +101,7 @@ constructor(
 
     @Test
     fun alignmentDeleteWorks() {
-        val insertedVersion = insertAndVerify(alignmentWithZAndCant(4, 5))
+        val insertedVersion = insertAndVerify(referenceLineGeometryWithZAndCant(4, 5))
         val alignmentBeforeDelete = alignmentDao.fetch(insertedVersion)
         val deletedId = alignmentDao.delete(insertedVersion.id)
         assertEquals(insertedVersion.id, deletedId)
@@ -111,9 +115,9 @@ constructor(
     fun deletingOrphanedAlignmentsWorks() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
 
-        val alignmentOrphan = alignment(someSegment())
+        val alignmentOrphan = referenceLineGeometry(someSegment())
         val trackGeometry = trackGeometryOfSegments(someSegment())
-        val alignmentReferenceLine = alignment(someSegment())
+        val alignmentReferenceLine = referenceLineGeometry(someSegment())
 
         val orphanAlignmentVersion = alignmentDao.insert(alignmentOrphan)
         val trackVersion =
@@ -122,8 +126,8 @@ constructor(
         referenceLineDao.save(
             referenceLine(
                 trackNumberId = trackNumberId,
-                alignment = alignmentReferenceLine,
-                alignmentVersion = referenceLineAlignmentVersion,
+                geometry = alignmentReferenceLine,
+                geometryVersion = referenceLineAlignmentVersion,
                 draft = false,
             )
         )
@@ -133,7 +137,7 @@ constructor(
         assertMatches(trackGeometry, alignmentDao.fetch(trackVersion))
         assertMatches(alignmentReferenceLine, alignmentDao.fetch(referenceLineAlignmentVersion))
 
-        alignmentDao.deleteOrphanedAlignments()
+        alignmentDao.deleteOrphanedRerefenceLineGeometries()
 
         assertEquals(orphanAlignmentBeforeDelete, alignmentDao.fetch(orphanAlignmentVersion))
         assertThrows<NoSuchEntityException> { alignmentDao.fetch(orphanAlignmentVersion.next()) }
@@ -149,8 +153,8 @@ constructor(
                 SegmentPoint(x = 10.0, y = 21.0, z = null, cant = null, m = 1.0),
                 SegmentPoint(x = 10.0, y = 22.0, z = 1.5, cant = 0.2, m = 2.0),
             )
-        val alignment = alignment(segment(points))
-        val version = alignmentDao.insert(alignment)
+        val geometry = referenceLineGeometry(segment(points))
+        val version = alignmentDao.insert(geometry)
         val fromDb = alignmentDao.fetch(version)
         assertEquals(1, fromDb.segments.size)
         assertEquals(points, fromDb.segments[0].segmentPoints)
@@ -205,7 +209,7 @@ constructor(
                 segment(points = points5, source = PLAN, sourceId = geometryElement.id),
             )
 
-        val alignmentVersion = alignmentDao.insert(alignment(segments))
+        val alignmentVersion = alignmentDao.insert(referenceLineGeometry(segments))
         val trackVersion =
             locationTrackDao.save(
                 locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
@@ -412,7 +416,7 @@ constructor(
         )
 
         val (track1, geometry1) =
-            testDBService.fetchWithGeometry(
+            testDBService.fetchLocationTrackWithGeometry(
                 mainOfficialContext.save(
                     locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
                     trackGeometry(
@@ -426,7 +430,7 @@ constructor(
                 )
             )
         val (track2, geometry2) =
-            testDBService.fetchWithGeometry(
+            testDBService.fetchLocationTrackWithGeometry(
                 mainOfficialContext.save(
                     locationTrack(mainOfficialContext.createLayoutTrackNumber().id),
                     trackGeometry(
@@ -435,7 +439,7 @@ constructor(
                 )
             )
         val (track3, _) =
-            testDBService.fetchWithGeometry(
+            testDBService.fetchLocationTrackWithGeometry(
                 mainDraftContext.save(
                     locationTrack(mainDraftContext.createLayoutTrackNumber().id),
                     trackGeometry(
@@ -487,17 +491,17 @@ constructor(
             TmpLayoutEdge(startNode.flipPort(), endNode, segments)
         }
 
-    private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20): LayoutAlignment =
-        alignment(segmentsWithZAndCant(alignmentSeed, segmentCount))
+    private fun referenceLineGeometryWithZAndCant(seed: Int, segmentCount: Int = 20): ReferenceLineGeometry =
+        referenceLineGeometry(segmentsWithZAndCant(seed, segmentCount))
 
-    private fun alignmentWithoutZAndCant(alignmentSeed: Int, segmentCount: Int = 20): LayoutAlignment =
-        alignment(segmentsWithoutZAndCant(alignmentSeed, segmentCount))
+    private fun referenceLineGeometryWithoutZAndCant(seed: Int, segmentCount: Int = 20): ReferenceLineGeometry =
+        referenceLineGeometry(segmentsWithoutZAndCant(seed, segmentCount))
 
     private fun segmentsWithZAndCant(alignmentSeed: Int, count: Int): List<LayoutSegment> =
-        (0..count).map { seed -> segmentWithZAndCant(alignmentSeed + seed) }
+        (0..count).map { segmentSeed -> segmentWithZAndCant(alignmentSeed + segmentSeed) }
 
     private fun segmentsWithoutZAndCant(alignmentSeed: Int, count: Int): List<LayoutSegment> =
-        (0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) }
+        (0..count).map { segmentSeed -> segmentWithoutZAndCant(alignmentSeed + segmentSeed) }
 
     private fun segmentWithoutZAndCant(segmentSeed: Int) =
         segment(
@@ -521,24 +525,24 @@ constructor(
             source = PLAN,
         )
 
-    fun insertAndVerify(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
-        val rowVersion = alignmentDao.insert(alignment)
+    fun insertAndVerify(geometry: ReferenceLineGeometry): RowVersion<ReferenceLineGeometry> {
+        val rowVersion = alignmentDao.insert(geometry)
         assertNull(rowVersion.previous())
-        assertMatches(alignment, alignmentDao.fetch(rowVersion))
-        assertEquals(alignment.segments.size, getDbSegmentCount(rowVersion.id))
+        assertMatches(geometry, alignmentDao.fetch(rowVersion))
+        assertEquals(geometry.segments.size, getDbSegmentCount(rowVersion.id))
         return rowVersion
     }
 
-    fun updateAndVerify(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
-        val rowVersion = alignmentDao.update(alignment)
+    fun updateAndVerify(geometry: ReferenceLineGeometry): RowVersion<ReferenceLineGeometry> {
+        val rowVersion = alignmentDao.update(geometry)
         assertNotNull(rowVersion.previous())
-        assertEquals(alignment.id, rowVersion.id)
-        assertMatches(alignment, alignmentDao.fetch(rowVersion))
-        assertEquals(alignment.segments.size, getDbSegmentCount(rowVersion.id))
+        assertEquals(geometry.id, rowVersion.id)
+        assertMatches(geometry, alignmentDao.fetch(rowVersion))
+        assertEquals(geometry.segments.size, getDbSegmentCount(rowVersion.id))
         return rowVersion
     }
 
-    fun getDbSegmentCount(alignmentId: IntId<LayoutAlignment>): Int =
+    fun getDbSegmentCount(geometryId: IntId<ReferenceLineGeometry>): Int =
         jdbc.queryForObject(
             """
                 select count(*) 
@@ -546,7 +550,7 @@ constructor(
                   on alignment.id = segment_version.alignment_id and alignment.version = segment_version.alignment_version
                 where alignment_id = :id
                 """,
-            mapOf("id" to alignmentId.intValue),
+            mapOf("id" to geometryId.intValue),
         ) { rs, _ ->
             rs.getInt("count")
         } ?: 0
@@ -554,11 +558,11 @@ constructor(
     private fun assertDbGeometriesHaveCorrectMValues() {
         val sql =
             """
-           select id, postgis.st_astext(geometry) as geom, postgis.st_length(geometry) as length
-           from layout.segment_geometry
-           where postgis.st_m(postgis.st_startpoint(geometry)) <> 0.0
-             or abs(postgis.st_m(postgis.st_endpoint(geometry)) - postgis.st_length(geometry))/postgis.st_length(geometry) > 0.01;
-        """
+               select id, postgis.st_astext(geometry) as geom, postgis.st_length(geometry) as length
+               from layout.segment_geometry
+               where postgis.st_m(postgis.st_startpoint(geometry)) <> 0.0
+                 or abs(postgis.st_m(postgis.st_endpoint(geometry)) - postgis.st_length(geometry))/postgis.st_length(geometry) > 0.01;
+            """
                 .trimIndent()
         val geometriesWithInvalidMValues =
             jdbc.query(sql, mapOf<String, Any>()) { rs, _ ->

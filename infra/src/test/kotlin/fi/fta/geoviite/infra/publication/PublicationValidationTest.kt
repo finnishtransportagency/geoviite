@@ -46,7 +46,6 @@ import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
@@ -54,7 +53,8 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.offsetGeometry
 import fi.fta.geoviite.infra.tracklayout.rawPoints
 import fi.fta.geoviite.infra.tracklayout.referenceLine
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someSegment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -335,7 +335,7 @@ class PublicationValidationTest {
                 "",
             ) {
                 // Alignment at slight angle to reference line -> should be OK
-                context.getAddressPoints(alignment(segment(Point(10.0, 10.0), Point(20.0, 100.0))).copy(id = IntId(2)))
+                context.getAddressPoints(referenceLineGeometry(segment(Point(10.0, 10.0), Point(20.0, 100.0))).copy(id = IntId(2)))
             },
         )
     }
@@ -349,7 +349,7 @@ class PublicationValidationTest {
             )
         val geocode = {
             context.getAddressPoints(
-                alignment(
+                referenceLineGeometry(
                         segment(
                             Point(0.0, 10.0),
                             Point(0.0, 20.0),
@@ -375,7 +375,7 @@ class PublicationValidationTest {
             )
         val geocode = {
             context.getAddressPoints(
-                alignment(segment(Point(0.0, 0.0), Point(120.0, 50.0), Point(120.0, 60.0), Point(240.0, 110.0)))
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(120.0, 50.0), Point(120.0, 60.0), Point(240.0, 110.0)))
                     .copy(id = IntId(2))
             )
         }
@@ -396,7 +396,7 @@ class PublicationValidationTest {
             )
         val geocode = {
             //  alignment goes straight up at offset -> should get non-continuous points
-            context.getAddressPoints(alignment(segment(Point(5.0, 5.0), Point(5.0, 25.0))).copy(id = IntId(2)))
+            context.getAddressPoints(referenceLineGeometry(segment(Point(5.0, 5.0), Point(5.0, 25.0))).copy(id = IntId(2)))
         }
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.sharp-angle")
     }
@@ -409,7 +409,7 @@ class PublicationValidationTest {
         val sharpAngleTrack = to3DMPoints<SegmentM>(listOf(Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 0.0)))
 
         val geocode = {
-            context.getAddressPoints(alignment(segment(toSegmentPoints(sharpAngleTrack))).copy(id = IntId(2)))
+            context.getAddressPoints(referenceLineGeometry(segment(toSegmentPoints(sharpAngleTrack))).copy(id = IntId(2)))
         }
 
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.sharp-angle")
@@ -1514,7 +1514,7 @@ class PublicationValidationTest {
         kmPosts: List<LayoutKmPost>,
     ): ValidatedGeocodingContext<ReferenceLineM> {
         val (referenceLine, alignment) =
-            referenceLineAndAlignment(
+            referenceLineAndGeometry(
                 trackNumberId = IntId(1),
                 segments = listOf(segment(referenceLinePoints)),
                 startAddress = TrackMeter.ZERO,

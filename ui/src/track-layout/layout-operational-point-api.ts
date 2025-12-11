@@ -138,7 +138,7 @@ export const updateOperationalPointArea = async (
     layoutContext: LayoutContext,
 ): Promise<OperationalPointId> => {
     const result = await putNonNull<Polygon, OperationalPointId>(
-        `${layoutUri('operational-points', layoutContext, id)}/location`,
+        `${layoutUri('operational-points', layoutContext, id)}/area`,
         polygon,
     );
     const newChangeTime = await updateOperationalPointsChangeTime();

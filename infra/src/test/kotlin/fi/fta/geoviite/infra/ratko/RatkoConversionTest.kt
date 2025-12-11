@@ -57,7 +57,6 @@ class RatkoConversionTest {
                     point = Point(0.0, 2.0),
                     trackNumberExternalId = Oid("00.00000.0000"),
                     trackNumberId = IntId(0),
-                    locationTrackDeleted = false,
                 ),
                 SwitchJointChange(
                     number = JointNumber(5),
@@ -68,7 +67,6 @@ class RatkoConversionTest {
                     point = Point(0.0, 1.0),
                     trackNumberExternalId = Oid("00.00000.0000"),
                     trackNumberId = IntId(0),
-                    locationTrackDeleted = false,
                 ),
                 SwitchJointChange(
                     number = JointNumber(2),
@@ -79,7 +77,6 @@ class RatkoConversionTest {
                     point = Point(0.0, 0.0),
                     trackNumberExternalId = Oid("00.00000.0000"),
                     trackNumberId = IntId(0),
-                    locationTrackDeleted = false,
                 ),
                 SwitchJointChange(
                     number = JointNumber(5),
@@ -90,7 +87,6 @@ class RatkoConversionTest {
                     point = Point(0.0, 1.0),
                     trackNumberExternalId = Oid("00.00000.0000"),
                     trackNumberId = IntId(0),
-                    locationTrackDeleted = false,
                 ),
             )
 

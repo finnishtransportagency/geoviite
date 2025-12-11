@@ -13,13 +13,14 @@ import fi.fta.geoviite.infra.ui.util.javaScriptExecutor
 import getElementIfExists
 import getElementWhenExists
 import getNonNullAttribute
+import java.time.Instant
+import kotlin.math.roundToInt
 import org.openqa.selenium.By
 import org.openqa.selenium.interactions.Actions
 import tryWait
+import tryWaitNonNull
 import waitUntilExists
 import waitUntilNotExist
-import java.time.Instant
-import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
@@ -68,7 +69,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
     val mapScale: MapScale
         get() =
-            tryWait({
+            tryWaitNonNull({
                 val scale = childText(By.className("ol-scale-line-inner"))
                 MapScale.entries.firstOrNull { it.value == scale }
             }) {

@@ -20,12 +20,12 @@ import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.assertEquals
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
@@ -98,7 +98,7 @@ constructor(
                 startAddress = TrackMeter("0154", BigDecimal("123.4")),
                 draft = true,
             ),
-            alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
         )
         val locationTrackId =
             locationTrackService
@@ -177,7 +177,7 @@ constructor(
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
         )
         val p1 = insertPlanWithGeometry("plan1.xml", trackNumber.number)
         val p2 = insertPlanWithGeometry("plan2.xml", trackNumber.number)
@@ -271,7 +271,7 @@ constructor(
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, startAddress = TrackMeter("0154", 400), draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
         )
         val sourceElement = insertPlanWithGeometry("plan1.xml", trackNumber.number).alignments[0].elements[0]
         val locationTrackId =
@@ -329,7 +329,7 @@ constructor(
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, startAddress = TrackMeter("0154", 0), draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
         )
         val locationTrackId =
             locationTrackService
@@ -416,7 +416,7 @@ constructor(
         val a6 = geometryAlignment(line(Point(40.0, 20.0), Point(50.0, 20.0)))
         val a7 = geometryAlignment(line(Point(40.0, -10.0), Point(50.0, -10.0)))
 
-        val searchPolygon = toPolygon(alignment(segment(Point(32.0, 0.0), Point(50.0, 0.0))), 10.0)!!
+        val searchPolygon = toPolygon(referenceLineGeometry(segment(Point(32.0, 0.0), Point(50.0, 0.0))), 10.0)!!
 
         val tf = coordinateTransformationService.getLayoutTransformation(LAYOUT_SRID)
 

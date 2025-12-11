@@ -7,14 +7,14 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LineM
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.SegmentM
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.mapAlignment
 import fi.fta.geoviite.infra.tracklayout.mapSegment
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -23,9 +23,9 @@ import org.junit.jupiter.api.Test
 class LinkingTest {
 
     @Test
-    fun `Layout alignment can be replace with geometry alignment`() {
-        val layoutAlignment =
-            alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
+    fun `ReferenceLine geometry can be replace with GeometryPlan alignment`() {
+        val geometry =
+            referenceLineGeometry(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
         val geometryAlignment =
             mapAlignment(
                 mapSegment(Point3DM(10.0, 10.0, 0.0), Point3DM(13.0, 10.0, 3.0), Point3DM(16.0, 10.0, 6.0)),
@@ -33,14 +33,14 @@ class LinkingTest {
             )
         // Take the full range of geometry -> all points match
         assertGeometryChange(
-            layoutAlignment,
-            replaceLayoutGeometry(layoutAlignment, geometryAlignment, Range(LineM(0.0), geometryAlignment.length)),
+            geometry,
+            replaceReferenceLineGeometry(geometry, geometryAlignment, Range(LineM(0.0), geometryAlignment.length)),
             geometryAlignment.segments.map { s -> s.segmentPoints },
         )
         // Split so that we skip the first and last points
         assertGeometryChange(
-            layoutAlignment,
-            replaceLayoutGeometry(layoutAlignment, geometryAlignment, Range(3.0, 9.0).map(::LineM)),
+            geometry,
+            replaceReferenceLineGeometry(geometry, geometryAlignment, Range(3.0, 9.0).map(::LineM)),
             withPointsStartingFrom0(
                 listOf(
                     geometryAlignment.segments[0].segmentPoints.takeLast(2),
@@ -50,8 +50,8 @@ class LinkingTest {
         )
         // Split both segments between points
         assertGeometryChange(
-            layoutAlignment,
-            replaceLayoutGeometry(layoutAlignment, geometryAlignment, Range(2.5, 11.0).map(::LineM)),
+            geometry,
+            replaceReferenceLineGeometry(geometry, geometryAlignment, Range(2.5, 11.0).map(::LineM)),
             listOf(
                 toSegmentPoints(Point3DM(12.5, 10.0, 0.0), Point3DM(13.0, 10.0, 0.5), Point3DM(16.0, 10.0, 3.5)),
                 toSegmentPoints(Point3DM(16.0, 10.0, 0.0), Point3DM(19.0, 10.0, 3.0), Point3DM(21.0, 10.0, 5.0)),
@@ -60,9 +60,9 @@ class LinkingTest {
     }
 
     @Test
-    fun `Layout alignment can be shortened`() {
-        val layoutAlignment =
-            alignment(
+    fun `ReferenceLine geometry can be shortened`() {
+        val geometry =
+            referenceLineGeometry(
                 // First segment m values: 0, 1, 2
                 segment(Point(1.0, 0.0), Point(2.0, 0.0), Point(3.0, 0.0)),
                 // Second segment m values: 2, 3, 4
@@ -70,53 +70,53 @@ class LinkingTest {
             )
         // Cut nothing -> geometry remains the same
         assertGeometryChange(
-            layoutAlignment,
-            cutLayoutGeometry(layoutAlignment, Range(0.0, 4.0).map(::LineM)),
-            layoutAlignment.segments.map { s -> s.segmentPoints },
+            geometry,
+            cutReferenceLineGeometry(geometry, Range(0.0, 4.0).map(::LineM)),
+            geometry.segments.map { s -> s.segmentPoints },
         )
         // Cut 1m from start
         assertGeometryChange(
-            layoutAlignment,
-            cutLayoutGeometry(layoutAlignment, Range(1.0, 4.0).map(::LineM)),
+            geometry,
+            cutReferenceLineGeometry(geometry, Range(1.0, 4.0).map(::LineM)),
             withPointsStartingFrom0(
-                listOf(layoutAlignment.segments[0].segmentPoints.takeLast(2), layoutAlignment.segments[1].segmentPoints)
+                listOf(geometry.segments[0].segmentPoints.takeLast(2), geometry.segments[1].segmentPoints)
             ),
         )
         // Cut 1m from end
         assertGeometryChange(
-            layoutAlignment,
-            cutLayoutGeometry(layoutAlignment, Range(0.0, 3.0).map(::LineM)),
+            geometry,
+            cutReferenceLineGeometry(geometry, Range(0.0, 3.0).map(::LineM)),
             withPointsStartingFrom0(
-                listOf(layoutAlignment.segments[0].segmentPoints, layoutAlignment.segments[1].segmentPoints.take(2))
+                listOf(geometry.segments[0].segmentPoints, geometry.segments[1].segmentPoints.take(2))
             ),
         )
         // Cut to just 1m in the middle, splitting only a piece of the first segment
         assertGeometryChange(
-            layoutAlignment,
-            cutLayoutGeometry(layoutAlignment, Range(1.0, 2.0).map(::LineM)),
-            withPointsStartingFrom0(listOf(layoutAlignment.segments.first().segmentPoints.takeLast(2))),
+            geometry,
+            cutReferenceLineGeometry(geometry, Range(1.0, 2.0).map(::LineM)),
+            withPointsStartingFrom0(listOf(geometry.segments.first().segmentPoints.takeLast(2))),
         )
         // Cut to just 1m in the middle, splitting only a piece of the second segment
         assertGeometryChange(
-            layoutAlignment,
-            cutLayoutGeometry(layoutAlignment, Range(2.0, 3.0).map(::LineM)),
-            withPointsStartingFrom0(listOf(layoutAlignment.segments.last().segmentPoints.take(2))),
+            geometry,
+            cutReferenceLineGeometry(geometry, Range(2.0, 3.0).map(::LineM)),
+            withPointsStartingFrom0(listOf(geometry.segments.last().segmentPoints.take(2))),
         )
         // Cut to just 2m in the middle, splitting a piece of each segment
         assertGeometryChange(
-            layoutAlignment,
-            cutLayoutGeometry(layoutAlignment, Range(1.0, 3.0).map(::LineM)),
+            geometry,
+            cutReferenceLineGeometry(geometry, Range(1.0, 3.0).map(::LineM)),
             withPointsStartingFrom0(
                 listOf(
-                    layoutAlignment.segments.first().segmentPoints.takeLast(2),
-                    layoutAlignment.segments.last().segmentPoints.take(2),
+                    geometry.segments.first().segmentPoints.takeLast(2),
+                    geometry.segments.last().segmentPoints.take(2),
                 )
             ),
         )
         // Cut to just 2m in the middle, splitting each segment between-points
         assertGeometryChange(
-            layoutAlignment,
-            cutLayoutGeometry(layoutAlignment, Range(0.5, 3.5).map(::LineM)),
+            geometry,
+            cutReferenceLineGeometry(geometry, Range(0.5, 3.5).map(::LineM)),
             listOf(
                 toSegmentPoints(Point3DM(1.5, 0.0, 0.0), Point3DM(2.0, 0.0, 0.5), Point3DM(3.0, 0.0, 1.5)),
                 toSegmentPoints(Point3DM(3.0, 0.0, 0.0), Point3DM(4.0, 0.0, 1.0), Point3DM(4.5, 0.0, 1.5)),
@@ -125,9 +125,9 @@ class LinkingTest {
     }
 
     @Test
-    fun `Portion of layout alignment can be linked from geometry`() {
-        val layoutAlignment =
-            alignment(
+    fun `Portion of ReferenceLine geometry can be linked from GeometryPlan alignment`() {
+        val geometry =
+            referenceLineGeometry(
                 // First segment m values, matching y: 0, 1, 2, 3
                 segment(Point(0.0, 0.0), Point(0.0, 1.0), Point(0.0, 2.0), Point(0.0, 3.0)),
                 // Second segment m values, matching y: 3, 4, 5, 6
@@ -151,27 +151,27 @@ class LinkingTest {
             )
         // Replace entire geometry
         assertGeometryChange(
-            layoutAlignment,
+            geometry,
             linkLayoutGeometrySection(
-                layoutAlignment,
+                geometry,
                 Range(0.0, 6.0).map(::LineM),
                 geometryAlignment,
-                Range(0.0, 6.0).map(::LineM)
+                Range(0.0, 6.0).map(::LineM),
             ),
             geometryAlignment.segments.map { s -> s.segmentPoints },
         )
         // Keep start and take the rest from geometry
         assertGeometryChange(
-            layoutAlignment,
+            geometry,
             linkLayoutGeometrySection(
-                layoutAlignment,
+                geometry,
                 Range(2.0, 6.0).map(::LineM),
                 geometryAlignment,
-                Range(3.0, 6.0).map(::LineM)
+                Range(3.0, 6.0).map(::LineM),
             ),
             withPointsStartingFrom0(
                 listOf(
-                    layoutAlignment.segments[0].segmentPoints.take(3),
+                    geometry.segments[0].segmentPoints.take(3),
                     // Connection segment
                     toSegmentPoints(
                         Point3DM(0.0, 2.0, 0.0),
@@ -183,12 +183,12 @@ class LinkingTest {
         )
         // Keep end and take the start from geometry
         assertGeometryChange(
-            layoutAlignment,
+            geometry,
             linkLayoutGeometrySection(
-                layoutAlignment,
+                geometry,
                 Range(0.0, 3.0).map(::LineM),
                 geometryAlignment,
-                Range(0.0, 2.0).map(::LineM)
+                Range(0.0, 2.0).map(::LineM),
             ),
             withPointsStartingFrom0(
                 listOf(
@@ -198,22 +198,22 @@ class LinkingTest {
                         Point3DM(0.1, 2.0, 0.0),
                         Point3DM(0.0, 3.0, calculateDistance(LAYOUT_SRID, Point(0.1, 2.0), Point(0.0, 3.0))),
                     ),
-                    layoutAlignment.segments[1].segmentPoints,
+                    geometry.segments[1].segmentPoints,
                 )
             ),
         )
         // Keep start and end, taking the middle from geometry
         assertGeometryChange(
-            layoutAlignment,
+            geometry,
             linkLayoutGeometrySection(
-                layoutAlignment,
+                geometry,
                 Range(1.0, 5.0).map(::LineM),
                 geometryAlignment,
-                Range(2.0, 4.0).map(::LineM)
+                Range(2.0, 4.0).map(::LineM),
             ),
             withPointsStartingFrom0(
                 listOf(
-                    layoutAlignment.segments[0].segmentPoints.take(2),
+                    geometry.segments[0].segmentPoints.take(2),
                     // Connection segment
                     toSegmentPoints(
                         Point3DM(0.0, 1.0, 0.0),
@@ -226,18 +226,18 @@ class LinkingTest {
                         Point3DM(0.1, 4.0, 0.0),
                         Point3DM(0.0, 5.0, calculateDistance(LAYOUT_SRID, Point(0.1, 4.0), Point(0.0, 5.0))),
                     ),
-                    layoutAlignment.segments[1].segmentPoints.takeLast(2),
+                    geometry.segments[1].segmentPoints.takeLast(2),
                 )
             ),
         )
         // Keep start and end, taking the middle from geometry but splitting between points
         assertGeometryChange(
-            layoutAlignment,
+            geometry,
             linkLayoutGeometrySection(
-                layoutAlignment,
+                geometry,
                 Range(1.5, 4.5).map(::LineM),
                 geometryAlignment,
-                Range(2.5, 3.5).map(::LineM)
+                Range(2.5, 3.5).map(::LineM),
             ),
             withPointsStartingFrom0(
                 listOf(
@@ -264,9 +264,9 @@ class LinkingTest {
     }
 
     @Test
-    fun `Alignment can be extended with portion of geometry`() {
-        val layoutAlignment =
-            alignment(
+    fun `ReferenceLineGeometry can be extended with portion of GeometryPlan geometry`() {
+        val geometry =
+            referenceLineGeometry(
                 // First segment m values, matching y: 0, 1, 2
                 segment(Point(0.0, 0.0), Point(0.0, 1.0), Point(0.0, 2.0)),
                 // Second segment m values, matching y: 2, 3, 4
@@ -294,12 +294,12 @@ class LinkingTest {
             )
         // Extend start
         assertGeometryChange(
-            layoutAlignment,
+            geometry,
             linkLayoutGeometrySection(
-                layoutAlignment,
+                geometry,
                 Range(0.0, 0.0).map(::LineM),
                 geometryAlignment,
-                Range(0.0, 2.0).map(::LineM)
+                Range(0.0, 2.0).map(::LineM),
             ),
             withPointsStartingFrom0(
                 listOf(
@@ -311,20 +311,20 @@ class LinkingTest {
                         Point3DM(0.0, 0.0, calculateDistance(LAYOUT_SRID, Point(0.1, -1.0), Point(0.0, 0.0))),
                     ),
                     // Rest from the layout alignment as-is
-                ) + layoutAlignment.segments.map { s -> s.segmentPoints }
+                ) + geometry.segments.map { s -> s.segmentPoints }
             ),
         )
         // Extend end
         assertGeometryChange(
-            layoutAlignment,
+            geometry,
             linkLayoutGeometrySection(
-                layoutAlignment,
+                geometry,
                 Range(4.0, 4.0).map(::LineM),
                 geometryAlignment,
-                Range(8.0, 10.0).map(::LineM)
+                Range(8.0, 10.0).map(::LineM),
             ),
             withPointsStartingFrom0(
-                layoutAlignment.segments.map { s -> s.segmentPoints } +
+                geometry.segments.map { s -> s.segmentPoints } +
                     listOf(
                         // Connection segment
                         toSegmentPoints(
@@ -341,18 +341,18 @@ class LinkingTest {
     @Test
     fun `Source length values are correct after splitting`() {
         val sourceId = IndexedId<GeometryElement>(1, 2)
-        val alignment =
-            alignment(
+        val geometry =
+            referenceLineGeometry(
                 segment(Point(0.0, 0.0), Point(0.0, 1.0)),
                 segment(Point(0.0, 1.0), Point(0.0, 2.0), sourceId = sourceId, sourceStartM = 10.0),
                 segment(Point(0.0, 2.0), Point(0.0, 3.0)),
             )
         // Cutting other segments doesn't affect source start
-        assertEquals(LayoutSegment.sourceStartM(10.0), slice(alignment, Range(0.5, 2.5).map(::LineM))[1].sourceStartM)
+        assertEquals(LayoutSegment.sourceStartM(10.0), slice(geometry, Range(0.5, 2.5).map(::LineM))[1].sourceStartM)
         // Cutting the sourced segment from beginning adds to the source start
-        assertEquals(LayoutSegment.sourceStartM(10.5), slice(alignment, Range(1.5, 3.0).map(::LineM))[0].sourceStartM)
+        assertEquals(LayoutSegment.sourceStartM(10.5), slice(geometry, Range(1.5, 3.0).map(::LineM))[0].sourceStartM)
         // Cutting the sourced segment from end doesn't affect source start
-        assertEquals(LayoutSegment.sourceStartM(10.0), slice(alignment, Range(0.0, 1.5).map(::LineM))[1].sourceStartM)
+        assertEquals(LayoutSegment.sourceStartM(10.0), slice(geometry, Range(0.0, 1.5).map(::LineM))[1].sourceStartM)
     }
 }
 
@@ -369,14 +369,14 @@ private fun withPointsStartingFrom0(pointLists: List<List<SegmentPoint>>): List<
 }
 
 private fun assertGeometryChange(
-    originalAlignment: LayoutAlignment,
-    newAlignment: LayoutAlignment,
+    originalGeometry: ReferenceLineGeometry,
+    newGeometry: ReferenceLineGeometry,
     segmentPointLists: List<List<SegmentPoint>>,
 ) {
-    assertEquals(originalAlignment.id, newAlignment.id)
-    assertEquals(segmentPointLists.size, newAlignment.segments.size)
+    assertEquals(originalGeometry.id, newGeometry.id)
+    assertEquals(segmentPointLists.size, newGeometry.segments.size)
     segmentPointLists.forEachIndexed { index, expectedPoints ->
-        val segment = newAlignment.segments[index]
+        val segment = newGeometry.segments[index]
         assertEquals(expectedPoints, segment.segmentPoints)
     }
 }

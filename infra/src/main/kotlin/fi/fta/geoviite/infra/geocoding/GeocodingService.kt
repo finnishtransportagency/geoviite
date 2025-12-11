@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignmentM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import java.time.Instant
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.jvm.optionals.getOrNull
 import org.springframework.transaction.annotation.Transactional
 
@@ -80,10 +81,24 @@ class GeocodingService(
     fun getLazyGeocodingContexts(
         layoutContext: LayoutContext
     ): (IntId<LayoutTrackNumber>) -> GeocodingContext<ReferenceLineM>? {
-        val contexts: MutableMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext<ReferenceLineM>>> = mutableMapOf()
+        val contexts = ConcurrentHashMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext<ReferenceLineM>>>()
         return { trackNumberId ->
             contexts
                 .computeIfAbsent(trackNumberId) { Optional.ofNullable(getGeocodingContext(layoutContext, it)) }
+                .getOrNull()
+        }
+    }
+
+    fun getLazyGeocodingContextsAtMultiMoment(
+        branch: LayoutBranch
+    ): (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>? {
+        val contexts =
+            ConcurrentHashMap<Pair<IntId<LayoutTrackNumber>, Instant>, Optional<GeocodingContext<ReferenceLineM>>>()
+        return { trackNumberId, moment ->
+            contexts
+                .computeIfAbsent(trackNumberId to moment) {
+                    Optional.ofNullable(getGeocodingContextAtMoment(branch, trackNumberId, moment))
+                }
                 .getOrNull()
         }
     }
@@ -92,7 +107,7 @@ class GeocodingService(
         branch: LayoutBranch,
         moment: Instant,
     ): (IntId<LayoutTrackNumber>) -> GeocodingContext<ReferenceLineM>? {
-        val contexts: MutableMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext<ReferenceLineM>>> = mutableMapOf()
+        val contexts = ConcurrentHashMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext<ReferenceLineM>>>()
         return { trackNumberId ->
             contexts
                 .computeIfAbsent(trackNumberId) { Optional.ofNullable(getGeocodingContextAtMoment(branch, it, moment)) }

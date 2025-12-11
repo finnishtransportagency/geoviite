@@ -289,7 +289,7 @@ export const linkingReducers = {
     },
     setOperationalPointArea: (
         state: TrackLayoutState,
-        { payload }: PayloadAction<Polygon>,
+        { payload }: PayloadAction<Polygon | undefined>,
     ): void => {
         if (state.linkingState?.type === LinkingType.PlacingOperationalPointArea) {
             state.linkingState.area = payload;

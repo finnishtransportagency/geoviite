@@ -681,7 +681,7 @@ constructor(
     @Test
     fun fetchDuplicatesIsVersioned() {
         val geometry = someTrackGeometry()
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(someAlignment()).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(someReferenceLineGeometry()).id
 
         val (originalLocationTrack, _) = insertAndFetchDraft(locationTrack(trackNumberId, draft = true), geometry)
         publish(originalLocationTrack.id as IntId)
@@ -731,8 +731,8 @@ constructor(
     fun `Splitting initialization parameters are fetched properly`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val referenceLineSegment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val referenceLineGeometry = alignmentDao.insert(alignment(referenceLineSegment))
-        referenceLineDao.save(referenceLine(trackNumberId, alignmentVersion = referenceLineGeometry, draft = false))
+        val referenceLineGeometry = alignmentDao.insert(referenceLineGeometry(referenceLineSegment))
+        referenceLineDao.save(referenceLine(trackNumberId, geometryVersion = referenceLineGeometry, draft = false))
 
         val middleSwitch =
             insertAndFetchDraft(
@@ -838,7 +838,7 @@ constructor(
     fun `LocationTrack polygon is simplified to reduce point count`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(2000.0, 0.0))))
+                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(2000.0, 0.0))))
                 .id
         val trackSegment = segment(Point(0.0, 0.0), Point(1000.0, 0.0))
         assertTrue(trackSegment.segmentPoints.size > 900)
@@ -852,7 +852,7 @@ constructor(
     fun `LocationTrack polygon is resolved correctly without cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
                 .id
         val (track, _) =
             mainOfficialContext.save(
@@ -896,7 +896,7 @@ constructor(
     fun `LocationTrack polygon is resolved correctly with cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
+                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
                 .id
         val (track, _) =
             mainOfficialContext.save(
@@ -952,7 +952,7 @@ constructor(
     fun `overlapping plan search cropping works correctly in different edge cases`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(2000.0, 0.0), Point(5000.0, 0.0))))
+                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(2000.0, 0.0), Point(5000.0, 0.0))))
                 .id
         val (track, _) =
             mainOfficialContext.save(
@@ -1009,7 +1009,7 @@ constructor(
     fun `name and description autogeneration works`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberId = mainOfficialContext.save(trackNumber(trackNumber)).id
-        mainOfficialContext.save(referenceLine(trackNumberId), someAlignment()).id
+        mainOfficialContext.save(referenceLine(trackNumberId), someReferenceLineGeometry()).id
         val switch1Id = mainOfficialContext.save(switch(name = "ABC V0001", draft = false)).id
         val switch2Id = mainOfficialContext.save(switch(name = "ABC V0002", draft = false)).id
         val switch3Id = mainOfficialContext.save(switch(name = "ABC V0003", draft = false)).id

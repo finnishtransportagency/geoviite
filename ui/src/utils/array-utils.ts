@@ -307,25 +307,24 @@ export const objectEntries = <T extends object>(obj: T) =>
 export type Primitive = string | boolean | number;
 
 /**
- * Returns an array with newContent's content, reusing existing instances from oldElements as much as possible, and
- * returning oldElements itself if there are no changes at all. newContent and oldElements are treated as sets, so,
- * ignoring ordering.
+ * Returns an array with newList's content, reusing existing instances from oldList as much as possible, and
+ * returning oldList itself if there are no changes at all.
  *
- * @param newContent Returned list will have the same content as this one.
- * @param oldElements Returned list will retain instances from this list, where equal to an element of newContent.
+ * @param newList Returned list will have the same content and ordering as this one.
+ * @param oldList Returned list will retain instances from this list, where equal to an element of newContent.
  * @param extractKey Used as a hashCode(): Returning the same key for distinct elements is harmless.
  * @param equals Defaults to a deep equality check.
  */
 export function reuseListElements<T>(
-    newContent: readonly T[],
-    oldElements: T[],
+    newList: readonly T[],
+    oldList: T[],
     extractKey: (e: T) => Primitive,
     equals: (a: T, b: T) => boolean = objectEquals,
 ): T[] {
-    const oldInstances = indexIntoKeyedMapWithDuplicateCounts(oldElements, extractKey, equals);
+    const oldInstances = indexIntoKeyedMapWithDuplicateCounts(oldList, extractKey, equals);
 
-    let mustReturnNew = newContent.length !== oldElements.length;
-    const newSet = newContent.map((newElement) => {
+    let mustReturnNew = newList.length !== oldList.length;
+    const newSet = newList.map((newElement, newIndex) => {
         const oldOnKey = oldInstances.get(extractKey(newElement));
         if (oldOnKey === undefined) {
             mustReturnNew = true;
@@ -338,15 +337,19 @@ export function reuseListElements<T>(
             } else {
                 const oldElement = expectDefined(oldOnKey[index]);
                 const remainingDuplicates = --oldElement[1];
-                if (remainingDuplicates < 0) {
+                if (
+                    remainingDuplicates < 0 ||
+                    (!mustReturnNew && oldElement[0] !== oldList[newIndex])
+                ) {
                     mustReturnNew = true;
                 }
+
                 return oldElement[0];
             }
         }
     });
 
-    return mustReturnNew ? newSet : oldElements;
+    return mustReturnNew ? newSet : oldList;
 }
 
 const indexIntoKeyedMapWithDuplicateCounts = <T>(

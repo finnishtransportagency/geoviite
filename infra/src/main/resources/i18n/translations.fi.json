@@ -32,8 +32,6 @@
             "v1": {
                 "error": {
                     "oid-not-found": "Pyynnön OID-tunnuksen perusteella ei löydetty kohdetta.",
-                    "location-track-not-found": "Sijaintiraidetta ei löydetty.",
-                    "track-number-not-found": "Ratanumeroa ei löydetty.",
                     "client-error": "Pyyntö oli tunnistamattomalla tavalla virheellinen (HTTP {{koodi}}).",
                     "server-error": "Pyynnön käsittely epäonnistui palvelimella (HTTP {{koodi}}).",
                     "unauthorized": "Pyyntöön ei ollut oikeutta.",
@@ -686,6 +684,7 @@
                 "joint-alignments-location-tracks-title": "Linjan läpi kulkeva raide",
                 "joint-number-title": "Vaihteen piste",
                 "location-tracks-end-at-joint-title": "Vaihteelle päättyvä raide",
+                "switches-to-detach-title": "Vaihteen {{switchName}} limittäinen linkitys puretaan",
                 "no-alignments": "Ei raiteita",
                 "point": "piste",
                 "unpublished": "Julkaisematon",
@@ -979,6 +978,7 @@
             "cannot-set-location-for-external": "Ratkon hallinnoiman toiminnallisen pisteen sijaintia ei voi muokata",
             "unset": "Ei asetettu",
             "unpublished": "Julkaisematon",
+            "clear-area-button": "Tyhjennä",
             "switch-links": {
                 "infobox-header": "Vaihteet",
                 "attached-header": "Toiminnalliseen pisteeseen linkitetyt vaihteet ({{count}} kpl)",

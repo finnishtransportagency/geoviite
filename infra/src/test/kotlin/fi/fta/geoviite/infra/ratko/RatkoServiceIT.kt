@@ -41,7 +41,6 @@ import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackType
 import fi.fta.geoviite.infra.ratko.model.RatkoMeasurementMethod
 import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
-import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItem
@@ -89,6 +88,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
 import fi.fta.geoviite.infra.tracklayout.OperationalPointService
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
@@ -96,7 +96,6 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.edge
@@ -105,6 +104,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.ratkoOperationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -117,10 +117,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.queryOne
-import java.time.Instant
-import java.time.LocalDate
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -129,6 +125,10 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import java.time.LocalDate
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -204,7 +204,7 @@ constructor(
 
     @Test
     fun testChangeSet() {
-        val referenceLineAlignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+        val referenceLineAlignmentVersion = alignmentDao.insert(referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
         val locationTrackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = false)
         val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
@@ -212,7 +212,7 @@ constructor(
         referenceLineDao.save(
             referenceLine(
                 trackNumberId = trackNumberId,
-                alignmentVersion = referenceLineAlignmentVersion,
+                geometryVersion = referenceLineAlignmentVersion,
                 draft = false,
             )
         )
@@ -621,7 +621,7 @@ constructor(
             trackNumbers = listOf(originalTrackNumber.id),
             referenceLines = listOf(originalReferenceLineVersion.id),
         )
-        mainDraftContext.save(originalReferenceLine, alignment(segment(Point(0.0, 0.0), Point(20.0, 0.0))))
+        mainDraftContext.save(originalReferenceLine, referenceLineGeometry(segment(Point(0.0, 0.0), Point(20.0, 0.0))))
         publishAndPush(referenceLines = listOf(originalReferenceLineVersion.id))
         val pushedPoints = fakeRatko.getCreatedRouteNumberPoints("1.2.3.4.5")
         assertEquals(9, pushedPoints[0].size)
@@ -645,7 +645,7 @@ constructor(
             referenceLineService.saveDraft(
                 LayoutBranch.main,
                 referenceLine(originalTrackNumber.id, draft = true),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
 
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("1.2.3.4.5"))
@@ -661,7 +661,7 @@ constructor(
                     referenceLineDao.fetchVersionByTrackNumberId(MainLayoutContext.official, originalTrackNumber.id)!!
                 )
             ),
-            alignment(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
         )
         publishAndPush(referenceLines = listOf(originalReferenceLineDaoResponse.id))
         val pushedPoints = fakeRatko.getCreatedRouteNumberPoints("1.2.3.4.5")
@@ -690,7 +690,7 @@ constructor(
             referenceLineService.saveDraft(
                 LayoutBranch.main,
                 referenceLine(originalTrackNumber.id, draft = true),
-                alignment(
+                referenceLineGeometry(
                     segment(
                         Point(0.0, 0.0),
                         Point(10.0, 0.0),
@@ -723,7 +723,7 @@ constructor(
                     referenceLineDao.fetchVersionByTrackNumberId(MainLayoutContext.official, originalTrackNumber.id)!!
                 )
             ),
-            alignment(segment(Point(0.0, 0.0), Point(40.0, 0.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))),
         )
         publishAndPush(
             // not publishing a change to location track, but we want to update its points anyway
@@ -762,7 +762,7 @@ constructor(
             referenceLineService.saveDraft(
                 LayoutBranch.main,
                 referenceLine(originalTrackNumber.id, draft = true),
-                alignment(
+                referenceLineGeometry(
                     segment(
                         Point(0.0, 0.0),
                         Point(10.0, 0.0),
@@ -1247,18 +1247,23 @@ constructor(
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
 
         val kannustamoOperatingPoint =
-            RatkoOperationalPointParse(
-                Oid("1.2.3.4.5"),
-                "Kannustamo",
-                "KST",
-                "123101431",
-                OperationalPointRaideType.LPO,
-                Point(100.0, 100.0),
-                Oid("5.5.5.5.5"),
+            ratkoOperationalPoint(
+                "1.2.3.4.5",
+                name = "Kannustamo",
+                abbreviation = "KST",
+                uicCode = "123101431",
+                type = OperationalPointRaideType.LPO,
+                location = Point(100.0, 100.0),
+                trackNumberOid = "5.5.5.5.5",
             )
         fakeRatko.hasOperationalPoints(
             listOf(
-                ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"), location = Point(10.0, 10.0)),
+                ratkoOperationalPoint(
+                    "1.2.3.4.6",
+                    "Turpeela",
+                    trackNumberOid = "5.5.5.5.5",
+                    location = Point(10.0, 10.0),
+                ),
                 kannustamoOperatingPoint,
             )
         )
@@ -1290,13 +1295,13 @@ constructor(
                 .saveDraft(LayoutBranch.main, trackNumber(testDBService.getUnusedTrackNumber(), draft = true))
                 .id
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
-        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
-        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
-        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
+        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", trackNumberOid = "5.5.5.5.5")
+        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", trackNumberOid = "5.5.5.5.5")
+        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", trackNumberOid = "5.5.5.5.5")
 
         fakeRatko.hasOperationalPoints(listOf(turpeela, kannustamo, liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
-        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = "Turpasauna"), liukuainen))
+        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = OperationalPointName("Turpasauna")), liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
         assertTrue(
             jdbc.queryOne(
@@ -1307,7 +1312,10 @@ constructor(
         )
         val pointsFromDatabase = ratkoOperationalPointDao.listWithVersions()
         assertEquals(2, pointsFromDatabase.size)
-        assertEquals(listOf("Liukuainen", "Turpasauna"), pointsFromDatabase.map { (point) -> point.name }.sorted())
+        assertEquals(
+            listOf("Liukuainen", "Turpasauna"),
+            pointsFromDatabase.map { (point) -> point.name.toString() }.sorted(),
+        )
         assertEquals(
             5,
             jdbc.queryOne("""select count(*) as c from integrations.ratko_operational_point_version""") { rs, _ ->
@@ -1346,9 +1354,9 @@ constructor(
                 .saveDraft(LayoutBranch.main, trackNumber(testDBService.getUnusedTrackNumber(), draft = true))
                 .id
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
-        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
-        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
-        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
+        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", trackNumberOid = "5.5.5.5.5")
+        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", trackNumberOid = "5.5.5.5.5")
+        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", trackNumberOid = "5.5.5.5.5")
 
         fakeRatko.hasOperationalPoints(listOf(turpeela, kannustamo, liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
@@ -1363,7 +1371,7 @@ constructor(
         operationalPointDao.fetchVersions(mainDraftContext.context, false).forEach(mainOfficialContext::moveFrom)
 
         // rename Turpeela to Turpasauna, delete Kannustamo
-        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = "Turpasauna"), liukuainen))
+        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = OperationalPointName("Turpasauna")), liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
         // TestLayoutContext::moveFrom is implemented by inserting the new row and deleting the original, which saves
         // a deletion row in the version table, so draft versions get incremented an extra time
@@ -1382,7 +1390,7 @@ constructor(
 
         // no content changes from Ratko on this update, but fakeRatko#hasOperationalPoints() only supports a single
         // fetch
-        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = "Turpasauna"), liukuainen))
+        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = OperationalPointName("Turpasauna")), liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
         // should have no updates now that the official state of everything matched the integration table already
         assertLayoutOperatingTableContent(
@@ -1401,10 +1409,10 @@ constructor(
                 .saveDraft(LayoutBranch.main, trackNumber(testDBService.getUnusedTrackNumber(), draft = true))
                 .id
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
-        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
-        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
-        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
-        val surmankaki = ratkoOperationalPoint("1.2.3.4.8", "Surmankäki", Oid("5.5.5.5.5"))
+        val turpeela = ratkoOperationalPoint("1.2.3.4.6", "Turpeela", trackNumberOid = "5.5.5.5.5")
+        val kannustamo = ratkoOperationalPoint("1.2.3.4.5", "Kannustamo", trackNumberOid = "5.5.5.5.5")
+        val liukuainen = ratkoOperationalPoint("1.2.3.4.7", "Liukuainen", trackNumberOid = "5.5.5.5.5")
+        val surmankaki = ratkoOperationalPoint("1.2.3.4.8", "Surmankäki", trackNumberOid = "5.5.5.5.5")
         fakeRatko.hasOperationalPoints(listOf(turpeela, kannustamo, liukuainen, surmankaki))
         ratkoService.updateOperationalPointsFromRatko()
 
@@ -1449,7 +1457,12 @@ constructor(
             afterFirstUpdate.find { it.name.toString() == "Surmankäki" }?.rinfType,
         )
 
-        fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = "Turpasauna"), kannustamo.copy(name = "Nujertamo")))
+        fakeRatko.hasOperationalPoints(
+            listOf(
+                turpeela.copy(name = OperationalPointName("Turpasauna")),
+                kannustamo.copy(name = OperationalPointName("Nujertamo")),
+            )
+        )
         ratkoService.updateOperationalPointsFromRatko()
 
         // renamed versions retain user-assigned rinf codes
@@ -1800,7 +1813,7 @@ constructor(
         val referenceLine =
             designDraftContext.save(
                 referenceLine(trackNumber.id),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
         val switch =
             designDraftContext.save(
@@ -1874,7 +1887,7 @@ constructor(
         val referenceLine =
             designDraftContext.save(
                 referenceLine(trackNumber.id),
-                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
         val switch =
             designDraftContext.save(
@@ -2358,7 +2371,7 @@ constructor(
     ): LayoutRowVersion<ReferenceLine> =
         (if (draft) mainDraftContext else mainOfficialContext).save(
             referenceLine(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )
 
     private fun detachSwitchesFromTrack(locationTrackId: IntId<LocationTrack>) {
@@ -2482,7 +2495,7 @@ constructor(
 
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(alignment(straightGeometry.segments), trackNumber)
+                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(straightGeometry.segments), trackNumber)
                 .id
 
         val splitSourceTrackId = layoutContext.save(locationTrack(trackNumberId), straightGeometry).id

@@ -41,12 +41,12 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_NUMBER_FAKE_OID_CONTEXT = 10001
 const val LOCATION_TRACK_FAKE_OID_CONTEXT = 10002
@@ -113,8 +113,8 @@ constructor(
         id: IntId<ReferenceLine>,
         transition: LayoutContextTransition,
     ): GeometryChangeRanges<ReferenceLineM> {
-        val lineWithAlignment1 = referenceLineService.getWithAlignment(transition.candidateContext, id)
-        val lineWithAlignment2 = referenceLineService.getWithAlignment(transition.baseContext, id)
+        val lineWithAlignment1 = referenceLineService.getWithGeometry(transition.candidateContext, id)
+        val lineWithAlignment2 = referenceLineService.getWithGeometry(transition.baseContext, id)
         return getChangedGeometryRanges(
             lineWithAlignment1?.second?.segmentsWithM ?: emptyList(),
             lineWithAlignment2?.second?.segmentsWithM ?: emptyList(),
@@ -198,7 +198,7 @@ constructor(
         val locationTrackIds = toDelete.locationTracks.toSet()
         val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.deleteDraft(branch, id) }.size
         val referenceLineCount = toDelete.referenceLines.map { id -> referenceLineService.deleteDraft(branch, id) }.size
-        alignmentDao.deleteOrphanedAlignments()
+        alignmentDao.deleteOrphanedRerefenceLineGeometries()
         val switchCount =
             toDelete.switches
                 .map { id -> switchService.deleteDraft(branch, id, noUpdateLocationTracks = locationTrackIds) }

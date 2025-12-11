@@ -16,16 +16,16 @@ import fi.fta.geoviite.infra.geocoding.Resolution
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
-import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -149,37 +149,37 @@ constructor(
     @Test
     fun `Official geometry is returned at correct track layout version state`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
-        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0100.000")), alignment).id
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0100.000")), geometry).id
         val tnOid = mainDraftContext.generateOid(tnId)
 
         val publication1 = extTestDataService.publishInMain(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
 
         api.trackNumberGeometry.get(tnOid).also { response ->
             assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
-            assertGeometryMatches(response, tnOid, "0001+0100.000", "0001+0200.000", alignment, 101)
+            assertGeometryMatches(response, tnOid, "0001+0100.000", "0001+0200.000", geometry, 101)
         }
 
-        val newAlignment = alignment(segment(Point(10.0, 10.0), Point(90.0, 10.0)))
+        val newGeometry = referenceLineGeometry(segment(Point(10.0, 10.0), Point(90.0, 10.0)))
         initUser()
         mainDraftContext.fetch(rlId).also { rl ->
-            mainDraftContext.save(rl!!.copy(startAddress = TrackMeter("0001+0200.000")), newAlignment)
+            mainDraftContext.save(rl!!.copy(startAddress = TrackMeter("0001+0200.000")), newGeometry)
         }
         val publication2 = extTestDataService.publishInMain(referenceLines = listOf(rlId))
 
         api.trackNumberGeometry.get(tnOid).also { response ->
             assertEquals(publication2.uuid.toString(), response.rataverkon_versio)
-            assertGeometryMatches(response, tnOid, "0001+0200.000", "0001+0280.000", newAlignment, 81)
+            assertGeometryMatches(response, tnOid, "0001+0200.000", "0001+0280.000", newGeometry, 81)
         }
 
         api.trackNumberGeometry.getAtVersion(tnOid, publication2.uuid).also { response ->
             assertEquals(publication2.uuid.toString(), response.rataverkon_versio)
-            assertGeometryMatches(response, tnOid, "0001+0200.000", "0001+0280.000", newAlignment, 81)
+            assertGeometryMatches(response, tnOid, "0001+0200.000", "0001+0280.000", newGeometry, 81)
         }
 
         api.trackNumberGeometry.getAtVersion(tnOid, publication1.uuid).also { response ->
             assertEquals(publication1.uuid.toString(), response.rataverkon_versio)
-            assertGeometryMatches(response, tnOid, "0001+0100.000", "0001+0200.000", alignment, 101)
+            assertGeometryMatches(response, tnOid, "0001+0100.000", "0001+0200.000", geometry, 101)
         }
     }
 
@@ -195,7 +195,7 @@ constructor(
                         .let(layoutTrackNumberDao::fetch)
 
                 val referenceLineId =
-                    mainDraftContext.saveReferenceLine(referenceLineAndAlignment(trackNumber.id as IntId, segment)).id
+                    mainDraftContext.saveReferenceLine(referenceLineAndGeometry(trackNumber.id as IntId, segment)).id
 
                 extTestDataService.publishInMain(
                     trackNumbers = listOf(trackNumber.id as IntId),
@@ -229,7 +229,7 @@ constructor(
                         .let(layoutTrackNumberDao::fetch)
 
                 val referenceLineId =
-                    mainDraftContext.saveReferenceLine(referenceLineAndAlignment(trackNumber.id as IntId, segment)).id
+                    mainDraftContext.saveReferenceLine(referenceLineAndGeometry(trackNumber.id as IntId, segment)).id
 
                 extTestDataService.publishInMain(referenceLines = listOf(referenceLineId))
 
@@ -344,7 +344,7 @@ constructor(
     fun `Track number modification API should show modifications for calculated change`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
         val tnOid = mainDraftContext.generateOid(tnId)
-        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
 
         val basePublication =
@@ -385,8 +385,8 @@ constructor(
     @Test
     fun `Deleted track numbers don't have geometry`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
-        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0100.000")), alignment).id
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0100.000")), geometry).id
         val tnOid = mainDraftContext.generateOid(tnId)
 
         val publication1 = extTestDataService.publishInMain(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
@@ -410,7 +410,7 @@ constructor(
     fun `Deleted track numbers have no addresses exposed through the API`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
         val tnOid = mainDraftContext.generateOid(tnId)
-        val rlGeom = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
         val startWithAddress = ExtTestAddressPointV1(0.0, 0.0, "0000+0000.000")
         val startWithoutAddress = ExtTestAddressPointV1(0.0, 0.0, null)
@@ -458,7 +458,7 @@ constructor(
 
         // Publication 1 adds a new track number
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val alignment1 = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val alignment1 = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         // Straight reference line initially
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0100.000")), alignment1).id
         // Use km-posts to reset address calculation, as otherwise any change would change the geometry until the end
@@ -492,7 +492,7 @@ constructor(
 
         // Publication 2 modifies the geometry
         val alignment2 =
-            alignment(
+            referenceLineGeometry(
                 // Shorten the beginning
                 segment(Point(10.0, 0.0), Point(40.0, 0.0)),
                 // Bend in the middle
@@ -590,8 +590,8 @@ constructor(
     @Test
     fun `Geometry modifications API shows calculated changes correctly`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
-        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0100.000")), alignment).id
+        val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+        val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0100.000")), geometry).id
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(2), gkLocation = kmPostGkLocation(15.0, 0.0))).id
         val kmp2Id = mainDraftContext.save(kmPost(tnId, KmNumber(4), gkLocation = kmPostGkLocation(65.0, 0.0))).id
         val tnOid = mainDraftContext.generateOid(tnId)
@@ -611,7 +611,7 @@ constructor(
         initUser()
         mainDraftContext.save(
             mainOfficialContext.fetch(rlId)!!.copy(startAddress = TrackMeter("0001+0010.000")),
-            alignment,
+            geometry,
         )
         val rlPub = extTestDataService.publishInMain(referenceLines = listOf(rlId))
         api.trackNumberGeometry.get(tnOid).osoitevali!!.also { interval ->
@@ -626,7 +626,7 @@ constructor(
                 ExtGeometryChangeTypeV1.ADDRESSING,
                 "0001+0010.000",
                 "0001+0114.000",
-                alignment,
+                geometry,
                 15,
                 Point(0.0, 0.0),
                 Point(14.0, 0.0),
@@ -654,7 +654,7 @@ constructor(
                 ExtGeometryChangeTypeV1.ADDRESSING,
                 "0002+0015.000",
                 "0003+0034.000",
-                alignment,
+                geometry,
                 35,
                 Point(30.0, 0.0),
                 Point(64.0, 0.0),
@@ -669,7 +669,7 @@ constructor(
                 ExtGeometryChangeTypeV1.ADDRESSING,
                 "0001+0010.000",
                 "0001+0114.000",
-                alignment,
+                geometry,
                 15,
                 Point(0.0, 0.0),
                 Point(14.0, 0.0),
@@ -679,7 +679,7 @@ constructor(
                 ExtGeometryChangeTypeV1.ADDRESSING,
                 "0002+0015.000",
                 "0003+0034.000",
-                alignment,
+                geometry,
                 35,
                 Point(30.0, 0.0),
                 Point(64.0, 0.0),
@@ -712,7 +712,7 @@ private fun assertGeometryMatches(
     oid: Oid<LayoutTrackNumber>,
     startAddress: String,
     endAddress: String,
-    geometry: LayoutAlignment,
+    geometry: ReferenceLineGeometry,
     pointCount: Int,
 ) {
     assertEquals(LAYOUT_SRID.toString(), response.koordinaatisto)

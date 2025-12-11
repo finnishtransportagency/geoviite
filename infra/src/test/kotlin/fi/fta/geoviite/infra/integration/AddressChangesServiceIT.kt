@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -34,15 +33,16 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.fixMValues
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.splitSegment
 import fi.fta.geoviite.infra.tracklayout.toAlignmentPoints
@@ -628,7 +628,7 @@ constructor(
         val locationTrack: LocationTrack,
         val locationTrackGeometry: LocationTrackGeometry,
         val referenceLine: ReferenceLine,
-        val referenceLineGeometry: LayoutAlignment,
+        val referenceLineGeometry: ReferenceLineGeometry,
         val kmPosts: List<LayoutKmPost>,
     )
 
@@ -663,15 +663,15 @@ constructor(
             )
         val referenceLinePoints = (0..15).map { i -> refPoint + i.toDouble() }
         val referenceLineGeometryVersion =
-            layoutAlignmentDao.insert(alignment(splitSegment(segment(*referenceLinePoints.toTypedArray()), 4)))
+            layoutAlignmentDao.insert(referenceLineGeometry(splitSegment(segment(*referenceLinePoints.toTypedArray()), 4)))
         val referenceLineGeometry = layoutAlignmentDao.fetch(referenceLineGeometryVersion)
         val referenceLine =
             referenceLineDao.fetch(
                 referenceLineDao.save(
                     referenceLine(
                         trackNumber.id as IntId<LayoutTrackNumber>,
-                        alignment = referenceLineGeometry,
-                        alignmentVersion = referenceLineGeometryVersion,
+                        geometry = referenceLineGeometry,
+                        geometryVersion = referenceLineGeometryVersion,
                         draft = false,
                     )
                 )
@@ -697,7 +697,7 @@ constructor(
 
     fun moveReferenceLineGeometryPointsAndUpdate(
         referenceLine: ReferenceLine,
-        alignment: LayoutAlignment,
+        geometry: ReferenceLineGeometry,
         moveFunc: (index: Int, point: IPoint) -> IPoint,
     ) {
         var index = 0
@@ -705,9 +705,9 @@ constructor(
             referenceLineService.saveDraft(
                 LayoutBranch.main,
                 referenceLine,
-                alignment.copy(
+                geometry.copy(
                     segments =
-                        alignment.segments.map { segment ->
+                        geometry.segments.map { segment ->
                             segment.copy(
                                 geometry =
                                     segment.geometry.withPoints(

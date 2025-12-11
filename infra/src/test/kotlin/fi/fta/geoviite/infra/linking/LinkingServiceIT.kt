@@ -55,7 +55,7 @@ import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
 import fi.fta.geoviite.infra.tracklayout.someKmNumber
@@ -482,7 +482,7 @@ constructor(
         val linkedReferenceLine =
             mainDraftContext
                 .saveReferenceLine(
-                    referenceLineAndAlignment(
+                    referenceLineAndGeometry(
                         trackNumberId,
                         segment(
                             Point(0.0, 0.0),

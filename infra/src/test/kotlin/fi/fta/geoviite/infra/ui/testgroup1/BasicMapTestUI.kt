@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.testFile
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -16,6 +15,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
@@ -58,7 +58,7 @@ constructor(
 ) : SeleniumTest() {
     lateinit var WEST_LT: Pair<LocationTrack, LocationTrackGeometry>
     lateinit var GEOMETRY_PLAN: GeometryPlan
-    lateinit var WEST_REFERENCE_LINE: Pair<ReferenceLine, LayoutAlignment>
+    lateinit var WEST_REFERENCE_LINE: Pair<ReferenceLine, ReferenceLineGeometry>
     lateinit var EAST_LAYOUT_SWITCH: LayoutSwitch
     lateinit var TRACK_NUMBER_WEST: LayoutTrackNumber
 
@@ -192,8 +192,8 @@ constructor(
         locationTrackInfobox.waitUntilDescriptionChanges("R36240 kuvaus")
     }
 
-    fun insertReferenceLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>) {
-        val alignmentVersion = alignmentDao.insert(lineAndAlignment.second)
-        referenceLineDao.save(lineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
+    fun insertReferenceLine(lineAndGeometry: Pair<ReferenceLine, ReferenceLineGeometry>) {
+        val geometryVersion = alignmentDao.insert(lineAndGeometry.second)
+        referenceLineDao.save(lineAndGeometry.first.copy(geometryVersion = geometryVersion))
     }
 }

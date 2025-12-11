@@ -16,11 +16,11 @@ data class ReferenceLine(
     val length: LineM<ReferenceLineM> = LineM(0.0),
     val segmentCount: Int = 0,
     @JsonIgnore override val contextData: LayoutContextData<ReferenceLine>,
-    @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
+    @JsonIgnore val geometryVersion: RowVersion<ReferenceLineGeometry>? = null,
 ) : PolyLineLayoutAsset<ReferenceLine>(contextData) {
 
     init {
-        require(dataType == DataType.TEMP || alignmentVersion != null) { "ReferenceLine in DB must have an alignment" }
+        require(dataType == DataType.TEMP || geometryVersion != null) { "ReferenceLine in DB must have a geometry" }
         require(startAddress.decimalCount() == 3) {
             "ReferenceLine start addresses should be given with 3 decimal precision"
         }
@@ -32,11 +32,11 @@ data class ReferenceLine(
             "version" to version,
             "context" to contextData::class.simpleName,
             "trackNumber" to trackNumberId,
-            "alignment" to alignmentVersion,
+            "geometry" to geometryVersion,
         )
 
-    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
-        requireNotNull(alignmentVersion) { "${this::class.simpleName} has no an alignment: id=$id" }
+    fun getGeometryVersionOrThrow(): RowVersion<ReferenceLineGeometry> =
+        requireNotNull(geometryVersion) { "${this::class.simpleName} has no geometry: id=$id" }
 
     override fun withContext(contextData: LayoutContextData<ReferenceLine>): ReferenceLine =
         copy(contextData = contextData)

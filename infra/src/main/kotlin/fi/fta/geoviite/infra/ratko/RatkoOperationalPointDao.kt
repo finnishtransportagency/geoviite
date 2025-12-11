@@ -4,6 +4,9 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
+import fi.fta.geoviite.infra.tracklayout.OperationalPointName
+import fi.fta.geoviite.infra.tracklayout.UicCode
 import fi.fta.geoviite.infra.util.*
 import java.sql.ResultSet
 import java.time.Instant
@@ -15,9 +18,9 @@ import org.springframework.transaction.annotation.Transactional
 fun toRatkoOperatingPoint(rs: ResultSet): RatkoOperationalPoint {
     return RatkoOperationalPoint(
         externalId = rs.getOid("external_id"),
-        name = rs.getString("name"),
-        abbreviation = rs.getString("abbreviation"),
-        uicCode = rs.getUnsafeStringOrNull("uic_code")?.toString(),
+        name = OperationalPointName(rs.getString("name")),
+        abbreviation = OperationalPointAbbreviation(rs.getString("abbreviation")),
+        uicCode = UicCode(rs.getString("uic_code")),
         type = rs.getEnum("type"),
         location = rs.getPoint("x", "y"),
         trackNumberId = rs.getIntId("track_number_id"),
@@ -90,9 +93,9 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 .map { point ->
                     mapOf(
                         "externalId" to point.externalId.toString(),
-                        "name" to point.name,
-                        "abbreviation" to point.abbreviation,
-                        "uicCode" to point.uicCode,
+                        "name" to point.name.toString(),
+                        "abbreviation" to point.abbreviation.toString(),
+                        "uicCode" to point.uicCode.toString(),
                         "type" to point.type.name,
                         "x" to point.location.x,
                         "y" to point.location.y,

@@ -25,7 +25,6 @@ import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -45,11 +44,11 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.addTopologyEndSwitchIntoLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.addTopologyStartSwitchIntoLocationTrackAndUpdate
-import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
@@ -59,6 +58,7 @@ import fi.fta.geoviite.infra.tracklayout.moveLocationTrackGeometryPointsAndUpdat
 import fi.fta.geoviite.infra.tracklayout.moveReferenceLineGeometryPointsAndUpdate
 import fi.fta.geoviite.infra.tracklayout.moveSwitchPoints
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.removeTopologySwitchesFromLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segments
@@ -70,6 +70,11 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
@@ -79,11 +84,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -700,7 +700,7 @@ constructor(
 
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
-            alignment = alignment,
+            geometry = alignment,
             moveFunc = { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
@@ -822,7 +822,7 @@ constructor(
 
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
-            alignment = alignment,
+            geometry = alignment,
             moveFunc = { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
@@ -841,7 +841,7 @@ constructor(
 
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
-            alignment = alignment,
+            geometry = alignment,
             moveFunc = { point -> if (point.m.distance < 900) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
@@ -973,7 +973,7 @@ constructor(
 
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
-            alignment = referenceLineAlignment,
+            geometry = referenceLineAlignment,
             moveFunc = { point -> if (point.m.distance < 900.0) point - 2.0 else point.toPoint() },
             referenceLineService = referenceLineService,
         )
@@ -1037,7 +1037,7 @@ constructor(
                 .saveDraft(
                     LayoutBranch.main,
                     referenceLine(trackNumberId, draft = true),
-                    alignment(segment(Point(0.0, 0.0), Point(0.0, 20.0))),
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 20.0))),
                 )
                 .id
         val switch =
@@ -1073,7 +1073,10 @@ constructor(
     @Test
     fun `changes done in a main publication can be inherited to assets edited in design`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
         val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         val switch = mainOfficialContext.save(switch(joints = listOf(switchJoint(1, Point(7.0, 0.0))))).id
         val locationTrack =
@@ -1131,7 +1134,6 @@ constructor(
                 Oid("1.2.3.4.5"),
                 trackNumber,
                 Oid("3.4.5.6.7"),
-                locationTrackDeleted = false,
             )
         assertEquals(listOf(SwitchChange(switch, listOf(expectedSwitchJointChange))), changes.switchChanges)
     }
@@ -1139,7 +1141,10 @@ constructor(
     @Test
     fun `changes done in a main publication can be inherited to assets created in design`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
         val designBranch = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
         val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
@@ -1195,7 +1200,6 @@ constructor(
                 Oid("1.2.3.4.5"),
                 trackNumber,
                 Oid("3.4.5.6.7"),
-                locationTrackDeleted = false,
             )
         assertEquals(listOf(SwitchChange(switch, listOf(expectedSwitchJointChange))), changes.switchChanges)
     }
@@ -1203,7 +1207,10 @@ constructor(
     @Test
     fun `changes to main objects that are overridden in design don't cause inherited changes`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
         val kmPost = mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         val switch =
             mainOfficialContext
@@ -1265,7 +1272,10 @@ constructor(
     @Test
     fun `getChangedSwitchesFromChangedLocationTrackKms happy path`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(12.0, 0.0))))
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(12.0, 0.0))),
+        )
         mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         mainOfficialContext.save(kmPost(trackNumber, KmNumber(2), kmPostGkLocation(6.0, 0.0))).id
         mainOfficialContext.save(kmPost(trackNumber, KmNumber(3), kmPostGkLocation(9.0, 0.0))).id
@@ -1332,7 +1342,10 @@ constructor(
     @Test
     fun `getChangedSwitchesFromChangedLocationTrackKms accepts cancelled location tracks created in design`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(referenceLine(trackNumber), alignment(segment(Point(0.0, 0.0), Point(12.0, 0.0))))
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(12.0, 0.0))),
+        )
         mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0))).id
         val switch = mainOfficialContext.save(switch(joints = listOf(switchJoint(1, Point(4.0, 0.0))))).id
         val designBranch = testDBService.createDesignBranch()
@@ -1373,7 +1386,7 @@ constructor(
     data class TestData(
         val trackNumber: LayoutTrackNumber,
         val locationTracksAndGeometries: List<Pair<LocationTrack, LocationTrackGeometry>>,
-        val referenceLineAndAlignment: Pair<ReferenceLine, LayoutAlignment>,
+        val referenceLineAndAlignment: Pair<ReferenceLine, ReferenceLineGeometry>,
         val kmPosts: List<LayoutKmPost>,
         val switches: List<LayoutSwitch>,
         val changeTime: Instant,
@@ -1448,7 +1461,9 @@ constructor(
             }
         val referenceLineGeometryVersion =
             layoutAlignmentDao.insert(
-                alignment(segment(kmPosts.first().layoutLocation as Point, kmPosts.last().layoutLocation as Point))
+                referenceLineGeometry(
+                    segment(kmPosts.first().layoutLocation as Point, kmPosts.last().layoutLocation as Point)
+                )
             )
         val referenceLineGeometry = layoutAlignmentDao.fetch(referenceLineGeometryVersion)
         val referenceLine =
@@ -1456,11 +1471,11 @@ constructor(
                 referenceLineDao.save(
                     referenceLine(
                             trackNumber.id as IntId<LayoutTrackNumber>,
-                            alignment = referenceLineGeometry,
+                            geometry = referenceLineGeometry,
                             startAddress = TrackMeter(kmNumber = kmPosts.first().kmNumber, meters = BigDecimal.ZERO),
                             draft = false,
                         )
-                        .copy(alignmentVersion = referenceLineGeometryVersion)
+                        .copy(geometryVersion = referenceLineGeometryVersion)
                 )
             )
 
@@ -1580,10 +1595,11 @@ constructor(
         switchLinkingService.saveSwitchLinking(
             LayoutBranch.main,
             matchFittedSwitchToTracks(
-                suggestedFitting,
-                switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, suggestedFitting),
-                layoutSwitchId = switch.id as IntId,
-            ),
+                    suggestedFitting,
+                    switchLinkingService.findLocationTracksNearFittedSwitch(LayoutBranch.main, suggestedFitting),
+                    layoutSwitchId = switch.id as IntId,
+                )
+                .first,
             switch.id as IntId,
             geometrySwitchId = null,
         )

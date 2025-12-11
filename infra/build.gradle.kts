@@ -52,7 +52,7 @@ configure<com.diffplug.gradle.spotless.SpotlessExtension> {
 
 configurations { all { exclude("org.springframework.boot", "spring-boot-starter-logging") } }
 
-ext["selenium.version"] = "4.33.0"
+ext["selenium.version"] = "4.38.0"
 
 dependencies {
     // Version overrides for transitive deps (due to known vulnerabilities)
@@ -117,7 +117,7 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
-    testImplementation("org.seleniumhq.selenium:selenium-java:4.33.0")
+    testImplementation("org.seleniumhq.selenium:selenium-java:4.38.0")
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.5")
     testImplementation("io.projectreactor:reactor-test:3.7.9")

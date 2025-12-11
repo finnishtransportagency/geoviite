@@ -19,7 +19,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -247,7 +247,7 @@ constructor(
         val referenceLineId =
             layoutContext
                 .saveReferenceLine(
-                    referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                    referenceLineAndGeometry(trackNumberId = trackNumber.id as IntId, segments = segments)
                 )
                 .id
 
@@ -292,7 +292,7 @@ constructor(
         val referenceLineId =
             layoutContext
                 .saveReferenceLine(
-                    referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                    referenceLineAndGeometry(trackNumberId = trackNumber.id as IntId, segments = segments)
                 )
                 .id
 
@@ -347,7 +347,7 @@ constructor(
             .let { trackNumber ->
                 layoutContext
                     .saveReferenceLine(
-                        referenceLineAndAlignment(
+                        referenceLineAndGeometry(
                             trackNumberId = trackNumber.id as IntId,
                             segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0))),
                         )
@@ -389,7 +389,7 @@ constructor(
         val referenceLineId =
             layoutContext
                 .saveReferenceLine(
-                    referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = referenceLineSegments)
+                    referenceLineAndGeometry(trackNumberId = trackNumber.id as IntId, segments = referenceLineSegments)
                 )
                 .id
 
@@ -434,7 +434,7 @@ constructor(
         val referenceLineId =
             layoutContext
                 .saveReferenceLine(
-                    referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = referenceLineSegments)
+                    referenceLineAndGeometry(trackNumberId = trackNumber.id as IntId, segments = referenceLineSegments)
                 )
                 .id
 
@@ -486,7 +486,7 @@ constructor(
         val referenceLineId =
             layoutContext
                 .saveReferenceLine(
-                    referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                    referenceLineAndGeometry(trackNumberId = trackNumber.id as IntId, segments = segments)
                 )
                 .id
 
@@ -1066,7 +1066,7 @@ constructor(
                 val referenceLineId =
                     layoutContext
                         .saveReferenceLine(
-                            referenceLineAndAlignment(trackNumberId = trackNumber.id as IntId, segments = segments)
+                            referenceLineAndGeometry(trackNumberId = trackNumber.id as IntId, segments = segments)
                         )
                         .id
                 trackNumber to referenceLineId
@@ -1211,7 +1211,7 @@ constructor(
         mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).also { trackNumber ->
             val referenceLine =
                 mainOfficialContext.saveReferenceLine(
-                    referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
+                    referenceLineAndGeometry(trackNumberId = trackNumber.id, segments = segments)
                 )
 
             extTestDataService.insertGeocodableTrack(
@@ -1249,7 +1249,7 @@ constructor(
             val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
             val referenceLine =
                 mainOfficialContext.saveReferenceLine(
-                    referenceLineAndAlignment(trackNumberId = trackNumber.id, segments = segments)
+                    referenceLineAndGeometry(trackNumberId = trackNumber.id, segments = segments)
                 )
 
             extTestDataService.insertGeocodableTrack(

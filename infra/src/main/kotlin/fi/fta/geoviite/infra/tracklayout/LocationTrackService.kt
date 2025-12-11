@@ -58,7 +58,6 @@ const val TOPOLOGY_CALC_DISTANCE = 1.0
 @GeoviiteService
 class LocationTrackService(
     val locationTrackDao: LocationTrackDao,
-    private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val geocodingService: GeocodingService,
     private val switchDao: LayoutSwitchDao,
@@ -353,26 +352,6 @@ class LocationTrackService(
             layoutContext,
             BoundingBox(Point(0.0, 0.0), Point(TRACK_SEARCH_AREA_SIZE, TRACK_SEARCH_AREA_SIZE)).centerAt(location),
         )
-
-    @Transactional(readOnly = true)
-    fun getMetadataSections(
-        layoutContext: LayoutContext,
-        locationTrackId: IntId<LocationTrack>,
-        boundingBox: BoundingBox?,
-    ): List<AlignmentPlanSection<LocationTrackM>> {
-        val locationTrack = get(layoutContext, locationTrackId)
-        val geocodingContext =
-            locationTrack?.let { geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId) }
-
-        return geocodingContext?.let { context ->
-            alignmentService.getGeometryMetadataSections(
-                locationTrack.getVersionOrThrow(),
-                dao.fetchExternalId(layoutContext.branch, locationTrackId)?.oid,
-                boundingBox,
-                context,
-            )
-        } ?: listOf()
-    }
 
     @Transactional(readOnly = true)
     fun getTrackPolygon(
@@ -676,14 +655,14 @@ class LocationTrackService(
                     }
                     .map { (switch, location) ->
                         val address = getGeocodingContext(locationTrack.trackNumberId)?.getAddressAndM(location)
-                        val mAlongAlignment = geometry.getClosestPointM(location)?.first
+                        val mAlongTrack = geometry.getClosestPointM(location)?.first
                         SwitchOnLocationTrack(
                             switch.id as IntId,
                             switch.nameParts,
                             switch.name,
                             address?.address,
                             location,
-                            mAlongAlignment,
+                            mAlongTrack,
                             getNearestOperationalPoint(layoutContext, location),
                         )
                     }
