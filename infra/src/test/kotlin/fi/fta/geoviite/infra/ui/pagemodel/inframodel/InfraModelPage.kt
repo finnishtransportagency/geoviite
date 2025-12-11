@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementIfExists
 import org.openqa.selenium.By
+import waitUntilVisible
 
 class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
 
@@ -49,7 +50,10 @@ class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
         return E2EInfraModelForm()
     }
 
-    val infraModelNavTabPlan = getElementIfExists(byQaId("infra-model-nav-tab-plan"))
-    val infraModelNavTabWaiting = getElementIfExists(byQaId("infra-model-nav-tab-waiting"))
-    val infraModelNavTabRejected = getElementIfExists(byQaId("infra-model-nav-tab-rejected"))
+    val infraModelNavTabPlan =
+        waitUntilVisible(byQaId("im-form.tabs-bar")).let { getElementIfExists(byQaId("infra-model-nav-tab-plan")) }
+    val infraModelNavTabWaiting =
+        waitUntilVisible(byQaId("im-form.tabs-bar")).let { getElementIfExists(byQaId("infra-model-nav-tab-waiting")) }
+    val infraModelNavTabRejected =
+        waitUntilVisible(byQaId("im-form.tabs-bar")).let { getElementIfExists(byQaId("infra-model-nav-tab-rejected")) }
 }
