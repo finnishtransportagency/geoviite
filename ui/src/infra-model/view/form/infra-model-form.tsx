@@ -355,7 +355,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
                 <FormgroupContent title={t('im-form.file-metadata')}>
                     <FormgroupField
-                        label={t('im-form.name-field')}
+                        label={`${t('im-form.name-field')} *`}
                         qaId="name-im-field"
                         inEditMode={fieldInEdit === 'name'}
                         onEdit={() => setFieldInEdit('name')}
