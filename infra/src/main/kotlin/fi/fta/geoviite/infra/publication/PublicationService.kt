@@ -48,6 +48,10 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 
+const val TRACK_NUMBER_FAKE_OID_CONTEXT = 10001
+const val LOCATION_TRACK_FAKE_OID_CONTEXT = 10002
+const val SWITCH_FAKE_OID_CONTEXT = 139
+
 @GeoviiteService
 class PublicationService
 @Autowired
@@ -265,23 +269,30 @@ constructor(
         )
     }
 
+    private fun <T> generateFakeRatkoOID(contextId: Int, uniqueIdInContext: Int): RatkoOid<T> {
+        // make fake OID clearly distinct from real OIDs
+        return RatkoOid("0.0.0.0.0.0.${contextId}.${uniqueIdInContext}")
+    }
+
     private fun insertExternalIdForLocationTrack(branch: LayoutBranch, locationTrackId: IntId<LocationTrack>) {
         val locationTrackOid =
             ratkoClient?.let { s -> requireNotNull(s.getNewLocationTrackOid()) { "No OID received from RATKO" } }
-        locationTrackOid?.let { oid -> locationTrackService.insertExternalId(branch, locationTrackId, Oid(oid.id)) }
+                ?: generateFakeRatkoOID(LOCATION_TRACK_FAKE_OID_CONTEXT, locationTrackId.intValue)
+        locationTrackOid.let { oid -> locationTrackService.insertExternalId(branch, locationTrackId, Oid(oid.id)) }
     }
 
     private fun insertExternalIdForTrackNumber(branch: LayoutBranch, trackNumberId: IntId<LayoutTrackNumber>) {
         val routeNumberOid =
             ratkoClient?.let { s -> requireNotNull(s.getNewRouteNumberOid()) { "No OID received from RATKO" } }
-        routeNumberOid?.let { oid -> trackNumberService.insertExternalId(branch, trackNumberId, Oid(oid.id)) }
+                ?: generateFakeRatkoOID(TRACK_NUMBER_FAKE_OID_CONTEXT, trackNumberId.intValue)
+        routeNumberOid.let { oid -> trackNumberService.insertExternalId(branch, trackNumberId, Oid(oid.id)) }
     }
 
     private fun insertExternalIdForSwitch(branch: LayoutBranch, switchId: IntId<LayoutSwitch>) {
-        val switchOid =
-            switchDao.get(branch.draft, switchId)?.draftOid?.also(::ensureDraftIdExists)?.toString()
-                ?: ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid().id) { "No OID received from RATKO" } }
-        switchOid?.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(switchOid)) }
+        val switchOid = switchDao.get(branch.draft, switchId)?.draftOid?.also(::ensureDraftIdExists)?.toString()
+            ?: ratkoClient?.let { s -> requireNotNull(s.getNewSwitchOid().id) { "No OID received from RATKO" } }
+            ?: generateFakeRatkoOID<LayoutSwitch>(SWITCH_FAKE_OID_CONTEXT, switchId.intValue).toString()
+        switchOid.let { oid -> switchService.insertExternalIdForSwitch(branch, switchId, Oid(oid)) }
     }
 
     private fun ensureDraftIdExists(draftOid: Oid<LayoutSwitch>) {
