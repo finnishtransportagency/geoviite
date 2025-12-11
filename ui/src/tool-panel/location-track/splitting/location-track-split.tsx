@@ -29,7 +29,6 @@ import { BoundingBox, Point } from 'model/geometry';
 import { SplitDuplicateTrack } from 'track-layout/layout-location-track-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { RemovalConfirmationMenu } from 'tool-panel/location-track/splitting/removal-confirmation-menu';
-import { useCloneRef } from 'utils/react-utils';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { locationTrackNameSpecifiers, locationTrackNamingSchemesFiltered, } from 'utils/enum-localization-utils';
 
@@ -116,7 +115,6 @@ export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
 };
 
 const LocationTrackSplitM: React.FC<SplitProps> = ({
-    locationTrackId: _x,
     split,
     onRemove,
     updateSplit,
@@ -166,7 +164,6 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
         },
         [setNameRef],
     );
-    const _localNameRef = useCloneRef(nameRef);
     const descriptionBaseRef = React.useCallback(
         (e: HTMLInputElement) => {
             setDescriptionBaseRef(split.id, e);
