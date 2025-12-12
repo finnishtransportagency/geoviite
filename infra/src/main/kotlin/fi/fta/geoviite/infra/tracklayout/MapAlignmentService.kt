@@ -114,7 +114,11 @@ class MapAlignmentService(
             .fetchLocationTrackProfileInfos(layoutContext, ids, false)
             .groupBy { it.id }
             .map { (id, profileInfos) ->
-                MapAlignmentHighlight(id = id, type = LOCATION_TRACK, ranges = profileInfos.map { i -> i.mRange })
+                MapAlignmentHighlight(
+                    id = id,
+                    type = LOCATION_TRACK,
+                    ranges = combineContinuous(profileInfos.map { i -> i.mRange }),
+                )
             }
     }
 
