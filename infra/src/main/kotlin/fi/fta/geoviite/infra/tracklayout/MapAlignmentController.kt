@@ -109,10 +109,10 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     fun getSectionsWithoutProfile(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("bbox") bbox: BoundingBox,
+        @RequestParam("ids") ids: List<IntId<LocationTrack>>,
     ): List<MapAlignmentHighlight<LocationTrack, LocationTrackM>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return mapAlignmentService.getSectionsWithoutProfile(layoutContext, bbox)
+        return mapAlignmentService.getSectionsWithoutProfile(layoutContext, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
