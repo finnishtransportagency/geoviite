@@ -11,3 +11,6 @@ logging:
 geoviite:
   i18n:
     override-path: "./src/main/resources/i18n/"
+  ratko-fake-oid-generator:
+    enabled: true
+

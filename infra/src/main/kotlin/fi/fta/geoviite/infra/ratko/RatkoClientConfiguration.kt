@@ -29,7 +29,7 @@ class RatkoWebClient(val client: WebClient) : WebClient by client
     havingValue = "true",
     matchIfMissing = false
 )
-class RatkoFakeOidGeneratorConfiguration {}
+class RatkoFakeOidGeneratorConfiguration
 
 @Configuration
 @ConditionalOnProperty(name = ["geoviite.ratko.enabled"], havingValue = "true", matchIfMissing = false)
