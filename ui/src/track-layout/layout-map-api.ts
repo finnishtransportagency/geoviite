@@ -41,6 +41,7 @@ import {
     deduplicate,
     filterNotEmpty,
     first,
+    groupBy,
     indexIntoMap,
     last,
     partitionBy,
@@ -128,7 +129,7 @@ const referenceLineSegmentMCache = asyncCache<string, number[]>();
 
 const locationTrackEndsCache = asyncCache<string, MapAlignmentEndPoints>();
 const referenceLineEndsCache = asyncCache<string, MapAlignmentEndPoints>();
-const sectionsWithoutProfileCache = asyncCache<string, AlignmentHighlight[]>();
+const locationTrackSectionsWithoutProfileCache = asyncCache<string, AlignmentHighlight[]>();
 const sectionsWithoutLinkingCache = asyncCache<string, AlignmentHighlight[]>();
 const trackNumberTrackMeterCache = asyncCache<string, TrackMeter | undefined>();
 
@@ -367,30 +368,27 @@ function indexPolylinesIntoMaps(polyLines: AlignmentPolyLine[]): {
     return { referenceLinePiecesMap, locationTrackPiecesMap };
 }
 
-export async function getLocationTrackSectionsWithoutProfileByTiles(
+export async function getLocationTrackSectionsWithoutProfile(
     changeTime: TimeStamp,
     layoutContext: LayoutContext,
-    mapTiles: MapTile[],
+    ids: LocationTrackId[],
 ): Promise<AlignmentHighlight[]> {
     return (
-        await Promise.all(
-            mapTiles.map((tile) =>
-                getLocationTrackSectionsWithoutProfileByTile(changeTime, layoutContext, tile),
-            ),
+        await locationTrackSectionsWithoutProfileCache.getMany(
+            changeTime,
+            ids,
+            (id) => `${id}_${layoutContext.publicationState}_${layoutContext.branch}`,
+            (fetchIds) =>
+                getNonNull<AlignmentHighlight[]>(
+                    `${mapUri(layoutContext)}/location-track/without-profile?ids=${fetchIds}`,
+                ).then((highlights) => {
+                    const byTrack = groupBy(highlights, (hl) => hl.id as LocationTrackId);
+                    return (id) => byTrack[id] ?? [];
+                }),
         )
-    ).flat();
-}
-
-function getLocationTrackSectionsWithoutProfileByTile(
-    changeTime: TimeStamp,
-    layoutContext: LayoutContext,
-    mapTile: MapTile,
-): Promise<AlignmentHighlight[]> {
-    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}`;
-    const params = queryParams({ bbox: bboxString(mapTile.area) });
-    return sectionsWithoutProfileCache.get(changeTime, tileKey, () =>
-        getNonNull(`${mapUri(layoutContext)}/location-track/without-profile${params}`),
-    );
+    )
+        .filter(filterNotEmpty)
+        .flat();
 }
 
 export async function getAlignmentSectionsWithoutLinkingByTiles(

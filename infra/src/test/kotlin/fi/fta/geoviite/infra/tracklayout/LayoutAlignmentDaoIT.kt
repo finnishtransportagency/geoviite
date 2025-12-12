@@ -20,7 +20,6 @@ import fi.fta.geoviite.infra.linking.NodeTrackConnections
 import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.IMPORTED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
@@ -28,6 +27,7 @@ import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.CONNECTION
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MAIN
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole.MATH
 import fi.fta.geoviite.infra.util.getIntId
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
@@ -38,7 +38,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -322,18 +321,16 @@ constructor(
                 segment(points = points5, source = PLAN, sourceId = geometryElement.id),
                 segment(points = points6, source = PLAN, sourceId = geometryElementWithCrsButNoProfile.id),
             )
-        locationTrackDao.save(locationTrack(trackNumberId, draft = false), geometry)
+        val id = locationTrackDao.save(locationTrack(trackNumberId, draft = false), geometry).id
 
-        val boundingBox = boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
-        val profileInfo = alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, boundingBox)
+        val profileInfo = alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, listOf(id))
         assertEquals(6, profileInfo.size)
         assertEquals(listOf(true, false, false, false, true, false), profileInfo.map { it.hasProfile })
 
-        val onlyProfileless =
-            alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, boundingBox, false)
+        val onlyProfileless = alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, listOf(id), false)
         assertEquals(profileInfo.slice(1..3) + profileInfo[5], onlyProfileless)
 
-        val onlyProfileful = alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, boundingBox, true)
+        val onlyProfileful = alignmentDao.fetchLocationTrackProfileInfos(MainLayoutContext.official, listOf(id), true)
 
         assertEquals(2, onlyProfileful.size)
         assertEquals(listOf(profileInfo[0], profileInfo[4]), onlyProfileful)
