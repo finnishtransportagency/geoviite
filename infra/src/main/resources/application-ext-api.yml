@@ -30,6 +30,9 @@ geoviite:
 
   ratko:
     enabled: false
+      
+  ratko-fake-oid-generator:
+    enabled: true
 
   projektivelho:
     enabled: false

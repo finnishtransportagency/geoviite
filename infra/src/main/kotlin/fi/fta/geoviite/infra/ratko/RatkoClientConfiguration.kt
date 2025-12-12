@@ -24,6 +24,14 @@ val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
 class RatkoWebClient(val client: WebClient) : WebClient by client
 
 @Configuration
+@ConditionalOnProperty(
+    name = ["geoviite.ratko-fake-oid-generator.enabled"],
+    havingValue = "true",
+    matchIfMissing = false
+)
+class RatkoFakeOidGeneratorConfiguration
+
+@Configuration
 @ConditionalOnProperty(name = ["geoviite.ratko.enabled"], havingValue = "true", matchIfMissing = false)
 class RatkoClientConfiguration
 @Autowired

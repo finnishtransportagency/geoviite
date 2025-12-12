@@ -1,11 +1,8 @@
 import {
     DuplicateStatus,
-    getNameFreeText,
-    getNameSpecifier,
     LayoutLocationTrack,
     LayoutSwitch,
     LocationTrackId,
-    LocationTrackNamingScheme,
     SplitPoint,
     splitPointsAreSame,
 } from 'track-layout/track-layout-model';
@@ -69,11 +66,9 @@ const splitToRequestTarget = (
               }
             : undefined;
     return {
-        namingScheme: duplicate?.nameStructure?.scheme ?? LocationTrackNamingScheme.FREE_TEXT,
-        nameFreeText: duplicate
-            ? (getNameFreeText(duplicate?.nameStructure) ?? '')
-            : split.nameFreeText,
-        nameSpecifier: duplicate ? getNameSpecifier(duplicate?.nameStructure) : split.nameSpecifier,
+        namingScheme: split.namingScheme,
+        nameFreeText: split.nameFreeText,
+        nameSpecifier: split.nameSpecifier,
         descriptionBase:
             (duplicate ? duplicate.descriptionStructure.base : split.descriptionBase) ?? '',
         descriptionSuffix:

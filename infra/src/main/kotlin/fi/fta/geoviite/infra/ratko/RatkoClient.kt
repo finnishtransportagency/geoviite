@@ -74,11 +74,21 @@ private const val VERSION_PATH = "/api/versions/v1.0/version"
 private const val BULK_TRANSFER_PATH = "/api/split/bulk-transfer"
 private const val PLAN_PATH = "/api/plan/v1.0/plans"
 
-enum class RatkoConnectionStatus {
-    ONLINE,
-    ONLINE_ERROR,
-    OFFLINE,
-    NOT_CONFIGURED,
+const val TRACK_NUMBER_FAKE_OID_CONTEXT = 10001
+const val LOCATION_TRACK_FAKE_OID_CONTEXT = 10002
+const val SWITCH_FAKE_OID_CONTEXT = 139
+
+enum class RatkoConnectionStatus { ONLINE, ONLINE_ERROR, OFFLINE, NOT_CONFIGURED,
+}
+
+@Component
+@ConditionalOnBean(RatkoFakeOidGeneratorConfiguration::class)
+class RatkoFakeOidGenerator {
+
+    fun <T> generateFakeRatkoOID(contextId: Int, uniqueIdInContext: Int): RatkoOid<T> {
+        // make fake OID clearly distinct from real OIDs
+        return RatkoOid("0.0.0.0.0.0.${contextId}.${uniqueIdInContext}")
+    }
 }
 
 @Component

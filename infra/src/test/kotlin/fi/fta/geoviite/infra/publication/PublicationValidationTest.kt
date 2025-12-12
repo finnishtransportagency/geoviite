@@ -578,7 +578,7 @@ class PublicationValidationTest {
                     baseLocationTrack.copy(
                         nameStructure =
                             trackNameStructure(
-                                scheme = LocationTrackNamingScheme.WITHIN_OPERATING_POINT,
+                                scheme = LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT,
                                 freeText = "name",
                             )
                     ),
@@ -600,7 +600,7 @@ class PublicationValidationTest {
             true,
             validateLocationTrackEndSwitchNamingScheme(
                 baseLocationTrack.copy(
-                    nameStructure = trackNameStructure(scheme = LocationTrackNamingScheme.BETWEEN_OPERATING_POINTS)
+                    nameStructure = trackNameStructure(scheme = LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS)
                 ),
                 switch,
                 null,

@@ -39,7 +39,7 @@ const saveRequest = (name: string, estimatedCompletion: Date): LayoutDesignSaveR
     designState: 'ACTIVE',
 });
 
-export const DESIGN_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-+_!?.,"/()<>:&*#€$]*$/g;
+export const DESIGN_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-+_!?.,"'\\/()[\]<>:;&*#€$]*$/g;
 
 function validateDesignName(name: string, committed: boolean): string[] {
     return [
@@ -76,7 +76,8 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
     const designNameNotUnique =
         allDesignsFetchStatus !== LoaderStatus.Ready ||
         allDesigns?.some(
-            (design) => isEqualIgnoreCase(design.name, name) && design.id !== existingDesign?.id,
+            (design) =>
+                isEqualIgnoreCase(design.name, name.trim()) && design.id !== existingDesign?.id,
         );
     const allErrors = designNameErrors
         .map((e) => t(`workspace-dialog.${e}`))
