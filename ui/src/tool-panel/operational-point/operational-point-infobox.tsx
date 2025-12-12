@@ -31,6 +31,7 @@ import { useHasPublicationLog } from 'publication/publication-utils';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { useAppNavigate } from 'common/navigate';
+import { OperationalPointTracksInfobox } from 'tool-panel/operational-point/operational-point-tracks-infobox';
 
 type OperationalPointInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -201,13 +202,22 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
             />
             <EnvRestricted restrictTo={'dev'}>
                 {operationalPoint.polygon && (
-                    <OperationalPointSwitchesInfobox
-                        contentVisible={visibilities.switches}
-                        onVisibilityChange={visibilityChange}
-                        layoutContext={layoutContext}
-                        operationalPoint={operationalPoint}
-                        changeTimes={changeTimes}
-                    />
+                    <>
+                        <OperationalPointSwitchesInfobox
+                            contentVisible={visibilities.switches}
+                            onVisibilityChange={visibilityChange}
+                            layoutContext={layoutContext}
+                            operationalPoint={operationalPoint}
+                            changeTimes={changeTimes}
+                        />
+                        <OperationalPointTracksInfobox
+                            contentVisible={visibilities.tracks}
+                            onVisibilityChange={visibilityChange}
+                            layoutContext={layoutContext}
+                            operationalPoint={operationalPoint}
+                            changeTimes={changeTimes}
+                        />
+                    </>
                 )}
             </EnvRestricted>
             <AssetValidationInfoboxContainer

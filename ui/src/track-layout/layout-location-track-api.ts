@@ -8,6 +8,7 @@ import {
     LocationTrackId,
     LocationTrackInfoboxExtras,
     LocationTrackNameStructure,
+    OperationalPointId,
 } from 'track-layout/track-layout-model';
 import {
     DesignBranch,
@@ -57,6 +58,10 @@ const locationTrackStartAndEndCache = asyncCache<string, AlignmentStartAndEnd | 
 const locationTrackOidsCache = asyncCache<
     LocationTrackId,
     { [key in LayoutBranch]?: Oid } | undefined
+>();
+const locationTracksByOperationalPointCache = asyncCache<
+    string,
+    OperationalPointLocationTracks | undefined
 >();
 
 export type PlanSectionPoint = {
@@ -349,4 +354,45 @@ export async function getLocationTrackOids(
         ),
     );
     return oids ?? {};
+}
+
+export async function findOperationalPointLocationTracks(
+    context: LayoutContext,
+    operationalPointId: OperationalPointId,
+): Promise<OperationalPointLocationTracks | undefined> {
+    const changeTimes = getChangeTimes();
+    const changeTime = getMaxTimestamp(changeTimes.layoutSwitch, changeTimes.operationalPoints);
+    const key = `${context.publicationState}_${context.branch}_${operationalPointId}`;
+    return locationTracksByOperationalPointCache.get(changeTime, key, () =>
+        getNonNull<OperationalPointLocationTracks>(
+            `${layoutUri('location-tracks', context)}/by-operational-point/${operationalPointId}`,
+        ),
+    );
+}
+
+export type OperationalPointLocationTracks = {
+    overlappingArea: LocationTrackId[];
+    assigned: LocationTrackId[];
+};
+
+export async function linkLocationTrackToOperationalPoint(
+    branch: LayoutBranch,
+    locationTrackIds: LocationTrackId[],
+    operationalPointId: OperationalPointId,
+): Promise<LocationTrackId[]> {
+    return postNonNull<LocationTrackId[], LocationTrackId[]>(
+        `${layoutUriByBranch('location-tracks', branch)}/draft/link-to-operational-point/${operationalPointId}`,
+        locationTrackIds,
+    );
+}
+
+export async function unlinkLocationTrackToOperationalPoint(
+    branch: LayoutBranch,
+    locationTrackIds: LocationTrackId[],
+    operationalPointId: OperationalPointId,
+): Promise<LocationTrackId[]> {
+    return postNonNull<LocationTrackId[], LocationTrackId[]>(
+        `${layoutUriByBranch('location-tracks', branch)}/draft/unlink-from-operational-point/${operationalPointId}`,
+        locationTrackIds,
+    );
 }

@@ -105,6 +105,7 @@ export type OperationalPointInfoboxVisibilities = {
     location: boolean;
     validation: boolean;
     switches: boolean;
+    tracks: boolean;
     log: boolean;
 };
 
@@ -172,6 +173,7 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
         location: true,
         validation: true,
         switches: true,
+        tracks: true,
         log: true,
     },
     geometryAlignment: {

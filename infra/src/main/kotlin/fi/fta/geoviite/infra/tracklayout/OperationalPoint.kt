@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
@@ -145,11 +144,6 @@ data class InternalOperationalPointSaveRequest(
 )
 
 data class ExternalOperationalPointSaveRequest(val rinfType: OperationalPointRinfType)
-
-data class OperationalPointIdsAssignmentRequest(
-    val operationalPointId: IntId<OperationalPoint>?,
-    val switchIds: List<IntId<LayoutSwitch>>,
-)
 
 enum class OperationalPointRinfType {
     STATION,

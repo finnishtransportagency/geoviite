@@ -987,13 +987,27 @@
                 "attach-all": "Linkitä pisteeseen kaikki vaihteet ({{count}} kpl)",
                 "show-all": "Näytä kaikki ({{count}} kpl)...",
                 "hide-extra": "Piilota...",
-                "single-linking-success-toast": "Vaihde {{switchName}} linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "single-unlinking-success-toast": "Vaihteen {{switchName}} linkitetys toiminnalliseen pisteeseen {{operationalPointName}} poistettu",
+                "single-linking-success-toast": "Vaihde {{name}} linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
+                "single-unlinking-success-toast": "Vaihteen {{name}} linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu",
                 "multiple-linking-success-toast": "{{count}} vaihdetta linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
                 "multiple-unlinking-success-toast": "Linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu {{count}} vaihteelta",
                 "switch-linked-to-wrong-point": "Vaihde on linkitetty toiseen toiminnalliseen pisteeseen {{operationalPointName}}",
                 "switch-in-wrong-polygon": "Vaihde sijaitsee toisen pisteen alueella: {{operationalPointName}}",
                 "switch-not-in-polygon": "Vaihde on linkitetty pisteelle, mutta ei sijaitse pisteen alueella"
+            },
+            "track-links": {
+                "infobox-header": "Raiteet",
+                "attached-header": "Toiminnalliseen pisteeseen linkitetyt raiteet ({{count}} kpl)",
+                "detached-in-polygon-header": "Toiminnalliseen pisteeseen linkittämättömät, alueella sijaitsevat raiteet ({{count}} kpl)",
+                "detach-all": "Irroita pisteeltä kaikki raiteet ({{count}} kpl)",
+                "attach-all": "Linkitä pisteeseen kaikki raiteet ({{count}} kpl)",
+                "show-all": "Näytä kaikki ({{count}} kpl)...",
+                "hide-extra": "Piilota...",
+                "single-linking-success-toast": "Raide {{name}} linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
+                "single-unlinking-success-toast": "Raiteen {{name}} linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu",
+                "multiple-linking-success-toast": "{{count}} raidetta linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
+                "multiple-unlinking-success-toast": "Linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu {{count}} raiteelta",
+                "track-not-in-polygon": "Raide on linkitetty pisteelle, mutta sillä ei ole geometriaa pisteen alueella"
             }
         },
         "disabled": {
