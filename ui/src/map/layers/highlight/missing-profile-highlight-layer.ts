@@ -5,7 +5,7 @@ import { AlignmentHighlight, MapLayerName, MapTile } from 'map/map-model';
 import {
     AlignmentDataHolder,
     getLocationTrackMapAlignmentsByTiles,
-    getLocationTrackSectionsWithoutProfileByTiles,
+    getLocationTrackSectionsWithoutProfile,
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { LayoutContext } from 'common/common-model';
@@ -35,14 +35,19 @@ export function createMissingProfileHighlightLayer(
 
     const dataPromise: Promise<[AlignmentDataHolder[], AlignmentHighlight[]]> =
         resolution <= HIGHLIGHTS_SHOW
-            ? Promise.all([
-                  getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext),
-                  getLocationTrackSectionsWithoutProfileByTiles(
+            ? (async () => {
+                  const alignments = await getLocationTrackMapAlignmentsByTiles(
+                      changeTimes,
+                      mapTiles,
+                      layoutContext,
+                  );
+                  const sections = await getLocationTrackSectionsWithoutProfile(
                       changeTimes.layoutLocationTrack,
                       layoutContext,
-                      mapTiles,
-                  ),
-              ])
+                      alignments.map((a) => a.header.id),
+                  );
+                  return [alignments, sections];
+              })()
             : Promise.resolve([[], []]);
 
     const createFeatures = ([locationTracks, sections]: [
