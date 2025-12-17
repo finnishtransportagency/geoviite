@@ -36,6 +36,7 @@ import {
     getTrackNumberReferenceLine,
 } from 'track-layout/layout-reference-line-api';
 import {
+    getAllLocationTracks,
     getLocationTrack,
     getLocationTrackChangeTimes,
     getLocationTrackInfoboxExtras,
@@ -125,6 +126,18 @@ export function useLocationTracks(
         useLoader(
             () => (ids ? getLocationTracks(ids, layoutContext) : undefined),
             [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
+        ) || []
+    );
+}
+
+export function useAllLocationTracks(
+    layoutContext: LayoutContext,
+    changeTime?: TimeStamp,
+): LayoutLocationTrack[] {
+    return (
+        useLoader(
+            () => getAllLocationTracks(layoutContext, changeTime),
+            [layoutContext.branch, layoutContext.publicationState, changeTime],
         ) || []
     );
 }

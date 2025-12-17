@@ -91,14 +91,14 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["ids"])
+    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}")
     fun getLocationTracks(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("ids", required = true) ids: List<IntId<LocationTrack>>,
+        @RequestParam("ids", required = false) ids: List<IntId<LocationTrack>>?,
     ): List<LocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.getMany(context, ids)
+        return ids?.let { locationTrackService.getMany(context, it) } ?: locationTrackService.list(context)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

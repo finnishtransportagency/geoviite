@@ -7,6 +7,7 @@ import {
     LayoutReferenceLine,
     LayoutTrackNumber,
     MapAlignmentType,
+    LocationTrackId,
 } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -18,7 +19,12 @@ import {
     refreshTrackNumberSelection,
     useCoordinateSystem,
     useReferenceLineStartAndEnd,
+    useLocationTracks,
+    useAllLocationTracks,
 } from 'track-layout/track-layout-react-utils';
+import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
+import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
+import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
@@ -57,6 +63,7 @@ type TrackNumberInfoboxProps = {
     visibilities: TrackNumberInfoboxVisibilities;
     onVisibilityChange: (visibilities: TrackNumberInfoboxVisibilities) => void;
     onHighlightItem: (item: HighlightedAlignment | undefined) => void;
+    shownLocationTrackIds: LocationTrackId[];
 };
 
 type TrackNumberEndpointAddressInfoProps = {
@@ -93,6 +100,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     visibilities,
     onVisibilityChange,
     onHighlightItem,
+    shownLocationTrackIds,
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
     const trackNumberChangeTime = getMaxTimestamp(
@@ -109,6 +117,28 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const isOfficial = layoutContext.publicationState === 'OFFICIAL';
+    const [filterByVisibleArea, setFilterByVisibleArea] = React.useState(true);
+
+    const shownLocationTracks = useLocationTracks(
+        shownLocationTrackIds,
+        layoutContext,
+        changeTimes.layoutLocationTrack,
+    );
+
+    const allLocationTracks = useAllLocationTracks(
+        layoutContext,
+        changeTimes.layoutLocationTrack,
+    );
+
+    const trackNumberLocationTracks = React.useMemo(
+        () => {
+            const tracksToFilter = filterByVisibleArea ? shownLocationTracks : allLocationTracks;
+            return tracksToFilter
+                .filter((lt) => lt.trackNumberId === trackNumber.id)
+                .sort((a, b) => a.name.localeCompare(b.name));
+        },
+        [shownLocationTracks, allLocationTracks, filterByVisibleArea, trackNumber.id],
+    );
 
     React.useEffect(() => {
         setCanUpdate(
@@ -346,6 +376,52 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     </InfoboxContent>
                 </Infobox>
             )}
+            <Infobox
+                contentVisible={visibilities.locationTracks}
+                onContentVisibilityChange={() => visibilityChange('locationTracks')}
+                title={t('tool-panel.track-number.location-tracks-title')}
+                qa-id="track-number-location-tracks-infobox">
+                <InfoboxContent>
+                    <InfoboxList>
+                        <InfoboxListRow
+                            label={t('tool-panel.track-number.location-tracks-filter-by-area')}
+                            content={
+                                <Checkbox
+                                    checked={filterByVisibleArea}
+                                    onChange={(e) => setFilterByVisibleArea(e.target.checked)}
+                                />
+                            }
+                        />
+                    </InfoboxList>
+                    <p className="infobox__text">
+                        {t('tool-panel.track-number.location-tracks-count', {
+                            count: trackNumberLocationTracks.length,
+                        })}
+                    </p>
+                    {trackNumberLocationTracks.length > 0 ? (
+                        <ul className={styles['track-number-infobox__location-tracks-list']}>
+                            {trackNumberLocationTracks.map((lt) => (
+                                <li key={lt.id}>
+                                    <span className={styles['track-number-infobox__location-track-name']}>
+                                        <LocationTrackLink
+                                            locationTrackId={lt.id}
+                                            locationTrackName={lt.name}
+                                        />
+                                        {lt.state === 'DELETED' && (
+                                            <span>&nbsp;({t('enum.LayoutState.DELETED')})</span>
+                                        )}
+                                    </span>
+                                    <span
+                                        className={styles['track-number-infobox__location-track-description']}
+                                        title={lt.description}>
+                                        {lt.description}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : null}
+                </InfoboxContent>
+            </Infobox>
             {referenceLine && (
                 <PrivilegeRequired privilege={VIEW_GEOMETRY}>
                     <TrackNumberGeometryInfobox
