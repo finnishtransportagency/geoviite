@@ -118,13 +118,21 @@ export function useLocationTrack(
 }
 
 export function useLocationTracks(
-    ids: LocationTrackId[],
+    ids: LocationTrackId[] | undefined,
     layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): LayoutLocationTrack[] {
     return (
         useLoader(
-            () => (ids ? getLocationTracks(ids, layoutContext) : undefined),
+            () => {
+                if (ids === undefined) {
+                    return getAllLocationTracks(layoutContext, changeTime);
+                } else if (ids.length > 0) {
+                    return getLocationTracks(ids, layoutContext, changeTime);
+                } else {
+                    return undefined;
+                }
+            },
             [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
         ) || []
     );

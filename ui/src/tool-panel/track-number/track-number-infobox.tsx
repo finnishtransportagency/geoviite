@@ -20,7 +20,6 @@ import {
     useCoordinateSystem,
     useReferenceLineStartAndEnd,
     useLocationTracks,
-    useAllLocationTracks,
 } from 'track-layout/track-layout-react-utils';
 import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
@@ -119,25 +118,18 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     const isOfficial = layoutContext.publicationState === 'OFFICIAL';
     const [filterByVisibleArea, setFilterByVisibleArea] = React.useState(true);
 
-    const shownLocationTracks = useLocationTracks(
-        shownLocationTrackIds,
-        layoutContext,
-        changeTimes.layoutLocationTrack,
-    );
-
-    const allLocationTracks = useAllLocationTracks(
+    const locationTracks = useLocationTracks(
+        filterByVisibleArea ? shownLocationTrackIds : undefined,
         layoutContext,
         changeTimes.layoutLocationTrack,
     );
 
     const trackNumberLocationTracks = React.useMemo(
-        () => {
-            const tracksToFilter = filterByVisibleArea ? shownLocationTracks : allLocationTracks;
-            return tracksToFilter
+        () =>
+            locationTracks
                 .filter((lt) => lt.trackNumberId === trackNumber.id)
-                .sort((a, b) => a.name.localeCompare(b.name));
-        },
-        [shownLocationTracks, allLocationTracks, filterByVisibleArea, trackNumber.id],
+                .sort((a, b) => a.name.localeCompare(b.name)),
+        [locationTracks, trackNumber.id],
     );
 
     React.useEffect(() => {
@@ -402,7 +394,10 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         <ul className={styles['track-number-infobox__location-tracks-list']}>
                             {trackNumberLocationTracks.map((lt) => (
                                 <li key={lt.id}>
-                                    <span className={styles['track-number-infobox__location-track-name']}>
+                                    <span
+                                        className={
+                                            styles['track-number-infobox__location-track-name']
+                                        }>
                                         <LocationTrackLink
                                             locationTrackId={lt.id}
                                             locationTrackName={lt.name}
@@ -412,7 +407,11 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                         )}
                                     </span>
                                     <span
-                                        className={styles['track-number-infobox__location-track-description']}
+                                        className={
+                                            styles[
+                                                'track-number-infobox__location-track-description'
+                                            ]
+                                        }
                                         title={lt.description}>
                                         {lt.description}
                                     </span>
