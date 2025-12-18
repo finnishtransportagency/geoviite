@@ -8,15 +8,17 @@ Geoviitteen koodikanta sisältää pääosin kolmea eri testityyppiä:
 * Integraatiotestejä (Integration),
 * E2E-testejä (End-to-End).
 
-Lähtökohtaisesti testejä on pyritty rajaamaan suhteellisen pieniksi, sillä testattavan tilanteen tulkinta on
-yksinkertaisempaa, kun testattava ominaisuusmäärä on rajatumpi. Vastaavasti jos koodikantaan tehdyt muutokset
-aiheuttavat testin epäonnistumisen muutosten jälkeen, on usein yksiselitteisempää huomata ongelma jos vain yksi testi
-epäonnistuu verrattuna vaikkapa moneen kymmeneen.
+Testejä on pyritty rajaamaan pieniksi, jotta testattavan tilanteen tulkinta on yksinkertaisempaa testin epäonnistuessa.
+Jos koodikantaan tehdyt muutokset aiheuttavat testin epäonnistumisen muutosten jälkeen, on usein yksiselitteisempää
+paikantaa ongelma jos vain yksi testi epäonnistuu verrattuna vaikkapa moneen kymmeneen.
 
 Rakenteellisena tavoitteena yksinkertaisia (yksikkötestejä) olisi määrällisesti eniten, hieman monimutkaisempia testejä
 (integraatiotestejä) vähemmän, ja monimutkaisia, laajoja testejä (E2E-testejä) olisi vähiten. On usein helpompaa tulkita
 yksittäisen yksikkötestien epäonnistumisesta mikä meni vikaan, kuin tulkita E2E-testin epäonnistumisesta miksi jokin
 tietty pieni asia sattuikin epäonnistumaan tietyn E2E-testin suorituksen aikana.
+
+Testien kehittämisessä on hyvä pitää mielessä myös yleiset
+käytännöt: [CODE_CONVENTIONS.md#tests](../CODE_CONVENTIONS.md#tests)
 
 ## Testikoodista
 
@@ -24,7 +26,7 @@ Kotlin-koodin testit hyödyntävät Jupiter-kirjastoa. Lähellä Geoviitteen tie
 esimerkiksi
 osoitteesta [https://www.jetbrains.com/guide/java/tutorials/working-with-gradle/tour-of-a-gradle-project/](https://www.jetbrains.com/guide/java/tutorials/working-with-gradle/tour-of-a-gradle-project/)
 
-Testiluokat saattavat sisältää annotointeja riippuen hieman minkätyyppistä ympäristöä ne tarvitsevat. Esimerkiksi
+Testiluokat voivat sisältää erilaisia annotointeja riippuen niiden tarvitsemasta ympäristöstä. Esimerkiksi
 integraatio- sekä E2E-testit hyödyntävät `@SpringBootTest`-annotaatiota, sekä usein testiluokille määritellään myös
 Springin ympäristöön liittyviä konfiguraatioannotointeja, kuten esimerkiksi `@ActiveProfiles("dev", "test")`.
 
@@ -33,18 +35,8 @@ muutkin kirjastot tunnistavat testifunktiot. Testiluokat saattavat kuitenkin my�
 tilanteiden tarkistukseen tai vastaavaan muuhun testeihin liittyvään toiminnallisuuteen liittyviä funktioita, jotka
 eivät sisällä `@Test`-annotaatiota, sillä ne eivät ole varsinaisia testejä, joita tulisi automaattisesti suorittaa.
 
-Testikooditiedostojen päätteet (*Test, *IT, *UI) merkkaavat testitiedoston tyypin. Näitä päätteitä käytetään myös
-tietyntyyppisten testien suorittamiseen Gradlen kautta.
-
-Kotlin tukee testifunktioiden nimeämistä välilyöntejä hyödyntäen, joka olisi suositeltu tapa:
-
-```
-@Test
-fun äläNimeäTestiäNäin()
-
-@Test
-fun `Nimeä testi mielummin näin`()
-```
+Testikooditiedostojen päätteet (*Test, *IT, *UI) ilmaisevat tiedoston sisältämien testien tyypin. Näitä päätteitä
+käytetään tietyntyyppisten testien suorittamiseen Gradlen kautta nimifiltterillä.
 
 # Yksikkötestit (Unit tests)
 
@@ -56,9 +48,6 @@ merkkijonon.
 Yksikkötestien kirjoittaminen helpottuu, kun varsinainen testattava logiikka on kirjoitettu puhtaana funktiona. Lyhyesti
 kuvattuna puhtaat funktiot ovat sellaisia, joiden arvo perustuu pelkästään funktiolle annettuihin argumentteihin ja joka
 palauttaa tismalleen identtisen arvon samoilla argumenteilla, riippumatta ohjelmiston muusta tilasta.
-
-Koska yksikkötestit täytyy olla mahdollista suorittaa nopeasti yhdessä prosessissa, ne eivät
-voi esimerkiksi ottaa tietokantaan yhteyksiä.
 
 ## Yksikkötestien sijainti ja nimitys
 
@@ -91,6 +80,11 @@ yksikkötestit löytyvät tiedostosta
 ```
 infra/src/test/kotlin/fi/fta/geoviite/infra/geometry/ElementListingTest.kt
 ```
+
+## Ajaminen kehittäjän koneella
+
+Koska yksikkötestit ovat riippumattomia ympäristöstä, niitä voidaan ajaa normaalisti suoraan IDE:stä. Jos testi vaatii
+jotain ympäristöltä (esim tietokantaa) se ei ole enää yksikkötesti.
 
 # Integraatiotestit (integration tests)
 
@@ -131,6 +125,21 @@ infra/src/test/kotlin/fi/fta/geoviite/infra/geometry/GeometryServiceIT.kt
 
 jossa kannattaa huomioida jälleen polun alussa ero "main|test"-kansion välillä.
 
+## Ajaminen kehittäjän koneella
+
+Kehittäessa IT-testejä niitä voidaan ajaa kuten yksikkötestejäkin suoraan Ideasta. Tässä on kuitenkin huomioitava että
+koska IT-testit tarvitsevat tietokantaa, täytyy sen olla taustalla ajossa. Testit käyttävät oletuksen eri
+tietokantakonttia kuin normaali `Infra-DEV` launch, eli ne eivät jaa dataa normaalisti kehittäjällä ajetun Geoviitteen
+kanssa.
+
+**Lokaali ajo edellyttää**:
+
+- Geoviitteen testitietokanta ajossa: Idea launcher `TEST DB Run`
+    - Jos migraatioissa on ongelmaa (esim epäyhteensopivien branchien käytön myötä), voit aina resetoida testikannan
+      tilan launcherilla `TEST DB Clear`
+    - Testit eivät säilyttele testikannassa mitään tilaa yli testiajojen joten kannan resetointi on aina turvallista
+- Itse testin käynnistys
+
 # E2E-testit (End-to-End tests)
 
 E2E-testeillä tarkoitetaan Geoviitteen koodikannassa jonkin käyttöliittymällä asti olevan toiminnallisuuden testaamista,
@@ -149,6 +158,29 @@ löytyvää toiminnallisuutta.
 Geoviitteen E2E-testit on toteutettu Selenium-selainautomatisointikirjastoa hyödyntäen. E2E-testi koostuu
 siis datan alustuksesta, selaimen komentamisesta testattavien asioiden tekemiseen Geoviitteen käyttöliittymän kautta,
 ja lopuksi tilanteen oikeellisuuden varmistuksesta.
+
+## Ajaminen kehittäjän koneella
+
+Geoviitteen e2e-testit ajetaan osana CI/CD-putkea jokaisen koodimuutoksen yhteydessä. Tässä käytetään dockeroitua
+ymäristöä, joka on määritelty tämän projectin `docker-compose.yml`:ssä. CI/CD-putkessa käytettyjä kontteja on myös
+mahdollista ajaa kehittäjän paikallisella koneella, mutta ne soveltuvat parhaiten kaikkien testien ajoon ja käytännön
+kehitystyössä on hyödyllisempää voidaa ajaa testejä yksittäin niitä kehittäessä.
+
+**Lokaali ajo edellyttää**:
+
+- Geoviitteen testitietokanta ajossa: Idea launcher `TEST DB Run`
+    - Jos migraatioissa on ongelmaa (esim epäyhteensopivien branchien käytön myötä), voit aina resetoida testikannan
+      tilan launcherilla `TEST DB Clear`
+    - Testit eivät säilyttele testikannassa mitään tilaa yli testiajojen joten kannan resetointi on aina turvallista
+- Geoviitteen backend ajossa testi-profiililla: Idea launcher `Infra TEST`
+- Geoviitteen fronted palveltuna: Idea launcher `UI` tai terminaalissa `ui/start_front.sh`
+- Itse testin käynnistys `local`-profiililla (ei `docker`-profiililla): Idea kysyy tätä ensimmäisellä launchilla
+
+**Huom**: Selenium ajurin käyttö lokaalilla profiililla edellyttää että kehittäjän koneelta löytyy chrome versio joka
+on yhteensopiva käytössä olevan selenium version kanssa. Tämän ylläpito ei ole suoraviivaista sillä eri kehittäjillä on
+tyypillisesti eri selainversioita asennettuna.
+
+### Debuggaus
 
 Oletusarvoisesti E2E-testit suoritetaan testiselaimessa, joka ei avaudu tyypillisen selaimen kaltaisesti ikkunaan. Näin
 E2E-testit voidaan suorittaa myös ympäristössä, jossa ei esimerkiksi ole näyttöä käytettävissä eli esimerkiksi
