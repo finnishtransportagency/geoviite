@@ -402,32 +402,30 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             count: trackNumberLocationTracks.length,
                         })}
                     </p>
-                    {trackNumberLocationTracks.length > 0 ? (
-                        <ul className={styles['track-number-infobox__location-tracks-list']}>
-                            {trackNumberLocationTracks.map((lt) => (
-                                <li key={lt.id}>
-                                    <span
-                                        className={
-                                            styles['track-number-infobox__location-track-name']
-                                        }>
-                                        <LocationTrackLink
-                                            locationTrackId={lt.id}
-                                            locationTrackName={lt.name}
-                                        />
-                                    </span>
-                                    <span
-                                        className={
-                                            styles[
-                                                'track-number-infobox__location-track-description'
-                                            ]
-                                        }
-                                        title={lt.description}>
-                                        {lt.description}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : null}
+                    <ul className={styles['track-number-infobox__location-tracks-list']}>
+                        {trackNumberLocationTracks.map((lt) => (
+                            <li key={lt.id}>
+                                <span
+                                    className={
+                                        styles['track-number-infobox__location-track-name']
+                                    }>
+                                    <LocationTrackLink
+                                        locationTrackId={lt.id}
+                                        locationTrackName={lt.name}
+                                    />
+                                </span>
+                                <span
+                                    className={
+                                        styles[
+                                            'track-number-infobox__location-track-description'
+                                        ]
+                                    }
+                                    title={lt.description}>
+                                    {lt.description}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
                 </InfoboxContent>
             </Infobox>
             {referenceLine && (

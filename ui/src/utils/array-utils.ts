@@ -5,7 +5,7 @@ import { objectEquals } from 'utils/object-utils';
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type EmptyObject = {};
 
-export const EMPTY_ARRAY: never[] = [];
+export const EMPTY_ARRAY: never[] = [] as const;
 
 export const first = <T>(arr: readonly T[]) => arr[0];
 export const last = <T>(arr: readonly T[]) => arr[arr.length - 1];
