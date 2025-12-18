@@ -20,6 +20,7 @@ import {
     useCoordinateSystem,
     useReferenceLineStartAndEnd,
     useLocationTracks,
+    useLocationTrackIdsByTrackNumber,
 } from 'track-layout/track-layout-react-utils';
 import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
@@ -118,18 +119,29 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     const isOfficial = layoutContext.publicationState === 'OFFICIAL';
     const [filterByVisibleArea, setFilterByVisibleArea] = React.useState(true);
 
+    const trackNumberLocationTrackIds = useLocationTrackIdsByTrackNumber(
+        trackNumber.id,
+        layoutContext,
+        changeTimes.layoutLocationTrack,
+    );
+
+    const locationTrackIdsToFetch = React.useMemo(
+        () =>
+            filterByVisibleArea
+                ? trackNumberLocationTrackIds.filter((id) => shownLocationTrackIds.includes(id))
+                : trackNumberLocationTrackIds,
+        [filterByVisibleArea, trackNumberLocationTrackIds, shownLocationTrackIds],
+    );
+
     const locationTracks = useLocationTracks(
-        filterByVisibleArea ? shownLocationTrackIds : undefined,
+        locationTrackIdsToFetch,
         layoutContext,
         changeTimes.layoutLocationTrack,
     );
 
     const trackNumberLocationTracks = React.useMemo(
-        () =>
-            locationTracks
-                .filter((lt) => lt.trackNumberId === trackNumber.id)
-                .sort((a, b) => a.name.localeCompare(b.name)),
-        [locationTracks, trackNumber.id],
+        () => locationTracks.sort((a, b) => a.name.localeCompare(b.name)),
+        [locationTracks],
     );
 
     React.useEffect(() => {
@@ -402,9 +414,6 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                             locationTrackId={lt.id}
                                             locationTrackName={lt.name}
                                         />
-                                        {lt.state === 'DELETED' && (
-                                            <span>&nbsp;({t('enum.LayoutState.DELETED')})</span>
-                                        )}
                                     </span>
                                     <span
                                         className={

@@ -49,7 +49,7 @@ import { SwitchOnLocationTrack } from 'tool-panel/location-track/split-store';
 import { ChangeTimes } from 'common/common-slice';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | undefined>();
-const allLocationTracksCache = asyncCache<string, LayoutLocationTrack[]>();
+const locationTrackIdsByTrackNumberCache = asyncCache<string, LocationTrackId[]>();
 const locationTrackInfoboxExtrasCache = asyncCache<
     string,
     LocationTrackInfoboxExtras | undefined
@@ -277,13 +277,16 @@ export async function getLocationTracks(
         .then((tracks) => tracks.filter(filterNotEmpty));
 }
 
-export async function getAllLocationTracks(
+export async function getLocationTrackIdsByTrackNumber(
+    trackNumberId: LayoutTrackNumberId,
     layoutContext: LayoutContext,
     changeTime: TimeStamp = getChangeTimes().layoutLocationTrack,
-): Promise<LayoutLocationTrack[]> {
-    const cacheKey = `${layoutContext.publicationState}_${layoutContext.branch}`;
-    return allLocationTracksCache.get(changeTime, cacheKey, () =>
-        getNonNull<LayoutLocationTrack[]>(`${layoutUri('location-tracks', layoutContext)}`),
+): Promise<LocationTrackId[]> {
+    const cacheKey = `${trackNumberId}_${layoutContext.publicationState}_${layoutContext.branch}`;
+    return locationTrackIdsByTrackNumberCache.get(changeTime, cacheKey, () =>
+        getNonNull<LocationTrackId[]>(
+            layoutUri('track-numbers', layoutContext) + `/${trackNumberId}/location-track-ids`,
+        ),
     );
 }
 

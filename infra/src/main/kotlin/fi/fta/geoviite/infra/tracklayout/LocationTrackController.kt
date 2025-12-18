@@ -91,14 +91,14 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}")
+    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["ids"])
     fun getLocationTracks(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("ids", required = false) ids: List<IntId<LocationTrack>>?,
+        @RequestParam("ids", required = true) ids: List<IntId<LocationTrack>>,
     ): List<LocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return ids?.let { locationTrackService.getMany(context, it) } ?: locationTrackService.list(context)
+        return locationTrackService.getMany(context, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -272,6 +272,17 @@ class LocationTrackController(
     ): List<LocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return locationTrackService.list(context, includeDeleted, trackNumberId, names)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/track-numbers/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{trackNumberId}/location-track-ids")
+    fun getTrackNumberLocationTrackIds(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
+    ): List<IntId<LocationTrack>> {
+        val context = LayoutContext.of(layoutBranch, publicationState)
+        return locationTrackService.listIdsByTrackNumberId(context, trackNumberId, includeDeleted = false)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)
