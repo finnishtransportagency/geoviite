@@ -30,7 +30,8 @@ geoviite:
 
   ratko:
     enabled: false
-      
+
+  # There is no need to generate any kind of OIDs in ext-api, but either Ratko or fake OID generator must be enabled.
   ratko-fake-oid-generator:
     enabled: true
 

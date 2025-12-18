@@ -78,7 +78,11 @@ const val TRACK_NUMBER_FAKE_OID_CONTEXT = 10001
 const val LOCATION_TRACK_FAKE_OID_CONTEXT = 10002
 const val SWITCH_FAKE_OID_CONTEXT = 139
 
-enum class RatkoConnectionStatus { ONLINE, ONLINE_ERROR, OFFLINE, NOT_CONFIGURED,
+enum class RatkoConnectionStatus {
+    ONLINE,
+    ONLINE_ERROR,
+    OFFLINE,
+    NOT_CONFIGURED,
 }
 
 @Component
@@ -94,6 +98,7 @@ class RatkoFakeOidGenerator {
 @Component
 @ConditionalOnBean(RatkoClientConfiguration::class)
 class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
+
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     private val ratkoJsonMapper =
