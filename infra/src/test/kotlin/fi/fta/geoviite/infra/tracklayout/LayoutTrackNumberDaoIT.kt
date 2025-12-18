@@ -117,7 +117,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: 
     }
 
     @Test
-    fun `Finding Switch versions by moment works across designs and main branch`() {
+    fun `Finding versions by moment works across designs and main branch`() {
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
 
