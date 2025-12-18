@@ -8,10 +8,8 @@
 }
 
 .track-number-infobox__location-tracks-list {
-    list-style: none;
     padding: 0;
     margin: 0 -16px 0 0;
-    padding-right: 16px;
     max-height: 300px;
     overflow-y: auto;
     display: grid;
@@ -40,7 +38,6 @@
     max-height: 300px;
     overflow-y: auto;
     margin-right: -16px;
-    padding-right: 16px;
 }
 
 .geometry-reference-line-infobox {
