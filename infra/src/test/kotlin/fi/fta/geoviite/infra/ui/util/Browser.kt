@@ -30,6 +30,7 @@ import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+const val DEV_DEBUG = true
 const val E2E_TASKBAR_BUFFER_PIXELS = 80
 const val E2E_WINDOW_WIDTH = 1920
 const val E2E_WINDOW_HEIGHT = 1080 - E2E_TASKBAR_BUFFER_PIXELS
@@ -102,8 +103,6 @@ private fun setBrowser(createWebDriver: () -> WebDriver?) {
         createWebDriver().also { newDriver -> logger.info("Setting browser: title=${newDriver?.title}") }
     }
 }
-
-const val DEV_DEBUG = false
 
 fun openBrowser() {
     val headless = !DEV_DEBUG

@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.ratko.FakeRatkoService
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.combineEdges
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -110,7 +111,8 @@ constructor(
                 val targetTrackDescription = "target track description $index"
 
                 splittingInfobox
-                    .setTargetTrackName(index, targetTrackName)
+                    .setTargetNamingScheme(index,LocationTrackNamingScheme.FREE_TEXT)
+                    .setTargetTrackNameFreeText(index, targetTrackName)
                     .setTargetTrackDescription(index, targetTrackDescription)
 
                 targetTrackName

@@ -68,6 +68,11 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
         waitUntilInvisible(CONTAINER_BY)
     }
 
+    fun <T : Enum<T>>selectByEnum(value: T): E2EDropdown = apply {
+        val qaId = "${value::class.simpleName}-${value.name}"
+        selectByQaId(qaId)
+    }
+
     fun selectFromDynamicByName(name: String): E2EDropdown = apply {
         logger.info("Select item $name from dynamic dropdown")
 
