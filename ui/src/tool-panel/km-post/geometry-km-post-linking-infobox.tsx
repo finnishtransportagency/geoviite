@@ -32,7 +32,7 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import { compareByField } from 'utils/array-utils';
+import { compareByField, EMPTY_ARRAY } from 'utils/array-utils';
 import { isFromAnotherGk, isGk } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { GeometryKmPostNonGkSourceWarning } from 'tool-panel/km-post/geometry-km-post-non-gk-source-warning';
 import { GeometryKmPostDifferentGkSourceWarning } from 'tool-panel/km-post/geometry-km-post-different-gk-source-warning';
@@ -160,7 +160,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
             geometryKmPost.trackNumberId,
             geometryKmPost.layoutLocation,
             layoutKmPost,
-        ]) || [];
+        ]) || EMPTY_ARRAY;
     const trackNumbers = useTrackNumbers(layoutContext);
 
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);

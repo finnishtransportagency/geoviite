@@ -68,6 +68,7 @@ export type InfoboxVisibilities = {
 export type TrackNumberInfoboxVisibilities = {
     basic: boolean;
     referenceLine: boolean;
+    locationTracks: boolean;
     log: boolean;
     validation: boolean;
     geometry: boolean;
@@ -139,6 +140,7 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
     trackNumber: {
         basic: true,
         referenceLine: true,
+        locationTracks: true,
         log: true,
         validation: true,
         geometry: true,

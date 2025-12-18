@@ -232,6 +232,15 @@ class LocationTrackService(
         return dao.list(layoutContext, includeDeleted, trackNumberId, names)
     }
 
+    fun listIdsByTrackNumberId(
+        layoutContext: LayoutContext,
+        trackNumberId: IntId<LayoutTrackNumber>,
+        includeDeleted: Boolean,
+    ): List<IntId<LocationTrack>> {
+        return dao.fetchVersions(layoutContext, includeDeleted, trackNumberId = trackNumberId)
+            .map { it.id }
+    }
+
     fun idMatches(
         layoutContext: LayoutContext,
         searchTerm: FreeText,
