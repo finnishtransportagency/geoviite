@@ -175,6 +175,7 @@ kehitystyössä on hyödyllisempää voidaa ajaa testejä yksittäin niitä kehi
 - Geoviitteen backend ajossa testi-profiililla: Idea launcher `Infra TEST`
 - Geoviitteen fronted palveltuna: Idea launcher `UI` tai terminaalissa `ui/start_front.sh`
 - Itse testin käynnistys `local`-profiililla (ei `docker`-profiililla): Idea kysyy tätä ensimmäisellä launchilla
+- Jos testi epäonnistuu, ajo tuottaa virhetilanteesta kuvankaappauksen kansioon `infra/build/reports/screenshots/`
 
 **Huom**: Selenium ajurin käyttö lokaalilla profiililla edellyttää että kehittäjän koneelta löytyy chrome versio joka
 on yhteensopiva käytössä olevan selenium version kanssa. Tämän ylläpito ei ole suoraviivaista sillä eri kehittäjillä on
