@@ -19,6 +19,8 @@ import {
 import { LayoutContext } from 'common/common-model';
 import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import styles from './location-track-infobox.scss';
+import { EMPTY_ARRAY } from 'utils/array-utils';
 
 type LocationTrackGeometryInfoboxProps = {
     layoutContext: LayoutContext;
@@ -97,10 +99,12 @@ const LocationTrackGeometryInfoboxM: React.FC<LocationTrackGeometryInfoboxProps>
                             )}
                         </p>
                     ) : (
-                        <AlignmentPlanSectionInfoboxContent
-                            onHighlightSection={onHighlightSection}
-                            sections={sections || []}
-                        />
+                        <div className={styles['location-track-infobox__geometry-list']}>
+                            <AlignmentPlanSectionInfoboxContent
+                                onHighlightSection={onHighlightSection}
+                                sections={sections || EMPTY_ARRAY}
+                            />
+                        </div>
                     )}
                 </ProgressIndicatorWrapper>
             </InfoboxContent>
