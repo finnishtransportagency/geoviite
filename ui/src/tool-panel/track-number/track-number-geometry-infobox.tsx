@@ -18,6 +18,8 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { getTrackNumberReferenceLineSectionsByPlan } from 'track-layout/layout-track-number-api';
 import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
+import styles from './track-number-infobox.scss';
+import { EMPTY_ARRAY } from 'utils/array-utils';
 
 type TrackNumberGeometryInfoboxProps = {
     layoutContext: LayoutContext;
@@ -96,10 +98,12 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                             )}
                         </p>
                     ) : (
-                        <AlignmentPlanSectionInfoboxContent
-                            onHighlightSection={onHighlightSection}
-                            sections={sections || []}
-                        />
+                        <div className={styles['track-number-infobox__geometry-list']}>
+                            <AlignmentPlanSectionInfoboxContent
+                                onHighlightSection={onHighlightSection}
+                                sections={sections || EMPTY_ARRAY}
+                            />
+                        </div>
                     )}
                 </ProgressIndicatorWrapper>
             </InfoboxContent>
