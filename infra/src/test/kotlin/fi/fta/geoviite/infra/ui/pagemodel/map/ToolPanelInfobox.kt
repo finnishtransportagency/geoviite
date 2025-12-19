@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import clickWhenClickable
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EInfoBox
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ERadio
@@ -133,8 +134,12 @@ class E2ELocationTrackLocationInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
 
 class E2ELocationTrackSplittingInfobox(infoboxBy: By = byQaId("location-track-splitting-infobox")) :
     E2EInfoBox(infoboxBy) {
-    fun setTargetTrackName(index: Int, trackName: String) = apply {
-        val targetTrackNameInput = childTextInput(By.xpath("(//*[@qa-id='split-target-track-name'])[${index + 1}]"))
+    fun setTargetNamingScheme(index:Int, namingScheme: LocationTrackNamingScheme) = apply {
+        val targetTrackNamingSchemeDropdown = childDropdown(By.xpath("(//*[@qa-id='split-target-track-naming-scheme'])[${index + 1}]"))
+        targetTrackNamingSchemeDropdown.selectByEnum(namingScheme)
+    }
+    fun setTargetTrackNameFreeText(index: Int, trackName: String) = apply {
+        val targetTrackNameInput = childTextInput(By.xpath("(//*[@qa-id='split-target-track-name-free-text'])[${index + 1}]"))
 
         targetTrackNameInput.replaceValue(trackName)
     }
@@ -161,7 +166,7 @@ class E2ELocationTrackSplittingInfobox(infoboxBy: By = byQaId("location-track-sp
     }
 
     fun waitUntilTargetTrackInputExists(index: Int) {
-        waitUntilExists(By.xpath("(//*[@qa-id='split-target-track-name'])[${index + 1}]"))
+        waitUntilExists(By.xpath("(//*[@qa-id='split-target-input-form'])[${index + 1}]"))
     }
 }
 

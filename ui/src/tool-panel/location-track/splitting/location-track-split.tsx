@@ -21,16 +21,25 @@ import {
     SplitTargetId,
     SplitTargetOperation,
 } from 'tool-panel/location-track/split-store';
-import { calculateBoundingBoxToShowAroundLocation, MAP_POINT_NEAR_BBOX_OFFSET, } from 'map/map-utils';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_NEAR_BBOX_OFFSET,
+} from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
-import { END_SPLIT_POINT_NOT_MATCHING_ERROR, START_SPLIT_POINT_NOT_MATCHING_ERROR, } from './split-utils';
+import {
+    END_SPLIT_POINT_NOT_MATCHING_ERROR,
+    START_SPLIT_POINT_NOT_MATCHING_ERROR,
+} from './split-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { BoundingBox, Point } from 'model/geometry';
 import { SplitDuplicateTrack } from 'track-layout/layout-location-track-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { RemovalConfirmationMenu } from 'tool-panel/location-track/splitting/removal-confirmation-menu';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { locationTrackNameSpecifiers, locationTrackNamingSchemesFiltered, } from 'utils/enum-localization-utils';
+import {
+    locationTrackNameSpecifiers,
+    locationTrackNamingSchemesFiltered,
+} from 'utils/enum-localization-utils';
 
 type CommonProps = {
     editingDisabled: boolean;
@@ -324,7 +333,7 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                 />
             </div>
             <div className={styles['location-track-infobox__split-fields-container']}>
-                <div>
+                <div qa-id="split-target-input-form">
                     <div
                         className={styles['location-track-infobox__split-switch-row']}
                         onMouseEnter={onHighlightSplitPoint}
@@ -386,6 +395,7 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                         label={t('tool-panel.location-track.track-naming-scheme')}>
                         <Dropdown
                             wide
+                            qaId="split-target-track-naming-scheme"
                             useAnchorElementWidth={false}
                             options={namingSchemeOptions}
                             value={split.namingScheme}
@@ -404,7 +414,6 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                                 setNameCommitted(true);
                                 onBlur();
                             }}
-                            qa-id={'split-target-track-name'}
                         />
                     </InfoboxField>
                     {showFreeTextInput && (

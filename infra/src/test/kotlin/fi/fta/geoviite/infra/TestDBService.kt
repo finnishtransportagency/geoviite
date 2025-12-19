@@ -261,7 +261,8 @@ class TestDBService(
     }
 
     fun getUnusedSwitchName(): SwitchName {
-        return SwitchName(getUniqueName(DbTable.LAYOUT_SWITCH, SwitchName.allowedLength.last))
+        val id = getUniqueId<Int>(DbTable.LAYOUT_SWITCH, "id")
+        return SwitchName("ABC V${id.intValue}")
     }
 
     fun getUnusedDesignName() = getUniqueName(DbTable.LAYOUT_DESIGN, 50) // arbitrary length limit, fix in GVT-2719
