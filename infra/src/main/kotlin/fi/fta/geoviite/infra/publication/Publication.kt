@@ -721,9 +721,8 @@ data class LocationTrackChanges(
     val duplicateOf: Change<IntId<LocationTrack>?>,
     val type: Change<LocationTrackType>,
     val length: Change<Double>,
-    // TODO: These should not be nullable, but current test data contains broken location tracks
-    val startPoint: Change<Point?>,
-    val endPoint: Change<Point?>,
+    val startPoint: Change<Point>,
+    val endPoint: Change<Point>,
     val trackNumberId: Change<IntId<LayoutTrackNumber>>,
     val geometryChangeSummaries: List<GeometryChangeSummary>?,
     val owner: Change<IntId<LocationTrackOwner>>,
