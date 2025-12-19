@@ -5,7 +5,9 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
@@ -13,6 +15,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,7 +25,17 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: LayoutTrackNumberDao) : DBTestBase() {
+class LayoutTrackNumberDaoIT
+@Autowired
+constructor(
+    private val trackNumberDao: LayoutTrackNumberDao,
+    private val trackNumberService: LayoutTrackNumberService,
+) : DBTestBase() {
+
+    @BeforeEach
+    fun cleanup() {
+        testDBService.clearLayoutTables()
+    }
 
     @Test
     fun trackNumberIsStoredAndLoadedOk() {
@@ -117,7 +130,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: 
     }
 
     @Test
-    fun `Finding Switch versions by moment works across designs and main branch`() {
+    fun `Finding versions by moment works across designs and main branch`() {
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
 
@@ -172,5 +185,61 @@ class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: 
         assertEquals(tn1MainV2, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn1Id, v3Time))
         assertEquals(tn2MainV3, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn2Id, v3Time))
         assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn3Id, v3Time))
+    }
+
+    @Test
+    fun `fetchTrackNumberNames() returns name change history for a given design branch`() {
+        val design1 = testDBService.createDesignBranch()
+        val design2 = testDBService.createDesignBranch()
+        val design1OfficialContext = testDBService.testContext(design1, OFFICIAL)
+        val design1DraftContext = testDBService.testContext(design1, PublicationState.DRAFT)
+        val design2OfficialContext = testDBService.testContext(design2, OFFICIAL)
+        val design2DraftContext = testDBService.testContext(design2, PublicationState.DRAFT)
+
+        // tn1 is created in main, has its name edited in both designs, then 1 is cancelled and 2 merged
+        val tn1 = mainOfficialContext.save(trackNumber(TrackNumber("tn1 original"))).id
+        design1OfficialContext.save(mainOfficialContext.fetch(tn1)!!.copy(number = TrackNumber("edited in d1")))
+        design2OfficialContext.save(mainOfficialContext.fetch(tn1)!!.copy(number = TrackNumber("edited in d2")))
+        val cancellation = trackNumberService.cancel(design1, tn1)!!
+        trackNumberService.publish(design1, cancellation)
+        trackNumberService.mergeToMainBranch(design2, tn1)
+        trackNumberService.publish(LayoutBranch.main, mainDraftContext.fetchVersion(tn1)!!)
+        trackNumberService.publish(design2, design2DraftContext.fetchVersion(tn1)!!) // finish merge
+        // -> end result = only version edited in d1 remains live
+
+        // tn2 is created in a design, then merged
+        val tn2 = design1OfficialContext.save(trackNumber(TrackNumber("tn2 original"))).id
+        trackNumberService.mergeToMainBranch(design1, tn2)
+        mainDraftContext.save(mainDraftContext.fetch(tn2)!!.copy(number = TrackNumber("edited mid merge")))
+        trackNumberService.publish(LayoutBranch.main, mainDraftContext.fetchVersion(tn2)!!)
+        trackNumberService.publish(design1, design1DraftContext.fetchVersion(tn2)!!) // finish merge
+        // -> end result: only merged version remains live
+
+        val mainHistory = trackNumberDao.fetchTrackNumberNames(LayoutBranch.main)
+        val design1History = trackNumberDao.fetchTrackNumberNames(design1)
+        val design2History = trackNumberDao.fetchTrackNumberNames(design2)
+        // for each design branch, we're only interested in the minimal list of name changes in that branch, and
+        // hence list name updates by the moment they occurred.
+
+        assertEquals(
+            listOf("tn1 original", "edited in d2"),
+            mainHistory.filter { it.id == tn1 }.map { it.number.toString() },
+        )
+        // the cancellation in d1 happened before the merge from d2, so we see main's state in the interim
+        assertEquals(
+            listOf("tn1 original", "edited in d1", "tn1 original", "edited in d2"),
+            design1History.filter { it.id == tn1 }.map { it.number.toString() },
+        )
+        assertEquals(
+            listOf("tn1 original", "edited in d2"),
+            design2History.filter { it.id == tn1 }.map { it.number.toString() },
+        )
+
+        assertEquals(listOf("edited mid merge"), mainHistory.filter { it.id == tn2 }.map { it.number.toString() })
+        assertEquals(
+            listOf("tn2 original", "edited mid merge"),
+            design1History.filter { it.id == tn2 }.map { it.number.toString() },
+        )
+        assertEquals(listOf("edited mid merge"), design2History.filter { it.id == tn2 }.map { it.number.toString() })
     }
 }
