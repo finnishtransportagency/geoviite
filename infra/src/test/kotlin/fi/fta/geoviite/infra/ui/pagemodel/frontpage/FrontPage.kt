@@ -1,18 +1,19 @@
 package fi.fta.geoviite.infra.ui.pagemodel.frontpage
 
+import clickWhenClickable
 import exists
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilExists
 import waitUntilNotExist
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
 
@@ -28,7 +29,7 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
         logger.info("Open split publication nth=$nth")
 
         openNthSplitActionsMenu(nth)
-        getElementWhenExists(byQaId("show-split-info-link")).click()
+        clickWhenClickable(byQaId("show-split-info-link"))
 
         return SplitDetailsDialog()
     }
