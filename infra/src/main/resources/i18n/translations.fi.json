@@ -1873,7 +1873,7 @@
         "loading": "Julkaisulokia ladataan"
     },
     "publication-details-table": {
-        "no-changes": "Ei muutoksia. Viedään uudelleen Ratkoon osana julkaisua.",
+        "no-changes": "Tämän kohteen tiedoissa ei ole muutoksia, mutta tiedot viedään Ratkoon osana julkaisua, jotta julkaisun eheys voidaan varmistaa.",
         "property": "Muuttunut kohde",
         "old-value": "Edellinen arvo",
         "new-value": "Uusi arvo",
