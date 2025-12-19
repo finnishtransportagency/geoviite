@@ -422,13 +422,13 @@ constructor(
                 }
             }
         val newStartPointAndM =
-            locationTrackChanges.startPoint.new?.let { newStart ->
+            locationTrackChanges.startPoint.new.let { newStart ->
                 locationTrackChanges.trackNumberId.new.let {
                     getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newStart)
                 }
             }
         val newEndPointAndM =
-            locationTrackChanges.endPoint.new?.let { newEnd ->
+            locationTrackChanges.endPoint.new.let { newEnd ->
                 locationTrackChanges.trackNumberId.new.let {
                     getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newEnd)
                 }

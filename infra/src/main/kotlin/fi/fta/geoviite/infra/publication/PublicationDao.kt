@@ -1139,9 +1139,8 @@ class PublicationDao(
                             rs.getChange("description_base") { rs.getString(it)?.let(::LocationTrackDescriptionBase) },
                         descriptionSuffix =
                             rs.getChange("description_suffix") { rs.getEnumOrNull<LocationTrackDescriptionSuffix>(it) },
-                        // TODO: These should not be nullable, but current test data contains broken location tracks
-                        endPoint = rs.getNullableChangePoint("end_x", "end_y"),
-                        startPoint = rs.getNullableChangePoint("start_x", "start_y"),
+                        endPoint = rs.getChangePoint("end_x", "end_y"),
+                        startPoint = rs.getChangePoint("start_x", "start_y"),
                         state = rs.getChange("state") { rs.getEnumOrNull<LocationTrackState>(it) },
                         duplicateOf = rs.getNullableChange("duplicate_of_location_track_id", rs::getIntIdOrNull),
                         type = rs.getChange("type") { rs.getEnumOrNull<LocationTrackType>(it) },
