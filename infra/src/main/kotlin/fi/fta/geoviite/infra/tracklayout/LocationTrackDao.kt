@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
 import fi.fta.geoviite.infra.util.LayoutAssetTable
+import fi.fta.geoviite.infra.util.batchUpdate
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getEnumOrNull
@@ -145,6 +146,13 @@ class LocationTrackDao(
                         and lt_s_view.location_track_version = ltv.version
                     ) as switch_ids_unnest
                   ) as switch_ids,
+                  (
+                    select array_agg(operational_point_id)
+                    from layout.location_track_version_operational_point ltvop
+                    where ltvop.location_track_id = ltv.id
+                      and ltvop.location_track_layout_context_id = ltv.layout_context_id
+                      and ltvop.location_track_version = ltv.version
+                  ) as operational_point_ids,
                   ltv.origin_design_id
                 from layout.location_track_version ltv
                   inner join lateral
@@ -206,6 +214,13 @@ class LocationTrackDao(
                         and lt_s_view.location_track_version = lt.version
                     ) as switch_ids_unnest
                   ) as switch_ids,
+                  (
+                    select array_agg(operational_point_id)
+                    from layout.location_track_version_operational_point ltvop
+                    where ltvop.location_track_id = lt.id
+                      and ltvop.location_track_layout_context_id = lt.layout_context_id
+                      and ltvop.location_track_version = lt.version
+                  ) as operational_point_ids,
                   lt.origin_design_id
                 from layout.location_track lt
             """
@@ -250,6 +265,7 @@ class LocationTrackDao(
             topologicalConnectivity = rs.getEnum("topological_connectivity"),
             ownerId = rs.getIntId("owner_id"),
             switchIds = rs.getIntIdArray("switch_ids"),
+            operationalPointIds = rs.getIntIdArray<OperationalPoint>("operational_point_ids").toSet(),
             contextData =
                 rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
@@ -376,7 +392,27 @@ class LocationTrackDao(
         requireNotNull(response) { "Failed to save Location Track: ${item.toLog()}" }
         logger.daoAccess(AccessType.INSERT, LocationTrack::class, response)
         alignmentDao.saveLocationTrackGeometry(response, geometry)
+        saveOperationalPoints(response, item.operationalPointIds)
         return response
+    }
+
+    private fun saveOperationalPoints(
+        version: LayoutRowVersion<LocationTrack>,
+        operationalPoints: Set<IntId<OperationalPoint>>,
+    ) {
+        val sql =
+            """
+                insert into layout.location_track_version_operational_point(
+                  location_track_id, location_track_layout_context_id, location_track_version, operational_point_id
+                ) values (?, ?, ?, ?);
+            """
+                .trimIndent()
+        jdbcTemplate.batchUpdate(sql, operationalPoints.toList()) { ps, operationalPointId ->
+            ps.setInt(1, version.id.intValue)
+            ps.setString(2, version.context.toSqlString())
+            ps.setInt(3, version.version)
+            ps.setInt(4, operationalPointId.intValue)
+        }
     }
 
     override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
@@ -698,5 +734,74 @@ class LocationTrackDao(
             }
             .associate { it }
             .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchAffectedTrackDependencyVersions", it) }
+    }
+
+    fun getTracksLinkedToOperationalPoint(
+        context: LayoutContext,
+        operationalPointId: IntId<OperationalPoint>,
+    ): List<IntId<LocationTrack>> {
+        // language="sql"
+        val sql =
+            """
+                select lt.id
+                  from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
+                                                               :design_id) lt
+                    join layout.location_track_version_operational_point ltvop
+                         on lt.id = ltvop.location_track_id
+                           and lt.layout_context_id = ltvop.location_track_layout_context_id
+                           and lt.version = ltvop.location_track_version
+                  where operational_point_id = :operational_point_id;
+            """
+                .trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            mapOf(
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+                "operational_point_id" to operationalPointId.intValue,
+            ),
+        ) { rs, _ ->
+            rs.getIntId("id")
+        }
+    }
+
+    fun getTracksOverlappingOperationalPoint(
+        context: LayoutContext,
+        operationalPointId: IntId<OperationalPoint>,
+    ): List<IntId<LocationTrack>> {
+        // language="sql"
+        val sql =
+            """
+                select lt.id
+                  from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
+                                                               :design_id) lt
+                    join layout.operational_point_in_layout_context(:publication_state::layout.publication_state,
+                                                                    :design_id
+                         ) op on exists (
+                    select *
+                      from layout.location_track_version_edge ltve
+                        join layout.edge e on ltve.edge_id = e.id
+                        join layout.edge_segment se on e.id = se.edge_id
+                        join layout.segment_geometry sg on sg.id = se.geometry_id
+                      where lt.id = ltve.location_track_id
+                        and lt.layout_context_id = ltve.location_track_layout_context_id
+                        and lt.version = ltve.location_track_version
+                        and postgis.st_intersects(lt.bounding_box, op.polygon)
+                        and postgis.st_intersects(e.bounding_box, op.polygon)
+                        and postgis.st_intersects(sg.geometry, op.polygon)
+                  )
+                  where op.id = :operational_point_id;
+            """
+                .trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            mapOf(
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+                "operational_point_id" to operationalPointId.intValue,
+            ),
+        ) { rs, _ ->
+            rs.getIntId("id")
+        }
     }
 }

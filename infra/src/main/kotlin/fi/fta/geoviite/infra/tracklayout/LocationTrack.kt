@@ -269,6 +269,7 @@ data class LocationTrack(
     val duplicateOf: IntId<LocationTrack>?,
     val topologicalConnectivity: TopologicalConnectivityType,
     val ownerId: IntId<LocationTrackOwner>,
+    val operationalPointIds: Set<IntId<OperationalPoint>>,
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
     @JsonIgnore val switchIds: List<IntId<LayoutSwitch>> = listOf(),
 ) : PolyLineLayoutAsset<LocationTrack>(contextData) {

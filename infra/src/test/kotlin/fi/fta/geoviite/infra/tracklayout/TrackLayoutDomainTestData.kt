@@ -437,6 +437,7 @@ fun locationTrack(
     contextData: LayoutContextData<LocationTrack> = createMainContext(id, draft),
     startSwitch: IntId<LayoutSwitch>? = null,
     endSwitch: IntId<LayoutSwitch>? = null,
+    operationalPointIds: Set<IntId<OperationalPoint>> = setOf(),
 ) =
     locationTrack(
         trackNumberId = trackNumberId,
@@ -453,6 +454,7 @@ fun locationTrack(
         ownerId = ownerId,
         startSwitch = startSwitch,
         endSwitch = endSwitch,
+        operationalPointIds = operationalPointIds,
     )
 
 fun trackDescriptionStructure(
@@ -486,6 +488,7 @@ fun locationTrack(
     ownerId: IntId<LocationTrackOwner> = IntId(1),
     startSwitch: IntId<LayoutSwitch>? = null,
     endSwitch: IntId<LayoutSwitch>? = null,
+    operationalPointIds: Set<IntId<OperationalPoint>> = setOf(),
 ) =
     LocationTrack(
         name = AlignmentName(name),
@@ -505,6 +508,7 @@ fun locationTrack(
         topologicalConnectivity = topologicalConnectivity,
         ownerId = ownerId,
         contextData = contextData,
+        operationalPointIds = operationalPointIds,
     )
 
 fun <T> someOid() = Oid<T>("${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}")
