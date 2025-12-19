@@ -2233,6 +2233,93 @@ constructor(
         assertEquals("straight track edit", expectedException.localizationParams.get("track"))
     }
 
+    @Test
+    fun `very nearby but just barely non-overlapping switches can be relinked`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val switchStructureId =
+            switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!.id
+        val leftSwitch = mainOfficialContext.save(switch(structureId = switchStructureId)).id
+        val rightSwitch = mainOfficialContext.save(switch(structureId = switchStructureId)).id
+        val throughTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumber, name = "through track"),
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(-10.0, 0.0), Point(0.0, 0.0))),
+                        endOuterSwitch = switchLinkYV(leftSwitch, 1),
+                    ),
+                    edge(
+                        listOf(segment(Point(0.0, 0.0), Point(16.615, 0.0))),
+                        startInnerSwitch = switchLinkYV(leftSwitch, 1),
+                        endInnerSwitch = switchLinkYV(leftSwitch, 5),
+                    ),
+                    edge(
+                        listOf(segment(Point(16.615, 0.0), Point(34.43, 0.0))),
+                        startInnerSwitch = switchLinkYV(leftSwitch, 5),
+                        endInnerSwitch = switchLinkYV(leftSwitch, 2),
+                    ),
+                    edge(
+                        listOf(segment(Point(34.43, 0.0), Point(34.44, 0.0))),
+                        startOuterSwitch = switchLinkYV(leftSwitch, 2),
+                        endOuterSwitch = switchLinkYV(rightSwitch, 1),
+                    ),
+                    edge(
+                        listOf(segment(Point(34.44, 0.0), Point(51.055, 0.0))),
+                        startInnerSwitch = switchLinkYV(rightSwitch, 1),
+                        endInnerSwitch = switchLinkYV(rightSwitch, 5),
+                    ),
+                    edge(
+                        listOf(segment(Point(51.055, 0.0), Point(68.87, 0.0))),
+                        startInnerSwitch = switchLinkYV(rightSwitch, 5),
+                        endInnerSwitch = switchLinkYV(rightSwitch, 2),
+                    ),
+                    edge(
+                        listOf(segment(Point(68.87, 0.0), Point(80.0, 0.0))),
+                        startOuterSwitch = switchLinkYV(rightSwitch, 2),
+                    ),
+                ),
+            )
+        val leftBranchingTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumber, name = "left branching track"),
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(0.0, 0.0), Point(34.321, -2.0))),
+                        startInnerSwitch = switchLinkYV(leftSwitch, 1),
+                        endInnerSwitch = switchLinkYV(leftSwitch, 3),
+                    )
+                ),
+            )
+        val rightBranchingTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumber, name = "right branching track"),
+                trackGeometry(
+                    edge(
+                        listOf(segment(Point(34.44, 0.0), Point(68.761, -2.0))),
+                        startInnerSwitch = switchLinkYV(rightSwitch, 1),
+                        endInnerSwitch = switchLinkYV(rightSwitch, 3),
+                    )
+                ),
+            )
+        // check that suggestions can be made at all on both sides...
+        val leftSuggestion = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(0.0, 0.0), leftSwitch)!!
+        val rightSuggestion =
+            switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(34.44, 0.0), rightSwitch)!!
+        // ... that they're roughly sensible...
+        assertEquals(2, leftSuggestion.trackLinks[leftBranchingTrack.id]?.suggestedLinks?.joints?.size)
+        assertEquals(2, rightSuggestion.trackLinks[rightBranchingTrack.id]?.suggestedLinks?.joints?.size)
+        assertEquals(3, leftSuggestion.trackLinks[throughTrack.id]?.suggestedLinks?.joints?.size)
+        assertEquals(3, rightSuggestion.trackLinks[throughTrack.id]?.suggestedLinks?.joints?.size)
+        // ... and that saving one produces the expected result: the switches get glommed together
+        switchLinkingService.saveSwitchLinking(LayoutBranch.main, leftSuggestion, leftSwitch, null)
+        val throughTrackEdges =
+            locationTrackService.getWithGeometryOrThrow(mainDraftContext.context, throughTrack.id).second.edges
+        assertEquals(switchLinkYV(leftSwitch, 2), throughTrackEdges[2].endNode.switchIn)
+        assertEquals(switchLinkYV(rightSwitch, 1), throughTrackEdges[2].endNode.switchOut)
+        assertEquals(switchLinkYV(leftSwitch, 2), throughTrackEdges[3].startNode.switchOut)
+        assertEquals(switchLinkYV(rightSwitch, 1), throughTrackEdges[3].startNode.switchIn)
+    }
+
     private fun createDraftLocationTrackFromLayoutSegments(
         layoutSegments: List<LayoutSegment>
     ): Pair<LocationTrack, LocationTrackGeometry> {

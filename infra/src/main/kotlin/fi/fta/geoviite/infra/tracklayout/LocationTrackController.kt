@@ -274,6 +274,17 @@ class LocationTrackController(
         return locationTrackService.list(context, includeDeleted, trackNumberId, names)
     }
 
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/track-numbers/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{trackNumberId}/location-track-ids")
+    fun getTrackNumberLocationTrackIds(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
+    ): List<IntId<LocationTrack>> {
+        val context = LayoutContext.of(layoutBranch, publicationState)
+        return locationTrackService.listIdsByTrackNumberId(context, trackNumberId, includeDeleted = false)
+    }
+
     @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/location-track-owners")
     fun getLocationTrackOwners(): List<LocationTrackOwner> {

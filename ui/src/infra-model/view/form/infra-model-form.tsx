@@ -39,7 +39,7 @@ import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infr
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { formatDateShort } from 'utils/date-utils';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
-import { filterNotEmpty, filterUnique, first, last } from 'utils/array-utils';
+import { EMPTY_ARRAY, filterNotEmpty, filterUnique, first, last } from 'utils/array-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { updateProjectChangeTime } from 'common/change-time-api';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
@@ -141,7 +141,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [authorNameSuggestion, setAuthorNameSuggestion] = React.useState<string>();
     const [trackNumberNameSuggestion, setTrackNumberNameSuggestion] = React.useState<string>();
     const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
-    const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || [];
+    const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || EMPTY_ARRAY;
 
     const planSourceOptions: DropdownOption<PlanSource>[] = [
         dropdownOption(
@@ -355,7 +355,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
                 <FormgroupContent title={t('im-form.file-metadata')}>
                     <FormgroupField
-                        label={t('im-form.name-field')}
+                        label={`${t('im-form.name-field')} *`}
                         qaId="name-im-field"
                         inEditMode={fieldInEdit === 'name'}
                         onEdit={() => setFieldInEdit('name')}

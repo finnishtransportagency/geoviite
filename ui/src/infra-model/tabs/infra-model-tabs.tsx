@@ -63,7 +63,7 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
 
     return (
         <div className={styles['tabs__tab-container']}>
-            <ul className={styles['tabs__nav']}>
+            <ul className={styles['tabs__nav']} qa-id="im-form.tabs-bar">
                 <InfraModelTabNavItem
                     title={t('im-form.tabs.plans', { number: numberOfInfraModelFiles })}
                     tabId={InfraModelTabType.PLAN}

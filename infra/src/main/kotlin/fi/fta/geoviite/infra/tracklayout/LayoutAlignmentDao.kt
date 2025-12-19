@@ -1165,7 +1165,7 @@ class LayoutAlignmentDao(
 
     fun fetchLocationTrackProfileInfos(
         layoutContext: LayoutContext,
-        bbox: BoundingBox,
+        ids: List<IntId<LocationTrack>>,
         hasProfileInfo: Boolean? = null,
     ): List<MapSegmentProfileInfo<LocationTrack, LocationTrackM>> {
         // language=SQL
@@ -1195,18 +1195,7 @@ class LayoutAlignmentDao(
                         join layout.segment_geometry on edge_segment.geometry_id = segment_geometry.id
                         left join geometry.alignment on alignment.id = edge_segment.geometry_alignment_id
                         left join geometry.plan on alignment.plan_id = plan.id
-                      where postgis.st_intersects(
-                          postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                          location_track.bounding_box
-                        )
-                        and postgis.st_intersects(
-                          postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                          edge.bounding_box
-                        )
-                        and postgis.st_intersects(
-                          postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                          segment_geometry.bounding_box
-                        )
+                      where location_track.id = any(:ids)
                         and location_track.state != 'DELETED'
                   ) s
                   where ((:has_profile_info::boolean is null) or :has_profile_info = has_profile_info)
@@ -1216,11 +1205,7 @@ class LayoutAlignmentDao(
 
         val params =
             mapOf(
-                "x_min" to bbox.min.x,
-                "y_min" to bbox.min.y,
-                "x_max" to bbox.max.x,
-                "y_max" to bbox.max.y,
-                "layout_srid" to LAYOUT_SRID.code,
+                "ids" to ids.map { it.intValue }.toTypedArray(),
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
                 "has_profile_info" to hasProfileInfo,

@@ -55,6 +55,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
             visibilities={visibilities}
             onVisibilityChange={onVisibilityChange}
             onHighlightItem={setHoveredOverItem}
+            shownLocationTrackIds={trackLayoutState.map.shownItems.locationTracks}
         />
     );
 };

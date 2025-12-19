@@ -1,4 +1,6 @@
 geoviite:
+  ratko-fake-oid-generator:
+    enabled: false
   ratko:
     enabled: true
     url: http://localhost:12345

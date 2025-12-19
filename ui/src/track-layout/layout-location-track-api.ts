@@ -49,6 +49,7 @@ import { SwitchOnLocationTrack } from 'tool-panel/location-track/split-store';
 import { ChangeTimes } from 'common/common-slice';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | undefined>();
+const locationTrackIdsByTrackNumberCache = asyncCache<string, LocationTrackId[]>();
 const locationTrackInfoboxExtrasCache = asyncCache<
     string,
     LocationTrackInfoboxExtras | undefined
@@ -274,6 +275,19 @@ export async function getLocationTracks(
                 }),
         )
         .then((tracks) => tracks.filter(filterNotEmpty));
+}
+
+export async function getLocationTrackIdsByTrackNumber(
+    trackNumberId: LayoutTrackNumberId,
+    layoutContext: LayoutContext,
+    changeTime: TimeStamp = getChangeTimes().layoutLocationTrack,
+): Promise<LocationTrackId[]> {
+    const cacheKey = `${trackNumberId}_${layoutContext.publicationState}_${layoutContext.branch}`;
+    return locationTrackIdsByTrackNumberCache.get(changeTime, cacheKey, () =>
+        getNonNull<LocationTrackId[]>(
+            layoutUri('track-numbers', layoutContext) + `/${trackNumberId}/location-track-ids`,
+        ),
+    );
 }
 
 export async function getNonLinkedLocationTracks(

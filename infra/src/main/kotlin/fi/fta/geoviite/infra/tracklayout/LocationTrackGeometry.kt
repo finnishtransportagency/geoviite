@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.linking.ALIGNMENT_LINKING_SNAP
 import fi.fta.geoviite.infra.linking.createGapIfNeeded
 import fi.fta.geoviite.infra.linking.slice
 import fi.fta.geoviite.infra.linking.splitSegments
@@ -978,7 +979,7 @@ private fun mergeEdgeWithPeers(
     target: LayoutEdge,
     next: LayoutEdge?,
     replacementNode: LayoutNode,
-    snapDistance: Double = 0.1,
+    snapDistance: Double = ALIGNMENT_LINKING_SNAP,
 ): Triple<LayoutEdge?, LayoutEdge?, LayoutEdge?> =
     when {
         // Can't do it: the replacements would connect track ends to each other

@@ -7,6 +7,39 @@
     padding: 7px 0;
 }
 
+.track-number-infobox__location-tracks-list {
+    padding: 0;
+    margin: 0 -16px 0 0;
+    max-height: 300px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0 16px;
+
+    li {
+        display: contents;
+    }
+}
+
+.track-number-infobox__location-track-name {
+    white-space: nowrap;
+    padding: 4px 0;
+}
+
+.track-number-infobox__location-track-description {
+    color: vayla-design.$color-black-light;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 4px 0;
+}
+
+.track-number-infobox__geometry-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-right: -16px;
+}
+
 .geometry-reference-line-infobox {
     &__linked-status {
         .infobox__field-label {

@@ -147,10 +147,7 @@ fun tryWait(
     pollInterval: Duration = defaultPoll,
     condition: ExpectedCondition<Boolean>,
     lazyErrorMessage: () -> String,
-): Boolean =
-    requireNotNull(tryWaitNonNull(timeout, pollInterval, condition as ExpectedCondition<Boolean?>, lazyErrorMessage)) {
-        lazyErrorMessage()
-    }
+): Boolean = tryWaitNonNull(timeout, pollInterval, condition as ExpectedCondition<Boolean?>, lazyErrorMessage)
 
 fun <T> tryWaitNonNull(
     timeout: Duration = defaultWait,

@@ -38,6 +38,7 @@ import {
 import {
     getLocationTrack,
     getLocationTrackChangeTimes,
+    getLocationTrackIdsByTrackNumber,
     getLocationTrackInfoboxExtras,
     getLocationTracks,
     getLocationTracksByName,
@@ -60,7 +61,7 @@ import {
     updateSwitchChangeTime,
 } from 'common/change-time-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { deduplicate } from 'utils/array-utils';
+import { deduplicate, EMPTY_ARRAY } from 'utils/array-utils';
 import { validateLocationTrackName } from 'tool-panel/location-track/dialog/location-track-validation';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
@@ -101,7 +102,7 @@ export function useReferenceLines(
         useLoader(
             () => (ids ? getReferenceLines(ids, layoutContext) : undefined),
             [JSON.stringify(ids), layoutContext.publicationState, layoutContext.branch, changeTime],
-        ) || []
+        ) || EMPTY_ARRAY
     );
 }
 
@@ -123,9 +124,22 @@ export function useLocationTracks(
 ): LayoutLocationTrack[] {
     return (
         useLoader(
-            () => (ids ? getLocationTracks(ids, layoutContext) : undefined),
+            () => (ids.length > 0 ? getLocationTracks(ids, layoutContext, changeTime) : undefined),
             [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
-        ) || []
+        ) || EMPTY_ARRAY
+    );
+}
+
+export function useLocationTrackIdsByTrackNumber(
+    trackNumberId: LayoutTrackNumberId,
+    layoutContext: LayoutContext,
+    changeTime?: TimeStamp,
+): LocationTrackId[] {
+    return (
+        useLoader(
+            () => getLocationTrackIdsByTrackNumber(trackNumberId, layoutContext, changeTime),
+            [trackNumberId, layoutContext.branch, layoutContext.publicationState, changeTime],
+        ) || EMPTY_ARRAY
     );
 }
 
@@ -149,7 +163,7 @@ export function useSwitches(
         useLoader(
             () => (ids ? getSwitches(ids, layoutContext) : undefined),
             [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
-        ) || []
+        ) || EMPTY_ARRAY
     );
 }
 
@@ -368,7 +382,7 @@ export function useKmPosts(
         useLoader(
             () => (ids ? getKmPosts(ids, layoutContext, changeTime) : undefined),
             [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
-        ) || []
+        ) || EMPTY_ARRAY
     );
 }
 

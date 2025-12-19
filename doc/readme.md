@@ -1,6 +1,7 @@
 # Arkkitehtuuri
 
-Kuvaus järjestelmän tarkoituksesta kannattaa katsoa Confluencesta vaatimusmäärittelyn puolelta.
+Kuvaukset järjestelmän tarkoituksesta, vaatimukista ja projektinhallintaan liittyvistä asioista löytyy Geoviitteen
+Confluencen puolelta.
 
 ## Arkkitehtuurikuvaukset
 
@@ -21,6 +22,6 @@ Kehittäjien ohjeet säilytetään versionhallinnassa, koodin rinnalla markdown-
 
 https://github.com/finnishtransportagency/geoviite/blob/main/CODE_CONVENTIONS.md
 
-### Ympäristön ohjeistus
+### Ylätason kuvaus
 
 https://github.com/finnishtransportagency/geoviite/blob/main/README.md

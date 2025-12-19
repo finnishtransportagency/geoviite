@@ -274,3 +274,9 @@ $-color-warning: vayla-design.$color-lemon-dark;
         margin-left: 12px;
     }
 }
+
+.location-track-infobox__geometry-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-right: -16px;
+}
