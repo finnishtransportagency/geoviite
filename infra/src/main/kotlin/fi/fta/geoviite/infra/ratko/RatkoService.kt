@@ -261,6 +261,7 @@ constructor(
                             checkNotNull(locationTrack.version) {
                                 "Location track missing version, id=${locationTrackChange.locationTrackId}"
                             },
+                        baseVersion = null,
                         name = locationTrack.name,
                         trackNumberId = locationTrack.trackNumberId,
                         operation = Operation.MODIFY,
@@ -496,6 +497,7 @@ constructor(
         // Fake PublishedSwitch, Ratko integration is built around published items
         return PublishedSwitch(
             version = checkNotNull(switch.version) { "Switch missing version, id=${switchChange.switchId}" },
+            baseVersion = null,
             trackNumberIds = emptySet(), // Ratko integration doesn't care about this field
             name = switch.name,
             operation = Operation.MODIFY,

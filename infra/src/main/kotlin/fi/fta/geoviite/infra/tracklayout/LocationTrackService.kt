@@ -238,8 +238,7 @@ class LocationTrackService(
         trackNumberId: IntId<LayoutTrackNumber>,
         includeDeleted: Boolean,
     ): List<IntId<LocationTrack>> {
-        return dao.fetchVersions(layoutContext, includeDeleted, trackNumberId = trackNumberId)
-            .map { it.id }
+        return dao.fetchVersions(layoutContext, includeDeleted, trackNumberId = trackNumberId).map { it.id }
     }
 
     fun idMatches(
@@ -332,7 +331,7 @@ class LocationTrackService(
         moment: Instant,
         includeDeleted: Boolean = false,
     ): List<Pair<LocationTrack, DbLocationTrackGeometry>> {
-        return dao.fetchManyOfficialVersionsAtMoment(branch, null, moment).let(::getManyWithGeometries).let { list ->
+        return dao.fetchAllOfficialVersionsAtMoment(branch, moment).let(::getManyWithGeometries).let { list ->
             if (includeDeleted) list else list.filter { (track, _) -> track.exists }
         }
     }
