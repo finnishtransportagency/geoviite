@@ -249,6 +249,7 @@ data class PublishedReferenceLine(
 
 data class PublishedLocationTrack(
     val version: LayoutRowVersion<LocationTrack>,
+    val baseVersion: LayoutRowVersion<LocationTrack>?,
     val name: AlignmentName,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val operation: Operation,
@@ -260,6 +261,7 @@ data class PublishedLocationTrack(
 
 data class PublishedSwitch(
     val version: LayoutRowVersion<LayoutSwitch>,
+    val baseVersion: LayoutRowVersion<LayoutSwitch>?,
     val trackNumberIds: Set<IntId<LayoutTrackNumber>>,
     val name: SwitchName,
     val operation: Operation,
@@ -850,13 +852,6 @@ data class KmPostChanges(
     val gkSrid: Change<Srid>,
     val gkLocationSource: Change<KmPostGkLocationSource>,
     val gkLocationConfirmed: Change<Boolean>,
-)
-
-data class SwitchChangeIds(val name: String, val externalId: Oid<LayoutSwitch>?)
-
-data class LocationTrackPublicationSwitchLinkChanges(
-    val old: Map<IntId<LayoutSwitch>, SwitchChangeIds>,
-    val new: Map<IntId<LayoutSwitch>, SwitchChangeIds>,
 )
 
 data class SplitInPublication(

@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -8,6 +10,8 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.roundTo1Decimal
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import kotlin.math.abs
 
 fun publicationChangeRemark(translation: Translation, key: String, value: String? = null) =
@@ -91,29 +95,47 @@ fun getOperationalPointAreaRemarkOrNull(translation: Translation, oldArea: Polyg
 
 fun getSwitchLinksChangedRemark(
     translation: Translation,
-    switchLinkChanges: LocationTrackPublicationSwitchLinkChanges,
+    switchLinkChanges: Map<ChangeSide, Set<LayoutRowVersion<LayoutSwitch>>>,
+    lookupVersion: (version: LayoutRowVersion<LayoutSwitch>) -> LayoutSwitch,
+    lookupOid: (id: IntId<LayoutSwitch>) -> Oid<LayoutSwitch>?,
 ): String {
-    val removed = switchLinkChanges.old.minus(switchLinkChanges.new.keys)
-    val added = switchLinkChanges.new.minus(switchLinkChanges.old.keys)
-    val commonNames = removed.values.map { it.name }.intersect(added.values.map { it.name }.toSet())
+    val versionById = switchLinkChanges.values.flatten().associateBy { it.id }
+    fun lookupById(id: IntId<LayoutSwitch>): LayoutSwitch = lookupVersion(versionById.getValue(id))
+    val (added, removed) = getAddedAndRemoved(switchLinkChanges)
 
-    fun remarkOnIds(ids: SwitchChangeIds) =
-        if (commonNames.contains(ids.name) && ids.externalId != null) "${ids.name} (${ids.externalId})" else ids.name
+    val commonNames = removed.map { lookupById(it).name }.intersect(added.map { lookupById(it).name }.toSet())
+
+    fun remark(id: IntId<LayoutSwitch>): String {
+        val version = versionById.getValue(id)
+        val name = lookupVersion(version).name
+        val oid = lookupOid(id)
+        return if (commonNames.contains(name) && oid != null) "$name ($oid)" else "$name"
+    }
 
     val remarkRemoved =
         publicationChangeRemark(
             translation,
             if (removed.size > 1) "switch-link-removed-plural" else "switch-link-removed-singular",
-            removed.values.map(::remarkOnIds).sorted().joinToString(),
+            removed.map(::remark).sorted().joinToString(),
         )
     val remarkAdded =
         publicationChangeRemark(
             translation,
             if (added.size > 1) "switch-link-added-plural" else "switch-link-added-singular",
-            added.values.map(::remarkOnIds).sorted().joinToString(),
+            added.map(::remark).sorted().joinToString(),
         )
     return if (removed.isNotEmpty() && added.isNotEmpty()) "${remarkRemoved}. ${remarkAdded}."
     else if (removed.isNotEmpty()) remarkRemoved else remarkAdded
+}
+
+private fun getAddedAndRemoved(
+    switchLinkChanges: Map<ChangeSide, Set<LayoutRowVersion<LayoutSwitch>>>
+): Pair<List<IntId<LayoutSwitch>>, List<IntId<LayoutSwitch>>> {
+    val old = switchLinkChanges[ChangeSide.OLD] ?: setOf()
+    val new = switchLinkChanges[ChangeSide.NEW] ?: setOf()
+    val removed = old.map { it.id }.minus(new.map { it.id })
+    val added = new.map { it.id }.minus(old.map { it.id })
+    return Pair(added, removed)
 }
 
 fun addChangeClarification(
