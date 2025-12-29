@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.getSplitTargetTrackStartAndEndAddresses
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetIdInHistory
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -168,24 +169,20 @@ constructor(
                     .find { it.key < publication.publicationTime }
             val previousComparisonTime = previousPublication?.key ?: publication.publicationTime.minusMillis(1)
             val diff = mapDetailsToPublicationDiff(publication, publicationLogAsset = null, previousComparisonTime)
-            val directlyReferencedAssets = fetchReferencedAssets(listOf(diff))
-            val switchLinkChangeVersions =
-                findReferencedSwitchSetChangesByLocationTrackByPublication(
-                        listOf(diff),
-                        listOf(publication),
-                        directlyReferencedAssets.locationTracks,
-                    )
-                    .first()
-            val assets =
-                directlyReferencedAssets.plusSwitches(
-                    switchDao.fetchManyByVersionWithoutCaching(
-                        switchLinkChangeVersions.values.flatMap { changeSides ->
-                            changeSides.values.flatMap { ids -> ids }
-                        }
-                    )
+            val (referenceChangesByPublicationIndex, assets) =
+                collectPublicationReferencedAssetSetChanges(
+                    listOf(publication),
+                    listOf(diff),
+                    fetchReferencedAssets(listOf(diff)),
                 )
+            val referenceChanges = referenceChangesByPublicationIndex.first()
+
             val switchOids =
                 switchDao.fetchExternalIds(publication.layoutBranch.branch).mapValues { (_, externalId) ->
+                    externalId.oid
+                }
+            val operationalPointOids =
+                operationalPointDao.fetchExternalIds(publication.layoutBranch.branch).mapValues { (_, externalId) ->
                     externalId.oid
                 }
 
@@ -194,7 +191,9 @@ constructor(
                 publication,
                 diff,
                 assets,
-                switchLinkChangeVersions,
+                referenceChanges.locationTrackSwitches,
+                referenceChanges.locationTrackOperationalPoints,
+                referenceChanges.switchOperationalPoints,
                 previousPublication?.key ?: publication.publicationTime.minusMillis(1),
                 { trackNumberId: IntId<LayoutTrackNumber>, timestamp: Instant ->
                     getOrPutGeocodingContext(
@@ -206,6 +205,7 @@ constructor(
                 },
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 switchOids,
+                operationalPointOids,
             )
         }
     }
@@ -256,43 +256,134 @@ constructor(
             publications.mapIndexed { index, publication ->
                 mapDetailsToPublicationDiff(publication, publicationLogAsset, comparisonTimes[index])
             }
-        val directlyReferencedAssets = fetchReferencedAssets(diffsByPublicationIndex)
-
-        val switchVersionsByLocationTrackVersionChangeByPublicationIndex =
-            findReferencedSwitchSetChangesByLocationTrackByPublication(
-                diffsByPublicationIndex,
+        val (referenceChangesByPublicationIndex, assets) =
+            collectPublicationReferencedAssetSetChanges(
                 publications,
-                directlyReferencedAssets.locationTracks,
+                diffsByPublicationIndex,
+                fetchReferencedAssets(diffsByPublicationIndex),
             )
-        val assets =
-            directlyReferencedAssets.plusSwitches(
-                switchDao.fetchManyByVersionWithoutCaching(
-                    switchVersionsByLocationTrackVersionChangeByPublicationIndex
-                        .flatMap { it.values }
-                        .flatMap { it.values }
-                        .flatten()
-                        .distinct()
-                )
-            )
+
         val switchOids = switchDao.fetchExternalIds(layoutBranch).mapValues { (_, externalId) -> externalId.oid }
+        val operationalPointOids =
+            operationalPointDao.fetchExternalIds(layoutBranch).mapValues { (_, externalId) -> externalId.oid }
 
         return publications
             .flatMapIndexed { index, publicationDetails ->
+                val referenceChanges = referenceChangesByPublicationIndex[index]
                 mapToPublicationTableItems(
                     translation,
                     publicationDetails,
                     diffsByPublicationIndex[index],
                     assets,
-                    switchVersionsByLocationTrackVersionChangeByPublicationIndex[index],
+                    referenceChanges.locationTrackSwitches,
+                    referenceChanges.locationTrackOperationalPoints,
+                    referenceChanges.switchOperationalPoints,
                     comparisonTimes[index],
                     getGeocodingContextOrNull,
                     trackNumbersCache,
                     switchOids,
+                    operationalPointOids,
                 )
             }
             .let { publications ->
                 if (sortBy == null) publications else publications.sortedWith(getComparator(sortBy, order))
             }
+    }
+
+    private fun collectPublicationReferencedAssetSetChanges(
+        publications: List<PublicationDetails>,
+        diffs: List<PublicationDiff>,
+        directlyReferencedAssets: PublicationReferencedAssets,
+    ): Pair<List<PublicationReferencedAssetSetChanges>, PublicationReferencedAssets> {
+        val toOperationalPoints =
+            findReferencedOperationalPointSetChangesByPublication(
+                diffs,
+                publications,
+                directlyReferencedAssets.locationTracks,
+                directlyReferencedAssets.switches,
+            )
+        val locationTracksToSwitches =
+            findReferencedSwitchSetChangesByLocationTrackByPublication(
+                diffs,
+                publications,
+                directlyReferencedAssets.locationTracks,
+            )
+        val assets =
+            directlyReferencedAssets
+                .plusSwitches(
+                    switchDao.fetchManyByVersionWithoutCaching(
+                        locationTracksToSwitches.flatMap(::flattenReferencedVersions).distinct()
+                    )
+                )
+                .plusOperationalPoints(
+                    operationalPointDao.fetchManyByVersionWithoutCaching(
+                        toOperationalPoints
+                            .flatMap {
+                                listOf(flattenReferencedVersions(it.first), flattenReferencedVersions(it.second))
+                            }
+                            .flatten()
+                            .distinct()
+                    )
+                )
+        return locationTracksToSwitches.zip(toOperationalPoints) {
+            locationTrackToSwitch,
+            (locationTrackToOperationalPoint, switchToOperationalPoint) ->
+            PublicationReferencedAssetSetChanges(
+                locationTrackToSwitch,
+                locationTrackToOperationalPoint,
+                switchToOperationalPoint,
+            )
+        } to assets
+    }
+
+    private fun findReferencedOperationalPointSetChangesByPublication(
+        diffsByPublicationIndex: List<PublicationDiff>,
+        publications: List<PublicationDetails>,
+        locationTrackAssets: Map<LayoutRowVersion<LocationTrack>, LocationTrack>,
+        switchAssets: Map<LayoutRowVersion<LayoutSwitch>, LayoutSwitch>,
+    ): List<
+        Pair<
+            ReferencedAssetSetChangesWithVersions<LocationTrack, OperationalPoint>,
+            ReferencedAssetSetChangesWithVersions<LayoutSwitch, OperationalPoint>,
+        >
+    > {
+        val locationTrackChangesByPublicationIndex =
+            referencedIdsByPublicationIndex(
+                diffsByPublicationIndex.map { diff -> diff.directLocationTracksToDiff },
+                publications,
+                locationTrackAssets,
+            ) { lt ->
+                lt.operationalPointIds.toList()
+            }
+        val switchIdsByPublicationIndex =
+            referencedIdsByPublicationIndex(
+                diffsByPublicationIndex.map { diff -> diff.directSwitchesToDiff },
+                publications,
+                switchAssets,
+            ) { sw ->
+                sw.operationalPointId.let(::listOfNotNull)
+            }
+        val distinctPoints =
+            listOf(locationTrackChangesByPublicationIndex, switchIdsByPublicationIndex)
+                .flatten()
+                .flatMap { it.values }
+                .flatMap { it.values }
+                .flatten()
+                .distinct()
+        val versions = operationalPointDao.fetchOfficialVersionsInHistory(distinctPoints)
+        return locationTrackChangesByPublicationIndex.zip(switchIdsByPublicationIndex) {
+            locationTrackChanges,
+            switchChanges ->
+            val versionsByLocationTracks =
+                locationTrackChanges.mapValues { (_, byChangeSide) ->
+                    byChangeSide.mapValues { (_, byLocationTrack) -> byLocationTrack.map(versions::getValue).toSet() }
+                }
+            val versionsBySwitches =
+                switchChanges.mapValues { (_, byChangeSide) ->
+                    byChangeSide.mapValues { (_, byLocationTrack) -> byLocationTrack.map(versions::getValue).toSet() }
+                }
+            versionsByLocationTracks to versionsBySwitches
+        }
     }
 
     private fun findReferencedSwitchSetChangesByLocationTrackByPublication(
@@ -301,22 +392,16 @@ constructor(
         locationTrackAssets: Map<LayoutRowVersion<LocationTrack>, LocationTrack>,
     ): List<ReferencedAssetSetChangesWithVersions<LocationTrack, LayoutSwitch>> {
         val switchChangesByPublicationIndex =
-            diffsByPublicationIndex.zip(publications) { diff, publication ->
-                fun toHistory(locationTrackVersion: LayoutRowVersion<LocationTrack>) =
-                    locationTrackAssets.getValue(locationTrackVersion).switchIds.map { switchId ->
-                        LayoutAssetIdInHistory(switchId, publication.layoutBranch.branch, publication.publicationTime)
-                    }
-                diff.directLocationTracksToDiff.associate { ltd ->
-                    ltd.id to
-                        mapOf(
-                            ChangeSide.NEW to toHistory(ltd.version),
-                            ChangeSide.OLD to (ltd.baseVersion?.let(::toHistory) ?: listOf()),
-                        )
-                }
+            referencedIdsByPublicationIndex(
+                diffsByPublicationIndex.map { diff -> diff.directLocationTracksToDiff },
+                publications,
+                locationTrackAssets,
+            ) { lt ->
+                lt.switchIds
             }
         val versions =
             switchDao.fetchOfficialVersionsInHistory(
-                switchChangesByPublicationIndex.flatMap { it.values }.flatMap { it.values }.flatten()
+                switchChangesByPublicationIndex.flatMap { it.values }.flatMap { it.values }.flatten().distinct()
             )
 
         return switchChangesByPublicationIndex.map { byPublication ->
@@ -475,13 +560,16 @@ constructor(
         translation: Translation,
         locationTrackChanges: LocationTrackChanges,
         switchLinkChanges: Map<ChangeSide, Set<LayoutRowVersion<LayoutSwitch>>>?,
+        operationalPointLinkChanges: Map<ChangeSide, Set<LayoutRowVersion<OperationalPoint>>>?,
         switchVersionLookup: (LayoutRowVersion<LayoutSwitch>) -> LayoutSwitch,
+        operationalPointVersionLookup: (LayoutRowVersion<OperationalPoint>) -> OperationalPoint,
         branch: LayoutBranch,
         publicationTime: Instant,
         previousPublicationTime: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
         changedKmNumbers: Set<KmNumber>,
         switchOids: Map<IntId<LayoutSwitch>, Oid<LayoutSwitch>>,
+        operationalPointOids: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
         getGeocodingContext: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
     ): List<PublicationChange<*>> {
         val oldAndTime = locationTrackChanges.duplicateOf.old to previousPublicationTime
@@ -637,6 +725,23 @@ constructor(
                         switchLinkChanges,
                         switchVersionLookup,
                         switchOids::getValue,
+                    ),
+                )
+            },
+            if (operationalPointLinkChanges == null) {
+                null
+            } else {
+                compareChange(
+                    { operationalPointLinkChanges[ChangeSide.OLD] != operationalPointLinkChanges[ChangeSide.NEW] },
+                    null,
+                    null,
+                    { it },
+                    PropKey("linked-operational-points"),
+                    getOperationalPointLinksChangedRemark(
+                        translation,
+                        operationalPointLinkChanges,
+                        operationalPointVersionLookup,
+                        operationalPointOids::getValue,
                     ),
                 )
             },
@@ -796,6 +901,9 @@ constructor(
     fun diffSwitch(
         translation: Translation,
         changes: SwitchChanges,
+        operationalPointLinkChanges: Map<ChangeSide, Set<LayoutRowVersion<OperationalPoint>>>?,
+        operationalPointVersionLookup: (LayoutRowVersion<OperationalPoint>) -> OperationalPoint,
+        operationalPointOids: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
         newTimestamp: Instant,
         oldTimestamp: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
@@ -903,6 +1011,21 @@ constructor(
                 null,
                 "MeasurementMethod",
             ),
+            if (operationalPointLinkChanges == null) null
+            else
+                compareChange(
+                    { operationalPointLinkChanges[ChangeSide.OLD] != operationalPointLinkChanges[ChangeSide.NEW] },
+                    null,
+                    null,
+                    { it },
+                    PropKey("linked-operational-point"),
+                    getOperationalPointLinksChangedRemark(
+                        translation,
+                        operationalPointLinkChanges,
+                        operationalPointVersionLookup,
+                        operationalPointOids::getValue,
+                    ),
+                ),
         ) + connectedTrackChanges + jointLocationChanges + jointAddressChanges
     }
 
@@ -1073,10 +1196,15 @@ constructor(
         publicationDiff: PublicationDiff,
         assets: PublicationReferencedAssets,
         switchLinkChanges: Map<IntId<LocationTrack>, Map<ChangeSide, Set<LayoutRowVersion<LayoutSwitch>>>>,
+        locationTrackOperationalPointReferenceChanges:
+            Map<IntId<LocationTrack>, Map<ChangeSide, Set<LayoutRowVersion<OperationalPoint>>>>,
+        switchOperationalPointReferenceChanges:
+            Map<IntId<LayoutSwitch>, Map<ChangeSide, Set<LayoutRowVersion<OperationalPoint>>>>,
         previousComparisonTime: Instant,
         geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
         trackNumberNamesCache: List<TrackNumberAndChangeTime> = trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
         switchOids: Map<IntId<LayoutSwitch>, Oid<LayoutSwitch>>,
+        operationalPointOids: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
     ): List<PublicationTableItem> {
         val trackNumbers =
             publicationDiff.trackNumbersToDiff.map { tn ->
@@ -1153,13 +1281,16 @@ constructor(
                                 error("Location track changes not found: id=${lt.id} version=${lt.version}")
                             },
                             switchLinkChanges[lt.id],
+                            locationTrackOperationalPointReferenceChanges[lt.id],
                             assets.switches::getValue,
+                            assets.operationalPoints::getValue,
                             publication.layoutBranch.branch,
                             publication.publicationTime,
                             previousComparisonTime,
                             trackNumberNamesCache,
                             lt.changedKmNumbers,
                             switchOids,
+                            operationalPointOids,
                             geocodingContextGetter,
                         ),
                 )
@@ -1181,6 +1312,9 @@ constructor(
                             publicationDiff.switchChanges.getOrElse(s.id) {
                                 error("Switch changes not found: id=${s.id} version=${s.version}")
                             },
+                            switchOperationalPointReferenceChanges[s.id],
+                            assets.operationalPoints::getValue,
+                            operationalPointOids,
                             publication.publicationTime,
                             previousComparisonTime,
                             trackNumberNamesCache,
@@ -1257,14 +1391,17 @@ constructor(
                             publicationDiff.locationTrackChanges.getOrElse(lt.id) {
                                 error("Location track changes not found: id=${lt.id} version=${lt.version}")
                             },
-                            switchLinkChanges[lt.id],
+                            switchLinkChanges = null,
+                            operationalPointLinkChanges = null,
                             assets.switches::getValue,
+                            assets.operationalPoints::getValue,
                             publication.layoutBranch.branch,
                             publication.publicationTime,
                             previousComparisonTime,
                             trackNumberNamesCache,
                             lt.changedKmNumbers,
                             switchOids,
+                            operationalPointOids,
                             geocodingContextGetter,
                         ),
                 )
@@ -1286,6 +1423,9 @@ constructor(
                             publicationDiff.switchChanges.getOrElse(s.id) {
                                 error("Switch changes not found: id=${s.id} version=${s.version}")
                             },
+                            operationalPointLinkChanges = null,
+                            assets.operationalPoints::getValue,
+                            operationalPointOids,
                             publication.publicationTime,
                             previousComparisonTime,
                             trackNumberNamesCache,
@@ -1350,6 +1490,26 @@ constructor(
             .map { (key, fn) -> CsvEntry(translation.t(key), fn) }
 }
 
+private fun <Referrer : LayoutAsset<Referrer>, Referend : LayoutAsset<Referend>> referencedIdsByPublicationIndex(
+    assetListsByPublicationIndex: List<List<PublishedVersionedAsset<Referrer>>>,
+    publications: List<PublicationDetails>,
+    assets: Map<LayoutRowVersion<Referrer>, Referrer>,
+    getReferends: (asset: Referrer) -> List<IntId<Referend>>,
+): List<Map<IntId<Referrer>, Map<ChangeSide, List<LayoutAssetIdInHistory<Referend>>>>> =
+    assetListsByPublicationIndex.zip(publications) { publicationAssets, publication ->
+        fun toHistory(assetVersion: LayoutRowVersion<Referrer>) =
+            getReferends(assets.getValue(assetVersion)).map { referendId ->
+                LayoutAssetIdInHistory(referendId, publication.layoutBranch.branch, publication.publicationTime)
+            }
+        publicationAssets.associate { ltd ->
+            ltd.version.id to
+                mapOf(
+                    ChangeSide.NEW to toHistory(ltd.version),
+                    ChangeSide.OLD to (ltd.baseVersion?.let(::toHistory) ?: listOf()),
+                )
+        }
+    }
+
 private data class PublicationDiff(
     val trackNumberChanges: Map<IntId<LayoutTrackNumber>, TrackNumberChanges>,
     val trackNumbersToDiff: List<PublishedTrackNumber>,
@@ -1377,6 +1537,9 @@ data class PublicationReferencedAssets(
 ) {
     fun plusSwitches(moreSwitches: Map<LayoutRowVersion<LayoutSwitch>, LayoutSwitch>) =
         copy(switches = switches + moreSwitches)
+
+    fun plusOperationalPoints(moreOperationalPoints: Map<LayoutRowVersion<OperationalPoint>, OperationalPoint>) =
+        copy(operationalPoints = operationalPoints + moreOperationalPoints)
 }
 
 enum class ChangeSide {
@@ -1386,3 +1549,13 @@ enum class ChangeSide {
 
 private typealias ReferencedAssetSetChangesWithVersions<Referrer, Referent> =
     Map<IntId<Referrer>, Map<ChangeSide, Set<LayoutRowVersion<Referent>>>>
+
+private data class PublicationReferencedAssetSetChanges(
+    val locationTrackSwitches: ReferencedAssetSetChangesWithVersions<LocationTrack, LayoutSwitch>,
+    val locationTrackOperationalPoints: ReferencedAssetSetChangesWithVersions<LocationTrack, OperationalPoint>,
+    val switchOperationalPoints: ReferencedAssetSetChangesWithVersions<LayoutSwitch, OperationalPoint>,
+)
+
+private fun <Referrer : LayoutAsset<Referrer>, Referent : LayoutAsset<Referent>> flattenReferencedVersions(
+    versions: ReferencedAssetSetChangesWithVersions<Referrer, Referent>
+) = versions.values.flatMap { it.values }.flatten()

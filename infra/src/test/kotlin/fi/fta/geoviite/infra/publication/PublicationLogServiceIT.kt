@@ -412,13 +412,16 @@ constructor(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(locationTrack.id),
                 null,
+                null,
                 { _ -> throw IllegalStateException("didn't expect to look up switches") },
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
                 LayoutBranch.main,
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 emptySet(),
                 switchOids = mapOf(),
+                operationalPointOids = mapOf(),
             ) { _, _ ->
                 null
             }
@@ -474,12 +477,15 @@ constructor(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(locationTrack.id),
                 null,
+                null,
                 { _ -> throw IllegalStateException("didn't expect to look up switches") },
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
                 LayoutBranch.main,
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 emptySet(),
+                mapOf(),
                 mapOf(),
             ) { _, _ ->
                 null
@@ -693,6 +699,9 @@ constructor(
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(switch.id),
+                null,
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
+                mapOf(),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
@@ -990,12 +999,15 @@ constructor(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(originalLocationTrack.id),
                 null,
+                null,
                 { _ -> throw IllegalStateException("did not expect to look up switches") },
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
                 LayoutBranch.main,
                 latestPub.publicationTime,
                 latestPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 setOf(KmNumber(0)),
+                mapOf(),
                 mapOf(),
             ) { _, _ ->
                 null
@@ -1269,6 +1281,9 @@ constructor(
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(switch.id),
+                null,
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
+                mapOf(),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
@@ -1365,6 +1380,9 @@ constructor(
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(switch.id),
+                null,
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
+                mapOf(),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),

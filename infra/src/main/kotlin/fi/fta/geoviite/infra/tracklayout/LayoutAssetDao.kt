@@ -547,22 +547,23 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
     @Transactional(readOnly = true)
     override fun fetchOfficialVersionsInHistory(
         points: List<LayoutAssetIdInHistory<T>>
-    ): Map<LayoutAssetIdInHistory<T>, LayoutRowVersion<T>> {
-        return jdbcTemplate
-            .query(
-                officialVersionsInHistorySql,
-                mapOf(
-                    "ids" to points.map { it.id.intValue }.toTypedArray(),
-                    "design_ids" to points.map { it.branch.designId?.intValue }.toTypedArray(),
-                    "change_times" to points.map { Timestamp.from(it.time) }.toTypedArray(),
-                ),
-            ) { rs, _ ->
-                val version = rs.getLayoutRowVersion<T>("id", "design_id", "draft", "version")
-                val index = rs.getInt("ix")
-                points[index] to version
-            }
-            .associate { it }
-    }
+    ): Map<LayoutAssetIdInHistory<T>, LayoutRowVersion<T>> =
+        if (points.isEmpty()) emptyMap()
+        else
+            jdbcTemplate
+                .query(
+                    officialVersionsInHistorySql,
+                    mapOf(
+                        "ids" to points.map { it.id.intValue }.toTypedArray(),
+                        "design_ids" to points.map { it.branch.designId?.intValue }.toTypedArray(),
+                        "change_times" to points.map { Timestamp.from(it.time) }.toTypedArray(),
+                    ),
+                ) { rs, _ ->
+                    val version = rs.getLayoutRowVersion<T>("id", "design_id", "draft", "version")
+                    val index = rs.getInt("ix")
+                    points[index] to version
+                }
+                .associate { it }
 }
 
 private fun fetchContextVersionSql(table: LayoutAssetTable, fetchType: FetchType) =
