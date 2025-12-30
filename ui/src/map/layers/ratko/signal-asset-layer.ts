@@ -14,6 +14,7 @@ import { expectCoordinate } from 'utils/type-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import mapStyles from 'map/map.module.scss';
 import { wrapCanvasRenderer } from 'map/layers/utils/rendering';
+import { API_URI } from 'api/api-fetch';
 
 type RatkoMapAssetCluster = {
     num_geoms: number;
@@ -69,12 +70,8 @@ function createSignalNameStyle(name: string) {
                 const backgroundWidth = contentWidth + paddingHor * 2 * pixelRatio;
                 const backgroundHeight = assetFontSize * pixelRatio + paddingVer * 2 * pixelRatio;
 
-                //  drawRect(ctx, backgroundX, backgroundY, backgroundWidth, backgroundHeight);
-                //ctx.beginPath();
                 ctx.rect(backgroundX, backgroundY, backgroundWidth, backgroundHeight);
                 ctx.fill();
-
-                //            drawRect(ctx, backgroundX, backgroundY, backgroundWidth, backgroundHeight);
 
                 ctx.fillStyle = mapStyles.assetNameColor;
                 ctx.fillText(name, textX, textY);
@@ -101,17 +98,15 @@ function createClusterBadgeStyle(clusterSize: number) {
 }
 
 function createLayer() {
-    const vectorTileLayer = new VectorTileLayer({
+    return new VectorTileLayer({
         minZoom: signalAssetMinZoomInRatkoExtent,
         source: new VectorTileSource({
             format: new MVT(),
-            // TODO: tämä pitää proxyttaa backendin kautta
-            url: 'http://localhost:8083/api/map/v1.0/assets/{x}/{y}/{z}?assetType=signal&cluster=true&state=IN%20USE',
+            url: `${API_URI}/ratko/signal-assets/{x}/{y}/{z}?cluster=true`,
             projection: LAYOUT_SRID,
             extent: ratkoTileLayerExtent,
         }),
         style: function (feature) {
-            console.log('tyylifunc', feature.getGeometry());
             const ratkoAssetCluster = feature.getProperties() as RatkoMapAssetCluster;
 
             return [
@@ -124,7 +119,6 @@ function createLayer() {
             ].filter(filterNotEmpty);
         },
     });
-    return vectorTileLayer;
 }
 
 export function createSignalAssetLayer(existingOlLayer: Tile<TileSource>): MapLayer {
