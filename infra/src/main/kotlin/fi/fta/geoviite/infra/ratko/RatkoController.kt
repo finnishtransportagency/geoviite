@@ -10,9 +10,7 @@ import fi.fta.geoviite.infra.error.Integration
 import fi.fta.geoviite.infra.error.IntegrationNotConfiguredException
 import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
-import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -68,5 +66,16 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
         ratkoService.updateOperationalPointsFromRatko()
 
         return HttpStatus.NO_CONTENT
+    }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
+    @GetMapping("/signal-assets/{x}/{y}/{z}")
+    fun getSignalAsset(
+        @PathVariable("x") x: Int,
+        @PathVariable("y") y: Int,
+        @PathVariable("z") z: Int,
+        @RequestParam("cluster") cluster: Boolean = false,
+    ): ResponseEntity<ByteArray> {
+        return toResponse(ratkoService.getSignalAsset(x, y, z, cluster))
     }
 }

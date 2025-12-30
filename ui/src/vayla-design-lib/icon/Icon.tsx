@@ -43,8 +43,11 @@ import positionPinSvg from './glyphs/misc/position-pin.svg';
 import barsI from './glyphs/misc/bars-i.svg';
 import barsII from './glyphs/misc/bars-ii.svg';
 import barsIII from './glyphs/misc/bars-iii.svg';
+import signal from './glyphs/ratko/signal.svg';
 import styles from './icon.scss';
 import { createClassName } from 'vayla-design-lib/utils';
+
+export const signalSvg = signal;
 
 /**
  *
@@ -125,6 +128,9 @@ const iconNameToSvgMap = {
     BarsI: barsI,
     BarsII: barsII,
     BarsIII: barsIII,
+
+    // Ratko
+    Signal: signalSvg,
 };
 
 const iconNameToSvgMapStaticColor = {

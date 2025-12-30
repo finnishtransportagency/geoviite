@@ -584,4 +584,6 @@ constructor(
             existingRatkoLocationTrack
         }
     }
+
+    fun getSignalAsset(x: Int, y: Int, z: Int, cluster: Boolean) = ratkoClient.getSignalAsset(x, y, z, cluster)
 }

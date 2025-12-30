@@ -31,6 +31,17 @@ export function getCanvasRenderer<T>(
     };
 }
 
+export function wrapCanvasRenderer(renderFunction: RenderFunction) {
+    return (coordinates: Coordinate, state: State) => {
+        const ctx = state.context;
+        ctx.save();
+        ctx.beginPath();
+        renderFunction(coordinates, state);
+        ctx.closePath();
+        ctx.restore();
+    };
+}
+
 export function drawCircle(
     ctx: CanvasRenderingContext2D,
     x: number,

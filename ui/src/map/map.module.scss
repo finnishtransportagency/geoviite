@@ -164,6 +164,15 @@
     previewHighlightStagedImplicit: #99c2ea;
 }
 
+// Ratko asset layer styling
+:export {
+    signalAssetFillColor: vayla-design.$color-green-default;
+    assetNameBackground: rgba(vayla-design.$color-white-default, 0.6);
+    assetNameColor: vayla-design.$color-black-default;
+    assetClusterBadgeFont: vayla-design.$color-white-default;
+    assetClusterBadgeBackground: vayla-design.$color-red-default;
+}
+
 .map {
     position: relative;
     color: vayla-design.$color-black-default;
