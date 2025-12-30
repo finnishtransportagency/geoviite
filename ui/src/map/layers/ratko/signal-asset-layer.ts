@@ -4,16 +4,15 @@ import { State as RenderState } from 'ol/render';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import TileSource from 'ol/source/Tile';
-import Text from 'ol/style/Text.js';
 import MVT from 'ol/format/MVT';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
-import { Circle, Fill, Style } from 'ol/style';
+import { Style } from 'ol/style';
 import { signalSvg } from 'vayla-design-lib/icon/Icon';
 import { expectCoordinate } from 'utils/type-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import mapStyles from 'map/map.module.scss';
-import { wrapCanvasRenderer } from 'map/layers/utils/rendering';
+import { drawCircle, wrapCanvasRenderer } from 'map/layers/utils/rendering';
 import { API_URI } from 'api/api-fetch';
 
 type RatkoMapAssetCluster = {
@@ -28,6 +27,7 @@ const clusterBadgeOffset = (iconRenderSize / 2) * 0.85;
 const clusterBadgeSize = 8;
 const textIconPadding = 4;
 const assetFontSize = 11;
+const maxNamesPerCluster = 3;
 
 const signalImg: HTMLImageElement = new Image();
 signalImg.src = `data:image/svg+xml;utf8,${encodeURIComponent(signalSvg)}`;
@@ -45,55 +45,69 @@ const signalImageRenderFunction = wrapCanvasRenderer(
     },
 );
 
-function createSignalNameStyle(name: string) {
+function createSignalStyle(numGeoms: number, names: string[]) {
     return new Style({
         renderer: wrapCanvasRenderer(
             (coord: Coordinate, { context: ctx, pixelRatio }: RenderState) => {
                 ctx.font = `${pixelRatio * assetFontSize}px sans-serif`;
                 ctx.lineWidth = pixelRatio;
 
-                ctx.fillStyle = mapStyles.assetNameBackground;
                 ctx.lineWidth = pixelRatio;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
                 const [x, y] = expectCoordinate(coord);
 
-                const textWidth = ctx.measureText(name).width;
-                const textX = x + (iconRenderSize / 2 + textIconPadding) * pixelRatio;
-                const textY = y + pixelRatio;
-                const paddingHor = 2;
-                const paddingVer = 1;
-                const contentWidth = textWidth;
-                const backgroundX = textX - paddingHor * pixelRatio - pixelRatio;
-                const backgroundY =
-                    textY - (assetFontSize * pixelRatio) / 2 - paddingVer * pixelRatio;
-                const backgroundWidth = contentWidth + paddingHor * 2 * pixelRatio;
-                const backgroundHeight = assetFontSize * pixelRatio + paddingVer * 2 * pixelRatio;
+                if (names.length <= maxNamesPerCluster) {
+                    const lineHeight = assetFontSize * pixelRatio * 1.2;
+                    const textX = x + (iconRenderSize / 2 + textIconPadding) * pixelRatio;
+                    const textY = y + pixelRatio - ((names.length - 1) * lineHeight) / 2.0;
+                    const paddingHor = 2;
+                    const paddingVer = 1;
 
-                ctx.rect(backgroundX, backgroundY, backgroundWidth, backgroundHeight);
-                ctx.fill();
+                    const maxTextWidth = Math.max(
+                        ...names.map((name) => ctx.measureText(name).width),
+                    );
+                    const backgroundX = textX - paddingHor * pixelRatio - pixelRatio;
+                    const backgroundY =
+                        textY - (assetFontSize * pixelRatio) / 2 - paddingVer * pixelRatio;
+                    const backgroundWidth = maxTextWidth + paddingHor * 2 * pixelRatio;
+                    const backgroundHeight =
+                        lineHeight * names.length +
+                        paddingVer * 2 * pixelRatio -
+                        (lineHeight - assetFontSize * pixelRatio);
 
-                ctx.fillStyle = mapStyles.assetNameColor;
-                ctx.fillText(name, textX, textY);
+                    ctx.beginPath();
+                    ctx.fillStyle = mapStyles.assetNameBackground;
+                    ctx.rect(backgroundX, backgroundY, backgroundWidth, backgroundHeight);
+                    ctx.fill();
+
+                    ctx.fillStyle = mapStyles.assetNameColor;
+                    names.forEach((name, i) => {
+                        ctx.fillText(name, textX, textY + i * lineHeight);
+                    });
+                }
+
+                if (numGeoms !== names.length || numGeoms > maxNamesPerCluster) {
+                    ctx.beginPath();
+                    ctx.fillStyle = mapStyles.assetClusterBadgeBackground;
+                    drawCircle(
+                        ctx,
+                        x + clusterBadgeOffset,
+                        y - clusterBadgeOffset,
+                        clusterBadgeSize,
+                    );
+                    ctx.fill();
+                    const text = `${numGeoms}`;
+                    const width = ctx.measureText(text).width;
+                    ctx.fillStyle = mapStyles.assetClusterBadgeFont;
+                    ctx.fillText(
+                        text,
+                        x + clusterBadgeOffset - width / 2.0,
+                        y - clusterBadgeOffset,
+                    );
+                }
             },
         ),
-    });
-}
-
-function createClusterBadgeStyle(clusterSize: number) {
-    return new Style({
-        image: new Circle({
-            displacement: [clusterBadgeOffset, clusterBadgeOffset],
-            radius: clusterBadgeSize,
-            fill: new Fill({ color: mapStyles.assetClusterBadgeBackground }),
-        }),
-        text: new Text({
-            offsetX: clusterBadgeOffset,
-            offsetY: -clusterBadgeOffset,
-            fill: new Fill({ color: mapStyles.assetClusterBadgeFont }),
-            text: clusterSize.toString(),
-        }),
-        zIndex: 1,
     });
 }
 
@@ -108,14 +122,13 @@ function createLayer() {
         }),
         style: function (feature) {
             const ratkoAssetCluster = feature.getProperties() as RatkoMapAssetCluster;
+            const names = ratkoAssetCluster.string_value.split(',');
 
             return [
                 new Style({
                     renderer: signalImageRenderFunction,
                 }),
-                ratkoAssetCluster.num_geoms > 1
-                    ? createClusterBadgeStyle(ratkoAssetCluster.num_geoms)
-                    : createSignalNameStyle(ratkoAssetCluster.string_value),
+                createSignalStyle(ratkoAssetCluster.num_geoms, names),
             ].filter(filterNotEmpty);
         },
     });
