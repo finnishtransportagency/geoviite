@@ -642,6 +642,17 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     fun getSignalAsset(x: Int, y: Int, z: Int, cluster: Boolean): ByteArray? =
         getSpec("${combinePaths(MAP_ASSET_PATH, "$x", "$y", "$z")}?assetType=signal&cluster=${cluster}&state=IN USE")
+            .onStatus(
+                { !it.is2xxSuccessful },
+                { response ->
+                    response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { body ->
+                        logger.error(
+                            "Error proxying signal asset fetch! HTTP Status code: ${response.statusCode()}, body: $body"
+                        )
+                        Mono.empty()
+                    }
+                },
+            )
             .bodyToMono<ByteArray>()
             .block(defaultBlockTimeout)
 }
