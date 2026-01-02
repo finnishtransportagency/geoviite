@@ -92,6 +92,7 @@ export type LocationTrackInfoboxVisibilities = {
     ratkoPush: boolean;
     geometry: boolean;
     verticalGeometry: boolean;
+    switchLinks: boolean;
 };
 
 export type KmPostInfoboxVisibilities = {
@@ -163,6 +164,7 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
         ratkoPush: true,
         geometry: true,
         verticalGeometry: true,
+        switchLinks: true,
     },
     kmPost: {
         basic: true,

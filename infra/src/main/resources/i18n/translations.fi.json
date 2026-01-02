@@ -871,6 +871,18 @@
                 "heading": "Raiteen pystygeometria",
                 "diagram-visibility": "Kuvaaja"
             },
+            "switch-links": {
+                "heading": "Raiteen vaihteet",
+                "show-more": "Näytä kaikki {{count}} kpl",
+                "not-existing": "Poistettu",
+                "detach": "Irrota"
+            },
+            "detach-switch-links-dialog": {
+                "title": "Vaihteen linkityksen poistaminen raiteelta",
+                "message": "Haluatko irrottaa vaihteen {{switchName}} linkityksen raiteelta {{trackName}}?",
+                "detach-button": "Poista linkitys",
+                "success-toast": "Vaihde {{switchName}} irrotettu raiteelta {{trackName}}"
+            },
             "topological-connectivity": "Topologinen kytkeytyminen",
             "start-switch": "Vaihde raiteen alussa",
             "end-switch": "Vaihde raiteen lopussa",
@@ -2201,7 +2213,6 @@
         "confirmation-delete-title": "Vaihteen poistaminen paikannuspohjasta",
         "deleted-state-warning": "Poistettu-tilainen vaihde ei voi olla osa paikannuspohjaa.",
         "structure-change-unlink": "Vaihdetyyppiä muutettaessa vaihteeseen liittyvät sijaintiraidelinkitykset puretaan. Linkitykset eivät palaudu automaattisesti, vaikka vaihteen tyyppi palautettaisiin alkuperäiseksi.",
-        "deleted-switch-unlink": "Poistettaessa vaihde myös siihen liittyvät sijaintiraidelinkitykset puretaan. Linkitykset eivät palaudu automaattisesti, vaikka vaihteen tila palautettaisiin alkuperäiseksi.",
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
         "confirm-switch-delete": "Haluatko poistaa vaihteen paikannuspohjasta?",
         "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",

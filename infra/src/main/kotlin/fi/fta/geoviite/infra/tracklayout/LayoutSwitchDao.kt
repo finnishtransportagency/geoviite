@@ -136,7 +136,6 @@ class LayoutSwitchDao(
                            and switch.layout_context_id = jv.switch_layout_context_id
                            and switch.version = jv.switch_version
                   where switch.id = :switch_id
-                    and switch.state_category != 'NOT_EXISTING'
             """
                 .trimIndent()
         val params =

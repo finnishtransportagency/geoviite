@@ -6,6 +6,7 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 
 type SwitchBadgeProps = {
     switchItem: LayoutSwitch;
+    switchIsValid?: boolean;
     onClick?: React.MouseEventHandler;
     status?: SwitchBadgeStatus;
 };
@@ -21,11 +22,13 @@ export enum SwitchBadgeStatus {
 export const SwitchBadge: React.FC<SwitchBadgeProps> = ({
     switchItem,
     onClick,
+    switchIsValid = true,
     status = SwitchBadgeStatus.DEFAULT,
 }: SwitchBadgeProps) => {
     const classes = createClassName(
         styles['switch-badge'],
         status,
+        !switchIsValid && styles['switch-badge--invalid'],
         onClick && styles['switch-badge--clickable'],
     );
     return (

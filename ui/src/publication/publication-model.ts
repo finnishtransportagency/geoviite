@@ -27,12 +27,13 @@ import { LocalizationParams } from 'i18n/config';
 import { SplitTargetOperation } from 'tool-panel/location-track/split-store';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
-import { PublishedAsset } from 'publication/publication-api';
+import { PublishableObjectIdAndType, PublishedAsset } from 'publication/publication-api';
 
 export type LayoutValidationIssue = {
     type: LayoutValidationIssueType;
     localizationKey: string;
     params: LocalizationParams;
+    inRelationTo?: PublishableObjectIdAndType[];
 };
 
 export type LayoutValidationIssueType = 'FATAL' | 'ERROR' | 'WARNING';

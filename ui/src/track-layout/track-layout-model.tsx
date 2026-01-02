@@ -347,6 +347,13 @@ export type LocationTrackInfoboxExtras = {
     startSplitPoint?: SplitPoint;
     endSplitPoint?: SplitPoint;
     partOfUnfinishedSplit?: boolean;
+    switches: LocationTrackInfoboxSwitch[];
+};
+
+export type LocationTrackInfoboxSwitch = {
+    switchId: LayoutSwitchId;
+    location: Point;
+    displayAddress?: TrackMeter;
 };
 
 export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;
