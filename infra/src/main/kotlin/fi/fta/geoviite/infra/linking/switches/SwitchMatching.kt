@@ -22,19 +22,15 @@ fun matchFittedSwitchToTracks(
     layoutSwitchId: IntId<LayoutSwitch>?,
 ): Pair<SuggestedSwitch, Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>> {
     val initiallyClearedTracks = if (layoutSwitchId == null) tracks else clearSwitchFromTracks(tracks, layoutSwitchId)
-    val trackLinks = matchToJointListsOnEdges(fittedSwitch, initiallyClearedTracks)
-    val enclosingSwitches = findEnclosingSwitches(trackLinks, initiallyClearedTracks)
-    return if (enclosingSwitches.isEmpty()) {
-        suggest(fittedSwitch, initiallyClearedTracks, trackLinks, enclosingSwitches) to initiallyClearedTracks
-    } else {
-        val fullyClearedTracks = enclosingSwitches.fold(initiallyClearedTracks, ::clearSwitchFromTracks)
-        suggest(
-            fittedSwitch,
-            fullyClearedTracks,
-            matchToJointListsOnEdges(fittedSwitch, fullyClearedTracks),
-            enclosingSwitches,
-        ) to fullyClearedTracks
-    }
+    val enclosingSwitches = findSwitchesEnclosingMiddleJointsOfFit(fittedSwitch, initiallyClearedTracks)
+    val fullyClearedTracks = clearSwitchesFromTracks(initiallyClearedTracks, enclosingSwitches)
+
+    return suggest(
+        fittedSwitch,
+        fullyClearedTracks,
+        matchToJointListsOnEdges(fittedSwitch, fullyClearedTracks),
+        enclosingSwitches,
+    ) to fullyClearedTracks
 }
 
 private fun suggest(
@@ -66,31 +62,45 @@ private fun matchToJointListsOnEdges(
     return pickBestLinkingByTrack(adjustedJointsOnEdges, jointsOnEdges)
 }
 
-private fun findEnclosingSwitches(
-    jointsOnEdges: Map<EdgeId, List<JointOnEdge>>,
+private fun findSwitchesEnclosingMiddleJointsOfFit(
+    fittedSwitch: FittedSwitch,
     clearedTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LocationTrackGeometry>>,
-): Set<IntId<LayoutSwitch>> =
-    jointsOnEdges.keys
-        .flatMap { edgeId ->
-            val edges = clearedTracks.getValue(edgeId.locationTrackId).second.edges
-            val switchesOnTrackBefore =
-                edges
-                    .subList(0, edgeId.edgeIndex + 1)
-                    .flatMap { listOf(it.startNode.switchIn?.id, it.endNode.switchIn?.id) }
-                    .dropLast(1)
-                    .filterNotNull()
-                    .toSet()
-            val switchesOnTrackAfter =
-                edges
-                    .subList(edgeId.edgeIndex, edges.size)
-                    .flatMap { listOf(it.startNode.switchIn?.id, it.endNode.switchIn?.id) }
-                    .drop(1)
-                    .filterNotNull()
-                    .toSet()
-
-            switchesOnTrackBefore.intersect(switchesOnTrackAfter)
+): Set<IntId<LayoutSwitch>> {
+    val middleJointsOfStructure =
+        fittedSwitch.switchStructure.alignments
+            .flatMap { alignment -> alignment.jointNumbers.drop(1).dropLast(1) }
+            .toSet()
+    return fittedSwitch.joints
+        .filter { joint -> middleJointsOfStructure.contains(joint.number) }
+        .flatMap { joint ->
+            joint.matches.flatMap { match ->
+                switchesEnclosingEdge(
+                    clearedTracks.getValue(match.locationTrackId).second.edges,
+                    mapFittedSwitchJointMatchToEdge(clearedTracks, match, fittedSwitch, joint).first.edgeIndex,
+                )
+            }
         }
         .toSet()
+}
+
+private fun switchesEnclosingEdge(edges: List<LayoutEdge>, edgeIndex: Int): Set<IntId<LayoutSwitch>> {
+    val switchesOnTrackBefore =
+        edges
+            .subList(0, edgeIndex + 1)
+            .flatMap { listOf(it.startNode.switchIn?.id, it.endNode.switchIn?.id) }
+            .dropLast(1)
+            .filterNotNull()
+            .toSet()
+    val switchesOnTrackAfter =
+        edges
+            .subList(edgeIndex, edges.size)
+            .flatMap { listOf(it.startNode.switchIn?.id, it.endNode.switchIn?.id) }
+            .drop(1)
+            .filterNotNull()
+            .toSet()
+
+    return switchesOnTrackBefore.intersect(switchesOnTrackAfter)
+}
 
 private fun pickBestLinkingByTrack(
     linking: Map<EdgeId, List<List<JointOnEdge>>>,

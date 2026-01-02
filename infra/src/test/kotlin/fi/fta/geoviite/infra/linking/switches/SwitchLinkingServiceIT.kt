@@ -2320,6 +2320,57 @@ constructor(
         assertEquals(switchLinkYV(rightSwitch, 1), throughTrackEdges[3].startNode.switchIn)
     }
 
+    @Test
+    fun `a larger rail crossing switch can override a smaller one in the same place`() {
+        val bigSwitchStructure =
+            switchLibraryService.getSwitchStructures().find { it.type.typeName == "KRV54-200-1:9" }!!.id
+        val smallSwitchStructure =
+            switchLibraryService.getSwitchStructures().find { it.type.typeName == "SRR54-2x1:9-4,8" }!!.id
+        val trackNumber = mainDraftContext.save(trackNumber()).id
+
+        mainDraftContext.save(
+            locationTrack(trackNumber),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(50.0, 10.0))),
+        )
+
+        mainDraftContext.save(
+            locationTrack(trackNumber),
+            // second track goes to x=51 rather than x=50 just to introduce asymmetry so that the switch fitting code
+            // tiebreaks fits consistently
+            trackGeometryOfSegments(
+                segment(Point(0.0, 10.0), Point(25.0, 5.0)),
+                segment(Point(25.0, 5.0), Point(51.0, 0.0)),
+            ),
+        )
+        val bigSwitch = mainDraftContext.save(switch(bigSwitchStructure)).id
+        val smallSwitch = mainDraftContext.save(switch(smallSwitchStructure)).id
+
+        val smallSwitchSuggestion =
+            switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(25.0, 5.0), smallSwitch)!!
+        switchLinkingService.saveSwitchLinking(
+            LayoutBranch.main,
+            smallSwitchSuggestion,
+            smallSwitch,
+            geometrySwitchId = null,
+        )
+
+        val bigSwitchSuggestion =
+            switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(25.0, 5.0), bigSwitch)!!
+        // testing the test: the track placement is quite rough, so make sure we're at least trying to have both
+        // switches link to at least one track in common
+        assertTrue(
+            bigSwitchSuggestion.trackLinks
+                .filter { it.value.isLinked() }
+                .any { (bigSwitchLinkedTrack) ->
+                    smallSwitchSuggestion.trackLinks.any { (smallSwitchLinkedTrack, smallLinks) ->
+                        smallLinks.isLinked() && bigSwitchLinkedTrack == smallSwitchLinkedTrack
+                    }
+                }
+        )
+
+        assertEquals(setOf(smallSwitch), bigSwitchSuggestion.detachSwitches)
+    }
+
     private fun createDraftLocationTrackFromLayoutSegments(
         layoutSegments: List<LayoutSegment>
     ): Pair<LocationTrack, LocationTrackGeometry> {
