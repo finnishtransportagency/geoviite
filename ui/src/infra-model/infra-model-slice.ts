@@ -126,7 +126,6 @@ export const initialInfraModelState: InfraModelState = {
     infraModelList: initialInfraModelListState,
     selection: {
         ...initialSelectionState,
-        selectionModes: ['segment', 'switch'],
     },
     validationResponse: undefined,
     file: undefined,

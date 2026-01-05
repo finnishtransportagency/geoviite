@@ -1,7 +1,11 @@
 import * as React from 'react';
 import ToolPanel from 'tool-panel/tool-panel';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
-import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import {
+    canGoBackInSelectionHistory,
+    canGoForwardInSelectionHistory,
+    trackLayoutActionCreators as TrackLayoutActions,
+} from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
@@ -79,6 +83,10 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             viewport={store.map.viewport}
             verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramState.visible}
             onHoverOverPlanSection={setHoveredOverItem}
+            onSelectionHistoryBack={delegates.onSelectHistoryBack}
+            onSelectionHistoryForward={delegates.onSelectHistoryForward}
+            selectionHistoryBackEnabled={canGoBackInSelectionHistory(store)}
+            selectionHistoryForwardEnabled={canGoForwardInSelectionHistory(store)}
         />
     );
 };

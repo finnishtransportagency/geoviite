@@ -77,33 +77,13 @@ export const linkingReducers = {
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
-        if (
-            state.linkingState?.type === LinkingType.LinkingAlignment ||
-            state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment
-        ) {
-            state.linkingState.layoutAlignmentInterval = createUpdatedInterval(
-                state.linkingState.layoutAlignmentInterval,
-                linkPoint,
-                true,
-            );
-            state.linkingState = validateLinkingState(state.linkingState);
-        }
+        setLayoutLinkPointToState(state, linkPoint);
     },
     setGeometryLinkPoint: function (
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
-        if (
-            state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
-            state.linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
-        ) {
-            state.linkingState.geometryAlignmentInterval = createUpdatedInterval(
-                state.linkingState.geometryAlignmentInterval,
-                linkPoint,
-                true,
-            );
-            state.linkingState = validateLinkingState(state.linkingState);
-        }
+        setGeometryLinkPointToState(state, linkPoint);
     },
     setLayoutClusterLinkPoint: function (
         state: TrackLayoutState,
@@ -338,6 +318,34 @@ export const linkingReducers = {
         };
     },
 };
+
+export function setLayoutLinkPointToState(state: TrackLayoutState, linkPoint: LinkPoint) {
+    if (
+        state.linkingState?.type === LinkingType.LinkingAlignment ||
+        state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment
+    ) {
+        state.linkingState.layoutAlignmentInterval = createUpdatedInterval(
+            state.linkingState.layoutAlignmentInterval,
+            linkPoint,
+            true,
+        );
+        state.linkingState = validateLinkingState(state.linkingState);
+    }
+}
+
+export function setGeometryLinkPointToState(state: TrackLayoutState, linkPoint: LinkPoint) {
+    if (
+        state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
+        state.linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
+    ) {
+        state.linkingState.geometryAlignmentInterval = createUpdatedInterval(
+            state.linkingState.geometryAlignmentInterval,
+            linkPoint,
+            true,
+        );
+        state.linkingState = validateLinkingState(state.linkingState);
+    }
+}
 
 function goToDraftContext(state: TrackLayoutState): void {
     const newLayoutContext = draftLayoutContext(state.layoutContext);

@@ -330,12 +330,6 @@ export const splitReducers = {
             state.splittingState.disabled = payload;
         }
     },
-    addSplit: (
-        state: TrackLayoutState,
-        { payload: splitPoint }: PayloadAction<SplitPoint>,
-    ): void => {
-        addSplitToState(state, splitPoint, 'FOCUS');
-    },
     unfocusSplit: (
         state: TrackLayoutState,
         { payload: splitPoint }: PayloadAction<SplitPoint>,
@@ -511,10 +505,10 @@ function splitPointToSplitTargetCandidate(
     } as const;
 }
 
-function addSplitToState(
+export function addSplitToState(
     state: TrackLayoutState,
     splitPoint: SplitPoint,
-    splitFocusBehaviour: SplitFocusBehaviour,
+    splitFocusBehaviour: SplitFocusBehaviour = 'FOCUS',
 ) {
     if (state.splittingState) {
         const switchForSplitPoint = findSwitchForSplitPoint(

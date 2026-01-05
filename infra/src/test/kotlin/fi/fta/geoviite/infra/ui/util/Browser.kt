@@ -30,7 +30,11 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 
+/**
+ * Set DEV_DEBUG true to run UI-tests in visible browser.
+ */
 const val DEV_DEBUG = false
+
 const val E2E_TASKBAR_BUFFER_PIXELS = 80
 const val E2E_WINDOW_WIDTH = 1920
 const val E2E_WINDOW_HEIGHT = 1080 - E2E_TASKBAR_BUFFER_PIXELS
