@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.SIDE
@@ -81,6 +82,102 @@ constructor(
         val updatedFromDb = locationTrackDao.fetch(updatedVersion)
         assertMatches(updatedTrack, updatedFromDb, contextMatch = false)
         assertEquals(inserted.id, updatedFromDb.id)
+    }
+
+    @Test
+    fun `operational point ids save and load works`() {
+        val operationalPoint1 = mainOfficialContext.save(operationalPoint()).id
+        val operationalPoint2 = mainOfficialContext.save(operationalPoint()).id
+        val operationalPoint3 = mainOfficialContext.save(operationalPoint()).id
+
+        val geometry = trackGeometryOfSegments(listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))))
+        val locationTrack =
+            mainOfficialContext
+                .save(
+                    locationTrack(
+                        trackNumberId = mainOfficialContext.createLayoutTrackNumber().id,
+                        operationalPointIds = setOf(operationalPoint1),
+                    ),
+                    geometry,
+                )
+                .id
+        assertEquals(setOf(operationalPoint1), mainOfficialContext.fetch(locationTrack)!!.operationalPointIds)
+        locationTrackDao.save(
+            asMainDraft(mainOfficialContext.fetch(locationTrack)!!)
+                .copy(operationalPointIds = setOf(operationalPoint2, operationalPoint3)),
+            geometry,
+        )
+        assertEquals(setOf(operationalPoint1), mainOfficialContext.fetch(locationTrack)!!.operationalPointIds)
+        assertEquals(
+            setOf(operationalPoint2, operationalPoint3),
+            mainDraftContext.fetch(locationTrack)!!.operationalPointIds,
+        )
+    }
+
+    @Test
+    fun `getTracksOverlappingOperationalPoint finds operational points whose polygons overlap the track geometry`() {
+        val op1Polygon =
+            Polygon(Point(1.0, 0.0), Point(11.0, 0.0), Point(11.0, 10.0), Point(1.0, 10.0), Point(1.0, 0.0))
+        val operationalPoint1 = mainOfficialContext.save(operationalPoint(polygon = op1Polygon)).id
+
+        val op2Polygon = op1Polygon.moveBy(Point(20.0, 0.0))
+        val operationalPoint2 = mainOfficialContext.save(operationalPoint(polygon = op2Polygon)).id
+
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val overlappingOnlyOp1Track =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId = trackNumber),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+            )
+        // track where op1's polygon intersects with its bounding box but not its geometry; but op2 does intersect
+        // properly
+        val wibblyTrack =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId = trackNumber),
+                trackGeometryOfSegments(
+                    segment(Point(0.0, 0.0), Point(0.0, 20.0)),
+                    segment(Point(0.0, 20.0), Point(25.0, 20.0)),
+                    segment(Point(25.0, 20.0), Point(25.0, 5.0)),
+                ),
+            )
+        assertEquals(
+            listOf(overlappingOnlyOp1Track.id),
+            locationTrackDao.getTracksOverlappingOperationalPoint(mainOfficialContext.context, operationalPoint1),
+        )
+        assertEquals(
+            listOf(wibblyTrack.id),
+            locationTrackDao.getTracksOverlappingOperationalPoint(mainOfficialContext.context, operationalPoint2),
+        )
+    }
+
+    @Test
+    fun `getTracksLinkedToOperationalPoint finds linked operational points`() {
+        val op1 = mainOfficialContext.save(operationalPoint()).id
+        val op2 = mainOfficialContext.save(operationalPoint()).id
+        val op3 = mainOfficialContext.save(operationalPoint()).id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val onOp1Track =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId = trackNumber, operationalPointIds = setOf(op1)),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+            )
+        val onOp23Track =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId = trackNumber, operationalPointIds = setOf(op2, op3)),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+            )
+        assertEquals(
+            listOf(onOp1Track.id),
+            locationTrackDao.getTracksLinkedToOperationalPoint(mainOfficialContext.context, op1),
+        )
+        assertEquals(
+            listOf(onOp23Track.id),
+            locationTrackDao.getTracksLinkedToOperationalPoint(mainOfficialContext.context, op2),
+        )
+        assertEquals(
+            listOf(onOp23Track.id),
+            locationTrackDao.getTracksLinkedToOperationalPoint(mainOfficialContext.context, op3),
+        )
     }
 
     @Test

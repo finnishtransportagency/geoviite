@@ -307,4 +307,33 @@ class LocationTrackController(
     fun getLocationTrackOids(@PathVariable("id") id: IntId<LocationTrack>): Map<LayoutBranch, Oid<LocationTrack>> {
         return locationTrackService.getExternalIdsByBranch(id)
     }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/by-operational-point/{id}")
+    fun getLocationTracksByOperationalPoint(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("id") id: IntId<OperationalPoint>,
+    ): ResponseEntity<OperationalPointLocationTracks> {
+        val context = LayoutContext.of(layoutBranch, publicationState)
+        return toResponse(locationTrackService.getOperationalPointTracks(context, id))
+    }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/location-tracks/{$LAYOUT_BRANCH}/draft/unlink-from-operational-point/{operationalPointId}")
+    fun unlinkLocationTracksFromOperationalPoint(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable("operationalPointId") operationalPointId: IntId<OperationalPoint>,
+        @RequestBody locationTrackIds: List<IntId<LocationTrack>>,
+    ): List<IntId<LocationTrack>> =
+        locationTrackService.unlinkFromOperationalPoint(layoutBranch, locationTrackIds, operationalPointId)
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/location-tracks/{$LAYOUT_BRANCH}/draft/link-to-operational-point/{operationalPointId}")
+    fun linkLocationTracksToOperationalPoint(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable("operationalPointId") operationalPointId: IntId<OperationalPoint>,
+        @RequestBody locationTrackIds: List<IntId<LocationTrack>>,
+    ): List<IntId<LocationTrack>> =
+        locationTrackService.linkToOperationalPoint(layoutBranch, locationTrackIds, operationalPointId)
 }

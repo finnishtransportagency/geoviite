@@ -100,6 +100,7 @@ class LocationTrackService(
                 endSwitchId = null,
                 topologicalConnectivity = request.topologicalConnectivity,
                 ownerId = request.ownerId,
+                operationalPointIds = setOf(),
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
             )
         return saveDraft(branch, locationTrack, TmpLocationTrackGeometry.empty)
@@ -761,6 +762,45 @@ class LocationTrackService(
         val trackNumber = trackNumberDao.fetch(versions.trackNumberVersion)
         return recalculateDependencies(descriptionTranslation, track, trackNumber, startSwitch, endSwitch)
     }
+
+    @Transactional(readOnly = true)
+    fun getOperationalPointTracks(layoutContext: LayoutContext, operationalPointId: IntId<OperationalPoint>) =
+        OperationalPointLocationTracks(
+            dao.getTracksOverlappingOperationalPoint(layoutContext, operationalPointId),
+            dao.getTracksLinkedToOperationalPoint(layoutContext, operationalPointId),
+        )
+
+    @Transactional
+    fun linkToOperationalPoint(
+        branch: LayoutBranch,
+        ids: List<IntId<LocationTrack>>,
+        operationalPointId: IntId<OperationalPoint>,
+    ): List<IntId<LocationTrack>> =
+        ids.map { id ->
+            val (draft, geometry) = getWithGeometryOrThrow(branch.draft, id)
+            saveDraft(
+                    branch,
+                    draft.copy(operationalPointIds = draft.operationalPointIds.plus(operationalPointId)),
+                    geometry,
+                )
+                .id
+        }
+
+    @Transactional
+    fun unlinkFromOperationalPoint(
+        branch: LayoutBranch,
+        ids: List<IntId<LocationTrack>>,
+        operationalPointId: IntId<OperationalPoint>,
+    ): List<IntId<LocationTrack>> =
+        ids.map { id ->
+            val (draft, geometry) = getWithGeometryOrThrow(branch.draft, id)
+            saveDraft(
+                    branch,
+                    draft.copy(operationalPointIds = draft.operationalPointIds.minus(operationalPointId)),
+                    geometry,
+                )
+                .id
+        }
 }
 
 fun getTopologicallyLinkableJointLocations(
@@ -831,3 +871,8 @@ private fun recalculateTopology(
     val allTracks = (combinations.targetTracks + changedTracks).distinctBy { it.first.id }
     return allTracks.map { (track, geom) -> track to geom.withNodeReplacements(combinations.replacements) }
 }
+
+data class OperationalPointLocationTracks(
+    val overlappingArea: List<IntId<LocationTrack>>,
+    val assigned: List<IntId<LocationTrack>>,
+)

@@ -266,6 +266,7 @@ export type LayoutLocationTrack = {
     duplicateOf?: LocationTrackId;
     topologicalConnectivity: TopologicalConnectivityType;
     ownerId: LocationTrackOwnerId;
+    operationalPointIds: OperationalPointId[];
 } & LayoutAssetFields;
 
 export type DuplicateMatch = 'FULL' | 'PARTIAL' | 'NONE';

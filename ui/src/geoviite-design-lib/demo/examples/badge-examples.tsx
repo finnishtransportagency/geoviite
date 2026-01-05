@@ -44,6 +44,7 @@ const layoutLocationTrack: LayoutLocationTrack = {
     duplicateOf: undefined,
     topologicalConnectivity: 'NONE',
     ownerId: '',
+    operationalPointIds: [],
 };
 const kmPost: LayoutKmPost = {
     ...layoutAssetFields,

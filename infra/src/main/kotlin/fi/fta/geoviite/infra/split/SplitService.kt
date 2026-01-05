@@ -783,6 +783,7 @@ private fun createSplitTarget(
             boundingBox = newGeometry.boundingBox,
             startSwitchId = newGeometry.startSwitchLink?.id,
             endSwitchId = newGeometry.endSwitchLink?.id,
+            operationalPointIds = setOf(),
             // TODO: GVT-2399 Split in design branches
             contextData = LayoutContextData.newDraft(LayoutBranch.main, id = null),
         )

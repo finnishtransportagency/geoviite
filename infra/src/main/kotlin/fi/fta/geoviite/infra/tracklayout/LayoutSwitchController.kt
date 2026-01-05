@@ -130,12 +130,19 @@ class LayoutSwitchController(
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/{${LAYOUT_BRANCH}}/{id}/operational-point")
-    fun assignSwitchOperationalPoint(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @PathVariable("id") switchId: IntId<LayoutSwitch>,
-        @RequestBody operationalPointId: IntId<OperationalPoint>?,
-    ): IntId<LayoutSwitch> = switchService.assignOperationalPoint(branch, switchId, operationalPointId)
+    @PostMapping("/{$LAYOUT_BRANCH}/draft/unlink-from-operational-point/")
+    fun unlinkSwitchesFromOperationalPoint(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @RequestBody switchIds: List<IntId<LayoutSwitch>>,
+    ): List<IntId<LayoutSwitch>> = switchService.unlinkFromOperationalPoint(layoutBranch, switchIds)
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/{$LAYOUT_BRANCH}/draft/link-to-operational-point/{operationalPointId}")
+    fun linkSwitchesToOperationalPoint(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable("operationalPointId") operationalPointId: IntId<OperationalPoint>,
+        @RequestBody switchIds: List<IntId<LayoutSwitch>>,
+    ): List<IntId<LayoutSwitch>> = switchService.linkToOperationalPoint(layoutBranch, switchIds, operationalPointId)
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @DeleteMapping("/{${LAYOUT_BRANCH}}/draft/{id}")
