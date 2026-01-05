@@ -1045,16 +1045,16 @@ constructor(
         }
         assertEquals(FreeText("Initial description"), getDraftDescriptionAndStructure(trackId).first)
 
-        // Operating point name is basically just a different free text
+        // Operational point name is basically just a different free text
         updateDraft(trackId) { t, g ->
             t.copy(
                 nameStructure =
-                    LocationTrackNameWithinOperatingPoint(LocationTrackNameFreeTextPart("within operating point"))
+                    LocationTrackNameWithinOperationalPoint(LocationTrackNameFreeTextPart("within operational point"))
             ) to g
         }
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT, structure.scheme)
-            assertEquals(AlignmentName("within operating point"), name)
+            assertEquals(AlignmentName("within operational point"), name)
         }
 
         // Track number name gets the name from track number + specifier
@@ -1092,11 +1092,11 @@ constructor(
             assertEquals(AlignmentName("$trackNumber ${LocationTrackNameSpecifier.LANHR.properForm} tn-track"), name)
         }
 
-        // Between operating points the name combines specifier and switches
+        // Between operational points the name combines specifier and switches
         // Since switches can also affect the description, we also check that
         updateDraft(trackId) { t, g ->
             t.copy(
-                nameStructure = LocationTrackNameBetweenOperatingPoints(LocationTrackNameSpecifier.EKR),
+                nameStructure = LocationTrackNameBetweenOperationalPoints(LocationTrackNameSpecifier.EKR),
                 descriptionStructure =
                     LocationTrackDescriptionStructure(
                         LocationTrackDescriptionBase("New description"),

@@ -1,16 +1,16 @@
 package fi.fta.geoviite.infra.integration
 
 import fi.fta.geoviite.infra.util.DaoBase
-import java.time.Duration
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
+import java.time.Duration
 
 enum class DatabaseLock {
     PUBLICATION,
     PUBLICATION_GEOMETRY_CHANGE_CALCULATION,
     RATKO,
-    RATKO_OPERATING_POINTS_FETCH,
+    RATKO_OPERATIONAL_POINTS_FETCH,
     ELEMENT_LIST_GEN,
     VERTICAL_GEOMETRY_LIST_GEN,
     PROJEKTIVELHO,

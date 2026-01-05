@@ -131,11 +131,11 @@ sealed class LocationTrackNameStructure {
                         requireNotNull(freeText) { "Naming scheme of type $scheme must have a free text part" }
                     )
                 LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT ->
-                    LocationTrackNameWithinOperatingPoint(
+                    LocationTrackNameWithinOperationalPoint(
                         requireNotNull(freeText) { "Naming scheme of type $scheme must have a free text part" }
                     )
                 LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS ->
-                    LocationTrackNameBetweenOperatingPoints(specifier)
+                    LocationTrackNameBetweenOperationalPoints(specifier)
                 LocationTrackNamingScheme.TRACK_NUMBER_TRACK -> LocationTrackNameByTrackNumber(freeText, specifier)
                 LocationTrackNamingScheme.CHORD -> LocationTrackNameChord
             }
@@ -145,8 +145,8 @@ sealed class LocationTrackNameStructure {
     fun reify(trackNumber: LayoutTrackNumber, startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName =
         when (this) {
             is LocationTrackNameFreeText -> AlignmentName(freeText.toString())
-            is LocationTrackNameWithinOperatingPoint -> AlignmentName(freeText.toString())
-            is LocationTrackNameBetweenOperatingPoints -> format(startSwitch, endSwitch)
+            is LocationTrackNameWithinOperationalPoint -> AlignmentName(freeText.toString())
+            is LocationTrackNameBetweenOperationalPoints -> format(startSwitch, endSwitch)
             is LocationTrackNameByTrackNumber -> format(trackNumber.number)
             is LocationTrackNameChord -> format(startSwitch, endSwitch)
         }
@@ -157,7 +157,7 @@ data class LocationTrackNameFreeText(override val freeText: LocationTrackNameFre
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.FREE_TEXT
 }
 
-data class LocationTrackNameWithinOperatingPoint(override val freeText: LocationTrackNameFreeTextPart) :
+data class LocationTrackNameWithinOperationalPoint(override val freeText: LocationTrackNameFreeTextPart) :
     LocationTrackNameStructure() {
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT
 }
@@ -179,7 +179,7 @@ data class LocationTrackNameByTrackNumber(
     }
 }
 
-data class LocationTrackNameBetweenOperatingPoints(override val specifier: LocationTrackNameSpecifier?) :
+data class LocationTrackNameBetweenOperationalPoints(override val specifier: LocationTrackNameSpecifier?) :
     LocationTrackNameStructure() {
     override val scheme: LocationTrackNamingScheme = LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS
 
