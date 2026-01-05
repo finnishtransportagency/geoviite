@@ -13,7 +13,7 @@ import {
 } from 'selection/selection-model';
 import { GeometryPlanLayout } from 'track-layout/track-layout-model';
 import { deduplicate, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
-import { ValueOf } from 'utils/type-utils';
+import { isArray, ValueOf } from 'utils/type-utils';
 import {
     GeometryAlignmentId,
     GeometryKmPostId,
@@ -51,6 +51,22 @@ export const initialSelectionState: Selection = {
     publicationId: undefined,
     publicationSearch: undefined,
 };
+
+export function isEmptyItemCollections(itemCollections: ItemCollections) {
+    let k: keyof ItemCollections;
+    for (k in itemCollections) {
+        const v = itemCollections[k];
+        if (isArray(v) && v.length > 0) return false;
+    }
+    return true;
+}
+
+export function itemCollectionsMatch(
+    itemCollectionsA: ItemCollections,
+    itemCollectionsB: ItemCollections,
+) {
+    return JSON.stringify(itemCollectionsA) === JSON.stringify(itemCollectionsB);
+}
 
 function getNewIdCollection<TId extends string>(
     ids: TId[],
@@ -138,7 +154,7 @@ function getNewItemCollectionUsingCustomId<TEntity, TId>(
     }
 }
 
-function updateItemCollectionsByOptions(
+export function updateItemCollectionsByOptions(
     itemCollections: ItemCollections,
     options: OnSelectOptions,
 ) {
