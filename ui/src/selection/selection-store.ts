@@ -44,7 +44,6 @@ export function createEmptyItemCollections(): ItemCollections {
 }
 
 export const initialSelectionState: Selection = {
-    selectionModes: ['alignment', 'switch', 'segment', 'trackNumber'],
     selectedItems: createEmptyItemCollections(),
     highlightedItems: createEmptyItemCollections(),
     openPlans: [],
