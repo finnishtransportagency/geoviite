@@ -13,12 +13,11 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
 import fi.fta.geoviite.infra.util.FreeText
-import kotlin.toString
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
-class OperationalPointService(val operatingPointDao: OperationalPointDao, private val geoviiteOidDao: GeoviiteOidDao) :
-    LayoutAssetService<OperationalPoint, NoParams, OperationalPointDao>(operatingPointDao) {
+class OperationalPointService(val operationalPointDao: OperationalPointDao, private val geoviiteOidDao: GeoviiteOidDao) :
+    LayoutAssetService<OperationalPoint, NoParams, OperationalPointDao>(operationalPointDao) {
 
     fun list(
         context: LayoutContext,
