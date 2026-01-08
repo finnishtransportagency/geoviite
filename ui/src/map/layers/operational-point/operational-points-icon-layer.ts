@@ -35,7 +35,9 @@ export function createOperationalPointIconLayer(
         points
             .filter(
                 (point) =>
-                    !isBeingMoved(linkingState, point.id) && filterByResolution(point, resolution),
+                    point.state !== 'DELETED' &&
+                    !isBeingMoved(linkingState, point.id) &&
+                    filterByResolution(point, resolution),
             )
             .map((point) =>
                 renderOperationalPointCircleFeature(
@@ -44,7 +46,7 @@ export function createOperationalPointIconLayer(
                 ),
             )
             .filter(filterNotEmpty);
-    
+
     loadLayerData(
         source,
         isLatest,
