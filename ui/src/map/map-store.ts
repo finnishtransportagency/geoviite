@@ -60,7 +60,6 @@ export const layersToShowByProxy: LayerCollection = {
         'operational-points-icon-layer',
         'operational-points-area-layer',
     ],
-    'operational-points-area-layer': ['operational-points-icon-layer'],
 };
 
 export const layersToHideByProxy: LayerCollection = {
