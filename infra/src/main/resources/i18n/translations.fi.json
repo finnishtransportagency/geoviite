@@ -1497,6 +1497,7 @@
         "geometry-km-post": "Suunnitelman tasakilometripisteet",
         "operational-points": "Toiminnalliset pisteet",
         "operational-point-areas": "Toiminnallisten pisteiden alueet",
+        "signal-asset": "Ratkon opastimet",
         "debug-1m": "Tasametripisteet",
         "debug-projection-lines": "Geokoodauksen projektioviivat",
         "debug": "Debug",
