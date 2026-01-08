@@ -62,6 +62,8 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
     fun fetchManyByVersion(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T>
 
+    fun fetchManyByVersionWithoutCaching(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T>
+
     fun fetchChangeTime(): Instant
 
     fun fetchLayoutAssetChangeInfo(layoutContext: LayoutContext, id: IntId<T>): LayoutAssetChangeInfo?
@@ -79,6 +81,10 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetchVersions(layoutContext: LayoutContext, ids: List<IntId<T>>): List<LayoutRowVersion<T>>
 
     fun fetchOfficialVersionAtMomentOrThrow(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>
+
+    fun fetchOfficialVersionsInHistory(
+        points: List<LayoutAssetIdInHistory<T>>
+    ): Map<LayoutAssetIdInHistory<T>, LayoutRowVersion<T>>
 
     fun fetchOfficialVersionAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>? =
         fetchManyOfficialVersionsAtMoment(branch, listOf(id), moment).firstOrNull()
@@ -152,6 +158,17 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
     override fun fetchManyByVersion(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T> =
         if (cacheEnabled) {
             cache.getAll(versions) { nonCached -> fetchManyInternal(nonCached) }
+        } else {
+            fetchManyInternal(versions)
+        }
+
+    override fun fetchManyByVersionWithoutCaching(
+        versions: Collection<LayoutRowVersion<T>>
+    ): Map<LayoutRowVersion<T>, T> =
+        if (cacheEnabled) {
+            val fromCache = cache.getAllPresent(versions)
+            val cachedVersions = fromCache.keys
+            fromCache + fetchManyInternal(versions.filter { v -> !cachedVersions.contains(v) })
         } else {
             fetchManyInternal(versions)
         }
@@ -489,6 +506,64 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
                 items.associateWith { item -> found.getOrDefault(item, listOf()) }
             }
     }
+
+    private val officialVersionsInHistorySql =
+        """
+            select t.id, t.design_id, false as draft, t.version, ordinality - 1 as ix
+              from (
+                select
+                  unnest(:ids) as id,
+                  unnest(:design_ids) as design_id,
+                  unnest(:change_times) as change_time,
+                  generate_subscripts(:ids, 1) as ordinality
+              ) arg
+                cross join lateral (
+                select id, design_id, version
+                  from ${table.versionTable} t
+                  where t.id = arg.id
+                    and not t.deleted
+                    and not t.draft
+                    and t.change_time <= arg.change_time
+                    and (t.expiry_time is null or t.expiry_time > arg.change_time)
+                    and case
+                          when arg.design_id is null then t.design_id is null
+                          else t.design_id = arg.design_id
+                            or (t.design_id is null
+                              and not exists (
+                                select *
+                                  from ${table.versionTable} overrider
+                                  where overrider.id = arg.id
+                                    and not overrider.deleted
+                                    and not overrider.draft
+                                    and overrider.design_id = arg.design_id
+                                    and overrider.change_time <= t.change_time
+                                    and (overrider.expiry_time is null or overrider.expiry_time > arg.change_time)
+                              ))
+                        end
+                ) t
+        """
+            .trimIndent()
+
+    @Transactional(readOnly = true)
+    override fun fetchOfficialVersionsInHistory(
+        points: List<LayoutAssetIdInHistory<T>>
+    ): Map<LayoutAssetIdInHistory<T>, LayoutRowVersion<T>> =
+        if (points.isEmpty()) emptyMap()
+        else
+            jdbcTemplate
+                .query(
+                    officialVersionsInHistorySql,
+                    mapOf(
+                        "ids" to points.map { it.id.intValue }.toTypedArray(),
+                        "design_ids" to points.map { it.branch.designId?.intValue }.toTypedArray(),
+                        "change_times" to points.map { Timestamp.from(it.time) }.toTypedArray(),
+                    ),
+                ) { rs, _ ->
+                    val version = rs.getLayoutRowVersion<T>("id", "design_id", "draft", "version")
+                    val index = rs.getInt("ix")
+                    points[index] to version
+                }
+                .associate { it }
 }
 
 private fun fetchContextVersionSql(table: LayoutAssetTable, fetchType: FetchType) =
@@ -526,3 +601,5 @@ data class VersionComparison<T : LayoutAsset<T>>(
         return fromVersion != toVersion
     }
 }
+
+data class LayoutAssetIdInHistory<T : LayoutAsset<T>>(val id: IntId<T>, val branch: LayoutBranch, val time: Instant)

@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -8,6 +10,10 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.roundTo1Decimal
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import kotlin.math.abs
 
 fun publicationChangeRemark(translation: Translation, key: String, value: String? = null) =
@@ -91,29 +97,80 @@ fun getOperationalPointAreaRemarkOrNull(translation: Translation, oldArea: Polyg
 
 fun getSwitchLinksChangedRemark(
     translation: Translation,
-    switchLinkChanges: LocationTrackPublicationSwitchLinkChanges,
-): String {
-    val removed = switchLinkChanges.old.minus(switchLinkChanges.new.keys)
-    val added = switchLinkChanges.new.minus(switchLinkChanges.old.keys)
-    val commonNames = removed.values.map { it.name }.intersect(added.values.map { it.name }.toSet())
+    switchLinkChanges: Map<ChangeSide, Set<LayoutRowVersion<LayoutSwitch>>>,
+    lookupVersion: (version: LayoutRowVersion<LayoutSwitch>) -> LayoutSwitch,
+    lookupOid: (id: IntId<LayoutSwitch>) -> Oid<LayoutSwitch>?,
+): String =
+    getReferendsChangedRemark(
+        translation,
+        "switch-link",
+        { s -> s.name.toString() },
+        switchLinkChanges,
+        lookupVersion,
+        lookupOid,
+    )
 
-    fun remarkOnIds(ids: SwitchChangeIds) =
-        if (commonNames.contains(ids.name) && ids.externalId != null) "${ids.name} (${ids.externalId})" else ids.name
+fun getOperationalPointLinksChangedRemark(
+    translation: Translation,
+    linkChanges: Map<ChangeSide, Set<LayoutRowVersion<OperationalPoint>>>,
+    lookupVersion: (version: LayoutRowVersion<OperationalPoint>) -> OperationalPoint,
+    lookupOid: (id: IntId<OperationalPoint>) -> Oid<OperationalPoint>?,
+): String =
+    getReferendsChangedRemark(
+        translation,
+        "operational-point-link",
+        { op -> op.name.toString() },
+        linkChanges,
+        lookupVersion,
+        lookupOid,
+    )
+
+fun <T : LayoutAsset<T>> getReferendsChangedRemark(
+    translation: Translation,
+    referendKeyFragment: String,
+    assetName: (asset: T) -> String,
+    linkChanges: Map<ChangeSide, Set<LayoutRowVersion<T>>>,
+    lookupVersion: (version: LayoutRowVersion<T>) -> T,
+    lookupOid: (id: IntId<T>) -> Oid<T>?,
+): String {
+    val versionById = linkChanges.values.flatten().associateBy { it.id }
+    fun lookupById(id: IntId<T>): T = lookupVersion(versionById.getValue(id))
+    val (added, removed) = getAddedAndRemoved(linkChanges)
+
+    val commonNames =
+        removed.map { assetName(lookupById(it)) }.intersect(added.map { assetName(lookupById(it)) }.toSet())
+
+    fun remark(id: IntId<T>): String {
+        val version = versionById.getValue(id)
+        val name = assetName(lookupVersion(version))
+        val oid = lookupOid(id)
+        return if (commonNames.contains(name) && oid != null) "$name ($oid)" else "$name"
+    }
 
     val remarkRemoved =
         publicationChangeRemark(
             translation,
-            if (removed.size > 1) "switch-link-removed-plural" else "switch-link-removed-singular",
-            removed.values.map(::remarkOnIds).sorted().joinToString(),
+            if (removed.size > 1) "$referendKeyFragment-removed-plural" else "$referendKeyFragment-removed-singular",
+            removed.map(::remark).sorted().joinToString(),
         )
     val remarkAdded =
         publicationChangeRemark(
             translation,
-            if (added.size > 1) "switch-link-added-plural" else "switch-link-added-singular",
-            added.values.map(::remarkOnIds).sorted().joinToString(),
+            if (added.size > 1) "$referendKeyFragment-added-plural" else "$referendKeyFragment-added-singular",
+            added.map(::remark).sorted().joinToString(),
         )
     return if (removed.isNotEmpty() && added.isNotEmpty()) "${remarkRemoved}. ${remarkAdded}."
     else if (removed.isNotEmpty()) remarkRemoved else remarkAdded
+}
+
+private fun <T : LayoutAsset<T>> getAddedAndRemoved(
+    linkChanges: Map<ChangeSide, Set<LayoutRowVersion<T>>>
+): Pair<List<IntId<T>>, List<IntId<T>>> {
+    val old = linkChanges[ChangeSide.OLD] ?: setOf()
+    val new = linkChanges[ChangeSide.NEW] ?: setOf()
+    val removed = old.map { it.id }.minus(new.map { it.id })
+    val added = new.map { it.id }.minus(old.map { it.id })
+    return Pair(added, removed)
 }
 
 fun addChangeClarification(
