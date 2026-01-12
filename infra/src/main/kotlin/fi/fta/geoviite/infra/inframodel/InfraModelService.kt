@@ -213,7 +213,9 @@ constructor(
             else plan.author?.let { author -> geometryDao.findAuthor(author.companyName) ?: author }
 
         val application =
-            geometryDao.findApplication(plan.application.name, plan.application.version) ?: plan.application
+            plan.application?.let { application ->
+                geometryDao.findApplication(application.name, application.version) ?: application
+            }
 
         val overrideCs = overrideParameters?.coordinateSystemSrid?.let(geographyService::getCoordinateSystem)
 

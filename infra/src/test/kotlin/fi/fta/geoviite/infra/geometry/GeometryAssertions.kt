@@ -1,17 +1,35 @@
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.geometry.Application
+import fi.fta.geoviite.infra.geometry.Author
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.geometry.GeometryKmPost
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 
 fun assertPlansMatch(original: GeometryPlan, planFromDb: GeometryPlan) {
+    assertEquals(original.source, planFromDb.source)
     assertMatches(original.project, planFromDb.project)
-    assertMatches(original.author, planFromDb.author)
     assertMatches(original.application, planFromDb.application)
+    assertMatches(original.author, planFromDb.author)
+    assertEquals(original.planTime, planFromDb.planTime)
+    original.uploadTime?.let { uploadTime -> assertEquals(uploadTime, planFromDb.uploadTime) }
     assertEquals(original.units, planFromDb.units)
-    assertEquals(original.fileName, planFromDb.fileName)
-
     assertEquals(original.trackNumber, planFromDb.trackNumber)
     assertEquals(original.trackNumberDescription, planFromDb.trackNumberDescription)
+    assertEquals(original.fileName, planFromDb.fileName)
+    assertEquals(original.pvDocumentId, planFromDb.pvDocumentId)
+    assertEquals(original.planPhase, planFromDb.planPhase)
+    assertEquals(original.decisionPhase, planFromDb.decisionPhase)
+    assertEquals(original.measurementMethod, planFromDb.measurementMethod)
+    assertEquals(original.elevationMeasurementMethod, planFromDb.elevationMeasurementMethod)
+    assertEquals(original.message, planFromDb.message)
+    assertEquals(original.name, planFromDb.name)
+    assertEquals(original.isHidden, planFromDb.isHidden)
+    assertEquals(original.planApplicability, planFromDb.planApplicability)
 
     assertEquals(original.alignments.size, planFromDb.alignments.size)
     original.alignments.forEachIndexed { index, convertedAlignment ->
@@ -31,52 +49,38 @@ fun assertPlansMatch(original: GeometryPlan, planFromDb: GeometryPlan) {
 }
 
 fun assertMatches(original: Project, fromDb: Project) {
-    assertEquals(original.name, fromDb.name)
-    assertEquals(original.description, fromDb.description)
+    assertEquals(original, fromDb.copy(id = original.id))
 }
 
 fun assertMatches(original: Author?, fromDb: Author?) {
-    assertEquals(original == null, fromDb == null)
-    assertEquals(original?.companyName, fromDb?.companyName)
+    assertEquals(original?.copy(id = IntId(1)), fromDb?.copy(id = IntId(1)))
 }
 
-fun assertMatches(original: Application, fromDb: Application) {
-    assertEquals(original.name, fromDb.name)
-    assertEquals(original.manufacturer, fromDb.manufacturer)
-    assertEquals(original.version, fromDb.version)
+fun assertMatches(original: Application?, fromDb: Application?) {
+    assertEquals(original?.copy(id = IntId(1)), fromDb?.copy(id = IntId(1)))
 }
 
 fun assertMatches(original: GeometryKmPost, fromDb: GeometryKmPost) {
-    assertEquals(original.staBack, fromDb.staBack)
-    assertEquals(original.staAhead, fromDb.staAhead)
-    assertEquals(original.staInternal, fromDb.staInternal)
-    assertEquals(original.kmNumber, fromDb.kmNumber)
-    assertEquals(original.description, fromDb.description)
-    assertEquals(original.location, fromDb.location)
-    assertEquals(original.state, fromDb.state)
+    assertEquals(original, fromDb.copy(id = original.id))
 }
 
 fun assertMatches(original: GeometrySwitch, fromDb: GeometrySwitch) {
-    assertEquals(original.name, fromDb.name)
-    assertEquals(original.switchStructureId, fromDb.switchStructureId)
-    assertEquals(original.typeName, fromDb.typeName)
-    assertEquals(original.state, fromDb.state)
-    assertEquals(original.joints, fromDb.joints)
+    assertEquals(original, fromDb.copy(id = original.id))
 }
 
 fun assertMatches(original: LayoutTrackNumber?, fromDb: LayoutTrackNumber?) {
-    if (original != null || fromDb != null) {
-        assertEquals(original?.number, fromDb?.number)
-        assertEquals(original?.description, fromDb?.description)
-        assertEquals(original?.state, fromDb?.state)
-    }
+    assertEquals(original?.number, fromDb?.number)
+    assertEquals(original?.description, fromDb?.description)
+    assertEquals(original?.state, fromDb?.state)
 }
 
 fun assertMatches(original: GeometryAlignment, fromDb: GeometryAlignment) {
     assertEquals(original.name, fromDb.name)
     assertEquals(original.description, fromDb.description)
-    assertEquals(original.staStart, fromDb.staStart)
+    assertEquals(original.oidPart, fromDb.oidPart)
+    assertEquals(original.state, fromDb.state)
     assertEquals(original.featureTypeCode, fromDb.featureTypeCode)
+    assertEquals(original.staStart, fromDb.staStart)
     assertEquals(original.profile, fromDb.profile)
     assertEquals(original.cant, fromDb.cant)
 

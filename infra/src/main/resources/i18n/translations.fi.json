@@ -154,8 +154,6 @@
                 "missing-section": {
                     "coordinate-system": "Koordinaattijärjestelmän tiedot (CoordinateSystem-elementti) puuttuu",
                     "units": "Yksikkötiedot (Units-elementti) puuttuu",
-                    "author": "Suunnitelman laatijan tiedot (Author-elementti) puuttuu",
-                    "application": "Sovelluksen tiedot (Application-elementti) puuttuu",
                     "project": "Projektin tiedot (Project-elementti) puuttuu",
                     "alignment-group": "Keskilinjojen ryhmä (AlignmentGroup) puuttuu tai ei ole yksiselitteinen",
                     "prof-align": "Keskilinjan pystygeometrialta (Profile) puuttuu geometria (ProfAlign-elementti)"

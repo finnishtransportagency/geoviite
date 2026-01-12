@@ -177,7 +177,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     <InfoboxField
                         qaId="geometry-plan-plan-time"
                         label={t('tool-panel.geometry-plan.plan-age')}>
-                        <Age timeStamp={planHeader.planTime} />
+                        {planHeader.planTime && <Age timeStamp={planHeader.planTime} />}
                     </InfoboxField>
                     <InfoboxField label={t('tool-panel.geometry-plan.plan-uploaded')}>
                         <Age timeStamp={planHeader.uploadTime} />

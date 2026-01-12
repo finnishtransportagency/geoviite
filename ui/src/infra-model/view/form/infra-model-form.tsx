@@ -422,7 +422,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                     </FormgroupField>
 
                     <FormgroupField
-                        label={t('im-form.project-field')}
+                        label={`${t('im-form.project-field')} *`}
                         qaId="project-im-field"
                         inEditMode={fieldInEdit === 'project'}
                         onEdit={() => setFieldInEdit('project')}
@@ -473,21 +473,14 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                 <FieldLayout
                                     value={
                                         <Dropdown
-                                            placeholder={t('im-form.coordinate-system-dropdown')}
+                                            wide
+                                            placeholder={t('im-form.information-missing')}
                                             value={getTrackNumberName()}
-                                            options={
-                                                trackNumberList
-                                                    ? trackNumberList
-                                                          .map((tn) =>
-                                                              dropdownOption(
-                                                                  tn,
-                                                                  tn,
-                                                                  `track-number-${tn}`,
-                                                              ),
-                                                          )
-                                                          .sort(compareNamed)
-                                                    : []
-                                            }
+                                            options={(trackNumberList ?? [])
+                                                .map((tn) =>
+                                                    dropdownOption(tn, tn, `track-number-${tn}`),
+                                                )
+                                                .sort(compareNamed)}
                                             canUnselect
                                             onChange={(tn) =>
                                                 changeInOverrideParametersField(tn, 'trackNumber')
@@ -524,6 +517,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                             <FieldLayout
                                 value={
                                     <Dropdown
+                                        wide
                                         placeholder={t('im-form.coordinate-system-dropdown')}
                                         value={coordinateSystem?.srid}
                                         options={(crsList ?? [])
@@ -593,7 +587,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         changeInExtraParametersField={changeInExtraParametersField}
                     />
                     <FormgroupField
-                        label={t('im-form.plan-source')}
+                        label={`${t('im-form.plan-source')} *`}
                         inEditMode={fieldInEdit === 'source'}
                         onEdit={() => setFieldInEdit('source')}
                         onClose={() => setFieldInEdit(undefined)}>
@@ -607,7 +601,8 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                             <FieldLayout
                                 value={
                                     <Dropdown
-                                        placeholder={t('im-form.coordinate-system-dropdown')}
+                                        wide
+                                        placeholder={t('im-form.information-missing')}
                                         value={planSource}
                                         options={planSourceOptions}
                                         onChange={(planSource) => {
