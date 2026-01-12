@@ -18,19 +18,17 @@
 - Avoid extraneous names that only state the obvious (...Object or ...Class in a classname is silly)
 - Avoid generic names that state nothing at all (Util says nothing -- everything is an util).
     - Instead, group static functions by concept and name that (Clothoid, GeometryValidation, ...)
-- Names should primarily tell the role of a variable, not just repeat it's type
+- Names should primarily tell the role of a variable, not just repeat its type
     - Good (Tells the role of the variable in this context): `trackToLink: LocationTrack`
     - Bad (Says nothing new): `locationTrack: LocationTrack`
-- Names should be thought about in the context of the containing function/class - not globally
+- Names should be thought about in the context of the containing function/class -- not globally
     - The wider context comes when the function is called, and may differ by use case
     - Good:
       ```
-      fun filterTrackPoints(geometry: LocationTrackGeometry) = filterPoints(geometry.points)
       fun filterPoints(points: List<IPoint>) {..}
       ```
     - Bad:
       ```
-      fun filterTrackPoints(geometry: LocationTrackGeometry) = filterPoints(geometry.points)
       // Specifying it as trackGeometryPoints is irrelevant for generic point filtering. They could be any points.
       fun filterPoints(trackGeometryPoints: List<IPoint>) {..}
       ```
@@ -159,40 +157,40 @@
   named separate file, e.g. `ResultSetExternal.kt`
 - Consider if using `let`, `map`, `takeIf` etc. chains would be cleaner than local variables or if-structures
 - You can use `also` -blocks to group side-effecting code like assertions in tests without needing variables that are
-  visible to the entire test:
-  ```kotlin
-  @Test
-  fun `should do the thing`() {
-      val result = doTheThing()
-      assertEquals(expectedValue, result.value)
-      assertTrue(result.isValid)
-  
-      val result2 = doTheOtherThing()
-      // If we use "result" again here by accident, we're asserting something wrong
-      assertEquals(expectedValue, result2.value)
-      assertTrue(result2.isValid) 
-  }
-  ```
-  vs
-  ```kotlin
-  @Test
-  fun `should do the thing`() {
-      doTheThing().also { result ->
-          assertEquals(expectedValue, result.value)
-          assertTrue(result.isValid)
-      }
-      doTheOtherThing().also { result ->
-          // Now we can just reuse the name "result" as it's scoped.
-          assertEquals(expectedValue, result.value)
-          assertTrue(result.isValid)
-      }
-  }
-  ```
+  visible to the entire test
+  - For example, the current codebase has plenty of code like this:
+    ```kotlin
+    @Test
+    fun `should do the thing`() {
+        val result = doTheThing()
+        assertEquals(expectedValue, result.value)
+        assertTrue(result.isValid)
+        val result2 = doTheOtherThing()
+        // If we use "result" again here by accident, we're asserting something wrong
+        assertEquals(expectedValue, result2.value)
+        assertTrue(result2.isValid)
+    }
+    ```
+  - The same could be done like this, with tighter scoping and no need for numbered variables:
+    ```kotlin
+    @Test
+    fun `should do the thing`() {
+        doTheThing().also { result ->
+            assertEquals(expectedValue, result.value)
+            assertTrue(result.isValid)
+        }
+        doTheOtherThing().also { result ->
+            // Now we can just reuse the name "result" as it's scoped.
+            assertEquals(expectedValue, result.value)
+            assertTrue(result.isValid)
+        }
+    }
+    ```
 
 #### Tests
 
 - All tests written with Junit 5 (Jupiter)
-    - Due to dependencies, Idea offers assertion imports from multiple sources - pick the jupiter ones
+    - Due to dependencies, Idea offers assertion imports from multiple sources -- pick the jupiter ones
 - Avoid mocking
 - Pure unit tests are in files ending `...Test.kt`
     - These cannot have dependencies outside the code, specifically no DB connections
@@ -204,7 +202,7 @@
 - E2E tests are written in files ending `UI.kt`
     - Just like IT-tests, you can use the full Spring context, particularly for initializing data
     - Use Selenium for manipulating the browser
-- Kotlin supports spaces in function names with backticks - favor these in test names for readability:
+- Kotlin supports spaces in function names with backticks -- favor these in test names for readability:
     - Good:
       ```kotlin
       @Test
@@ -234,13 +232,13 @@
         - When multiple components in different parts of the UI tree display the same state (e.g. map selection)
         - When component state should remain when navigating to another section or refreshing the page
     - The state DOESN'T belong in Redux when:
-        - When it can already be deduced from existing redux state (for example: a nullable value an isValueSet flag)
+        - When it can already be deduced from existing redux state (for example: a nullable value and isValueSet flag)
         - A form state that is initialized from fetched data (won't update on cache refresh if stored in redux)
         - When the state is transient UI state, like whether a dropdown is open or closed or form or dialog open
         - In-flight status of requests (this can easily get borked if a refresh happens mid-flight)
 - Don't store entire objects, but instead only IDs where possible
     - The objects are anyhow cached, so fetching them again is not a relevant cost
-    - If the page gets refreshed, the redux state remains but cache is cleared: that works better when only IDs are
+    - If the page gets refreshed, the redux state remains, but cache is cleared: that works better when only IDs are
       stored
 
 ### SQL
