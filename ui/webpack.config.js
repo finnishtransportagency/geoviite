@@ -32,6 +32,7 @@ const acceptedLicenses = [
     'EPL-1.0',
     '(MIT AND Zlib)',
     'OFL-1.1',
+    'MIT AND BSD-3-Clause',
 ];
 const licenseOverrides = {};
 

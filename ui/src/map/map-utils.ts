@@ -32,6 +32,7 @@ export function calculateMapTiles(view: OlView, tileSizePx: number | undefined):
         resolutions: tileResolutions,
         tileSize: tileSizePx || calculateTileSize(3),
     });
+    console.log('tileSize', calculateTileSize(3));
     const tiles: MapTile[] = [];
     tileGrid.forEachTileCoord(view.calculateExtent(), tileResolutionIndex, function (tileCoord) {
         const tileExtent = tileGrid.getTileCoordExtent(tileCoord) as [

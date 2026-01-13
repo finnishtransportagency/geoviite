@@ -95,7 +95,7 @@ export const relatedMapLayers: LayerCollection = {
 // like hiding by proxy, except with no effect on the displayed layer list, only covering the given layers right at
 // the end
 export const layersCoveringLayers: LayerCollection = {
-    'orthographic-background-map-layer': ['background-map-layer'],
+    //    'orthographic-background-map-layer': ['background-map-layer'],
 };
 
 const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {

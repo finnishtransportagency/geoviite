@@ -1,6 +1,4 @@
 import { Tile } from 'ol/layer';
-import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
-import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import TileSource from 'ol/source/Tile';
@@ -9,53 +7,6 @@ import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
 import { MVT } from 'ol/format';
 import { Stroke, Style } from 'ol/style';
-
-const parser = new WMTSCapabilities();
-
-const MMTLCapabilitiesPromise = fetch(
-    '/location-map/wmts/maasto?service=WMTS&request=GetCapabilities&version=1.0.0',
-).then(async (response) => {
-    const body = await response.text();
-    const parse = parser.read(body);
-    return (
-        (parse['Contents'] !== undefined &&
-            optionsFromCapabilities(parse, {
-                layer: 'taustakartta',
-                matrixSet: 'ETRS-TM35FIN',
-                projection: LAYOUT_SRID,
-                requestEncoding: 'REST',
-            })) ||
-        undefined
-    );
-});
-
-const makeMMLTileSourcePromise = (sourceType: BackgroundMapLayerSourceType) =>
-    MMTLCapabilitiesPromise.then((options) => {
-        if (options) {
-            options.urls = [
-                `/location-map/wmts/maasto/1.0.0/${sourceType}/default/ETRS-TM35FIN/{TileMatrix}/{TileRow}/{TileCol}.png`,
-            ];
-            return new WMTS(options);
-        } else {
-            return undefined;
-        }
-    });
-
-export type BackgroundMapLayerSourceType = 'taustakartta' | 'ortokuva';
-
-function createLayer(sourceType: BackgroundMapLayerSourceType, opacity: number) {
-    const layer = new Tile({ opacity });
-    makeMMLTileSourcePromise(sourceType).then((source) => source && layer.setSource(source));
-    return layer;
-}
-
-export function createBackgroundMapLayer(existingOlLayer: Tile<TileSource>): MapLayer {
-    const layer = existingOlLayer || createLayer('taustakartta', 0.5);
-    return {
-        name: 'background-map-layer',
-        layer: layer,
-    };
-}
 
 const vectorMetaPromise = fetch(
     '/location-map/kiinteisto-avoin/v3/kiinteistojaotus/ETRS-TM35FIN/tilejson.json',
@@ -68,19 +19,12 @@ const vectorMetaPromise = fetch(
     return JSON.parse(refined) as Config;
 });
 
-const vectorSource = vectorMetaPromise.then((_config) => {
-    // return new TileJSON({
-    //     tileJSON: config,
-    //     //        crossOrigin: 'anonymous',
-    // });
-    return new VectorTileSource({
-        format: new MVT(),
-        url: '/location-map/kiinteisto-avoin/tiles/wmts/1.0.0/kiinteistojaotus/default/v3/ETRS-TM35FIN/{z}/{y}/{x}.pbf',
-        projection: LAYOUT_SRID,
-        extent: [-548576, 6291456, 1548576, 8388608],
-        // tileSize: 256,
-        maxZoom: 12,
-    });
+const vectorSource = new VectorTileSource({
+    format: new MVT(),
+    url: '/location-map/kiinteisto-avoin/tiles/wmts/1.0.0/kiinteistojaotus/default/v3/ETRS-TM35FIN/{z}/{y}/{x}.pbf',
+    projection: LAYOUT_SRID,
+    extent: [-548576, 6291456, 1548576, 8388608],
+    maxZoom: 12, // do not try to load more accurate tiles, they don't exist
 });
 
 function createVectorLayer() {
