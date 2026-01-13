@@ -254,10 +254,11 @@ class LayoutTrackNumberDao(
                                         select *
                                           from layout.track_number_version overrider
                                           where overrider.design_id = :design_id
+                                            and overrider.id = tn.id
                                             and not overrider.draft
                                             and not overrider.deleted
-                                            and overrider.change_time >= tn.change_time
-                                            and (overrider.expiry_time is null or overrider.expiry_time < tn.change_time)
+                                            and overrider.change_time <= tn.change_time
+                                            and (overrider.expiry_time is null or overrider.expiry_time > tn.change_time)
                                       ))
                                 end
                         union all
