@@ -7,7 +7,7 @@ import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { RatkoPushErrorDetails } from 'ratko/ratko-push-error';
 import { ratkoPushFailed, RatkoPushStatus, ratkoPushSucceeded } from 'ratko/ratko-model';
 import styles from './publication-card.scss';
-import { RatkoStatus } from 'ratko/ratko-api';
+import { getCurrentPublicationFailure, RatkoStatus } from 'ratko/ratko-api';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
@@ -145,6 +145,11 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
         trackLayoutActionDelegates.clearPublicationSelection();
     }, []);
 
+    const [currentFailure, _currentFailureStatus] = useLoaderWithStatus(
+        () => getCurrentPublicationFailure('MAIN'),
+        [publicationChangeTime, ratkoPushChangeTime],
+    );
+
     const [pageCount, setPageCount] = React.useState(1);
     const [publications, publicationFetchStatus] = useLoaderWithStatus(
         () => getLatestPublications(PUBLICATION_LIST_PAGE_SIZE * pageCount, 'MAIN'),
@@ -201,9 +206,12 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
                 )}
                 {nonSuccesses.length > 0 && (
                     <PublicationCardSection title={t('publication-card.waiting')}>
-                        {latestFailures.map((fail) => (
-                            <RatkoPushErrorDetails key={fail.id} failedPublication={fail} />
-                        ))}
+                        {currentFailure && (
+                            <RatkoPushErrorDetails
+                                error={currentFailure.error}
+                                failedPublication={currentFailure.publication}
+                            />
+                        )}
                         <MainPublicationList publications={nonSuccesses} />
                         {allWaiting && (
                             <WaitingRatkoPushReason hasConnectionError={hasRatkoConnectionError} />

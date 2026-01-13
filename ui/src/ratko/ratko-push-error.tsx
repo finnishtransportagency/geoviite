@@ -1,16 +1,15 @@
 import * as React from 'react';
 import { PublicationDetails } from 'publication/publication-model';
 import styles from 'ratko/ratko-push-error.scss';
-import { useLoader } from 'utils/react-utils';
-import { getRatkoPushError } from 'ratko/ratko-api';
 import { useTranslation } from 'react-i18next';
-import { RatkoAssetType, RatkoPushErrorAsset } from 'ratko/ratko-model';
+import { RatkoAssetType, RatkoPushError, RatkoPushErrorAsset } from 'ratko/ratko-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { useEnvironmentInfo } from 'environment/environment-info';
 
 type RatkoPushErrorDetailsProps = {
+    error: RatkoPushError;
     failedPublication: PublicationDetails;
 };
 
@@ -40,20 +39,16 @@ const assetNameByType = (errorAsset: RatkoPushErrorAsset) => {
 };
 
 export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
+    error,
     failedPublication,
 }) => {
     const { t } = useTranslation();
     const environmentInfo = useEnvironmentInfo();
-    const error = useLoader(() => getRatkoPushError(failedPublication.id), [failedPublication]);
 
     const design = useLayoutDesign(
         getChangeTimes().layoutDesign,
         failedPublication.layoutBranch.branch,
     )?.name;
-
-    if (!error) {
-        return <React.Fragment />;
-    }
 
     const isConnectionIssue = failedPublication.ratkoPushStatus === 'CONNECTION_ISSUE';
     const isInternalError = error.errorType === 'INTERNAL';
