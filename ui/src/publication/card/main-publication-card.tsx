@@ -8,7 +8,7 @@ import { RatkoPushErrorDetails } from 'ratko/ratko-push-error';
 import { ratkoPushFailed, RatkoPushStatus, ratkoPushSucceeded } from 'ratko/ratko-model';
 import styles from './publication-card.scss';
 import { getCurrentPublicationFailure, RatkoStatus } from 'ratko/ratko-api';
-import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { useAppNavigate } from 'common/navigate';
@@ -145,7 +145,7 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
         trackLayoutActionDelegates.clearPublicationSelection();
     }, []);
 
-    const [currentFailure, _currentFailureStatus] = useLoaderWithStatus(
+    const currentRatkoPushError = useLoader(
         () => getCurrentPublicationFailure(),
         [publicationChangeTime, ratkoPushChangeTime],
     );
@@ -206,10 +206,10 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
                 )}
                 {nonSuccesses.length > 0 && (
                     <PublicationCardSection title={t('publication-card.waiting')}>
-                        {currentFailure && (
+                        {currentRatkoPushError && (
                             <RatkoPushErrorDetails
-                                error={currentFailure.error}
-                                failedPublication={currentFailure.publication}
+                                error={currentRatkoPushError.error}
+                                failedPublication={currentRatkoPushError.publication}
                             />
                         )}
                         <MainPublicationList publications={nonSuccesses} />
