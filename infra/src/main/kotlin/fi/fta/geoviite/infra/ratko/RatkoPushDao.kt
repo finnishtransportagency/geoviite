@@ -320,6 +320,6 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                     null
                 }
             }
-            .also { logger.daoAccess(AccessType.FETCH, "${RatkoPush::class.simpleName}.currentStatus") }
+            .also { logger.daoAccess(AccessType.FETCH, RatkoPushError::class) }
     }
 }
