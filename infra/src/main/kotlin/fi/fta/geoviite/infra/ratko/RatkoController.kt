@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_PUBLICATION
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.error.Integration
 import fi.fta.geoviite.infra.error.IntegrationNotConfiguredException
 import fi.fta.geoviite.infra.integration.LocationTrackChange
@@ -46,10 +45,9 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
     }
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
-    @GetMapping("/errors/{branchType}/current")
-    fun getLatestPublicationError(
-        @PathVariable("branchType") branchType: LayoutBranchType
-    ): ResponseEntity<RatkoPushErrorAndDetails> = toResponse(ratkoLocalService.fetchCurrentRatkoPushError(branchType))
+    @GetMapping("/errors/current")
+    fun getLatestPublicationError(): ResponseEntity<RatkoPushErrorAndDetails> =
+        toResponse(ratkoLocalService.fetchCurrentRatkoPushError())
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/is-online")

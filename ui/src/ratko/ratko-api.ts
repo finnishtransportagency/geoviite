@@ -46,5 +46,5 @@ type RatkoPushErrorAndPublication = {
     publication: PublicationDetails;
 };
 
-export const getCurrentPublicationFailure = async (branchType: LayoutBranchType) =>
-    await getNullable<RatkoPushErrorAndPublication>(`${RATKO_URI}/errors/${branchType}/current`);
+export const getCurrentPublicationFailure = async () =>
+    await getNullable<RatkoPushErrorAndPublication>(`${RATKO_URI}/errors/current`);

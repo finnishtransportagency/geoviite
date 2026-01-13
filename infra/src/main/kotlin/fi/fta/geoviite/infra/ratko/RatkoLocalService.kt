@@ -77,7 +77,7 @@ constructor(
     }
 
     @Transactional(readOnly = true)
-    fun fetchCurrentRatkoPushError(branchType: LayoutBranchType): RatkoPushErrorAndDetails? =
+    fun fetchCurrentRatkoPushError(): RatkoPushErrorAndDetails? =
         ratkoPushDao.getCurrentRatkoPushError()?.let { (ratkoError, publicationId) ->
             val asset = getErrorAssetOrThrow(ratkoError)
 

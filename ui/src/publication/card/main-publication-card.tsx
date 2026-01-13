@@ -146,7 +146,7 @@ const MainPublicationCard: React.FC<MainPublicationCardProps> = ({
     }, []);
 
     const [currentFailure, _currentFailureStatus] = useLoaderWithStatus(
-        () => getCurrentPublicationFailure('MAIN'),
+        () => getCurrentPublicationFailure(),
         [publicationChangeTime, ratkoPushChangeTime],
     );
 
