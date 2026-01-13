@@ -2933,6 +2933,49 @@ class PublicationDao(
             }
             .groupBy({ it.first }, { it.second })
     }
+
+    fun fetchPublishedOperationalPointBetween(
+        id: IntId<OperationalPoint>,
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): LayoutRowVersion<OperationalPoint>? =
+        fetchPublishedOperationalPointsBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id).singleOrNull()
+
+    fun fetchPublishedOperationalPointsBetween(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+    ): List<LayoutRowVersion<OperationalPoint>> =
+        fetchPublishedOperationalPointsBetweenInternal(exclusiveStartMoment, inclusiveEndMoment, id = null)
+
+    private fun fetchPublishedOperationalPointsBetweenInternal(
+        exclusiveStartMoment: Instant,
+        inclusiveEndMoment: Instant,
+        id: IntId<OperationalPoint>?,
+    ): List<LayoutRowVersion<OperationalPoint>> {
+        val sql =
+            """
+                select distinct on (pop.id)
+                  pop.id,
+                  pop.layout_context_id,
+                  pop.version
+                from publication.operational_point pop
+                  join publication.publication publication on pop.publication_id = publication.id
+                where publication.design_id is null
+                  and (:operational_point_id::int is null or pop.id = :operational_point_id)
+                  and publication.publication_time > :start_time
+                  and publication.publication_time <= :end_time
+                order by pop.id, publication.publication_time desc
+            """
+                .trimIndent()
+
+        val params =
+            mapOf(
+                "start_time" to Timestamp.from(exclusiveStartMoment),
+                "end_time" to Timestamp.from(inclusiveEndMoment),
+                "operational_point_id" to id?.intValue,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "layout_context_id", "version") }
+    }
 }
 
 private fun <T> partitionByPublicationIdAndDirectOrIndirect(

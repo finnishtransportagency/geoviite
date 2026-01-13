@@ -51,6 +51,23 @@ const val STATE_CATEGORY = "tilakategoria"
 const val TRAP_POINT = "turvavaihde"
 const val SWITCH_TRACK_LINKS = "raidelinkit"
 
+const val OPERATIONAL_POINT = "toiminnallinen_piste"
+const val OPERATIONAL_POINT_OID = "toiminnallinen_piste_oid"
+const val OPERATIONAL_POINT_COLLECTION = "toiminnalliset_pisteet"
+const val RINF_ID = "rinf_id"
+const val NAME = "nimi"
+const val ABBREVIATION = "lyhenne"
+const val SOURCE = "lähde"
+const val TYPE_RATO = "tyyppi_rato"
+const val TYPE_RINF = "tyyppi_rinf"
+const val UIC_CODE = "uic_koodi"
+const val LOCATION = "sijainti"
+const val TRACKS = "raiteet"
+const val SWITCHES = "vaihteet"
+const val AREA = "alue"
+const val CODE = "koodi"
+const val POINTS = "pisteet"
+
 const val SOURCE_LOCATION_TRACK_OID = "geometrian_lahderaide_oid"
 const val SOURCE_LOCATION_TRACK_NAME = "geometrian_lahderaide_tunnus"
 const val TARGET_LOCATION_TRACK_OID = "geometrian_kohderaide_oid"
@@ -107,3 +124,10 @@ const val EXT_OPENAPI_TRACK_LAYOUT_VERSION_NOT_FOUND = "Annettua rataverkon vers
 
 const val EXT_OPENAPI_ONE_OR_MORE_TRACK_LAYOUT_VERSION_NOT_FOUND =
     "Yhtä tai useampaa rataverkon versiota ei ole olemassa."
+
+const val OPERATIONAL_POINT_OID_PARAM = "toiminnallinen_piste_oid"
+
+const val EXT_OPENAPI_OPERATIONAL_POINT_OID_DESCRIPTION = "Toiminnallisen pisteen OID-tunnus."
+
+const val EXT_OPENAPI_OPERATIONAL_POINT_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
+    "Toiminnallista pistettä ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa."

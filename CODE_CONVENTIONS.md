@@ -213,6 +213,18 @@
       @Test
       fun shouldDoTheThingWhenCondition() { /* impl */ }
       ```
+- When comparing collections in tests, use direct equality checks instead of checking size and individual items:
+    - Good:
+      ```kotlin
+      assertEquals(listOf("item1", "item2"), actualList)
+      ```
+    - Bad:
+      ```kotlin
+      assertEquals(2, actualList.size)
+      assert(actualList.contains("item1"))
+      assert(actualList.contains("item2"))
+      ```
+    - Rationale: Kotlin's default `equals` for collections provides better error messages showing the actual contents of both lists, making it easier to debug failures
 
 ### TypeScript
 

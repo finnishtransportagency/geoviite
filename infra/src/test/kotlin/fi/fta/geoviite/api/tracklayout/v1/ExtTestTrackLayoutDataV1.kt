@@ -234,3 +234,55 @@ data class ExtTestModifiedSwitchCollectionResponseV1(
     val koordinaatisto: String,
     val vaihteet: List<ExtTestSwitchV1>,
 )
+
+data class ExtTestOperationalPointRatoTypeV1(val koodi: String, val selite: String)
+
+data class ExtTestOperationalPointRinfTypeV1(val koodi: String, val selite: String)
+
+data class ExtTestOperationalPointV1(
+    val toiminnallinen_piste_oid: String,
+    val rinf_id: String?,
+    val nimi: String,
+    val lyhenne: String?,
+    val tila: String,
+    val lähde: String,
+    val tyyppi_rato: ExtTestOperationalPointRatoTypeV1?,
+    val tyyppi_rinf: ExtTestOperationalPointRinfTypeV1?,
+    val uic_koodi: String?,
+    val sijainti: ExtTestCoordinateV1?,
+    val raiteet: List<ExtTestOperationalPointTrackV1>,
+    val vaihteet: List<ExtTestOperationalPointSwitchV1>,
+    val alue: ExtTestPolygonV1?,
+)
+
+data class ExtTestPolygonV1(val tyyppi: String, val pisteet: List<ExtTestCoordinateV1>)
+
+data class ExtTestOperationalPointTrackV1(val sijaintiraide_oid: String)
+
+data class ExtTestOperationalPointSwitchV1(val vaihde_oid: String)
+
+data class ExtTestOperationalPointResponseV1(
+    val rataverkon_versio: String,
+    val koordinaatisto: String,
+    val toiminnallinen_piste: ExtTestOperationalPointV1,
+)
+
+data class ExtTestModifiedOperationalPointResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val koordinaatisto: String,
+    val toiminnallinen_piste: ExtTestOperationalPointV1,
+)
+
+data class ExtTestOperationalPointCollectionResponseV1(
+    val rataverkon_versio: String,
+    val koordinaatisto: String,
+    val toiminnalliset_pisteet: List<ExtTestOperationalPointV1>,
+)
+
+data class ExtTestModifiedOperationalPointCollectionResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val koordinaatisto: String,
+    val toiminnalliset_pisteet: List<ExtTestOperationalPointV1>,
+)

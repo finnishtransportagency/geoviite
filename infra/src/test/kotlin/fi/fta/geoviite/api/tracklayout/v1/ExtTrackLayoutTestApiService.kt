@@ -118,6 +118,22 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             modifiedAssetCollectionClazz = ExtTestModifiedSwitchCollectionResponseV1::class,
         )
 
+    val operationalPoint =
+        AssetApi<Oid<*>, ExtTestOperationalPointResponseV1, ExtTestModifiedOperationalPointResponseV1>(
+            assetUrl = { oid -> "/geoviite/paikannuspohja/v1/toiminnalliset-pisteet/${oid}" },
+            assetClazz = ExtTestOperationalPointResponseV1::class,
+            modifiedUrl = { oid -> "/geoviite/paikannuspohja/v1/toiminnalliset-pisteet/${oid}/muutokset" },
+            modifiedClazz = ExtTestModifiedOperationalPointResponseV1::class,
+        )
+
+    val operationalPointCollection =
+        AssetCollectionApi(
+            assetCollectionUrl = { "/geoviite/paikannuspohja/v1/toiminnalliset-pisteet" },
+            assetCollectionClazz = ExtTestOperationalPointCollectionResponseV1::class,
+            modifiedAssetCollectionUrl = { "/geoviite/paikannuspohja/v1/toiminnalliset-pisteet/muutokset" },
+            modifiedAssetCollectionClazz = ExtTestModifiedOperationalPointCollectionResponseV1::class,
+        )
+
     inner class AssetApi<AssetId : Any, AssetResponse : Any, AssetModificationResponse : Any>(
         private val assetUrl: (String) -> String,
         private val assetClazz: KClass<AssetResponse>,
