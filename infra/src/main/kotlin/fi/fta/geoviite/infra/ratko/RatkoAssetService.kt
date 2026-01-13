@@ -276,6 +276,7 @@ constructor(
 
             val switchOid = ratkoClient.newAsset<RatkoSwitchAsset>(ratkoSwitch)
             checkNotNull(switchOid) { "Did not receive oid from Ratko for switch $ratkoSwitch" }
+            assert(!isFakeOID(switchOid)) {"Cannot push fake OID $switchOid into Ratko"}
 
             val switchLocations = generateSwitchLocations(jointChanges, switchStructure)
             ratkoClient.replaceAssetLocations(switchOid, switchLocations)
