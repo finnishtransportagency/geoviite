@@ -64,14 +64,14 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.formatForException
 import fi.fta.geoviite.infra.util.formatForLog
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.BigDecimal.ZERO
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 const val INFRAMODEL_SWITCH_CODE = "IM_switch"
 const val INFRAMODEL_SWITCH_TYPE = "switchType"
@@ -105,9 +105,10 @@ fun toGvtPlan(
     // Collect & verify expected mandatory sections
     val coordinateSystem = mandatorySection("coordinate-system", infraModel.coordinateSystem)
     val project = mandatorySection("project", infraModel.project)
-    val application = mandatorySection("application", infraModel.application)
-    val author = mandatorySection("author", application.author)
     val metricUnits = mandatorySection("units", infraModel.units?.metric)
+    val application = infraModel.application
+    val author = application?.author
+
     if (infraModel.alignmentGroups.size != 1) {
         throw InframodelParsingException(
             message = "Plan should have precisely one alignment group: groups=${infraModel.alignmentGroups.size}",
@@ -155,13 +156,15 @@ fun toGvtPlan(
                 description = project.desc?.let(::tryParseFreeText),
             ),
         application =
-            Application(
-                name = MetaDataName.ofUnsafe(application.name),
-                manufacturer = MetaDataName.ofUnsafe(application.manufacturer),
-                version = MetaDataName.ofUnsafe(application.version),
-            ),
-        author = author.company?.let(::tryParseCompanyName)?.let(::Author),
-        planTime = author.timeStamp?.let(::parseTime),
+            application?.let { a ->
+                Application(
+                    name = MetaDataName.ofUnsafe(a.name),
+                    manufacturer = MetaDataName.ofUnsafe(a.manufacturer),
+                    version = MetaDataName.ofUnsafe(a.version),
+                )
+            },
+        author = author?.company?.let(::tryParseCompanyName)?.let(::Author),
+        planTime = author?.timeStamp?.let(::parseTime),
         units = units,
         trackNumber = trackNumber,
         trackNumberDescription = tryParsePlanElementName(trackNumberDescription) ?: emptyName(),

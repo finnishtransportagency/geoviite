@@ -32,6 +32,7 @@ export const InfraModelDecisionPhaseField: React.FC<InfraModelExtraParameterFiel
                 <FieldLayout
                     value={
                         <Dropdown
+                            wide
                             placeholder={t('im-form.information-missing')}
                             value={extraInframodelParameters.decisionPhase}
                             options={planDecisionPhases}

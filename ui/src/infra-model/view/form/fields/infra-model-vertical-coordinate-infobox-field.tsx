@@ -53,6 +53,7 @@ export const InfraModelVerticalCoordinateInfoboxField: React.FC<
                 <FieldLayout
                     value={
                         <Dropdown
+                            wide
                             placeholder={t('im-form.vertical-coordinate-system-field')}
                             value={value}
                             options={verticalCoordinateSystems}

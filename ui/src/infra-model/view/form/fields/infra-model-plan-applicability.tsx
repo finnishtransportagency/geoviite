@@ -31,6 +31,7 @@ export const InfraModelPlanApplicabilityField: React.FC<InfraModelExtraParameter
                 <FieldLayout
                     value={
                         <Dropdown
+                            wide
                             placeholder={t('im-form.information-missing')}
                             value={extraInframodelParameters.planApplicability}
                             options={planApplicabilities}

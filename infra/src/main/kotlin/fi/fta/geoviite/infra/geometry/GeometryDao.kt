@@ -73,15 +73,15 @@ import fi.fta.geoviite.infra.util.getTrackNumberOrNull
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 enum class VerticalIntersectionType {
     POINT,
@@ -119,66 +119,67 @@ constructor(
                 if (author.id is IntId) author.id
                 else findAuthor(author.companyName)?.id as IntId? ?: insertAuthorInternal(author).id
             }
-        val applicationId: IntId<Application> =
-            if (plan.application.id is IntId) plan.application.id
-            else
-                findApplication(plan.application.name, plan.application.version)?.id as IntId?
-                    ?: insertApplicationInternal(plan.application).id
+        val applicationId: IntId<Application>? =
+            plan.application?.let { application ->
+                (application.id as? IntId)
+                    ?: findApplication(application.name, application.version)?.id?.let { it as IntId }
+                    ?: insertApplicationInternal(application).id
+            }
 
         val sql =
             """
-            insert into geometry.plan(
-              track_number,
-              track_number_description,
-              plan_project_id,
-              plan_author_id,
-              plan_application_id,
-              plan_time,
-              upload_time,
-              linear_unit,
-              direction_unit,
-              srid,
-              coordinate_system_name,
-              bounding_polygon,
-              vertical_coordinate_system,
-              source,
-              projektivelho_document_id,
-              plan_phase,
-              plan_decision,
-              measurement_method,
-              elevation_measurement_method,
-              message,
-              hidden,
-              name,
-              plan_applicability
-            )
-            values(
-              :track_number,
-              :track_number_description,
-              :plan_project_id,
-              :plan_author_id,
-              :plan_application_id,
-              :plan_time,
-              now(),
-              :linear_unit::common.linear_unit,
-              :direction_unit::common.angular_unit,
-              :srid,
-              :coordinate_system_name,
-              postgis.st_polygonfromtext(:polygon_string,:mapSrid),
-              :vertical_coordinate_system::common.vertical_coordinate_system,
-              :source::geometry.plan_source,
-              :projektivelho_document_id,
-              :plan_phase::geometry.plan_phase,
-              :plan_decision::geometry.plan_decision,
-              :measurement_method::common.measurement_method,
-              :elevation_measurement_method::common.elevation_measurement_method,
-              :message,
-              :hidden,
-              :name,
-              :plan_applicability::geometry.plan_applicability
-            )
-            returning id, version
-        """
+                insert into geometry.plan(
+                  track_number,
+                  track_number_description,
+                  plan_project_id,
+                  plan_author_id,
+                  plan_application_id,
+                  plan_time,
+                  upload_time,
+                  linear_unit,
+                  direction_unit,
+                  srid,
+                  coordinate_system_name,
+                  bounding_polygon,
+                  vertical_coordinate_system,
+                  source,
+                  projektivelho_document_id,
+                  plan_phase,
+                  plan_decision,
+                  measurement_method,
+                  elevation_measurement_method,
+                  message,
+                  hidden,
+                  name,
+                  plan_applicability
+                )
+                values(
+                  :track_number,
+                  :track_number_description,
+                  :plan_project_id,
+                  :plan_author_id,
+                  :plan_application_id,
+                  :plan_time,
+                  now(),
+                  :linear_unit::common.linear_unit,
+                  :direction_unit::common.angular_unit,
+                  :srid,
+                  :coordinate_system_name,
+                  postgis.st_polygonfromtext(:polygon_string,:mapSrid),
+                  :vertical_coordinate_system::common.vertical_coordinate_system,
+                  :source::geometry.plan_source,
+                  :projektivelho_document_id,
+                  :plan_phase::geometry.plan_phase,
+                  :plan_decision::geometry.plan_decision,
+                  :measurement_method::common.measurement_method,
+                  :elevation_measurement_method::common.elevation_measurement_method,
+                  :message,
+                  :hidden,
+                  :name,
+                  :plan_applicability::geometry.plan_applicability
+                )
+                returning id, version
+            """
                 .trimIndent()
 
         val params =
@@ -187,7 +188,7 @@ constructor(
                 "track_number_description" to plan.trackNumberDescription,
                 "plan_project_id" to projectId.intValue,
                 "plan_author_id" to authorId?.intValue,
-                "plan_application_id" to applicationId.intValue,
+                "plan_application_id" to applicationId?.intValue,
                 "plan_time" to plan.planTime?.let { instant -> Timestamp.from(instant) },
                 "linear_unit" to plan.units.linearUnit.name,
                 "direction_unit" to plan.units.directionUnit.name,
@@ -223,10 +224,10 @@ constructor(
     private fun insertPlanFile(planId: IntId<GeometryPlan>, file: InfraModelFile): IntId<InfraModelFile> {
         val sql =
             """
-           insert into geometry.plan_file(plan_id, name, content) 
-           values (:plan_id, :file_name, xmlparse(document :file_content))
-           returning id, hash
-       """
+                insert into geometry.plan_file(plan_id, name, content)
+                values (:plan_id, :file_name, xmlparse(document :file_content))
+                returning id, hash
+            """
                 .trimIndent()
         val params = mapOf("plan_id" to planId.intValue, "file_name" to file.name, "file_content" to file.content)
         val (fileId, hash) =
@@ -246,16 +247,16 @@ constructor(
 
         val sql =
             """
-          select 
-            plan_file.name as file_name, 
-            plan.source, 
-            plan.id,
-            xmlserialize(document content as varchar) as file_content
-            from geometry.plan_file
-            inner join geometry.plan 
-            on plan_id = plan.id
-          where plan_id in (:plan_ids)
-        """
+              select
+                plan_file.name as file_name,
+                plan.source,
+                plan.id,
+                xmlserialize(document content as varchar) as file_content
+                from geometry.plan_file
+                inner join geometry.plan
+                on plan_id = plan.id
+              where plan_id in (:plan_ids)
+            """
                 .trimIndent()
         val params = mapOf("plan_ids" to planIds.map { it.intValue })
         return jdbcTemplate
@@ -275,13 +276,13 @@ constructor(
         // language=SQL
         val sql =
             """
-            select plan.id, plan.version
-            from geometry.plan 
-              left join geometry.plan_file on plan.id = plan_file.plan_id
-            where plan_file.hash = :hash 
-              and plan.source = :source::geometry.plan_source
-              and plan.hidden = false
-        """
+                select plan.id, plan.version
+                from geometry.plan
+                  left join geometry.plan_file on plan.id = plan_file.plan_id
+                where plan_file.hash = :hash
+                  and plan.source = :source::geometry.plan_source
+                  and plan.hidden = false
+            """
                 .trimIndent()
         val params = mapOf("hash" to newFileHash, "source" to source.name)
 
@@ -297,35 +298,35 @@ constructor(
         // language=SQL
         val sql =
             """
-            with
-              location_tracks as (
+                with
+                  location_tracks as (
+                    select
+                      distinct ga.plan_id, track.id
+                      from layout.location_track track
+                        inner join layout.location_track_version_edge ltve
+                                   on ltve.location_track_id = track.id
+                                     and ltve.location_track_layout_context_id = track.layout_context_id
+                                     and ltve.location_track_version = track.version
+                        inner join layout.edge_segment s on s.edge_id = ltve.edge_id
+                        left join geometry.alignment ga on ga.id = s.geometry_alignment_id
+                  ),
+                  switches as (
+                    select
+                      distinct gs.plan_id, switch.id
+                      from layout.switch
+                        left join geometry.switch gs on gs.id = switch.geometry_switch_id
+                  ),
+                  km_posts as (
+                    select
+                      distinct gp.plan_id, km_post.id
+                      from layout.km_post
+                        left join geometry.km_post gp on gp.id = km_post.geometry_km_post_id
+                  )
                 select
-                  distinct ga.plan_id, track.id
-                  from layout.location_track track
-                    inner join layout.location_track_version_edge ltve
-                               on ltve.location_track_id = track.id
-                                 and ltve.location_track_layout_context_id = track.layout_context_id
-                                 and ltve.location_track_version = track.version
-                    inner join layout.edge_segment s on s.edge_id = ltve.edge_id
-                    left join geometry.alignment ga on ga.id = s.geometry_alignment_id
-              ),
-              switches as (
-                select
-                  distinct gs.plan_id, switch.id
-                  from layout.switch
-                    left join geometry.switch gs on gs.id = switch.geometry_switch_id
-              ),
-              km_posts as (
-                select
-                  distinct gp.plan_id, km_post.id
-                  from layout.km_post
-                    left join geometry.km_post gp on gp.id = km_post.geometry_km_post_id
-              )
-            select
-              (select array_agg(id) from location_tracks where plan_id in (:plan_ids)) as location_track_ids,
-              (select array_agg(id) from switches where plan_id in (:plan_ids)) as switch_ids,
-              (select array_agg(id) from km_posts where plan_id in (:plan_ids)) as km_post_ids
-        """
+                  (select array_agg(id) from location_tracks where plan_id in (:plan_ids)) as location_track_ids,
+                  (select array_agg(id) from switches where plan_id in (:plan_ids)) as switch_ids,
+                  (select array_agg(id) from km_posts where plan_id in (:plan_ids)) as km_post_ids
+            """
                 .trimIndent()
         val params = mapOf("plan_ids" to planIds.map(IntId<GeometryPlan>::intValue))
         return jdbcTemplate
@@ -344,11 +345,11 @@ constructor(
         // language=SQL
         val sql =
             """
-            update geometry.plan
-            set hidden = :hidden
-            where id = :id
-            returning id, version
-        """
+                update geometry.plan
+                set hidden = :hidden
+                where id = :id
+                returning id, version
+            """
                 .trimIndent()
         val params = mapOf("id" to id.intValue, "hidden" to hidden)
 
@@ -363,29 +364,29 @@ constructor(
         jdbcTemplate.setUser()
         val sql =
             """
-            update geometry.plan
-            set
-              track_number = :track_number,
-              track_number_description = :track_number_description,
-              plan_project_id = :plan_project_id,
-              plan_author_id = :plan_author_id,
-              plan_time = :plan_time,
-              srid = :srid,
-              coordinate_system_name = :coordinate_system_name,
-              vertical_coordinate_system = :vertical_coordinate_system::common.vertical_coordinate_system,
-              projektivelho_document_id = :projektivelho_document_id,
-              plan_phase = :plan_phase::geometry.plan_phase,
-              plan_decision = :plan_decision::geometry.plan_decision,
-              measurement_method = :measurement_method::common.measurement_method,
-              elevation_measurement_method = :elevation_measurement_method::common.elevation_measurement_method,
-              message = :message,
-              source = :source::geometry.plan_source,
-              hidden = :hidden,
-              name = :name,
-              plan_applicability = :plan_applicability::geometry.plan_applicability
-            where id = :id
-            returning id, version
-        """
+                update geometry.plan
+                set
+                  track_number = :track_number,
+                  track_number_description = :track_number_description,
+                  plan_project_id = :plan_project_id,
+                  plan_author_id = :plan_author_id,
+                  plan_time = :plan_time,
+                  srid = :srid,
+                  coordinate_system_name = :coordinate_system_name,
+                  vertical_coordinate_system = :vertical_coordinate_system::common.vertical_coordinate_system,
+                  projektivelho_document_id = :projektivelho_document_id,
+                  plan_phase = :plan_phase::geometry.plan_phase,
+                  plan_decision = :plan_decision::geometry.plan_decision,
+                  measurement_method = :measurement_method::common.measurement_method,
+                  elevation_measurement_method = :elevation_measurement_method::common.elevation_measurement_method,
+                  message = :message,
+                  source = :source::geometry.plan_source,
+                  hidden = :hidden,
+                  name = :name,
+                  plan_applicability = :plan_applicability::geometry.plan_applicability
+                where id = :id
+                returning id, version
+            """
                 .trimIndent()
 
         val params =
@@ -427,10 +428,10 @@ constructor(
     private fun insertProjectInternal(project: Project): RowVersion<Project> {
         val sql =
             """
-            insert into geometry.plan_project(name, description) 
-            values (:name, :description) 
-            returning id, version
-        """
+                insert into geometry.plan_project(name, description)
+                values (:name, :description)
+                returning id, version
+            """
                 .trimIndent()
         val params = mapOf("name" to project.name, "description" to project.description)
         val projectVersion: RowVersion<Project> =
@@ -449,10 +450,10 @@ constructor(
     private fun insertAuthorInternal(author: Author): RowVersion<Author> {
         val sql =
             """
-            insert into geometry.plan_author(company_name)
-            values (:company_name)
-            returning id, version
-        """
+                insert into geometry.plan_author(company_name)
+                values (:company_name)
+                returning id, version
+            """
                 .trimIndent()
 
         val params = mapOf("company_name" to author.companyName)
@@ -492,11 +493,11 @@ constructor(
     fun findApplication(name: MetaDataName, version: MetaDataName): Application? {
         val sql =
             """
-            select
-              id, name, manufacturer, application_version
-            from geometry.plan_application
-            where unique_name = common.nospace_lowercase(:name) || ' ' || common.nospace_lowercase(:application_version)
-        """
+                select
+                  id, name, manufacturer, application_version
+                from geometry.plan_application
+                where unique_name = common.nospace_lowercase(:name) || ' ' || common.nospace_lowercase(:application_version)
+            """
                 .trimIndent()
 
         val params = mapOf("name" to name, "application_version" to version)
@@ -519,14 +520,14 @@ constructor(
     fun getApplication(applicationId: IntId<Application>): Application {
         val sql =
             """
-            select 
-            id,
-            name,
-            manufacturer,
-            application_version
-            from geometry.plan_application
-            where id = :id
-        """
+                select
+                  id,
+                  name,
+                  manufacturer,
+                  application_version
+                from geometry.plan_application
+                where id = :id
+            """
                 .trimIndent()
 
         val params = mapOf("id" to applicationId.intValue)
@@ -557,22 +558,22 @@ constructor(
     private fun insertSwitch(plandId: IntId<GeometryPlan>, switch: GeometrySwitch): IntId<GeometrySwitch> {
         val sql =
             """
-            insert into geometry.switch(
-              plan_id, 
-              name,
-              switch_structure_id,
-              type_name,
-              state
-            )
-            values(
-              :plan_id, 
-              :name,
-              :switch_structure_id,
-              :type_name,
-              :state::geometry.plan_state
-            )
-            returning id
-        """
+                insert into geometry.switch(
+                  plan_id,
+                  name,
+                  switch_structure_id,
+                  type_name,
+                  state
+                )
+                values(
+                  :plan_id,
+                  :name,
+                  :switch_structure_id,
+                  :type_name,
+                  :state::geometry.plan_state
+                )
+                returning id
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -692,33 +693,33 @@ constructor(
         alignment: GeometryAlignment,
     ): RowVersion<GeometryAlignment> {
         val sql =
-            """ 
-            insert into geometry.alignment(
-              plan_id,
-              name,
-              description,
-              state,
-              sta_start,
-              profile_name,
-              cant_name,
-              cant_description,
-              cant_gauge,
-              cant_rotation_point,
-              feature_type_code)
-            values(
-              :plan_id,
-              :name,
-              :description,
-              :state::geometry.plan_state,
-              :sta_start,
-              :profile_name,
-              :cant_name,
-              :cant_description,
-              :cant_gauge,
-              :cant_rotation_point::geometry.cant_rotation_point,
-              :feature_type_code)
-            returning id --, version
-        """
+            """
+                insert into geometry.alignment(
+                  plan_id,
+                  name,
+                  description,
+                  state,
+                  sta_start,
+                  profile_name,
+                  cant_name,
+                  cant_description,
+                  cant_gauge,
+                  cant_rotation_point,
+                  feature_type_code)
+                values(
+                  :plan_id,
+                  :name,
+                  :description,
+                  :state::geometry.plan_state,
+                  :sta_start,
+                  :profile_name,
+                  :cant_name,
+                  :cant_description,
+                  :cant_gauge,
+                  :cant_rotation_point::geometry.cant_rotation_point,
+                  :feature_type_code)
+                returning id --, version
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -742,47 +743,47 @@ constructor(
     fun preloadHeaderCache(): Int {
         val sql =
             """
-          select 
-            plan.id as plan_id, 
-            plan.version as plan_version, 
-            plan_file.name as file_name, 
-            plan.source,
-            plan.message, 
-            plan.plan_time, 
-            plan.upload_time, 
-            plan.measurement_method,
-            plan.elevation_measurement_method,
-            plan.plan_phase, 
-            plan.plan_decision,
-            plan.linear_unit,
-            plan.direction_unit,
-            plan.srid,
-            plan.coordinate_system_name,
-            plan.vertical_coordinate_system,
-            plan.linked_as_plan_id,
-            project.id as project_id, 
-            project.name as project_name,
-            project.description as project_description,
-            plan.track_number,
-            (select min(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as min_km_number,
-            (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number,
-            author.company_name as author,
-            has_profile,
-            has_cant,
-            plan.hidden,
-            plan.name,
-            plan.plan_applicability
-          from geometry.plan
-            left join geometry.plan_file on plan_file.plan_id = plan.id
-            left join geometry.plan_project project on project.id = plan.plan_project_id
-            left join geometry.plan_author author on plan.plan_author_id = author.id
-            left join lateral (
-              select 
-                bool_or(profile_name is not null) as has_profile,
-                bool_or(cant_name is not null) as has_cant
-              from geometry.alignment where plan_id = plan.id
-            ) alignments on (true)
-        """
+              select
+                plan.id as plan_id,
+                plan.version as plan_version,
+                plan_file.name as file_name,
+                plan.source,
+                plan.message,
+                plan.plan_time,
+                plan.upload_time,
+                plan.measurement_method,
+                plan.elevation_measurement_method,
+                plan.plan_phase,
+                plan.plan_decision,
+                plan.linear_unit,
+                plan.direction_unit,
+                plan.srid,
+                plan.coordinate_system_name,
+                plan.vertical_coordinate_system,
+                plan.linked_as_plan_id,
+                project.id as project_id,
+                project.name as project_name,
+                project.description as project_description,
+                plan.track_number,
+                (select min(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as min_km_number,
+                (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number,
+                author.company_name as author,
+                has_profile,
+                has_cant,
+                plan.hidden,
+                plan.name,
+                plan.plan_applicability
+              from geometry.plan
+                left join geometry.plan_file on plan_file.plan_id = plan.id
+                left join geometry.plan_project project on project.id = plan.plan_project_id
+                left join geometry.plan_author author on plan.plan_author_id = author.id
+                left join lateral (
+                  select
+                    bool_or(profile_name is not null) as has_profile,
+                    bool_or(cant_name is not null) as has_cant
+                  from geometry.alignment where plan_id = plan.id
+                ) alignments on (true)
+            """
                 .trimIndent()
         val headers =
             jdbcTemplate
@@ -805,49 +806,49 @@ constructor(
         // language=SQL
         val sql =
             """
-          select 
-            plan.id as plan_id, 
-            plan.version as plan_version, 
-            plan_file.name as file_name, 
-            plan.source,
-            plan.message, 
-            plan.plan_time, 
-            plan.upload_time, 
-            plan.measurement_method,
-            plan.elevation_measurement_method,
-            plan.plan_phase, 
-            plan.plan_decision,
-            plan.linear_unit,
-            plan.direction_unit,
-            plan.srid,
-            plan.coordinate_system_name,
-            plan.vertical_coordinate_system,
-            plan.linked_as_plan_id,
-            project.id as project_id, 
-            project.name as project_name,
-            project.description as project_description,
-            plan.track_number,
-            (select min(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as min_km_number,
-            (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number,
-            author.company_name as author,
-            has_profile,
-            has_cant,
-            plan.hidden,
-            plan.name,
-            plan.plan_applicability
-          from geometry.plan_version plan
-            left join geometry.plan_file on plan_file.plan_id = plan.id
-            left join geometry.plan_project project on project.id = plan.plan_project_id
-            left join geometry.plan_author author on plan.plan_author_id = author.id
-            left join lateral (
-              select 
-                bool_or(profile_name is not null) as has_profile,
-                bool_or(cant_name is not null) as has_cant
-              from geometry.alignment where plan_id = plan.id
-            ) alignments on (true)
-          where :plan_id = plan.id 
-            and :plan_version = plan.version
-        """
+              select
+                plan.id as plan_id,
+                plan.version as plan_version,
+                plan_file.name as file_name,
+                plan.source,
+                plan.message,
+                plan.plan_time,
+                plan.upload_time,
+                plan.measurement_method,
+                plan.elevation_measurement_method,
+                plan.plan_phase,
+                plan.plan_decision,
+                plan.linear_unit,
+                plan.direction_unit,
+                plan.srid,
+                plan.coordinate_system_name,
+                plan.vertical_coordinate_system,
+                plan.linked_as_plan_id,
+                project.id as project_id,
+                project.name as project_name,
+                project.description as project_description,
+                plan.track_number,
+                (select min(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as min_km_number,
+                (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number,
+                author.company_name as author,
+                has_profile,
+                has_cant,
+                plan.hidden,
+                plan.name,
+                plan.plan_applicability
+              from geometry.plan_version plan
+                left join geometry.plan_file on plan_file.plan_id = plan.id
+                left join geometry.plan_project project on project.id = plan.plan_project_id
+                left join geometry.plan_author author on plan.plan_author_id = author.id
+                left join lateral (
+                  select
+                    bool_or(profile_name is not null) as has_profile,
+                    bool_or(cant_name is not null) as has_cant
+                  from geometry.alignment where plan_id = plan.id
+                ) alignments on (true)
+              where :plan_id = plan.id
+                and :plan_version = plan.version
+            """
                 .trimIndent()
         val params = mapOf("plan_id" to rowVersion.id.intValue, "plan_version" to rowVersion.version)
         return getOne(rowVersion.id, jdbcTemplate.query(sql, params) { rs, _ -> getPlanHeader(rs) }).also { header ->
@@ -905,15 +906,15 @@ constructor(
     fun fetchPlanVersions(sources: List<PlanSource>, bbox: BoundingBox?): List<RowVersion<GeometryPlan>> {
         val sql =
             """
-            select id, version
-            from geometry.plan
-            where source::text in (:sources)
-              and hidden = false
-              and (:polygon_wkt::varchar is null or postgis.st_intersects(
-                plan.bounding_polygon_simple,
-                postgis.st_polygonfromtext(:polygon_wkt::varchar, :map_srid)
-              ))
-        """
+                select id, version
+                from geometry.plan
+                where source::text in (:sources)
+                  and hidden = false
+                  and (:polygon_wkt::varchar is null or postgis.st_intersects(
+                    plan.bounding_polygon_simple,
+                    postgis.st_polygonfromtext(:polygon_wkt::varchar, :map_srid)
+                  ))
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -934,11 +935,11 @@ constructor(
         // language=SQL
         val sql =
             """
-            select plan.id, plan.version
-            from geometry.alignment 
-              left join geometry.plan on plan.id = alignment.plan_id
-            where alignment.id = :alignment_id
-        """
+                select plan.id, plan.version
+                from geometry.alignment
+                  left join geometry.plan on plan.id = alignment.plan_id
+                where alignment.id = :alignment_id
+            """
                 .trimIndent()
         val params = mapOf("alignment_id" to alignmentId.intValue)
         return jdbcTemplate.queryOne(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
@@ -949,17 +950,17 @@ constructor(
     fun fetchPlanAreas(mapBoundingBox: BoundingBox): List<GeometryPlanArea> {
         val sql =
             """
-          select 
-            plan.id,
-            plan.name,
-            postgis.st_astext(plan.bounding_polygon_simple) as bounding_polygon
-          from geometry.plan
-            where hidden = false
-              and postgis.st_intersects(
-                  plan.bounding_polygon_simple, 
-                  postgis.st_polygonfromtext(:polygon_wkt, :map_srid)
-              )
-        """
+              select
+                plan.id,
+                plan.name,
+                postgis.st_astext(plan.bounding_polygon_simple) as bounding_polygon
+              from geometry.plan
+                where hidden = false
+                  and postgis.st_intersects(
+                      plan.bounding_polygon_simple,
+                      postgis.st_polygonfromtext(:polygon_wkt, :map_srid)
+                  )
+            """
                 .trimIndent()
         val params = mapOf("polygon_wkt" to mapBoundingBox.polygonFromCorners.toWkt(), "map_srid" to LAYOUT_SRID.code)
         val result =
@@ -987,16 +988,16 @@ constructor(
         // forced materialization keeps it fast also on later times it's run in a session.
         val sql =
             """
-          with search_input as materialized (select postgis.st_polygonfromtext(:polygon_wkt, :map_srid) as poly)
-          select 
-            plan.id
-          from geometry.plan
-            where hidden = false
-              and postgis.st_intersects(
-                  plan.bounding_polygon, 
-                  (select poly from search_input)
-              )
-        """
+              with search_input as materialized (select postgis.st_polygonfromtext(:polygon_wkt, :map_srid) as poly)
+              select
+                plan.id
+              from geometry.plan
+                where hidden = false
+                  and postgis.st_intersects(
+                      plan.bounding_polygon,
+                      (select poly from search_input)
+                  )
+            """
                 .trimIndent()
         val params = mapOf("polygon_wkt" to polygon.toWkt(), "map_srid" to srid.code)
         return jdbcTemplate
@@ -1009,41 +1010,41 @@ constructor(
     fun fetchPlan(planVersion: RowVersion<GeometryPlan>): GeometryPlan {
         val sql =
             """
-            select
-              plan.id,
-              plan.source,
-              plan.linear_unit,
-              plan.direction_unit,
-              plan.track_number,
-              plan.track_number_description,
-              plan.srid,
-              plan.coordinate_system_name,
-              plan.vertical_coordinate_system,
-              plan.plan_time,
-              plan.upload_time,
-              plan.plan_project_id,
-              plan_author.id as author_id,
-              plan_author.company_name as author_company_name,
-              plan_application.id as application_id,
-              plan_application.name as application_name,
-              plan_application.manufacturer as application_manufacturer,
-              plan_application.application_version as application_version,
-              plan_file.name as file_name,
-              plan.projektivelho_document_id,
-              plan.plan_phase,
-              plan.plan_decision,
-              plan.measurement_method,
-              plan.elevation_measurement_method,
-              plan.message,
-              plan.hidden,
-              plan.name,
-              plan.plan_applicability
-            from geometry.plan 
-              left join geometry.plan_file on plan_file.plan_id = plan.id
-              left join geometry.plan_author on plan.plan_author_id = plan_author.id
-              left join geometry.plan_application on plan.plan_application_id = plan_application.id
-            where plan.id = :plan_id
-        """
+                select
+                  plan.id,
+                  plan.source,
+                  plan.linear_unit,
+                  plan.direction_unit,
+                  plan.track_number,
+                  plan.track_number_description,
+                  plan.srid,
+                  plan.coordinate_system_name,
+                  plan.vertical_coordinate_system,
+                  plan.plan_time,
+                  plan.upload_time,
+                  plan.plan_project_id,
+                  plan_author.id as author_id,
+                  plan_author.company_name as author_company_name,
+                  plan_application.id as application_id,
+                  plan_application.name as application_name,
+                  plan_application.manufacturer as application_manufacturer,
+                  plan_application.application_version as application_version,
+                  plan_file.name as file_name,
+                  plan.projektivelho_document_id,
+                  plan.plan_phase,
+                  plan.plan_decision,
+                  plan.measurement_method,
+                  plan.elevation_measurement_method,
+                  plan.message,
+                  plan.hidden,
+                  plan.name,
+                  plan.plan_applicability
+                from geometry.plan
+                  left join geometry.plan_file on plan_file.plan_id = plan.id
+                  left join geometry.plan_author on plan.plan_author_id = plan_author.id
+                  left join geometry.plan_application on plan.plan_application_id = plan_application.id
+                where plan.id = :plan_id
+            """
                 .trimIndent()
         val params = mapOf("plan_id" to planVersion.id.intValue)
 
@@ -1060,6 +1061,7 @@ constructor(
                             linearUnit = rs.getEnum("linear_unit"),
                         )
                     val authorId = rs.getIntIdOrNull<Author>("author_id")
+                    val applicationId = rs.getIntIdOrNull<Application>("application_id")
                     val geometryPlan =
                         GeometryPlan(
                             id = rs.getIntId("id"),
@@ -1070,12 +1072,14 @@ constructor(
                                     Author(id = id, companyName = CompanyName(rs.getString("author_company_name")))
                                 },
                             application =
-                                Application(
-                                    id = rs.getIntId("application_id"),
-                                    name = MetaDataName(rs.getString("application_name")),
-                                    manufacturer = MetaDataName(rs.getString("application_manufacturer")),
-                                    version = MetaDataName(rs.getString("application_version")),
-                                ),
+                                applicationId?.let { id ->
+                                    Application(
+                                        id = id,
+                                        name = MetaDataName(rs.getString("application_name")),
+                                        manufacturer = MetaDataName(rs.getString("application_manufacturer")),
+                                        version = MetaDataName(rs.getString("application_version")),
+                                    )
+                                },
                             planTime = rs.getInstantOrNull("plan_time"),
                             units = units,
                             trackNumber = rs.getTrackNumberOrNull("track_number"),
@@ -1107,10 +1111,10 @@ constructor(
     fun getProject(projectId: IntId<Project>): Project {
         val sql =
             """
-            select id, name, description
-            from geometry.plan_project
-            where id = :id
-        """
+                select id, name, description
+                from geometry.plan_project
+                where id = :id
+            """
                 .trimIndent()
         val params = mapOf("id" to projectId.intValue)
 
@@ -1131,11 +1135,11 @@ constructor(
     fun findProject(projectName: ProjectName): Project? {
         val sql =
             """
-            select
-              id, name, description
-            from geometry.plan_project
-            where unique_name = common.nospace_lowercase(:name)
-        """
+                select
+                  id, name, description
+                from geometry.plan_project
+                where unique_name = common.nospace_lowercase(:name)
+            """
                 .trimIndent()
 
         val params = mapOf("name" to projectName)
@@ -1157,12 +1161,12 @@ constructor(
     fun fetchProjects(): List<Project> {
         val sql =
             """
-            select
-              id
-            , name
-            , description
-            from geometry.plan_project
-        """
+                select
+                  id,
+                  name,
+                  description
+                from geometry.plan_project
+            """
                 .trimIndent()
         val projects =
             jdbcTemplate.query(sql) { rs, _ ->
@@ -1184,12 +1188,12 @@ constructor(
     fun findAuthor(companyName: CompanyName): Author? {
         val sql =
             """
-            select
-              id
-            , company_name
-            from geometry.plan_author
-            where unique_company_name = common.nospace_lowercase(:company_name)
-        """
+                select
+                  id,
+                  company_name
+                from geometry.plan_author
+                where unique_company_name = common.nospace_lowercase(:company_name)
+            """
                 .trimIndent()
 
         val params = mapOf("company_name" to companyName)
@@ -1207,12 +1211,12 @@ constructor(
     fun getAuthor(authorId: IntId<Author>): Author {
         val sql =
             """
-            select
-              id
-            , company_name
-            from geometry.plan_author
-            where id = :id
-        """
+                select
+                  id,
+                  company_name
+                from geometry.plan_author
+                where id = :id
+            """
                 .trimIndent()
         val params = mapOf("id" to authorId.intValue)
 
@@ -1229,11 +1233,11 @@ constructor(
     fun fetchAuthors(): List<Author> {
         val sql =
             """
-            select
-              id
-            , company_name
-            from geometry.plan_author
-        """
+                select
+                  id,
+                  company_name
+                from geometry.plan_author
+            """
                 .trimIndent()
         val authors =
             jdbcTemplate.query(sql) { rs, _ ->
@@ -1251,19 +1255,19 @@ constructor(
     ): List<GeometryAlignment> {
         val sql =
             """
-            select 
-              alignment.id, alignment.oid_part, 
-              alignment.name, alignment.state, alignment.description,
-              alignment.sta_start,
-              alignment.profile_name,
-              alignment.cant_name, alignment.cant_description, 
-              alignment.cant_gauge, alignment.cant_rotation_point,
-              alignment.feature_type_code
-            from geometry.alignment 
-            where (:plan_id::int is null or alignment.plan_id = :plan_id)
-              and (:alignment_id::int is null or alignment.id = :alignment_id)
-            order by alignment.id
-        """
+                select
+                  alignment.id, alignment.oid_part,
+                  alignment.name, alignment.state, alignment.description,
+                  alignment.sta_start,
+                  alignment.profile_name,
+                  alignment.cant_name, alignment.cant_description,
+                  alignment.cant_gauge, alignment.cant_rotation_point,
+                  alignment.feature_type_code
+                from geometry.alignment
+                where (:plan_id::int is null or alignment.plan_id = :plan_id)
+                  and (:alignment_id::int is null or alignment.id = :alignment_id)
+                order by alignment.id
+            """
                 .trimIndent()
         return jdbcTemplate.query(
             sql,
@@ -1312,16 +1316,16 @@ constructor(
     private fun fetchSwitches(planId: IntId<GeometryPlan>?, switchId: IntId<GeometrySwitch>?): List<GeometrySwitch> {
         val sql =
             """
-            select
-              id,
-              name,
-              switch_structure_id,
-              type_name,
-              state
-            from geometry.switch
-            where (:plan_id::int is null or plan_id = :plan_id) 
-              and (:switch_id::int is null or id = :switch_id)
-        """
+                select
+                  id,
+                  name,
+                  switch_structure_id,
+                  type_name,
+                  state
+                from geometry.switch
+                where (:plan_id::int is null or plan_id = :plan_id)
+                  and (:switch_id::int is null or id = :switch_id)
+            """
                 .trimIndent()
         val params = mapOf("plan_id" to planId?.intValue, "switch_id" to switchId?.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -1340,13 +1344,13 @@ constructor(
     private fun getSwitchJoints(switchId: IntId<GeometrySwitch>): List<GeometrySwitchJoint> {
         val sql =
             """
-            select 
-              number,
-              postgis.st_x(location) as location_x,
-              postgis.st_y(location) as location_y
-            from geometry.switch_joint
-            where switch_id = :switch_id
-        """
+                select
+                  number,
+                  postgis.st_x(location) as location_x,
+                  postgis.st_y(location) as location_y
+                from geometry.switch_joint
+                where switch_id = :switch_id
+            """
                 .trimIndent()
         return jdbcTemplate
             .query(sql, mapOf("switch_id" to switchId.intValue)) { rs, _ ->
@@ -1362,12 +1366,12 @@ constructor(
         // language=SQL
         val sql =
             """
-            select
-                plan.srid
-            from geometry.switch
-                left join geometry.plan plan on switch.plan_id = plan.id
-            where switch.id = :switch_id
-        """
+                select
+                    plan.srid
+                from geometry.switch
+                    left join geometry.plan plan on switch.plan_id = plan.id
+                where switch.id = :switch_id
+            """
                 .trimIndent()
         val params = mapOf("switch_id" to id.intValue)
         logger.daoAccess(FETCH, GeometrySwitch::class, params)
@@ -1382,21 +1386,21 @@ constructor(
     ): List<GeometryKmPost> {
         val sql =
             """
-            select
-              km_post.id,
-              km_post.km_post_index, 
-              km_post.sta_back, 
-              km_post.sta_ahead,
-              km_post.sta_internal, 
-              km_post.km_number,
-              km_post.description,
-              km_post.state,
-              postgis.st_x(km_post.location) as location_x,
-              postgis.st_y(km_post.location) as location_y
-            from geometry.km_post
-            where (:plan_id::int is null or plan_id = :plan_id) 
-              and (:km_post_id::int is null or id = :km_post_id)
-        """
+                select
+                  km_post.id,
+                  km_post.km_post_index,
+                  km_post.sta_back,
+                  km_post.sta_ahead,
+                  km_post.sta_internal,
+                  km_post.km_number,
+                  km_post.description,
+                  km_post.state,
+                  postgis.st_x(km_post.location) as location_x,
+                  postgis.st_y(km_post.location) as location_y
+                from geometry.km_post
+                where (:plan_id::int is null or plan_id = :plan_id)
+                  and (:km_post_id::int is null or id = :km_post_id)
+            """
                 .trimIndent()
         val params = mapOf("plan_id" to planId?.intValue, "km_post_id" to kmPostId?.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -1417,12 +1421,12 @@ constructor(
         // language=SQL
         val sql =
             """
-            select
-                plan.srid
-            from geometry.km_post
-                left join geometry.plan plan on km_post.plan_id = plan.id
-            where km_post.id = :km_post_id
-        """
+                select
+                    plan.srid
+                from geometry.km_post
+                    left join geometry.plan plan on km_post.plan_id = plan.id
+                where km_post.id = :km_post_id
+            """
                 .trimIndent()
         val params = mapOf("km_post_id" to id.intValue)
         return jdbcTemplate.queryOne(sql, params, id.toString()) { rs, _ -> rs.getSridOrNull("srid") }
@@ -1439,17 +1443,17 @@ constructor(
     fun fetchPlanUnits(alignmentId: IntId<GeometryAlignment>): GeometryPlanUnits {
         val sql =
             """
-            select 
-                plan.id, 
-                plan.direction_unit, 
-                plan.linear_unit, 
-                plan.srid, 
-                plan.coordinate_system_name,
-                plan.vertical_coordinate_system
-            from geometry.alignment alignment 
-              left join geometry.plan plan on alignment.plan_id = plan.id
-            where alignment.id = :alignment_id
-        """
+                select
+                    plan.id,
+                    plan.direction_unit,
+                    plan.linear_unit,
+                    plan.srid,
+                    plan.coordinate_system_name,
+                    plan.vertical_coordinate_system
+                from geometry.alignment alignment
+                  left join geometry.plan plan on alignment.plan_id = plan.id
+                where alignment.id = :alignment_id
+            """
                 .trimIndent()
         return jdbcTemplate
             .query(sql, mapOf("alignment_id" to alignmentId.intValue)) { rs, _ ->
@@ -1476,38 +1480,38 @@ constructor(
     ): List<GeometryElement> {
         val sql =
             """
-            select
-              alignment_id,
-              element_index,
-              name,
-              oid_part,
-              type,
-              sta_start,
-              length,
-              postgis.st_x(start_point) as start_x,
-              postgis.st_y(start_point) as start_y,
-              postgis.st_x(end_point) as end_x,
-              postgis.st_y(end_point) as end_y,
-              rotation,
-              curve_radius,
-              curve_chord,
-              postgis.st_x(curve_center_point) as curve_center_x,
-              postgis.st_y(curve_center_point) as curve_center_y,
-              spiral_dir_start,
-              spiral_dir_end,
-              spiral_radius_start,
-              spiral_radius_end,
-              postgis.st_x(spiral_pi_point) as spiral_pi_x,
-              postgis.st_y(spiral_pi_point) as spiral_pi_y,
-              clothoid_constant,
-              switch_id,
-              switch_start_joint_number,
-              switch_end_joint_number
-            from geometry.element
-            where alignment_id = :alignment_id
-              and (:element_index::int is null or element_index = :element_index)
-            order by element_index
-        """
+                select
+                  alignment_id,
+                  element_index,
+                  name,
+                  oid_part,
+                  type,
+                  sta_start,
+                  length,
+                  postgis.st_x(start_point) as start_x,
+                  postgis.st_y(start_point) as start_y,
+                  postgis.st_x(end_point) as end_x,
+                  postgis.st_y(end_point) as end_y,
+                  rotation,
+                  curve_radius,
+                  curve_chord,
+                  postgis.st_x(curve_center_point) as curve_center_x,
+                  postgis.st_y(curve_center_point) as curve_center_y,
+                  spiral_dir_start,
+                  spiral_dir_end,
+                  spiral_radius_start,
+                  spiral_radius_end,
+                  postgis.st_x(spiral_pi_point) as spiral_pi_x,
+                  postgis.st_y(spiral_pi_point) as spiral_pi_y,
+                  clothoid_constant,
+                  switch_id,
+                  switch_start_joint_number,
+                  switch_end_joint_number
+                from geometry.element
+                where alignment_id = :alignment_id
+                  and (:element_index::int is null or element_index = :element_index)
+                order by element_index
+            """
                 .trimIndent()
 
         val params = mapOf("alignment_id" to alignmentId.intValue, "element_index" to geometryElementId?.index)
@@ -1584,11 +1588,11 @@ constructor(
     private fun fetchProfileElements(alignmentId: IntId<GeometryAlignment>): List<VerticalIntersection> {
         val sql =
             """
-            select type, description, postgis.st_x(point) as point_x, postgis.st_y(point) as point_y, circular_radius, circular_length
-            from geometry.vertical_intersection
-            where alignment_id = :alignment_id
-            order by intersection_index
-        """
+                select type, description, postgis.st_x(point) as point_x, postgis.st_y(point) as point_y, circular_radius, circular_length
+                from geometry.vertical_intersection
+                where alignment_id = :alignment_id
+                order by intersection_index
+            """
                 .trimIndent()
         val params = mapOf("alignment_id" to alignmentId.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -1613,11 +1617,11 @@ constructor(
     private fun fetchCantPoints(alignmentId: IntId<GeometryAlignment>): List<GeometryCantPoint> {
         val sql =
             """
-            select station, applied_cant, curvature, transition_type
-            from geometry.cant_point
-            where alignment_id = :alignment_id
-            order by cant_point_index
-        """
+                select station, applied_cant, curvature, transition_type
+                from geometry.cant_point
+                where alignment_id = :alignment_id
+                order by cant_point_index
+            """
                 .trimIndent()
         val params = mapOf("alignment_id" to alignmentId.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -1633,51 +1637,51 @@ constructor(
     private fun insertGeometryElements(elementSqlParams: List<Map<String, Any?>>) {
         val sql =
             """
-            insert into geometry.element(
-              alignment_id,
-              element_index,
-              oid_part,
-              type,
-              name,
-              length,
-              sta_start,
-              start_point,
-              end_point,
-              rotation,
-              curve_radius,
-              curve_chord,
-              curve_center_point,
-              spiral_dir_start, spiral_dir_end,
-              spiral_radius_start, spiral_radius_end,
-              spiral_pi_point,
-              clothoid_constant,
-              switch_id,
-              switch_start_joint_number,
-              switch_end_joint_number
-            )
-            values(
-              :alignment_id,
-              :element_index,
-              :oid_part,
-              :type::geometry.element_type,
-              :name,
-              :length,
-              :sta_start,
-              postgis.st_point(:start_point_x, :start_point_y),
-              postgis.st_point(:end_point_x, :end_point_y),
-              :rotation::common.rotation_direction,
-              :curve_radius,
-              :curve_chord,
-              postgis.st_point(:curve_center_point_x, :curve_center_point_y),
-              :spiral_dir_start, :spiral_dir_end,
-              :spiral_radius_start, :spiral_radius_end,
-              postgis.st_point(:spiral_pi_point_x, :spiral_pi_point_y),
-              :clothoid_constant,
-              :switch_id,
-              :switch_start_joint_number,
-              :switch_end_joint_number
-            )
-        """
+                insert into geometry.element(
+                  alignment_id,
+                  element_index,
+                  oid_part,
+                  type,
+                  name,
+                  length,
+                  sta_start,
+                  start_point,
+                  end_point,
+                  rotation,
+                  curve_radius,
+                  curve_chord,
+                  curve_center_point,
+                  spiral_dir_start, spiral_dir_end,
+                  spiral_radius_start, spiral_radius_end,
+                  spiral_pi_point,
+                  clothoid_constant,
+                  switch_id,
+                  switch_start_joint_number,
+                  switch_end_joint_number
+                )
+                values(
+                  :alignment_id,
+                  :element_index,
+                  :oid_part,
+                  :type::geometry.element_type,
+                  :name,
+                  :length,
+                  :sta_start,
+                  postgis.st_point(:start_point_x, :start_point_y),
+                  postgis.st_point(:end_point_x, :end_point_y),
+                  :rotation::common.rotation_direction,
+                  :curve_radius,
+                  :curve_chord,
+                  postgis.st_point(:curve_center_point_x, :curve_center_point_y),
+                  :spiral_dir_start, :spiral_dir_end,
+                  :spiral_radius_start, :spiral_radius_end,
+                  postgis.st_point(:spiral_pi_point_x, :spiral_pi_point_y),
+                  :clothoid_constant,
+                  :switch_id,
+                  :switch_start_joint_number,
+                  :switch_end_joint_number
+                )
+            """
                 .trimIndent()
         jdbcTemplate.batchUpdate(sql, elementSqlParams.toTypedArray())
     }
@@ -1752,25 +1756,25 @@ constructor(
     private fun insertVerticalIntersections(viParams: List<Map<String, Any?>>) {
         val sql =
             """
-            insert into geometry.vertical_intersection(
-              alignment_id,
-              intersection_index,
-              type,
-              description,
-              point,
-              circular_radius,
-              circular_length
-            ) 
-            values (
-              :alignment_id,
-              :intersection_index,
-              :type::geometry.vertical_intersection_type,
-              :description,
-              postgis.st_point(:point_x, :point_y),
-              :circular_radius,
-              :circular_length
-            )
-        """
+                insert into geometry.vertical_intersection(
+                  alignment_id,
+                  intersection_index,
+                  type,
+                  description,
+                  point,
+                  circular_radius,
+                  circular_length
+                )
+                values (
+                  :alignment_id,
+                  :intersection_index,
+                  :type::geometry.vertical_intersection_type,
+                  :description,
+                  postgis.st_point(:point_x, :point_y),
+                  :circular_radius,
+                  :circular_length
+                )
+            """
                 .trimIndent()
 
         jdbcTemplate.batchUpdate(sql, viParams.toTypedArray())
@@ -1808,23 +1812,23 @@ constructor(
     private fun insertCantPoints(cantPointParams: List<Map<String, Any?>>) {
         val sql =
             """
-            insert into geometry.cant_point(
-              alignment_id, 
-              cant_point_index, 
-              station, 
-              applied_cant, 
-              curvature, 
-              transition_type
-            ) 
-            values (
-              :alignment_id, 
-              :cant_point_index, 
-              :station, 
-              :applied_cant, 
-              :curvature::common.rotation_direction, 
-              :transition_type::geometry.cant_transition_type
-            )
-        """
+                insert into geometry.cant_point(
+                  alignment_id,
+                  cant_point_index,
+                  station,
+                  applied_cant,
+                  curvature,
+                  transition_type
+                )
+                values (
+                  :alignment_id,
+                  :cant_point_index,
+                  :station,
+                  :applied_cant,
+                  :curvature::common.rotation_direction,
+                  :transition_type::geometry.cant_transition_type
+                )
+            """
                 .trimIndent()
         jdbcTemplate.batchUpdate(sql, cantPointParams.toTypedArray())
     }
@@ -1868,85 +1872,85 @@ constructor(
         // from the actual publishable unit.
         val sql =
             """
-            with
-              linked_edge as (
-                select distinct edge_id, alignment.plan_id
-                  from layout.edge_segment
-                    inner join geometry.alignment on alignment.id = edge_segment.geometry_alignment_id
-              ),
-              linked_track as (
+                with
+                  linked_edge as (
+                    select distinct edge_id, alignment.plan_id
+                      from layout.edge_segment
+                        inner join geometry.alignment on alignment.id = edge_segment.geometry_alignment_id
+                  ),
+                  linked_track as (
+                    select
+                      linked_edge.plan_id,
+                      ltv.change_user,
+                      ltv.change_time,
+                      (current.id is not null) as is_current
+                      from linked_edge
+                        inner join layout.location_track_version_edge ltve on ltve.edge_id = linked_edge.edge_id
+                        inner join layout.location_track_version ltv
+                                   on ltv.id = ltve.location_track_id and ltv.layout_context_id = ltve.location_track_layout_context_id and ltv.version = ltve.location_track_version
+                        left join layout.location_track current
+                                  on current.id = ltv.id and current.layout_context_id = ltv.layout_context_id and current.version = ltv.version
+                      where ltv.draft = false
+                  ),
+                  linked_reference_line as (
+                    select
+                      alignment.plan_id,
+                      rlv.change_user,
+                      rlv.change_time,
+                      (current.id is not null) as is_current
+                      from layout.reference_line_version rlv
+                        inner join layout.segment_version sv
+                                   on sv.alignment_id = rlv.alignment_id and sv.alignment_version = rlv.alignment_version
+                        inner join geometry.alignment on alignment.id = sv.geometry_alignment_id
+                        left join layout.reference_line current
+                                  on current.id = rlv.id and current.alignment_id = rlv.alignment_id and current.alignment_version = rlv.alignment_version
+                      where rlv.draft = false
+                  ),
+                  switch_links as (
+                    select geometry_switch.plan_id, layout_switch.change_user, layout_switch.change_time, layout_switch.is_current
+                      from geometry.switch geometry_switch
+                        join lateral
+                        (select sv.change_time, sv.change_user, (current.id is not null) as is_current
+                           from layout.switch_version sv
+                             left join layout.switch current
+                                       on current.id = sv.id and current.layout_context_id = sv.layout_context_id and current.version = sv.version
+                           where sv.geometry_switch_id = geometry_switch.id
+                             and not sv.draft
+                           order by sv.version asc
+                           limit 1) layout_switch on (true)
+                  ),
+                  km_post_links as (
+                    select geometry_km_post.plan_id, layout_km_post.change_user, layout_km_post.change_time, layout_km_post.is_current
+                      from geometry.km_post geometry_km_post
+                        join lateral
+                        (select kmpv.change_time, kmpv.change_user, (current.id is not null) as is_current
+                           from layout.km_post_version kmpv
+                             left join layout.km_post current
+                                       on current.id = kmpv.id and current.layout_context_id = kmpv.layout_context_id and current.version = kmpv.version
+                           where kmpv.geometry_km_post_id = geometry_km_post.id
+                             and not kmpv.draft
+                           order by kmpv.version asc
+                           limit 1) layout_km_post on (true)
+                  )
                 select
-                  linked_edge.plan_id,
-                  ltv.change_user,
-                  ltv.change_time,
-                  (current.id is not null) as is_current
-                  from linked_edge
-                    inner join layout.location_track_version_edge ltve on ltve.edge_id = linked_edge.edge_id
-                    inner join layout.location_track_version ltv
-                               on ltv.id = ltve.location_track_id and ltv.layout_context_id = ltve.location_track_layout_context_id and ltv.version = ltve.location_track_version
-                    left join layout.location_track current
-                              on current.id = ltv.id and current.layout_context_id = ltv.layout_context_id and current.version = ltv.version
-                  where ltv.draft = false
-              ),
-              linked_reference_line as (
-                select
-                  alignment.plan_id,
-                  rlv.change_user,
-                  rlv.change_time,
-                  (current.id is not null) as is_current
-                  from layout.reference_line_version rlv
-                    inner join layout.segment_version sv
-                               on sv.alignment_id = rlv.alignment_id and sv.alignment_version = rlv.alignment_version
-                    inner join geometry.alignment on alignment.id = sv.geometry_alignment_id
-                    left join layout.reference_line current
-                              on current.id = rlv.id and current.alignment_id = rlv.alignment_id and current.alignment_version = rlv.alignment_version
-                  where rlv.draft = false
-              ),
-              switch_links as (
-                select geometry_switch.plan_id, layout_switch.change_user, layout_switch.change_time, layout_switch.is_current
-                  from geometry.switch geometry_switch
-                    join lateral
-                    (select sv.change_time, sv.change_user, (current.id is not null) as is_current
-                       from layout.switch_version sv
-                         left join layout.switch current
-                                   on current.id = sv.id and current.layout_context_id = sv.layout_context_id and current.version = sv.version
-                       where sv.geometry_switch_id = geometry_switch.id
-                         and not sv.draft
-                       order by sv.version asc
-                       limit 1) layout_switch on (true)
-              ),
-              km_post_links as (
-                select geometry_km_post.plan_id, layout_km_post.change_user, layout_km_post.change_time, layout_km_post.is_current
-                  from geometry.km_post geometry_km_post
-                    join lateral
-                    (select kmpv.change_time, kmpv.change_user, (current.id is not null) as is_current
-                       from layout.km_post_version kmpv
-                         left join layout.km_post current
-                                   on current.id = kmpv.id and current.layout_context_id = kmpv.layout_context_id and current.version = kmpv.version
-                       where kmpv.geometry_km_post_id = geometry_km_post.id
-                         and not kmpv.draft
-                       order by kmpv.version asc
-                       limit 1) layout_km_post on (true)
-              )
-            select
-              linked_layout_object.plan_id,
-              min(change_time) as linked_at,
-              array_agg(distinct change_user order by change_user) filter (where change_user is not null) as linked_by_users,
-              bool_or(is_current) is_currently_linked
-              from (
-                select id as plan_id, null as change_user, null as change_time, false as is_current from geometry.plan
-                union all
-                select * from linked_track
-                union all
-                select * from linked_reference_line
-                union all
-                select * from switch_links
-                union all
-                select * from km_post_links
-              ) as linked_layout_object
-              where linked_layout_object.plan_id in (:plan_ids) or :return_all
-              group by linked_layout_object.plan_id;
-        """
+                  linked_layout_object.plan_id,
+                  min(change_time) as linked_at,
+                  array_agg(distinct change_user order by change_user) filter (where change_user is not null) as linked_by_users,
+                  bool_or(is_current) is_currently_linked
+                  from (
+                    select id as plan_id, null as change_user, null as change_time, false as is_current from geometry.plan
+                    union all
+                    select * from linked_track
+                    union all
+                    select * from linked_reference_line
+                    union all
+                    select * from switch_links
+                    union all
+                    select * from km_post_links
+                  ) as linked_layout_object
+                  where linked_layout_object.plan_id in (:plan_ids) or :return_all
+                  group by linked_layout_object.plan_id;
+            """
                 .trimIndent()
 
         val params =
@@ -1966,8 +1970,8 @@ constructor(
     fun getPlanIdForKmPost(id: IntId<GeometryKmPost>): IntId<GeometryPlan>? {
         val sql =
             """
-            select plan_id from geometry.km_post where id = :id
-        """
+                select plan_id from geometry.km_post where id = :id
+            """
                 .trimIndent()
         return jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue)) { rs, _ -> rs.getIntId("plan_id") }
     }
@@ -1978,24 +1982,24 @@ constructor(
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
-            select id, design_id, draft, version
-              from layout.location_track_in_layout_context('DRAFT', :design_id) track
-              where exists (
-                select *
-                  from layout.location_track_version_edge ltve
-                    inner join layout.edge_segment s on s.edge_id = ltve.edge_id
-                  where ltve.location_track_id = track.id
-                    and ltve.location_track_layout_context_id = track.layout_context_id
-                    and ltve.location_track_version = track.version
-                    and exists (
-                      select *
-                        from geometry.element
-                        where s.geometry_alignment_id = element.alignment_id
-                          and s.geometry_element_index = element.element_index
-                          and element.switch_id = :switch_id
-                    ) )
-                and state != 'DELETED';
-        """
+                select id, design_id, draft, version
+                  from layout.location_track_in_layout_context('DRAFT', :design_id) track
+                  where exists (
+                    select *
+                      from layout.location_track_version_edge ltve
+                        inner join layout.edge_segment s on s.edge_id = ltve.edge_id
+                      where ltve.location_track_id = track.id
+                        and ltve.location_track_layout_context_id = track.layout_context_id
+                        and ltve.location_track_version = track.version
+                        and exists (
+                          select *
+                            from geometry.element
+                            where s.geometry_alignment_id = element.alignment_id
+                              and s.geometry_element_index = element.element_index
+                              and element.switch_id = :switch_id
+                        ) )
+                    and state != 'DELETED';
+            """
                 .trimIndent()
         return jdbcTemplate.query(
             sql,
