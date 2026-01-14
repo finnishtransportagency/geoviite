@@ -242,4 +242,50 @@ constructor(
         )
         assertEquals(listOf("edited mid merge"), design2History.filter { it.id == tn2 }.map { it.number.toString() })
     }
+
+    @Test
+    fun `fetchTrackNumberNames() can deal with confusers`() {
+        val design1 = testDBService.createDesignBranch()
+        val design1OfficialContext = testDBService.testContext(design1, OFFICIAL)
+        val design1DraftContext = testDBService.testContext(design1, PublicationState.DRAFT)
+
+        // tn1 and tn2 are created in main, and edited multiple times both in main and in a design
+        val tn1 = mainOfficialContext.save(trackNumber(TrackNumber("tn1 original"))).id
+        design1OfficialContext.save(mainOfficialContext.fetch(tn1)!!.copy(number = TrackNumber("tn1 edited in d1 n1")))
+        val tn2 = mainOfficialContext.save(trackNumber(TrackNumber("tn2 original"))).id
+        design1OfficialContext.save(mainOfficialContext.fetch(tn1)!!.copy(number = TrackNumber("tn1 edited in d1 n2")))
+        design1OfficialContext.save(mainOfficialContext.fetch(tn1)!!.copy(number = TrackNumber("tn1 edited in d1 n3")))
+        design1OfficialContext.save(mainOfficialContext.fetch(tn2)!!.copy(number = TrackNumber("tn2 edited in d1 n1")))
+        mainOfficialContext.save(mainOfficialContext.fetch(tn2)!!.copy(number = TrackNumber("tn2 edited in main n1")))
+        mainOfficialContext.save(mainOfficialContext.fetch(tn1)!!.copy(number = TrackNumber("tn1 edited in main n1")))
+        design1OfficialContext.save(mainOfficialContext.fetch(tn1)!!.copy(number = TrackNumber("tn1 edited in d1 n4")))
+        design1OfficialContext.save(mainOfficialContext.fetch(tn2)!!.copy(number = TrackNumber("tn2 edited in d1 n2")))
+        mainOfficialContext.save(mainOfficialContext.fetch(tn1)!!.copy(number = TrackNumber("tn1 edited in main n2")))
+
+        val mainHistory = trackNumberDao.fetchTrackNumberNames(LayoutBranch.main)
+        val design1History = trackNumberDao.fetchTrackNumberNames(design1)
+
+        assertEquals(
+            listOf("tn1 original", "tn1 edited in main n1", "tn1 edited in main n2"),
+            mainHistory.filter { it.id == tn1 }.map { it.number.toString() },
+        )
+        assertEquals(
+            listOf("tn2 original", "tn2 edited in main n1"),
+            mainHistory.filter { it.id == tn2 }.map { it.number.toString() },
+        )
+        assertEquals(
+            listOf(
+                "tn1 original",
+                "tn1 edited in d1 n1",
+                "tn1 edited in d1 n2",
+                "tn1 edited in d1 n3",
+                "tn1 edited in d1 n4",
+            ),
+            design1History.filter { it.id == tn1 }.map { it.number.toString() },
+        )
+        assertEquals(
+            listOf("tn2 original", "tn2 edited in d1 n1", "tn2 edited in d1 n2"),
+            design1History.filter { it.id == tn2 }.map { it.number.toString() },
+        )
+    }
 }
