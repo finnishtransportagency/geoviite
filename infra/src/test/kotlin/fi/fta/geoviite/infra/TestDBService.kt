@@ -400,6 +400,8 @@ class TestDBService(
                     locationTrackDao.insertExternalId(id as IntId<LocationTrack>, branch, oid as Oid<LocationTrack>)
                 LayoutSwitch::class ->
                     switchDao.insertExternalId(id as IntId<LayoutSwitch>, branch, oid as Oid<LayoutSwitch>)
+                OperationalPoint::class ->
+                    operationalPointDao.insertExternalId(id as IntId<OperationalPoint>, branch, oid as Oid<OperationalPoint>)
                 else -> error("Unsupported asset type for Oid generation: ${T::class.simpleName}")
             }
         }

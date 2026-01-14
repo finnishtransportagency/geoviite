@@ -235,9 +235,9 @@ data class ExtTestModifiedSwitchCollectionResponseV1(
     val vaihteet: List<ExtTestSwitchV1>,
 )
 
-data class ExtTestOperationalPointRatoTypeV1(val koodi: String, val selite: String)
+data class ExtTestOperationalPointRatoTypeV1(val koodi: String, val kuvaus: String)
 
-data class ExtTestOperationalPointRinfTypeV1(val koodi: String, val selite: String)
+data class ExtTestOperationalPointRinfTypeV1(val koodi: String, val kuvaus: String)
 
 data class ExtTestOperationalPointV1(
     val toiminnallinen_piste_oid: String,
