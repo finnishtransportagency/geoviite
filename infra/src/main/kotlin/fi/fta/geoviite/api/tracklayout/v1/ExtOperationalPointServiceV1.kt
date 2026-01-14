@@ -10,14 +10,12 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
-import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
 import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -81,7 +79,7 @@ constructor(
                     oid.value,
                     id,
                     publications,
-                    coordinateSystem(extCoordinateSystem)
+                    coordinateSystem(extCoordinateSystem),
                 )
             } else {
                 publicationsAreTheSame(layoutVersionFrom.value)
@@ -103,7 +101,7 @@ constructor(
                 operationalPoint =
                     createExtOperationalPoint(
                         getOperationalPointData(oid, operationalPoint, branch, moment),
-                        coordinateSystem
+                        coordinateSystem,
                     ),
             )
         }
@@ -129,7 +127,7 @@ constructor(
                     operationalPoint =
                         createExtOperationalPoint(
                             getOperationalPointData(oid, operationalPoint, branch, endMoment),
-                            coordinateSystem
+                            coordinateSystem,
                         ),
                 )
             } ?: layoutAssetVersionsAreTheSame(id, publications)
@@ -196,10 +194,9 @@ constructor(
             uicCode = data.operationalPoint.uicCode?.toString(),
             location = data.operationalPoint.location?.let { toExtCoordinate(it, coordinateSystem) },
             tracks =
-                data.trackOids.map { trackOid ->
-                    ExtOperationalPointTrackV1(locationTrackOid = ExtOidV1(trackOid))
-                },
-            switches = data.switchOids.map { switchOid -> ExtOperationalPointSwitchV1(switchOid = ExtOidV1(switchOid)) },
+                data.trackOids.map { trackOid -> ExtOperationalPointTrackV1(locationTrackOid = ExtOidV1(trackOid)) },
+            switches =
+                data.switchOids.map { switchOid -> ExtOperationalPointSwitchV1(switchOid = ExtOidV1(switchOid)) },
             area =
                 data.operationalPoint.polygon?.let { polygon ->
                     ExtPolygonV1(
@@ -224,7 +221,8 @@ constructor(
         moment: Instant,
     ): OperationalPointData {
         val id = operationalPoint.id as IntId
-        val (trackOids, switchOids) = getOperationalPointReferences(branch, moment, setOf(id))
+        val trackOids = getOperationalPointLocationTrackReferences(branch, moment, setOf(id))
+        val switchOids = getOperationalPointSwitchReferences(branch, moment, setOf(id))
         return OperationalPointData(
             oid = oid,
             operationalPoint = operationalPoint,
@@ -240,7 +238,8 @@ constructor(
     ): List<OperationalPointData> {
         val operationalPointExtIds = operationalPointDao.fetchExternalIds(branch)
         val operationalPointIds = operationalPoints.map { it.id as IntId }.toSet()
-        val (trackOids, switchOids) = getOperationalPointReferences(branch, moment, operationalPointIds)
+        val trackOids = getOperationalPointLocationTrackReferences(branch, moment, operationalPointIds)
+        val switchOids = getOperationalPointSwitchReferences(branch, moment, operationalPointIds)
 
         return operationalPoints.map { operationalPoint ->
             val id = operationalPoint.id as IntId
@@ -253,37 +252,39 @@ constructor(
         }
     }
 
-    private fun getOperationalPointReferences(
+    private fun getOperationalPointLocationTrackReferences(
         branch: LayoutBranch,
         moment: Instant,
         operationalPointIds: Set<IntId<OperationalPoint>>,
-    ): Pair<Map<IntId<OperationalPoint>, List<Oid<LocationTrack>>>, Map<IntId<OperationalPoint>, List<Oid<LayoutSwitch>>>> {
+    ): Map<IntId<OperationalPoint>, List<Oid<LocationTrack>>> {
         val locationTracks = locationTrackDao.listOfficialAtMoment(branch, moment)
         val trackExtIds = locationTrackDao.fetchExternalIds(branch, locationTracks.map { it.id as IntId })
 
-        val tracksByOperationalPoint =
-            locationTracks
-                .filter { track -> track.operationalPointIds.any(operationalPointIds::contains) }
-                .flatMap { track ->
-                    val trackOid = trackExtIds[track.id]?.oid ?: throwOidNotFound(branch, track.id)
-                    track.operationalPointIds.filter(operationalPointIds::contains).map { opId -> opId to trackOid }
-                }
-                .groupBy({ it.first }, { it.second })
+        return locationTracks
+            .filter { track -> track.operationalPointIds.any(operationalPointIds::contains) }
+            .flatMap { track ->
+                val trackOid = trackExtIds[track.id]?.oid ?: throwOidNotFound(branch, track.id)
+                track.operationalPointIds.filter(operationalPointIds::contains).map { opId -> opId to trackOid }
+            }
+            .groupBy({ it.first }, { it.second })
+    }
 
+    private fun getOperationalPointSwitchReferences(
+        branch: LayoutBranch,
+        moment: Instant,
+        operationalPointIds: Set<IntId<OperationalPoint>>,
+    ): Map<IntId<OperationalPoint>, List<Oid<LayoutSwitch>>> {
         val switches = switchDao.listOfficialAtMoment(branch, moment).filter { it.exists }
         val switchExtIds = switchDao.fetchExternalIds(branch, switches.map { it.id as IntId })
 
-        val switchesByOperationalPoint =
-            switches
-                .filter { switch -> switch.operationalPointId?.let(operationalPointIds::contains) == true }
-                .mapNotNull { switch ->
-                    switch.operationalPointId?.let { opId ->
-                        val switchOid = switchExtIds[switch.id]?.oid ?: throwOidNotFound(branch, switch.id)
-                        opId to switchOid
-                    }
+        return switches
+            .filter { switch -> switch.operationalPointId?.let(operationalPointIds::contains) == true }
+            .mapNotNull { switch ->
+                switch.operationalPointId?.let { opId ->
+                    val switchOid = switchExtIds[switch.id]?.oid ?: throwOidNotFound(branch, switch.id)
+                    opId to switchOid
                 }
-                .groupBy({ it.first }, { it.second })
-
-        return tracksByOperationalPoint to switchesByOperationalPoint
+            }
+            .groupBy({ it.first }, { it.second })
     }
 }

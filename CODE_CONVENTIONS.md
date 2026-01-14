@@ -150,12 +150,18 @@
 - Favor named variables in lambdas, rather than using the default "it"
     - Good: `myList.map { item -> item.name }`
     - Bad: `myList.map { it.name }`
+    - Exception: Trivially short lambdas with simple property access can use `it` or method references
+        - Acceptable: `myList.map { it.id }`, `myList.filter { it.exists }`
+        - Even better: `myList.map(Item::id)` using method reference syntax
 - Favor immutable objects, especially Kotlin data classes
 - Composition can typically do whatever inheritance can... with reduced headache
 - Favor pure functions (outside service objects) for more complex logic
 - Kotlin external functions are useful for expanding library APIs like JDBC and ResultSet: place these in a clearly
   named separate file, e.g. `ResultSetExternal.kt`
 - Consider if using `let`, `map`, `takeIf` etc. chains would be cleaner than local variables or if-structures
+- When using `parallelStream()` for performance, collect all necessary data (especially database queries) into data
+  classes first, then parallelize only the CPU-bound processing. Never access the database from parallel threads, as the
+  connection pool is limited and thread context carries user information needed for database logging.
 - You can use `also` -blocks to group side-effecting code like assertions in tests without needing variables that are
   visible to the entire test
   - For example, the current codebase has plenty of code like this:
