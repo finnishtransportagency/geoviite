@@ -198,21 +198,21 @@ fun toExtOperationalPointRatoType(raideType: OperationalPointRaideType): ExtOper
 fun toExtOperationalPointRinfType(rinfType: OperationalPointRinfType): ExtOperationalPointRinfTypeV1 {
     val (code, description) =
         when (rinfType) {
-            OperationalPointRinfType.STATION -> "10" to "Asema"
-            OperationalPointRinfType.SMALL_STATION -> "20" to "Asema (pieni)"
-            OperationalPointRinfType.PASSENGER_TERMINAL -> "30" to "Matkustaja-asema"
-            OperationalPointRinfType.FREIGHT_TERMINAL -> "40" to "Tavara-asema"
-            OperationalPointRinfType.DEPOT_OR_WORKSHOP -> "50" to "Varikko"
-            OperationalPointRinfType.TRAIN_TECHNICAL_SERVICES -> "60" to "Tekninen ratapiha"
-            OperationalPointRinfType.PASSENGER_STOP -> "70" to "Seisake"
-            OperationalPointRinfType.JUNCTION -> "80" to "Kohtauspaikka"
-            OperationalPointRinfType.BORDER_POINT -> "90" to "Valtakunnan raja"
-            OperationalPointRinfType.SHUNTING_YARD -> "100" to "Vaihtotyöratapiha"
-            OperationalPointRinfType.TECHNICAL_CHANGE -> "110" to "Raideleveyden vaihtumiskohta"
-            OperationalPointRinfType.SWITCH -> "120" to "Linjavaihde"
-            OperationalPointRinfType.PRIVATE_SIDING -> "130" to "Yksityinen"
-            OperationalPointRinfType.DOMESTIC_BORDER_POINT -> "140" to "Omistusraja"
-            OperationalPointRinfType.OVER_CROSSING -> "150" to "Ylikulku"
+            OperationalPointRinfType.STATION -> "10" to "Station"
+            OperationalPointRinfType.SMALL_STATION -> "20" to "Small station"
+            OperationalPointRinfType.PASSENGER_TERMINAL -> "30" to "Passenger terminal"
+            OperationalPointRinfType.FREIGHT_TERMINAL -> "40" to "Freight terminal"
+            OperationalPointRinfType.DEPOT_OR_WORKSHOP -> "50" to "Depot or workshop"
+            OperationalPointRinfType.TRAIN_TECHNICAL_SERVICES -> "60" to "Train technical services"
+            OperationalPointRinfType.PASSENGER_STOP -> "70" to "Passenger stop"
+            OperationalPointRinfType.JUNCTION -> "80" to "Junction"
+            OperationalPointRinfType.BORDER_POINT -> "90" to "Border point"
+            OperationalPointRinfType.SHUNTING_YARD -> "100" to "Shunting yard"
+            OperationalPointRinfType.TECHNICAL_CHANGE -> "110" to "Technical change"
+            OperationalPointRinfType.SWITCH -> "120" to "Switch"
+            OperationalPointRinfType.PRIVATE_SIDING -> "130" to "Private siding"
+            OperationalPointRinfType.DOMESTIC_BORDER_POINT -> "140" to "Domestic border point"
+            OperationalPointRinfType.OVER_CROSSING -> "150" to "Over crossing"
         }
     return ExtOperationalPointRinfTypeV1(code, description)
 }

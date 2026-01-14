@@ -66,6 +66,8 @@ const val TRACKS = "raiteet"
 const val SWITCHES = "vaihteet"
 const val AREA = "alue"
 const val CODE = "koodi"
+const val TYPE_DESCRIPTION = "selite"
+const val RINF_TYPE_DESCRIPTION = "selite_en"
 const val POINTS = "pisteet"
 
 const val SOURCE_LOCATION_TRACK_OID = "geometrian_lahderaide_oid"

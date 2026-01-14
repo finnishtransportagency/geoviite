@@ -7,17 +7,27 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
+import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchJoint
+import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -282,7 +292,9 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         // Publish all operational points
         val publication =
-            extTestDataService.publishInMain(operationalPoints = testOperationalPoints.map { (_, op) -> op.id as IntId })
+            extTestDataService.publishInMain(
+                operationalPoints = testOperationalPoints.map { (_, op) -> op.id as IntId }
+            )
 
         // Verify single fetch API returns correct data for all variations
         testOperationalPoints.forEach { (oid, op) ->
@@ -296,13 +308,187 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         assertEquals(publication.uuid.toString(), collectionResponse.rataverkon_versio)
         val nonDeletedOps = testOperationalPoints.filter { (_, op) -> op.state != OperationalPointState.DELETED }
         assertEquals(nonDeletedOps.size, collectionResponse.toiminnalliset_pisteet.size)
-        nonDeletedOps.forEach { (oid, op) -> assertCollectionItemMatches(oid, op, collectionResponse.toiminnalliset_pisteet) }
+        nonDeletedOps.forEach { (oid, op) ->
+            assertCollectionItemMatches(oid, op, collectionResponse.toiminnalliset_pisteet)
+        }
 
         // Verify versioned fetch returns correct data
         testOperationalPoints.take(3).forEach { (oid, op) ->
             val response = api.operationalPoint.getAtVersion(oid, publication.uuid)
             assertEquals(publication.uuid.toString(), response.rataverkon_versio)
             assertMatches(oid, op, response.toiminnallinen_piste)
+        }
+    }
+
+    @Test
+    fun `Operational point APIs respect coordinate system parameter`() {
+        val location3067 = Point(385782.89, 6672277.83)
+        val location4326 = Point(24.9414003, 60.1713788)
+
+        val opId = mainDraftContext.save(operationalPoint(location = location3067)).id
+        val oid = mainDraftContext.generateOid(opId)
+
+        extTestDataService.publishInMain(operationalPoints = listOf(opId))
+
+        // Default EPSG:3067
+        api.operationalPoint.get(oid).let { response ->
+            assertEquals("EPSG:3067", response.koordinaatisto)
+            assertEquals(location3067.x, response.toiminnallinen_piste.sijainti!!.x, 0.01)
+            assertEquals(location3067.y, response.toiminnallinen_piste.sijainti.y, 0.01)
+        }
+
+        // EPSG:4326
+        api.operationalPoint.get(oid, "koordinaatisto" to "EPSG:4326").let { response ->
+            assertEquals("EPSG:4326", response.koordinaatisto)
+            assertEquals(location4326.x, response.toiminnallinen_piste.sijainti!!.x, 0.001)
+            assertEquals(location4326.y, response.toiminnallinen_piste.sijainti.y, 0.001)
+        }
+
+        // Verify collection also respects coordinate system
+        api.operationalPointCollection.get("koordinaatisto" to "EPSG:4326").let { response ->
+            assertEquals("EPSG:4326", response.koordinaatisto)
+            val op = response.toiminnalliset_pisteet.find { it.toiminnallinen_piste_oid == oid.toString() }
+            assertNotNull(op)
+            assertEquals(location4326.x, op!!.sijainti!!.x, 0.001)
+            assertEquals(location4326.y, op.sijainti.y, 0.001)
+        }
+    }
+
+    @Test
+    fun `Operational point with polygon area is returned correctly`() {
+        val polygon =
+            fi.fta.geoviite.infra.math.Polygon(
+                listOf(Point(0.0, 0.0), Point(100.0, 0.0), Point(100.0, 50.0), Point(0.0, 50.0), Point(0.0, 0.0))
+            )
+
+        val opId = mainDraftContext.save(operationalPoint(polygon = polygon, location = Point(50.0, 25.0))).id
+        val oid = mainDraftContext.generateOid(opId)
+
+        extTestDataService.publishInMain(operationalPoints = listOf(opId))
+
+        val response = api.operationalPoint.get(oid)
+        assertPolygonMatches(polygon, response.toiminnallinen_piste.alue)
+
+        // Verify collection also includes polygon
+        val collectionResponse = api.operationalPointCollection.get()
+        val opInCollection =
+            collectionResponse.toiminnalliset_pisteet.find { it.toiminnallinen_piste_oid == oid.toString() }
+        assertNotNull(opInCollection)
+        assertPolygonMatches(polygon, opInCollection!!.alue)
+    }
+
+    @Test
+    fun `Operational point with tracks and switches shows associations correctly`() {
+        val opId = mainDraftContext.save(operationalPoint(location = Point(5.0, 0.0))).id
+        val opOid = mainDraftContext.generateOid(opId)
+
+        // Create track number and reference line
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+        val rlId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+
+        // Create switch linked to operational point
+        val structure = switchStructureYV60_300_1_9()
+        val switchId =
+            mainDraftContext
+                .save(
+                    switch(structure.id, joints = listOf(switchJoint(1, Point(0.0, 0.0))))
+                        .copy(operationalPointId = opId)
+                )
+                .id
+        val switchOid = mainDraftContext.generateOid(switchId)
+
+        // Create track linked to operational point
+        val trackId =
+            mainDraftContext
+                .save(
+                    locationTrack(trackNumberId).copy(operationalPointIds = setOf(opId)),
+                    trackGeometryOfSegments(segment),
+                )
+                .id
+        val trackOid = mainDraftContext.generateOid(trackId)
+
+        extTestDataService.publishInMain(
+            operationalPoints = listOf(opId),
+            switches = listOf(switchId),
+            locationTracks = listOf(trackId),
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(rlId),
+        )
+
+        val response = api.operationalPoint.get(opOid)
+        val op = response.toiminnallinen_piste
+
+        assertEquals(listOf(trackOid.toString()), op.raiteet.map { it.sijaintiraide_oid })
+        assertEquals(listOf(switchOid.toString()), op.vaihteet.map { it.vaihde_oid })
+    }
+
+    @Test
+    @Disabled(
+        """
+        Calculated changes for operational points are not yet implemented.
+        When a switch or track is linked to an operational point, the operational point should appear
+        as changed in the modification APIs even though the operational point itself wasn't directly edited.
+        """
+    )
+    fun `Operational point shows as changed when track or switch is linked to it`() {
+        val opId = mainDraftContext.save(operationalPoint(location = Point(5.0, 0.0))).id
+        val opOid = mainDraftContext.generateOid(opId)
+
+        val basePublication = extTestDataService.publishInMain(operationalPoints = listOf(opId))
+
+        // Verify no changes initially
+        api.operationalPoint.assertNoModificationSince(opOid, basePublication.uuid)
+        api.operationalPointCollection.assertNoModificationSince(basePublication.uuid)
+
+        // Create and link a switch to the operational point (calculated change)
+        initUser()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val rlId =
+            mainDraftContext
+                .save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+                .id
+
+        val structure = switchStructureYV60_300_1_9()
+        val switchId =
+            mainDraftContext
+                .save(
+                    switch(
+                            structure.id,
+                            joints = listOf(switchJoint(1, Point(0.0, 0.0)), switchJoint(2, Point(10.0, 0.0))),
+                        )
+                        .copy(operationalPointId = opId)
+                )
+                .id
+
+        val updatePublication =
+            extTestDataService.publishInMain(
+                switches = listOf(switchId),
+                trackNumbers = listOf(trackNumberId),
+                referenceLines = listOf(rlId),
+            )
+
+        // Operational point should show as changed even though it wasn't directly edited
+        val modification = api.operationalPoint.getModifiedSince(opOid, basePublication.uuid)
+        assertEquals(basePublication.uuid.toString(), modification.alkuversio)
+        assertEquals(updatePublication.uuid.toString(), modification.loppuversio)
+        assertEquals(1, modification.toiminnallinen_piste.vaihteet.size)
+
+        // Collection changes should also show it
+        val collectionChanges = api.operationalPointCollection.getModifiedSince(basePublication.uuid)
+        assertEquals(
+            listOf(opOid.toString()),
+            collectionChanges.toiminnalliset_pisteet.map { it.toiminnallinen_piste_oid },
+        )
+    }
+
+    private fun assertPolygonMatches(expected: Polygon, actual: ExtTestPolygonV1?) {
+        assertNotNull(actual)
+        assertEquals("Polygoni", actual!!.tyyppi)
+        assertEquals(expected.points.size, actual.pisteet.size)
+        expected.points.forEachIndexed { index, point ->
+            assertEquals(point.x, actual.pisteet[index].x, 0.001)
+            assertEquals(point.y, actual.pisteet[index].y, 0.001)
         }
     }
 
@@ -461,24 +647,24 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             assertNotNull(actual.tyyppi_rinf)
             val (expectedCode, expectedDescription) =
                 when (rinfType) {
-                    OperationalPointRinfType.STATION -> "10" to "Asema"
-                    OperationalPointRinfType.SMALL_STATION -> "20" to "Asema (pieni)"
-                    OperationalPointRinfType.PASSENGER_TERMINAL -> "30" to "Matkustaja-asema"
-                    OperationalPointRinfType.FREIGHT_TERMINAL -> "40" to "Tavara-asema"
-                    OperationalPointRinfType.DEPOT_OR_WORKSHOP -> "50" to "Varikko"
-                    OperationalPointRinfType.TRAIN_TECHNICAL_SERVICES -> "60" to "Tekninen ratapiha"
-                    OperationalPointRinfType.PASSENGER_STOP -> "70" to "Seisake"
-                    OperationalPointRinfType.JUNCTION -> "80" to "Kohtauspaikka"
-                    OperationalPointRinfType.BORDER_POINT -> "90" to "Valtakunnan raja"
-                    OperationalPointRinfType.SHUNTING_YARD -> "100" to "Vaihtotyöratapiha"
-                    OperationalPointRinfType.TECHNICAL_CHANGE -> "110" to "Raideleveyden vaihtumiskohta"
-                    OperationalPointRinfType.SWITCH -> "120" to "Linjavaihde"
-                    OperationalPointRinfType.PRIVATE_SIDING -> "130" to "Yksityinen"
-                    OperationalPointRinfType.DOMESTIC_BORDER_POINT -> "140" to "Omistusraja"
-                    OperationalPointRinfType.OVER_CROSSING -> "150" to "Ylikulku"
+                    OperationalPointRinfType.STATION -> "10" to "Station"
+                    OperationalPointRinfType.SMALL_STATION -> "20" to "Small station"
+                    OperationalPointRinfType.PASSENGER_TERMINAL -> "30" to "Passenger terminal"
+                    OperationalPointRinfType.FREIGHT_TERMINAL -> "40" to "Freight terminal"
+                    OperationalPointRinfType.DEPOT_OR_WORKSHOP -> "50" to "Depot or workshop"
+                    OperationalPointRinfType.TRAIN_TECHNICAL_SERVICES -> "60" to "Train technical services"
+                    OperationalPointRinfType.PASSENGER_STOP -> "70" to "Passenger stop"
+                    OperationalPointRinfType.JUNCTION -> "80" to "Junction"
+                    OperationalPointRinfType.BORDER_POINT -> "90" to "Border point"
+                    OperationalPointRinfType.SHUNTING_YARD -> "100" to "Shunting yard"
+                    OperationalPointRinfType.TECHNICAL_CHANGE -> "110" to "Technical change"
+                    OperationalPointRinfType.SWITCH -> "120" to "Switch"
+                    OperationalPointRinfType.PRIVATE_SIDING -> "130" to "Private siding"
+                    OperationalPointRinfType.DOMESTIC_BORDER_POINT -> "140" to "Domestic border point"
+                    OperationalPointRinfType.OVER_CROSSING -> "150" to "Over crossing"
                 }
             assertEquals(expectedCode, actual.tyyppi_rinf!!.koodi)
-            assertEquals(expectedDescription, actual.tyyppi_rinf.kuvaus)
+            assertEquals(expectedDescription, actual.tyyppi_rinf.selite_en)
         }
         operationalPoint.raideType?.let { raideType ->
             assertNotNull(actual.tyyppi_rato)
@@ -491,7 +677,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                     OperationalPointRaideType.LVH -> "LVH" to "Linjavaihde"
                 }
             assertEquals(expectedCode, actual.tyyppi_rato!!.koodi)
-            assertEquals(expectedDescription, actual.tyyppi_rato.kuvaus)
+            assertEquals(expectedDescription, actual.tyyppi_rato.selite)
         }
         if (operationalPoint.raideType == null) assertNull(actual.tyyppi_rato)
         if (operationalPoint.rinfType == null) assertNull(actual.tyyppi_rinf)

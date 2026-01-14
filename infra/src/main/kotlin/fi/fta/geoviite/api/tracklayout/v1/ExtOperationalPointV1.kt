@@ -29,14 +29,14 @@ data class ExtOperationalPointSwitchV1(
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtOperationalPointRatoTypeV1(
     @Schema(example = "LPO") @JsonProperty(CODE) val code: String,
-    @Schema(example = "Liikennepaikan osa") @JsonProperty(DESCRIPTION) val description: String,
+    @Schema(example = "Liikennepaikan osa") @JsonProperty(TYPE_DESCRIPTION) val description: String,
 )
 
 @Schema(name = "Toiminnallisen pisteen RINF-tyyppi")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtOperationalPointRinfTypeV1(
     @Schema(example = "10") @JsonProperty(CODE) val code: String,
-    @Schema(example = "station") @JsonProperty(DESCRIPTION) val description: String,
+    @Schema(example = "Station") @JsonProperty(RINF_TYPE_DESCRIPTION) val description: String,
 )
 
 @Schema(name = "Polygoni")
