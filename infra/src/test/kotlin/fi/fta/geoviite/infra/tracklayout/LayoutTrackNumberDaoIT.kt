@@ -247,7 +247,6 @@ constructor(
     fun `fetchTrackNumberNames() can deal with confusers`() {
         val design1 = testDBService.createDesignBranch()
         val design1OfficialContext = testDBService.testContext(design1, OFFICIAL)
-        val design1DraftContext = testDBService.testContext(design1, PublicationState.DRAFT)
 
         // tn1 and tn2 are created in main, and edited multiple times both in main and in a design
         val tn1 = mainOfficialContext.save(trackNumber(TrackNumber("tn1 original"))).id
