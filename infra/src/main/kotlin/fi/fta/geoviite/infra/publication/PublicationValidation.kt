@@ -1262,8 +1262,11 @@ fun validationError(key: String, params: LocalizationParams): LayoutValidationIs
 fun validationWarning(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
     LayoutValidationIssue(WARNING, key, params.associate { it })
 
-fun validationWarning(key: String, params: LocalizationParams): LayoutValidationIssue =
-    LayoutValidationIssue(WARNING, LocalizationKey.of(key), params)
+fun validationWarning(
+    key: String,
+    params: LocalizationParams,
+    inRelationTo: Set<PublicationLogAsset> = setOf(),
+): LayoutValidationIssue = LayoutValidationIssue(WARNING, LocalizationKey.of(key), params, inRelationTo)
 
 private fun cancelledOrNotPublishedKey(keyPrefix: String, cancelled: Boolean) =
     "$keyPrefix${if (cancelled) ".cancelled" else ".not-published"}"
