@@ -274,16 +274,16 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 select 
                   ratko_push_content.publication_id,
                   ratko_push.status,
-                  ratko_push_error.id as id,
+                  ratko_push_error.id,
                   ratko_push_error.error_type,
                   ratko_push_error.operation,
                   ratko_push_error.track_number_id,
                   ratko_push_error.location_track_id,
                   ratko_push_error.switch_id,
-                  ratko_push_error.ratko_push_id as ratko_push_id
+                  ratko_push_error.ratko_push_id
                 from integrations.ratko_push
-                inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
-                left join integrations.ratko_push_error on ratko_push_error.ratko_push_id = ratko_push.id
+                  inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
+                  left join integrations.ratko_push_error on ratko_push_error.ratko_push_id = ratko_push.id
                 where status <> 'IN_PROGRESS' and status <> 'IN_PROGRESS_M_VALUES'
                 order by start_time desc
                 limit 1

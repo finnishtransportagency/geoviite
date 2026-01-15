@@ -36,7 +36,7 @@ import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -62,9 +62,9 @@ constructor(
     fun cleanUp() {
         // Mark off any old junk as done
         transactional {
-            val lastSuccessTime = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.Companion.main)
+            val lastSuccessTime = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
             val hangingPublications =
-                publicationDao.fetchPublicationsBetween(LayoutBranch.Companion.main, lastSuccessTime, null).filterNot {
+                publicationDao.fetchPublicationsBetween(LayoutBranch.main, lastSuccessTime, null).filterNot {
                     it.publicationTime == lastSuccessTime
                 }
             if (hangingPublications.isNotEmpty()) {
@@ -80,7 +80,7 @@ constructor(
         val beforePublish = ratkoPushDao.getLatestPublicationMoment()
         publicationId = createPublication(locationTracks = listOf(Change(null, locationTrackResponse)))
         publicationMoment = publicationDao.getPublication(publicationId).publicationTime
-        Assertions.assertTrue(publicationMoment > beforePublish)
+        assertTrue(publicationMoment > beforePublish)
         assertEquals(publicationMoment, ratkoPushDao.getLatestPublicationMoment())
     }
 
@@ -154,10 +154,10 @@ constructor(
 
     @Test
     fun shouldReturnPublishableAlignments() {
-        val lastPush = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.Companion.main)
-        Assertions.assertTrue(lastPush < publicationMoment)
+        val lastPush = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
+        assertTrue(lastPush < publicationMoment)
 
-        val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.Companion.main, lastPush, null)
+        val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, lastPush, null)
         val (publishedLocationTracks, _) =
             publicationDao.fetchPublishedLocationTracks(setOf(publications[1].id)).getValue(publications[1].id)
 
@@ -170,9 +170,9 @@ constructor(
         val ratkoPublicationId = ratkoPushDao.startPushing(listOf(publicationId))
         ratkoPushDao.updatePushStatus(ratkoPublicationId, status = RatkoPushStatus.SUCCESSFUL)
 
-        val latestPushMoment = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.Companion.main)
+        val latestPushMoment = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
         assertEquals(publicationMoment, latestPushMoment)
-        val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.Companion.main, latestPushMoment, null)
+        val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushMoment, null)
         assertEquals(1, publications.size)
     }
 
@@ -181,10 +181,9 @@ constructor(
         val ratkoPublicationId = ratkoPushDao.startPushing(listOf(publicationId))
         ratkoPushDao.updatePushStatus(ratkoPublicationId, status = RatkoPushStatus.FAILED)
 
-        val latestPushedPublish = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.Companion.main)
-        Assertions.assertTrue(latestPushedPublish < publicationMoment)
-        val publications =
-            publicationDao.fetchPublicationsBetween(LayoutBranch.Companion.main, latestPushedPublish, null)
+        val latestPushedPublish = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
+        assertTrue(latestPushedPublish < publicationMoment)
+        val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushedPublish, null)
         val (publishedLocationTracks, _) =
             publicationDao.fetchPublishedLocationTracks(setOf(publications[1].id)).getValue(publications[1].id)
 
@@ -199,10 +198,9 @@ constructor(
         val publicationId2 =
             createPublication(locationTracks = listOf(Change(null, locationTrack2Response)), message = "Test")
 
-        val latestPushedMoment = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.Companion.main)
-        Assertions.assertTrue(latestPushedMoment < publicationMoment)
-        val publications =
-            publicationDao.fetchPublicationsBetween(LayoutBranch.Companion.main, latestPushedMoment, null)
+        val latestPushedMoment = ratkoPushDao.getLatestPushedPublicationMoment(LayoutBranch.main)
+        assertTrue(latestPushedMoment < publicationMoment)
+        val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushedMoment, null)
 
         val fetchedLayoutPublish = publications.find { it.id == publicationId }
         val fetchedLayoutPublish2 = publications.find { it.id == publicationId2 }
@@ -307,12 +305,12 @@ constructor(
 
     fun insertAndPublishLocationTrack(): LayoutRowVersion<LocationTrack> =
         locationTrackAndGeometry(trackNumberId, draft = true).let { (track, geometry) ->
-            val draftVersion = locationTrackService.saveDraft(LayoutBranch.Companion.main, track, geometry)
-            locationTrackService.publish(LayoutBranch.Companion.main, draftVersion).published
+            val draftVersion = locationTrackService.saveDraft(LayoutBranch.main, track, geometry)
+            locationTrackService.publish(LayoutBranch.main, draftVersion).published
         }
 
     fun createPublication(
-        layoutBranch: LayoutBranch = LayoutBranch.Companion.main,
+        layoutBranch: LayoutBranch = LayoutBranch.main,
         trackNumbers: List<Change<LayoutRowVersion<LayoutTrackNumber>>> = listOf(),
         referenceLines: List<Change<LayoutRowVersion<ReferenceLine>>> = listOf(),
         locationTracks: List<Change<LayoutRowVersion<LocationTrack>>> = listOf(),
@@ -324,7 +322,7 @@ constructor(
         publicationDao
             .createPublication(
                 layoutBranch = layoutBranch,
-                message = PublicationMessage.Companion.of(message),
+                message = PublicationMessage.of(message),
                 cause = PublicationCause.MANUAL,
                 parentId = null,
             )
