@@ -725,6 +725,7 @@ class PublicationDao(
         saveOperationalPointChanges(
             publicationId,
             changes.directChanges.operationalPointChanges,
+            changes.indirectChanges.operationalPointChanges,
             publishedVersions.operationalPoints,
         )
 
@@ -1912,7 +1913,8 @@ class PublicationDao(
 
     private fun saveOperationalPointChanges(
         publicationId: IntId<Publication>,
-        operationalPointIds: Collection<IntId<OperationalPoint>>,
+        directChanges: Collection<IntId<OperationalPoint>>,
+        indirectChanges: Collection<IntId<OperationalPoint>>,
         publishedVersions: List<Change<LayoutRowVersion<OperationalPoint>>>,
     ) {
 
@@ -1924,7 +1926,8 @@ class PublicationDao(
                   layout_context_id,
                   version,
                   base_layout_context_id,
-                  base_version
+                  base_version,
+                  direct_change
                 )
                 values (
                   :publication_id,
@@ -1932,11 +1935,12 @@ class PublicationDao(
                   :layout_context_id,
                   :version,
                   :base_layout_context_id,
-                  :base_version
+                  :base_version,
+                  true
                 )
             """
                 .trimIndent(),
-            operationalPointIds
+            directChanges
                 .map { id ->
                     val versionChange = requireNotNull(publishedVersions.find { it.new.id == id })
                     mapOf(
@@ -1947,6 +1951,36 @@ class PublicationDao(
                         "base_layout_context_id" to versionChange.old?.context?.toSqlString(),
                         "base_version" to versionChange.old?.version,
                     )
+                }
+                .toTypedArray(),
+        )
+
+        jdbcTemplate.batchUpdate(
+            """
+                insert into publication.operational_point (
+                  publication_id,
+                  id,
+                  layout_context_id,
+                  version,
+                  base_layout_context_id,
+                  base_version,
+                  direct_change
+                )
+                select
+                  publication.id,
+                  operational_point.id,
+                  operational_point.layout_context_id,
+                  operational_point.version,
+                  operational_point.layout_context_id,
+                  operational_point.version,
+                  false
+                from publication.publication, layout.operational_point_in_layout_context('OFFICIAL', publication.design_id) operational_point
+                where publication.id = :publication_id and operational_point.id = :operational_point_id
+            """
+                .trimIndent(),
+            indirectChanges
+                .map { id ->
+                    mapOf("publication_id" to publicationId.intValue, "operational_point_id" to id.intValue)
                 }
                 .toTypedArray(),
         )
