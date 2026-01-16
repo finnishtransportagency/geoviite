@@ -2,25 +2,24 @@
 
 Suunnitelmatila on Geoviitteen ominaisuus, joka mahdollistaa rataverkon tulevien muutosten suunnittelun ja hallinnan 
 erillään virallisesta paikannuspohjasta. Suunnitelmat muodostavat omat kontekstinsa, joissa voidaan kehittää ja 
-julkaista rataverkon muutoksia vaikuttamatta pää-paikannuspohjaan ennen niiden valmistumista.
+julkaista rataverkon muutoksia vaikuttamatta viralliseen paikannuspohjaan ennen niiden valmistumista.
 
-Suunnitelmilla on kaksi pääasiallista käyttötarkoitusta:
-- Tulevien rataverkon muutosten visualisointi ja suunnittelu Geoviitteessä
-- Suunniteltujen muutosten vienti Ratkoon, jossa niihin voidaan liittää muita suunniteltuja kohteita
+Suunnitelmilla on pääasiallisena käyttötarkoituksena tulevien rataverkon muutosten visualisointi ja suunnittelu 
+Geoviitteessä.
 
-## Suunnitelman ja pää-paikannuspohjan suhde
+## Suunnitelman ja virallisen paikannuspohjan suhde
 
 Geoviitteessä on kolmentyyppisiä paikannuspohjia:
 
 | Konteksti | Kuvaus | Näkyvyys |
 |-----------|--------|----------|
-| **Main (pää-paikannuspohja)** | Virallinen rataverkon nykytila | Näkyy kaikkiin konteksteihin |
-| **Main-draft (pääluonnos)** | Työtila päätason muutoksille | Näkyy vain main-draft -kontekstissa |
+| **Main-official (virallinen paikannuspohja)** | Virallinen rataverkon nykytila | Näkyy kaikkiin konteksteihin |
+| **Main-draft (luonnos)** | Työtila virallisen paikannuspohjan muutoksille | Näkyy vain main-draft -kontekstissa |
 | **Design-official (julkaistu suunnitelma)** | Julkaistu suunnitelma | Näkyy design-official ja design-draft -konteksteihin |
 | **Design-draft (suunnitelmaluonnos)** | Työtila suunnitelman muutoksille | Näkyy vain kyseiseen design-draft -kontekstiin |
 
-Suunnitelmat ovat täysin itsenäisiä ja toisistaan riippumattomia. Kukin suunnitelma rakentuu main-official -pohjan 
-päälle, mutta:
+Suunnitelmat ovat täysin itsenäisiä ja toisistaan riippumattomia. Kukin suunnitelma rakentuu virallisen paikannuspohjan 
+(main-official) päälle, mutta:
 - Suunnitelma ei näe main-draft -muutoksia
 - Eri suunnitelmat eivät näe toistensa muutoksia
 - Voi olla useita aktiivisia suunnitelmia samanaikaisesti
@@ -63,7 +62,6 @@ sequenceDiagram
     participant MO as Main Official
     participant DD as Design Draft
     participant DO as Design Official
-    participant Ratko as Ratko
     participant MD as Main Draft
     participant MO2 as Main Official
     
@@ -72,11 +70,9 @@ sequenceDiagram
     Note over DD: Suunnittelua, muokkauksia
     DD->>DO: 2. Suunnitelman julkaisu
     Note over DO: Suunnitelma julkaistu
-    DO->>Ratko: 3. Vienti Ratkoon
-    Note over Ratko: Suunnitelma Ratkossa
-    DO->>MD: 4. Valmistuminen
+    DO->>MD: 3. Valmistuminen
     Note over MD: Täydennykset ja tarkistukset
-    MD->>MO2: 5. Pääjulkaisu
+    MD->>MO2: 4. Julkaisu viralliseen paikannuspohjaan
     Note over MO2: Muutos virallisessa paikannuspohjassa
 ```
 
@@ -84,9 +80,10 @@ sequenceDiagram
 
 Käyttäjä luo uuden suunnitelman antamalla sille nimen ja arvioidun valmistumispäivän. Suunnitelma luodaan ACTIVE-tilassa.
 
-Suunnitelmaan voidaan lisätä:
+Suunnitelmaan voidaan tehdä:
 - **Uusia kohteita** (uudet raiteet, vaihteet, ratanumerot)
 - **Muutoksia olemassa oleviin kohteisiin** (geometrian muutokset, ominaisuuksien päivitykset)
+- **Kohteiden poistoja** (raiteiden, vaihteiden, yms. poistaminen)
 
 Muutokset tehdään design-draft -kontekstissa, jossa ne näkyvät vain kyseisessä suunnitelmassa.
 
@@ -101,15 +98,7 @@ Julkaisu toimii vastaavasti kuin pää-paikannuspohjan julkaisu:
 
 Design-official -tila on suunnitelman "virallinen" versio, joka voidaan viedä Ratkoon.
 
-### 3. Vienti Ratkoon
-
-Julkaistu suunnitelma viedään Ratkoon omana suunnitelma-entiteettinä. Ratkossa suunnitelma saa RatkoPlanId-tunnisteen, 
-joka tallennetaan Geoviitteeseen linkittämään suunnitelmat yhteen.
-
-Ratkon puolella suunnitelmaan voidaan liittää muita suunniteltuja kohteita, jotka eivät ole osa Geoviitteen 
-paikannuspohjaa.
-
-### 4. Suunnitelman valmistuminen (Design Official → Main Draft)
+### 3. Suunnitelman valmistuminen (Design Official → Main Draft)
 
 Kun suunniteltu muutos on toteutettu ja valmis, se siirretään pää-paikannuspohjan luonnokseen:
 
@@ -120,14 +109,14 @@ Kun suunniteltu muutos on toteutettu ja valmis, se siirretään pää-paikannusp
 
 Design-official -kontekstin kohteet säilyvät edelleen, mutta ne ovat nyt merkitty COMPLETED-tilaan.
 
-### 5. Pääjulkaisu (Main Draft → Main Official)
+### 4. Julkaisu viralliseen paikannuspohjaan (Main Draft → Main Official)
 
-Viimeisenä vaiheena main-draft -kohteet julkaistaan normaalin julkaisuprosessin kautta main-official -tilaan. 
-Tässä vaiheessa:
+Viimeisenä vaiheena main-draft -kohteet julkaistaan normaalin julkaisuprosessin kautta viralliseen paikannuspohjaan 
+(main-official). Tässä vaiheessa:
 
 - Suoritetaan täysi julkaisuvalidointi
 - Muutokset menevät viralliseen paikannuspohjaan
-- Muutokset viedään Ratkoon osana normaalia Ratko-vientiä (päivittäen aiemman suunnitelman)
+- Muutokset viedään Ratkoon osana normaalia Ratko-vientiä
 
 ## Tietomalli
 
@@ -160,11 +149,6 @@ classDiagram
         layout_context_id: String
     }
     
-    class RatkoDesign {
-        design_id: IntId
-        ratko_plan_id: RatkoPlanId
-    }
-    
     class LayoutTrackNumber
     class LocationTrack
     class LayoutSwitch
@@ -175,7 +159,6 @@ classDiagram
     LayoutDesign --> DesignState
     LayoutAsset --> DesignAssetState
     LayoutAsset --> LayoutDesign
-    RatkoDesign --> LayoutDesign
     
     LayoutTrackNumber --|> LayoutAsset
     LocationTrack --|> LayoutAsset
@@ -220,15 +203,6 @@ Jokaisella suunnitelmaan kuuluvalla paikannuspohjan kohteella (raide, vaihde, jn
 Huomaa: DesignAssetState on eri asia kuin LayoutState. LayoutState kuvaa kohteen tilaa yleisesti (IN_USE, NOT_IN_USE, 
 DELETED), kun taas DesignAssetState kuvaa kohteen tilaa suunnitelmaprosessissa.
 
-### Ratko-integraatio
-
-Ratko-integraatiota varten tallennetaan linkitys Geoviitteen suunnitelman ja Ratkon suunnitelman välille:
-
-| Kenttä | Tyyppi | Kuvaus |
-|--------|--------|--------|
-| `design_id` | IntId | Linkitys Geoviitteen suunnitelmaan |
-| `ratko_plan_id` | RatkoPlanId | Ratkon suunnitelman tunniste |
-
 ## Suunnitelman peruutukset
 
 Suunnitelmassa on kaksi tasoa, joilla asioita voidaan peruuttaa:
@@ -239,13 +213,11 @@ Jos yksittäinen suunnitelman kohde (esim. raide) päätetään jättää toteut
 
 - Kohde säilyy design-official -kontekstissa
 - Mutta se ei siirry valmistumisen yhteydessä main-draft -tilaan
-- Koska kohde on jo julkaistu Ratkoon, peruutus täytyy myös julkaista
 
 Peruutusprosessi:
 1. Käyttäjä merkitsee kohteen peruutetuksi
 2. Peruutus julkaistaan design-official -tilaan (PublicationCause.LAYOUT_DESIGN_CANCELLATION)
-3. Peruutus viedään Ratkoon
-4. Valmistumisen yhteydessä peruutetut kohteet jätetään huomiotta
+3. Valmistumisen yhteydessä peruutetut kohteet jätetään huomiotta
 
 ### Koko suunnitelman poisto (DELETED)
 
@@ -253,10 +225,9 @@ Kun koko suunnitelma poistetaan:
 
 1. Suunnitelman tila muutetaan DELETED-tilaksi
 2. Kaikki suunnitelman design-draft -rivit poistetaan
-3. Jos suunnitelma on julkaistu Ratkoon:
-   - Kaikki julkaistut kohteet merkitään CANCELLED-tilaan
-   - Tehdään tyhjä julkaisu peruutuksista
-4. Suunnitelma ei enää näy käyttöliittymässä (ellei "näytä poistetut" ole valittuna)
+3. Kaikki julkaistut kohteet merkitään CANCELLED-tilaan
+4. Tehdään tyhjä julkaisu peruutuksista
+5. Suunnitelma ei enää näy käyttöliittymässä (ellei "näytä poistetut" ole valittuna)
 
 ## Julkaisut suunnitelmissa
 
@@ -271,23 +242,20 @@ Kun design-draft -muutoksia julkaistaan design-official -tilaan:
 
 ### Tyhjä julkaisu suunnitelman muutoksesta
 
-Kun suunnitelman metatietoja (nimi, valmistumispäivä) muutetaan ja suunnitelma on jo julkaistu Ratkoon:
+Kun suunnitelman metatietoja (nimi, valmistumispäivä) muutetaan ja suunnitelma on jo julkaistu:
 - Tehdään tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_CHANGE)
 - Ei sisällä paikannuspohjan muutoksia
-- Päivittää suunnitelman tiedot Ratkoon
 
 ### Tyhjä julkaisu suunnitelman poistosta
 
 Kun suunnitelma poistetaan:
 - Tehdään tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_DELETE)
-- Merkitsee suunnitelman poistetuksi Ratkoon
 
 ### Peruutusjulkaisu
 
 Kun suunnitelman kohteita peruutetaan:
 - Tehdään julkaisu peruutetuista kohteista (PublicationCause.LAYOUT_DESIGN_CANCELLATION)
 - Sisältää peruutetut kohteet CANCELLED-tilassa
-- Vie peruutukset Ratkoon
 
 Lisätietoja julkaisuprosessista: [Julkaisut](julkaisut.md)
 
@@ -313,20 +281,16 @@ Lisätietoja julkaisuprosessista: [Julkaisut](julkaisut.md)
    - Muutokset siirtyvät design-official -tilaan
    - DesignAssetState on OPEN
 
-4. **Vienti Ratkoon:**
-   - Suunnitelma viedään Ratkoon RatkoPlanId:llä
-   - Ratkon puolella voidaan suunnitella muita asemarakennuksia
-
-5. **Rakentaminen ja valmistuminen:**
+4. **Rakentaminen ja valmistuminen:**
    - Raide rakennetaan
    - Käyttäjä käynnistää valmistumisen
    - Raide ja vaihteet kopioidaan main-draft -tilaan
    - DesignAssetState muuttuu COMPLETED-tilaksi
    - Suunnitelman tila muuttuu COMPLETED-tilaksi
 
-6. **Pääjulkaisu:**
+5. **Julkaisu viralliseen paikannuspohjaan:**
    - Main-draft -tiedot tarkistetaan ja täydennetään
-   - Julkaistaan main-official -tilaan
+   - Julkaistaan viralliseen paikannuspohjaan (main-official)
    - Ratko päivitetään vastaamaan uutta virallista tilaa
 
 ### Esimerkki 2: Olemassa olevan raiteen muutos
@@ -359,7 +323,6 @@ Lisätietoja julkaisuprosessista: [Julkaisut](julkaisut.md)
    - Päätetään että raidetta C ei toteutetakaan
    - Raide C merkitään CANCELLED-tilaan
    - Peruutus julkaistaan (LAYOUT_DESIGN_CANCELLATION)
-   - Peruutus viedään Ratkoon
 
 3. **Valmistuminen:**
    - Kun suunnitelma valmistuu, vain raiteet A ja B siirtyvät main-draft -tilaan
@@ -379,12 +342,6 @@ Lisätietoja julkaisuprosessista: [Julkaisut](julkaisut.md)
 - Suunnitelma EI näe main-draft -muutoksia
 - Jos main-draft julkaistaan, suunnitelmat näkevät muutokset vasta seuraavan kerran kun ne ladataan
 
-### External ID:t ja OID:t
-
-- Suunnitelman kohteet voivat saada Ratko External ID:n jo design-vaiheessa
-- External ID säilyy samana kun kohde siirtyy main-paikannuspohjaan
-- Tämä mahdollistaa saman kohteen seuraamisen suunnitelmasta toteutukseen
-
 ### Versiointi
 
 - Jokainen julkaisu (sekä design että main) luo uuden version
@@ -398,14 +355,6 @@ Suunnitelmat käyttävät samaa julkaisuvalidointia kuin pää-paikannuspohja:
 - Viite-eheys (ei viittauksia poistettuihin kohteisiin)
 - Osoitteiston eheys (rataosoitteet laskettavissa)
 
-### Suunnitelman nimeäminen
-
-Suunnitelman nimi:
-- Pituus 1-100 merkkiä
-- Sallitut merkit: A-Ö, a-ö, 0-9, välilyönti, erikoismerkit
-- Nimen täytyy olla uniikki
-- Ei saa alkaa tai loppua välilyöntiin
-
 ## Tietokantataulut
 
 ### layout.design
@@ -418,17 +367,6 @@ create table layout.design (
   name                 text                not null,
   estimated_completion date                not null,
   design_state         layout.design_state not null
-);
-```
-
-### integrations.ratko_design
-
-Ratko-linkitys:
-
-```sql
-create table integrations.ratko_design (
-  design_id     int references layout.design(id),
-  ratko_plan_id int not null
 );
 ```
 
