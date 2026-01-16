@@ -1,15 +1,24 @@
-package fi.fta.geoviite.infra.integration
+package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.integration.CalculatedChanges
+import fi.fta.geoviite.infra.integration.DirectChanges
+import fi.fta.geoviite.infra.integration.IndirectChanges
+import fi.fta.geoviite.infra.integration.LocationTrackChange
+import fi.fta.geoviite.infra.integration.RatkoAssetType
+import fi.fta.geoviite.infra.integration.RatkoOperation
+import fi.fta.geoviite.infra.integration.RatkoPushErrorType
+import fi.fta.geoviite.infra.integration.RatkoPushStatus
+import fi.fta.geoviite.infra.integration.SwitchChange
+import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationMessage
-import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -232,7 +241,7 @@ constructor(
     }
 
     @Test
-    fun shouldFindLatestPushErrorByPublicationId() {
+    fun `should find push error if latest push failed`() {
         val ratkoPushId = ratkoPushDao.startPushing(listOf(publicationId))
         ratkoPushDao.insertRatkoPushError(
             ratkoPushId,
@@ -241,19 +250,57 @@ constructor(
             RatkoAssetType.LOCATION_TRACK,
             locationTrackId,
         )
+        ratkoPushDao.updatePushStatus(ratkoPushId, status = RatkoPushStatus.FAILED)
+        val ratkoPushError = ratkoPushDao.getCurrentRatkoPushError()
+
+        assertNotNull(ratkoPushError)
+        assertEquals(locationTrackId, ratkoPushError.first.assetId)
+        assertEquals(RatkoOperation.UPDATE, ratkoPushError.first.operation)
+        assertEquals(publicationId, ratkoPushError.second)
+    }
+
+    @Test
+    fun `should find push error if there are waiting pushes after it`() {
+        val ratkoPushId = ratkoPushDao.startPushing(listOf(publicationId))
         ratkoPushDao.insertRatkoPushError(
             ratkoPushId,
             RatkoPushErrorType.PROPERTIES,
-            RatkoOperation.CREATE,
-            RatkoAssetType.TRACK_NUMBER,
-            trackNumberId,
+            RatkoOperation.UPDATE,
+            RatkoAssetType.LOCATION_TRACK,
+            locationTrackId,
         )
         ratkoPushDao.updatePushStatus(ratkoPushId, status = RatkoPushStatus.FAILED)
-        val ratkoPushError = ratkoPushDao.getLatestRatkoPushErrorFor(publicationId)
+        val locationTrackResponse = insertAndPublishLocationTrack()
+        val publicationId2 = createPublication(locationTracks = listOf(Change(null, locationTrackResponse)))
+
+        ratkoPushDao.startPushing(listOf(publicationId2))
+        val ratkoPushError = ratkoPushDao.getCurrentRatkoPushError()
 
         assertNotNull(ratkoPushError)
-        assertEquals(trackNumberId, ratkoPushError.assetId)
-        assertEquals(RatkoOperation.CREATE, ratkoPushError.operation)
+        assertEquals(locationTrackId, ratkoPushError.first.assetId)
+        assertEquals(RatkoOperation.UPDATE, ratkoPushError.first.operation)
+        assertEquals(publicationId, ratkoPushError.second)
+    }
+
+    @Test
+    fun `should not find any push errors if latest push is successful`() {
+        val ratkoPushId = ratkoPushDao.startPushing(listOf(publicationId))
+        ratkoPushDao.insertRatkoPushError(
+            ratkoPushId,
+            RatkoPushErrorType.PROPERTIES,
+            RatkoOperation.UPDATE,
+            RatkoAssetType.LOCATION_TRACK,
+            locationTrackId,
+        )
+        ratkoPushDao.updatePushStatus(ratkoPushId, status = RatkoPushStatus.FAILED)
+        val locationTrackResponse = insertAndPublishLocationTrack()
+        val publicationId2 = createPublication(locationTracks = listOf(Change(null, locationTrackResponse)))
+
+        val ratkoPushId2 = ratkoPushDao.startPushing(listOf(publicationId2))
+        ratkoPushDao.updatePushStatus(ratkoPushId2, status = RatkoPushStatus.SUCCESSFUL)
+        val ratkoPushError = ratkoPushDao.getCurrentRatkoPushError()
+
+        assertNull(ratkoPushError)
     }
 
     fun insertAndPublishLocationTrack(): LayoutRowVersion<LocationTrack> =
