@@ -7,12 +7,7 @@ import {
     OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import {
-    GeometryAlignmentId,
-    GeometryKmPostId,
-    GeometryPlanId,
-    GeometrySwitchId,
-} from 'geometry/geometry-model';
+import { GeometryAlignmentId, GeometryKmPostId, GeometryPlanId, GeometrySwitchId, } from 'geometry/geometry-model';
 import { ClusterPoint, LinkPoint, LinkPointId } from 'linking/linking-model';
 import { ensureAllKeys } from 'utils/type-utils';
 import { Point } from 'model/geometry';
@@ -81,7 +76,6 @@ export const allSelectableItemTypes: SelectableItemType[] = ensureAllKeys<Select
 export type OptionalItemCollections = Partial<ItemCollections>;
 
 export type Selection = {
-    selectionModes: SelectionMode[];
     selectedItems: ItemCollections;
     highlightedItems: ItemCollections;
     openPlans: OpenPlanLayout[];
