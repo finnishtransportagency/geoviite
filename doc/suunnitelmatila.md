@@ -189,6 +189,10 @@ Jokaisella suunnitelmaan kuuluvalla paikannuspohjan kohteella (raide, vaihde, jn
 Huomaa: DesignAssetState on eri asia kuin LayoutState. LayoutState kuvaa kohteen tilaa yleisesti (IN_USE, NOT_IN_USE, 
 DELETED), kun taas DesignAssetState kuvaa kohteen tilaa suunnitelmaprosessissa.
 
+## Julkaisut suunnitelmissa
+
+Suunnitelmiin liittyy erityyppisiä julkaisuja. Lisätietoja: [Julkaisut](julkaisut.md)
+
 ## Suunnitelman peruutukset
 
 Suunnitelmassa on kaksi tasoa, joilla asioita voidaan peruuttaa:
@@ -210,36 +214,6 @@ Kun koko suunnitelma poistetaan:
 3. Kaikki julkaistut kohteet merkitään CANCELLED-tilaan
 4. Tehdään tyhjä julkaisu peruutuksista
 5. Poistettu suunnitelma ei enää näy käyttöliittymässä
-
-## Julkaisut suunnitelmissa
-
-Suunnitelmiin liittyy erityyppisiä julkaisuja:
-
-### Suunnitelman normaali julkaisu
-
-Kun design-draft -muutoksia julkaistaan design-official -tilaan:
-- Suoritetaan normaali julkaisuvalidointi
-- Luonnoskontekstin muutokset siirretään viralliseen suunnitelmaan
-- Julkaisu tallennetaan publication-tauluun linkitettynä suunnitelmaan
-
-### Tyhjä julkaisu suunnitelman muutoksesta
-
-Kun suunnitelman metatietoja (nimi, valmistumispäivä) muutetaan ja suunnitelma on jo julkaistu:
-- Tehdään tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_CHANGE)
-- Ei sisällä paikannuspohjan muutoksia
-
-### Tyhjä julkaisu suunnitelman poistosta
-
-Kun suunnitelma poistetaan:
-- Tehdään tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_DELETE)
-
-### Peruutusjulkaisu
-
-Kun suunnitelman kohteita peruutetaan:
-- Tehdään julkaisu peruutetuista kohteista (PublicationCause.LAYOUT_DESIGN_CANCELLATION)
-- Sisältää peruutetut kohteet CANCELLED-tilassa
-
-Lisätietoja julkaisuprosessista: [Julkaisut](julkaisut.md)
 
 Kontekstien teknisestä toteutuksesta lisätietoja: [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md)
 

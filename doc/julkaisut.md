@@ -73,3 +73,31 @@ Tässä keskeisiä kohtia varmistaa on mm:
     - Kaikille raiteille on mahdollista laskea osoitteet koko matkalta
     - Osoitteet ovat jatkuvia, kaikki raiteen metrit voidaan laskea ja metrit eivät ole liian pitkiä/lyhyitä
     - Tuotetut osoitteet ovat valideja (eli ylipitkiä kilometreja)
+
+## Julkaisut suunnitelmissa
+
+Suunnitelmiin liittyy erityyppisiä julkaisuja:
+
+### Suunnitelman normaali julkaisu
+
+Kun design-draft -muutoksia julkaistaan design-official -tilaan:
+- Suoritetaan normaali julkaisuvalidointi
+- Luonnoskontekstin muutokset siirretään viralliseen suunnitelmaan
+- Julkaisu tallennetaan publication-tauluun linkitettynä suunnitelmaan
+
+### Tyhjä julkaisu suunnitelman muutoksesta
+
+Kun suunnitelman metatietoja (nimi, valmistumispäivä) muutetaan ja suunnitelma on jo julkaistu:
+- Tehdään tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_CHANGE)
+- Ei sisällä paikannuspohjan muutoksia
+
+### Tyhjä julkaisu suunnitelman poistosta
+
+Kun suunnitelma poistetaan:
+- Tehdään tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_DELETE)
+
+### Peruutusjulkaisu
+
+Kun suunnitelman kohteita peruutetaan:
+- Tehdään julkaisu peruutetuista kohteista (PublicationCause.LAYOUT_DESIGN_CANCELLATION)
+- Sisältää peruutetut kohteet CANCELLED-tilassa
