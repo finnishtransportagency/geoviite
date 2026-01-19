@@ -15,15 +15,13 @@ import io.swagger.v3.oas.annotations.media.Schema
 data class ExtOperationalPointTrackV1(
     @Schema(example = "1.2.246.578.3.10002.189984")
     @JsonProperty(LOCATION_TRACK_OID)
-    val locationTrackOid: ExtOidV1<LocationTrack>,
+    val locationTrackOid: ExtOidV1<LocationTrack>
 )
 
 @Schema(name = "Toiminnallisen pisteen vaihde")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtOperationalPointSwitchV1(
-    @Schema(example = "1.2.246.578.3.10002.189984")
-    @JsonProperty(SWITCH_OID)
-    val switchOid: ExtOidV1<LayoutSwitch>,
+    @Schema(example = "1.2.246.578.3.10002.189984") @JsonProperty(SWITCH_OID) val switchOid: ExtOidV1<LayoutSwitch>
 )
 
 @Schema(name = "Toiminnallisen pisteen Rato-tyyppi")
