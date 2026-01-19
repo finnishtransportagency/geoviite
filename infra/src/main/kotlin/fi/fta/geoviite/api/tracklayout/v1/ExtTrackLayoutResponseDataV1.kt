@@ -277,6 +277,15 @@ enum class ExtGeometryChangeTypeV1(val value: String) {
     @JsonValue override fun toString() = value
 }
 
+const val FI_POLYGON = "polygoni"
+
+@Schema(name = "Alueen tyyppi", type = "string", allowableValues = [FI_POLYGON])
+enum class ExtAreaTypeV1(val value: String) {
+    POLYGON(FI_POLYGON);
+
+    @JsonValue override fun toString() = value
+}
+
 const val FI_SPLIT = "raiteen_jakaminen"
 const val FI_BOUNDARY_SHIFT = "vaihtumiskohdan_siirto"
 
@@ -321,6 +330,12 @@ enum class ExtTrackBoundaryGeometryChangeTypeV1(val value: String) {
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtCoordinateV1(val x: Double, val y: Double) {
     constructor(coordinate: IPoint) : this(coordinate.x, coordinate.y)
+}
+
+@Schema(name = "Polygoni")
+@JsonInclude(JsonInclude.Include.ALWAYS)
+data class ExtPolygonV1(@JsonProperty(POINTS) val points: List<ExtCoordinateV1>) {
+    @JsonProperty(TYPE) val type: ExtAreaTypeV1 = ExtAreaTypeV1.POLYGON
 }
 
 @Schema(name = "Tasakilometripisteen virallinen sijainti")

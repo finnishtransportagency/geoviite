@@ -176,7 +176,6 @@ constructor(
         operationalPoints: List<OperationalPoint>,
     ): List<ExtOperationalPointV1> {
         return getOperationalPointData(operationalPoints, branch, moment)
-            .parallelStream()
             .map { data -> createExtOperationalPoint(data, coordinateSystem) }
             .toList()
     }
@@ -189,20 +188,17 @@ constructor(
             abbreviation = data.operationalPoint.abbreviation,
             state = ExtOperationalPointStateV1.of(data.operationalPoint.state),
             source = ExtOperationalPointOriginV1.of(data.operationalPoint.origin),
-            typeRato = data.operationalPoint.raideType?.let { toExtOperationalPointRatoType(it) },
-            typeRinf = data.operationalPoint.rinfType?.let { toExtOperationalPointRinfType(it) },
-            uicCode = data.operationalPoint.uicCode?.toString(),
-            location = data.operationalPoint.location?.let { toExtCoordinate(it, coordinateSystem) },
+            ratoType = data.operationalPoint.raideType?.let(::toExtOperationalPointRatoType),
+            rinfType = data.operationalPoint.rinfType?.let(::toExtOperationalPointRinfType),
+            uicCode = data.operationalPoint.uicCode,
+            location = data.operationalPoint.location?.let { point -> toExtCoordinate(point, coordinateSystem) },
             tracks =
                 data.trackOids.map { trackOid -> ExtOperationalPointTrackV1(locationTrackOid = ExtOidV1(trackOid)) },
             switches =
                 data.switchOids.map { switchOid -> ExtOperationalPointSwitchV1(switchOid = ExtOidV1(switchOid)) },
             area =
                 data.operationalPoint.polygon?.let { polygon ->
-                    ExtPolygonV1(
-                        type = "Polygoni",
-                        points = polygon.points.map { point -> toExtCoordinate(point, coordinateSystem) },
-                    )
+                    ExtPolygonV1(points = polygon.points.map { point -> toExtCoordinate(point, coordinateSystem) })
                 },
         )
     }

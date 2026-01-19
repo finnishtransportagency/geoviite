@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
+import fi.fta.geoviite.infra.tracklayout.UicCode
 import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(name = "Toiminnallisen pisteen sijaintiraide")
@@ -39,13 +40,6 @@ data class ExtOperationalPointRinfTypeV1(
     @Schema(example = "Station") @JsonProperty(RINF_TYPE_DESCRIPTION) val description: String,
 )
 
-@Schema(name = "Polygoni")
-@JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtPolygonV1(
-    @JsonProperty(TYPE) val type: String,
-    @JsonProperty(POINTS) val points: List<ExtCoordinateV1>,
-)
-
 @Schema(name = "Toiminnallinen piste")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtOperationalPointV1(
@@ -59,9 +53,9 @@ data class ExtOperationalPointV1(
     val abbreviation: OperationalPointAbbreviation?,
     @JsonProperty(STATE) val state: ExtOperationalPointStateV1,
     @JsonProperty(SOURCE) val source: ExtOperationalPointOriginV1,
-    @JsonProperty(TYPE_RATO) val typeRato: ExtOperationalPointRatoTypeV1?,
-    @JsonProperty(TYPE_RINF) val typeRinf: ExtOperationalPointRinfTypeV1?,
-    @Schema(example = "10") @JsonProperty(UIC_CODE) val uicCode: String?,
+    @JsonProperty(TYPE_RATO) val ratoType: ExtOperationalPointRatoTypeV1?,
+    @JsonProperty(TYPE_RINF) val rinfType: ExtOperationalPointRinfTypeV1?,
+    @Schema(example = "10") @JsonProperty(UIC_CODE) val uicCode: UicCode?,
     @JsonProperty(LOCATION) val location: ExtCoordinateV1?,
     @JsonProperty(TRACKS) val tracks: List<ExtOperationalPointTrackV1>,
     @JsonProperty(SWITCHES) val switches: List<ExtOperationalPointSwitchV1>,

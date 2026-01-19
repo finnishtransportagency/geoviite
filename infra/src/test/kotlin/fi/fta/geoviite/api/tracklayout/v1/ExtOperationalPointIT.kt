@@ -484,7 +484,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     private fun assertPolygonMatches(expected: Polygon, actual: ExtTestPolygonV1?) {
         assertNotNull(actual)
-        assertEquals("Polygoni", actual!!.tyyppi)
+        assertEquals("polygoni", actual!!.tyyppi)
         assertEquals(expected.points.size, actual.pisteet.size)
         expected.points.forEachIndexed { index, point ->
             assertEquals(point.x, actual.pisteet[index].x, 0.001)
@@ -640,7 +640,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         }
         operationalPoint.polygon?.let { polygon ->
             assertNotNull(actual.alue)
-            assertEquals("Polygoni", actual.alue!!.tyyppi)
+            assertEquals("polygoni", actual.alue!!.tyyppi)
             assertEquals(polygon.points.size, actual.alue.pisteet.size)
         }
         operationalPoint.rinfType?.let { rinfType ->
