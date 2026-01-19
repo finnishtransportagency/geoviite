@@ -494,7 +494,24 @@ class LocationTrackService(
             val partOfUnfinishedSplit =
                 splitDao.locationTracksPartOfAnyUnfinishedSplit(layoutContext.branch, listOf(id)).isNotEmpty()
 
-            LocationTrackInfoboxExtras(duplicateOf, duplicates, partOfUnfinishedSplit, startSplitPoint, endSplitPoint)
+            val switches =
+                geometry.trackSwitchLinks
+                    .groupBy { link -> link.switchId }
+                    .mapValues { (id, links) ->
+                        val location = links.minBy { it.jointRole }.location.toPoint()
+                        LocationTrackInfoboxSwitch(id, location, geocodingContext?.getAddress(location)?.first)
+                    }
+                    .values
+                    .sortedBy { it.displayAddress }
+
+            LocationTrackInfoboxExtras(
+                duplicateOf,
+                duplicates,
+                partOfUnfinishedSplit,
+                startSplitPoint,
+                endSplitPoint,
+                switches,
+            )
         }
     }
 
@@ -801,6 +818,16 @@ class LocationTrackService(
                 )
                 .id
         }
+
+    @Transactional
+    fun detachSwitch(
+        branch: LayoutBranch,
+        locationTrackId: IntId<LocationTrack>,
+        switchId: IntId<LayoutSwitch>,
+    ): LayoutRowVersion<LocationTrack> {
+        val (track, geometry) = getWithGeometryOrThrow(branch.draft, locationTrackId)
+        return saveDraft(branch, track, geometry.withoutSwitch(switchId))
+    }
 }
 
 fun getTopologicallyLinkableJointLocations(

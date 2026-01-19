@@ -529,10 +529,6 @@ export const SwitchEditDialog = ({
                     }>
                     <p>{t('switch-dialog.deleted-state-warning')}</p>
                     <div>
-                        <div className={styles['switch-edit-dialog__warning']}>
-                            <Icons.StatusError color={IconColor.INHERIT} />{' '}
-                            {t('switch-dialog.deleted-switch-unlink')}
-                        </div>
                         <div className={'dialog__text'}>
                             {t('switch-dialog.confirm-switch-delete')}
                         </div>

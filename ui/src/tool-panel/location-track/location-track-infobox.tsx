@@ -28,6 +28,9 @@ import { LocationTrackRatkoSyncInfobox } from 'tool-panel/location-track/locatio
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_GEOMETRY } from 'user/user-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { LocationTrackSwitchLinksInfobox } from 'tool-panel/location-track/location-track-switch-links-infobox';
+import { useLoaderWithStatus } from 'utils/react-utils';
+import { getLocationTrackValidation } from 'track-layout/layout-location-track-api';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -69,6 +72,16 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
     const [confirmingSwitchRelinking, setConfirmingSwitchRelinking] = React.useState(false);
+
+    const [validation, validationLoaderStatus] = useLoaderWithStatus(
+        () => getLocationTrackValidation(layoutContext, locationTrack.id),
+        [
+            locationTrack.id,
+            layoutContext.publicationState,
+            layoutContext.branch,
+            changeTimes.layoutLocationTrack,
+        ],
+    );
 
     const editingDisabled =
         layoutContext.publicationState === 'OFFICIAL' || !!linkingState || !!splittingState;
@@ -156,10 +169,20 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
                 />
             </PrivilegeRequired>
+            <LocationTrackSwitchLinksInfobox
+                contentVisible={visibilities.switchLinks}
+                onContentVisibilityChange={() => visibilityChange('switchLinks')}
+                locationTrack={locationTrack}
+                validation={validation}
+                layoutContext={layoutContext}
+                changeTimes={changeTimes}
+                onSelect={onSelect}
+            />
             <LocationTrackValidationInfoboxContainer
                 contentVisible={visibilities.validation}
                 onContentVisibilityChange={() => visibilityChange('validation')}
-                id={locationTrack.id}
+                validation={validation}
+                validationLoaderStatus={validationLoaderStatus}
                 layoutContext={layoutContext}
                 showLinkedSwitchesRelinkingDialog={() => setConfirmingSwitchRelinking(true)}
                 switchRelinkingDisabled={editingDisabled || locationTrack.state === 'DELETED'}

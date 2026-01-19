@@ -1,0 +1,40 @@
+@use 'vayla-design-lib' as vayla-design;
+@use 'geoviite-design-lib' as geoviite-design;
+
+.location-track-switch-links-infobox-list {
+    display: grid;
+    margin: 12px;
+    row-gap: 4px;
+    grid-template-columns: 90px 100px auto 70px;
+
+    &__caption {
+        @include vayla-design.typography-caption;
+        color: vayla-design.$color-black-light;
+    }
+
+    &__switch-icon {
+        border-radius: 50%;
+        display: inline-block;
+        background-color: geoviite-design.$color-geoviite-cadmium;
+        border-style: solid;
+
+        width: 9.5px;
+        height: 9.5px;
+        border-width: 1px;
+        border-color: vayla-design.$color-black-default;
+
+        &--invalid {
+            width: 7.5px;
+            height: 7.5px;
+            border-width: 3px;
+            border-color: vayla-design.$color-red-dark;
+            margin-left: -1.5px;
+        }
+    }
+
+    &__remark {
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+    }
+}
