@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import kotlin.random.Random
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -357,7 +358,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     @Test
     fun `Operational point with polygon area is returned correctly`() {
         val polygon =
-            fi.fta.geoviite.infra.math.Polygon(
+            Polygon(
                 listOf(Point(0.0, 0.0), Point(100.0, 0.0), Point(100.0, 50.0), Point(0.0, 50.0), Point(0.0, 0.0))
             )
 
@@ -496,7 +497,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     private fun randomNumericString(): String = (1..6).map { ('0'..'9').random() }.joinToString("")
 
-    private fun randomDouble(): Double = kotlin.random.Random.nextDouble(0.0, 100.0)
+    private fun randomDouble(): Double = Random.nextDouble(0.0, 100.0)
 
     private fun assertChangesSince(
         baseVersion: Uuid<Publication>,
