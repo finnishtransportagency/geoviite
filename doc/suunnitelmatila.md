@@ -9,7 +9,7 @@ Geoviitteessä.
 
 ## Suunnitelman ja virallisen paikannuspohjan suhde
 
-Geoviitteessä on kolmentyyppisiä paikannuspohjia:
+Geoviitteessä on neljäntyyppisiä paikannuspohjia:
 
 | Konteksti | Kuvaus | Näkyvyys |
 |-----------|--------|----------|
@@ -90,7 +90,7 @@ Muutokset tehdään design-draft -kontekstissa, jossa ne näkyvät vain kyseises
 ### 2. Suunnitelman julkaisu (Design Draft → Design Official)
 
 Kun suunnitelmaluonnoksen muutokset ovat valmiita, ne julkaistaan suunnitelman viralliseen versioon. 
-Julkaisu toimii vastaavasti kuin pää-paikannuspohjan julkaisu:
+Julkaisu toimii vastaavasti kuin virallisen paikannuspohjan julkaisu:
 
 - Suoritetaan julkaisuvalidointi (ks. [Julkaisut](julkaisut.md))
 - Varmistetaan että muutokset muodostavat eheän kokonaisuuden
@@ -100,7 +100,7 @@ Design-official -tila on suunnitelman "virallinen" versio, joka voidaan viedä R
 
 ### 3. Suunnitelman valmistuminen (Design Official → Main Draft)
 
-Kun suunniteltu muutos on toteutettu ja valmis, se siirretään pää-paikannuspohjan luonnokseen:
+Kun suunniteltu muutos on toteutettu ja valmis, se siirretään virallisen paikannuspohjan luonnokseen:
 
 - Käyttäjä käynnistää valmistumisprosessin
 - Suunnitelman kohteet kopioidaan main-draft -kontekstiin
@@ -350,7 +350,7 @@ Lisätietoja julkaisuprosessista: [Julkaisut](julkaisut.md)
 
 ### Validointi
 
-Suunnitelmat käyttävät samaa julkaisuvalidointia kuin pää-paikannuspohja:
+Suunnitelmat käyttävät samaa julkaisuvalidointia kuin virallinen paikannuspohja:
 - Geometrinen eheys (raiteet ja vaihteet yhteensopivat)
 - Viite-eheys (ei viittauksia poistettuihin kohteisiin)
 - Osoitteiston eheys (rataosoitteet laskettavissa)
@@ -379,7 +379,7 @@ Kaikissa paikannuspohjan tauluissa (track_number, location_track, switch, km_pos
 - `layout_context_id`: Generoitu kenttä muodossa "{design_id|'main'}_{draft|official}"
 
 Esimerkki:
-- `main_official` - Virallinen pää-paikannuspohja
+- `main_official` - Virallinen paikannuspohja
 - `main_draft` - Pääluonnos
 - `123_official` - Suunnitelman 123 julkaistu versio
 - `123_draft` - Suunnitelman 123 luonnos
