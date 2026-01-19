@@ -166,21 +166,7 @@ classDiagram
     LayoutKmPost --|> LayoutAsset
     ReferenceLine --|> LayoutAsset
     OperationalPoint --|> LayoutAsset
-    
-    note for LayoutAsset "Kaikki paikannuspohjan kohteet\nvoivat kuulua suunnitelmaan"
-    note for DesignAssetState "OPEN: Aktiivinen suunnitelmassa\nCOMPLETED: Valmistunut mainiin\nCANCELLED: Peruutettu"
 ```
-
-### Suunnitelman metatiedot (LayoutDesign)
-
-Suunnitelman perustiedot sisältävät:
-
-| Kenttä | Tyyppi | Kuvaus |
-|--------|--------|--------|
-| `id` | IntId | Suunnitelman yksilöivä tunniste |
-| `name` | LayoutDesignName | Suunnitelman nimi (1-100 merkkiä) |
-| `estimatedCompletion` | Instant | Arvioitu valmistumispäivä |
-| `designState` | DesignState | Suunnitelman tila |
 
 ### Suunnitelman tila (DesignState)
 
@@ -209,15 +195,11 @@ Suunnitelmassa on kaksi tasoa, joilla asioita voidaan peruuttaa:
 
 ### Yksittäisen kohteen peruutus (CANCELLED)
 
-Jos yksittäinen suunnitelman kohde (esim. raide) päätetään jättää toteuttamatta, se voidaan merkitä CANCELLED-tilaan:
-
-- Kohde säilyy design-official -kontekstissa
-- Mutta se ei siirry valmistumisen yhteydessä main-draft -tilaan
+Jos yksittäinen suunnitelman kohde (esim. raide) päätetään jättää toteuttamatta, se voidaan merkitä CANCELLED-tilaan. Tällöin kohde poistuu kokonaan suunnitelmasta.
 
 Peruutusprosessi:
 1. Käyttäjä merkitsee kohteen peruutetuksi
 2. Peruutus julkaistaan design-official -tilaan (PublicationCause.LAYOUT_DESIGN_CANCELLATION)
-3. Valmistumisen yhteydessä peruutetut kohteet jätetään huomiotta
 
 ### Koko suunnitelman poisto (DELETED)
 
@@ -227,7 +209,7 @@ Kun koko suunnitelma poistetaan:
 2. Kaikki suunnitelman design-draft -rivit poistetaan
 3. Kaikki julkaistut kohteet merkitään CANCELLED-tilaan
 4. Tehdään tyhjä julkaisu peruutuksista
-5. Suunnitelma ei enää näy käyttöliittymässä (ellei "näytä poistetut" ole valittuna)
+5. Poistettu suunnitelma ei enää näy käyttöliittymässä
 
 ## Julkaisut suunnitelmissa
 
@@ -261,25 +243,15 @@ Lisätietoja julkaisuprosessista: [Julkaisut](julkaisut.md)
 
 Kontekstien teknisestä toteutuksesta lisätietoja: [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md)
 
-## Rajapinnat
+## Suunnitelmat rajapinnoissa
 
-### REST-rajapinnat
-
-**Suunnitelmien hallinta:**
-- `GET /track-layout/layout-design/` - Listaa suunnitelmat
-- `GET /track-layout/layout-design/{id}` - Hae suunnitelma
-- `POST /track-layout/layout-design/` - Luo uusi suunnitelma
-- `PUT /track-layout/layout-design/{id}` - Päivitä suunnitelma
-
-**Paikannuspohjan kohteet suunnitelmissa:**
-
-Kaikissa paikannuspohjan rajapinnoissa voidaan määrittää layout-branch -parametri:
-- `MAIN` - Pää-paikannuspohja
-- `DESIGN_{id}` - Suunnitelma id:n mukaan (esim. `DESIGN_123`)
+Kaikissa paikannuspohjan rajapinnoissa voidaan määrittää layout-branch osana polkua:
+- `main` - Virallinen paikannuspohja
+- `design_int_<id>` - Suunnitelma id:n mukaan (esim. `design_int_123`)
 
 Esimerkki:
 ```
-GET /track-layout/location-tracks/DESIGN_123?publicationState=DRAFT
+GET /track-layout/location-tracks/design_int_123/draft
 ```
 
 ## Liittyvät dokumentit
