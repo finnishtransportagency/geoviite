@@ -80,3 +80,12 @@ välillä ovat siis:
 
 Siirtymät toteutetaan tallentamalla olion tila kohdekontekstiin (mahdollisen olemassaolevan rivin päälle), ja
 julkaisuiden tapauksessa poistamalla lisäksi luonnoskontekstin rivi.
+
+## Kontekstien tunnisteet (Layout Context ID)
+
+Kaikissa paikannuspohjan tauluissa konteksti tunnistetaan `layout_context_id` -kentällä, joka on generoitu kenttä muodossa `{design_id|'main'}_{draft|official}`:
+
+- `main_official` - Virallinen paikannuspohja
+- `main_draft` - Luonnospaikannuspohja
+- `{id}_official` - Suunnitelman julkaistu versio (esim. `123_official`)
+- `{id}_draft` - Suunnitelman luonnos (esim. `123_draft`)

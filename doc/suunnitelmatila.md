@@ -125,7 +125,7 @@ classDiagram
     class LayoutDesign {
         id: IntId
         name: LayoutDesignName
-        estimatedCompletion: LocalDate
+        estimatedCompletion: Instant
         designState: DesignState
     }
     
@@ -144,9 +144,9 @@ classDiagram
     }
     
     class LayoutAsset {
-        design_id: IntId?
-        design_asset_state: DesignAssetState?
-        layout_context_id: String
+        designId: IntId?
+        designAssetState: DesignAssetState?
+        layoutContextId: String
     }
     
     class LayoutTrackNumber
@@ -179,7 +179,7 @@ Suunnitelman perustiedot sisältävät:
 |--------|--------|--------|
 | `id` | IntId | Suunnitelman yksilöivä tunniste |
 | `name` | LayoutDesignName | Suunnitelman nimi (1-100 merkkiä) |
-| `estimatedCompletion` | LocalDate | Arvioitu valmistumispäivä |
+| `estimatedCompletion` | Instant | Arvioitu valmistumispäivä |
 | `designState` | DesignState | Suunnitelman tila |
 
 ### Suunnitelman tila (DesignState)
@@ -259,130 +259,7 @@ Kun suunnitelman kohteita peruutetaan:
 
 Lisätietoja julkaisuprosessista: [Julkaisut](julkaisut.md)
 
-## Käyttötapauksia
-
-### Esimerkki 1: Uusi raideosuus suunnitelmassa
-
-**Tilanne:** Suunnitellaan uutta sivuraidetta rautatieasemalle.
-
-1. **Luonti:**
-   - Käyttäjä luo suunnitelman "Kouvolan asema sivuraide 2026"
-   - Arvioitu valmistuminen: 2026-08-15
-   - Suunnitelma luodaan ACTIVE-tilassa
-
-2. **Muokkaus:**
-   - Design-draft -kontekstissa luodaan uusi sijaintiraide
-   - Piirretään raiteen geometria
-   - Lisätään vaihteet raiteen alkuun ja loppuun
-   - Määritetään raiteen ominaisuudet
-
-3. **Julkaisu suunnitelmaan:**
-   - Julkaisuvalidointi varmistaa että raide ja vaihteet ovat eheä kokonaisuus
-   - Muutokset siirtyvät design-official -tilaan
-   - DesignAssetState on OPEN
-
-4. **Rakentaminen ja valmistuminen:**
-   - Raide rakennetaan
-   - Käyttäjä käynnistää valmistumisen
-   - Raide ja vaihteet kopioidaan main-draft -tilaan
-   - DesignAssetState muuttuu COMPLETED-tilaksi
-   - Suunnitelman tila muuttuu COMPLETED-tilaksi
-
-5. **Julkaisu viralliseen paikannuspohjaan:**
-   - Main-draft -tiedot tarkistetaan ja täydennetään
-   - Julkaistaan viralliseen paikannuspohjaan (main-official)
-   - Ratko päivitetään vastaamaan uutta virallista tilaa
-
-### Esimerkki 2: Olemassa olevan raiteen muutos
-
-**Tilanne:** Muutetaan olemassa olevan raiteen geometriaa perusparannuksen yhteydessä.
-
-1. **Suunnitelma:**
-   - Luodaan suunnitelma "Pasila perusparannus"
-   - Design-draft -kontekstissa muokataan olemassa olevan raiteen geometriaa
-
-2. **Julkaisu:**
-   - Raide julkaistaan design-official -tilaan
-   - Design-official -kontekstissa näkyy muokattu geometria
-   - Main-official -kontekstissa näkyy edelleen vanha geometria
-
-3. **Valmistuminen:**
-   - Raide kopioidaan main-draft -tilaan uudella geometrialla
-   - Main-draft korvaa main-official -rivin julkaisun yhteydessä
-
-### Esimerkki 3: Osittainen peruutus
-
-**Tilanne:** Suunnitelmasta toteutetaan vain osa.
-
-1. **Suunnitelma:**
-   - Suunnitelmassa on 3 uutta raidetta: A, B ja C
-   - Kaikki julkaistaan design-official -tilaan
-   - Kaikki viedään Ratkoon
-
-2. **Päätös:**
-   - Päätetään että raidetta C ei toteutetakaan
-   - Raide C merkitään CANCELLED-tilaan
-   - Peruutus julkaistaan (LAYOUT_DESIGN_CANCELLATION)
-
-3. **Valmistuminen:**
-   - Kun suunnitelma valmistuu, vain raiteet A ja B siirtyvät main-draft -tilaan
-   - Raide C jää design-official -tilaan CANCELLED-tilassa
-
-## Hyvä tietää
-
-### Suunnitelmien riippumattomuus
-
-- Suunnitelmat ovat täysin itsenäisiä toisistaan
-- Sama ratanumero voi olla muokattuna useassa eri suunnitelmassa eri tavalla
-- Suunnitelmat eivät näe toistensa muutoksia
-
-### Main-draft ja suunnitelmat
-
-- Suunnitelma rakentuu aina main-official -pohjan päälle
-- Suunnitelma EI näe main-draft -muutoksia
-- Jos main-draft julkaistaan, suunnitelmat näkevät muutokset vasta seuraavan kerran kun ne ladataan
-
-### Versiointi
-
-- Jokainen julkaisu (sekä design että main) luo uuden version
-- Versiohistoria säilyy erikseen kullekin kontekstille
-- Sama kohde voi olla eri versioissa eri konteksteissa
-
-### Validointi
-
-Suunnitelmat käyttävät samaa julkaisuvalidointia kuin virallinen paikannuspohja:
-- Geometrinen eheys (raiteet ja vaihteet yhteensopivat)
-- Viite-eheys (ei viittauksia poistettuihin kohteisiin)
-- Osoitteiston eheys (rataosoitteet laskettavissa)
-
-## Tietokantataulut
-
-### layout.design
-
-Suunnitelmien metatiedot:
-
-```sql
-create table layout.design (
-  id                   int primary key generated always as identity,
-  name                 text                not null,
-  estimated_completion date                not null,
-  design_state         layout.design_state not null
-);
-```
-
-### Paikannuspohjan taulujen lisäkentät
-
-Kaikissa paikannuspohjan tauluissa (track_number, location_track, switch, km_post, reference_line, operational_point):
-
-- `design_id`: Viittaus layout.design -tauluun (NULL = main-paikannuspohja)
-- `design_asset_state`: Kohteen tila suunnitelmassa (OPEN, COMPLETED, CANCELLED)
-- `layout_context_id`: Generoitu kenttä muodossa "{design_id|'main'}_{draft|official}"
-
-Esimerkki:
-- `main_official` - Virallinen paikannuspohja
-- `main_draft` - Pääluonnos
-- `123_official` - Suunnitelman 123 julkaistu versio
-- `123_draft` - Suunnitelman 123 luonnos
+Kontekstien teknisestä toteutuksesta lisätietoja: [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md)
 
 ## Rajapinnat
 
@@ -405,11 +282,8 @@ Esimerkki:
 GET /track-layout/location-tracks/DESIGN_123?publicationState=DRAFT
 ```
 
-Lisätietoja: [Rajapintapalvelu](rajapintapalvelu.md)
-
 ## Liittyvät dokumentit
 
 - [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md) - Kontekstien peruskäsitteet ja rakenne
 - [Julkaisut](julkaisut.md) - Julkaisuprosessi ja validointi
-- [Ratko-vienti](ratkovienti.md) - Ratko-integraatio ja tiedonsiirto
 - [Tietomalli](tietomalli.md) - Geoviitteen peruskäsitteet
