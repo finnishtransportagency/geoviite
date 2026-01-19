@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -438,6 +440,12 @@ class OperationalPointDao(
                 OperationalPointGeometryQuality(polygonContainsLocation, polygonIsSimple)
             else null
         }
+    }
+
+    @Transactional
+    fun insertExternalId(id: IntId<OperationalPoint>, branch: LayoutBranch, oid: Oid<OperationalPoint>) {
+        jdbcTemplate.setUser()
+        insertExternalIdInExistingTransaction(branch, id, oid)
     }
 }
 

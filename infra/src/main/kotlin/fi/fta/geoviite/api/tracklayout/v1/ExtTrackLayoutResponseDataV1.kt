@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostGkLocation
@@ -20,6 +21,9 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
+import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
+import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import io.swagger.v3.oas.annotations.media.Schema
 
 const val FI_MAIN = "pääraide"
@@ -144,6 +148,75 @@ const val FI_YES = "kyllä"
 const val FI_NO = "ei"
 const val FI_UNKNOWN = "ei tiedossa"
 
+const val FI_RATKO = "Ratko"
+const val FI_GEOVIITE = "Geoviite"
+
+@Schema(name = "Toiminnallisen pisteen lähde", type = "string", allowableValues = [FI_RATKO, FI_GEOVIITE])
+enum class ExtOperationalPointOriginV1(val value: String) {
+    RATKO(FI_RATKO),
+    GEOVIITE(FI_GEOVIITE);
+
+    @JsonValue fun jsonValue() = value
+
+    companion object {
+        fun of(origin: OperationalPointOrigin): ExtOperationalPointOriginV1 {
+            return when (origin) {
+                OperationalPointOrigin.RATKO -> RATKO
+                OperationalPointOrigin.GEOVIITE -> GEOVIITE
+            }
+        }
+    }
+}
+
+@Schema(name = "Toiminnallisen pisteen tila", type = "string", allowableValues = [FI_IN_USE, FI_DELETED])
+enum class ExtOperationalPointStateV1(val value: String) {
+    IN_USE(FI_IN_USE),
+    DELETED(FI_DELETED);
+
+    @JsonValue fun jsonValue() = value
+
+    companion object {
+        fun of(state: OperationalPointState): ExtOperationalPointStateV1 {
+            return when (state) {
+                OperationalPointState.IN_USE -> IN_USE
+                OperationalPointState.DELETED -> DELETED
+            }
+        }
+    }
+}
+
+fun toExtOperationalPointRatoType(raideType: OperationalPointRaideType): ExtOperationalPointRatoTypeV1 {
+    return when (raideType) {
+        OperationalPointRaideType.LP -> ExtOperationalPointRatoTypeV1("LP", "Liikennepaikka")
+        OperationalPointRaideType.LPO -> ExtOperationalPointRatoTypeV1("LPO", "Liikennepaikan osa")
+        OperationalPointRaideType.OLP -> ExtOperationalPointRatoTypeV1("OLP", "Osiinjaettu liikennepaikka")
+        OperationalPointRaideType.SEIS -> ExtOperationalPointRatoTypeV1("SEIS", "Seisake")
+        OperationalPointRaideType.LVH -> ExtOperationalPointRatoTypeV1("LVH", "Linjavaihde")
+    }
+}
+
+fun toExtOperationalPointRinfType(rinfType: OperationalPointRinfType): ExtOperationalPointRinfTypeV1 {
+    val (code, description) =
+        when (rinfType) {
+            OperationalPointRinfType.STATION -> "10" to "Station"
+            OperationalPointRinfType.SMALL_STATION -> "20" to "Small station"
+            OperationalPointRinfType.PASSENGER_TERMINAL -> "30" to "Passenger terminal"
+            OperationalPointRinfType.FREIGHT_TERMINAL -> "40" to "Freight terminal"
+            OperationalPointRinfType.DEPOT_OR_WORKSHOP -> "50" to "Depot or workshop"
+            OperationalPointRinfType.TRAIN_TECHNICAL_SERVICES -> "60" to "Train technical services"
+            OperationalPointRinfType.PASSENGER_STOP -> "70" to "Passenger stop"
+            OperationalPointRinfType.JUNCTION -> "80" to "Junction"
+            OperationalPointRinfType.BORDER_POINT -> "90" to "Border point"
+            OperationalPointRinfType.SHUNTING_YARD -> "100" to "Shunting yard"
+            OperationalPointRinfType.TECHNICAL_CHANGE -> "110" to "Technical change"
+            OperationalPointRinfType.SWITCH -> "120" to "Switch"
+            OperationalPointRinfType.PRIVATE_SIDING -> "130" to "Private siding"
+            OperationalPointRinfType.DOMESTIC_BORDER_POINT -> "140" to "Domestic border point"
+            OperationalPointRinfType.OVER_CROSSING -> "150" to "Over crossing"
+        }
+    return ExtOperationalPointRinfTypeV1(code, description)
+}
+
 @Schema(name = "Vaihteen turvavaihdestatus", type = "string", allowableValues = [FI_YES, FI_NO, FI_UNKNOWN])
 enum class ExtSwitchTrapPointV1(val value: String) {
     YES(FI_YES),
@@ -204,6 +277,15 @@ enum class ExtGeometryChangeTypeV1(val value: String) {
     @JsonValue override fun toString() = value
 }
 
+const val FI_POLYGON = "polygoni"
+
+@Schema(name = "Alueen tyyppi", type = "string", allowableValues = [FI_POLYGON])
+enum class ExtAreaTypeV1(val value: String) {
+    POLYGON(FI_POLYGON);
+
+    @JsonValue override fun toString() = value
+}
+
 const val FI_SPLIT = "raiteen_jakaminen"
 const val FI_BOUNDARY_SHIFT = "vaihtumiskohdan_siirto"
 
@@ -248,6 +330,12 @@ enum class ExtTrackBoundaryGeometryChangeTypeV1(val value: String) {
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtCoordinateV1(val x: Double, val y: Double) {
     constructor(coordinate: IPoint) : this(coordinate.x, coordinate.y)
+}
+
+@Schema(name = "Polygoni")
+@JsonInclude(JsonInclude.Include.ALWAYS)
+data class ExtPolygonV1(@JsonProperty(POINTS) val points: List<ExtCoordinateV1>) {
+    @JsonProperty(TYPE) val type: ExtAreaTypeV1 = ExtAreaTypeV1.POLYGON
 }
 
 @Schema(name = "Tasakilometripisteen virallinen sijainti")
