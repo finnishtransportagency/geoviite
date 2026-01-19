@@ -247,16 +247,10 @@ class CalculatedChangesService(
                 directSwitchChanges.any { indirectChange.switchId == it.switchId }
             }
 
-        val operationalPointChanges =
-            calculateOperationalPointChanges(
-                directSwitchChanges,
-                directLocationTrackChanges,
-                changeContext,
-            )
-
         val directOperationalPointIds = versions.operationalPoints.map { it.id }
         val indirectOperationalPointChanges =
-            operationalPointChanges.filter { opId -> !directOperationalPointIds.contains(opId) }
+            calculateOperationalPointChanges(directSwitchChanges, directLocationTrackChanges, changeContext)
+                .filterNot(directOperationalPointIds::contains)
 
         return CalculatedChanges(
             directChanges =
@@ -811,9 +805,7 @@ private fun calculateOperationalPointChanges(
             val oldSwitch = changeContext.switches.getBefore(switchChange.switchId)
             val newSwitch = changeContext.switches.getAfter(switchChange.switchId)
             val oldOpId = oldSwitch?.operationalPointId
-            val newOpId = newSwitch?.operationalPointId
-            
-            // Only include if the reference actually changed
+            val newOpId = newSwitch.operationalPointId
             if (oldOpId != newOpId) {
                 listOfNotNull(oldOpId, newOpId)
             } else {
@@ -826,9 +818,7 @@ private fun calculateOperationalPointChanges(
             val oldLocationTrack = changeContext.locationTracks.getBefore(locationTrackChange.locationTrackId)
             val newLocationTrack = changeContext.locationTracks.getAfter(locationTrackChange.locationTrackId)
             val oldOpIds = oldLocationTrack?.operationalPointIds ?: emptySet()
-            val newOpIds = newLocationTrack?.operationalPointIds ?: emptySet()
-            
-            // Only include operational points that were added or removed
+            val newOpIds = newLocationTrack.operationalPointIds
             (oldOpIds - newOpIds) + (newOpIds - oldOpIds)
         }
 
