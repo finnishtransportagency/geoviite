@@ -390,7 +390,7 @@ export type OperationalPointLocationTracks = {
     assigned: LocationTrackId[];
 };
 
-export async function linkLocationTrackToOperationalPoint(
+export async function linkLocationTracksToOperationalPoint(
     branch: LayoutBranch,
     locationTrackIds: LocationTrackId[],
     operationalPointId: OperationalPointId,
@@ -401,7 +401,7 @@ export async function linkLocationTrackToOperationalPoint(
     );
 }
 
-export async function unlinkLocationTrackToOperationalPoint(
+export async function unlinkLocationTracksFromOperationalPoint(
     branch: LayoutBranch,
     locationTrackIds: LocationTrackId[],
     operationalPointId: OperationalPointId,
