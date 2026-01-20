@@ -1924,7 +1924,11 @@
             "switch-link-removed-plural": "Vaihteiden {{value}} linkitys purettu",
             "operational-point-area-changed": "Alue muuttunut",
             "operational-point-area-added": "Alue lisätty",
-            "operational-point-area-cleared": "Alue tyhjennetty"
+            "operational-point-area-cleared": "Alue tyhjennetty",
+            "operational-point-link-added-singular": "Lisätty liitos toiminnalliseen pisteeseen {{value}}",
+            "operational-point-link-removed-singular": "Lisätty liitos toiminnalliseen pisteeseen {{value}}",
+            "operational-point-link-added-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}",
+            "operational-point-link-removed-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}"
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
@@ -1968,7 +1972,8 @@
             "rinf-type": "Tyyppi (RINF)",
             "raide-type": "Tyyppi (RATO)",
             "polygon": "Alue",
-            "linked-switches": "Vaihdelinkitykset"
+            "linked-switches": "Vaihdelinkitykset",
+            "linked-operational-points": "Toiminnallisen pisteen asetus"
         }
     },
     "publication-log": {

@@ -227,44 +227,53 @@ enum class PublicationCause {
 
 data class PublishedItemListing<T>(val directChanges: List<T>, val indirectChanges: List<T>)
 
+interface PublishedVersionedAsset<T : LayoutAsset<T>> {
+    val version: LayoutRowVersion<T>
+    val baseVersion: LayoutRowVersion<T>?
+}
+
 data class PublishedTrackNumber(
-    val version: LayoutRowVersion<LayoutTrackNumber>,
+    override val version: LayoutRowVersion<LayoutTrackNumber>,
+    override val baseVersion: LayoutRowVersion<LayoutTrackNumber>?,
     val number: TrackNumber,
     val operation: Operation,
     val changedKmNumbers: Set<KmNumber>,
-) {
+) : PublishedVersionedAsset<LayoutTrackNumber> {
     val id: IntId<LayoutTrackNumber>
         get() = version.id
 }
 
 data class PublishedReferenceLine(
-    val version: LayoutRowVersion<ReferenceLine>,
+    override val version: LayoutRowVersion<ReferenceLine>,
+    override val baseVersion: LayoutRowVersion<ReferenceLine>?,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val operation: Operation,
     val changedKmNumbers: Set<KmNumber>,
-) {
+) : PublishedVersionedAsset<ReferenceLine> {
     val id: IntId<ReferenceLine>
         get() = version.id
 }
 
 data class PublishedLocationTrack(
-    val version: LayoutRowVersion<LocationTrack>,
+    override val version: LayoutRowVersion<LocationTrack>,
+    override val baseVersion: LayoutRowVersion<LocationTrack>?,
     val name: AlignmentName,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val operation: Operation,
     val changedKmNumbers: Set<KmNumber>,
-) {
+) : PublishedVersionedAsset<LocationTrack> {
     val id: IntId<LocationTrack>
         get() = version.id
 }
 
 data class PublishedSwitch(
-    val version: LayoutRowVersion<LayoutSwitch>,
+    override val version: LayoutRowVersion<LayoutSwitch>,
+    override val baseVersion: LayoutRowVersion<LayoutSwitch>?,
     val trackNumberIds: Set<IntId<LayoutTrackNumber>>,
     val name: SwitchName,
     val operation: Operation,
     @JsonIgnore val changedJoints: List<SwitchJointChange>,
-) {
+) : PublishedVersionedAsset<LayoutSwitch> {
     val id: IntId<LayoutSwitch>
         get() = version.id
 }
@@ -272,20 +281,22 @@ data class PublishedSwitch(
 data class PublishedSwitchJoint(val jointNumber: JointNumber, val address: TrackMeter)
 
 data class PublishedKmPost(
-    val version: LayoutRowVersion<LayoutKmPost>,
+    override val version: LayoutRowVersion<LayoutKmPost>,
+    override val baseVersion: LayoutRowVersion<LayoutKmPost>?,
     val trackNumberId: IntId<LayoutTrackNumber>,
     val kmNumber: KmNumber,
     val operation: Operation,
-) {
+) : PublishedVersionedAsset<LayoutKmPost> {
     val id: IntId<LayoutKmPost>
         get() = version.id
 }
 
 data class PublishedOperationalPoint(
-    val version: LayoutRowVersion<OperationalPoint>,
+    override val version: LayoutRowVersion<OperationalPoint>,
+    override val baseVersion: LayoutRowVersion<OperationalPoint>?,
     val name: OperationalPointName,
     val operation: Operation,
-) {
+) : PublishedVersionedAsset<OperationalPoint> {
     val id: IntId<OperationalPoint>
         get() = version.id
 }
@@ -852,13 +863,6 @@ data class KmPostChanges(
     val gkSrid: Change<Srid>,
     val gkLocationSource: Change<KmPostGkLocationSource>,
     val gkLocationConfirmed: Change<Boolean>,
-)
-
-data class SwitchChangeIds(val name: String, val externalId: Oid<LayoutSwitch>?)
-
-data class LocationTrackPublicationSwitchLinkChanges(
-    val old: Map<IntId<LayoutSwitch>, SwitchChangeIds>,
-    val new: Map<IntId<LayoutSwitch>, SwitchChangeIds>,
 )
 
 data class SplitInPublication(
