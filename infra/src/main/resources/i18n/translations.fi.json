@@ -1973,7 +1973,7 @@
             "raide-type": "Tyyppi (RATO)",
             "polygon": "Alue",
             "linked-switches": "Vaihdelinkitykset",
-            "linked-operational-points": "Toiminnallisen pisteen asetus"
+            "linked-operational-point": "Toiminnallisen pisteen asetus"
         }
     },
     "publication-log": {
