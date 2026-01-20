@@ -22,7 +22,7 @@ oliosta on kussakin kontekstissa näkyvillä enintään yksi rivi. Enimmillään
 kontekstissaan design-official-rivin, joka taas korvaisi kontekstissaan main-officialin; tai design-official-rivi voi
 korvata main-officia-rivin ja olla näkyvillä design-draftiinsa.
 
-Geoviitteessä on neljäntyyppisiä paikannuspohjia:
+## Pikaopas
 
 | Konteksti | Kuvaus | Näkyvyys |
 |-----------|--------|----------|

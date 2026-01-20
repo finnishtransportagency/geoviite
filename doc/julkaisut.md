@@ -12,7 +12,8 @@ tausta-ajolla, jonka tilaa tarkastellaan käyttölittymässä julkaisutasolla.
 
 Tämä on yksinkertaistettu malli julkaisun käsitteistöstä. Todellisuudessa mukana on vielä kohtuullinen
 määrä valmiiksi laskettua dataa julkaisuhistorian esittämistä varten. Käsitteellisesti mallin voi kuitenkin mieltää
-koostuvan julkaisusta johon sisältyy tarkat versiokiinnitykset sen muuttamille käsitteille. Varsinainen datasisältö, joka julkaisussa muuttui, voidaan hakea paikannuspohjan
+koostuvan julkaisusta johon sisältyy tarkat versiokiinnitykset sen muuttamille käsitteille. Varsinainen datasisältö,
+joka julkaisussa muuttui, voidaan hakea paikannuspohjan
 versiotauluista kiinnitetyillä versioilla tai julkaisun aikaleimalla.
 
 ```mermaid
@@ -81,6 +82,7 @@ Suunnitelmiin liittyy erityyppisiä julkaisuja:
 ### Suunnitelman normaali julkaisu
 
 Kun design-draft -muutoksia julkaistaan design-official -tilaan:
+
 - Suoritetaan normaali julkaisuvalidointi
 - Luonnoskontekstin muutokset siirretään viralliseen suunnitelmaan
 - Julkaisu tallennetaan publication-tauluun linkitettynä suunnitelmaan
@@ -88,16 +90,14 @@ Kun design-draft -muutoksia julkaistaan design-official -tilaan:
 ### Tyhjä julkaisu suunnitelman muutoksesta
 
 Kun suunnitelman metatietoja (nimi, valmistumispäivä) muutetaan ja suunnitelma on jo julkaistu:
+
 - Tehdään tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_CHANGE)
 - Ei sisällä paikannuspohjan muutoksia
 
 ### Tyhjä julkaisu suunnitelman poistosta
 
-Kun suunnitelma poistetaan:
-- Tehdään tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_DELETE)
+Kun suunnitelma poistetaan, tehdään kaksi julkaisua:
 
-### Peruutusjulkaisu
-
-Kun suunnitelman kohteita peruutetaan:
-- Tehdään julkaisu peruutetuista kohteista (PublicationCause.LAYOUT_DESIGN_CANCELLATION)
-- Sisältää peruutetut kohteet CANCELLED-tilassa
+- Tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_DELETE)
+- Peruutusjulkaisu kaikille suunnitelman kohteille (PublicationCause.LAYOUT_DESIGN_CANCELLATION), joka sisältää
+  peruutetut kohteet CANCELLED-tilassa
