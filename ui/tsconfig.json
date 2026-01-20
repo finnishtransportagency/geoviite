@@ -26,7 +26,8 @@
             ]
         },
         "allowJs": true,
-        "checkJs": true
+        "checkJs": true,
+        "skipLibCheck": true
     },
     "include": [
         "./src/**/*",
