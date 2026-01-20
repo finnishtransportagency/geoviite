@@ -9,17 +9,8 @@ Geoviitteessä.
 
 ## Suunnitelman ja virallisen paikannuspohjan suhde
 
-Geoviitteessä on neljäntyyppisiä paikannuspohjia:
-
-| Konteksti | Kuvaus | Näkyvyys |
-|-----------|--------|----------|
-| **Main-official (virallinen paikannuspohja)** | Virallinen rataverkon nykytila | Näkyy kaikkiin konteksteihin |
-| **Main-draft (luonnos)** | Työtila virallisen paikannuspohjan muutoksille | Näkyy vain main-draft -kontekstissa |
-| **Design-official (julkaistu suunnitelma)** | Julkaistu suunnitelma | Näkyy design-official ja design-draft -konteksteihin |
-| **Design-draft (suunnitelmaluonnos)** | Työtila suunnitelman muutoksille | Näkyy vain kyseiseen design-draft -kontekstiin |
-
-Suunnitelmat ovat täysin itsenäisiä ja toisistaan riippumattomia. Kukin suunnitelma rakentuu virallisen paikannuspohjan 
-(main-official) päälle, mutta:
+Suunnitelmat elävät omissa paikannuspohjan konteksteissaan ja ovat siksi täysin itsenäisiä ja toisistaan riippumattomia. 
+Kukin suunnitelma rakentuu virallisen paikannuspohjan (main-official) päälle, mutta:
 - Suunnitelma ei näe main-draft -muutoksia
 - Eri suunnitelmat eivät näe toistensa muutoksia
 - Voi olla useita aktiivisia suunnitelmia samanaikaisesti
@@ -66,7 +57,7 @@ sequenceDiagram
     Note over DD: Suunnittelua, muokkauksia
     DD->>DO: 2. Suunnitelman julkaisu
     Note over DO: Suunnitelma julkaistu
-    DO->>MD: 3. Valmistuminen
+    DO->>MD: 3. Kohteen valmistuminen
     Note over MD: Täydennykset ja tarkistukset
     MD->>MO: 4. Julkaisu viralliseen paikannuspohjaan
     Note over MO: Muutos virallisessa paikannuspohjassa
@@ -88,22 +79,20 @@ Muutokset tehdään design-draft -kontekstissa, jossa ne näkyvät vain kyseises
 Kun suunnitelmaluonnoksen muutokset ovat valmiita, ne julkaistaan suunnitelman viralliseen versioon. 
 Julkaisu toimii vastaavasti kuin virallisen paikannuspohjan julkaisu:
 
-- Suoritetaan julkaisuvalidointi (ks. [Julkaisut](julkaisut.md))
-- Varmistetaan että muutokset muodostavat eheän kokonaisuuden
+- Suoritetaan julkaisuvalidointi, joka varmistaa että muutokset muodostavat eheän kokonaisuuden (ks. [Julkaisut](julkaisut.md))
 - Design-draft -rivit poistetaan ja design-official -rivit jäävät
 
 Design-official -tila on suunnitelman "virallinen" versio, joka voidaan viedä Ratkoon.
 
-### 3. Suunnitelman valmistuminen (Design Official → Main Draft)
+### 3. Kohteen valmistuminen (Design Official → Main Draft)
 
-Kun suunniteltu muutos on toteutettu ja valmis, se siirretään virallisen paikannuspohjan luonnokseen:
+Kun suunnitelman yksittäinen kohde on toteutettu ja valmis, se siirretään virallisen paikannuspohjan luonnokseen:
 
-- Käyttäjä käynnistää valmistumisprosessin
-- Suunnitelman kohteet kopioidaan main-draft -kontekstiin
-- Main-draft -puolella niitä voidaan vielä täydentää ja tarkistaa
-- Suunnitelman tila muutetaan COMPLETED-tilaan
+- Käyttäjä siirtää kohteen luonnostilaan Geoviitteen julkaisuprosessin avulla
+- Kohde kopioidaan main-draft -kontekstiin
+- Main-draft -puolella sitä voidaan vielä täydentää ja tarkistaa
 
-Design-official -kontekstin kohteet säilyvät edelleen, mutta ne ovat nyt merkitty COMPLETED-tilaan.
+Design-official -kontekstissa kohde säilyy edelleen, mutta se on nyt merkitty COMPLETED-tilaan.
 
 ### 4. Julkaisu viralliseen paikannuspohjaan (Main Draft → Main Official)
 

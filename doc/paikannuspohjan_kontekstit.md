@@ -22,6 +22,15 @@ oliosta on kussakin kontekstissa näkyvillä enintään yksi rivi. Enimmillään
 kontekstissaan design-official-rivin, joka taas korvaisi kontekstissaan main-officialin; tai design-official-rivi voi
 korvata main-officia-rivin ja olla näkyvillä design-draftiinsa.
 
+Geoviitteessä on neljäntyyppisiä paikannuspohjia:
+
+| Konteksti | Kuvaus | Näkyvyys |
+|-----------|--------|----------|
+| **Main-official (virallinen paikannuspohja)** | Virallinen rataverkon nykytila | Näkyy kaikkiin konteksteihin |
+| **Main-draft (luonnos)** | Työtila virallisen paikannuspohjan muutoksille | Näkyy vain main-draft -kontekstissa |
+| **Design-official (julkaistu suunnitelma)** | Julkaistu suunnitelma | Näkyy design-official ja design-draft -konteksteihin |
+| **Design-draft (suunnitelmaluonnos)** | Työtila suunnitelman muutoksille | Näkyy vain kyseiseen design-draft -kontekstiin |
+
 ## Virallinen paikannuspohja (Official Layout)
 
 Virallinen paikannuspohja on se data joka viedään Ratkoon ja joka esittää rataverkon todellista nykytilaa parhaan
