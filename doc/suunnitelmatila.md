@@ -31,11 +31,8 @@ Tarkempi kuvaus konteksteista löytyy dokumentista [Paikannuspohjan kontekstit](
 ```mermaid
 stateDiagram-v2
     [*] --> ACTIVE: Luo suunnitelma
-    ACTIVE --> ACTIVE: Muokkauksia ja julkaisuja
     ACTIVE --> COMPLETED: Valmistuminen
     ACTIVE --> DELETED: Poisto
-    COMPLETED --> [*]
-    DELETED --> [*]
     
     note right of ACTIVE
         Työn alla oleva suunnitelma.
@@ -63,7 +60,6 @@ sequenceDiagram
     participant DD as Design Draft
     participant DO as Design Official
     participant MD as Main Draft
-    participant MO2 as Main Official
     
     Note over MO: Virallinen nykytila
     MO->>DD: 1. Luonnosmuutos suunnitelmaan
@@ -72,8 +68,8 @@ sequenceDiagram
     Note over DO: Suunnitelma julkaistu
     DO->>MD: 3. Valmistuminen
     Note over MD: Täydennykset ja tarkistukset
-    MD->>MO2: 4. Julkaisu viralliseen paikannuspohjaan
-    Note over MO2: Muutos virallisessa paikannuspohjassa
+    MD->>MO: 4. Julkaisu viralliseen paikannuspohjaan
+    Note over MO: Muutos virallisessa paikannuspohjassa
 ```
 
 ### 1. Suunnitelman luonti ja muokkaus (Main Official → Design Draft)
