@@ -52,8 +52,9 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import kotlin.reflect.KClass
 
 data class TrackNumberChange(
     val trackNumberId: IntId<LayoutTrackNumber>,
@@ -135,49 +136,45 @@ data class CalculatedChanges(val directChanges: DirectChanges, val indirectChang
     }
 
     init {
-        checkDuplicates(
-            directChanges.kmPostChanges,
-            { it },
-            "Duplicate km posts in direct changes, directChanges=${directChanges.kmPostChanges}",
-        )
+        checkDuplicates(LayoutKmPost::class, directChanges.kmPostChanges) { it }
+
+        checkDuplicates(ReferenceLine::class, directChanges.referenceLineChanges) { it }
 
         checkDuplicates(
-            directChanges.referenceLineChanges,
-            { it },
-            "Duplicate reference lines in direct changes, directChanges=${directChanges.referenceLineChanges}",
-        )
+            LayoutTrackNumber::class,
+            directChanges.trackNumberChanges,
+            indirectChanges.trackNumberChanges,
+        ) {
+            it.trackNumberId
+        }
 
-        val trackNumberChanges = (directChanges.trackNumberChanges + indirectChanges.trackNumberChanges)
         checkDuplicates(
-            trackNumberChanges,
-            { it.trackNumberId },
-            "Duplicate track numbers in direct and indirect changes, directChanges=${directChanges.trackNumberChanges} indirectChanges=${indirectChanges.trackNumberChanges}",
-        )
-
-        val locationTrackChanges = (directChanges.locationTrackChanges + indirectChanges.locationTrackChanges)
-        checkDuplicates(
-            locationTrackChanges,
+            LocationTrack::class,
+            directChanges.locationTrackChanges,
+            indirectChanges.locationTrackChanges,
             { it.locationTrackId },
-            "Duplicate location tracks in direct and indirect changes, directChanges=${directChanges.locationTrackChanges} indirectChanges=${indirectChanges.locationTrackChanges}",
         )
 
-        val switchChanges = (directChanges.switchChanges + indirectChanges.switchChanges)
-        checkDuplicates(
-            switchChanges,
-            { it.switchId },
-            "Duplicate switches in direct and indirect changes, directChanges=${directChanges.switchChanges} indirectChanges=${indirectChanges.switchChanges}",
-        )
+        checkDuplicates(LayoutSwitch::class, directChanges.switchChanges, indirectChanges.switchChanges) { it.switchId }
 
-        val operationalPointChanges = (directChanges.operationalPointChanges + indirectChanges.operationalPointChanges)
         checkDuplicates(
-            operationalPointChanges,
+            OperationalPoint::class,
+            directChanges.operationalPointChanges,
+            indirectChanges.operationalPointChanges,
             { it },
-            "Duplicate operational points in direct and indirect changes, directChanges=${directChanges.operationalPointChanges} indirectChanges=${indirectChanges.operationalPointChanges}",
         )
     }
 
-    private fun <T, R> checkDuplicates(changes: Collection<T>, groupingBy: (v: T) -> R, message: String) {
-        check(changes.groupingBy(groupingBy).eachCount().all { it.value == 1 }) { message }
+    private fun <Asset : LayoutAsset<Asset>, Change> checkDuplicates(
+        type: KClass<Asset>,
+        directChanges: Collection<Change>,
+        indirectChanges: Collection<Change>? = null,
+        groupingBy: (v: Change) -> IntId<Asset>,
+    ) {
+        val changes = directChanges + (indirectChanges ?: emptyList())
+        check(changes.groupingBy(groupingBy).eachCount().all { it.value == 1 }) {
+            "Duplicate ${type::simpleName} in changes: directChanges=$directChanges indirectChanges=$indirectChanges"
+        }
     }
 }
 
