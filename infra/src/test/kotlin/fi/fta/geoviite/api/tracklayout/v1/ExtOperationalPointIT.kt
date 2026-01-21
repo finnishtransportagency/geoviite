@@ -3,8 +3,10 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
@@ -425,13 +427,6 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     }
 
     @Test
-    @Disabled(
-        """
-        Calculated changes for operational points are not yet implemented.
-        When a switch or track is linked to an operational point, the operational point should appear
-        as changed in the modification APIs even though the operational point itself wasn't directly edited.
-        """
-    )
     fun `Operational point shows as changed when track or switch is linked to it`() {
         val opId = mainDraftContext.save(operationalPoint(location = Point(5.0, 0.0))).id
         val opOid = mainDraftContext.generateOid(opId)
@@ -442,14 +437,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         api.operationalPoint.assertNoModificationSince(opOid, basePublication.uuid)
         api.operationalPointCollection.assertNoModificationSince(basePublication.uuid)
 
-        // Create and link a switch to the operational point (calculated change)
+        // Phase 1: Create and link a switch to the operational point (calculated change)
         initUser()
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val rlId =
-            mainDraftContext
-                .save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
-                .id
-
         val structure = switchStructureYV60_300_1_9()
         val switchId =
             mainDraftContext
@@ -461,26 +450,101 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                         .copy(operationalPointId = opId)
                 )
                 .id
+        mainDraftContext.generateOid(switchId)
 
-        val updatePublication =
+        val switchPublication =
             extTestDataService.publishInMain(
                 switches = listOf(switchId),
+            )
+
+        // Operational point should show as changed even though it wasn't directly edited
+        val switchModification = api.operationalPoint.getModifiedSince(opOid, basePublication.uuid)
+        assertEquals(basePublication.uuid.toString(), switchModification.alkuversio)
+        assertEquals(switchPublication.uuid.toString(), switchModification.loppuversio)
+        assertEquals(1, switchModification.toiminnallinen_piste.vaihteet.size)
+        assertEquals(0, switchModification.toiminnallinen_piste.raiteet.size)
+
+        // Collection changes should also show it
+        val switchCollectionChanges = api.operationalPointCollection.getModifiedSince(basePublication.uuid)
+        assertEquals(
+            listOf(opOid.toString()),
+            switchCollectionChanges.toiminnalliset_pisteet.map { it.toiminnallinen_piste_oid },
+        )
+
+        // Phase 2: Create and link a location track to the operational point (calculated change)
+        initUser()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val rlId =
+            mainDraftContext
+                .save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+                .id
+
+        val trackId =
+            mainDraftContext
+                .save(
+                    locationTrack(trackNumberId).copy(operationalPointIds = setOf(opId)),
+                    trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+                )
+                .id
+        mainDraftContext.generateOid(trackId)
+
+        val trackPublication =
+            extTestDataService.publishInMain(
+                locationTracks = listOf(trackId),
                 trackNumbers = listOf(trackNumberId),
                 referenceLines = listOf(rlId),
             )
 
-        // Operational point should show as changed even though it wasn't directly edited
-        val modification = api.operationalPoint.getModifiedSince(opOid, basePublication.uuid)
-        assertEquals(basePublication.uuid.toString(), modification.alkuversio)
-        assertEquals(updatePublication.uuid.toString(), modification.loppuversio)
-        assertEquals(1, modification.toiminnallinen_piste.vaihteet.size)
+        // Operational point should show as changed again
+        val trackModification = api.operationalPoint.getModifiedSince(opOid, switchPublication.uuid)
+        assertEquals(switchPublication.uuid.toString(), trackModification.alkuversio)
+        assertEquals(trackPublication.uuid.toString(), trackModification.loppuversio)
+        assertEquals(1, trackModification.toiminnallinen_piste.vaihteet.size)
+        assertEquals(1, trackModification.toiminnallinen_piste.raiteet.size)
 
         // Collection changes should also show it
-        val collectionChanges = api.operationalPointCollection.getModifiedSince(basePublication.uuid)
+        val trackCollectionChanges = api.operationalPointCollection.getModifiedSince(switchPublication.uuid)
         assertEquals(
             listOf(opOid.toString()),
-            collectionChanges.toiminnalliset_pisteet.map { it.toiminnallinen_piste_oid },
+            trackCollectionChanges.toiminnalliset_pisteet.map { it.toiminnallinen_piste_oid },
         )
+
+        // Phase 3: Make trivial changes to switch and track WITHOUT changing operational point references
+        // This should NOT show the operational point as changed
+        initUser()
+        mainDraftContext.mutate(switchId) { sw -> sw.copy(name = SwitchName("${sw.name}-EDIT")) }
+        mainDraftContext.mutate(trackId) { track -> track.copy(name = AlignmentName("${track.name}-EDIT")) }
+
+        val trivialChangePublication =
+            extTestDataService.publishInMain(
+                switches = listOf(switchId),
+                locationTracks = listOf(trackId),
+            )
+
+        // Operational point should NOT show as changed since references didn't change
+        api.operationalPoint.assertNoModificationSince(opOid, trackPublication.uuid)
+        api.operationalPointCollection.assertNoModificationSince(trackPublication.uuid)
+
+        // Verify fetching with old layout versions shows correct references
+        // Base version: no switch or track
+        val baseOp = api.operationalPoint.getAtVersion(opOid, basePublication.uuid)
+        assertEquals(0, baseOp.toiminnallinen_piste.vaihteet.size)
+        assertEquals(0, baseOp.toiminnallinen_piste.raiteet.size)
+
+        // After switch publication: has switch, no track yet
+        val afterSwitchOp = api.operationalPoint.getAtVersion(opOid, switchPublication.uuid)
+        assertEquals(1, afterSwitchOp.toiminnallinen_piste.vaihteet.size)
+        assertEquals(0, afterSwitchOp.toiminnallinen_piste.raiteet.size)
+
+        // After track publication: has both switch and track
+        val afterTrackOp = api.operationalPoint.getAtVersion(opOid, trackPublication.uuid)
+        assertEquals(1, afterTrackOp.toiminnallinen_piste.vaihteet.size)
+        assertEquals(1, afterTrackOp.toiminnallinen_piste.raiteet.size)
+
+        // After trivial change publication: still has both switch and track (same references)
+        val afterTrivialChangeOp = api.operationalPoint.getAtVersion(opOid, trivialChangePublication.uuid)
+        assertEquals(1, afterTrivialChangeOp.toiminnallinen_piste.vaihteet.size)
+        assertEquals(1, afterTrivialChangeOp.toiminnallinen_piste.raiteet.size)
     }
 
     private fun assertPolygonMatches(expected: Polygon, actual: ExtTestPolygonV1?) {
