@@ -47,6 +47,7 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
+import org.mockserver.model.OpenAPIDefinition
 import org.mockserver.model.Parameter
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
@@ -109,7 +110,7 @@ class FakeRatko(port: Int) {
     ) {
         post("/api/infra/v1.0/locationtracks", mapOf<String, String>(), MatchType.STRICT, Times.once())
             .respond(okJson(mapOf("id" to oid)))
-        put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
+        patch("/api/infra/v1.1/locationtracks/$oid", mapOf("id" to oid)).respond(ok())
         get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
         ratkoLocationTrackAfterCreation?.let { ratkoTrack ->
             get("/api/locations/v1.1/locationtracks/${oid}").respond(okJson(listOf(ratkoTrack)))
@@ -152,7 +153,7 @@ class FakeRatko(port: Int) {
 
         get("/api/locations/v1.1/locationtracks/${oid}", Times.once())
             .respond(okJson(listOf(existingRatkoLocationTrack)))
-        put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
+        patch("/api/infra/v1.1/locationtracks/$oid", mapOf("id" to oid)).respond(ok())
         patch(
                 "/api/infra/v1.1/locationtracks/${oid}",
                 mapOf<String, String>(),
@@ -175,7 +176,7 @@ class FakeRatko(port: Int) {
 
         get("/api/locations/v1.1/locationtracks/${oid}", Times.once())
             .respond(okJson(listOf(existingRatkoLocationTrack)))
-        put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
+        patch("/api/infra/v1.1/locationtracks/$oid", mapOf("id" to oid)).respond(ok())
         post(
                 "/api/infra/v1.0/locationtracks",
                 mapOf("id" to oid),
@@ -209,8 +210,8 @@ class FakeRatko(port: Int) {
             .forEach { km -> delete("/api/infra/v1.0/points/${locationTrackAsset.id}/${km}").respond(ok()) }
 
         states.forEach { state ->
-            put(
-                    "/api/infra/v1.0/locationtracks",
+            patch(
+                    "/api/infra/v1.1/locationtracks/${locationTrackAsset.id}",
                     mapOf("id" to locationTrackAsset.id, "state" to state.value),
                     MatchType.ONLY_MATCHING_FIELDS,
                     Times.once(),
@@ -222,7 +223,7 @@ class FakeRatko(port: Int) {
     fun acceptsNewLocationTrackWithoutPointsGivingItOid(oid: String) {
         post("/api/infra/v1.0/locationtracks", mapOf<String, String>(), MatchType.STRICT, Times.once())
             .respond(okJson(mapOf("id" to oid)))
-        put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
+        patch("/api/infra/v1.1/locationtracks/$oid", mapOf("id" to oid)).respond(ok())
         get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
         post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
         patch("/api/infra/v1.1/points/${oid}", times = Times.exactly(0)).respond(ok())
@@ -256,7 +257,8 @@ class FakeRatko(port: Int) {
     }
 
     fun hasLocationTrack(locationTrackAsset: InterfaceRatkoLocationTrack) {
-        put("/api/infra/v1.0/locationtracks", mapOf("id" to locationTrackAsset.id)).respond(ok())
+        patch("/api/infra/v1.1/locationtracks/${locationTrackAsset.id}", mapOf("id" to locationTrackAsset.id))
+            .respond(ok())
         get("/api/locations/v1.1/locationtracks/${locationTrackAsset.id}").respond(okJson(listOf(locationTrackAsset)))
         patch("/api/infra/v1.1/points/${locationTrackAsset.id}").respond(ok())
         locationTrackAsset.nodecollection.nodes
@@ -398,13 +400,36 @@ class FakeRatko(port: Int) {
 
     fun getLastPushedSwitch(oid: String): InterfaceRatkoSwitch? = lastPushedSwitchBody(oid)?.let(jsonMapper::readValue)
 
+    // location tracks can be created by PUSH /v1.0/locationtracks (identified by oid in body), or updated by
+    // PATCH /v1.1/locationtracks/$oid. MockServer's request definitions can't quite pull off the alternation.
+    private fun openApiLocationTrackRequestSpec(oid: String) =
+        """
+        openapi: 3.0.0
+        info:
+          title: Location Track API
+          version: 1.0.0
+        paths:
+          /api/infra/v1.0/locationtracks:
+            post:
+              operationId: createLocationTrack
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      required: [id]
+                      properties:
+                        id:
+                          type: string
+                          enum: ["$oid"]
+          /api/infra/v1.1/locationtracks/$oid:
+            patch:
+              operationId: updateLocationTrack
+    """
+
     private fun lastPushedLocationTrackBody(oid: String): String? =
         mockServer
-            .retrieveRecordedRequests(
-                request("/api/infra/v1.0/locationtracks")
-                    .withMethod("POST|PUT")
-                    .withBody(JsonBody.json(mapOf("id" to oid), MatchType.ONLY_MATCHING_FIELDS))
-            )
+            .retrieveRecordedRequests(OpenAPIDefinition.openAPI(openApiLocationTrackRequestSpec(oid)))
             .lastOrNull()
             ?.bodyAsString
 
@@ -422,7 +447,7 @@ class FakeRatko(port: Int) {
         lastPushedRouteNumber(oid)?.let(jsonMapper::readValue)
 
     fun hostLocationTrackOid(oid: String) {
-        put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
+        patch("/api/infra/v1.1/locationtracks/$oid", mapOf("id" to oid)).respond(ok())
         get("/api/locations/v1.1/locationtracks/${oid}").respond(ok())
     }
 

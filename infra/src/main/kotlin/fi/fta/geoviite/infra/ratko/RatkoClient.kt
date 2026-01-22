@@ -42,6 +42,7 @@ import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -54,7 +55,6 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
-import java.time.Duration
 
 val defaultBlockTimeout: Duration = defaultResponseTimeout.plusMinutes(1L)
 
@@ -74,7 +74,6 @@ private const val VERSION_PATH = "/api/versions/v1.0/version"
 private const val BULK_TRANSFER_PATH = "/api/split/bulk-transfer"
 private const val PLAN_PATH = "/api/plan/v1.0/plans"
 private const val MAP_ASSET_PATH = "/api/map/v1.0/assets"
-
 
 // Use Geoviite OID-space for fake OIDs but make fake OIDs clearly distinct from real OIDs
 const val FAKE_OID_PREFIX = "1.2.246.578.13.0.0.0.0.0.0.0.0.0"
@@ -148,10 +147,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             }
     }
 
-    fun updateLocationTrackProperties(locationTrack: RatkoLocationTrack) {
+    fun updateLocationTrackProperties(locationTrack: RatkoLocationTrack, oid: Oid<LocationTrack>) {
         logger.integrationCall("updateLocationTrackProperties", "locationTrack" to locationTrack)
 
-        putWithoutResponseBody(LOCATION_TRACK_PATH, locationTrack)
+        patchWithoutResponseBody("$LOCATION_TRACK_PATCH_PATH/${oid}", locationTrack)
     }
 
     fun deleteLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, km: KmNumber?) {
@@ -293,7 +292,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         locationTrackOidOfGeometry: RatkoOid<RatkoLocationTrack>? = null,
     ): RatkoOid<RatkoLocationTrack>? {
         logger.integrationCall("newLocationTrack", "locationTrack" to locationTrack)
-        assert(locationTrack.id!=null && !isFakeOID(locationTrack.id)) {"Cannot push fake OID ${locationTrack.id} into Ratko"}
+        assert(locationTrack.id != null && !isFakeOID(locationTrack.id)) {
+            "Cannot push fake OID ${locationTrack.id} into Ratko"
+        }
 
         return locationTrackOidOfGeometry?.let { referencedGeometryOid ->
             postWithResponseBody(
@@ -481,7 +482,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     fun newRouteNumber(routeNumber: RatkoRouteNumber): RatkoOid<RatkoRouteNumber>? {
         logger.integrationCall("newRouteNumber", "routeNumber" to routeNumber)
-        assert(routeNumber.id!=null && !isFakeOID(routeNumber.id)) {"Cannot push fake OID ${routeNumber.id} into Ratko"}
+        assert(routeNumber.id != null && !isFakeOID(routeNumber.id)) {
+            "Cannot push fake OID ${routeNumber.id} into Ratko"
+        }
 
         return postWithResponseBody(ROUTE_NUMBER_PATH, routeNumber)
     }
