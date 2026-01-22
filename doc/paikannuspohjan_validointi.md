@@ -1,17 +1,21 @@
 # Paikannuspohjan validointi
 
-Tässä dokumentissa kuvataan Geoviitteen paikannuspohjan validointisäännöt, eli se mitä Geoviite takaa paikannuspohjan laadusta.
-Kuvausta itse käsitteistöstä voi katsoa dokumentista [Tietomalli](tietomalli.md). 
+Tässä dokumentissa kuvataan Geoviitteen paikannuspohjan validointisäännöt, eli se mitä Geoviite takaa paikannuspohjan
+laadusta.
+Kuvausta itse käsitteistöstä voi katsoa dokumentista [Tietomalli](tietomalli.md).
 
 Paikannuspohjan validointi koostuu kahdesta osasta:
 
-1. Muutosta tehdessä sallitaan vain järkevät arvot muutettavaan käsitteeseen. Nämä ovat pääasiassa triviaaleja tarkistuksia, eikä kaikkia niistä listata tässä.
-2. Muutoksia julkaistaessa validoidaan ne kokonaisuutena, varmistaen että niistä syntyy yhdessä ehjä paikannuspohja. Näissä voidaan tarkistaa monimutkaisempia suhteita olioiden välillä.
-   - Julkaisusta mekanismina voi lukea tarkemmin dokumentista [Julkaisut](julkaisut.md).
+1. Muutosta tehdessä sallitaan vain järkevät arvot muutettavaan käsitteeseen. Nämä ovat pääasiassa triviaaleja
+   tarkistuksia, eikä kaikkia niistä listata tässä.
+2. Muutoksia julkaistaessa validoidaan ne kokonaisuutena, varmistaen että niistä syntyy yhdessä ehjä paikannuspohja.
+   Näissä voidaan tarkistaa monimutkaisempia suhteita olioiden välillä.
+    - Julkaisusta mekanismina voi lukea tarkemmin dokumentista [Julkaisut](julkaisut.md).
 
 ## Oliokohtaiset eheysvalidoinnit
 
-Näitä virheitä ei ole mahdollista syntyä, koska Geoviite ei salli virheellisen olion luontia (validoidaan olion rakentajassa).
+Näitä virheitä ei ole mahdollista syntyä, koska Geoviite ei salli virheellisen olion luontia (validoidaan olion
+rakentajassa).
 Tärkeimpiä näistä ovat:
 
 - Sisäinen eheys kaikilla olioilla:
@@ -22,7 +26,8 @@ Tärkeimpiä näistä ovat:
 - Raiteen / pituusmittauslinjan keskilinjageometrian sisäinen eheys
     - Keskilinjat ja pituusmittauslinjat ovat jatkuvia, eli viiva on ehjä eikä pisteiden välistä puutu mitään
     - Keskilinjat ja pituusmittauslinjat eivät voi tehdä yli 90 asteen kulmia 2 pistevälin välillä
-    - Geometria koostuu segmenteistä, joista kukin sisältää vähintään 2 toisistaan eroavaa pistettä (viiva ei ole pistemäinen)
+    - Geometria koostuu segmenteistä, joista kukin sisältää vähintään 2 toisistaan eroavaa pistettä (viiva ei ole
+      pistemäinen)
     - Segmenttien sisällä sama piste ei voi toistua
     - Seuraava segmentti alkaa aina siitä mihin edellinen loppui (sama piste)
     - Geometriassa on (automaattisesti generoituva) lineaarinen referointi m-arvoilla: tämä on aina kasvava
@@ -87,7 +92,8 @@ Validointi suoritetaan aina "julkaisujoukolle", johon kerätään koko se tila j
 - Tasakilometripisteen numero on uniikki ratanumerolla (jos piste ei ole poistettu)
 - Ratanumeron geokoodauskonteksti on validi (kts. Geokoodauskonteksti)
 - Tasakilometripisteet sijaitsevat pituusmittauslinjan matkalla
-    - Vain varoitus: linjan ulkopuolella oleva piste voi olla operaattorille hyödyllistä lisätietoa, vaikkei sillä ole geokoodauksessa merkitystä
+    - Vain varoitus: linjan ulkopuolella oleva piste voi olla operaattorille hyödyllistä lisätietoa, vaikkei sillä ole
+      geokoodauksessa merkitystä
 - Tasakilometripisteen sijainti on riittävän lähellä pituusmittauslinjaa
     - Vain varoitus: etäisyysraja on mielivaltainen eikä etäisyys suoranaisesti riko mitään
 
@@ -105,7 +111,8 @@ Validointi suoritetaan aina "julkaisujoukolle", johon kerätään koko se tila j
     - Vaihteen jatkospisteiden sijainnit vastaavat raiteen liitoskohtien sijainteja
         - Vain varoitus: raiteiden geometrian epätarkkuudet voivat aiheuttaa eroja
     - Kaikki vaihderakenteen linjat on kytketty johonkin raiteeseen
-        - Vain varoitus: esimerkiksi kaikkia yksityisraiteita ei ole mallinnettu Geoviitteessä, joten joku linja voi puuttua mallista
+        - Vain varoitus: esimerkiksi kaikkia yksityisraiteita ei ole mallinnettu Geoviitteessä, joten joku linja voi
+          puuttua mallista
 
 #### Sijaintiraide
 
@@ -116,15 +123,21 @@ Validointi suoritetaan aina "julkaisujoukolle", johon kerätään koko se tila j
     - Duplikaattiraiteella ei itsellään ole duplikaatteja
 - Raiteen vaihdelinkitykset ovat eheitä
     - Kts. vaihteen eheyssäännöt yllä: validointilogiikka on sama
-    - Vaihdeosuuden eheysvalidointi on tästä suunnasta katsoessa vain varoitus, jotta kaikkia raiteen vaihdelinkityksiä ei tarvitse korjata kerralla
-- Raiteen rakenteellinen nimi ja kuvaus ovat eheät, eli nimeämiskaavan vaatimat linkit (esim. päätyvaihteet) on määritelty ja valideja tähän käyttöön (parsittavissa)
+    - Vaihdeosuuden eheysvalidointi on tästä suunnasta katsoessa vain varoitus, jotta kaikkia raiteen vaihdelinkityksiä
+      ei tarvitse korjata kerralla
+- Raiteen rakenteellinen nimi ja kuvaus ovat eheät, eli nimeämiskaavan vaatimat linkit (esim. päätyvaihteet) on
+  määritelty ja valideja tähän käyttöön (parsittavissa)
 - Raiteella on ei-tyhjä keskilinjageometria
     - Huom. sisäinen validius oliokohtaisessa validoinnissa varmistaa että ei-tyhjä geometria on jatkuva jne (kts. yllä)
-- Raide on koko matkaltaan geokoodattavissa, eli sille löytyy geokoodauskonteksti jonka avulla voidaan tuottaa kaikki tasametripisteet
+- Raide on koko matkaltaan geokoodattavissa, eli sille löytyy geokoodauskonteksti jonka avulla voidaan tuottaa kaikki
+  tasametripisteet
     - kts. Geokoodauskonteksti
-    - Tässä kohdassa ei validoida kaikkia geokoodauskontekstin raiteita, vaan pelkästään tämä yksittäinen (jos kontekstin tiedot muuttuu, validoidaan toki sen muutoksen myötä muutkin)
-- Raiteen manuaalisesti syötetty topologisen kytkeytymisen tyyppi vastaa sen oikeaa topologista kytkeytymistä (vaihdelinkkejä)
-    - Vain varoitus: tiedolla ei suoranaisesti tehdä mitään (ero kielii ehkä virheellisestä kirjauksesta tai puuttuvasta vaihdetiedosta)
+    - Tässä kohdassa ei validoida kaikkia geokoodauskontekstin raiteita, vaan pelkästään tämä yksittäinen (jos
+      kontekstin tiedot muuttuu, validoidaan toki sen muutoksen myötä muutkin)
+- Raiteen manuaalisesti syötetty topologisen kytkeytymisen tyyppi vastaa sen oikeaa topologista kytkeytymistä (
+  vaihdelinkkejä)
+    - Vain varoitus: tiedolla ei suoranaisesti tehdä mitään (ero kielii ehkä virheellisestä kirjauksesta tai puuttuvasta
+      vaihdetiedosta)
 - Raiteella on järkevä pituus (ei alle metrin pituinen)
     - Vain varoitus: lyhytkin raide sinällään toimii ja voi olla välitilana hyödyllinen
 
@@ -141,10 +154,12 @@ Validointi suoritetaan aina "julkaisujoukolle", johon kerätään koko se tila j
 
 #### Geokoodauskonteksti
 
-Geokoodauskonteksti validoidaan kokonaisuutena aina kun kontekstiin kuuluvat asiat muuttuvat: ratanumero, pituusmittauslinja, tasakilometripisteet
+Geokoodauskonteksti (kts. [Geokoodaus](geokoodaus.md)) validoidaan kokonaisuutena aina kun kontekstiin kuuluvat asiat
+muuttuvat: ratanumero, pituusmittauslinja, tasakilometripisteet
 
 - Tasakilometripisteet ovat km-tunnuksen mukaisessa järjestyksessä
-- Kilometrit eivät ole liian pitkiä, eli tasakilometripisteiden väli ei ole liian pitkä (osoitteen esityksessä metreille on vain 4 numeroa)
+- Kilometrit eivät ole liian pitkiä, eli tasakilometripisteiden väli ei ole liian pitkä (osoitteen esityksessä metreille
+  on vain 4 numeroa)
 - Kaikki geokoodauskontekstia käyttävät ei-poistetut raiteet ovat kokonaisuudessaan geokoodattavissa sen avulla
     - Koko matkan tasametripisteet tuotettavissa
     - Edellyttää mm. että raiteen geometria on pituusmittauslinjan matkalla ja riittävän samansuuntainen
@@ -157,8 +172,10 @@ Jos julkaisussa on tapahtunut raiteen jakaminen, validoidaan jakamiseen liittyv�
 - Jaettava raide sekä kaikki jakamisessa syntyvät raiteet sisältyvät julkaisuun
 - Kaikki jakamisen yhteydessä uudelleenlinkitetyt vaihteet sisältyvät julkaisuun
 - Jaettu raide on merkitty poistetuksi
-- Jakamisen tuloksena syntyviä raiteita ei ole muokattu jakamisen jälkeen (muut muutokset tehtävä erillisessä julkaisussa)
+- Jakamisen tuloksena syntyviä raiteita ei ole muokattu jakamisen jälkeen (muut muutokset tehtävä erillisessä
+  julkaisussa)
 - Kaikkien jakamisessa syntyvien raiteiden ratanumero on sama kuin jaetun raiteen
-- Jakamisessa raiteen geometria siirtyy kokonaisuudessaan ja muuttumattomana muille raiteille (jaetun raiteen alkuperäinen geometria on sama kuin tulosraiteiden yhdistetty geometria)
+- Jakamisessa raiteen geometria siirtyy kokonaisuudessaan ja muuttumattomana muille raiteille (jaetun raiteen
+  alkuperäinen geometria on sama kuin tulosraiteiden yhdistetty geometria)
 - Kaikki jaetun raiteen tasametripisteet löytyvät edelleen, nyt vain jaettuna uusille raiteille
 - Uutta raiteen jakamista ei voida julkaista ennen kuin edellinen saman raiteen jakaminen on viety Ratkoon asti
