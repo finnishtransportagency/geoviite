@@ -400,7 +400,7 @@ class FakeRatko(port: Int) {
 
     fun getLastPushedSwitch(oid: String): InterfaceRatkoSwitch? = lastPushedSwitchBody(oid)?.let(jsonMapper::readValue)
 
-    // location tracks can be created by PUSH /v1.0/locationtracks (identified by oid in body), or updated by
+    // location tracks can be created by POST /v1.0/locationtracks (identified by oid in body), or updated by
     // PATCH /v1.1/locationtracks/$oid. MockServer's request definitions can't quite pull off the alternation.
     private fun openApiLocationTrackRequestSpec(oid: String) =
         """
