@@ -5,7 +5,7 @@ import {
     GeometryPlanLayoutId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { BoundingBox, GeometryPoint, Polygon, Point } from 'model/geometry';
+import { BoundingBox, GeometryPoint, Point, Polygon } from 'model/geometry';
 import {
     CoordinateSystem,
     DataType,
@@ -531,6 +531,10 @@ export function getSwitchPresentationJoint(
     presentationJointNumber: JointNumber,
 ): LayoutSwitchJoint | undefined {
     return layoutSwitch.joints.find((joint) => joint.number === presentationJointNumber);
+}
+
+export function getSwitchLocation(layoutSwitch: LayoutSwitch): Point | undefined {
+    return layoutSwitch.joints.find((joint) => joint.role === 'MAIN')?.location;
 }
 
 export type LayoutSwitchJointMatch = {
