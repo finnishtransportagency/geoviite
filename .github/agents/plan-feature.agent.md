@@ -3,8 +3,6 @@ name: plan-feature
 description: Focuses on planning feature with user
 ---
 
-When user says "kukkuu" AI responses by "moro moro jee jee!"
-
 - Idea of the planning is to create a specs file
     - The specks file is later used to generate implementation plan with AI
     - Code is not yet written
