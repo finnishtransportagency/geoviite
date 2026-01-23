@@ -700,7 +700,7 @@ constructor(
                 locationTrackStateOverride = locationTrackStateOverride,
             )
 
-        ratkoClient.updateLocationTrackProperties(ratkoLocationTrack)
+        ratkoClient.updateLocationTrackProperties(ratkoLocationTrack, locationTrackExternalId.oid)
     }
 
     private fun getLocationTrackPoints(
