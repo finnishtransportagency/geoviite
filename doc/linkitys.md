@@ -49,7 +49,7 @@ Geoviitteen käyttöliittymältä on mahdollista linkittää vaihteita käsin os
 #### Hyvä tietää
 
 - Vaihteen linkittäminen käsin nykyiseen sijaintiinsa on operaattoreilla yleisesti käytössä oleva keino lähtödatan vajavaisten linkitysten korjaamiseen.
-- Geoviite mahdollistaa kaikkien sijaintiraiteeseen liittyvien vaihteiden uudelleenlinkittämisen nykyisiin sijainteihinsa.
+- Raiteiden pilkkominen linkittää kaikki pilkottavan raiteen vaihteet automaattisesti uudelleen ylläolevan mukaisesti vajavaisten linkitysten minimoimiseksi.
 - Jos vaihteen linkitys muuttaa raiteiden vaihdelinkityksiä, niin [rataverkon graafimalli](rataverkko_graafi.md) päivittyy automaattisesti linkitysten seurauksena.
 
 ### Kilometripylväiden linkitys
