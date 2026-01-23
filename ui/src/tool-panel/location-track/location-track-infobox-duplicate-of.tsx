@@ -58,18 +58,29 @@ const LocationTrackInfoboxDuplicateOfM: React.FC<LocationTrackInfoboxDuplicateOf
                       existingDuplicate.trackNumberId,
                   ),
               })
-            : '';
+            : undefined;
+
+    const geometryOverlapWarning =
+        existingDuplicate?.duplicateStatus.match === 'NONE'
+            ? t('tool-panel.location-track.non-overlapping-duplicate-tooltip', {
+                  trackName: targetLocationTrack.name,
+                  otherTrackName: existingDuplicate.name,
+              })
+            : undefined;
+
+    const showWarningIcon = duplicateTrackNumberWarning || geometryOverlapWarning;
+    const warningTooltip = [duplicateTrackNumberWarning, geometryOverlapWarning]
+        .filter(filterNotEmpty)
+        .join('\n\n');
 
     return existingDuplicate ? (
-        <span title={duplicateTrackNumberWarning}>
+        <span title={warningTooltip}>
             <LocationTrackLink
                 locationTrackId={existingDuplicate.id}
                 locationTrackName={existingDuplicate.name}
             />
             &nbsp;
-            {currentTrackNumberId !== existingDuplicate.trackNumberId && (
-                <LocationTrackDuplicateInfoIcon level={'ERROR'} />
-            )}
+            {showWarningIcon && <LocationTrackDuplicateInfoIcon level={'ERROR'} />}
         </span>
     ) : duplicatesOfLocationTrack ? (
         <ul className={styles['location-track-infobox-duplicate-of__ul']}>
