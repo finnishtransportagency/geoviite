@@ -444,11 +444,11 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
                     LayoutRowVersion(rs.getIntId("id"), branch.draft, rs.getInt("version"))
                 }
                 .also { deleted -> logger.daoAccess(DELETE, table.fullName, deleted) }
-        id?.let(::deleteVersionIfOrphaned)
+        id?.let(::deleteIdIfOrphaned)
         return deletedVersions
     }
 
-    private fun deleteVersionIfOrphaned(id: IntId<T>) {
+    private fun deleteIdIfOrphaned(id: IntId<T>) {
         // This deletion can break due to references from elsewhere to the orphaned ID, but if it
         // does, that's the responsibility of whoever left the stale reference in.
         val sql =
