@@ -61,15 +61,10 @@ yhteydessä.
 Julkaisuvalidoinnissa varmistetaan että julkaistavat luonnosmuutokset vie virallisen paikannuspohjan ehjään tilaan.
 Tässä keskeisiä kohtia varmistaa on mm:
 
-- Käsitteiden eheys
-    - Kaikilla käsitteillä on kaikki vaaditut kentät määritelty ja valideja (luonnosten välitilat eivät enää käy)
-- Viite-eheys
-    - Olemassaolevat käsitteet eivät viittaa poistettuihin käsitteisiin
-    - Virallisesta paikannuspohjasta ei voi viitata "vain luonnos" -olioihin
-- Rataverkon eheys
-    - Vaihteen linjoihin on kytkettynä riittävät raiteet
-    - Vaihteet ja raiteet ovat samaa mieltä liityntäpisteiden koordinaateista
-- Osoitteiston eheys (yhteensopivuus pituusmittauslinjaan)
-    - Kaikille raiteille on mahdollista laskea osoitteet koko matkalta
-    - Osoitteet ovat jatkuvia, kaikki raiteen metrit voidaan laskea ja metrit eivät ole liian pitkiä/lyhyitä
-    - Tuotetut osoitteet ovat valideja (eli ylipitkiä kilometreja)
+- Käsitteiden eheys: vaaditut kentät, sallitut arvoalueet, jne
+- Viite-eheys yli paikannuspohjan kontekstien (kts. [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md)) ja tilojen
+- Geometrioiden eheys
+- Rataverkon topologinen eheys (raide-vaihde linkit, kts. [Rataverkko graafi](rataverkko_graafi.md))
+- Rataosoitteiston (kts. [Geokoodaus](geokoodaus.md)) eheys eli raiteen yhteensopivuus pituusmittauslinjaan
+
+Tarkemmin validointisäännöt on kuvattu dokumentissa [Paikannuspohjan validointi](paikannuspohjan_validointi.md).
