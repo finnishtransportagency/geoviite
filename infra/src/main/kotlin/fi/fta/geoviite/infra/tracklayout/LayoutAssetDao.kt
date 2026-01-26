@@ -453,9 +453,12 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
         // does, that's the responsibility of whoever left the stale reference in.
         val sql =
             """
-            |            delete from ${table.idTable} ids
-            |            where id = :id and not exists (select * from ${table.fullName} t where t.id = ids.id) """
-                .trimMargin()
+            delete from ${table.idTable} ids
+            where id = :id
+              and not exists (select * from ${table.fullName} t where t.id = ids.id)
+              and not exists (select * from ${table.publicationTable} t where t.id = ids.id)
+            """
+                .trimIndent()
         jdbcTemplate.execute(sql, mapOf("id" to id.intValue)) { it.execute() }
     }
 

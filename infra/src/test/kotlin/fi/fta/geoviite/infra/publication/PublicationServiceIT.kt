@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
+import fi.fta.geoviite.infra.geocoding.referenceLineGeometry
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.RatkoTestService
@@ -1827,6 +1828,39 @@ constructor(
         ) { rs, _ ->
             assertEquals(0, rs.getInt("count_in_design"), "design objects are fully cleaned up from live table")
         }
+    }
+
+    @Test
+    fun `object created in design can have its merge to main cancelled midway`() {
+        val design = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(design, DRAFT)
+        val trackNumber = designDraftContext.save(trackNumber()).id
+        val referenceLine =
+            designDraftContext
+                .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+                .id
+        trackNumberDao.insertExternalId(trackNumber, design, Oid("1.2.3.4.5"))
+        publicationService.publishManualPublication(
+            design,
+            PublicationRequest(
+                publicationRequestIds(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine)),
+                PublicationMessage.of("initial publication"),
+            ),
+        )
+        trackNumberService.mergeToMainBranch(design, trackNumber)
+        trackNumberService.cancel(design, trackNumber)
+        referenceLineService.mergeToMainBranch(design, referenceLine)
+        referenceLineService.cancel(design, referenceLine)
+        publicationService.publishManualPublication(
+            design,
+            PublicationRequest(
+                publicationRequestIds(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine)),
+                PublicationMessage.of("cancellation in design"),
+            ),
+        )
+        trackNumberService.deleteDraft(LayoutBranch.main, trackNumber)
+        assertNull(designDraftContext.fetchVersion(trackNumber))
+        assertNull(designDraftContext.fetchVersion(referenceLine))
     }
 
     @Test

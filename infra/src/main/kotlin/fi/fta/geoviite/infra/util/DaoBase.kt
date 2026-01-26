@@ -41,42 +41,49 @@ fun idOrIdsSqlFragment(fetchType: FetchType) =
 enum class LayoutAssetTable(
     val dbTable: DbTable,
     val idTable: String,
+    val publicationTable: String,
     layoutContextFunction: String,
     val assetClassName: String,
 ) {
     LAYOUT_ASSET_TRACK_NUMBER(
         DbTable.LAYOUT_TRACK_NUMBER,
         "layout.track_number_id",
+        "publication.track_number",
         "track_number_in_layout_context",
         LayoutTrackNumber::class.java.simpleName,
     ),
     LAYOUT_ASSET_REFERENCE_LINE(
         DbTable.LAYOUT_REFERENCE_LINE,
         "layout.reference_line_id",
+        "publication.reference_line",
         "reference_line_in_layout_context",
         ReferenceLine::class.java.simpleName,
     ),
     LAYOUT_ASSET_LOCATION_TRACK(
         DbTable.LAYOUT_LOCATION_TRACK,
         "layout.location_track_id",
+        "publication.location_track",
         "location_track_in_layout_context",
         LocationTrack::class.java.simpleName,
     ),
     LAYOUT_ASSET_SWITCH(
         DbTable.LAYOUT_SWITCH,
         "layout.switch_id",
+        "publication.switch",
         "switch_in_layout_context",
         LayoutSwitch::class.java.simpleName,
     ),
     LAYOUT_ASSET_KM_POST(
         DbTable.LAYOUT_KM_POST,
         "layout.km_post_id",
+        "publication.km_post",
         "km_post_in_layout_context",
         LayoutKmPost::class.java.simpleName,
     ),
     LAYOUT_ASSET_OPERATIONAL_POINT(
         DbTable.LAYOUT_OPERATIONAL_POINT,
         "layout.operational_point_id",
+        "publication.operational_point",
         "operational_point_in_layout_context",
         OperationalPoint::class.java.simpleName,
     );
