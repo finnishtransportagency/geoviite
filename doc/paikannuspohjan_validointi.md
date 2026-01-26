@@ -1,8 +1,7 @@
 # Paikannuspohjan validointi
 
 Tässä dokumentissa kuvataan Geoviitteen paikannuspohjan validointisäännöt, eli se mitä Geoviite takaa paikannuspohjan
-laadusta.
-Kuvausta itse käsitteistöstä voi katsoa dokumentista [Tietomalli](tietomalli.md).
+laadusta. Kuvausta itse käsitteistöstä voi katsoa dokumentista [Tietomalli](tietomalli.md).
 
 Paikannuspohjan validointi koostuu kahdesta osasta:
 
@@ -15,8 +14,7 @@ Paikannuspohjan validointi koostuu kahdesta osasta:
 ## Oliokohtaiset eheysvalidoinnit
 
 Näitä virheitä ei ole mahdollista syntyä, koska Geoviite ei salli virheellisen olion luontia (validoidaan olion
-rakentajassa).
-Tärkeimpiä näistä ovat:
+rakentajassa). Tärkeimpiä näistä ovat:
 
 - Sisäinen eheys kaikilla olioilla:
     - Kenttien pakollisuudet
@@ -42,11 +40,11 @@ Tärkeimpiä näistä ovat:
 
 ## Julkaisuvalidoinnit
 
-Datan eheys riippuu monessa tilanteessa myös muista olioista ja niiden välisistä suhteista.
-Vaikka yksittäiset oliot olisivat sellaisinaan valideja, ne eivät välttämättä silti muodosta ehjää kokonaisuutta.
-Geoviite ei estä operaattoria luomasta noita tilanteita datan normaalin muokkauksen yhteydessä, vaan vasta kun
-muutosjoukko on valmis ja sitä koitetaan julkaista, varmistetaan julkaisuvalidoinnissa että kokonaisuus on eheä.
-Tämän tyyppisiä validointeja ovat esimerkiksi tunnusten uniikkius sekä raiteiden ja vaihteiden väliset kytkennät.
+Datan eheys riippuu monessa tilanteessa myös muista olioista ja niiden välisistä suhteista. Vaikka yksittäiset oliot
+olisivat sellaisinaan valideja, ne eivät välttämättä silti muodosta ehjää kokonaisuutta. Geoviite ei estä operaattoria
+luomasta noita tilanteita datan normaalin muokkauksen yhteydessä, vaan vasta kun muutosjoukko on valmis ja sitä
+koitetaan julkaista, varmistetaan julkaisuvalidoinnissa että kokonaisuus on eheä. Tämän tyyppisiä validointeja ovat
+esimerkiksi tunnusten uniikkius sekä raiteiden ja vaihteiden väliset kytkennät.
 
 ### Luokittelu
 
@@ -59,16 +57,17 @@ Julkaisuvalidoinnissa havaitut ongelmat luokitellaan seuraavasti
 
 Validointi suoritetaan aina "julkaisujoukolle", johon kerätään koko se tila joka julkaisun myötä syntyisi:
 
-- Ne jo julkaistut oliot joita ei olla julkaisemassa
-- Julkaisun sisältämät oliot, sekä uudet että jotain jo julkaistua muokkaavat
-- Ei siis näe lainkaan luonnos-olioita joita ei valittu julkaisuun mukaan
-- Ei myöskään näe vanhaksi jäävää (ylikirjoitettavaa) tilaa aiemmista olioista
+- Pohjalle tulee virallisen paikannuspohjan nykytila
+- Tuosta joukosta ylikirjoitetaan julkaisun sisältämät oliot, sekä uudet (lisätyt) että olemassaolevaa oliota muokkaavat
+    - Huom. tässä ei käsitellä muutoksia olion sisäisinä deltoina vaan koko olion sisältö korvataan uudella
+- Osa luonnosolioista voidaan jättää julkaisujoukosta pois, jolloin validointikaan ei näe niitä lainkaan
 
 #### Yleiset validoinnit kaikille käsitteille (ei listata alla erikseen)
 
-- Mikään olio ei saa viitata tyhjyyteen, eli jos tuo näkymä ei sisällä jotain viitattua oliota, viittaus on rikki
-    - Estää viittamiseen uuteen olioon jota ei ole otettu mukaan julkaisuun
-    - Jos viitatusta oliosta on muokkaus, sen ei tarvitse olla julkaisussa mukana: tällöin tuota muokkausta ei huomioida
+- Mikään olio ei saa viitata tyhjyyteen, eli jos julkaisujoukko ei sisällä jotain viitattua oliota, viittaus on rikki
+    - Estää viittamiseen uuteen olioon, jota ei ole otettu mukaan julkaisuun
+    - Jos viitatusta oliosta on luonnosmuokkaus, sen ei tarvitse olla julkaisussa mukana: tällöin vain muokkausta ei
+      huomioida vaan viitataan olion viralliseen versioon
 - Mikään olio ei saa viitata poistettuun olioon jos se ei itse ole poistettu
     - Estää käytössä olevan käsitteen poistamisen tai poistetun palauttamisen ilman että riippuvuudet palautetaan myös
 
@@ -117,7 +116,7 @@ Validointi suoritetaan aina "julkaisujoukolle", johon kerätään koko se tila j
 #### Sijaintiraide
 
 - Sijaintiraiteella on oltava ratanumero
-- Raidenimi on uniikki ratanumerolla (jos raide ei ole poistettu)
+- Raidetunnus on uniikki ratanumerolla (jos raide ei ole poistettu)
 - Duplikaattiraideviittaukset ovat eheitä
     - Poistettuun raiteeseen ei viitata duplikaattina
     - Duplikaattiraiteella ei itsellään ole duplikaatteja
@@ -134,8 +133,8 @@ Validointi suoritetaan aina "julkaisujoukolle", johon kerätään koko se tila j
     - kts. Geokoodauskonteksti
     - Tässä kohdassa ei validoida kaikkia geokoodauskontekstin raiteita, vaan pelkästään tämä yksittäinen (jos
       kontekstin tiedot muuttuu, validoidaan toki sen muutoksen myötä muutkin)
-- Raiteen manuaalisesti syötetty topologisen kytkeytymisen tyyppi vastaa sen oikeaa topologista kytkeytymistä (
-  vaihdelinkkejä)
+- Raiteen manuaalisesti syötetty topologisen kytkeytymisen tyyppi vastaa sen oikeaa topologista kytkeytymistä
+  (vaihdelinkkejä)
     - Vain varoitus: tiedolla ei suoranaisesti tehdä mitään (ero kielii ehkä virheellisestä kirjauksesta tai puuttuvasta
       vaihdetiedosta)
 - Raiteella on järkevä pituus (ei alle metrin pituinen)
@@ -172,10 +171,9 @@ Jos julkaisussa on tapahtunut raiteen jakaminen, validoidaan jakamiseen liittyv�
 - Jaettava raide sekä kaikki jakamisessa syntyvät raiteet sisältyvät julkaisuun
 - Kaikki jakamisen yhteydessä uudelleenlinkitetyt vaihteet sisältyvät julkaisuun
 - Jaettu raide on merkitty poistetuksi
-- Jakamisen tuloksena syntyviä raiteita ei ole muokattu jakamisen jälkeen (muut muutokset tehtävä erillisessä
-  julkaisussa)
 - Kaikkien jakamisessa syntyvien raiteiden ratanumero on sama kuin jaetun raiteen
 - Jakamisessa raiteen geometria siirtyy kokonaisuudessaan ja muuttumattomana muille raiteille (jaetun raiteen
   alkuperäinen geometria on sama kuin tulosraiteiden yhdistetty geometria)
-- Kaikki jaetun raiteen tasametripisteet löytyvät edelleen, nyt vain jaettuna uusille raiteille
-- Uutta raiteen jakamista ei voida julkaista ennen kuin edellinen saman raiteen jakaminen on viety Ratkoon asti
+    - Toisin sanoen: kaikki jaetun raiteen tasametripisteet löytyvät edelleen, nyt vain jaettuna uusille raiteille
+- Jakamisen tuloksena syntyviä raiteita ei ole muokattu jakamisen jälkeen (muut muutokset tehtävä erillisessä
+  julkaisussa)
