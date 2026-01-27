@@ -26,6 +26,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.linkedTrackGeometry
@@ -216,6 +217,7 @@ constructor(
         locationTracks: List<IntId<LocationTrack>> = emptyList(),
         switches: List<IntId<LayoutSwitch>> = emptyList(),
         kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
+        operationalPoints: List<IntId<OperationalPoint>> = emptyList(),
     ): Publication =
         publishInBranch(
             LayoutBranch.main,
@@ -224,6 +226,7 @@ constructor(
             locationTracks = locationTracks,
             switches = switches,
             kmPosts = kmPosts,
+            operationalPoints = operationalPoints,
         )
 
     fun publishInBranch(
@@ -233,6 +236,7 @@ constructor(
         locationTracks: List<IntId<LocationTrack>> = emptyList(),
         switches: List<IntId<LayoutSwitch>> = emptyList(),
         kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
+        operationalPoints: List<IntId<OperationalPoint>> = emptyList(),
     ): Publication {
         return publicationTestSupportService
             .publish(
@@ -243,6 +247,7 @@ constructor(
                     locationTracks = locationTracks,
                     switches = switches,
                     kmPosts = kmPosts,
+                    operationalPoints = operationalPoints,
                 ),
             )
             .let { summary -> publicationDao.getPublication(requireNotNull(summary.publicationId)) }

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonProps, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import styles from './show-more-button.scss';
 
 type ShowMoreButtonProps = {
     expanded: boolean;
@@ -17,6 +18,7 @@ export const ShowMoreButton: React.FC<ShowMoreButtonProps> = ({
     const { t } = useTranslation();
     return (
         <Button
+            className={styles['show-more-button']}
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SMALL}
             {...props}

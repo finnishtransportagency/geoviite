@@ -68,12 +68,12 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNameStructure
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
 import kotlin.math.PI
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
 
 class PublicationValidationTest {
 
@@ -335,7 +335,9 @@ class PublicationValidationTest {
                 "",
             ) {
                 // Alignment at slight angle to reference line -> should be OK
-                context.getAddressPoints(referenceLineGeometry(segment(Point(10.0, 10.0), Point(20.0, 100.0))).copy(id = IntId(2)))
+                context.getAddressPoints(
+                    referenceLineGeometry(segment(Point(10.0, 10.0), Point(20.0, 100.0))).copy(id = IntId(2))
+                )
             },
         )
     }
@@ -375,7 +377,9 @@ class PublicationValidationTest {
             )
         val geocode = {
             context.getAddressPoints(
-                referenceLineGeometry(segment(Point(0.0, 0.0), Point(120.0, 50.0), Point(120.0, 60.0), Point(240.0, 110.0)))
+                referenceLineGeometry(
+                        segment(Point(0.0, 0.0), Point(120.0, 50.0), Point(120.0, 60.0), Point(240.0, 110.0))
+                    )
                     .copy(id = IntId(2))
             )
         }
@@ -396,7 +400,9 @@ class PublicationValidationTest {
             )
         val geocode = {
             //  alignment goes straight up at offset -> should get non-continuous points
-            context.getAddressPoints(referenceLineGeometry(segment(Point(5.0, 5.0), Point(5.0, 25.0))).copy(id = IntId(2)))
+            context.getAddressPoints(
+                referenceLineGeometry(segment(Point(5.0, 5.0), Point(5.0, 25.0))).copy(id = IntId(2))
+            )
         }
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.sharp-angle")
     }
@@ -409,7 +415,9 @@ class PublicationValidationTest {
         val sharpAngleTrack = to3DMPoints<SegmentM>(listOf(Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 0.0)))
 
         val geocode = {
-            context.getAddressPoints(referenceLineGeometry(segment(toSegmentPoints(sharpAngleTrack))).copy(id = IntId(2)))
+            context.getAddressPoints(
+                referenceLineGeometry(segment(toSegmentPoints(sharpAngleTrack))).copy(id = IntId(2))
+            )
         }
 
         assertAddressPointError(true, geocode, "$VALIDATION_GEOCODING.sharp-angle")
@@ -838,10 +846,7 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -863,10 +868,7 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -889,10 +891,7 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -913,10 +912,7 @@ class PublicationValidationTest {
                     edge(
                         endInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -938,10 +934,7 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -963,10 +956,7 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -987,10 +977,7 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -1013,10 +1000,7 @@ class PublicationValidationTest {
                     edge(
                         startInnerSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -1038,10 +1022,7 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -1063,10 +1044,7 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -1085,10 +1063,7 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -1109,10 +1084,7 @@ class PublicationValidationTest {
                     edge(
                         endOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -1130,10 +1102,7 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -1151,10 +1120,7 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -1171,10 +1137,7 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -1197,10 +1160,7 @@ class PublicationValidationTest {
                     edge(
                         startOuterSwitch = switchLinkYV(IntId(100), 1),
                         segments =
-                            listOf(
-                                segment(Point(0.0, 0.0), Point(0.0, 1.0)),
-                                segment(Point(0.0, 1.0), Point(0.0, 2.0)),
-                            ),
+                            listOf(segment(Point(0.0, 0.0), Point(0.0, 1.0)), segment(Point(0.0, 1.0), Point(0.0, 2.0))),
                     )
                 ),
             )
@@ -1216,6 +1176,8 @@ class PublicationValidationTest {
                 validationWarning(
                     "validation.layout.location-track.edge-switch-partial",
                     localizationParams("switch" to IntId<LayoutSwitch>(1)),
+                    inRelationTo =
+                        setOf(PublicationLogAsset(id = IntId<LayoutSwitch>(1), type = PublicationLogAssetType.SWITCH)),
                 )
             ),
             validateEdges(
@@ -1234,10 +1196,14 @@ class PublicationValidationTest {
                 validationWarning(
                     "validation.layout.location-track.edge-switch-partial",
                     localizationParams("switch" to IntId<LayoutSwitch>(1)),
+                    inRelationTo =
+                        setOf(PublicationLogAsset(id = IntId<LayoutSwitch>(1), type = PublicationLogAssetType.SWITCH)),
                 ),
                 validationWarning(
                     "validation.layout.location-track.edge-switch-partial",
                     localizationParams("switch" to IntId<LayoutSwitch>(2)),
+                    inRelationTo =
+                        setOf(PublicationLogAsset(id = IntId<LayoutSwitch>(2), type = PublicationLogAssetType.SWITCH)),
                 ),
             ),
             validateEdges(

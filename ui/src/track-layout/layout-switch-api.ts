@@ -244,7 +244,7 @@ export async function getSwitchOidPresence(oid: Oid): Promise<SwitchOidPresence>
     return getNonNull<SwitchOidPresence>(`${TRACK_LAYOUT_URI}/switches/oid_presence/${oid}`);
 }
 
-export async function linkSwitchToOperationalPoint(
+export async function linkSwitchesToOperationalPoint(
     branch: LayoutBranch,
     switchIds: LayoutSwitchId[],
     operationalPointId: OperationalPointId,
@@ -255,7 +255,7 @@ export async function linkSwitchToOperationalPoint(
     );
 }
 
-export async function unlinkSwitchFromOperationalPoint(
+export async function unlinkSwitchesFromOperationalPoint(
     branch: LayoutBranch,
     switchIds: LayoutSwitchId[],
 ): Promise<LayoutSwitchId[]> {

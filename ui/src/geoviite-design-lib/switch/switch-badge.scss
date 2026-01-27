@@ -41,6 +41,12 @@
         color: vayla-design.$color-black-light;
     }
 
+    &--invalid {
+        border-color: vayla-design.$color-red-dark;
+        border-width: 3px;
+        padding: 1px 3px;
+    }
+
     &--clickable {
         cursor: pointer;
     }

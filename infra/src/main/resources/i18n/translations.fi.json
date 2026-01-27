@@ -871,6 +871,18 @@
                 "heading": "Raiteen pystygeometria",
                 "diagram-visibility": "Kuvaaja"
             },
+            "switch-links": {
+                "heading": "Raiteen vaihteet",
+                "show-more": "Näytä kaikki {{count}} kpl",
+                "not-existing": "Poistettu",
+                "detach": "Irrota"
+            },
+            "detach-switch-links-dialog": {
+                "title": "Vaihteen linkityksen poistaminen raiteelta",
+                "message": "Haluatko irrottaa vaihteen {{switchName}} linkityksen raiteelta {{trackName}}?",
+                "detach-button": "Poista linkitys",
+                "success-toast": "Vaihde {{switchName}} irrotettu raiteelta {{trackName}}"
+            },
             "topological-connectivity": "Topologinen kytkeytyminen",
             "start-switch": "Vaihde raiteen alussa",
             "end-switch": "Vaihde raiteen lopussa",
@@ -981,6 +993,9 @@
             "unset": "Ei asetettu",
             "unpublished": "Julkaisematon",
             "clear-area-button": "Tyhjennä",
+            "edit-links": "Muokkaa linkityksiä",
+            "save-links": "Tallenna muutokset",
+            "cancel-editing-links": "Peruuta",
             "switch-links": {
                 "infobox-header": "Vaihteet",
                 "attached-header": "Toiminnalliseen pisteeseen linkitetyt vaihteet ({{count}} kpl)",
@@ -989,12 +1004,15 @@
                 "attach-all": "Linkitä pisteeseen kaikki vaihteet ({{count}} kpl)",
                 "show-all": "Näytä kaikki ({{count}} kpl)...",
                 "hide-extra": "Piilota...",
-                "single-linking-success-toast": "Vaihde {{name}} linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "single-unlinking-success-toast": "Vaihteen {{name}} linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu",
-                "multiple-linking-success-toast": "{{count}} vaihdetta linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "multiple-unlinking-success-toast": "Linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu {{count}} vaihteelta",
+                "linking-success-toast-prefix": "Toiminnallisen pisteen {{operationalPointName}} linkitysmuutokset tallennettu: ",
+                "single-linking-success-toast": "vaihde {{name}} linkitetty",
+                "single-unlinking-success-toast": "vaihteen {{name}} linkitys poistettu",
+                "multiple-linking-success-toast": "vaihteet {{names}} linkitetty",
+                "multiple-unlinking-success-toast": "vaihteiden {{names}} linkitys poistettu",
                 "switch-linked-to-wrong-point": "Vaihde on linkitetty toiseen toiminnalliseen pisteeseen {{operationalPointName}}",
                 "switch-in-wrong-polygon": "Vaihde sijaitsee toisen pisteen alueella: {{operationalPointName}}",
+                "none-for-linking": "Ei linkittämättömiä vaihteita",
+                "none-for-unlinking": "Ei linkitettyjä vaihteita",
                 "switch-not-in-polygon": "Vaihde on linkitetty pisteelle, mutta ei sijaitse pisteen alueella"
             },
             "track-links": {
@@ -1005,10 +1023,13 @@
                 "attach-all": "Linkitä pisteeseen kaikki raiteet ({{count}} kpl)",
                 "show-all": "Näytä kaikki ({{count}} kpl)...",
                 "hide-extra": "Piilota...",
-                "single-linking-success-toast": "Raide {{name}} linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "single-unlinking-success-toast": "Raiteen {{name}} linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu",
-                "multiple-linking-success-toast": "{{count}} raidetta linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "multiple-unlinking-success-toast": "Linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu {{count}} raiteelta",
+                "linking-success-toast-prefix": "Toiminnallisen pisteen {{operationalPointName}} linkitysmuutokset tallennettu: ",
+                "single-linking-success-toast": "raide {{name}} linkitetty",
+                "single-unlinking-success-toast": "raiteen {{name}} linkitys poistettu",
+                "multiple-linking-success-toast": "raiteet {{names}} linkitetty",
+                "multiple-unlinking-success-toast": "raiteiden {{names}} linkitys poistettu",
+                "none-for-linking": "Ei linkittämättömiä raiteita",
+                "none-for-unlinking": "Ei linkitettyjä raiteita",
                 "track-not-in-polygon": "Raide on linkitetty pisteelle, mutta sillä ei ole geometriaa pisteen alueella"
             }
         },
@@ -1912,7 +1933,11 @@
             "switch-link-removed-plural": "Vaihteiden {{value}} linkitys purettu",
             "operational-point-area-changed": "Alue muuttunut",
             "operational-point-area-added": "Alue lisätty",
-            "operational-point-area-cleared": "Alue tyhjennetty"
+            "operational-point-area-cleared": "Alue tyhjennetty",
+            "operational-point-link-added-singular": "Lisätty liitos toiminnalliseen pisteeseen {{value}}",
+            "operational-point-link-removed-singular": "Lisätty liitos toiminnalliseen pisteeseen {{value}}",
+            "operational-point-link-added-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}",
+            "operational-point-link-removed-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}"
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
@@ -1956,7 +1981,8 @@
             "rinf-type": "Tyyppi (RINF)",
             "raide-type": "Tyyppi (RATO)",
             "polygon": "Alue",
-            "linked-switches": "Vaihdelinkitykset"
+            "linked-switches": "Vaihdelinkitykset",
+            "linked-operational-point": "Toiminnallisen pisteen asetus"
         }
     },
     "publication-log": {
@@ -2201,7 +2227,6 @@
         "confirmation-delete-title": "Vaihteen poistaminen paikannuspohjasta",
         "deleted-state-warning": "Poistettu-tilainen vaihde ei voi olla osa paikannuspohjaa.",
         "structure-change-unlink": "Vaihdetyyppiä muutettaessa vaihteeseen liittyvät sijaintiraidelinkitykset puretaan. Linkitykset eivät palaudu automaattisesti, vaikka vaihteen tyyppi palautettaisiin alkuperäiseksi.",
-        "deleted-switch-unlink": "Poistettaessa vaihde myös siihen liittyvät sijaintiraidelinkitykset puretaan. Linkitykset eivät palaudu automaattisesti, vaikka vaihteen tila palautettaisiin alkuperäiseksi.",
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
         "confirm-switch-delete": "Haluatko poistaa vaihteen paikannuspohjasta?",
         "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",

@@ -62,6 +62,8 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
     fun fetchManyByVersion(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T>
 
+    fun fetchManyByVersionWithoutCaching(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T>
+
     fun fetchChangeTime(): Instant
 
     fun fetchLayoutAssetChangeInfo(layoutContext: LayoutContext, id: IntId<T>): LayoutAssetChangeInfo?
@@ -80,6 +82,10 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
     fun fetchOfficialVersionAtMomentOrThrow(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>
 
+    fun fetchOfficialVersionsInHistory(
+        points: List<LayoutAssetIdInHistory<T>>
+    ): Map<LayoutAssetIdInHistory<T>, LayoutRowVersion<T>>
+
     fun fetchOfficialVersionAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>? =
         fetchManyOfficialVersionsAtMoment(branch, listOf(id), moment).firstOrNull()
 
@@ -95,9 +101,11 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
         )
     }
 
+    fun fetchAllOfficialVersionsAtMoment(branch: LayoutBranch, moment: Instant): List<LayoutRowVersion<T>>
+
     fun fetchManyOfficialVersionsAtMoment(
         branch: LayoutBranch,
-        ids: List<IntId<T>>?,
+        ids: List<IntId<T>>,
         moment: Instant,
     ): List<LayoutRowVersion<T>>
 
@@ -124,7 +132,7 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
     @Transactional(readOnly = true)
     fun listOfficialAtMoment(branch: LayoutBranch, moment: Instant): List<T> =
-        fetchMany(fetchManyOfficialVersionsAtMoment(branch, ids = null, moment))
+        fetchMany(fetchAllOfficialVersionsAtMoment(branch, moment))
 }
 
 interface ILayoutAssetDao<T : LayoutAsset<T>, SaveParams> : LayoutAssetReader<T>, LayoutAssetWriter<T, SaveParams>
@@ -152,6 +160,17 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
     override fun fetchManyByVersion(versions: Collection<LayoutRowVersion<T>>): Map<LayoutRowVersion<T>, T> =
         if (cacheEnabled) {
             cache.getAll(versions) { nonCached -> fetchManyInternal(nonCached) }
+        } else {
+            fetchManyInternal(versions)
+        }
+
+    override fun fetchManyByVersionWithoutCaching(
+        versions: Collection<LayoutRowVersion<T>>
+    ): Map<LayoutRowVersion<T>, T> =
+        if (cacheEnabled) {
+            val fromCache = cache.getAllPresent(versions)
+            val cachedVersions = fromCache.keys
+            fromCache + fetchManyInternal(versions.filter { v -> !cachedVersions.contains(v) })
         } else {
             fetchManyInternal(versions)
         }
@@ -336,6 +355,34 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
     // language=SQL
     private val officialVersionsAtMomentSql =
         """
+          select distinct on (ordinality, id) ordinality - 1 as ix, id, design_id, false as draft, version
+          from (
+            select distinct on (ordinality, t.id, design_id)
+              ordinality,
+              t.id,
+              t.design_id,
+              t.deleted,
+              t.version
+              -- pre-filter by id to encourage PostgreSQL to use a better query plan
+              from (select * from ${table.versionTable} where id = any(:ids) and not draft) t
+                join (
+                select
+                  unnest(:ids) as id,
+                  unnest(:design_ids)::int as design_id,
+                  unnest(:change_times)::timestamptz as change_time,
+                  generate_subscripts(:ids, 1) as ordinality
+              ) arg on t.id = arg.id and
+                       (t.design_id is null or t.design_id = arg.design_id) and
+                       t.change_time <= arg.change_time
+            order by ordinality, t.id, t.design_id, t.change_time desc, version
+            ) tn
+          where not deleted
+          order by ordinality, id, design_id is not null desc;
+        """
+            .trimIndent()
+
+    private val allOfficialVersionsAtMomentSql =
+        """
           select distinct on (id) id, design_id, false as draft, version
           from (
             select distinct on (id, design_id)
@@ -345,11 +392,10 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
               deleted,
               version
               from ${table.versionTable}
-            where (:ids::int[] is null or id = any(array[:ids]::int[]))
-              and not draft
+            where not draft
               and (design_id is null or design_id = :design_id)
               and change_time <= :moment
-              order by id, design_id, change_time desc
+              order by id, design_id, change_time desc, version
             ) tn
           where not deleted
           order by id, is_design desc
@@ -363,22 +409,10 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
 
     override fun fetchManyOfficialVersionsAtMoment(
         branch: LayoutBranch,
-        ids: List<IntId<T>>?,
+        ids: List<IntId<T>>,
         moment: Instant,
     ): List<LayoutRowVersion<T>> =
-        if (ids != null && ids.isEmpty()) {
-            emptyList()
-        } else {
-            val params =
-                mapOf(
-                    "design_id" to branch.designId?.intValue,
-                    "ids" to ids?.map { id -> id.intValue }?.toTypedArray(),
-                    "moment" to Timestamp.from(moment),
-                )
-            jdbcTemplate.query(officialVersionsAtMomentSql, params) { rs, _ ->
-                rs.getLayoutRowVersion("id", "design_id", "draft", "version")
-            }
-        }
+        fetchOfficialVersionsInHistory(ids.map { id -> LayoutAssetIdInHistory(id, branch, moment) }).values.toList()
 
     @Transactional
     override fun deleteRow(rowId: LayoutRowId<T>): LayoutRowVersion<T> {
@@ -489,6 +523,34 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
                 items.associateWith { item -> found.getOrDefault(item, listOf()) }
             }
     }
+
+    override fun fetchAllOfficialVersionsAtMoment(branch: LayoutBranch, moment: Instant): List<LayoutRowVersion<T>> =
+        jdbcTemplate.query(
+            allOfficialVersionsAtMomentSql,
+            mapOf("design_id" to branch.designId?.intValue, "moment" to Timestamp.from(moment)),
+        ) { rs, _ ->
+            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+        }
+
+    override fun fetchOfficialVersionsInHistory(
+        points: List<LayoutAssetIdInHistory<T>>
+    ): Map<LayoutAssetIdInHistory<T>, LayoutRowVersion<T>> =
+        if (points.isEmpty()) emptyMap()
+        else
+            jdbcTemplate
+                .query(
+                    officialVersionsAtMomentSql,
+                    mapOf(
+                        "ids" to points.map { it.id.intValue }.toTypedArray(),
+                        "design_ids" to points.map { it.branch.designId?.intValue }.toTypedArray(),
+                        "change_times" to points.map { Timestamp.from(it.time) }.toTypedArray(),
+                    ),
+                ) { rs, _ ->
+                    val version = rs.getLayoutRowVersion<T>("id", "design_id", "draft", "version")
+                    val index = rs.getInt("ix")
+                    points[index] to version
+                }
+                .associate { it }
 }
 
 private fun fetchContextVersionSql(table: LayoutAssetTable, fetchType: FetchType) =
@@ -526,3 +588,5 @@ data class VersionComparison<T : LayoutAsset<T>>(
         return fromVersion != toVersion
     }
 }
+
+data class LayoutAssetIdInHistory<T : LayoutAsset<T>>(val id: IntId<T>, val branch: LayoutBranch, val time: Instant)

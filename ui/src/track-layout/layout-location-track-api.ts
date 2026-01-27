@@ -3,6 +3,7 @@ import {
     AlignmentStartAndEnd,
     DuplicateStatus,
     LayoutLocationTrack,
+    LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackDescriptionStructure,
     LocationTrackId,
@@ -389,7 +390,7 @@ export type OperationalPointLocationTracks = {
     assigned: LocationTrackId[];
 };
 
-export async function linkLocationTrackToOperationalPoint(
+export async function linkLocationTracksToOperationalPoint(
     branch: LayoutBranch,
     locationTrackIds: LocationTrackId[],
     operationalPointId: OperationalPointId,
@@ -400,7 +401,7 @@ export async function linkLocationTrackToOperationalPoint(
     );
 }
 
-export async function unlinkLocationTrackToOperationalPoint(
+export async function unlinkLocationTracksFromOperationalPoint(
     branch: LayoutBranch,
     locationTrackIds: LocationTrackId[],
     operationalPointId: OperationalPointId,
@@ -408,5 +409,16 @@ export async function unlinkLocationTrackToOperationalPoint(
     return postNonNull<LocationTrackId[], LocationTrackId[]>(
         `${layoutUriByBranch('location-tracks', branch)}/draft/unlink-from-operational-point/${operationalPointId}`,
         locationTrackIds,
+    );
+}
+
+export async function detachSwitchFromLocationTrack(
+    branch: LayoutBranch,
+    locationTrackId: LocationTrackId,
+    switchId: LayoutSwitchId,
+) {
+    return postNonNull(
+        `${layoutUriByBranch('location-tracks', branch)}/${locationTrackId}/detach-switch/${switchId}`,
+        +'',
     );
 }
