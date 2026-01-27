@@ -9,16 +9,19 @@ Jäsennysvirheet: tiedostoa ei pystytä käsittelemään lainkaan
 
 - Kieltäydytään tuomasta / ei pystytä tuomaan tiedostoa Geoviitteeseen
 - Tiedosto tulee korjata Geoviitteen ulkopuolella ja antaa uudelleen
-  Validointivirheet: tiedosto on jäsennettävissä, mutta data on virheellistä tai puutteellista
+
+Validointivirheet: tiedosto on jäsennettävissä, mutta data on virheellistä tai puutteellista
+
 - Käyttäjän voi ottaa kantaa virheelliseen/puutteelliseen dataan tuontivaiheessa
 - Vaihtoehtoisesti virhe voidaan korjata suunnittelijan toimesta ja tuoda uusi, päivitetty tiedosto Geoviitteeseen
 - Jos halutaan, virheellinenkin suunnitelma voidaan tuoda geoviitteeseen eteenpäinjakelua varten, mutta sen pohjalta ei
-  voida tehdä linkityksiä (siltä osin jota virhe koskee)
-  Validointihuomiot: tiedoston laatu ei vastaa toivottua tasoa mutta sitä voidaan silti käyttää
+  voida tehdä linkityksiä siltä osin jota virhe koskee
+
+Validointihuomiot: tiedoston laatu ei vastaa toivottua tasoa mutta sitä voidaan silti käyttää
+
 - Näytetään virheilmoitus käyttäjälle, mutta tuontia voidaan jatkaa (virhe voidaan haluttaessa sivuuttaa)
-- Tämä luokka jakautuu vielä kahteen:
-    - Vakavat huomiot: datassa on jotain merkityksellistä selkeästi pielessä
-    - Lievät huomiot: datassa on epätarkkuutta tai jokin Geoviitteen kannalta epäoleellinen tieto on väärin
+- Vakavat huomiot: datassa on jotain merkityksellistä selkeästi pielessä
+- Lievät huomiot: datassa on epätarkkuutta tai jokin Geoviitteen kannalta epäoleellinen tieto on väärin
 
 ## Validointisäännöt
 
@@ -27,6 +30,9 @@ validointi. Jäsennysvirheet estävät tiedoston käsittelyn kokonaan, kun taas 
 käyttäjä voi päättää jatketaanko tuontia.
 
 ### Tiedoston jäsennys ja rakenne
+
+InfraModel-tiedosto on XML-muotoinen dokumentti, joka validoidaan LandXML XSD-skeemaa vasten. InfraModeliin kuuluvien
+peruselementtien puuttuminen tai tiedoston virheellinen uloskirjoitus voivat estää tiedoston käsittelyn kokonaan.
 
 | Virhetyyppi                 | Virheen tyyppi | Kuvaus                                                                         |
 |-----------------------------|----------------|--------------------------------------------------------------------------------|
@@ -38,6 +44,17 @@ käyttäjä voi päättää jatketaanko tuontia.
 
 ### Metatiedot
 
+InfraModel sisältää tiedoston alussa joukon metatitetoelementtejä, joista osa on keskeisiä itse geometrioiden
+tulkintaan (esim. `<CoordinateSystem>`) ja osa hyödyllisiä lähinnä tiedostojen hakutoimintoinnoissa ja laadun
+arvioinnissa. Keskeisimpiä metatietoja ovat:
+
+- `<Units>`: määrittelee tiedoston käyttämät mittayksiköt, jotka ovat välttämättömiä geometrian käsittelyssä
+- `<CoordinateSystem>`: sisältää koordinaattijärjestelmän ja korkeusjärjestelmän tiedot, jotka ovat välttämättömiä
+  geometrian käsittelyssä
+- `<Project>`: projektin tiedot, joita käytetään lähinnä tiedostojen ryhmittelyyn käyttöliittymällä
+- `<Application>` ja `<Author>`: tiedoston uloskirjoitukseen liittyvät tiedot jotka kertovat sen laadusta ja
+  tarkoituksesta, mutta joita Geoviite itse ei käytä
+
 | Virhetyyppi                                    | Virheen tyyppi  | Kuvaus                                                                    |
 |------------------------------------------------|-----------------|---------------------------------------------------------------------------|
 | Koordinaattijärjestelmä puuttuu tai tuntematon | Validointivirhe | Koordinaattijärjestelmä (CoordinateSystem) puuttuu tai sitä ei tunnisteta |
@@ -47,6 +64,14 @@ käyttäjä voi päättää jatketaanko tuontia.
 | Vapaaehtoinen metatieto puuttuu                | Lievä huomio    | Suunnitelman luontiaika, yritys tms. metatieto puuttuu                    |
 
 ### Keskilinjat (Alignments)
+
+Keskilinjat (`<Alignments>` jonka alle on ryhmitelty joukko `<Alignment>` elementtejä) sisältävät suunnitelman raiteiden
+ja pituusmittauslinjojen vaakageometriat, jotka koostuvat edelleen allempana kuvatuista elementeistä.
+
+Pituusmittauslinja ja raiteen keskilinja on rakenteellisesti samanlainen, mutta niiden tyyppi erotellaan
+`featureTypeCode`-attribuutilla (pituusmittauslinja=111 vs raide=281). Tyyppi ei kuitenkaan ole Geoviitteen kannalta
+kriittinen koska geometriaa linkittäessä, operaattori lopulta päättää mihin raiteeseen tai pituusmittauslinjaan minkäkin
+geometrian linkittää.
 
 | Virhetyyppi                   | Virheen tyyppi  | Kuvaus                                                                             |
 |-------------------------------|-----------------|------------------------------------------------------------------------------------|
@@ -58,6 +83,14 @@ käyttäjä voi päättää jatketaanko tuontia.
 | Keskilinjan tila puuttuu      | Lievä huomio    | Keskilinjalle ei ole määritelty tilaa (state)                                      |
 
 ### Geometriaelementit (Line, Curve, Spiral)
+
+Geometriaelementit (`<CoordGeom>`-lohkon `<Line>`, `<Curve>`, `<Spiral>`) määrittelevät keskilinjan vaakasuuntaisen
+geometrian suorina, kaarina ja siirtymäkaarina. Validoinnissa keskeisintä on varmistaa että elementeistä koostuu
+yhtenäinen keskilinjan viiva.
+
+Moni elementeistä on "ylimääritelty" eli xml:ssä annettuja arvoja voi laskea myös muista sen sisältämistä arvoista.
+Validoinnissa tarkastetaan myös näin saatuja arvoja annettuihin, sillä mahdolliset erot kielivät mahdollisista virheistä
+tiedoston tuottamisessa.
 
 | Virhetyyppi                           | Virheen tyyppi | Kuvaus                                                               |
 |---------------------------------------|----------------|----------------------------------------------------------------------|
@@ -82,6 +115,10 @@ käyttäjä voi päättää jatketaanko tuontia.
 
 ### Pystygeometria (Profile)
 
+Pystygeometria (`<Profile>` ja sen alla olevat `<Feature>` ja `<ProfAlign>` -elementit) määrittelee keskilinjan
+pystygeometrian paalulukemien (pituuden linjaa pitkin) funktiona. Se koostuu taitepisteistä (pistemäinen `<PVI>` ja
+kaari `<CircCurve>`), joista voidaan laskea kaltevuusjaksot.
+
 | Virhetyyppi              | Virheen tyyppi | Kuvaus                                                          |
 |--------------------------|----------------|-----------------------------------------------------------------|
 | Pystygeometria puuttuu   | Vakava huomio  | Keskilinjalle ei ole määritelty pystygeometriaa (Profile)       |
@@ -96,6 +133,10 @@ käyttäjä voi päättää jatketaanko tuontia.
 
 ### Kallistus (Cant)
 
+Kallistus (`<Cant>`) kuvaa raiteen sivuttaiskaltevuuden eri kohdissa paalulukeman (pituuden linjaa pitkin) funktiona. Se
+koostuu kallistuspisteistä (`<CantStation>`) sekä ilmoitetusta raideleveydestä (gauge - Suomessa käytössä vain yksi
+arvo) ja kaltevuuden mittauspisteestä (rotationPoint).
+
 | Virhetyyppi                       | Virheen tyyppi  | Kuvaus                                                                        |
 |-----------------------------------|-----------------|-------------------------------------------------------------------------------|
 | Kallistus puuttuu                 | Vakava huomio   | Keskilinjalle ei ole määritelty kallistusta (Cant)                            |
@@ -106,6 +147,15 @@ käyttäjä voi päättää jatketaanko tuontia.
 | Epäjatkuvuus: paalulukema         | Vakava huomio   | Kallistuspisteen paalulukema ei ole suurempi kuin edellisen                   |
 
 ### Vaihteet
+
+InfraModel määritys ei sisällä vaihteita omina elementteinään, mutta osa tiedostoja tuottavista sovelluksista kirjoittaa
+ne ulos geometriaelementtien `Feature`-elementtien avulla (`code="IM_switch"`, sis. propertyt `switchType`,
+`switchHand`, `switchJoint`). Näin määritellyistä vaihdekytkennöistä nähdään siis myös vaihdepisteiden sijainnit
+raiteilla ja raiteiden kytkennät vaihteisiin. Tätä tietoa käytetään vaihteen linkitykseen paikannuspohjaan.
+
+Validoinnissa verrataan vaihteen raidekytkennöistä saatuja sijainteja ja mittoja sen tyypin mukaiseen
+vaihderakenteeseen. Lisäksi tarkistetaan että kaikki tarvittavat tiedot on annettu ja eri tiedot sopivat yhteen, esim.
+että vaihdepisteen sijainti eri raiteilla on sama).
 
 | Virhetyyppi                               | Virheen tyyppi | Kuvaus                                                                    |
 |-------------------------------------------|----------------|---------------------------------------------------------------------------|
@@ -120,6 +170,15 @@ käyttäjä voi päättää jatketaanko tuontia.
 | Epätarkkuus: raidelinjan vaihdepisteet    | Lievä huomio   | Vaihdepisteiden sijainnit eroavat eri raiteilla hieman                    |
 
 ### Tasakilometripisteet (StaEquation)
+
+Tasakilometripisteet (`<StaEquation>`) yhdistävät keskilinjan paalulukeman ratanumeron kilometrijärjestelmään. Ne
+sisältävät sijainnin `<Feature>`-elementtinä (`code="IM_kmPostCoords"`), kilometritunnuksen (`desc` attribuutti) ja
+paaluluvun (sijainti pituutena linjaa pitkin). Ensimmäinen piste on erikoistapaus, sillä ensimmäinen kilometri alkaa
+usein ennen itse linjan alkua (linjan alkuosoite on km + X metriä), jolloin alkupaalu on negatiivinen.
+
+Suunnitelmien tasakilometripisteitä käytetään linkittämään paikannuspohjan tasakilometripisteet oikeaan sijaintiin.
+Paikannuspohjassa osoitteisto lasketaan linkitetystä datasta, mutta Geoviite osaa myös laskea osoitteita suunnitelman
+kontekstissa näiden arvojen avulla.
 
 | Virhetyyppi                                   | Virheen tyyppi  | Kuvaus                                                                  |
 |-----------------------------------------------|-----------------|-------------------------------------------------------------------------|
