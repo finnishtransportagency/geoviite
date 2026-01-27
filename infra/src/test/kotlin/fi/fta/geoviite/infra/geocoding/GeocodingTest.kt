@@ -103,35 +103,30 @@ val kms =
             startAddress.kmNumber,
             startAddress.meters,
             Range(LineM(0.0), referenceLineGeometry.length / 5),
-            0.0,
             false,
         ),
         GeocodingKm(
             KmNumber(3),
             BigDecimal.ZERO,
             Range(referenceLineGeometry.length / 5, referenceLineGeometry.length * 2 / 5),
-            0.0,
             false,
         ),
         GeocodingKm(
             KmNumber(4),
             BigDecimal.ZERO,
             Range(referenceLineGeometry.length * 2 / 5, referenceLineGeometry.length * 3 / 5),
-            0.0,
             false,
         ),
         GeocodingKm(
             KmNumber(5, "A"),
             BigDecimal.ZERO,
             Range(referenceLineGeometry.length * 3 / 5, referenceLineGeometry.length * 4 / 5),
-            0.0,
             false,
         ),
         GeocodingKm(
             KmNumber(5, "B"),
             BigDecimal.ZERO,
             Range(referenceLineGeometry.length * 4 / 5, referenceLineGeometry.length),
-            0.0,
             true,
         ),
     )
@@ -408,8 +403,8 @@ class GeocodingTest {
                 referenceLineGeometry = geometry,
                 kms =
                     listOf(
-                        GeocodingKm(KmNumber(2), BigDecimal("100.0"), Range(LineM(0.0), LineM(3.0)), 0.0, false),
-                        GeocodingKm(KmNumber(3), BigDecimal("0.0"), Range(LineM(3.0), LineM(6.0)), 0.0, true),
+                        GeocodingKm(KmNumber(2), BigDecimal("100.0"), Range(LineM(0.0), LineM(3.0)), false),
+                        GeocodingKm(KmNumber(3), BigDecimal("0.0"), Range(LineM(3.0), LineM(6.0)), true),
                     ),
             )
         // As lines go straight up, projections should go 100m to the left from there
@@ -453,8 +448,8 @@ class GeocodingTest {
             )
         assertEquals(
             listOf(
-                GeocodingKm<ReferenceLineM>(KmNumber(1), BigDecimal("51.4"), Range(LineM(0.0), LineM(5.0)), 0.0, false),
-                GeocodingKm<ReferenceLineM>(KmNumber(2), BigDecimal("0.0"), Range(LineM(5.0), LineM(10.0)), 0.0, true),
+                GeocodingKm<ReferenceLineM>(KmNumber(1), BigDecimal("51.4"), Range(LineM(0.0), LineM(5.0)), false),
+                GeocodingKm<ReferenceLineM>(KmNumber(2), BigDecimal("0.0"), Range(LineM(5.0), LineM(10.0)), true),
             ),
             context.kms,
         )
@@ -711,7 +706,6 @@ class GeocodingTest {
                 kmNumber = startAddress.kmNumber,
                 startMeters = startAddress.meters,
                 referenceLineM = Range(LineM(0.0), kmPoints.firstOrNull()?.second?.let(::LineM) ?: geometry.length),
-                kmPostOffset = 0.0,
                 endInclusive = false,
             )
         val combinedKms =
@@ -725,7 +719,6 @@ class GeocodingTest {
                                 LineM(distance),
                                 kmPoints.getOrNull(index + 1)?.second?.let(::LineM) ?: geometry.length,
                             ),
-                        kmPostOffset = 0.0,
                         endInclusive = index == kmPoints.lastIndex,
                     )
                 }
@@ -756,7 +749,6 @@ class GeocodingTest {
                             kmNumber = startAddress.kmNumber,
                             startMeters = startAddress.meters,
                             referenceLineM = Range(LineM(0.0), verticalGeometry.length),
-                            kmPostOffset = 0.0,
                             endInclusive = true,
                         )
                     ),
@@ -1003,6 +995,26 @@ class GeocodingTest {
 
         assertTrue("Km post that intersected after reference line was not rejected") {
             result.kmErrors.contains(kmPost.kmNumber to KmValidationIssue.INTERSECTS_AFTER_REFERENCE_LINE)
+        }
+    }
+
+    @Test
+    fun `should reject km posts that are too far from reference line`() {
+        val trackNumber = TrackNumber("T001")
+        val geometry = ReferenceLineGeometry(segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0))))
+
+        val kmPost = kmPost(IntId(1), KmNumber(11), kmPostGkLocation(5000.0, 1100.0), draft = false)
+
+        val result =
+            GeocodingContext.create(
+                trackNumber = trackNumber,
+                startAddress = TrackMeter(KmNumber(10), 100),
+                referenceLineGeometry = geometry,
+                kmPosts = listOf(kmPost),
+            )
+
+        assertTrue("Km post that was too far from reference line was not rejected") {
+            result.kmErrors.contains(kmPost.kmNumber to KmValidationIssue.IS_TOO_FAR_FROM_REFERENCE_LINE)
         }
     }
 
