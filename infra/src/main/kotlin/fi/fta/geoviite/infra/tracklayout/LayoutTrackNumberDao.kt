@@ -231,62 +231,34 @@ class LayoutTrackNumberDao(
         // language=sql
         val sql =
             """
-            select id, number, change_time
-              from (
-                select
-                  id,
-                  change_time,
-                  number,
-                      lag(number) over (partition by id order by change_time, design_id is not null, version) as prev_number
-                  from (
-                    select id, number, change_time, version, design_id
-                      from layout.track_number_version tn
-                      where not draft
-                        and case
-                              when :design_id::int is null then design_id is null
-                              else (design_id = :design_id and design_asset_state != 'CANCELLED')
-                                or (design_id is null
-                                  and not exists (
-                                    select *
-                                      from layout.track_number_version overrider
-                                      where overrider.design_id = :design_id
-                                        and overrider.id = tn.id
-                                        and not overrider.draft
-                                        and not overrider.design_asset_state = 'CANCELLED'
-                                        and not overrider.deleted
-                                        and overrider.change_time <= tn.change_time
-                                        and (overrider.expiry_time is null or overrider.expiry_time > tn.change_time)
-                                  ))
-                            end
-                    union all
-                    -- cancelling design rows returns us to the state in main, with the change occurring at the time of
-                    -- the deletion
-                    select
-                      main_tn.id,
-                      main_tn.number,
-                      design_cancellation.change_time,
-                      design_cancellation.version,
-                      design_cancellation.design_id
-                      from layout.track_number_version main_tn
-                        join layout.track_number_version design_cancellation on main_tn.id = design_cancellation.id
-                        and main_tn.change_time <= design_cancellation.change_time
-                        and (main_tn.expiry_time is null or main_tn.expiry_time > design_cancellation.change_time)
-                      where :design_id::int is not null
-                        and not main_tn.draft
-                        and not design_cancellation.draft
-                        and main_tn.design_id is null
-                        and design_cancellation.design_id = :design_id
-                        and (design_cancellation.design_asset_state = 'CANCELLED' or design_cancellation.deleted)
-                  ) all_versions
-              ) change_order
-              where number is distinct from prev_number
-              order by id, change_time;
-                          """
+            select id,
+                   design_id is not null as is_design,
+                   deleted or design_asset_state = 'CANCELLED' as is_gone,
+                   number,
+                   change_time
+            from layout.track_number_version
+            where (design_id is null or design_id = :design_id) and not draft
+            """
                 .trimIndent()
 
         return jdbcTemplate
             .query(sql, mapOf("design_id" to layoutBranch.designId?.intValue)) { rs, _ ->
-                TrackNumberAndChangeTime(rs.getIntId("id"), rs.getTrackNumber("number"), rs.getInstant("change_time"))
+                AnyTrackNumberChange(
+                    rs.getBoolean("is_design"),
+                    rs.getBoolean("is_gone"),
+                    TrackNumberAndChangeTime(
+                        rs.getIntId("id"),
+                        rs.getTrackNumber("number"),
+                        rs.getInstant("change_time"),
+                    ),
+                )
+            }
+            .let { allChangesHistory ->
+                allChangesHistory
+                    .groupBy { it.change.id }
+                    .mapValues { (_, trackNumberChanges) -> processTrackNumberChangeHistory(trackNumberChanges) }
+                    .values
+                    .flatten()
             }
             .also { logger.daoAccess(AccessType.FETCH, "track_number_version") }
     }
@@ -307,5 +279,51 @@ class LayoutTrackNumberDao(
     fun insertExternalId(id: IntId<LayoutTrackNumber>, branch: LayoutBranch, oid: Oid<LayoutTrackNumber>) {
         jdbcTemplate.setUser()
         insertExternalIdInExistingTransaction(branch, id, oid)
+    }
+}
+
+private data class AnyTrackNumberChange(
+    val isDesign: Boolean,
+    val isGone: Boolean,
+    val change: TrackNumberAndChangeTime,
+)
+
+private fun processTrackNumberChangeHistory(allChanges: List<AnyTrackNumberChange>): List<TrackNumberAndChangeTime> {
+    var currentInMain: TrackNumberAndChangeTime? = null
+    var currentInDesign: TrackNumberAndChangeTime? = null
+    return allChanges
+        .sortedBy { it.change.changeTime }
+        .mapNotNull { row ->
+            val (isDesign, isGone, change) = row
+            when {
+                isDesign && isGone -> {
+                    currentInDesign = null
+                    // if the design row goes away, go back to main's version of the track number, but at the time of
+                    // the deletion
+                    currentInMain?.let { inMain -> change.copy(number = inMain.number) }
+                }
+
+                isDesign -> {
+                    currentInDesign = change
+                    currentInDesign
+                }
+
+                else -> {
+                    currentInMain = change
+                    currentInDesign ?: currentInMain
+                }
+            }
+        }
+        .let(::getDistinctTrackNumberChanges)
+}
+
+private fun getDistinctTrackNumberChanges(changes: List<TrackNumberAndChangeTime>): List<TrackNumberAndChangeTime> {
+    var current: TrackNumber? = null
+    return changes.mapNotNull { change ->
+        if (change.number == current) null
+        else {
+            current = change.number
+            change
+        }
     }
 }
