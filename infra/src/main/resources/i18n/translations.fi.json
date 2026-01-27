@@ -1862,7 +1862,7 @@
                 "duplicate-km-posts": "Linjalla {{trackNumber}} on useita tasakilometripisteitä numerolla {{kmNumber}}",
                 "km-post-smaller-than-track-number-start": "Tasakilometripiste ({{kmNumber}}) on pienempi kuin ratanumeron {{trackNumber}} aloitusarvo",
                 "km-posts-wrong-order": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) ovat väärässä järjestyksessä",
-                "km-posts-far-from-line": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) sijaitsevat kaukana pituusmittauslinjasta"
+                "km-post-too-far-from-reference-line": "Ratanumeron {{trackNumber}} tasakilometripiste {{kmNumber}} sijaitsee liian kaukana pituusmittauslinjalta"
             },
             "split": {
                 "source-not-deleted": "Jaettava raide {{sourceName}} ei ole Poistettu-tilassa",

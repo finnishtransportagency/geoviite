@@ -62,7 +62,6 @@ const val VALIDATION_OPERATIONAL_POINT = "$VALIDATION.operational-point"
 private const val JOINT_LOCATION_DELTA = 0.5
 const val MAX_LAYOUT_POINT_ANGLE_CHANGE = PI / 2
 const val MAX_LAYOUT_METER_LENGTH = 2.0
-const val MAX_KM_POST_OFFSET = 10.0
 
 fun validateTrackNumberReferences(
     trackNumberExists: Boolean,
@@ -986,19 +985,6 @@ fun validateGeocodingContext(
                 )
             }
 
-    val kmPostsFarFromLine: LayoutValidationIssue? =
-        context.kms
-            .filter { km -> km.kmPostOffset > MAX_KM_POST_OFFSET }
-            .let { kmsWithFarawayPoints ->
-                validateWithParams(kmsWithFarawayPoints.isEmpty(), WARNING) {
-                    "$VALIDATION_GEOCODING.km-posts-far-from-line" to
-                        localizationParams(
-                            "trackNumber" to context.trackNumber,
-                            "kmNumbers" to kmsWithFarawayPoints.joinToString(",") { point -> point.kmNumber.toString() },
-                        )
-                }
-            }
-
     val kmPostsRejected: List<LayoutValidationIssue> =
         validatedContext.kmErrors.map { (kmNumber, issue) ->
             val kmPostLocalizationParams = mapOf("trackNumber" to trackNumber, "kmNumber" to kmNumber)
@@ -1006,6 +992,13 @@ fun validateGeocodingContext(
             when (issue) {
                 KmValidationIssue.NO_LOCATION ->
                     LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.km-post-no-location", kmPostLocalizationParams)
+
+                KmValidationIssue.IS_TOO_FAR_FROM_REFERENCE_LINE ->
+                    LayoutValidationIssue(
+                        ERROR,
+                        "$VALIDATION_GEOCODING.km-post-too-far-from-reference-line",
+                        kmPostLocalizationParams,
+                    )
 
                 KmValidationIssue.IS_BEFORE_START_ADDRESS ->
                     LayoutValidationIssue(
@@ -1036,7 +1029,7 @@ fun validateGeocodingContext(
             }
         }
 
-    return kmPostsRejected + listOfNotNull(kmPostsFarFromLine, kmPostsInWrongOrder) + kmLengthErrors
+    return kmPostsRejected + listOfNotNull(kmPostsInWrongOrder) + kmLengthErrors
 }
 
 fun validateAddressPoints(
