@@ -94,7 +94,6 @@ Validointi suoritetaan aina "julkaisujoukolle", johon kerätään koko se tila j
     - Vain varoitus: linjan ulkopuolella oleva piste voi olla operaattorille hyödyllistä lisätietoa, vaikkei sillä ole
       geokoodauksessa merkitystä
 - Tasakilometripisteen sijainti on riittävän lähellä pituusmittauslinjaa
-    - Vain varoitus: etäisyysraja on mielivaltainen eikä etäisyys suoranaisesti riko mitään
 
 #### Vaihde
 
