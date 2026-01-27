@@ -168,7 +168,6 @@ data class GeocodingKm<M : GeocodingAlignmentM<M>>(
     val kmNumber: KmNumber,
     val startMeters: BigDecimal,
     val referenceLineM: Range<LineM<M>>,
-    val kmPostOffset: Double,
     val endInclusive: Boolean,
 ) {
     val length = referenceLineM.max.distance - referenceLineM.min.distance
@@ -251,6 +250,7 @@ enum class KmValidationIssue {
     INTERSECTS_AFTER_REFERENCE_LINE,
     DUPLICATE_KM,
     INCORRECT_ORDER,
+    IS_TOO_FAR_FROM_REFERENCE_LINE,
 }
 
 enum class Resolution(val meters: BigDecimal) {
@@ -434,7 +434,6 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
                     prev.km,
                     prev.meter,
                     Range(prev.referenceLineM, next?.referenceLineM ?: referenceLineGeometry.length),
-                    prev.kmPostOffset,
                     index == kmReferencePoints.lastIndex,
                 )
             }
@@ -478,11 +477,10 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
             validKmPosts.forEach { post ->
                 val location =
                     requireNotNull(post.layoutLocation) { "A validated KM Post must have a location: ${post.toLog()}" }
-                val closestPoint =
-                    requireNotNull(referenceLineGeometry.getClosestPointM(location)) {
-                        "Could not resolve closest point on reference line for km post: ${post.toLog()}"
-                    }
+                val closestPoint = referenceLineGeometry.getClosestPointM(location)
                 when {
+                    closestPoint == null ->
+                        errors.add(post.kmNumber to KmValidationIssue.IS_TOO_FAR_FROM_REFERENCE_LINE)
                     closestPoint.second == BEFORE ->
                         errors.add(post.kmNumber to KmValidationIssue.INTERSECTS_BEFORE_REFERENCE_LINE)
                     closestPoint.second == AFTER ->
