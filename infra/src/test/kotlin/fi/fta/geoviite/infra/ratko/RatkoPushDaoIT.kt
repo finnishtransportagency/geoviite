@@ -359,6 +359,7 @@ constructor(
                                 trackNumberChanges = emptyList(),
                                 locationTrackChanges = emptyList(),
                                 switchChanges = emptyList(),
+                                operationalPointChanges = emptyList(),
                             ),
                     )
                 publicationDao.insertCalculatedChanges(

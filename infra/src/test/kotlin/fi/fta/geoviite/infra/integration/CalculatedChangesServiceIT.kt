@@ -57,6 +57,7 @@ import fi.fta.geoviite.infra.tracklayout.moveKmPostLocation
 import fi.fta.geoviite.infra.tracklayout.moveLocationTrackGeometryPointsAndUpdate
 import fi.fta.geoviite.infra.tracklayout.moveReferenceLineGeometryPointsAndUpdate
 import fi.fta.geoviite.infra.tracklayout.moveSwitchPoints
+import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.removeTopologySwitchesFromLocationTrackAndUpdate
@@ -70,11 +71,6 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
@@ -84,6 +80,11 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1071,6 +1072,208 @@ constructor(
     }
 
     @Test
+    fun `operational point changes should be included in calculated changes`() {
+        val operationalPoint = mainOfficialContext.save(operationalPoint("Test OP")).id
+        mainDraftContext.save(
+            mainOfficialContext
+                .fetch(operationalPoint)!!
+                .copy(name = fi.fta.geoviite.infra.tracklayout.OperationalPointName("Modified OP"))
+        )
+
+        val changes = getCalculatedChanges(operationalPointIds = listOf(operationalPoint))
+
+        assertEquals(1, changes.directChanges.operationalPointChanges.size)
+        assertContains(changes.directChanges.operationalPointChanges, operationalPoint)
+        assertEquals(0, changes.indirectChanges.operationalPointChanges.size)
+    }
+
+    @Test
+    fun `attaching a switch to an operational point generates indirect operational point change`() {
+        val operationalPoint = mainOfficialContext.save(operationalPoint("Test OP")).id
+        val switch = mainOfficialContext.save(switch(joints = listOf(switchJoint(1, Point(1.0, 1.0))))).id
+
+        switchService.saveDraft(
+            LayoutBranch.main,
+            mainOfficialContext.fetch(switch)!!.copy(operationalPointId = operationalPoint),
+        )
+
+        val changes = getCalculatedChanges(switchIds = listOf(switch))
+
+        assertEquals(0, changes.directChanges.operationalPointChanges.size)
+        assertEquals(1, changes.indirectChanges.operationalPointChanges.size)
+        assertContains(changes.indirectChanges.operationalPointChanges, operationalPoint)
+    }
+
+    @Test
+    fun `detaching a switch from an operational point generates indirect operational point change`() {
+        val operationalPoint = mainOfficialContext.save(operationalPoint("Test OP")).id
+        val switch =
+            mainOfficialContext
+                .save(switch(joints = listOf(switchJoint(1, Point(1.0, 1.0))), operationalPointId = operationalPoint))
+                .id
+
+        switchService.saveDraft(LayoutBranch.main, mainOfficialContext.fetch(switch)!!.copy(operationalPointId = null))
+
+        val changes = getCalculatedChanges(switchIds = listOf(switch))
+
+        assertEquals(0, changes.directChanges.operationalPointChanges.size)
+        assertEquals(1, changes.indirectChanges.operationalPointChanges.size)
+        assertContains(changes.indirectChanges.operationalPointChanges, operationalPoint)
+    }
+
+    @Test
+    fun `changing a switch attachment to an operational point generates indirect operational point change`() {
+        val operationalPoint1 = mainOfficialContext.save(operationalPoint("Test OP 1")).id
+        val operationalPoint2 = mainOfficialContext.save(operationalPoint("Test OP 2")).id
+        val switch =
+            mainOfficialContext
+                .save(switch(joints = listOf(switchJoint(1, Point(1.0, 1.0))), operationalPointId = operationalPoint1))
+                .id
+
+        switchService.saveDraft(
+            LayoutBranch.main,
+            mainOfficialContext.fetch(switch)!!.copy(operationalPointId = operationalPoint2),
+        )
+
+        val changes = getCalculatedChanges(switchIds = listOf(switch))
+
+        assertEquals(0, changes.directChanges.operationalPointChanges.size)
+        assertEquals(2, changes.indirectChanges.operationalPointChanges.size)
+        assertContains(changes.indirectChanges.operationalPointChanges, operationalPoint1)
+        assertContains(changes.indirectChanges.operationalPointChanges, operationalPoint2)
+    }
+
+    @Test
+    fun `attaching location track to operational point generates indirect operational point change`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+        val operationalPoint = mainOfficialContext.save(operationalPoint("Test OP")).id
+        val locationTrack =
+            mainOfficialContext
+                .save(locationTrack(trackNumber), trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
+
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            mainOfficialContext.fetch(locationTrack)!!.copy(operationalPointIds = setOf(operationalPoint)),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val changes = getCalculatedChanges(locationTrackIds = listOf(locationTrack))
+
+        assertEquals(0, changes.directChanges.operationalPointChanges.size)
+        assertEquals(1, changes.indirectChanges.operationalPointChanges.size)
+        assertContains(changes.indirectChanges.operationalPointChanges, operationalPoint)
+    }
+
+    @Test
+    fun `detaching location track from operational point generates indirect operational point change`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+        val operationalPoint = mainOfficialContext.save(operationalPoint("Test OP")).id
+        val locationTrack =
+            mainOfficialContext
+                .save(
+                    locationTrack(trackNumber, operationalPointIds = setOf(operationalPoint)),
+                    trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                )
+                .id
+
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            mainOfficialContext.fetch(locationTrack)!!.copy(operationalPointIds = emptySet()),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val changes = getCalculatedChanges(locationTrackIds = listOf(locationTrack))
+
+        assertEquals(0, changes.directChanges.operationalPointChanges.size)
+        assertEquals(1, changes.indirectChanges.operationalPointChanges.size)
+        assertContains(changes.indirectChanges.operationalPointChanges, operationalPoint)
+    }
+
+    @Test
+    fun `changing location track operational point references generates indirect changes for all affected operational points`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+        val operationalPoint1 = mainOfficialContext.save(operationalPoint("Test OP 1")).id
+        val operationalPoint2 = mainOfficialContext.save(operationalPoint("Test OP 2")).id
+        val operationalPoint3 = mainOfficialContext.save(operationalPoint("Test OP 3")).id
+        val locationTrack =
+            mainOfficialContext
+                .save(
+                    locationTrack(trackNumber, operationalPointIds = setOf(operationalPoint1, operationalPoint2)),
+                    trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                )
+                .id
+
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            mainOfficialContext
+                .fetch(locationTrack)!!
+                .copy(operationalPointIds = setOf(operationalPoint2, operationalPoint3)),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val changes = getCalculatedChanges(locationTrackIds = listOf(locationTrack))
+
+        assertEquals(0, changes.directChanges.operationalPointChanges.size)
+        assertEquals(2, changes.indirectChanges.operationalPointChanges.size)
+        // operationalPoint1 was removed, operationalPoint3 was added
+        assertContains(changes.indirectChanges.operationalPointChanges, operationalPoint1)
+        assertContains(changes.indirectChanges.operationalPointChanges, operationalPoint3)
+        // operationalPoint2 remains unchanged so should not be in calculated changes
+    }
+
+    @Test
+    fun `indirect operational point changes should be combined with direct operational point changes`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+        val operationalPoint = mainOfficialContext.save(operationalPoint("Test OP")).id
+        val locationTrack =
+            mainOfficialContext
+                .save(locationTrack(trackNumber), trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
+
+        // Direct change: modify the operational point itself
+        mainDraftContext.save(
+            mainOfficialContext
+                .fetch(operationalPoint)!!
+                .copy(name = fi.fta.geoviite.infra.tracklayout.OperationalPointName("Modified OP"))
+        )
+
+        // Indirect change: attach a location track to the operational point
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            mainOfficialContext.fetch(locationTrack)!!.copy(operationalPointIds = setOf(operationalPoint)),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val changes =
+            getCalculatedChanges(
+                operationalPointIds = listOf(operationalPoint),
+                locationTrackIds = listOf(locationTrack),
+            )
+
+        assertEquals(1, changes.directChanges.operationalPointChanges.size)
+        assertContains(changes.directChanges.operationalPointChanges, operationalPoint)
+        // The indirect change should be absorbed into the direct change
+        assertEquals(0, changes.indirectChanges.operationalPointChanges.size)
+    }
+
+    @Test
     fun `changes done in a main publication can be inherited to assets edited in design`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         mainOfficialContext.save(
@@ -1136,6 +1339,41 @@ constructor(
                 Oid("3.4.5.6.7"),
             )
         assertEquals(listOf(SwitchChange(switch, listOf(expectedSwitchJointChange))), changes.switchChanges)
+    }
+
+    @Test
+    fun `operational point calculated changes can be inherited from main to design`() {
+        val operationalPoint = mainOfficialContext.save(operationalPoint("Test OP")).id
+        val switch = mainOfficialContext.save(switch(joints = listOf(switchJoint(1, Point(7.0, 0.0))))).id
+
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        designDraftContext.save(mainOfficialContext.fetch(operationalPoint)!!)
+        designDraftContext.generateOid(operationalPoint)
+        publicationTestSupportService.publish(
+            designBranch,
+            publicationRequestIds(operationalPoints = listOf(operationalPoint)),
+        )
+
+        switchService.saveDraft(
+            LayoutBranch.main,
+            mainOfficialContext.fetch(switch)!!.copy(operationalPointId = operationalPoint),
+        )
+
+        val changes =
+            calculatedChangesService.getCalculatedChangesForMainToDesignInheritance(
+                branch = designBranch,
+                trackNumbers = listOf(),
+                referenceLines = listOf(),
+                locationTracks = listOf(),
+                switches = listOf(mainDraftContext.fetchVersion(switch)!!),
+                kmPosts = listOf(),
+                operationalPoints = listOf(),
+            )
+
+        assertEquals(1, changes.operationalPointChanges.size)
+        assertContains(changes.operationalPointChanges, operationalPoint)
     }
 
     @Test
@@ -1680,6 +1918,7 @@ constructor(
         referenceLineIds: List<IntId<ReferenceLine>> = emptyList(),
         switchIds: List<IntId<LayoutSwitch>> = emptyList(),
         trackNumberIds: List<IntId<LayoutTrackNumber>> = emptyList(),
+        operationalPointIds: List<IntId<OperationalPoint>> = emptyList(),
     ): CalculatedChanges =
         calculatedChangesService.getCalculatedChanges(
             getValidationVersions(
@@ -1689,6 +1928,7 @@ constructor(
                 referenceLineIds,
                 switchIds,
                 trackNumberIds,
+                operationalPointIds,
             )
         )
 }

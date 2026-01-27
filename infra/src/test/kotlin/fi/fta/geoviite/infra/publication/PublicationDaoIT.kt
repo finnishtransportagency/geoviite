@@ -243,7 +243,7 @@ constructor(
                         switchChanges = listOf(SwitchChange(switchVersion.id, listOf(switchJointChange))),
                         operationalPointChanges = listOf(operationalPointVersion.id),
                     ),
-                indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList()),
+                indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList(), emptyList()),
             )
         val publicationId =
             publicationDao.createPublication(

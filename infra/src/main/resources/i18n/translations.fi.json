@@ -993,6 +993,9 @@
             "unset": "Ei asetettu",
             "unpublished": "Julkaisematon",
             "clear-area-button": "Tyhjennä",
+            "edit-links": "Muokkaa linkityksiä",
+            "save-links": "Tallenna muutokset",
+            "cancel-editing-links": "Peruuta",
             "switch-links": {
                 "infobox-header": "Vaihteet",
                 "attached-header": "Toiminnalliseen pisteeseen linkitetyt vaihteet ({{count}} kpl)",
@@ -1001,12 +1004,15 @@
                 "attach-all": "Linkitä pisteeseen kaikki vaihteet ({{count}} kpl)",
                 "show-all": "Näytä kaikki ({{count}} kpl)...",
                 "hide-extra": "Piilota...",
-                "single-linking-success-toast": "Vaihde {{name}} linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "single-unlinking-success-toast": "Vaihteen {{name}} linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu",
-                "multiple-linking-success-toast": "{{count}} vaihdetta linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "multiple-unlinking-success-toast": "Linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu {{count}} vaihteelta",
+                "linking-success-toast-prefix": "Toiminnallisen pisteen {{operationalPointName}} linkitysmuutokset tallennettu: ",
+                "single-linking-success-toast": "vaihde {{name}} linkitetty",
+                "single-unlinking-success-toast": "vaihteen {{name}} linkitys poistettu",
+                "multiple-linking-success-toast": "vaihteet {{names}} linkitetty",
+                "multiple-unlinking-success-toast": "vaihteiden {{names}} linkitys poistettu",
                 "switch-linked-to-wrong-point": "Vaihde on linkitetty toiseen toiminnalliseen pisteeseen {{operationalPointName}}",
                 "switch-in-wrong-polygon": "Vaihde sijaitsee toisen pisteen alueella: {{operationalPointName}}",
+                "none-for-linking": "Ei linkittämättömiä vaihteita",
+                "none-for-unlinking": "Ei linkitettyjä vaihteita",
                 "switch-not-in-polygon": "Vaihde on linkitetty pisteelle, mutta ei sijaitse pisteen alueella"
             },
             "track-links": {
@@ -1017,10 +1023,13 @@
                 "attach-all": "Linkitä pisteeseen kaikki raiteet ({{count}} kpl)",
                 "show-all": "Näytä kaikki ({{count}} kpl)...",
                 "hide-extra": "Piilota...",
-                "single-linking-success-toast": "Raide {{name}} linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "single-unlinking-success-toast": "Raiteen {{name}} linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu",
-                "multiple-linking-success-toast": "{{count}} raidetta linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "multiple-unlinking-success-toast": "Linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu {{count}} raiteelta",
+                "linking-success-toast-prefix": "Toiminnallisen pisteen {{operationalPointName}} linkitysmuutokset tallennettu: ",
+                "single-linking-success-toast": "raide {{name}} linkitetty",
+                "single-unlinking-success-toast": "raiteen {{name}} linkitys poistettu",
+                "multiple-linking-success-toast": "raiteet {{names}} linkitetty",
+                "multiple-unlinking-success-toast": "raiteiden {{names}} linkitys poistettu",
+                "none-for-linking": "Ei linkittämättömiä raiteita",
+                "none-for-unlinking": "Ei linkitettyjä raiteita",
                 "track-not-in-polygon": "Raide on linkitetty pisteelle, mutta sillä ei ole geometriaa pisteen alueella"
             }
         },
@@ -1973,7 +1982,7 @@
             "raide-type": "Tyyppi (RATO)",
             "polygon": "Alue",
             "linked-switches": "Vaihdelinkitykset",
-            "linked-operational-points": "Toiminnallisen pisteen asetus"
+            "linked-operational-point": "Toiminnallisen pisteen asetus"
         }
     },
     "publication-log": {

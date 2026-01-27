@@ -111,15 +111,18 @@ function createSignalStyle(numGeoms: number, names: string[]) {
     });
 }
 
-function createLayer() {
+function createLayer(onLoadingData: (loading: boolean) => void) {
+    const source = new VectorTileSource({
+        format: new MVT(),
+        url: `${API_URI}/ratko/signal-assets/{x}/{y}/{z}?cluster=true`,
+        projection: LAYOUT_SRID,
+        extent: ratkoTileLayerExtent,
+    });
+    source.on('tileloadstart', () => onLoadingData(true));
+    source.on(['tileloadend', 'tileloaderror'], () => onLoadingData(false));
     return new VectorTileLayer({
         minZoom: signalAssetMinZoomInRatkoExtent,
-        source: new VectorTileSource({
-            format: new MVT(),
-            url: `${API_URI}/ratko/signal-assets/{x}/{y}/{z}?cluster=true`,
-            projection: LAYOUT_SRID,
-            extent: ratkoTileLayerExtent,
-        }),
+        source: source,
         style: function (feature) {
             const ratkoAssetCluster = feature.getProperties() as RatkoMapAssetCluster;
             const names = ratkoAssetCluster.string_value.split(',');
@@ -134,8 +137,11 @@ function createLayer() {
     });
 }
 
-export function createSignalAssetLayer(existingOlLayer: Tile<TileSource>): MapLayer {
-    const layer = existingOlLayer || createLayer();
+export function createSignalAssetLayer(
+    existingOlLayer: Tile<TileSource>,
+    onLoadingData: (loading: boolean) => void,
+): MapLayer {
+    const layer = existingOlLayer || createLayer(onLoadingData);
     return {
         name: 'signal-asset-layer',
         layer: layer,

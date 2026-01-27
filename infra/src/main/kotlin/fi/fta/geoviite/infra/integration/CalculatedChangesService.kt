@@ -52,8 +52,9 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import java.time.Instant
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import kotlin.reflect.KClass
 
 data class TrackNumberChange(
     val trackNumberId: IntId<LayoutTrackNumber>,
@@ -105,13 +106,18 @@ data class IndirectChanges(
     val trackNumberChanges: List<TrackNumberChange>,
     val locationTrackChanges: List<LocationTrackChange>,
     val switchChanges: List<SwitchChange>,
+    val operationalPointChanges: List<IntId<OperationalPoint>>,
 ) {
     companion object {
-        fun empty(): IndirectChanges = IndirectChanges(listOf(), listOf(), listOf())
+        fun empty(): IndirectChanges = IndirectChanges(listOf(), listOf(), listOf(), listOf())
     }
 
     @JsonIgnore
-    fun isEmpty(): Boolean = trackNumberChanges.isEmpty() && locationTrackChanges.isEmpty() && switchChanges.isEmpty()
+    fun isEmpty(): Boolean =
+        trackNumberChanges.isEmpty() &&
+            locationTrackChanges.isEmpty() &&
+            switchChanges.isEmpty() &&
+            operationalPointChanges.isEmpty()
 }
 
 data class CalculatedChanges(val directChanges: DirectChanges, val indirectChanges: IndirectChanges) {
@@ -130,42 +136,45 @@ data class CalculatedChanges(val directChanges: DirectChanges, val indirectChang
     }
 
     init {
-        checkDuplicates(
-            directChanges.kmPostChanges,
-            { it },
-            "Duplicate km posts in direct changes, directChanges=${directChanges.kmPostChanges}",
-        )
+        checkDuplicates(LayoutKmPost::class, directChanges.kmPostChanges) { it }
+
+        checkDuplicates(ReferenceLine::class, directChanges.referenceLineChanges) { it }
 
         checkDuplicates(
-            directChanges.referenceLineChanges,
-            { it },
-            "Duplicate reference lines in direct changes, directChanges=${directChanges.referenceLineChanges}",
-        )
+            LayoutTrackNumber::class,
+            directChanges.trackNumberChanges,
+            indirectChanges.trackNumberChanges,
+        ) {
+            it.trackNumberId
+        }
 
-        val trackNumberChanges = (directChanges.trackNumberChanges + indirectChanges.trackNumberChanges)
         checkDuplicates(
-            trackNumberChanges,
-            { it.trackNumberId },
-            "Duplicate track numbers in direct and indirect changes, directChanges=${directChanges.trackNumberChanges} indirectChanges=${indirectChanges.trackNumberChanges}",
-        )
-
-        val locationTrackChanges = (directChanges.locationTrackChanges + indirectChanges.locationTrackChanges)
-        checkDuplicates(
-            locationTrackChanges,
+            LocationTrack::class,
+            directChanges.locationTrackChanges,
+            indirectChanges.locationTrackChanges,
             { it.locationTrackId },
-            "Duplicate location tracks in direct and indirect changes, directChanges=${directChanges.locationTrackChanges} indirectChanges=${indirectChanges.locationTrackChanges}",
         )
 
-        val switchChanges = (directChanges.switchChanges + indirectChanges.switchChanges)
+        checkDuplicates(LayoutSwitch::class, directChanges.switchChanges, indirectChanges.switchChanges) { it.switchId }
+
         checkDuplicates(
-            switchChanges,
-            { it.switchId },
-            "Duplicate switches in direct and indirect changes, directChanges=${directChanges.switchChanges} indirectChanges=${indirectChanges.switchChanges}",
+            OperationalPoint::class,
+            directChanges.operationalPointChanges,
+            indirectChanges.operationalPointChanges,
+            { it },
         )
     }
 
-    private fun <T, R> checkDuplicates(changes: Collection<T>, groupingBy: (v: T) -> R, message: String) {
-        check(changes.groupingBy(groupingBy).eachCount().all { it.value == 1 }) { message }
+    private fun <Asset : LayoutAsset<Asset>, Change> checkDuplicates(
+        type: KClass<Asset>,
+        directChanges: Collection<Change>,
+        indirectChanges: Collection<Change>? = null,
+        groupingBy: (v: Change) -> IntId<Asset>,
+    ) {
+        val changes = directChanges + (indirectChanges ?: emptyList())
+        check(changes.groupingBy(groupingBy).eachCount().all { it.value == 1 }) {
+            "Duplicate ${type::simpleName} in changes: directChanges=$directChanges indirectChanges=$indirectChanges"
+        }
     }
 }
 
@@ -235,6 +244,11 @@ class CalculatedChangesService(
                 directSwitchChanges.any { indirectChange.switchId == it.switchId }
             }
 
+        val directOperationalPointIds = versions.operationalPoints.map { it.id }
+        val indirectOperationalPointChanges =
+            calculateOperationalPointChanges(directSwitchChanges, directLocationTrackChanges, changeContext)
+                .filterNot(directOperationalPointIds::contains)
+
         return CalculatedChanges(
             directChanges =
                 DirectChanges(
@@ -244,13 +258,14 @@ class CalculatedChangesService(
                     locationTrackChanges =
                         mergeLocationTrackChanges(directLocationTrackChanges, indirectDirectLocationTrackChanges),
                     switchChanges = mergeSwitchChanges(directSwitchChanges, indirectDirectSwitchChanges),
-                    operationalPointChanges = versions.operationalPoints.map { it.id },
+                    operationalPointChanges = directOperationalPointIds,
                 ),
             indirectChanges =
                 IndirectChanges(
                     locationTrackChanges = indirectLocationTrackChanges,
                     switchChanges = indirectSwitchChanges,
                     trackNumberChanges = indirectTrackNumberChanges,
+                    operationalPointChanges = indirectOperationalPointChanges,
                 ),
         )
     }
@@ -366,6 +381,9 @@ class CalculatedChangesService(
                 },
                 inheritedChanges.switchChanges.filter { indirect ->
                     completedSwitches.none { indirect.switchId == it.id }
+                },
+                inheritedChanges.operationalPointChanges.filter { opId ->
+                    completedOperationalPoints.none { opId == it.id }
                 },
             )
 
@@ -750,6 +768,7 @@ class CalculatedChangesService(
             mapNonNullValues(trackNumberDao.fetchExternalIdsWithInheritance(layoutBranch)) { (_, v) -> v.oid },
             mapNonNullValues(locationTrackDao.fetchExternalIdsWithInheritance(layoutBranch)) { (_, v) -> v.oid },
             mapNonNullValues(switchDao.fetchExternalIdsWithInheritance(layoutBranch)) { (_, v) -> v.oid },
+            mapNonNullValues(operationalPointDao.fetchExternalIdsWithInheritance(layoutBranch)) { (_, v) -> v.oid },
         )
 
     fun getAllOids(layoutBranch: LayoutBranch) =
@@ -757,6 +776,7 @@ class CalculatedChangesService(
             mapNonNullValues(trackNumberDao.fetchExternalIds(layoutBranch)) { (_, v) -> v.oid },
             mapNonNullValues(locationTrackDao.fetchExternalIds(layoutBranch)) { (_, v) -> v.oid },
             mapNonNullValues(switchDao.fetchExternalIds(layoutBranch)) { (_, v) -> v.oid },
+            mapNonNullValues(operationalPointDao.fetchExternalIds(layoutBranch)) { (_, v) -> v.oid },
         )
 
     private fun <T : LayoutAsset<T>> getNonOverriddenVersions(
@@ -770,6 +790,36 @@ class CalculatedChangesService(
                 .toSet()
         return versions.filter { version -> !overriddenIds.contains(version.id) }
     }
+}
+
+private fun calculateOperationalPointChanges(
+    switchChanges: Collection<SwitchChange>,
+    locationTrackChanges: Collection<LocationTrackChange>,
+    changeContext: ChangeContext,
+): List<IntId<OperationalPoint>> {
+    val operationalPointsFromSwitches =
+        switchChanges.flatMap { switchChange ->
+            val oldSwitch = changeContext.switches.getBefore(switchChange.switchId)
+            val newSwitch = changeContext.switches.getAfter(switchChange.switchId)
+            val oldOpId = oldSwitch?.operationalPointId
+            val newOpId = newSwitch.operationalPointId
+            if (oldOpId != newOpId) {
+                listOfNotNull(oldOpId, newOpId)
+            } else {
+                emptyList()
+            }
+        }
+
+    val operationalPointsFromLocationTracks =
+        locationTrackChanges.flatMap { locationTrackChange ->
+            val oldLocationTrack = changeContext.locationTracks.getBefore(locationTrackChange.locationTrackId)
+            val newLocationTrack = changeContext.locationTracks.getAfter(locationTrackChange.locationTrackId)
+            val oldOpIds = oldLocationTrack?.operationalPointIds ?: emptySet()
+            val newOpIds = newLocationTrack.operationalPointIds
+            (oldOpIds - newOpIds) + (newOpIds - oldOpIds)
+        }
+
+    return (operationalPointsFromSwitches + operationalPointsFromLocationTracks).distinct()
 }
 
 private fun asDirectSwitchChanges(switchIds: Collection<IntId<LayoutSwitch>>) =
@@ -882,12 +932,14 @@ data class AllOids(
     val trackNumbers: Map<IntId<LayoutTrackNumber>, Oid<LayoutTrackNumber>>,
     val locationTracks: Map<IntId<LocationTrack>, Oid<LocationTrack>>,
     val switches: Map<IntId<LayoutSwitch>, Oid<LayoutSwitch>>,
+    val operationalPoints: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
 ) {
     companion object {
-        fun empty() = AllOids(mapOf(), mapOf(), mapOf())
+        fun empty() = AllOids(mapOf(), mapOf(), mapOf(), mapOf())
     }
 
-    fun isEmpty() = trackNumbers.isEmpty() && locationTracks.isEmpty() && switches.isEmpty()
+    fun isEmpty() =
+        trackNumbers.isEmpty() && locationTracks.isEmpty() && switches.isEmpty() && operationalPoints.isEmpty()
 }
 
 private fun filterIndirectChangesByOidPresence(indirectChanges: IndirectChanges, oids: AllOids) =
@@ -899,6 +951,8 @@ private fun filterIndirectChangesByOidPresence(indirectChanges: IndirectChanges,
                 oids.locationTracks.containsKey(change.locationTrackId)
             },
         switchChanges = indirectChanges.switchChanges.filter { change -> oids.switches.containsKey(change.switchId) },
+        operationalPointChanges =
+            indirectChanges.operationalPointChanges.filter { opId -> oids.operationalPoints.containsKey(opId) },
     )
 
 private fun mergeInheritedChangeVersionsWithCompletedMergeVersions(

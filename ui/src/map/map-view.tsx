@@ -828,7 +828,10 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'virtual-hide-geometry-layer':
                         return undefined;
                     case 'signal-asset-layer':
-                        return createSignalAssetLayer(existingOlLayer as TileLayer<TileSource>);
+                        return createSignalAssetLayer(
+                            existingOlLayer as TileLayer<TileSource>,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
                     default:
                         return exhaustiveMatchingGuard(layerName);
                 }
