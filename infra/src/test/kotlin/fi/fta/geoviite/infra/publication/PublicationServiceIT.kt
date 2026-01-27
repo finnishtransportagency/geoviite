@@ -1818,6 +1818,29 @@ constructor(
     }
 
     @Test
+    fun `merge to main can also be cancelled by first cancelling design version and then main-draft`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val segment = segment(Point(0.0, 0.0), Point(0.0, 2.0))
+        mainOfficialContext
+            .save(referenceLine(trackNumber, startAddress = TrackMeter("0100+0100")), referenceLineGeometry(segment))
+            .id
+        val locationTrack = designDraftContext.save(locationTrack(trackNumber), trackGeometryOfSegments(segment))
+        locationTrackDao.insertExternalId(locationTrack.id, designBranch, Oid("1.2.3.4.5"))
+
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
+        locationTrackService.mergeToMainBranch(designBranch, locationTrack.id)
+        locationTrackService.cancel(designBranch, locationTrack.id)
+        publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
+        locationTrackService.deleteDraft(LayoutBranch.main, locationTrack.id)
+        assertNull(locationTrackService.get(MainLayoutContext.draft, locationTrack.id))
+        assertNull(locationTrackService.get(designBranch.official, locationTrack.id))
+        assertNull(locationTrackService.get(designBranch.draft, locationTrack.id))
+    }
+
+    @Test
     fun `deleting a location track and switch draft with dependencies does delete the drafts`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         val switch = switchDao.save(switch())
