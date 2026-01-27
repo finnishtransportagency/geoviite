@@ -1,4 +1,4 @@
-# Linkitys
+# Paikannuspohjan muokkaus
 
 Linkitys on prosessi, jolla muokataan Geoviitteen paikannuspohjan käsitteiden geometriaa ja niiden välisiä yhteyksiä. Geoviitteessä voi linkittää ratanumeroita/pituusmittauslinjoja, sijaintiraiteita, vaihteita ja kilometripylväitä. Suurin osa linkityksistä tapahtuu geometriasuunnitelmien ja Geoviitteen paikannuspohjan välillä ja se on Geoviitteen pääasiallinen mekanismi paikannuspohjan geometrioiden ja sen käsitteiden välisten yhteyksien muokkaamiseen.
 
