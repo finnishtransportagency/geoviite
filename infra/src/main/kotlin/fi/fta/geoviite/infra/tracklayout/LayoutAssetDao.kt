@@ -374,7 +374,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
               ) arg on t.id = arg.id and
                        (t.design_id is null or t.design_id = arg.design_id) and
                        t.change_time <= arg.change_time
-            order by ordinality, t.id, t.design_id, t.change_time desc, version
+            order by ordinality, t.id, t.design_id, t.change_time desc, version desc
             ) tn
           where not deleted
           order by ordinality, id, design_id is not null desc;
@@ -395,7 +395,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
             where not draft
               and (design_id is null or design_id = :design_id)
               and change_time <= :moment
-              order by id, design_id, change_time desc, version
+              order by id, design_id, change_time desc, version desc
             ) tn
           where not deleted
           order by id, is_design desc
