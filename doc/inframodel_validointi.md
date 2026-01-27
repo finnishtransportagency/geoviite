@@ -34,7 +34,7 @@ käyttäjä voi päättää jatketaanko tuontia.
 InfraModel-tiedosto on XML-muotoinen dokumentti, joka validoidaan LandXML XSD-skeemaa vasten. InfraModeliin kuuluvien
 peruselementtien puuttuminen tai tiedoston virheellinen uloskirjoitus voivat estää tiedoston käsittelyn kokonaan.
 
-| Virhetyyppi                 | Virheen tyyppi | Kuvaus                                                                         |
+| Virhe                       | Virheen tyyppi | Kuvaus                                                                         |
 |-----------------------------|----------------|--------------------------------------------------------------------------------|
 | Väärä merkistö              | Jäsennysvirhe  | Tiedoston lukeminen ei onnistu koska sen käyttämää merkistöä ei tunnistettu    |
 | Väärä tiedostotyyppi        | Jäsennysvirhe  | Tiedoston MIME-tyyppi (Content-Type) ei ole XML-tyyppinen                      |
@@ -55,7 +55,7 @@ arvioinnissa. Keskeisimpiä metatietoja ovat:
 - `<Application>` ja `<Author>`: tiedoston uloskirjoitukseen liittyvät tiedot jotka kertovat sen laadusta ja
   tarkoituksesta, mutta joita Geoviite itse ei käytä
 
-| Virhetyyppi                                    | Virheen tyyppi  | Kuvaus                                                                    |
+| Virhe                                          | Virheen tyyppi  | Kuvaus                                                                    |
 |------------------------------------------------|-----------------|---------------------------------------------------------------------------|
 | Koordinaattijärjestelmä puuttuu tai tuntematon | Validointivirhe | Koordinaattijärjestelmä (CoordinateSystem) puuttuu tai sitä ei tunnisteta |
 | Korkeusjärjestelmä puuttuu                     | Validointivirhe | Korkeusjärjestelmän tunniste puuttuu vaikka pystygeometriaa on määritelty |
@@ -73,7 +73,7 @@ Pituusmittauslinja ja raiteen keskilinja on rakenteellisesti samanlainen, mutta 
 kriittinen koska geometriaa linkittäessä, operaattori lopulta päättää mihin raiteeseen tai pituusmittauslinjaan minkäkin
 geometrian linkittää.
 
-| Virhetyyppi                   | Virheen tyyppi  | Kuvaus                                                                             |
+| Virhe                         | Virheen tyyppi  | Kuvaus                                                                             |
 |-------------------------------|-----------------|------------------------------------------------------------------------------------|
 | Useita pituusmittauslinjoja   | Validointivirhe | Suunnitelmassa on useampi kuin yksi pituusmittauslinja (featureTypeCode 111)       |
 | Ei pituusmittauslinjaa        | Vakava huomio   | Suunnitelma ei sisällä yhtään pituusmittauslinjaa (featureTypeCode 111)            |
@@ -92,7 +92,7 @@ Moni elementeistä on "ylimääritelty" eli xml:ssä annettuja arvoja voi laskea
 Validoinnissa tarkastetaan myös näin saatuja arvoja annettuihin, sillä mahdolliset erot kielivät mahdollisista virheistä
 tiedoston tuottamisessa.
 
-| Virhetyyppi                           | Virheen tyyppi | Kuvaus                                                               |
+| Virhe                                 | Virheen tyyppi | Kuvaus                                                               |
 |---------------------------------------|----------------|----------------------------------------------------------------------|
 | Negatiivinen pituus                   | Vakava huomio  | Elementin ilmoitettu pituus on negatiivinen tai nolla                |
 | Virheellinen pituus                   | Vakava huomio  | Elementin ilmoitettu pituus eroaa lasketusta                         |
@@ -119,7 +119,7 @@ Pystygeometria (`<Profile>` ja sen alla olevat `<Feature>` ja `<ProfAlign>` -ele
 pystygeometrian paalulukemien (pituuden linjaa pitkin) funktiona. Se koostuu taitepisteistä (pistemäinen `<PVI>` ja
 kaari `<CircCurve>`), joista voidaan laskea kaltevuusjaksot.
 
-| Virhetyyppi              | Virheen tyyppi | Kuvaus                                                          |
+| Virhe                    | Virheen tyyppi | Kuvaus                                                          |
 |--------------------------|----------------|-----------------------------------------------------------------|
 | Pystygeometria puuttuu   | Vakava huomio  | Keskilinjalle ei ole määritelty pystygeometriaa (Profile)       |
 | Kaarteen pituus puuttuu  | Vakava huomio  | Taitepisteen kaarteelta (VICircularCurve) puuttuu pituus        |
@@ -137,7 +137,7 @@ Kallistus (`<Cant>`) kuvaa raiteen sivuttaiskaltevuuden eri kohdissa paalulukema
 koostuu kallistuspisteistä (`<CantStation>`) sekä ilmoitetusta raideleveydestä (gauge - Suomessa käytössä vain yksi
 arvo) ja kaltevuuden mittauspisteestä (rotationPoint).
 
-| Virhetyyppi                       | Virheen tyyppi  | Kuvaus                                                                        |
+| Virhe                             | Virheen tyyppi  | Kuvaus                                                                        |
 |-----------------------------------|-----------------|-------------------------------------------------------------------------------|
 | Kallistus puuttuu                 | Vakava huomio   | Keskilinjalle ei ole määritelty kallistusta (Cant)                            |
 | Kallistuksen kiertopiste puuttuu  | Validointivirhe | Kiertopiste (rotationPoint) puuttuu                                           |
@@ -157,7 +157,7 @@ Validoinnissa verrataan vaihteen raidekytkennöistä saatuja sijainteja ja mitto
 vaihderakenteeseen. Lisäksi tarkistetaan että kaikki tarvittavat tiedot on annettu ja eri tiedot sopivat yhteen, esim.
 että vaihdepisteen sijainti eri raiteilla on sama).
 
-| Virhetyyppi                               | Virheen tyyppi | Kuvaus                                                                    |
+| Virhe                                     | Virheen tyyppi | Kuvaus                                                                    |
 |-------------------------------------------|----------------|---------------------------------------------------------------------------|
 | Duplikaatti vaihteen nimi                 | Vakava huomio  | Samaa nimeä on käytetty useammalla eri vaihteella                         |
 | Vaihdetyyppi tuntematon                   | Vakava huomio  | Vaihteen tyyppi ei vastaa mitään tunnettua vaihderakennetta               |
@@ -180,7 +180,7 @@ Suunnitelmien tasakilometripisteitä käytetään linkittämään paikannuspohja
 Paikannuspohjassa osoitteisto lasketaan linkitetystä datasta, mutta Geoviite osaa myös laskea osoitteita suunnitelman
 kontekstissa näiden arvojen avulla.
 
-| Virhetyyppi                                   | Virheen tyyppi  | Kuvaus                                                                  |
+| Virhe                                         | Virheen tyyppi  | Kuvaus                                                                  |
 |-----------------------------------------------|-----------------|-------------------------------------------------------------------------|
 | Duplikaatti tasakilometripisteet              | Validointivirhe | Useammalla ratanumeron tasakilometripisteellä on sama tunnus (kmNumber) |
 | Ensimmäisen KM-pisteen paaluluku positiivinen | Validointivirhe | Ensimmäisen tasakilometripisteen paalulukema on positiivinen            |
