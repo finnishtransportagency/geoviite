@@ -101,3 +101,11 @@ Kun suunnitelma poistetaan, tehdään kaksi julkaisua:
 - Tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_DELETE)
 - Peruutusjulkaisu kaikille suunnitelman kohteille (PublicationCause.LAYOUT_DESIGN_CANCELLATION), joka sisältää
   peruutetut kohteet CANCELLED-tilassa
+
+### Laskennalliset muutokset suunnitelmissa
+
+Kun virallinen paikannuspohja muuttuu tavalla joka vaikuttaa suunnitelmiin:
+
+- Tehdään kuhunkin suunnitelmaan, jonka sisältöön muutos vaikuttaa, laskennallinen julkaisu
+  (PublicationCause.CALCULATED_CHANGE)
+- Julkaisu sisältää kaikki suunnitelman kohteet, joihin virallisen paikannuspohjan julkaisu vaikuttaa
