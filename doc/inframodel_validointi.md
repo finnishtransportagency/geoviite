@@ -34,13 +34,13 @@ käyttäjä voi päättää jatketaanko tuontia.
 InfraModel-tiedosto on XML-muotoinen dokumentti, joka validoidaan LandXML XSD-skeemaa vasten. InfraModeliin kuuluvien
 peruselementtien puuttuminen tai tiedoston virheellinen uloskirjoitus voivat estää tiedoston käsittelyn kokonaan.
 
-| Virhe                       | Virheen tyyppi | Kuvaus                                                                         |
-|-----------------------------|----------------|--------------------------------------------------------------------------------|
-| Väärä merkistö              | Jäsennysvirhe  | Tiedoston lukeminen ei onnistu koska sen käyttämää merkistöä ei tunnistettu    |
-| Väärä tiedostotyyppi        | Jäsennysvirhe  | Tiedoston MIME-tyyppi (Content-Type) ei ole XML-tyyppinen                      |
-| XML-rakenne virheellinen    | Jäsennysvirhe  | Tiedosto ei ole validia XML:ää tai ei vastaa InfraModel (LandXML) XSD-skeemaa  |
-| Ei tuettu InfraModel-versio | Jäsennysvirhe  | Tiedoston IM-versio ei ole tuettu                                              |
-| Pakollinen osio puuttuu     | Jäsennysvirhe  | Esim. Units, Project tai AlignmentGroup puuttuu tai niitä on useampi kuin yksi |
+| Virhe                       | Virheen tyyppi | Kuvaus                                                                               |
+|-----------------------------|----------------|--------------------------------------------------------------------------------------|
+| Väärä merkistö              | Jäsennysvirhe  | Tiedoston lukeminen ei onnistu koska sen käyttämää merkistöä ei tunnistettu          |
+| Väärä tiedostotyyppi        | Jäsennysvirhe  | Tiedoston MIME-tyyppi (`Content-Type`) ei ole XML-tyyppinen                          |
+| XML-rakenne virheellinen    | Jäsennysvirhe  | Tiedosto ei ole validia XML:ää tai ei vastaa InfraModel (LandXML) XSD-skeemaa        |
+| Ei tuettu InfraModel-versio | Jäsennysvirhe  | Tiedoston IM-versio ei ole tuettu                                                    |
+| Pakollinen osio puuttuu     | Jäsennysvirhe  | Esim. `Units`, `Project` tai `AlignmentGroup` puuttuu tai niitä on useampi kuin yksi |
 
 ### Metatiedot
 
@@ -57,10 +57,10 @@ arvioinnissa. Keskeisimpiä metatietoja ovat:
 
 | Virhe                                          | Virheen tyyppi  | Kuvaus                                                                    |
 |------------------------------------------------|-----------------|---------------------------------------------------------------------------|
-| Koordinaattijärjestelmä puuttuu tai tuntematon | Validointivirhe | Koordinaattijärjestelmä (CoordinateSystem) puuttuu tai sitä ei tunnisteta |
+| Koordinaattijärjestelmä puuttuu tai tuntematon | Validointivirhe | Koordinaattijärjestelmä puuttuu tai sitä ei tunnisteta                    |
 | Korkeusjärjestelmä puuttuu                     | Validointivirhe | Korkeusjärjestelmän tunniste puuttuu vaikka pystygeometriaa on määritelty |
 | Ratanumero puuttuu                             | Vakava huomio   | Ratanumerotieto puuttuu, tai sitä ei löydy paikannuspohjasta              |
-| Tasakilometripisteet puuttuvat                 | Vakava huomio   | Suunnitelma ei sisällä yhtään tasakilometripistettä (StaStation)          |
+| Tasakilometripisteet puuttuvat                 | Vakava huomio   | Suunnitelma ei sisällä yhtään tasakilometripistettä                       |
 | Vapaaehtoinen metatieto puuttuu                | Lievä huomio    | Suunnitelman luontiaika, yritys tms. metatieto puuttuu                    |
 
 ### Keskilinjat (Alignments)
