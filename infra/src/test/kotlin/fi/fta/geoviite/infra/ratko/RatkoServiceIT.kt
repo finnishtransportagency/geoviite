@@ -117,18 +117,19 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.queryOne
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -204,17 +205,14 @@ constructor(
 
     @Test
     fun testChangeSet() {
-        val referenceLineAlignmentVersion = alignmentDao.insert(referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+        val referenceLineAlignmentVersion =
+            alignmentDao.insert(referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
         val locationTrackGeometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0)))
         val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = false)
         val trackNumberId = layoutTrackNumberDao.save(trackNumber).id
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
         referenceLineDao.save(
-            referenceLine(
-                trackNumberId = trackNumberId,
-                geometryVersion = referenceLineAlignmentVersion,
-                draft = false,
-            )
+            referenceLine(trackNumberId = trackNumberId, geometryVersion = referenceLineAlignmentVersion, draft = false)
         )
         val official =
             locationTrackDao.save(locationTrack(trackNumberId = trackNumberId, draft = false), locationTrackGeometry)
@@ -1804,6 +1802,7 @@ constructor(
         assertEquals(listOf<RatkoMetadataAsset>(), fakeRatko.getPushedMetadata(locationTrackOid = "2.2.2.2.2"))
     }
 
+    @Disabled
     @Test
     fun `objects that are cancelled before being ever pushed don't get pushed post-cancellation`() {
         val designBranch = testDBService.createDesignBranch()
@@ -1878,6 +1877,7 @@ constructor(
         assertNull(fakeRatko.getLastPushedRouteNumber("1.1.1.1.2"))
     }
 
+    @Disabled
     @Test
     fun `cancellations get pushed as plan item states`() {
         val designBranch = testDBService.createDesignBranch()

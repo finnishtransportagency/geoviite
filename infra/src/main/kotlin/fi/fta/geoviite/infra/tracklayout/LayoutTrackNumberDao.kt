@@ -21,11 +21,11 @@ import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getTrackNumber
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val TRACK_NUMBER_CACHE_SIZE = 1000L
 
@@ -165,14 +165,7 @@ class LayoutTrackNumberDao(
             // There, they are save always as one, all the way from DAO.save
             referenceLineId = rs.getIntIdOrNull("reference_line_id"),
             contextData =
-                rs.getLayoutContextData(
-                    "id",
-                    "design_id",
-                    "draft",
-                    "version",
-                    "design_asset_state",
-                    "origin_design_id",
-                ),
+                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
         )
 
     @Transactional
@@ -238,49 +231,57 @@ class LayoutTrackNumberDao(
         // language=sql
         val sql =
             """
-                select id, number, change_time
+            select id, number, change_time
+              from (
+                select
+                  id,
+                  change_time,
+                  number,
+                      lag(number) over (partition by id order by change_time, design_id is not null, version) as prev_number
                   from (
-                    select id, change_time, number,
-                           lag(number) over (partition by id order by change_time, design_id is not null, version) as prev_number
-                      from (
-                        select id, number, change_time, version, design_id
-                          from layout.track_number_version tn
-                          where not draft
-                            and case
-                                  when :design_id::int is null then design_id is null
-                                  else (design_id = :design_id and design_asset_state = 'OPEN')
-                                    or (design_id is null
-                                      and not exists (
-                                        select *
-                                          from layout.track_number_version overrider
-                                          where overrider.design_id = :design_id
-                                            and overrider.id = tn.id
-                                            and not overrider.draft
-                                            and not overrider.deleted
-                                            and overrider.change_time <= tn.change_time
-                                            and (overrider.expiry_time is null or overrider.expiry_time > tn.change_time)
-                                      ))
-                                end
-                        union all
-                        -- deleting design rows returns us to the state in main, with the change occurring at the time of
-                        -- the deletion
-                        select main_tn.id, main_tn.number, design_deletion.change_time, design_deletion.version,
-                               design_deletion.design_id
-                          from layout.track_number_version main_tn
-                            join layout.track_number_version design_deletion on main_tn.id = design_deletion.id
-                              and main_tn.change_time <= design_deletion.change_time
-                              and (main_tn.expiry_time is null or main_tn.expiry_time > design_deletion.change_time)
-                          where :design_id::int is not null
-                            and not main_tn.draft
-                            and not design_deletion.draft
-                            and main_tn.design_id is null
-                            and design_deletion.design_id = :design_id
-                            and design_deletion.deleted
-                      ) all_versions
-                  ) change_order
-                  where number is distinct from prev_number
-                  order by id, change_time;
-            """
+                    select id, number, change_time, version, design_id
+                      from layout.track_number_version tn
+                      where not draft
+                        and case
+                              when :design_id::int is null then design_id is null
+                              else (design_id = :design_id and design_asset_state != 'CANCELLED')
+                                or (design_id is null
+                                  and not exists (
+                                    select *
+                                      from layout.track_number_version overrider
+                                      where overrider.design_id = :design_id
+                                        and overrider.id = tn.id
+                                        and not overrider.draft
+                                        and not overrider.design_asset_state = 'CANCELLED'
+                                        and not overrider.deleted
+                                        and overrider.change_time <= tn.change_time
+                                        and (overrider.expiry_time is null or overrider.expiry_time > tn.change_time)
+                                  ))
+                            end
+                    union all
+                    -- cancelling design rows returns us to the state in main, with the change occurring at the time of
+                    -- the deletion
+                    select
+                      main_tn.id,
+                      main_tn.number,
+                      design_cancellation.change_time,
+                      design_cancellation.version,
+                      design_cancellation.design_id
+                      from layout.track_number_version main_tn
+                        join layout.track_number_version design_cancellation on main_tn.id = design_cancellation.id
+                        and main_tn.change_time <= design_cancellation.change_time
+                        and (main_tn.expiry_time is null or main_tn.expiry_time > design_cancellation.change_time)
+                      where :design_id::int is not null
+                        and not main_tn.draft
+                        and not design_cancellation.draft
+                        and main_tn.design_id is null
+                        and design_cancellation.design_id = :design_id
+                        and (design_cancellation.design_asset_state = 'CANCELLED' or design_cancellation.deleted)
+                  ) all_versions
+              ) change_order
+              where number is distinct from prev_number
+              order by id, change_time;
+                          """
                 .trimIndent()
 
         return jdbcTemplate

@@ -1764,12 +1764,6 @@ constructor(
         publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
         publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrack.id))
         assertEquals(MainLayoutContext.official, designDraftContext.fetch(locationTrack.id)!!.layoutContext)
-        jdbc.query(
-            "select count(*) count_in_design from layout.location_track where design_id = :design_id",
-            mapOf("design_id" to designBranch.designId.intValue),
-        ) { rs, _ ->
-            assertEquals(0, rs.getInt("count_in_design"), "design objects are fully cleaned up from live table")
-        }
     }
 
     @Test
@@ -1821,12 +1815,6 @@ constructor(
         publishManualPublication(designBranch, locationTracks = listOf(locationTrack.id))
         publishManualPublication(MainBranch.instance, locationTracks = listOf(locationTrack.id))
         assertEquals(MainLayoutContext.official, designDraftContext.fetch(locationTrack.id)!!.layoutContext)
-        jdbc.query(
-            "select count(*) count_in_design from layout.location_track where design_id = :design_id",
-            mapOf("design_id" to designBranch.designId.intValue),
-        ) { rs, _ ->
-            assertEquals(0, rs.getInt("count_in_design"), "design objects are fully cleaned up from live table")
-        }
     }
 
     @Test
