@@ -3,6 +3,7 @@ import { Map, MapLayerName } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import {
     allSelectableItemTypes,
+    ItemCollections,
     OnSelectOptions,
     SelectableItemType,
     Selection,
@@ -11,12 +12,19 @@ import {
 import { wrapReducers } from 'store/store-utils';
 import {
     initialSelectionState,
+    isEmptyItemCollections,
+    itemCollectionsMatch,
     selectionReducers,
     ToggleAlignmentPayload,
     ToggleKmPostPayload,
     ToggleSwitchPayload,
 } from 'selection/selection-store';
-import { inferLayoutContextMode, linkingReducers } from 'linking/linking-store';
+import {
+    inferLayoutContextMode,
+    linkingReducers,
+    setGeometryLinkPointToState,
+    setLayoutLinkPointToState,
+} from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import {
     draftDesignLayoutContext,
@@ -29,16 +37,12 @@ import {
     officialMainLayoutContext,
     PublicationState,
 } from 'common/common-model';
-import {
-    GeometryPlanLayout,
-    LocationTrackId,
-    SwitchSplitPoint,
-} from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LocationTrackId, SwitchSplitPoint, } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { first } from 'utils/array-utils';
+import { first, lastIndex, takeLast } from 'utils/array-utils';
 import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
-import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
-import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
+import { exhaustiveMatchingGuard, expectFieldDefined, ifDefined, NonNullableField, } from 'utils/type-utils';
+import { addSplitToState, splitReducers, SplittingState, } from 'tool-panel/location-track/split-store';
 import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
 import { PlanSource } from 'geometry/geometry-model';
@@ -50,7 +54,9 @@ import {
     planDownloadReducers,
     PlanDownloadState,
 } from 'map/plan-download/plan-download-store';
+import { objectEquals } from 'utils/object-utils';
 
+export const SELECTION_HISTORY_MAX_SIZE = 100;
 export const SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID = 'SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID';
 
 export type InfoboxVisibilities = {
@@ -227,6 +233,11 @@ export type GeometryPlanViewSettings = {
     visibleSources: PlanSource[];
 };
 
+type SelectionHistoryStep = {
+    selectedItems: ItemCollections;
+    selectedToolPanelTab: ToolPanelAsset | undefined;
+};
+
 export type TrackLayoutState = {
     layoutContext: LayoutContext;
     layoutContextMode: LayoutContextMode;
@@ -244,6 +255,8 @@ export type TrackLayoutState = {
     previewState: PreviewState;
     geometryPlanViewSettings: GeometryPlanViewSettings;
     planDownloadState?: PlanDownloadState;
+    selectionHistory: SelectionHistoryStep[];
+    selectionHistoryIndex: number;
 };
 
 export const initialTrackLayoutState: TrackLayoutState = {
@@ -267,6 +280,8 @@ export const initialTrackLayoutState: TrackLayoutState = {
         visibleSources: ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
     },
     planDownloadState: undefined,
+    selectionHistory: [],
+    selectionHistoryIndex: 0,
 };
 
 export function getSelectableItemTypes(
@@ -300,12 +315,10 @@ export function getSelectableItemTypes(
     }
 }
 
-function filterItemSelectOptions(
-    state: TrackLayoutState,
+function filterSelectOptionsByItemTypes(
     options: OnSelectOptions,
+    itemTypes: (keyof ItemCollections)[],
 ): OnSelectOptions {
-    const selectableItemTypes = getSelectableItemTypes(state.splittingState, state.linkingState);
-
     return {
         ...options,
 
@@ -313,10 +326,18 @@ function filterItemSelectOptions(
         ...allSelectableItemTypes.reduce((memo, itemType) => {
             return {
                 ...memo,
-                [itemType]: selectableItemTypes.includes(itemType) ? memo[itemType] : undefined,
+                [itemType]: itemTypes.includes(itemType) ? memo[itemType] : undefined,
             };
         }, options),
     };
+}
+
+function filterItemSelectOptionsByState(
+    state: TrackLayoutState,
+    options: OnSelectOptions,
+): OnSelectOptions {
+    const selectableItemTypes = getSelectableItemTypes(state.splittingState, state.linkingState);
+    return filterSelectOptionsByItemTypes(options, selectableItemTypes);
 }
 
 const trackLayoutSlice = createSlice({
@@ -352,92 +373,128 @@ const trackLayoutSlice = createSlice({
                 mapReducers.onClickLocation(state.map, action);
             }
         },
-
-        // Intercept select/highlight reducers to modify options
-        onSelect: function (state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
-            const firstSwitchId = ifDefined(action.payload.switches, first);
-            if (state.splittingState && firstSwitchId) {
-                const allowedSwitch = state.splittingState.trackSwitches.find(
-                    (sw) => sw.switchId === firstSwitchId,
-                );
-
-                if (allowedSwitch) {
-                    const switchSplitPoint = SwitchSplitPoint(
-                        allowedSwitch.switchId,
-                        allowedSwitch.name,
-                        {
-                            x: allowedSwitch.location?.x || 0,
-                            y: allowedSwitch.location?.y || 0,
-                            m: 0,
-                        },
-                        allowedSwitch.address,
-                    );
-                    if (state.splittingState.state === 'SETUP') {
-                        splitReducers.addSplit(state, {
-                            ...action,
-                            payload: switchSplitPoint,
-                        });
-                    }
-                }
-                return;
-            }
-
-            // Handle selection
-            const options = filterItemSelectOptions(state, action.payload);
-            selectionReducers.onSelect(state.selection, {
-                ...action,
-                payload: options,
-            });
-            state.selectedToolPanelTab = updateSelectedToolPanelTab(
-                state.selection,
-                state.linkingState,
-                state.selectedToolPanelTab,
-                action.payload.selectedTab,
+        onSelectHistoryBack: function (state: TrackLayoutState, _: PayloadAction<void>): void {
+            const newIndex = getPreviousSelectionHistoryIndex(
+                state.selection.selectedItems,
+                state.selectionHistoryIndex,
             );
+            const previousStep = state.selectionHistory[newIndex];
+            if (previousStep) {
+                state.selection = {
+                    ...state.selection,
+                    selectedItems: previousStep.selectedItems,
+                };
+                state.selectedToolPanelTab = previousStep.selectedToolPanelTab;
+                state.selectionHistoryIndex = newIndex;
+            }
+        },
+        onSelectHistoryForward: function (state: TrackLayoutState, _: PayloadAction<void>): void {
+            const newIndex = getNextSelectionHistoryIndex(state.selectionHistoryIndex);
+            const nextStep = state.selectionHistory[newIndex];
+            if (nextStep) {
+                state.selection = {
+                    ...state.selection,
+                    selectedItems: nextStep.selectedItems,
+                };
+                state.selectedToolPanelTab = nextStep.selectedToolPanelTab;
+                state.selectionHistoryIndex = newIndex;
+            }
+        },
+        // Intercept select/highlight reducers to modify options
+        onSelect: function (
+            state: TrackLayoutState,
+            { payload: onSelectOptions }: PayloadAction<OnSelectOptions>,
+        ): void {
+            if (state.splittingState !== undefined) {
+                handleSelectionInSplitting(
+                    expectFieldDefined(state, 'splittingState'),
+                    onSelectOptions,
+                );
+            } else if (state.linkingState !== undefined) {
+                const linkingStateType = state.linkingState.type;
+                switch (linkingStateType) {
+                    case LinkingType.UnknownAlignment:
+                        updateSelection(
+                            state,
+                            filterSelectOptionsByItemTypes(onSelectOptions, [
+                                'locationTracks',
+                                'trackNumbers',
+                            ]),
+                        );
+                        break;
+                    case LinkingType.LinkingAlignment: {
+                        const layoutLinkPoint =
+                            getSingleLayoutLinkPointFromSelection(onSelectOptions);
+                        if (layoutLinkPoint) {
+                            setLayoutLinkPointToState(state, layoutLinkPoint);
+                        }
+                        break;
+                    }
+                    case LinkingType.LinkingGeometryWithEmptyAlignment: {
+                        const geometryLinkPoint =
+                            getSingleGeometryLinkPointFromSelection(onSelectOptions);
+                        if (geometryLinkPoint) {
+                            setGeometryLinkPointToState(state, geometryLinkPoint);
+                        }
+                        break;
+                    }
+                    case LinkingType.LinkingGeometryWithAlignment: {
+                        updateSelection(
+                            state,
+                            filterSelectOptionsByItemTypes(onSelectOptions, ['locationTracks']),
+                        );
 
-            const onlyLayoutLinkPoint =
-                options.layoutLinkPoints?.length === 1 &&
-                ifDefined(options.layoutLinkPoints, first);
-            const onlyGeometryLinkPoint =
-                options.geometryLinkPoints?.length === 1 &&
-                ifDefined(options.geometryLinkPoints, first);
+                        const onlyLayoutLinkPoint =
+                            getSingleLayoutLinkPointFromSelection(onSelectOptions);
+                        const onlyGeometryLinkPoint =
+                            getSingleGeometryLinkPointFromSelection(onSelectOptions);
 
-            // Set linking information
-            switch (state.linkingState?.type) {
-                case LinkingType.LinkingGeometryWithAlignment:
-                case LinkingType.LinkingGeometryWithEmptyAlignment:
-                    if (onlyLayoutLinkPoint) {
-                        linkingReducers.setLayoutLinkPoint(state, {
-                            type: '',
-                            payload: onlyLayoutLinkPoint,
-                        });
+                        if (onlyLayoutLinkPoint) {
+                            linkingReducers.setLayoutLinkPoint(state, {
+                                type: '',
+                                payload: onlyLayoutLinkPoint,
+                            });
+                        }
+                        if (onlyGeometryLinkPoint) {
+                            linkingReducers.setGeometryLinkPoint(state, {
+                                type: '',
+                                payload: onlyGeometryLinkPoint,
+                            });
+                        }
+                        break;
                     }
-                    if (onlyGeometryLinkPoint) {
-                        linkingReducers.setGeometryLinkPoint(state, {
-                            type: '',
-                            payload: onlyGeometryLinkPoint,
-                        });
-                    }
-                    break;
+                    case LinkingType.LinkingGeometrySwitch: {
+                        updateSelection(
+                            state,
+                            filterSelectOptionsByItemTypes(onSelectOptions, ['switches']),
+                        );
 
-                case LinkingType.LinkingAlignment:
-                    if (onlyLayoutLinkPoint) {
-                        linkingReducers.setLayoutLinkPoint(state, {
-                            type: '',
-                            payload: onlyLayoutLinkPoint,
-                        });
+                        const layoutSwitchId = first(state.selection.selectedItems.switches);
+                        if (layoutSwitchId) {
+                            linkingReducers.selectOnlyLayoutSwitchForGeometrySwitchLinking(state, {
+                                type: '',
+                                payload: { layoutSwitchId },
+                            });
+                        }
+                        break;
                     }
-                    break;
-                case LinkingType.LinkingGeometrySwitch: {
-                    const layoutSwitchId = first(state.selection.selectedItems.switches);
-                    if (layoutSwitchId) {
-                        linkingReducers.selectOnlyLayoutSwitchForGeometrySwitchLinking(state, {
-                            type: '',
-                            payload: { layoutSwitchId },
-                        });
-                    }
-                    break;
+                    case LinkingType.LinkingKmPost:
+                        updateSelection(
+                            state,
+                            filterSelectOptionsByItemTypes(onSelectOptions, ['kmPosts']),
+                        );
+                        break;
+                    case LinkingType.PlacingLayoutSwitch:
+                    case LinkingType.LinkingLayoutSwitch:
+                    case LinkingType.PlacingOperationalPoint:
+                    case LinkingType.PlacingOperationalPointArea:
+                        break;
+                    default:
+                        return exhaustiveMatchingGuard(linkingStateType);
                 }
+            } else {
+                updateSelection(state, onSelectOptions);
+                pushSelectionHistoryStep(state);
             }
         },
         onHighlightItems: function (
@@ -446,7 +503,7 @@ const trackLayoutSlice = createSlice({
         ): void {
             selectionReducers.onHighlightItems(state.selection, {
                 ...action,
-                payload: filterItemSelectOptions(state, action.payload),
+                payload: filterItemSelectOptionsByState(state, action.payload),
             });
         },
         togglePlanVisibility: (
@@ -595,6 +652,7 @@ const trackLayoutSlice = createSlice({
             { payload }: PayloadAction<ToolPanelAsset | undefined>,
         ): void => {
             state.selectedToolPanelTab = payload;
+            pushSelectionHistoryStep(state);
         },
         showLocationTrackTaskList: (
             state: TrackLayoutState,
@@ -632,6 +690,57 @@ const trackLayoutSlice = createSlice({
         },
     },
 });
+
+function getSingleLayoutLinkPointFromSelection(onSelectOptions: OnSelectOptions) {
+    return onSelectOptions.layoutLinkPoints?.length === 1
+        ? ifDefined(onSelectOptions.layoutLinkPoints, first)
+        : undefined;
+}
+
+function getSingleGeometryLinkPointFromSelection(onSelectOptions: OnSelectOptions) {
+    return onSelectOptions.geometryLinkPoints?.length === 1
+        ? ifDefined(onSelectOptions.geometryLinkPoints, first)
+        : undefined;
+}
+
+function handleSelectionInSplitting(
+    state: NonNullableField<TrackLayoutState, 'splittingState'>,
+    onSelectOptions: OnSelectOptions,
+) {
+    const firstSwitchId = ifDefined(onSelectOptions.switches, first);
+    const allowedSwitch = state.splittingState.trackSwitches.find(
+        (sw) => sw.switchId === firstSwitchId,
+    );
+
+    if (allowedSwitch) {
+        const switchSplitPoint = SwitchSplitPoint(
+            allowedSwitch.switchId,
+            allowedSwitch.name,
+            {
+                x: allowedSwitch.location?.x || 0,
+                y: allowedSwitch.location?.y || 0,
+                m: 0,
+            },
+            allowedSwitch.address,
+        );
+        if (state.splittingState.state === 'SETUP') {
+            addSplitToState(state, switchSplitPoint);
+        }
+    }
+}
+
+function updateSelection(state: TrackLayoutState, onSelectOptions: OnSelectOptions) {
+    selectionReducers.onSelect(state.selection, {
+        type: '',
+        payload: onSelectOptions,
+    });
+    state.selectedToolPanelTab = updateSelectedToolPanelTab(
+        state.selection,
+        state.linkingState,
+        state.selectedToolPanelTab,
+        onSelectOptions.selectedTab,
+    );
+}
 
 export const trackLayoutReducer = trackLayoutSlice.reducer;
 export const trackLayoutActionCreators = trackLayoutSlice.actions;
@@ -771,3 +880,59 @@ const updateSelectedToolPanelTab = (
         return currentlySelectedTab;
     }
 };
+
+function toolPanelTabMatch(
+    toolPanelTab1: ToolPanelAsset | undefined,
+    toolPanelTab2: ToolPanelAsset | undefined,
+): boolean {
+    return objectEquals(toolPanelTab1, toolPanelTab2);
+}
+
+function pushSelectionHistoryStep(state: TrackLayoutState) {
+    const currentSelectionIsNotEmpty = !isEmptyItemCollections(state.selection.selectedItems);
+    const currentHistoryStep = state.selectionHistory[state.selectionHistoryIndex];
+    const currentHistoryDiffersFromCurrentSelection =
+        !currentHistoryStep ||
+        !itemCollectionsMatch(currentHistoryStep.selectedItems, state.selection.selectedItems) ||
+        !toolPanelTabMatch(currentHistoryStep.selectedToolPanelTab, state.selectedToolPanelTab);
+    if (currentSelectionIsNotEmpty && currentHistoryDiffersFromCurrentSelection) {
+        const newHistory = [
+            ...state.selectionHistory.slice(0, state.selectionHistoryIndex + 1),
+            {
+                selectedItems: state.selection.selectedItems,
+                selectedToolPanelTab: state.selectedToolPanelTab,
+            },
+        ];
+        const croppedHistory = takeLast(newHistory, SELECTION_HISTORY_MAX_SIZE);
+        state.selectionHistory = croppedHistory;
+        state.selectionHistoryIndex = lastIndex(croppedHistory);
+    }
+}
+
+function getPreviousSelectionHistoryIndex(
+    currentlySelectedItems: ItemCollections,
+    currentIndex: number,
+) {
+    return isEmptyItemCollections(currentlySelectedItems) ? currentIndex : currentIndex - 1;
+}
+
+export function canGoBackInSelectionHistory(state: TrackLayoutState) {
+    const previousHistoryStep =
+        state.selectionHistory[
+            getPreviousSelectionHistoryIndex(
+                state.selection.selectedItems,
+                state.selectionHistoryIndex,
+            )
+        ];
+    return previousHistoryStep !== undefined;
+}
+
+function getNextSelectionHistoryIndex(currentIndex: number) {
+    return currentIndex + 1;
+}
+
+export function canGoForwardInSelectionHistory(state: TrackLayoutState) {
+    const nextHistoryStep =
+        state.selectionHistory[getNextSelectionHistoryIndex(state.selectionHistoryIndex)];
+    return nextHistoryStep !== undefined;
+}

@@ -30,6 +30,8 @@ import chevronSvg from './glyphs/navigation/chevron.svg';
 import eyeSvg from './glyphs/status/eye.svg';
 import tickSvg from './glyphs/navigation/tick.svg';
 import moreSvg from './glyphs/navigation/more.svg';
+import previousSvg from './glyphs/navigation/previous.svg';
+import nextSvg from './glyphs/navigation/next.svg';
 import lockSvg from './glyphs/status/lock.svg';
 import vectorRight from './glyphs/navigation/vector-right.svg';
 import redoSvg from './glyphs/action/redo.svg';
@@ -90,6 +92,8 @@ const iconNameToSvgMap = {
     FullScreen: fullScreen,
     ExitFullScreen: exitFullScreen,
     ExternalLink: externalLink,
+    Previous: previousSvg,
+    Next: nextSvg,
 
     // Status
     Info: infoSvg,
