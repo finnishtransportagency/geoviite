@@ -25,6 +25,7 @@ import { PublicationId, PublicationSearch } from 'publication/publication-model'
 import { defaultPublicationSearch } from 'publication/publication-utils';
 import { TimeStamp } from 'common/common-model';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
+import { objectEquals } from 'utils/object-utils';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
@@ -65,7 +66,7 @@ export function itemCollectionsMatch(
     itemCollectionsA: ItemCollections,
     itemCollectionsB: ItemCollections,
 ) {
-    return JSON.stringify(itemCollectionsA) === JSON.stringify(itemCollectionsB);
+    return objectEquals(itemCollectionsA, itemCollectionsB);
 }
 
 function getNewIdCollection<TId extends string>(

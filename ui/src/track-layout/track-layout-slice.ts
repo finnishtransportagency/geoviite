@@ -386,10 +386,7 @@ const trackLayoutSlice = createSlice({
             }
         },
         onSelectHistoryForward: function (state: TrackLayoutState, _: PayloadAction<void>): void {
-            const newIndex = getNextSelectionHistoryIndex(
-                state.selection.selectedItems,
-                state.selectionHistoryIndex,
-            );
+            const newIndex = getNextSelectionHistoryIndex(state.selectionHistoryIndex);
             const nextStep = state.selectionHistory[newIndex];
             if (nextStep) {
                 state.selection = {
@@ -926,17 +923,12 @@ export function canGoBackInSelectionHistory(state: TrackLayoutState) {
     return previousHistoryStep !== undefined;
 }
 
-function getNextSelectionHistoryIndex(
-    currentlySelectedItems: ItemCollections,
-    currentIndex: number,
-) {
-    return isEmptyItemCollections(currentlySelectedItems) ? currentIndex + 1 : currentIndex + 1;
+function getNextSelectionHistoryIndex(currentIndex: number) {
+    return currentIndex + 1;
 }
 
 export function canGoForwardInSelectionHistory(state: TrackLayoutState) {
     const nextHistoryStep =
-        state.selectionHistory[
-            getNextSelectionHistoryIndex(state.selection.selectedItems, state.selectionHistoryIndex)
-        ];
+        state.selectionHistory[getNextSelectionHistoryIndex(state.selectionHistoryIndex)];
     return nextHistoryStep !== undefined;
 }
