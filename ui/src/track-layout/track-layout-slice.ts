@@ -54,6 +54,7 @@ import {
     planDownloadReducers,
     PlanDownloadState,
 } from 'map/plan-download/plan-download-store';
+import { objectEquals } from 'utils/object-utils';
 
 export const SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID = 'SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID';
 
@@ -880,13 +881,20 @@ const updateSelectedToolPanelTab = (
     }
 };
 
+function toolPanelTabMatch(
+    toolPanelTab1: ToolPanelAsset | undefined,
+    toolPanelTab2: ToolPanelAsset | undefined,
+): boolean {
+    return objectEquals(toolPanelTab1, toolPanelTab2);
+}
+
 function pushSelectionHistoryStep(state: TrackLayoutState) {
     const currentSelectionIsNotEmpty = !isEmptyItemCollections(state.selection.selectedItems);
     const currentHistoryStep = state.selectionHistory[state.selectionHistoryIndex];
     const currentHistoryDiffersFromCurrentSelection =
         !currentHistoryStep ||
         !itemCollectionsMatch(currentHistoryStep.selectedItems, state.selection.selectedItems) ||
-        currentHistoryStep.selectedToolPanelTab !== state.selectedToolPanelTab;
+        !toolPanelTabMatch(currentHistoryStep.selectedToolPanelTab, state.selectedToolPanelTab);
     if (currentSelectionIsNotEmpty && currentHistoryDiffersFromCurrentSelection) {
         const newHistory = [
             ...state.selectionHistory.slice(0, state.selectionHistoryIndex + 1),
