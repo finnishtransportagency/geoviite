@@ -73,14 +73,14 @@ Pituusmittauslinja ja raiteen keskilinja on rakenteellisesti samanlainen, mutta 
 kriittinen koska geometriaa linkittäessä, operaattori lopulta päättää mihin raiteeseen tai pituusmittauslinjaan minkäkin
 geometrian linkittää.
 
-| Virhe                         | Virheen tyyppi  | Kuvaus                                                           |
-|-------------------------------|-----------------|------------------------------------------------------------------|
-| Useita pituusmittauslinjoja   | Validointivirhe | Suunnitelmassa on useampi kuin yksi pituusmittauslinja (111)     |
-| Ei pituusmittauslinjaa        | Vakava huomio   | Suunnitelma ei sisällä yhtään pituusmittauslinjaa (111)          |
-| Duplikaatti keskilinja        | Vakava huomio   | Samaa nimeä on käytetty useammalla eri keskilinjalla             |
-| Tyyppi puuttuu tai tuntematon | Vakava huomio   | Linjan tyyppi puuttu tai ei vastaa tunnettuja tyyppejä           |
-| Väärä tyyppikoodi             | Lievä huomio    | Linjan tyyppi ei ole raiteen (281) tai pituusmittauslinjan (111) |
-| Keskilinjan tila puuttuu      | Lievä huomio    | Keskilinjalle ei ole määritelty tilaa (state)                    |
+| Virhe                         | Virheen tyyppi  | Kuvaus                                                        |
+|-------------------------------|-----------------|---------------------------------------------------------------|
+| Useita pituusmittauslinjoja   | Validointivirhe | Suunnitelmassa on useampi kuin yksi pituusmittauslinja (111)  |
+| Ei pituusmittauslinjaa        | Vakava huomio   | Suunnitelma ei sisällä yhtään pituusmittauslinjaa (111)       |
+| Duplikaatti keskilinja        | Vakava huomio   | Samaa nimeä on käytetty useammalla eri keskilinjalla          |
+| Tyyppi puuttuu tai tuntematon | Vakava huomio   | Linjan tyyppi puuttu tai ei vastaa tunnettuja tyyppejä        |
+| Väärä tyyppikoodi             | Lievä huomio    | Linjan tyyppi ei ole raide (281) tai pituusmittauslinja (111) |
+| Keskilinjan tila puuttuu      | Lievä huomio    | Keskilinjalle ei ole määritelty tilaa (state)                 |
 
 ### Geometriaelementit (Line, Curve, Spiral)
 
@@ -92,31 +92,31 @@ Moni elementeistä on "ylimääritelty" eli xml:ssä annettuja arvoja voi laskea
 Validoinnissa tarkastetaan myös näin saatuja arvoja annettuihin, sillä mahdolliset erot kielivät mahdollisista virheistä
 tiedoston tuottamisessa.
 
-| Virhe                                 | Virheen tyyppi | Kuvaus                                                                 |
-|---------------------------------------|----------------|------------------------------------------------------------------------|
-| Negatiivinen pituus                   | Vakava huomio  | Elementin ilmoitettu pituus on negatiivinen tai nolla                  |
-| Virheellinen pituus                   | Vakava huomio  | Elementin ilmoitettu pituus eroaa lasketusta                           |
-| Alku- ja loppupiste samat             | Vakava huomio  | Elementin alku- ja loppukoordinaatit ovat identtiset                   |
-| Virheellinen alku-/loppupiste         | Vakava huomio  | Elementin ilmoitettu alku-/loppupiste eroaa lasketusta                 |
-| Geometrian epäjatkuvuus: koordinaatit | Vakava huomio  | Elementin alkupiste ei ole siinä missä edellisen loppupiste            |
-| Geometrian epäjatkuvuus: suunta       | Vakava huomio  | Elementin alkusuunta ei vastaa edellisen loppusuuntaa                  |
-| Paalulukema ei kasvava                | Vakava huomio  | Elementin alun paalulukema (`staStart`) ei ole suurempi kuin edellisen |
-| Kaarteen säde virheellinen            | Vakava huomio  | Kaarteen ilmoitettu säde ei vastaa laskettua                           |
-| Kaarteen jänne virheellinen           | Vakava huomio  | Kaarteen ilmoitettu jänteen pituus ei vastaa laskettua                 |
-| Kaarresäde liian pieni                | Vakava huomio  | Kaarteen tai siirtymäkaarteen säde on alle minimin                     |
-| Klotoidivakio virheellinen            | Vakava huomio  | Siirtymäkaaren ilmoitettu klotoidivakio ei vastaa laskettua            |
-| Epätarkka ilmoitettu pituus           | Lievä huomio   | Elementin ilmoitettu pituus eroaa lasketusta hieman                    |
-| Epätarkka alkupiste                   | Lievä huomio   | Elementin ilmoitettu alku-/loppupiste eroaa lasketusta hieman          |
-| Lievä epäjatkuvuus: koordinaatit      | Lievä huomio   | Elementin alkupiste eroaa edellisen loppupisteestä hieman              |
-| Lievä epäjatkuvuus: suunta            | Lievä huomio   | Elementin alkusuunta eroaa edellisen loppusuunnasta hieman             |
-| Kaarteen säde epätarkka               | Lievä huomio   | Kaarteen ilmoitettu säde eroaa hieman lasketusta                       |
-| Kaarteen jänne epätarkka              | Lievä huomio   | Kaarteen ilmoitettu jänteen pituus eroaa lasketusta hieman             |
-| Klotoidivakio epätarkka               | Lievä huomio   | Siirtymäkaaren ilmoitettu klotoidivakio eroaa lasketusta hieman        |
+| Virhe                                 | Virheen tyyppi | Kuvaus                                                               |
+|---------------------------------------|----------------|----------------------------------------------------------------------|
+| Negatiivinen pituus                   | Vakava huomio  | Elementin ilmoitettu pituus on negatiivinen tai nolla                |
+| Virheellinen pituus                   | Vakava huomio  | Elementin ilmoitettu pituus eroaa lasketusta                         |
+| Alku- ja loppupiste samat             | Vakava huomio  | Elementin alku- ja loppukoordinaatit ovat identtiset                 |
+| Virheellinen alku-/loppupiste         | Vakava huomio  | Elementin ilmoitettu alku-/loppupiste eroaa lasketusta               |
+| Geometrian epäjatkuvuus: koordinaatit | Vakava huomio  | Elementin alkupiste ei ole siinä missä edellisen loppupiste          |
+| Geometrian epäjatkuvuus: suunta       | Vakava huomio  | Elementin alkusuunta ei vastaa edellisen loppusuuntaa                |
+| Paaluluku ei kasvava                  | Vakava huomio  | Elementin alun paaluluku (`staStart`) ei ole suurempi kuin edellisen |
+| Kaarteen säde virheellinen            | Vakava huomio  | Kaarteen ilmoitettu säde ei vastaa laskettua                         |
+| Kaarteen jänne virheellinen           | Vakava huomio  | Kaarteen ilmoitettu jänteen pituus ei vastaa laskettua               |
+| Kaarresäde liian pieni                | Vakava huomio  | Kaarteen tai siirtymäkaarteen säde on alle minimin                   |
+| Klotoidivakio virheellinen            | Vakava huomio  | Siirtymäkaaren ilmoitettu klotoidivakio ei vastaa laskettua          |
+| Epätarkka ilmoitettu pituus           | Lievä huomio   | Elementin ilmoitettu pituus eroaa lasketusta hieman                  |
+| Epätarkka alkupiste                   | Lievä huomio   | Elementin ilmoitettu alku-/loppupiste eroaa lasketusta hieman        |
+| Lievä epäjatkuvuus: koordinaatit      | Lievä huomio   | Elementin alkupiste eroaa edellisen loppupisteestä hieman            |
+| Lievä epäjatkuvuus: suunta            | Lievä huomio   | Elementin alkusuunta eroaa edellisen loppusuunnasta hieman           |
+| Kaarteen säde epätarkka               | Lievä huomio   | Kaarteen ilmoitettu säde eroaa hieman lasketusta                     |
+| Kaarteen jänne epätarkka              | Lievä huomio   | Kaarteen ilmoitettu jänteen pituus eroaa lasketusta hieman           |
+| Klotoidivakio epätarkka               | Lievä huomio   | Siirtymäkaaren ilmoitettu klotoidivakio eroaa lasketusta hieman      |
 
 ### Pystygeometria (Profile)
 
 Pystygeometria (`<Profile>` ja sen alla olevat `<Feature>` ja `<ProfAlign>` -elementit) määrittelee keskilinjan
-pystygeometrian paalulukemien (pituuden linjaa pitkin) funktiona. Se koostuu taitepisteistä (pistemäinen `<PVI>` ja
+pystygeometrian paalulukujen (pituuden linjaa pitkin) funktiona. Se koostuu taitepisteistä (pistemäinen `<PVI>` ja
 kaari `<CircCurve>`), joista voidaan laskea kaltevuusjaksot.
 
 | Virhe                    | Virheen tyyppi | Kuvaus                                                          |
@@ -124,7 +124,7 @@ kaari `<CircCurve>`), joista voidaan laskea kaltevuusjaksot.
 | Pystygeometria puuttuu   | Vakava huomio  | Keskilinjalle ei ole määritelty pystygeometriaa                 |
 | Kaarteen pituus puuttuu  | Vakava huomio  | Taitepisteen kaarteelta puuttuu pituus                          |
 | Kaarteen säde puuttuu    | Vakava huomio  | Taitepisteen kaarteelta puuttuu säde                            |
-| Paalulukema ei kasvava   | Vakava huomio  | Taitepisteen paalulukema on pienempi kuin edellisen             |
+| Paaluluku ei kasvava     | Vakava huomio  | Taitepisteen paaluluku on pienempi kuin edellisen               |
 | Laskenta epäonnistui     | Vakava huomio  | Pystygeometrian laskenta epäonnistuu tietyllä kaltevuusjaksolla |
 | Liian jyrkkä nousu/lasku | Vakava huomio  | Kahden taitepisteen välillä on liian jyrkkä kaltevuuskulma      |
 | Epäjatkuvuus: paalutus   | Vakava huomio  | Laskettujen kaltevuusjaksojen paalutukset eivät ole jatkuvia    |
@@ -133,7 +133,7 @@ kaari `<CircCurve>`), joista voidaan laskea kaltevuusjaksot.
 
 ### Kallistus (Cant)
 
-Kallistus (`<Cant>`) kuvaa raiteen sivuttaiskaltevuuden eri kohdissa paalulukeman (pituuden linjaa pitkin) funktiona. Se
+Kallistus (`<Cant>`) kuvaa raiteen sivuttaiskaltevuuden eri kohdissa paaluluvun (pituuden linjaa pitkin) funktiona. Se
 koostuu kallistuspisteistä (`<CantStation>`) sekä ilmoitetusta raideleveydestä (`gauge` -attribuutti - Suomessa käytössä
 vain yksi arvo) ja kaltevuuden mittauspisteestä (`rotationPoint` -attribuutti).
 
@@ -144,7 +144,7 @@ vain yksi arvo) ja kaltevuuden mittauspisteestä (`rotationPoint` -attribuutti).
 | Kallistuksen kiertopiste keskellä | Validointivirhe | Kiertopisteeksi on määritelty CENTER (keskellä raidetta)        |
 | Raideleveys virheellinen          | Vakava huomio   | Ilmoitettu raideleveys ei ole Suomen raideleveys (1.524m)       |
 | Kallistusarvo virheellinen        | Vakava huomio   | Kallistuksen arvo on negatiivinen tai suurempi kuin raideleveys |
-| Epäjatkuvuus: paalulukema         | Vakava huomio   | Kallistuspisteen paalulukema ei ole suurempi kuin edellisen     |
+| Epäjatkuvuus: paaluluku           | Vakava huomio   | Kallistuspisteen paaluluku ei ole suurempi kuin edellisen       |
 
 ### Vaihteet
 
@@ -171,7 +171,7 @@ että vaihdepisteen sijainti eri raiteilla on sama).
 
 ### Tasakilometripisteet (StaEquation)
 
-Tasakilometripisteet (`<StaEquation>`) yhdistävät keskilinjan paalulukeman ratanumeron kilometrijärjestelmään. Ne
+Tasakilometripisteet (`<StaEquation>`) yhdistävät keskilinjan paaluluvun ratanumeron kilometrijärjestelmään. Ne
 sisältävät sijainnin `<Feature>`-elementtinä (`code="IM_kmPostCoords"`), kilometritunnuksen (`desc` -attribuutti) ja
 paaluluvun (sijainti pituutena linjaa pitkin). Ensimmäinen piste on erikoistapaus, sillä ensimmäinen kilometri alkaa
 usein ennen itse linjan alkua (linjan alkuosoite on km + X metriä), jolloin alkupaalu on negatiivinen.
@@ -183,6 +183,6 @@ kontekstissa näiden arvojen avulla.
 | Virhe                                         | Virheen tyyppi  | Kuvaus                                                       |
 |-----------------------------------------------|-----------------|--------------------------------------------------------------|
 | Duplikaatti tasakilometripisteet              | Validointivirhe | Useammalla ratanumeron tasakilometripisteellä on sama tunnus |
-| Ensimmäisen KM-pisteen paaluluku positiivinen | Validointivirhe | Ensimmäisen tasakilometripisteen paalulukema on positiivinen |
+| Ensimmäisen KM-pisteen paaluluku positiivinen | Validointivirhe | Ensimmäisen tasakilometripisteen paaluluku on positiivinen   |
 | Sijainti puuttuu                              | Vakava huomio   | Sijaintitieto puuttuu                                        |
 | Kilometrinumero puuttuu tai virheellinen      | Lievä huomio    | Kilometrinumero puuttuu tai se on virheellinen               |
