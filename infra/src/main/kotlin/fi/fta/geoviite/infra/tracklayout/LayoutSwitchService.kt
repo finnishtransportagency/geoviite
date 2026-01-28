@@ -64,7 +64,7 @@ constructor(
         val switchStructureChanged = switch.switchStructureId != layoutSwitch.switchStructureId
         val switchJoints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
 
-        if (switch.stateCategory == LayoutStateCategory.NOT_EXISTING || switchStructureChanged) {
+        if (switchStructureChanged) {
             clearSwitchInformationFromTracks(branch, id)
         }
 

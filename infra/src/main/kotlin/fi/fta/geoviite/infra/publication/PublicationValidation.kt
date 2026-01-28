@@ -499,15 +499,12 @@ fun validateSwitchTopologicalConnectivity(
     val existingTracks = locationTracksAndGeometries.filter { it.first.exists }
     return listOf(
             listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
-            validateSwitchAlignmentTopology(
-                switch.id as IntId,
-                structure,
-                existingTracks,
-                switch.name,
-                validatingTrack,
-            ),
+            validateSwitchAlignmentTopology(switch.id as IntId, structure, existingTracks, switch.name, validatingTrack),
         )
         .flatten()
+        .let { issues ->
+            relateIssuesTo(issues, switches = listOf(switch.id), locationTracks = listOfNotNull(validatingTrack?.id))
+        }
 }
 
 fun switchOrTrackLinkageKey(validatingTrack: LocationTrack?) =
@@ -1143,6 +1140,10 @@ fun validateEdges(
         .distinct()
         .map { partial ->
             validationWarning("$VALIDATION_LOCATION_TRACK.edge-switch-partial", "switch" to getSwitchName(partial))
+                .copy(
+                    inRelationTo =
+                        relateTo(switches = listOf(partial), locationTracks = listOfNotNull(geometry.trackId))
+                )
         }
 
 fun getEdgePartialSwitchIds(edge: LayoutEdge): List<IntId<LayoutSwitch>> =
@@ -1254,8 +1255,29 @@ fun validationError(key: String, params: LocalizationParams): LayoutValidationIs
 fun validationWarning(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
     LayoutValidationIssue(WARNING, key, params.associate { it })
 
-fun validationWarning(key: String, params: LocalizationParams): LayoutValidationIssue =
-    LayoutValidationIssue(WARNING, LocalizationKey.of(key), params)
+fun validationWarning(
+    key: String,
+    params: LocalizationParams,
+    inRelationTo: Set<PublicationLogAsset> = setOf(),
+): LayoutValidationIssue = LayoutValidationIssue(WARNING, LocalizationKey.of(key), params, inRelationTo)
 
 private fun cancelledOrNotPublishedKey(keyPrefix: String, cancelled: Boolean) =
     "$keyPrefix${if (cancelled) ".cancelled" else ".not-published"}"
+
+private fun relateTo(
+    switches: List<DomainId<LayoutSwitch>> = listOf(),
+    locationTracks: List<DomainId<LocationTrack>> = listOf(),
+) =
+    listOf(
+            switches.map { switch -> PublicationLogAsset(switch as IntId, PublicationLogAssetType.SWITCH) },
+            locationTracks.map { lt -> PublicationLogAsset(lt as IntId, PublicationLogAssetType.LOCATION_TRACK) },
+        )
+        .flatten()
+        .toSet()
+
+private fun relateIssuesTo(
+    issues: List<LayoutValidationIssue>,
+    switches: List<DomainId<LayoutSwitch>> = listOf(),
+    locationTracks: List<DomainId<LocationTrack>> = listOf(),
+): List<LayoutValidationIssue> =
+    issues.map { issue -> issue.copy(inRelationTo = relateTo(switches = switches, locationTracks = locationTracks)) }

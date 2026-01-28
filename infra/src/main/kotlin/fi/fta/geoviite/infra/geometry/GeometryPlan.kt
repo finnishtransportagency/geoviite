@@ -77,7 +77,7 @@ data class GeometryPlanHeader(
 data class GeometryPlan(
     val source: PlanSource,
     val project: Project,
-    val application: Application,
+    val application: Application?,
     val author: Author?,
     val planTime: Instant?,
     val uploadTime: Instant?,

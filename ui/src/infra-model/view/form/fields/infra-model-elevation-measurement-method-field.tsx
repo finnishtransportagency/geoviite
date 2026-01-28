@@ -36,6 +36,7 @@ export const InfraModelElevationMeasurementMethodField: React.FC<
                 <FieldLayout
                     value={
                         <Dropdown
+                            wide
                             placeholder={t('im-form.information-missing')}
                             value={extraInframodelParameters.elevationMeasurementMethod}
                             options={elevationMeasurementMethods}

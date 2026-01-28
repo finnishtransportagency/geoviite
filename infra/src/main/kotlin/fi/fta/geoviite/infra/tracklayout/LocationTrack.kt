@@ -295,6 +295,13 @@ data class LocationTrackInfoboxExtras(
     val partOfUnfinishedSplit: Boolean?,
     val startSplitPoint: SplitPoint?,
     val endSplitPoint: SplitPoint?,
+    val switches: List<LocationTrackInfoboxSwitch>,
+)
+
+data class LocationTrackInfoboxSwitch(
+    val switchId: IntId<LayoutSwitch>,
+    val location: Point,
+    val displayAddress: TrackMeter?,
 )
 
 data class LocationTrackDuplicate(

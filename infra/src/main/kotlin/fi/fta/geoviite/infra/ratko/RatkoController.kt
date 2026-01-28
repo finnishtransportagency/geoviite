@@ -4,13 +4,11 @@ import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_BASIC
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
-import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_PUBLICATION
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.error.Integration
 import fi.fta.geoviite.infra.error.IntegrationNotConfiguredException
 import fi.fta.geoviite.infra.integration.LocationTrackChange
-import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
-import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -45,13 +43,10 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
         return ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
-    @PreAuthorize(AUTH_VIEW_LAYOUT)
-    @GetMapping("/errors/{publicationId}")
-    fun getRatkoPushErrors(
-        @PathVariable("publicationId") publicationId: IntId<Publication>
-    ): ResponseEntity<RatkoPushErrorWithAsset> {
-        return toResponse(ratkoLocalService.getRatkoPushError(publicationId))
-    }
+    @PreAuthorize(AUTH_VIEW_PUBLICATION)
+    @GetMapping("/errors/current")
+    fun getLatestPublicationError(): ResponseEntity<RatkoPushErrorAndDetails> =
+        toResponse(ratkoLocalService.fetchCurrentRatkoPushError())
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/is-online")

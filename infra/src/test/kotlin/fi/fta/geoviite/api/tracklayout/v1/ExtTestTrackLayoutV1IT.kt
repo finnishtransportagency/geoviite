@@ -12,7 +12,9 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchJoint
@@ -48,6 +50,7 @@ constructor(
             ::setupValidTrackNumber to api.trackNumberGeometry::getWithExpectedError,
             ::setupValidTrackNumber to api.trackNumberKms::getWithExpectedError,
             ::setupValidSwitch to api.switch::getWithExpectedError,
+            ::setupValidOperationalPoint to api.operationalPoint::getWithExpectedError,
         )
 
     private val collectionErrorTests =
@@ -56,6 +59,7 @@ constructor(
             api.trackNumberCollection::getWithExpectedError,
             api.trackNumberKmsCollection::getWithExpectedError,
             api.switchCollection::getWithExpectedError,
+            api.operationalPointCollection::getWithExpectedError,
         )
 
     private val modificationErrorTests =
@@ -65,6 +69,7 @@ constructor(
             ::setupValidSwitch to api.switch::getModifiedWithExpectedError,
             ::setupValidTrackNumber to api.trackNumberGeometry::getModifiedWithExpectedError,
             ::setupValidLocationTrack to api.locationTrackGeometry::getModifiedWithExpectedError,
+            ::setupValidOperationalPoint to api.operationalPoint::getModifiedWithExpectedError,
         )
 
     private val collectionModificationErrorTests =
@@ -73,6 +78,7 @@ constructor(
             api.trackNumberCollection::getModifiedWithExpectedError,
             api.switchCollection::getModifiedWithExpectedError,
             api.trackBoundaryCollection::getModifiedWithExpectedError,
+            api.operationalPointCollection::getModifiedWithExpectedError,
         )
 
     private val geometryErrorTests =
@@ -89,6 +95,7 @@ constructor(
             ::setupValidTrackNumber to api.trackNumberGeometry::getWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumberKms::getWithEmptyBody,
             ::setupValidSwitch to api.switch::getWithEmptyBody,
+            ::setupValidOperationalPoint to api.operationalPoint::getWithEmptyBody,
         )
 
     private val collectionNoContentTests =
@@ -96,6 +103,7 @@ constructor(
             ::setupValidLocationTrackCollection to api.locationTrackCollection::getModifiedWithEmptyBody,
             ::setupValidTrackNumberCollection to api.trackNumberCollection::getModifiedWithEmptyBody,
             ::setupValidSwitchCollection to api.switchCollection::getModifiedWithEmptyBody,
+            ::setupValidOperationalPointCollection to api.operationalPointCollection::getModifiedWithEmptyBody,
         )
 
     private val noContentModificationTests =
@@ -105,6 +113,7 @@ constructor(
             ::setupValidTrackNumber to api.trackNumbers::getModifiedWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumberGeometry::getModifiedWithEmptyBody,
             ::setupValidSwitch to api.switch::getModifiedWithEmptyBody,
+            ::setupValidOperationalPoint to api.operationalPoint::getModifiedWithEmptyBody,
         )
 
     private val modificationSuccessTests =
@@ -114,6 +123,7 @@ constructor(
             ::setupValidTrackNumber to api.trackNumbers::getModified,
             ::setupValidTrackNumber to api.trackNumberGeometry::getModified,
             ::setupValidSwitch to api.switch::getModified,
+            ::setupValidOperationalPoint to api.operationalPoint::getModified,
         )
 
     @BeforeEach
@@ -518,5 +528,26 @@ constructor(
             }
 
         return extTestDataService.publishInMain(ids)
+    }
+
+    private fun setupValidOperationalPoint(): Oid<OperationalPoint> {
+        val opId = mainDraftContext.save(operationalPoint(name = "Test Point", abbreviation = "TP", location = Point(0.5, 0.5))).id
+        val oid = mainDraftContext.generateOid(opId)
+
+        extTestDataService.publishInMain(operationalPoints = listOf(opId))
+
+        return oid
+    }
+
+    private fun setupValidOperationalPointCollection(): Publication {
+        val ops =
+            listOf(1, 2, 3).map { idx ->
+                mainDraftContext
+                    .save(operationalPoint(name = "Test Point $idx", abbreviation = "TP$idx", location = Point(idx * 1.0, idx * 1.0)))
+                    .id
+                    .also { opId -> mainDraftContext.generateOid(opId) }
+            }
+
+        return extTestDataService.publishInMain(operationalPoints = ops)
     }
 }

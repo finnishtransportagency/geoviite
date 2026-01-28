@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.dataImport.switchStructures
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.switchLibrary.SwitchHand
@@ -49,7 +50,8 @@ class RatkoUtilsTest {
     fun `Ratko fake OIDs should distinct from real OIDs`() {
         val realRatkoOid = RatkoOid<LocationTrack>("1.2.246.578.3.10002.189425")
         val realGeoviiteOid =  RatkoOid<LocationTrack>("1.2.246.578.13.1.2.3")
-        val fakeOid = RatkoFakeOidGenerator().generateFakeRatkoOID<LocationTrack>(LOCATION_TRACK_FAKE_OID_CONTEXT, 1)
+        val fakeOid = RatkoFakeOidGenerator().generateFakeRatkoOID<LocationTrack>(LOCATION_TRACK_FAKE_OID_CONTEXT, 13654)
+        val fakeOidInGeoviiteFormat = Oid<LocationTrack>(fakeOid.id)
         assertFalse(isFakeOID(realRatkoOid), "Real OID is seen as a fake OID")
         assertFalse(isFakeOID(realGeoviiteOid), "Real OID is seen as a fake OID")
         assertTrue(isFakeOID(fakeOid), "Fake OID is seen as a real OID")

@@ -87,16 +87,16 @@ export type GeometryPlanHeader = {
     source: PlanSource;
     trackNumber?: TrackNumber;
     kmNumberRange?: KmNumberRange;
-    measurementMethod: MeasurementMethod;
+    measurementMethod?: MeasurementMethod;
     elevationMeasurementMethod?: ElevationMeasurementMethod;
-    planPhase: PlanPhase;
-    decisionPhase: PlanDecisionPhase;
-    planTime: TimeStamp;
+    planPhase?: PlanPhase;
+    decisionPhase?: PlanDecisionPhase;
+    planTime?: TimeStamp;
     message?: string;
     linkedAsPlanId?: GeometryPlanId;
     uploadTime: TimeStamp;
     units: GeometryUnits;
-    author: string;
+    author?: string;
     hasProfile: boolean;
     hasCant: boolean;
     isHidden: boolean;
@@ -106,28 +106,28 @@ export type GeometryPlanHeader = {
 
 export type GeometryPlan = {
     id: GeometryPlanId;
-    dataType: DataType;
+    source: PlanSource;
     project: Project;
-    application: Application;
+    application?: Application;
     author?: Author;
     planTime?: Date;
-    fileName: string;
+    uploadTime?: Date;
     units: GeometryUnits;
-    source: PlanSource;
     trackNumber?: TrackNumber;
     trackNumberDescription: string;
     alignments: GeometryAlignment[];
     switches: GeometrySwitch[];
     kmPosts: GeometryKmPost[];
+    fileName: string;
     pvDocumentId?: PVDocumentId;
     planPhase?: PlanPhase;
     decisionPhase?: PlanDecisionPhase;
     measurementMethod?: MeasurementMethod;
     elevationMeasurementMethod?: ElevationMeasurementMethod;
     message?: string;
-    uploadTime?: Date;
-    isHidden: boolean;
     name: string;
+    isHidden: boolean;
+    dataType: DataType;
     planApplicability?: PlanApplicability;
 };
 

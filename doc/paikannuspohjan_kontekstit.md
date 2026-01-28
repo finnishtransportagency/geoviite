@@ -22,6 +22,15 @@ oliosta on kussakin kontekstissa näkyvillä enintään yksi rivi. Enimmillään
 kontekstissaan design-official-rivin, joka taas korvaisi kontekstissaan main-officialin; tai design-official-rivi voi
 korvata main-officia-rivin ja olla näkyvillä design-draftiinsa.
 
+## Pikaopas
+
+| Konteksti                                     | Kuvaus                                         | Näkyvyys                                             |
+|-----------------------------------------------|------------------------------------------------|------------------------------------------------------|
+| **Main-official (virallinen paikannuspohja)** | Virallinen rataverkon nykytila                 | Näkyy kaikkiin konteksteihin                         |
+| **Main-draft (luonnos)**                      | Työtila virallisen paikannuspohjan muutoksille | Näkyy vain main-draft -kontekstissa                  |
+| **Design-official (julkaistu suunnitelma)**   | Julkaistu suunnitelma                          | Näkyy design-official ja design-draft -konteksteihin |
+| **Design-draft (suunnitelmaluonnos)**         | Työtila suunnitelman muutoksille               | Näkyy vain kyseiseen design-draft -kontekstiin       |
+
 ## Virallinen paikannuspohja (Official Layout)
 
 Virallinen paikannuspohja on se data joka viedään Ratkoon ja joka esittää rataverkon todellista nykytilaa parhaan
@@ -80,3 +89,59 @@ välillä ovat siis:
 
 Siirtymät toteutetaan tallentamalla olion tila kohdekontekstiin (mahdollisen olemassaolevan rivin päälle), ja
 julkaisuiden tapauksessa poistamalla lisäksi luonnoskontekstin rivi.
+
+## Kontekstien tunnisteet (Layout Context ID)
+
+Kaikissa paikannuspohjan tauluissa konteksti tunnistetaan `layout_context_id` -kentällä, joka on generoitu kenttä
+muodossa `{design_id|'main'}_{draft|official}`:
+
+- `main_official` - Virallinen paikannuspohja
+- `main_draft` - Luonnospaikannuspohja
+- `{id}_official` - Suunnitelman julkaistu versio (esim. `123_official`)
+- `{id}_draft` - Suunnitelman luonnos (esim. `123_draft`)
+
+### Layout Context ID:n suunnitteluratkaisu
+
+`layout_context_id` yhdistää kolme käsitettä yhteen kenttään: onko kyseessä main-haara vai suunnitelma,
+minkä suunnitelman konteksti on kyseessä, ja onko kyseessä luonnos vai julkaistu versio. Tämä yhdistelmä
+toimii paikannuspohjan oliotaulujen primääriavaimen osana yhdessä olion ID:n kanssa.
+
+Main-haaran luonnollinen tunniste olisi `null`, koska main ei ole suunnitelma. Tietokantojen null-arvojen
+erikoisluonteen vuoksi tämä ei kuitenkaan toimi hyvin primääriavaimessa, joten null-arvo täytyy korvata
+merkkijonolla `main`. Samalla on järkevää yhdistää myös draft-tieto samaan kenttään muodostamaan yhtenäinen
+kontekstitunniste.
+
+Kentän arvo generoidaan sovellustasolla eikä tietokannassa, koska se sopii paremmin yhteen Geoviiten
+versiointitriggerien toiminnan kanssa. Tietokanta kuitenkin varmistaa arvon oikeellisuuden constrainteilla.
+
+### Layout Context ID:t REST-rajapinnoissa
+
+Kaikissa Geoviitteen rajapinnoissa ei tarvita tietoa sekä suunnitelmahaarasta että siitä kohdistuuko operaatio ka.
+branchin viralliseen vai luonnospaikannuspohjaan, vaan joissain tilanteissa . Täten rajapinnoissa Layout Context ID on
+hajotettu kahteen kenttään, jotka voi määrittää rajapintoihin erillään. Kentät kulkevat yleisesti nimellä
+`LayoutBranch` (haaratieto) ja `PublicationState` (official/draft).
+
+`LayoutBranch` saa arvoja allaolevan mukaisesti:
+
+- `main` - Varsinainen paikannuspohja
+- `design_{suunnitelman_int_id}` - Suunnitelmahaara (esim. `design_int_123`)
+
+### Esimerkkejä:
+
+Molemmat määrittävä kutsu:
+
+```
+GET /track-layout/location-tracks/{LayoutBranch}/{PublicationState}
+
+GET /track-layout/location-tracks/main/official
+GET /track-layout/location-tracks/design_int_123/draft
+```
+
+Vain haaraa käyttävä kutsu (muokkaus, joten kohdistuu aina draftiin):
+
+```
+POST /linking/{LayoutBranch}/location-tracks/geometry
+
+POST /linking/main/location-tracks/geometry
+POST /linking/design_int_123/location-tracks/geometry
+```

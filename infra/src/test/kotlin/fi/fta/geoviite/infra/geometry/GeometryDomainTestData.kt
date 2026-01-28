@@ -487,7 +487,7 @@ fun plan(
         measurementMethod = measurementMethod,
         elevationMeasurementMethod = elevationMeasurementMethod,
         message = FreeTextWithNewLines.of("test text \n description"),
-        uploadTime = Instant.now(),
+        uploadTime = null,
         name = getPlanNameByFileName(fileName),
         planApplicability = planApplicability,
     )

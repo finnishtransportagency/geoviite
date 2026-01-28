@@ -32,6 +32,7 @@ export const InfraModelMeasurementMethodField: React.FC<InfraModelExtraParameter
                 <FieldLayout
                     value={
                         <Dropdown
+                            wide
                             placeholder={t('im-form.information-missing')}
                             value={extraInframodelParameters.measurementMethod}
                             options={measurementMethods}

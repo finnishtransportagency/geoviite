@@ -1,5 +1,5 @@
-import { API_URI, getNonNull, getNonNullAdt, postNullable } from 'api/api-fetch';
-import { LayoutBranchType, PublicationId } from 'publication/publication-model';
+import { API_URI, getNonNullAdt, getNullable, postNullable } from 'api/api-fetch';
+import { LayoutBranchType, PublicationDetails } from 'publication/publication-model';
 import { RatkoPushError } from 'ratko/ratko-model';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { KmNumber } from 'common/common-model';
@@ -8,9 +8,6 @@ const RATKO_URI = `${API_URI}/ratko`;
 
 export const pushToRatko = (branchType: LayoutBranchType) =>
     postNullable(`${RATKO_URI}/push${branchType === 'MAIN' ? '' : '-designs'}`, undefined);
-
-export const getRatkoPushError = (publicationId: PublicationId) =>
-    getNonNull<RatkoPushError>(`${RATKO_URI}/errors/${publicationId}`);
 
 export type RatkoConnectionStatus = 'ONLINE' | 'ONLINE_ERROR' | 'OFFLINE' | 'NOT_CONFIGURED';
 
@@ -43,3 +40,11 @@ export function pushLocationTracksToRatko(locationTrackChanges: LocationTrackCha
         false,
     );
 }
+
+type RatkoPushErrorAndPublication = {
+    error: RatkoPushError;
+    publication: PublicationDetails;
+};
+
+export const getCurrentPublicationFailure = async () =>
+    await getNullable<RatkoPushErrorAndPublication>(`${RATKO_URI}/errors/current`);

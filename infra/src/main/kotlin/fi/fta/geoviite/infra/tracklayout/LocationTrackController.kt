@@ -336,4 +336,14 @@ class LocationTrackController(
         @RequestBody locationTrackIds: List<IntId<LocationTrack>>,
     ): List<IntId<LocationTrack>> =
         locationTrackService.linkToOperationalPoint(layoutBranch, locationTrackIds, operationalPointId)
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/location-tracks/{$LAYOUT_BRANCH}/{id}/detach-switch/{switchId}")
+    fun detachSwitch(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable("id") id: IntId<LocationTrack>,
+        @PathVariable("switchId") switchId: IntId<LayoutSwitch>,
+    ): IntId<LocationTrack> {
+        return locationTrackService.detachSwitch(layoutBranch, id, switchId).id
+    }
 }

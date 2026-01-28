@@ -135,6 +135,8 @@ class SwitchTopologicalConnectivityTest {
                 LayoutValidationIssueType.ERROR,
                 "validation.layout.switch.track-linkage.switch-no-alignments-connected",
                 mapOf("switch" to switch.name.toString()),
+                inRelationTo =
+                    setOf(PublicationLogAsset(id = IntId<LayoutSwitch>(0), type = PublicationLogAssetType.SWITCH)),
             ),
         )
     }

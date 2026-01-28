@@ -80,6 +80,11 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
 import fi.fta.geoviite.infra.util.SortOrder
+import java.time.Instant
+import kotlin.math.absoluteValue
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -88,12 +93,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
-import java.sql.Timestamp
-import java.time.Instant
-import kotlin.math.absoluteValue
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -412,12 +411,16 @@ constructor(
             publicationLogService.diffLocationTrack(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(locationTrack.id),
-                null,
+                PublicationReferencedAssetSetChanges.empty(),
+                { _ -> throw IllegalStateException("didn't expect to look up switches") },
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
                 LayoutBranch.main,
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 emptySet(),
+                switchOids = mapOf(),
+                operationalPointOids = mapOf(),
             ) { _, _ ->
                 null
             }
@@ -472,12 +475,16 @@ constructor(
             publicationLogService.diffLocationTrack(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(locationTrack.id),
-                null,
+                PublicationReferencedAssetSetChanges.empty(),
+                { _ -> throw IllegalStateException("didn't expect to look up switches") },
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
                 LayoutBranch.main,
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 emptySet(),
+                mapOf(),
+                mapOf(),
             ) { _, _ ->
                 null
             }
@@ -690,6 +697,9 @@ constructor(
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(switch.id),
+                null,
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
+                mapOf(),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
@@ -726,21 +736,14 @@ constructor(
             )
         publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
 
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
-        val latestPub = latestPubs.first()
-        val previousPub = latestPubs.last()
-        val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
-
-        val diff =
-            publicationLogService.diffSwitch(
-                localizationService.getLocalization(LocalizationLanguage.FI),
-                changes.getValue(switch.id),
-                latestPub.publicationTime,
-                previousPub.publicationTime,
-                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
-            ) { _, _ ->
-                null
-            }
+        val publication =
+            publicationLogService
+                .fetchPublicationDetails(
+                    LayoutBranch.main,
+                    translation = localizationService.getLocalization(LocalizationLanguage.FI),
+                )
+                .last()
+        val diff = publication.propChanges
         assertEquals(1, diff.size)
         assertEquals("switch", diff[0].propKey.key.toString())
         assertEquals(switch.name, diff[0].value.oldValue)
@@ -748,7 +751,7 @@ constructor(
     }
 
     @Test
-    fun `fetchPublicationLocationTrackSwitchLinkChanges() in main does not include switch changes in designs`() {
+    fun `publication log switch changes in main do not include switch link removals in designs`() {
         val switch = switchDao.save(switch(name = "sw", draft = false)).id
         switchDao.insertExternalId(switch, LayoutBranch.main, Oid("1.1.1.1.2"))
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
@@ -761,10 +764,7 @@ constructor(
                 )
                 .id
 
-        val firstMainPublicationId =
-            publish(publicationService, locationTracks = listOf(locationTrackId))
-                .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-02T00:00:00Z")) }
-                .publicationId!!
+        publish(publicationService, locationTracks = listOf(locationTrackId))
 
         val designBranch = testDBService.createDesignBranch()
         switchService.saveDraft(
@@ -775,45 +775,39 @@ constructor(
         locationTrackService.saveDraft(
             designBranch,
             locationTrackDao.getOrThrow(MainLayoutContext.official, locationTrackId),
-            geometryWithSwitchLinks(),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
 
         publish(
-                publicationService,
-                branch = designBranch,
-                locationTracks = listOf(locationTrackId),
-                switches = listOf(switch),
-            )
-            .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-03T00:00:00Z")) }
-            .publicationId!!
+            publicationService,
+            branch = designBranch,
+            locationTracks = listOf(locationTrackId),
+            switches = listOf(switch),
+        )
 
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackDao.getOrThrow(MainLayoutContext.official, locationTrackId),
-            geometryWithSwitchLinks(),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
-        val secondMainPublicationId =
-            publish(publicationService, locationTracks = listOf(locationTrackId))
-                .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-04T00:00:00Z")) }
-                .publicationId!!
+        publish(publicationService, locationTracks = listOf(locationTrackId))
 
         val fullInterval =
-            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
-                publicationId = null,
-                specificObjectId = null,
-                layoutBranch = LayoutBranch.main,
-                from = Instant.parse("2024-01-02T00:00:00Z"),
-                to = Instant.parse("2024-01-04T00:00:00Z"),
-            )
-        val expect = expectLocationTrackSwitchLinkChanges(locationTrackId)
-        val switchChangeIds = switch to SwitchChangeIds("sw", Oid("1.1.1.1.2"))
-        val expectedFirstPublicationInMain = expect(firstMainPublicationId, mapOf(), mapOf(switchChangeIds))
-        val expectedSecondPublicationInMain = expect(secondMainPublicationId, mapOf(switchChangeIds), mapOf())
-        assertEquals(mapOf(expectedFirstPublicationInMain, expectedSecondPublicationInMain), fullInterval)
+            publicationLogService
+                .fetchPublicationDetails(
+                    LayoutBranch.main,
+                    translation = localizationService.getLocalization(LocalizationLanguage.FI),
+                )
+                .map { publication ->
+                    publication.propChanges.find { propChange ->
+                        propChange.propKey.key.toString() == "linked-switches"
+                    }
+                }
+        assertEquals(listOf("Vaihde sw linkitetty", "Vaihteen sw linkitys purettu"), fullInterval.map { it?.remark })
     }
 
     @Test
-    fun `fetchPublicationLocationTrackSwitchLinkChanges() can filter by design branch and is not confused by design publications`() {
+    fun `publication log switch changes in main do not include switch link additions in designs`() {
         val switchAddedAndRemoved = switchDao.save(switch(name = "sw-added-and-later-removed", draft = false)).id
         val switchFurtherAddedInMain = switchDao.save(switch(name = "sw-later-added-in-main", draft = false)).id
         val switchFurtherAddedInDesign = switchDao.save(switch(name = "sw-later-added-in-design", draft = false)).id
@@ -831,12 +825,8 @@ constructor(
                 )
                 .id
 
-        val firstMainPublicationId =
-            publish(publicationService, locationTracks = listOf(locationTrackId))
-                .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-02T00:00:00Z")) }
-                .publicationId!!
+        publish(publicationService, locationTracks = listOf(locationTrackId))
 
-        // confuser design publication in the middle, to test filtering
         val designBranch = testDBService.createDesignBranch()
         locationTrackService.saveDraft(
             designBranch,
@@ -844,62 +834,34 @@ constructor(
             geometryWithSwitchLinks(switchFurtherAddedInDesign),
         )
         publish(publicationService, branch = designBranch, locationTracks = listOf(locationTrackId))
-            .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-03T00:00:00Z")) }
-            .publicationId!!
 
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackDao.getOrThrow(MainLayoutContext.official, locationTrackId),
             geometryWithSwitchLinks(switchFurtherAddedInMain),
         )
-        val secondMainPublicationId =
-            publish(publicationService, locationTracks = listOf(locationTrackId))
-                .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-04T00:00:00Z")) }
-                .publicationId!!
+        publish(publicationService, locationTracks = listOf(locationTrackId))
 
-        val firstInterval =
-            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
-                publicationId = null,
-                specificObjectId = null,
-                layoutBranch = LayoutBranch.main,
-                from = Instant.parse("2024-01-01T00:00:00Z"),
-                to = Instant.parse("2024-01-02T00:00:00Z"),
-            )
         val fullInterval =
-            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
-                publicationId = null,
-                specificObjectId = null,
-                layoutBranch = LayoutBranch.main,
-                from = Instant.parse("2024-01-02T00:00:00Z"),
-                to = Instant.parse("2024-01-04T00:00:00Z"),
-            )
-        val expect = expectLocationTrackSwitchLinkChanges(locationTrackId)
-        val expectedFirstPublicationInMain =
-            expect(
-                firstMainPublicationId,
-                mapOf(),
-                mapOf(switchAddedAndRemoved to SwitchChangeIds("sw-added-and-later-removed", Oid("1.1.1.1.2"))),
-            )
-        val expectedSecondPublicationInMain =
-            expect(
-                secondMainPublicationId,
-                mapOf(switchAddedAndRemoved to SwitchChangeIds("sw-added-and-later-removed", Oid("1.1.1.1.2"))),
-                mapOf(switchFurtherAddedInMain to SwitchChangeIds("sw-later-added-in-main", Oid("1.1.1.1.5"))),
-            )
-        assertEquals(mapOf(expectedFirstPublicationInMain), firstInterval)
-        assertEquals(mapOf(expectedFirstPublicationInMain, expectedSecondPublicationInMain), fullInterval)
-    }
+            publicationLogService
+                .fetchPublicationDetails(
+                    LayoutBranch.main,
+                    translation = localizationService.getLocalization(LocalizationLanguage.FI),
+                )
+                .map { publication ->
+                    publication.propChanges.find { propChange ->
+                        propChange.propKey.key.toString() == "linked-switches"
+                    }
+                }
 
-    private fun expectLocationTrackSwitchLinkChanges(
-        locationTrackId: IntId<LocationTrack>
-    ): (
-        publicationId: IntId<Publication>,
-        old: Map<IntId<LayoutSwitch>, SwitchChangeIds>,
-        new: Map<IntId<LayoutSwitch>, SwitchChangeIds>,
-    ) -> Pair<IntId<Publication>, Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>> =
-        { publicationId, old, new ->
-            publicationId to mapOf(locationTrackId to LocationTrackPublicationSwitchLinkChanges(old, new))
-        }
+        assertEquals(
+            listOf(
+                "Vaihde sw-added-and-later-removed linkitetty",
+                "Vaihteen sw-added-and-later-removed linkitys purettu. Vaihde sw-later-added-in-main linkitetty.",
+            ),
+            fullInterval.map { it?.remark },
+        )
+    }
 
     @Test
     fun `Location track switch link changes are reported`() {
@@ -977,26 +939,17 @@ constructor(
                     newSwitchReplacingOldWithSameName.id,
                 ),
         )
-        val latestPubs = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).items
-        val latestPub = latestPubs[0]
-        val previousPub = latestPubs[1]
-        val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff =
-            publicationLogService.diffLocationTrack(
-                localizationService.getLocalization(LocalizationLanguage.FI),
-                changes.getValue(originalLocationTrack.id),
-                publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
-                LayoutBranch.main,
-                latestPub.publicationTime,
-                previousPub.publicationTime,
-                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
-                setOf(),
-            ) { _, _ ->
-                null
-            }
-        assertEquals(1, diff.size)
-        assertEquals("linked-switches", diff[0].propKey.key.toString())
+            publicationLogService
+                .fetchPublicationDetails(
+                    LayoutBranch.main,
+                    translation = localizationService.getLocalization(LocalizationLanguage.FI),
+                )
+                .last { it.asset.type == PublishableObjectType.LOCATION_TRACK }
+                .propChanges
+                .find { it.propKey.key.toString() == "linked-switches" }!!
+        assertEquals("linked-switches", diff.propKey.key.toString())
         assertEquals(
             """
                 Vaihteiden sw-deleted, sw-replaced-with-new-same-name (1.1.1.1.8), sw-unlinked-from-alignment,
@@ -1005,7 +958,7 @@ constructor(
             """
                 .trimIndent()
                 .replace("\n", " "),
-            diff[0].remark,
+            diff.remark,
         )
     }
 
@@ -1043,12 +996,16 @@ constructor(
             publicationLogService.diffLocationTrack(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(originalLocationTrack.id),
-                publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
+                PublicationReferencedAssetSetChanges.empty(),
+                { _ -> throw IllegalStateException("did not expect to look up switches") },
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
                 LayoutBranch.main,
                 latestPub.publicationTime,
                 latestPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 setOf(KmNumber(0)),
+                mapOf(),
+                mapOf(),
             ) { _, _ ->
                 null
             }
@@ -1255,7 +1212,8 @@ constructor(
             referenceLineDao.save(
                 referenceLine(
                     trackNumberId,
-                    geometryVersion = alignmentDao.insert(referenceLineGeometry(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
+                    geometryVersion =
+                        alignmentDao.insert(referenceLineGeometry(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
                     draft = false,
                 )
             )
@@ -1320,6 +1278,9 @@ constructor(
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(switch.id),
+                null,
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
+                mapOf(),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
@@ -1344,7 +1305,8 @@ constructor(
             referenceLineDao.save(
                 referenceLine(
                     trackNumberId,
-                    geometryVersion = alignmentDao.insert(referenceLineGeometry(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
+                    geometryVersion =
+                        alignmentDao.insert(referenceLineGeometry(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
                     draft = false,
                 )
             )
@@ -1415,6 +1377,9 @@ constructor(
             publicationLogService.diffSwitch(
                 localizationService.getLocalization(LocalizationLanguage.FI),
                 changes.getValue(switch.id),
+                null,
+                { _ -> throw IllegalStateException("didn't expect to look up operational points") },
+                mapOf(),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
                 trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
@@ -1509,7 +1474,10 @@ constructor(
     fun `changes published in design do not confuse publication change logs`() {
         val trackNumber = mainDraftContext.save(trackNumber(TrackNumber("original")))
         val referenceLine =
-            mainDraftContext.save(referenceLine(trackNumber.id), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+            mainDraftContext.save(
+                referenceLine(trackNumber.id),
+                referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+            )
         val switch =
             mainDraftContext.save(
                 switch(
@@ -1543,7 +1511,6 @@ constructor(
             )
         val originalPublication =
             publicationTestSupportService.publishAndVerify(LayoutBranch.main, requestPublishEverything).publicationId!!
-        setPublicationTime(originalPublication, Instant.parse("2024-01-01T00:00:00Z"))
 
         val designBranch = testDBService.createDesignBranch()
 
@@ -1565,9 +1532,7 @@ constructor(
         )
         kmPostService.saveDraft(designBranch, mainOfficialContext.fetch(kmPost.id)!!.copy(kmNumber = KmNumber(101)))
 
-        publicationTestSupportService.publishAndVerify(designBranch, requestPublishEverything).also {
-            setPublicationTime(it.publicationId!!, Instant.parse("2024-01-02T00:00:00Z"))
-        }
+        publicationTestSupportService.publishAndVerify(designBranch, requestPublishEverything)
 
         publicationDao.fetchPublishedTrackNumbers(setOf(originalPublication)).getValue(originalPublication).let {
             (directChanges, indirectChanges) ->
@@ -1688,12 +1653,6 @@ constructor(
         val latestPub = publicationLogService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).items[0]
         assertEquals(Operation.CREATE, latestPub.kmPosts[0].operation)
     }
-
-    private fun setPublicationTime(publicationId: IntId<Publication>, time: Instant) =
-        jdbc.update(
-            "update publication.publication set publication_time = :time where id = :id",
-            mapOf("id" to publicationId.intValue, "time" to Timestamp.from(time)),
-        )
 }
 
 private fun geometryWithSwitchLinks(
