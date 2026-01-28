@@ -44,7 +44,7 @@ export const SwitchInfoboxContainer: React.FC<SwitchInfoboxContainerProps> = ({
             }
             startSwitchPlacing={delegates.startSwitchPlacing}
             stopLinking={() => {
-                delegates.hideLayers(['switch-linking-layer']);
+                delegates.removeForcedVisibleLayer(['switch-linking-layer']);
                 delegates.stopLinking();
             }}
             onSelectLocationTrackBadge={(locationTrackId: LocationTrackId) => {

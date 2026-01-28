@@ -32,7 +32,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
         delegates.onSelect({
             switches: [layoutSwitch.id],
         });
-        delegates.showLayers(['switch-linking-layer']);
+        delegates.addForcedVisibleLayer(['switch-linking-layer']);
     }, []);
 
     const infoboxVisibilities = useTrackLayoutAppSelector((state) => state.infoboxVisibilities);
@@ -50,7 +50,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
                 if (suggestedSwitch) {
                     startSwitchLinking(suggestedSwitch, linkingState.layoutSwitch);
                 } else {
-                    delegates.hideLayers(['switch-linking-layer']);
+                    delegates.removeForcedVisibleLayer(['switch-linking-layer']);
                 }
             });
         }

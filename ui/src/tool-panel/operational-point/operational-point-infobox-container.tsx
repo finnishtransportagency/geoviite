@@ -46,25 +46,25 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
     const startPlacingOperationalPoint = () => {
         if (operationalPoint) {
             delegates.startPlacingOperationalPoint(operationalPoint);
-            delegates.showLayers(['operational-points-placing-layer']);
+            delegates.addForcedVisibleLayer(['operational-points-placing-layer']);
         }
     };
 
     const stopPlacingOperationalPoint = () => {
         delegates.stopPlacingOperationalPoint();
-        delegates.hideLayers(['operational-points-placing-layer']);
+        delegates.removeForcedVisibleLayer(['operational-points-placing-layer']);
     };
 
     const startPlacingOperationalPointArea = () => {
         if (operationalPoint) {
             delegates.startPlacingOperationalPointArea(operationalPoint);
-            delegates.showLayers(['operational-points-area-placing-layer']);
+            delegates.addForcedVisibleLayer(['operational-points-area-placing-layer']);
         }
     };
 
     const stopPlacingOperationalPointArea = () => {
         delegates.stopPlacingOperationalPointArea();
-        delegates.hideLayers(['operational-points-area-placing-layer']);
+        delegates.removeForcedVisibleLayer(['operational-points-area-placing-layer']);
     };
 
     const clearOperationalPointArea = () => {

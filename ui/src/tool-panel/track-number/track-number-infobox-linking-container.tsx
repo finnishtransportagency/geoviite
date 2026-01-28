@@ -39,11 +39,11 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
             referenceLine={referenceLine}
             linkingState={trackLayoutState.linkingState}
             onStartReferenceLineGeometryChange={(interval) => {
-                delegates.showLayers(['alignment-linking-layer']);
+                delegates.addForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.startAlignmentGeometryChange(interval);
             }}
             onEndReferenceLineGeometryChange={() => {
-                delegates.hideLayers(['alignment-linking-layer']);
+                delegates.removeForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.stopLinking();
             }}
             showArea={delegates.showArea}

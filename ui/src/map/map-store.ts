@@ -125,7 +125,7 @@ export const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]
 };
 
 export const initialMapState: Map = {
-    proxyLayers: [],
+    forcedVisibleLayers: [],
     layerMenu: {
         layout: [
             {
@@ -233,11 +233,11 @@ export const mapReducers = {
                 : state.viewport.resolution,
         };
     },
-    showLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
-        state.proxyLayers = deduplicate([...state.proxyLayers, ...layers]);
+    addForcedVisibleLayer(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
+        state.forcedVisibleLayers = deduplicate([...state.forcedVisibleLayers, ...layers]);
     },
-    hideLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
-        state.proxyLayers = state.proxyLayers.filter((l) => !layers.includes(l));
+    removeForcedVisibleLayer(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
+        state.forcedVisibleLayers = state.forcedVisibleLayers.filter((l) => !layers.includes(l));
     },
     onLayerMenuItemChange(state: Map, { payload: change }: PayloadAction<MapLayerMenuChange>) {
         state.layerMenu.layout = updateMenuItem(state.layerMenu.layout, change);
@@ -305,14 +305,14 @@ function updateMenuItem(items: MapLayerMenuItem[], change: MapLayerMenuChange): 
 
 export function selectVisibleLayers(
     layerMenu: MapLayerMenuGroups,
-    proxyLayers: MapLayerName[],
+    forcedVisibleLayers: MapLayerName[],
 ): MapLayerName[] {
     const menuLayers = collectVisibleLayers([
         ...layerMenu.layout,
         ...layerMenu.geometry,
         ...layerMenu.debug,
     ]);
-    const allLayers = [...alwaysOnLayers, ...menuLayers, ...proxyLayers];
+    const allLayers = [...alwaysOnLayers, ...menuLayers, ...forcedVisibleLayers];
     const related = collectRelatedLayers(allLayers);
     const visible = deduplicate([...allLayers, ...related]);
     const hidden = collectLayersHiddenByProxy(visible);

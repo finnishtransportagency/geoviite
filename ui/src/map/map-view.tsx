@@ -297,8 +297,8 @@ const MapView: React.FC<MapViewProps> = ({
     const inPreviewView = !!designPublicationMode;
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
     const visibleLayerNames = React.useMemo(
-        () => selectVisibleLayers(map.layerMenu, map.proxyLayers),
-        [map.layerMenu, map.proxyLayers],
+        () => selectVisibleLayers(map.layerMenu, map.forcedVisibleLayers),
+        [map.layerMenu, map.forcedVisibleLayers],
     );
     const { isLoading, onLayerLoading } = useIsLoadingMapLayers(visibleLayerNames);
     const mapLayers = [...visibleLayerNames].sort().join();

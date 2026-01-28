@@ -637,8 +637,8 @@ export const trackLayoutReducer = trackLayoutSlice.reducer;
 export const trackLayoutActionCreators = trackLayoutSlice.actions;
 
 const updateMapLayerVisibilities = (state: Map, shouldHide: boolean, layers: MapLayerName[]) => {
-    const mapAction = shouldHide ? mapReducers.hideLayers : mapReducers.showLayers;
-    mapAction(state, { payload: layers, type: shouldHide ? 'hideLayers' : 'showLayers' });
+    const mapAction = shouldHide ? mapReducers.removeForcedVisibleLayer : mapReducers.addForcedVisibleLayer;
+    mapAction(state, { payload: layers, type: shouldHide ? 'removeForcedVisibleLayer' : 'addForcedVisibleLayer' });
 };
 
 type GeometryItemType = Pick<GeometryPlanLayout, 'alignments' | 'kmPosts' | 'switches'>;
