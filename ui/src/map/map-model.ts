@@ -151,7 +151,7 @@ export type MapLayerMenuGroups = {
 export type Map = {
     layerMenu: MapLayerMenuGroups;
     layerSettings: MapLayerSettings;
-    visibleLayers: MapLayerName[];
+    proxyLayers: MapLayerName[];
     viewport: MapViewport;
     shownItems: ShownItems;
     clickLocation?: Point;

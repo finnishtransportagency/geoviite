@@ -1,11 +1,6 @@
 import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Map, MapLayerMenuItem, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
-import {
-    initialMapState,
-    layerMenuItemMapLayers,
-    mapReducers,
-    collectRelatedLayers,
-} from 'map/map-store';
+import { Map, MapLayerMenuItem, MapLayerMenuGroups, MapLayerMenuItemName } from 'map/map-model';
+import { initialMapState, mapReducers } from 'map/map-store';
 import {
     infraModelListReducers,
     InfraModelListState,
@@ -111,48 +106,38 @@ export type ValidationResponse = {
     planLayout?: GeometryPlanLayout;
 };
 
-const visibleMapLayers: MapLayerName[] = [
-    'background-map-layer',
-    'location-track-alignment-layer',
-    'reference-line-alignment-layer',
-    'reference-line-badge-layer',
-    'switch-layer',
-    'km-post-layer',
-    'geometry-alignment-layer',
-    'geometry-switch-layer',
-    'geometry-km-post-layer',
+const visibleMapLayers: MapLayerMenuItemName[] = [
+    'background-map',
+    'location-track',
+    'reference-line',
+    'switch',
+    'km-post',
+    'geometry-alignment',
+    'geometry-switch',
+    'geometry-km-post',
 ];
 
-function createInfraModelLayerMenu(visibleLayers: MapLayerName[]): MapLayerMenuGroups {
-    const allVisibleLayers = new Set([...visibleLayers, ...collectRelatedLayers(visibleLayers)]);
+function createInfraModelLayerMenu(selectedItems: MapLayerMenuItemName[]): MapLayerMenuGroups {
+    const selectedSet = new Set(selectedItems);
 
-    const updateMenuItemsVisibility = (items: MapLayerMenuItem[]): MapLayerMenuItem[] => {
-        return items.map((item) => {
-            const layers = layerMenuItemMapLayers[item.name];
-            const allLayersVisible =
-                layers.length === 0
-                    ? item.selected
-                    : layers.every((layer) => allVisibleLayers.has(layer));
-
-            return {
-                ...item,
-                selected: allLayersVisible,
-                subMenu: item.subMenu ? updateMenuItemsVisibility(item.subMenu) : undefined,
-            };
-        });
+    const updateMenuItemsSelection = (items: MapLayerMenuItem[]): MapLayerMenuItem[] => {
+        return items.map((item) => ({
+            ...item,
+            selected: selectedSet.has(item.name),
+            subMenu: item.subMenu ? updateMenuItemsSelection(item.subMenu) : undefined,
+        }));
     };
 
     return {
-        layout: updateMenuItemsVisibility(initialMapState.layerMenu.layout),
-        geometry: updateMenuItemsVisibility(initialMapState.layerMenu.geometry),
-        debug: updateMenuItemsVisibility(initialMapState.layerMenu.debug),
+        layout: updateMenuItemsSelection(initialMapState.layerMenu.layout),
+        geometry: updateMenuItemsSelection(initialMapState.layerMenu.geometry),
+        debug: updateMenuItemsSelection(initialMapState.layerMenu.debug),
     };
 }
 
 export const initialInfraModelState: InfraModelState = {
     map: {
         ...initialMapState,
-        visibleLayers: visibleMapLayers,
         layerMenu: createInfraModelLayerMenu(visibleMapLayers),
     },
     infraModelList: initialInfraModelListState,

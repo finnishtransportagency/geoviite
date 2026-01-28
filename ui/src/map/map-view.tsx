@@ -87,7 +87,7 @@ import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/
 import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
 import { createOperationalPointIconLayer } from 'map/layers/operational-point/operational-points-icon-layer';
-import { layersCoveringLayers } from 'map/map-store';
+import { layersCoveringLayers, selectVisibleLayers } from 'map/map-store';
 import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { createPublicationCandidateLayer } from 'map/layers/preview/publication-candidate-layer';
@@ -137,8 +137,6 @@ export type MapViewProps = {
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
-    mapLayerMenuGroups: MapLayerMenuGroups;
-    visibleLayerNames: MapLayerName[];
     publicationCandidates?: PublicationCandidate[];
     customActiveMapTool?: MapTool;
     designPublicationMode?: DesignPublicationMode;
@@ -280,8 +278,6 @@ const MapView: React.FC<MapViewProps> = ({
     onClickLocation,
     onMapLayerChange,
     onSetOperationalPointPolygon,
-    mapLayerMenuGroups,
-    visibleLayerNames,
     publicationCandidates,
     customActiveMapTool,
     designPublicationMode,
@@ -300,8 +296,12 @@ const MapView: React.FC<MapViewProps> = ({
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
     const inPreviewView = !!designPublicationMode;
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
-    const { isLoading, onLayerLoading } = useIsLoadingMapLayers(map.visibleLayers);
-    const mapLayers = [...map.visibleLayers].sort().join();
+    const visibleLayerNames = React.useMemo(
+        () => selectVisibleLayers(map.layerMenu, map.proxyLayers),
+        [map.layerMenu, map.proxyLayers],
+    );
+    const { isLoading, onLayerLoading } = useIsLoadingMapLayers(visibleLayerNames);
+    const mapLayers = [...visibleLayerNames].sort().join();
     const [operationalPointAreaDrawInteraction, setOperationalPointAreaDrawInteraction] =
         React.useState<Draw>();
 
@@ -435,15 +435,15 @@ const MapView: React.FC<MapViewProps> = ({
         const layerIsCovered = (layer: MapLayerName) =>
             objectEntries(layersCoveringLayers).some(
                 ([coveringLayer, covers]) =>
-                    map.visibleLayers.includes(coveringLayer) && covers?.includes(layer),
+                    visibleLayerNames.includes(coveringLayer) && covers?.includes(layer),
             );
 
         const hideReferenceLinesWhenZoomedClose =
-            referenceLineHideWhenZoomedCloseSetting(mapLayerMenuGroups) &&
+            referenceLineHideWhenZoomedCloseSetting(map.layerMenu) &&
             resolution <= REFERENCE_LINE_AUTO_HIDE_MAX_RESOLUTION;
 
         // Create OpenLayers objects by domain layers
-        const updatedLayers = map.visibleLayers
+        const updatedLayers = visibleLayerNames
             .filter((layer) => !layerIsCovered(layer))
             .map((layerName) => {
                 const mapTiles = calculateMapTiles(olView, undefined);
@@ -822,7 +822,7 @@ const MapView: React.FC<MapViewProps> = ({
                             layoutContext,
                             mapTiles,
                             resolution,
-                            getLayoutGraphLevel(mapLayerMenuGroups),
+                            getLayoutGraphLevel(map.layerMenu),
                         );
                     case 'virtual-km-post-linking-layer': // Virtual map layers
                     case 'virtual-hide-geometry-layer':
@@ -861,7 +861,7 @@ const MapView: React.FC<MapViewProps> = ({
         map.layerSettings,
         hoveredOverPlanSection,
         manuallySetPlan,
-        mapLayerMenuGroups,
+        map.layerMenu,
         publicationCandidates,
     ]);
 
@@ -960,7 +960,7 @@ const MapView: React.FC<MapViewProps> = ({
             <div id={'maplayermenubutton'} className={'map__layer-menu'}>
                 <MapLayerMenu
                     onMenuChange={onMapLayerChange}
-                    mapLayerMenuGroups={mapLayerMenuGroups}
+                    mapLayerMenuGroups={map.layerMenu}
                     visibleLayers={visibleLayerNames}
                 />
             </div>

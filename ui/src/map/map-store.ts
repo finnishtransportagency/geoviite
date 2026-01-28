@@ -5,6 +5,7 @@ import {
     MapLayerMenuChange,
     MapLayerMenuItem,
     MapLayerMenuItemName,
+    MapLayerMenuGroups,
     MapLayerName,
     MapLayerSettingChange,
     MapViewport,
@@ -124,28 +125,7 @@ export const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]
 };
 
 export const initialMapState: Map = {
-    visibleLayers: [
-        'background-map-layer',
-        'publication-candidate-layer',
-        'deleted-publication-candidate-icon-layer',
-        'location-track-background-layer',
-        'reference-line-background-layer',
-        'location-track-badge-layer',
-        'reference-line-badge-layer',
-        'location-track-alignment-layer',
-        'reference-line-alignment-layer',
-        'plan-section-highlight-layer',
-        'km-post-layer',
-        'switch-layer',
-        'geometry-alignment-layer',
-        'geometry-switch-layer',
-        'geometry-km-post-layer',
-        'location-track-selected-alignment-layer',
-        'location-track-split-alignment-layer',
-        'reference-line-selected-alignment-layer',
-        'operational-points-icon-layer',
-        'operational-points-badge-layer',
-    ],
+    proxyLayers: [],
     layerMenu: {
         layout: [
             {
@@ -254,53 +234,15 @@ export const mapReducers = {
         };
     },
     showLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
-        const newVisibleLayers = deduplicate([
-            ...alwaysOnLayers,
-            ...state.visibleLayers,
-            ...layers,
-            ...collectRelatedLayers(layers),
-        ]);
-        const layersHiddenByProxy = collectLayersHiddenByProxy(newVisibleLayers);
-        state.visibleLayers = newVisibleLayers.filter(
-            (layer) => !layersHiddenByProxy.includes(layer),
-        );
+        state.proxyLayers = deduplicate([...state.proxyLayers, ...layers]);
     },
     hideLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
-        const relatedLayers = collectRelatedLayers(layers);
-        const layersByMenu = collectVisibleLayers([
-            ...state.layerMenu.layout,
-            ...state.layerMenu.geometry,
-            ...state.layerMenu.debug,
-        ]);
-
-        const visibleLayers = state.visibleLayers
-            .filter((l) => !relatedLayers.includes(l) && !layers.includes(l))
-            .concat(layersByMenu);
-        const layersHiddenByProxy = collectLayersHiddenByProxy(visibleLayers);
-
-        state.visibleLayers = deduplicate([
-            ...alwaysOnLayers,
-            ...visibleLayers,
-            ...collectRelatedLayers(visibleLayers),
-        ]).filter((layer) => !layersHiddenByProxy.includes(layer));
+        state.proxyLayers = state.proxyLayers.filter((l) => !layers.includes(l));
     },
     onLayerMenuItemChange(state: Map, { payload: change }: PayloadAction<MapLayerMenuChange>) {
         state.layerMenu.layout = updateMenuItem(state.layerMenu.layout, change);
         state.layerMenu.geometry = updateMenuItem(state.layerMenu.geometry, change);
         state.layerMenu.debug = updateMenuItem(state.layerMenu.debug, change);
-        const allMenuItems = [
-            ...state.layerMenu.layout,
-            ...state.layerMenu.geometry,
-            ...state.layerMenu.debug,
-        ];
-
-        const changedLayers = collectChangedLayers(allMenuItems, change);
-
-        if (change.selected) {
-            this.showLayers(state, { payload: changedLayers, type: 'showLayers' });
-        } else {
-            this.hideLayers(state, { payload: changedLayers, type: 'hideLayers' });
-        }
     },
     onLayerSettingChange: (
         state: Map,
@@ -333,33 +275,6 @@ export const mapReducers = {
     },
 };
 
-function collectChangedLayers(
-    items: MapLayerMenuItem[],
-    change: MapLayerMenuChange,
-    isChild = false,
-): MapLayerName[] {
-    return items.flatMap(({ name, subMenu }) => {
-        if (name === change.name) {
-            if (change.selected) {
-                return [
-                    ...layerMenuItemMapLayers[name],
-                    ...collectChangedLayers(subMenu?.filter((i) => i.selected) ?? [], change, true),
-                ];
-            } else {
-                return [
-                    ...layerMenuItemMapLayers[name],
-                    ...collectChangedLayers(subMenu ?? [], change, true),
-                ];
-            }
-        } else {
-            return [
-                ...(isChild ? layerMenuItemMapLayers[name] : []),
-                ...collectChangedLayers(subMenu ?? [], change, isChild),
-            ];
-        }
-    });
-}
-
 function collectVisibleLayers(items: MapLayerMenuItem[]): MapLayerName[] {
     return items.flatMap((i) =>
         i.selected
@@ -386,6 +301,22 @@ function updateMenuItem(items: MapLayerMenuItem[], change: MapLayerMenuChange): 
         selected: i.name === change.name ? change.selected : i.selected,
         subMenu: i.subMenu ? updateMenuItem(i.subMenu, change) : undefined,
     }));
+}
+
+export function selectVisibleLayers(
+    layerMenu: MapLayerMenuGroups,
+    proxyLayers: MapLayerName[],
+): MapLayerName[] {
+    const menuLayers = collectVisibleLayers([
+        ...layerMenu.layout,
+        ...layerMenu.geometry,
+        ...layerMenu.debug,
+    ]);
+    const allLayers = [...alwaysOnLayers, ...menuLayers, ...proxyLayers];
+    const related = collectRelatedLayers(allLayers);
+    const visible = deduplicate([...allLayers, ...related]);
+    const hidden = collectLayersHiddenByProxy(visible);
+    return visible.filter((layer) => !hidden.includes(layer));
 }
 
 export type MapContextState = 'track-layout' | 'infra-model';

@@ -22,7 +22,6 @@ import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edi
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu, MenuOption, menuOption } from 'vayla-design-lib/menu/menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
@@ -74,9 +73,6 @@ export type ToolbarParams = {
     showArea: (area: BoundingBox) => void;
     layoutContext: LayoutContext;
     onStopLinking: () => void;
-    onMapLayerChange: (change: MapLayerMenuChange) => void;
-    mapLayerMenuGroups: MapLayerMenuGroups;
-    visibleLayers: MapLayerName[];
     splittingState: SplittingState | undefined;
     linkingState: LinkingState | undefined;
     layoutContextMode: LayoutContextMode;

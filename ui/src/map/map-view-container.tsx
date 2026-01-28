@@ -43,8 +43,6 @@ const getTrackLayoutProps = (): MapViewProps => {
         onSetOperationalPointPolygon: delegates.setOperationalPointArea,
         layoutContext: store.layoutContext,
         selection: store.selection,
-        visibleLayerNames: store.map.visibleLayers,
-        mapLayerMenuGroups: store.map.layerMenu,
         onMapLayerChange: delegates.onLayerMenuItemChange,
         onClosePlanDownloadPopup: delegates.onClosePlanDownloadPopup,
         selectedDesignId: store.designId,
@@ -78,8 +76,6 @@ const getInfraModelProps = (): MapViewProps => {
         onViewportUpdate: delegates.onViewportChange,
         layoutContext: officialMainLayoutContext(),
         selection: store.selection,
-        visibleLayerNames: store.map.visibleLayers,
-        mapLayerMenuGroups: store.map.layerMenu,
         onMapLayerChange: delegates.onLayerMenuItemChange,
     };
 };
