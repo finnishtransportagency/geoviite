@@ -97,13 +97,12 @@ export type ShownItems = {
 
 export type MapLayerMenuItem = {
     name: MapLayerMenuItemName;
-    visible: boolean;
-    qaId?: string;
+    selected: boolean;
     subMenu?: MapLayerMenuItem[];
 };
 
 export type MapLayerMenuItemName =
-    | 'map'
+    | 'background-map'
     | 'orthographic-background-map'
     | 'location-track'
     | 'reference-line'
@@ -173,7 +172,7 @@ export type AlignmentHighlight = {
 
 export type MapLayerMenuChange = {
     name: MapLayerMenuItemName;
-    visible: boolean;
+    selected: boolean;
 };
 
 export type VerticalAlignmentVisibleExtentChange = {
@@ -188,7 +187,7 @@ export function getLayerSetting(
     layer: MapLayerMenuItemName,
     setting: MapLayerMenuItemName,
 ): boolean {
-    return expectDefined(getSubMenu(menuItems, layer, setting)?.visible);
+    return expectDefined(getSubMenu(menuItems, layer, setting)?.selected);
 }
 
 export function getSubMenu(

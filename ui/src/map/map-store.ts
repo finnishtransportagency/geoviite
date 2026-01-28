@@ -97,8 +97,8 @@ export const layersCoveringLayers: LayerCollection = {
     'orthographic-background-map-layer': ['background-map-layer'],
 };
 
-const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
-    'map': ['background-map-layer'],
+export const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
+    'background-map': ['background-map-layer'],
     'orthographic-background-map': ['orthographic-background-map-layer'],
     'location-track': ['location-track-alignment-layer', 'location-track-badge-layer'],
     'reference-line': ['reference-line-alignment-layer', 'reference-line-badge-layer'],
@@ -149,83 +149,72 @@ export const initialMapState: Map = {
     layerMenu: {
         layout: [
             {
-                name: 'map',
-                visible: true,
-                qaId: 'background-map-layer',
+                name: 'background-map',
+                selected: true,
                 subMenu: [
                     {
                         name: 'orthographic-background-map',
-                        visible: false,
-                        qaId: 'orthographic-background-map-layer',
+                        selected: false,
                     },
                 ],
             },
             {
                 name: 'reference-line',
-                visible: true,
-                qaId: 'reference-line-layer',
+                selected: true,
                 subMenu: [
                     {
                         name: 'reference-line-hide-when-zoomed-close',
-                        visible: false,
-                        qaId: 'reference-line-hide-when-zoomed-close',
+                        selected: false,
                     },
                     {
                         name: 'track-number-diagram',
-                        visible: false,
-                        qaId: 'track-number-diagram-layer',
+                        selected: false,
                     },
                 ],
             },
             {
                 name: 'location-track',
-                visible: true,
-                qaId: 'location-track-layer',
+                selected: true,
                 subMenu: [
                     {
                         name: 'missing-vertical-geometry',
-                        visible: false,
-                        qaId: 'missing-vertical-geometry-layer',
+                        selected: false,
                     },
-                    { name: 'missing-linking', visible: false, qaId: 'missing-linking-layer' },
-                    { name: 'duplicate-tracks', visible: false, qaId: 'duplicate-tracks-layer' },
+                    { name: 'missing-linking', selected: false },
+                    { name: 'duplicate-tracks', selected: false },
                 ],
             },
-            { name: 'switch', visible: true, qaId: 'switch-layer' },
-            { name: 'km-post', visible: true, qaId: 'km-post-layer' },
+            { name: 'switch', selected: true },
+            { name: 'km-post', selected: true },
             {
                 name: 'operational-points',
-                visible: true,
-                qaId: 'operational-points-layer',
+                selected: true,
                 subMenu: [
                     {
                         name: 'operational-point-areas',
-                        visible: false,
-                        qaId: 'operational-points-area-layer',
+                        selected: false,
                     },
                 ],
             },
-            { name: 'signal-asset', visible: false, qaId: 'signal-asset-layer' },
+            { name: 'signal-asset', selected: false },
         ],
         geometry: [
-            { name: 'geometry-alignment', visible: true, qaId: 'geometry-alignment-layer' },
-            { name: 'geometry-switch', visible: true, qaId: 'geometry-switch-layer' },
-            { name: 'geometry-km-post', visible: true, qaId: 'geometry-km-post-layer' },
-            { name: 'plan-area', visible: false, qaId: 'geometry-area-layer' },
+            { name: 'geometry-alignment', selected: true },
+            { name: 'geometry-switch', selected: true },
+            { name: 'geometry-km-post', selected: true },
+            { name: 'plan-area', selected: false },
         ],
         debug: [
-            { name: 'debug-1m', visible: false },
-            { name: 'debug-projection-lines', visible: false },
-            { name: 'debug', visible: false },
+            { name: 'debug-1m', selected: false },
+            { name: 'debug-projection-lines', selected: false },
+            { name: 'debug', selected: false },
             {
                 name: 'debug-layout-graph',
-                visible: false,
-                qaId: 'debug-layout-graph-layer',
+                selected: false,
                 subMenu: [
                     {
                         name: 'debug-layout-graph-nano',
-                        visible: false,
-                        qaId: 'debug-layout-graph-nano',
+                        selected: false,
                     },
                 ],
             },
@@ -307,7 +296,7 @@ export const mapReducers = {
 
         const changedLayers = collectChangedLayers(allMenuItems, change);
 
-        if (change.visible) {
+        if (change.selected) {
             this.showLayers(state, { payload: changedLayers, type: 'showLayers' });
         } else {
             this.hideLayers(state, { payload: changedLayers, type: 'hideLayers' });
@@ -351,10 +340,10 @@ function collectChangedLayers(
 ): MapLayerName[] {
     return items.flatMap(({ name, subMenu }) => {
         if (name === change.name) {
-            if (change.visible) {
+            if (change.selected) {
                 return [
                     ...layerMenuItemMapLayers[name],
-                    ...collectChangedLayers(subMenu?.filter((i) => i.visible) ?? [], change, true),
+                    ...collectChangedLayers(subMenu?.filter((i) => i.selected) ?? [], change, true),
                 ];
             } else {
                 return [
@@ -373,7 +362,7 @@ function collectChangedLayers(
 
 function collectVisibleLayers(items: MapLayerMenuItem[]): MapLayerName[] {
     return items.flatMap((i) =>
-        i.visible
+        i.selected
             ? [...layerMenuItemMapLayers[i.name], ...collectVisibleLayers(i.subMenu ?? [])]
             : [],
     );
@@ -382,7 +371,7 @@ function collectVisibleLayers(items: MapLayerMenuItem[]): MapLayerName[] {
 const collectLayersHiddenByProxy = (items: MapLayerName[]) =>
     deduplicate(items.flatMap((i) => layersToHideByProxy[i]).filter(filterNotEmpty));
 
-function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
+export function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
     const allRelatedMapLayers = { ...layersToShowByProxy, ...relatedMapLayers };
     const relatedLayers = layers.flatMap((l) => allRelatedMapLayers[l]).filter(filterNotEmpty);
 
@@ -394,7 +383,7 @@ function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
 function updateMenuItem(items: MapLayerMenuItem[], change: MapLayerMenuChange): MapLayerMenuItem[] {
     return items.map((i) => ({
         name: i.name,
-        visible: i.name === change.name ? change.visible : i.visible,
+        selected: i.name === change.name ? change.selected : i.selected,
         subMenu: i.subMenu ? updateMenuItem(i.subMenu, change) : undefined,
     }));
 }

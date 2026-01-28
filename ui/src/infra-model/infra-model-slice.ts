@@ -1,6 +1,11 @@
 import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Map, MapLayerName } from 'map/map-model';
-import { initialMapState, mapReducers } from 'map/map-store';
+import { Map, MapLayerMenuItem, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
+import {
+    initialMapState,
+    layerMenuItemMapLayers,
+    mapReducers,
+    collectRelatedLayers,
+} from 'map/map-store';
 import {
     infraModelListReducers,
     InfraModelListState,
@@ -118,10 +123,37 @@ const visibleMapLayers: MapLayerName[] = [
     'geometry-km-post-layer',
 ];
 
+function createInfraModelLayerMenu(visibleLayers: MapLayerName[]): MapLayerMenuGroups {
+    const allVisibleLayers = new Set([...visibleLayers, ...collectRelatedLayers(visibleLayers)]);
+
+    const updateMenuItemsVisibility = (items: MapLayerMenuItem[]): MapLayerMenuItem[] => {
+        return items.map((item) => {
+            const layers = layerMenuItemMapLayers[item.name];
+            const allLayersVisible =
+                layers.length === 0
+                    ? item.selected
+                    : layers.every((layer) => allVisibleLayers.has(layer));
+
+            return {
+                ...item,
+                selected: allLayersVisible,
+                subMenu: item.subMenu ? updateMenuItemsVisibility(item.subMenu) : undefined,
+            };
+        });
+    };
+
+    return {
+        layout: updateMenuItemsVisibility(initialMapState.layerMenu.layout),
+        geometry: updateMenuItemsVisibility(initialMapState.layerMenu.geometry),
+        debug: updateMenuItemsVisibility(initialMapState.layerMenu.debug),
+    };
+}
+
 export const initialInfraModelState: InfraModelState = {
     map: {
         ...initialMapState,
         visibleLayers: visibleMapLayers,
+        layerMenu: createInfraModelLayerMenu(visibleMapLayers),
     },
     infraModelList: initialInfraModelListState,
     selection: {
