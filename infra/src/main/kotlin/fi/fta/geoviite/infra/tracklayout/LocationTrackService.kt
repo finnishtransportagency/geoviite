@@ -45,11 +45,11 @@ import fi.fta.geoviite.infra.tracklayout.DuplicateEndPointType.START
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.processFlattened
-import java.time.Instant
 import org.postgresql.util.PSQLException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATIONAL_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
@@ -721,7 +721,7 @@ class LocationTrackService(
             .filter { op ->
                 op.raideType == OperationalPointRaideType.LPO || op.raideType == OperationalPointRaideType.LP
             }
-            .minByOrNull { operatingPoint -> lineLength(requireNotNull(operatingPoint.location), location) }
+            .minByOrNull { operationalPoint -> lineLength(requireNotNull(operationalPoint.location), location) }
 
     @Transactional(readOnly = true)
     fun getSwitchesForLocationTrack(

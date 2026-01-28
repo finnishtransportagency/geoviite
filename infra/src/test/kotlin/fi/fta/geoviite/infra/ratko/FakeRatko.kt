@@ -27,8 +27,8 @@ import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
 import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
-import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointAsset
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointAssetsResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItem
@@ -478,7 +478,7 @@ class FakeRatko(port: Int) {
 
     fun hasOperationalPoints(points: List<RatkoOperationalPointParse>) =
         post("/api/assets/v1.2/search", mapOf("assetType" to "railway_traffic_operating_point"), times = Times.once())
-            .respond(okJson(RatkoOperatingPointAssetsResponse(points.map(::marshallOperatingPoint))))
+            .respond(okJson(RatkoOperationalPointAssetsResponse(points.map(::marshallOperationalPoint))))
 
     private fun getPointUpdates(oid: String, urlInfix: String, method: String): List<List<RatkoPoint>> =
         mockServer
@@ -557,7 +557,7 @@ class FakeRatko(port: Int) {
             .withContentType(MediaType.APPLICATION_JSON)
 }
 
-private fun marshallOperatingPoint(point: RatkoOperationalPointParse): RatkoOperationalPointAsset =
+private fun marshallOperationalPoint(point: RatkoOperationalPointParse): RatkoOperationalPointAsset =
     RatkoOperationalPointAsset(
         id = point.externalId.toString(),
         properties =

@@ -36,7 +36,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.LocationTrackNameBetweenOperatingPoints
+import fi.fta.geoviite.infra.tracklayout.LocationTrackNameBetweenOperationalPoints
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameChord
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
@@ -342,7 +342,7 @@ fun validateLocationTrackEndSwitchNamingScheme(
     }
 
     val nameHasSwitchNames =
-        track.nameStructure is LocationTrackNameChord || track.nameStructure is LocationTrackNameBetweenOperatingPoints
+        track.nameStructure is LocationTrackNameChord || track.nameStructure is LocationTrackNameBetweenOperationalPoints
     val descriptionHasSwitchNames = track.descriptionStructure.suffix != LocationTrackDescriptionSuffix.NONE
 
     return if (nameHasSwitchNames || descriptionHasSwitchNames) {

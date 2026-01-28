@@ -24,7 +24,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoAssetState
 import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
-import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointAssetsResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
@@ -42,7 +42,6 @@ import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -55,6 +54,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 val defaultBlockTimeout: Duration = defaultResponseTimeout.plusMinutes(1L)
 
@@ -504,16 +504,16 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun fetchOperationalPoints(): List<RatkoOperationalPointParse> {
-        logger.integrationCall("fetchOperatingPoints")
+        logger.integrationCall("fetchOperationalPoints")
         val allPoints = mutableListOf<RatkoOperationalPointParse>()
         var pageNumber = 0
         do {
-            logger.info("fetching operating points for page $pageNumber")
+            logger.info("fetching operational points for page $pageNumber")
             val body =
                 (postWithResponseBody<String>(
                     "$ASSET_PATH/search?fields=summary",
                     mapOf(
-                        "assetType" to "railway_traffic_operating_point",
+                        "assetType" to "railway_traffic_operating_point", // Ratko uses "operating_point" instead of "operational_point"
                         "pageNumber" to pageNumber++,
                         "size" to 100,
                         "sortOrder" to "ASC",
@@ -521,9 +521,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                     ),
                 ))
             val allAssetsInPage =
-                ratkoJsonMapper.readValue(body, RatkoOperatingPointAssetsResponse::class.java)?.assets ?: listOf()
-            val validOperatingPointsInPage = allAssetsInPage.mapNotNull { parseAsset(it, logger) }
-            allPoints.addAll(validOperatingPointsInPage)
+                ratkoJsonMapper.readValue(body, RatkoOperationalPointAssetsResponse::class.java)?.assets ?: listOf()
+            val validOperationalPointsInPage = allAssetsInPage.mapNotNull { parseAsset(it, logger) }
+            allPoints.addAll(validOperationalPointsInPage)
         } while (allAssetsInPage.size == 100)
         return allPoints
     }

@@ -56,8 +56,8 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/update-operating-points-from-ratko")
-    fun updateOperatingPointsFromRatko(): HttpStatus {
+    @PostMapping("/update-operational-points-from-ratko")
+    fun updateOperationalPointsFromRatko(): HttpStatus {
         ratkoService.updateOperationalPointsFromRatko()
 
         return HttpStatus.NO_CONTENT
