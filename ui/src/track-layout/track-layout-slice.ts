@@ -39,7 +39,7 @@ import {
 } from 'common/common-model';
 import { GeometryPlanLayout, LocationTrackId, SwitchSplitPoint, } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { first, lastIndex } from 'utils/array-utils';
+import { first, lastIndex, takeLast } from 'utils/array-utils';
 import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard, expectFieldDefined, ifDefined, NonNullableField, } from 'utils/type-utils';
 import { addSplitToState, splitReducers, SplittingState, } from 'tool-panel/location-track/split-store';
@@ -56,6 +56,7 @@ import {
 } from 'map/plan-download/plan-download-store';
 import { objectEquals } from 'utils/object-utils';
 
+export const SELECTION_HISTORY_MAX_SIZE = 100;
 export const SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID = 'SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID';
 
 export type InfoboxVisibilities = {
@@ -900,8 +901,9 @@ function pushSelectionHistoryStep(state: TrackLayoutState) {
                 selectedToolPanelTab: state.selectedToolPanelTab,
             },
         ];
-        state.selectionHistory = newHistory;
-        state.selectionHistoryIndex = lastIndex(newHistory);
+        const croppedHistory = takeLast(newHistory, SELECTION_HISTORY_MAX_SIZE);
+        state.selectionHistory = croppedHistory;
+        state.selectionHistoryIndex = lastIndex(croppedHistory);
     }
 }
 
