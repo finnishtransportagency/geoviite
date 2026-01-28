@@ -74,7 +74,7 @@ import { createDuplicateTracksHighlightLayer } from 'map/layers/highlight/duplic
 import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
 import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/track-number-end-point-addresses-layer';
-import { coordsToPolygon, Polygon, Point, Rectangle } from 'model/geometry';
+import { coordsToPolygon, Point, Polygon, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -105,6 +105,7 @@ import { createOperationalPointsPlacingLayer } from 'map/layers/operational-poin
 import { operationalPointPolygonStylesFunc } from 'map/layers/operational-point/operational-points-layer-utils';
 import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
 import { createOperationalPointBadgeLayer } from 'map/layers/operational-point/operational-points-badge-layer';
+import { createSignalAssetLayer } from 'map/layers/ratko/signal-asset-layer';
 
 declare global {
     interface Window {
@@ -826,6 +827,11 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'virtual-km-post-linking-layer': // Virtual map layers
                     case 'virtual-hide-geometry-layer':
                         return undefined;
+                    case 'signal-asset-layer':
+                        return createSignalAssetLayer(
+                            existingOlLayer as TileLayer<TileSource>,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
                     default:
                         return exhaustiveMatchingGuard(layerName);
                 }

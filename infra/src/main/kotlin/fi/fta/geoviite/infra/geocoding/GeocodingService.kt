@@ -89,7 +89,7 @@ class GeocodingService(
         }
     }
 
-    fun getLazyGeocodingContextsAtMultiMoment(
+    fun getLazyGeocodingContextsByMoments(
         branch: LayoutBranch
     ): (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>? {
         val contexts =

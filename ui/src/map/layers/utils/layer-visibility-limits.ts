@@ -28,6 +28,7 @@ const mapLayerOrder: MapLayerName[] = [
     'location-track-split-alignment-layer',
     'reference-line-badge-layer',
     'location-track-split-badge-layer',
+    'signal-asset-layer',
     'km-post-layer',
     'switch-layer',
     'track-number-addresses-layer',

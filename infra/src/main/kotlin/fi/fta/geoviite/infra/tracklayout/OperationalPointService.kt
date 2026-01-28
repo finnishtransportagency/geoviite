@@ -28,7 +28,7 @@ class OperationalPointService(val operationalPointDao: OperationalPointDao, priv
         dao.fetchMany(
             dao.fetchVersions(
                 context,
-                includeDeleted = false,
+                includeDeleted = true,
                 locationBbox = locationBbox,
                 polygonBbox = polygonBbox,
                 ids = ids,

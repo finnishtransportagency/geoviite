@@ -31,7 +31,7 @@ export function createOperationalPointAreaLayer(
 
     const createFeatures = (points: OperationalPoint[]) =>
         points
-            .filter((point) => !isBeingEdited(point.id))
+            .filter((point) => point.state !== 'DELETED' && !isBeingEdited(point.id))
             .map((point) => {
                 return point.polygon
                     ? renderOperationalPointAreaFeature(

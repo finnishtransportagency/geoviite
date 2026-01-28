@@ -73,7 +73,10 @@ private const val ASSET_PATH = "/api/assets/v1.2"
 private const val VERSION_PATH = "/api/versions/v1.0/version"
 private const val BULK_TRANSFER_PATH = "/api/split/bulk-transfer"
 private const val PLAN_PATH = "/api/plan/v1.0/plans"
+private const val MAP_ASSET_PATH = "/api/map/v1.0/assets"
 
+// Use Geoviite OID-space for fake OIDs but make fake OIDs clearly distinct from real OIDs
+const val FAKE_OID_PREFIX = "1.2.246.578.13.0.0.0.0.0.0.0.0.0"
 const val TRACK_NUMBER_FAKE_OID_CONTEXT = 10001
 const val LOCATION_TRACK_FAKE_OID_CONTEXT = 10002
 const val SWITCH_FAKE_OID_CONTEXT = 139
@@ -85,13 +88,18 @@ enum class RatkoConnectionStatus {
     NOT_CONFIGURED,
 }
 
+fun isFakeOID(oid: String): Boolean {
+    return oid.startsWith(FAKE_OID_PREFIX)
+}
+
+fun <T> isFakeOID(oid: RatkoOid<T>): Boolean = isFakeOID(oid.toString())
+
 @Component
 @ConditionalOnBean(RatkoFakeOidGeneratorConfiguration::class)
 class RatkoFakeOidGenerator {
 
     fun <T> generateFakeRatkoOID(contextId: Int, uniqueIdInContext: Int): RatkoOid<T> {
-        // make fake OID clearly distinct from real OIDs
-        return RatkoOid("0.0.0.0.0.0.${contextId}.${uniqueIdInContext}")
+        return RatkoOid("${FAKE_OID_PREFIX}.${contextId}.${uniqueIdInContext}")
     }
 }
 
@@ -139,10 +147,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             }
     }
 
-    fun updateLocationTrackProperties(locationTrack: RatkoLocationTrack) {
+    fun updateLocationTrackProperties(locationTrack: RatkoLocationTrack, oid: Oid<LocationTrack>) {
         logger.integrationCall("updateLocationTrackProperties", "locationTrack" to locationTrack)
 
-        putWithoutResponseBody(LOCATION_TRACK_PATH, locationTrack)
+        patchWithoutResponseBody("$LOCATION_TRACK_PATCH_PATH/${oid}", locationTrack)
     }
 
     fun deleteLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, km: KmNumber?) {
@@ -284,6 +292,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         locationTrackOidOfGeometry: RatkoOid<RatkoLocationTrack>? = null,
     ): RatkoOid<RatkoLocationTrack>? {
         logger.integrationCall("newLocationTrack", "locationTrack" to locationTrack)
+        assert(locationTrack.id != null && !isFakeOID(locationTrack.id)) {
+            "Cannot push fake OID ${locationTrack.id} into Ratko"
+        }
 
         return locationTrackOidOfGeometry?.let { referencedGeometryOid ->
             postWithResponseBody(
@@ -471,6 +482,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     fun newRouteNumber(routeNumber: RatkoRouteNumber): RatkoOid<RatkoRouteNumber>? {
         logger.integrationCall("newRouteNumber", "routeNumber" to routeNumber)
+        assert(routeNumber.id != null && !isFakeOID(routeNumber.id)) {
+            "Cannot push fake OID ${routeNumber.id} into Ratko"
+        }
 
         return postWithResponseBody(ROUTE_NUMBER_PATH, routeNumber)
     }
@@ -638,6 +652,22 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 }
             },
         )
+
+    fun getSignalAsset(x: Int, y: Int, z: Int, cluster: Boolean): ByteArray? =
+        getSpec("${combinePaths(MAP_ASSET_PATH, "$x", "$y", "$z")}?assetType=signal&cluster=${cluster}&state=IN USE")
+            .onStatus(
+                { !it.is2xxSuccessful },
+                { response ->
+                    response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { body ->
+                        logger.error(
+                            "Error proxying signal asset fetch! HTTP Status code: ${response.statusCode()}, body: $body"
+                        )
+                        Mono.empty()
+                    }
+                },
+            )
+            .bodyToMono<ByteArray>()
+            .block(defaultBlockTimeout)
 }
 
 fun combinePaths(vararg paths: Any?) =

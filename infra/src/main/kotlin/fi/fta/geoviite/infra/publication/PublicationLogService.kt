@@ -223,7 +223,7 @@ constructor(
                         Instant,
                         MutableMap<IntId<LayoutTrackNumber>, Optional<GeocodingContext<ReferenceLineM>>>,
                     >()
-                val trackNumbersCache = trackNumberDao.fetchTrackNumberNames()
+                val trackNumbersCache = trackNumberDao.fetchTrackNumberNames(layoutBranch)
                 val getGeocodingContextOrNull = { trackNumberId: IntId<LayoutTrackNumber>, timestamp: Instant ->
                     getOrPutGeocodingContext(geocodingContextCache, layoutBranch, trackNumberId, timestamp)
                 }
@@ -422,13 +422,13 @@ constructor(
                 }
             }
         val newStartPointAndM =
-            locationTrackChanges.startPoint.new?.let { newStart ->
+            locationTrackChanges.startPoint.new.let { newStart ->
                 locationTrackChanges.trackNumberId.new.let {
                     getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newStart)
                 }
             }
         val newEndPointAndM =
-            locationTrackChanges.endPoint.new?.let { newEnd ->
+            locationTrackChanges.endPoint.new.let { newEnd ->
                 locationTrackChanges.trackNumberId.new.let {
                     getGeocodingContext(it, newAndTime.second)?.getAddressAndM(newEnd)
                 }
@@ -880,7 +880,7 @@ constructor(
         switchLinkChanges: Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>,
         previousComparisonTime: Instant,
         geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
-        trackNumberNamesCache: List<TrackNumberAndChangeTime> = trackNumberDao.fetchTrackNumberNames(),
+        trackNumberNamesCache: List<TrackNumberAndChangeTime> = trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
     ): List<PublicationTableItem> {
         val publicationLocationTrackChanges =
             if (canSkipLoadingChanges(publication, publicationLogAsset, PublishableObjectType.LOCATION_TRACK)) {

@@ -35,7 +35,9 @@ export function createOperationalPointBadgeLayer(
         points
             .filter(
                 (point) =>
-                    !isBeingMoved(linkingState, point.id) && filterByResolution(point, resolution),
+                    point.state !== 'DELETED' &&
+                    !isBeingMoved(linkingState, point.id) &&
+                    filterByResolution(point, resolution),
             )
             .map((point) =>
                 renderOperationalPointTextFeature(

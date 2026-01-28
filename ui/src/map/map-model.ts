@@ -57,7 +57,8 @@ export type MapLayerName =
     | 'virtual-hide-geometry-layer'
     | 'publication-candidate-layer'
     | 'deleted-publication-candidate-icon-layer'
-    | 'debug-geometry-graph-layer';
+    | 'debug-geometry-graph-layer'
+    | 'signal-asset-layer';
 
 export type MapViewportSource = 'Map';
 
@@ -119,6 +120,7 @@ export type MapLayerMenuItemName =
     | 'geometry-km-post'
     | 'operational-points'
     | 'operational-point-areas'
+    | 'signal-asset'
     | 'debug-1m'
     | 'debug-projection-lines'
     | 'debug'

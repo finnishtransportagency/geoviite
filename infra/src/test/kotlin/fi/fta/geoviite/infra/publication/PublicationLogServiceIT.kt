@@ -369,6 +369,14 @@ constructor(
                     ),
                 )
             )
+
+        listOf(duplicate, duplicate2, locationTrack).forEach { track ->
+            mainDraftContext.save(
+                mainDraftContext.fetch(track.id as IntId)!!,
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+            )
+        }
+
         publicationTestSupportService.publishAndVerify(
             LayoutBranch.main,
             publicationRequest(locationTracks = listOf(locationTrack.id as IntId, duplicate.id, duplicate2.id as IntId)),
@@ -408,7 +416,7 @@ constructor(
                 LayoutBranch.main,
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                trackNumberDao.fetchTrackNumberNames(),
+                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 emptySet(),
             ) { _, _ ->
                 null
@@ -440,6 +448,10 @@ constructor(
             )
 
         val locationTrack = locationTrackDao.fetch(locationTrackService.insert(LayoutBranch.main, saveReq))
+        mainDraftContext.save(
+            mainDraftContext.fetch(locationTrack.id as IntId)!!,
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
         publish(publicationService, locationTracks = listOf(locationTrack.id as IntId))
 
         val updatedLocationTrack =
@@ -464,7 +476,7 @@ constructor(
                 LayoutBranch.main,
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                trackNumberDao.fetchTrackNumberNames(),
+                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 emptySet(),
             ) { _, _ ->
                 null
@@ -533,7 +545,7 @@ constructor(
                 changes.getValue(kmPost.id),
                 latestPub.publicationTime,
                 latestPub.publicationTime.minusMillis(1),
-                trackNumberDao.fetchTrackNumberNames(),
+                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 { _, _ -> null },
                 { geographyService.getCoordinateSystem(it).name.toString() },
             )
@@ -571,7 +583,7 @@ constructor(
             changes.getValue(id),
             latestPub.publicationTime,
             latestPub.publicationTime.minusMillis(1),
-            trackNumberDao.fetchTrackNumberNames(),
+            trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
             { _, _ -> null },
             { geographyService.getCoordinateSystem(it).name.toString() },
         )
@@ -607,7 +619,7 @@ constructor(
                 changes.getValue(kmPost.id),
                 latestPub.publicationTime,
                 latestPub.publicationTime.minusMillis(1),
-                trackNumberDao.fetchTrackNumberNames(),
+                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 { _, _ -> null },
                 { geographyService.getCoordinateSystem(it).name.toString() },
             )
@@ -680,7 +692,7 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                trackNumberDao.fetchTrackNumberNames(),
+                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
             ) { _, _ ->
                 null
             }
@@ -725,7 +737,7 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                trackNumberDao.fetchTrackNumberNames(),
+                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
             ) { _, _ ->
                 null
             }
@@ -978,7 +990,7 @@ constructor(
                 LayoutBranch.main,
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                trackNumberDao.fetchTrackNumberNames(),
+                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 setOf(),
             ) { _, _ ->
                 null
@@ -1035,7 +1047,7 @@ constructor(
                 LayoutBranch.main,
                 latestPub.publicationTime,
                 latestPub.publicationTime,
-                trackNumberDao.fetchTrackNumberNames(),
+                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 setOf(KmNumber(0)),
             ) { _, _ ->
                 null
@@ -1310,7 +1322,7 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                trackNumberDao.fetchTrackNumberNames(),
+                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 { _, _ -> geocodingContext },
             )
         assertEquals(
@@ -1405,7 +1417,7 @@ constructor(
                 changes.getValue(switch.id),
                 latestPub.publicationTime,
                 previousPub.publicationTime,
-                trackNumberDao.fetchTrackNumberNames(),
+                trackNumberDao.fetchTrackNumberNames(LayoutBranch.main),
                 { _, _ -> geocodingContext },
             )
         assertEquals(2, diff.size)

@@ -66,4 +66,15 @@ class RatkoController(private val ratkoServiceParam: RatkoService?, private val 
 
         return HttpStatus.NO_CONTENT
     }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
+    @GetMapping("/signal-assets/{x}/{y}/{z}")
+    fun getSignalAsset(
+        @PathVariable("x") x: Int,
+        @PathVariable("y") y: Int,
+        @PathVariable("z") z: Int,
+        @RequestParam("cluster") cluster: Boolean = false,
+    ): ResponseEntity<ByteArray> {
+        return toResponse(ratkoService.getSignalAsset(x, y, z, cluster))
+    }
 }
