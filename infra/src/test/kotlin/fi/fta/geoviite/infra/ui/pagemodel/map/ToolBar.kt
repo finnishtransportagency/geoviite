@@ -93,19 +93,19 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
 
 class E2EMapLayerPanel(panelBy: By) : E2EViewFragment(panelBy) {
     enum class MapLayer(val qaId: String) {
-        BACKGROUND("background-map-layer"),
-        REFERENCE_LINES("reference-line-layer"),
-        LOCATION_TRACKS("location-track-layer"),
-        HIGHLIGHT_MISSING_VERTICAL_GEOMETRY("missing-vertical-geometry-layer"),
-        HIGHLIGHT_MISSING_LINKING("missing-linking-layer"),
-        HIGHLIGHT_DUPLICATE_TRACKS("duplicate-tracks-layer"),
-        SWITCHES("switch-layer"),
-        KM_POSTS("km-post-layer"),
-        TRACK_NUMBER_DIAGRAM("track-number-diagram-layer"),
-        GEOMETRY_ALIGNMENTS("geometry-alignment-layer"),
-        GEOMETRY_SWITCHES("geometry-switch-layer"),
-        GEOMETRY_KM_POSTS("geometry-km-post-layer"),
-        PLAN_AREA("geometry-area-layer"),
+        BACKGROUND("layer-menu-item-background-map"),
+        REFERENCE_LINES("layer-menu-item-reference-line"),
+        LOCATION_TRACKS("layer-menu-item-location-track"),
+        HIGHLIGHT_MISSING_VERTICAL_GEOMETRY("layer-menu-item-missing-vertical-geometry"),
+        HIGHLIGHT_MISSING_LINKING("layer-menu-item-missing-linking"),
+        HIGHLIGHT_DUPLICATE_TRACKS("layer-menu-item-duplicate-tracks"),
+        SWITCHES("layer-menu-item-switch"),
+        KM_POSTS("layer-menu-item-km-post"),
+        TRACK_NUMBER_DIAGRAM("layer-menu-item-track-number-diagram"),
+        GEOMETRY_ALIGNMENTS("layer-menu-item-geometry-alignment"),
+        GEOMETRY_SWITCHES("layer-menu-item-geometry-switch"),
+        GEOMETRY_KM_POSTS("layer-menu-item-geometry-km-post"),
+        PLAN_AREA("layer-menu-item-plan-area"),
     }
 
     fun showLayer(layer: MapLayer): E2EMapLayerPanel = apply {

@@ -316,9 +316,9 @@ export const splitReducers = {
                 ...prefilledSplitsNamed,
             };
 
-            mapReducers.showLayers(state.map, {
+            mapReducers.addForcedVisibleLayer(state.map, {
                 payload: ['location-track-split-location-layer'],
-                type: 'showLayers',
+                type: 'addForcedVisibleLayer',
             });
         }
     },

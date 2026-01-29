@@ -1,5 +1,5 @@
 import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Map, MapLayerName } from 'map/map-model';
+import { Map } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import {
     infraModelListReducers,
@@ -106,23 +106,8 @@ export type ValidationResponse = {
     planLayout?: GeometryPlanLayout;
 };
 
-const visibleMapLayers: MapLayerName[] = [
-    'background-map-layer',
-    'location-track-alignment-layer',
-    'reference-line-alignment-layer',
-    'reference-line-badge-layer',
-    'switch-layer',
-    'km-post-layer',
-    'geometry-alignment-layer',
-    'geometry-switch-layer',
-    'geometry-km-post-layer',
-];
-
 export const initialInfraModelState: InfraModelState = {
-    map: {
-        ...initialMapState,
-        visibleLayers: visibleMapLayers,
-    },
+    map: initialMapState, // The same map defaults as layout map: can be customized here if needed
     infraModelList: initialInfraModelListState,
     selection: {
         ...initialSelectionState,
