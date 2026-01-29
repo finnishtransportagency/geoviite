@@ -428,7 +428,7 @@ class PublicationValidationTest {
 
     @Test
     fun validationCatchesKmPostsInWrongOrder() {
-        val error = "$VALIDATION_GEOCODING.km-posts-invalid"
+        val error = "$VALIDATION_GEOCODING.km-posts-wrong-order"
         assertContainsError(
             false,
             validateGeocodingContext(
