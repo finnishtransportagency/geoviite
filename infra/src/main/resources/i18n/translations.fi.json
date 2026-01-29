@@ -667,6 +667,9 @@
             }
         },
         "switch": {
+            "linking": {
+                "title": "Linkitys: {{switchName}}"
+            },
             "layout": {
                 "km-m": "Sijainti (km + m)",
                 "general-heading": "Vaihteen perustiedot",
