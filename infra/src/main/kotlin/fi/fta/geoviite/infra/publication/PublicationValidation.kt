@@ -986,7 +986,7 @@ fun validateGeocodingContext(
             }
 
     val kmPostsRejected: List<LayoutValidationIssue> =
-        validatedContext.kmErrors.map { (kmNumber, issue) ->
+        validatedContext.kmErrors.mapNotNull { (kmNumber, issue) ->
             val kmPostLocalizationParams = mapOf("trackNumber" to trackNumber, "kmNumber" to kmNumber)
 
             when (issue) {
@@ -1024,8 +1024,7 @@ fun validateGeocodingContext(
                 KmValidationIssue.DUPLICATE_KM ->
                     LayoutValidationIssue(FATAL, "$VALIDATION_GEOCODING.duplicate-km-posts", kmPostLocalizationParams)
 
-                KmValidationIssue.INCORRECT_ORDER ->
-                    LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.km-posts-invalid", kmPostLocalizationParams)
+                KmValidationIssue.INCORRECT_ORDER -> null // This is handled as a single message above
             }
         }
 
