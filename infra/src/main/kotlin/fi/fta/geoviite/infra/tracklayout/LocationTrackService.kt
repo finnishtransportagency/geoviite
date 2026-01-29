@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
@@ -498,7 +499,13 @@ class LocationTrackService(
                     .groupBy { link -> link.switchId }
                     .mapValues { (id, links) ->
                         val location = links.minBy { it.jointRole }.location.toPoint()
-                        LocationTrackInfoboxSwitch(id, location, geocodingContext?.getAddress(location)?.first)
+                        LocationTrackInfoboxSwitch(
+                            id,
+                            location,
+                            geocodingContext?.getAddress(location)?.let { (address, intersectType) ->
+                                if (intersectType == IntersectType.WITHIN) address else null
+                            },
+                        )
                     }
                     .values
                     .sortedBy { it.displayAddress }

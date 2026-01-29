@@ -873,7 +873,9 @@
             },
             "switch-links": {
                 "heading": "Raiteen vaihteet",
+                "no-switches": "Raiteella ei ole vaihteita",
                 "show-more": "Näytä kaikki {{count}} kpl",
+                "no-location": "Ei sijaintia",
                 "not-existing": "Poistettu",
                 "detach": "Irrota"
             },
