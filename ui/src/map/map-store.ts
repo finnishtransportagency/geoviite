@@ -98,7 +98,7 @@ export const layersCoveringLayers: LayerCollection = {
     'orthographic-background-map-layer': ['background-map-layer'],
 };
 
-export const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
+const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'background-map': ['background-map-layer'],
     'orthographic-background-map': ['orthographic-background-map-layer'],
     'location-track': ['location-track-alignment-layer', 'location-track-badge-layer'],
@@ -286,7 +286,7 @@ function collectVisibleLayers(items: MapLayerMenuItem[]): MapLayerName[] {
 const collectLayersHiddenByProxy = (items: MapLayerName[]) =>
     deduplicate(items.flatMap((i) => layersToHideByProxy[i]).filter(filterNotEmpty));
 
-export function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
+function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
     const allRelatedMapLayers = { ...layersToShowByProxy, ...relatedMapLayers };
     const relatedLayers = layers.flatMap((l) => allRelatedMapLayers[l]).filter(filterNotEmpty);
 
