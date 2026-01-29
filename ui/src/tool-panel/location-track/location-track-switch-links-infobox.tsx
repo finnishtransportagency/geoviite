@@ -111,6 +111,7 @@ export const LocationTrackSwitchLinksInfobox: React.FC<
             changeTimes.layoutLocationTrack,
             changeTimes.layoutSwitch,
             changeTimes.layoutTrackNumber,
+            changeTimes.layoutReferenceLine,
             changeTimes.layoutKmPost,
         ],
     );
