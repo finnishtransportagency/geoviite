@@ -1,5 +1,5 @@
 import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Map, MapLayerMenuItem, MapLayerMenuGroups, MapLayerMenuItemName } from 'map/map-model';
+import { Map } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import {
     infraModelListReducers,
@@ -106,40 +106,8 @@ export type ValidationResponse = {
     planLayout?: GeometryPlanLayout;
 };
 
-const visibleMapLayers: MapLayerMenuItemName[] = [
-    'background-map',
-    'location-track',
-    'reference-line',
-    'switch',
-    'km-post',
-    'geometry-alignment',
-    'geometry-switch',
-    'geometry-km-post',
-];
-
-function createInfraModelLayerMenu(selectedItems: MapLayerMenuItemName[]): MapLayerMenuGroups {
-    const selectedSet = new Set(selectedItems);
-
-    const updateMenuItemsSelection = (items: MapLayerMenuItem[]): MapLayerMenuItem[] => {
-        return items.map((item) => ({
-            ...item,
-            selected: selectedSet.has(item.name),
-            subMenu: item.subMenu ? updateMenuItemsSelection(item.subMenu) : undefined,
-        }));
-    };
-
-    return {
-        layout: updateMenuItemsSelection(initialMapState.layerMenu.layout),
-        geometry: updateMenuItemsSelection(initialMapState.layerMenu.geometry),
-        debug: updateMenuItemsSelection(initialMapState.layerMenu.debug),
-    };
-}
-
 export const initialInfraModelState: InfraModelState = {
-    map: {
-        ...initialMapState,
-        layerMenu: createInfraModelLayerMenu(visibleMapLayers),
-    },
+    map: initialMapState, // The same map defaults as layout map: can be customized here if needed
     infraModelList: initialInfraModelListState,
     selection: {
         ...initialSelectionState,
