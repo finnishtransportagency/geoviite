@@ -119,6 +119,8 @@ export async function getLocationTrackInfoboxExtras(
     const changeTime = getMaxTimestamp(
         changeTimes.layoutLocationTrack,
         changeTimes.layoutSwitch,
+        changeTimes.layoutTrackNumber,
+        changeTimes.layoutKmPost,
         changeTimes.split,
     );
     return locationTrackInfoboxExtrasCache.get(changeTime, cacheKey(id, layoutContext), () =>

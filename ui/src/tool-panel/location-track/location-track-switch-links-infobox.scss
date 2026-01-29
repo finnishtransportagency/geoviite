@@ -3,9 +3,10 @@
 
 .location-track-switch-links-infobox-list {
     display: grid;
-    margin: 12px;
+    margin-bottom: 12px;
     row-gap: 4px;
-    grid-template-columns: 90px 100px auto 70px;
+    grid-template-columns: max-content 100px auto 70px;
+    grid-column-gap: 4px;
 
     &__caption {
         @include vayla-design.typography-caption;
@@ -27,7 +28,7 @@
             width: 7.5px;
             height: 7.5px;
             border-width: 3px;
-            border-color: vayla-design.$color-red-dark;
+            border-color: vayla-design.$color-red-default;
             margin-left: -1.5px;
         }
     }
@@ -36,5 +37,10 @@
         display: flex;
         justify-content: center;
         flex-direction: column;
+    }
+
+    > div {
+        align-content: center;
+        min-height: 24px;
     }
 }
