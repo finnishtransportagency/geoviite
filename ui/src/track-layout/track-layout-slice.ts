@@ -439,11 +439,6 @@ const trackLayoutSlice = createSlice({
                         break;
                     }
                     case LinkingType.LinkingGeometryWithAlignment: {
-                        updateSelection(
-                            state,
-                            filterSelectOptionsByItemTypes(onSelectOptions, ['locationTracks']),
-                        );
-
                         const onlyLayoutLinkPoint =
                             getSingleLayoutLinkPointFromSelection(onSelectOptions);
                         const onlyGeometryLinkPoint =
