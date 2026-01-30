@@ -120,6 +120,7 @@ export async function getLocationTrackInfoboxExtras(
         changeTimes.layoutLocationTrack,
         changeTimes.layoutSwitch,
         changeTimes.layoutTrackNumber,
+        changeTimes.layoutReferenceLine,
         changeTimes.layoutKmPost,
         changeTimes.split,
     );

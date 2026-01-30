@@ -502,9 +502,10 @@ class LocationTrackService(
                         LocationTrackInfoboxSwitch(
                             id,
                             location,
-                            geocodingContext?.getAddress(location)?.let { (address, intersectType) ->
-                                if (intersectType == IntersectType.WITHIN) address else null
-                            },
+                            geocodingContext
+                                ?.getAddress(location)
+                                ?.takeIf { (_, intersectType) -> intersectType == IntersectType.WITHIN }
+                                ?.first,
                         )
                     }
                     .values
