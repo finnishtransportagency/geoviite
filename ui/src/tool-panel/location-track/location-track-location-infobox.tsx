@@ -77,14 +77,14 @@ export const LocationTrackLocationInfoboxContainer: React.FC<
             changeTimes={changeTimes}
             onStartSplitting={delegates.onStartSplitting}
             onStartLocationTrackGeometryChange={(interval: LinkInterval) => {
-                delegates.showLayers(['alignment-linking-layer']);
+                delegates.addForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.startAlignmentGeometryChange(interval);
             }}
             onEndLocationTrackGeometryChange={() => {
-                delegates.hideLayers(['alignment-linking-layer']);
+                delegates.removeForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.stopLinking();
             }}
-            showLayers={delegates.showLayers}
+            addForcedVisibleLayer={delegates.addForcedVisibleLayer}
         />
     );
 };
@@ -94,7 +94,7 @@ type LocationTrackLocationInfoboxProps = LocationTrackLocationInfoboxContainerPr
     onStartLocationTrackGeometryChange: (points: LinkInterval) => void;
     onEndLocationTrackGeometryChange: () => void;
     onStartSplitting: (splitStartParams: SplitStart) => void;
-    showLayers: (layers: MapLayerName[]) => void;
+    addForcedVisibleLayer: (layers: MapLayerName[]) => void;
 };
 
 const isSplittablePoint = (

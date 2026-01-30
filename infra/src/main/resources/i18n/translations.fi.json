@@ -1503,7 +1503,7 @@
         "layout-title": "Paikannuspohja",
         "geometry-title": "Geometriat",
         "debug-title": "Debug-työkalut",
-        "map": "Taustakartta",
+        "background-map": "Taustakartta",
         "orthographic-background-map": "Ilmakuva",
         "location-track": "Sijaintiraiteet",
         "reference-line": "Pituusmittauslinjat",

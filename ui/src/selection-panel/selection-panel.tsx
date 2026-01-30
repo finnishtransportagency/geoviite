@@ -141,7 +141,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         trackNumberId: LayoutTrackNumberId,
         color: TrackNumberColorKey,
     ) => {
-        onMapLayerMenuItemChange({ name: 'track-number-diagram', visible: true });
+        onMapLayerMenuItemChange({ name: 'track-number-diagram', selected: true });
 
         onMapLayerSettingChange({
             name: 'track-number-diagram-layer',
@@ -224,11 +224,11 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                                 if (diagramLayerMenuItem) {
                                     onMapLayerMenuItemChange({
                                         name: 'track-number-diagram',
-                                        visible: !diagramLayerMenuItem.visible,
+                                        selected: !diagramLayerMenuItem.selected,
                                     });
                                 }
                             }}
-                            visibility={diagramLayerMenuItem?.visible ?? false}
+                            visibility={diagramLayerMenuItem?.selected ?? false}
                         />
                     )}
                 </h3>

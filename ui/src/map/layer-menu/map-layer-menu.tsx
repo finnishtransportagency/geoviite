@@ -33,6 +33,7 @@ type MapLayerProps = {
     onChange: () => void;
     disabled?: boolean;
     indented?: boolean;
+    qaId: string;
 };
 
 type MapLayerGroupProps = {
@@ -48,6 +49,7 @@ const MapLayer: React.FC<MapLayerProps> = ({
     onChange,
     disabled = false,
     indented = false,
+    qaId,
 }) => {
     const [hover, setHover] = React.useState(false);
     return (
@@ -55,6 +57,7 @@ const MapLayer: React.FC<MapLayerProps> = ({
             className={`${styles['map-layer-menu__layer-visibility']} ${
                 indented ? styles['map-layer-menu__layer-visibility--indented'] : ''
             }`}
+            qa-id={qaId}
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}>
             <Switch
@@ -92,14 +95,14 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
                 return [
                     <MapLayer
                         key={setting.name}
-                        qa-id={setting.qaId}
+                        qaId={`layer-menu-item-${setting.name}`}
                         label={t(`map-layer-menu.${setting.name}`)}
-                        visible={(enabledByProxy || setting.visible) && !disabledByProxy}
+                        visible={(enabledByProxy || setting.selected) && !disabledByProxy}
                         disabled={enabledByProxy || disabledByProxy}
                         onChange={() =>
                             onMenuChange({
                                 name: setting.name,
-                                visible: !setting.visible,
+                                selected: !setting.selected,
                             })
                         }
                     />,
@@ -117,15 +120,15 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
                         return (
                             <MapLayer
                                 key={subSetting.name}
-                                qa-id={setting.qaId}
+                                qaId={`layer-menu-item-${subSetting.name}`}
                                 label={t(`map-layer-menu.${subSetting.name}`)}
-                                visible={(enabledByProxy || subSetting.visible) && !disabledByProxy}
-                                disabled={enabledByProxy || disabledByProxy || !setting.visible}
+                                visible={(enabledByProxy || subSetting.selected) && !disabledByProxy}
+                                disabled={enabledByProxy || disabledByProxy || !setting.selected}
                                 indented={true}
                                 onChange={() =>
                                     onMenuChange({
                                         name: subSetting.name,
-                                        visible: !subSetting.visible,
+                                        selected: !subSetting.selected,
                                     })
                                 }
                             />
