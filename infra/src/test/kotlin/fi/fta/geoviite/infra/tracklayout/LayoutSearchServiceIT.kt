@@ -13,13 +13,13 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.util.FreeText
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -203,7 +203,7 @@ constructor(
                 ),
             )
         val lt2 =
-            mainDraftContext.save( // Duplicate based on duplicateOf, shouldn't be included in search results
+            mainDraftContext.save( // Duplicate based on duplicateOf, should be included
                 locationTrack(trackNumberId = trackNumberId, name = "blee marked duplicate", duplicateOf = lt1.id),
                 trackGeometry(
                     edge(startOuterSwitch = switchLinkYV(duplicateStartSwitchId, 3), segments = listOf(someSegment()))
@@ -236,8 +236,9 @@ constructor(
                 searchParameters("bl"),
             )
 
-        assertEquals(2, searchResults.locationTracks.size)
+        assertEquals(3, searchResults.locationTracks.size)
         assertContains(searchResults.locationTracks.map { it.id }, lt1.id)
+        assertContains(searchResults.locationTracks.map { it.id }, lt2.id)
         assertContains(searchResults.locationTracks.map { it.id }, lt3.id)
 
         assertEquals(2, searchResults.switches.size)
