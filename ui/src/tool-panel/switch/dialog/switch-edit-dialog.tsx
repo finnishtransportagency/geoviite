@@ -256,6 +256,7 @@ export const SwitchEditDialog = ({
         structureId: SwitchStructureId,
         ownerId: SwitchOwnerId,
         stateCategory: LayoutStateCategory,
+        draftOid: string | undefined,
     ): LayoutSwitchSaveRequest {
         return {
             name: name.trim(),
@@ -263,7 +264,7 @@ export const SwitchEditDialog = ({
             stateCategory: stateCategory,
             ownerId: ownerId,
             trapPoint: trapPointToBoolean(trapPoint),
-            draftOid: editingOid ? switchDraftOid : undefined,
+            draftOid: draftOid,
         };
     }
 
@@ -274,9 +275,14 @@ export const SwitchEditDialog = ({
                 switchStructureId,
                 switchOwnerId,
                 switchStateCategory,
+                editingOid ? switchDraftOid : undefined,
             );
-            if (existingSwitch) saveUpdatedSwitch(existingSwitch, switchSaveRequest);
-            else saveNewSwitch(switchSaveRequest);
+
+            if (existingSwitch) {
+                saveUpdatedSwitch(existingSwitch, switchSaveRequest);
+            } else {
+                saveNewSwitch(switchSaveRequest);
+            }
         }
     }
 
@@ -287,7 +293,9 @@ export const SwitchEditDialog = ({
                 switchStructureId,
                 switchOwnerId,
                 'NOT_EXISTING',
+                editingOid ? switchDraftOid : undefined,
             );
+            
             saveUpdatedSwitch(existingSwitch, switchSaveRequest, deleteSwitchLinking);
         }
     }

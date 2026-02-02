@@ -70,7 +70,7 @@ constructor(
         val switchStructureChanged = switch.switchStructureId != layoutSwitch.switchStructureId
         val switchJoints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
 
-        if (switchStructureChanged || deleteSwitchLinks == true) {
+        if (switchStructureChanged || deleteSwitchLinks) {
             clearSwitchInformationFromTracks(branch, id)
         }
 
