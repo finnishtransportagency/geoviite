@@ -60,6 +60,15 @@
     - Controllers also include the swagger annotations
     - The Controllers as well as types that are returned or accepted in the API need to be versioned
     - For more, see [rajapintapalvelu.md](doc/rajapintapalvelu.md)
+- Pay attention to resource paths: they should follow REST conventions
+    - Avoid verbs in paths: use nouns for resources and HTTP methods for actions
+    - Use similar tree structure for similar resources across controllers
+    - A path targets a resource, not an action
+        - A resource is most often a domain object, or a collection of them (even "all of them")
+        - A resource can also be an attribute of an object
+        - It can make sense to to invent a virtual resource, like "validity" or "linking" that doesn't exist in the domain model as such
+        - Likewise, collections can be virtual, thought of like views
+    - When targeting a collection, query parameters can be used to filter it, if it doesn't make sense to invent a new collection resource
 
 ### Service
 
@@ -96,6 +105,8 @@
 - Domain concepts described in X-model.ts
 - Redux store contains domain model objects, in X-store.ts
 - API calls are always abstracted behind functions in X-api.ts, not used directly from the components
+- Most promise errors are handled in a generic way in api-fetch.ts -- if you only need a toast, you don't need to handle it in the component
+  - See doc/virhekasittely.md for more details
 
 ## Code Style
 
