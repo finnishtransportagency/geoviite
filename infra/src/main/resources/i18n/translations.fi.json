@@ -1866,7 +1866,7 @@
                 "km-post-outside-line-after": "Ratanumeron {{trackNumber}} tasakilometripiste {{kmNumber}} sijaitsee pituusmittauslinjan lopun jälkeen",
                 "duplicate-km-posts": "Linjalla {{trackNumber}} on useita tasakilometripisteitä numerolla {{kmNumber}}",
                 "km-post-smaller-than-track-number-start": "Tasakilometripiste ({{kmNumber}}) on pienempi kuin ratanumeron {{trackNumber}} aloitusarvo",
-                "km-posts-wrong-order": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) ovat väärässä järjestyksessä",
+                "km-posts-wrong-order": "Ratanumeron {{trackNumber}} kilometrit ({{kmNumbers}}) ovat väärässä järjestyksessä",
                 "km-post-too-far-from-reference-line": "Ratanumeron {{trackNumber}} tasakilometripiste {{kmNumber}} sijaitsee liian kaukana pituusmittauslinjalta"
             },
             "split": {
