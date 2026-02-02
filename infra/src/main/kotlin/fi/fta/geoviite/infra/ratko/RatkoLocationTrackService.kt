@@ -718,10 +718,8 @@ constructor(
         }
 
         val geometry = alignmentDao.fetch(locationTrack.getVersionOrThrow())
-        val addresses =
-            checkNotNull(geocodingContext.getAddressPoints(geometry)) {
-                "Cannot calculate addresses for location track, id=${locationTrack.id}"
-            }
+        val addresses = geocodingContext.getAddressPoints(geometry).addresses
+        checkNotNull(addresses) { "Cannot calculate addresses for location track, id=${locationTrack.id}" }
 
         return addresses to geocodingContext.getSwitchPoints(geometry)
     }
@@ -733,6 +731,7 @@ private fun getAllKmNumbers(
 ): Set<KmNumber> {
     return geocodingContext
         .getAddressPoints(geometry)
+        .addresses
         .let(::requireNotNull)
         .allPoints
         .asSequence()

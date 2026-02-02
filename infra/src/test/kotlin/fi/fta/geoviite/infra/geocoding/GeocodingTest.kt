@@ -303,7 +303,9 @@ class GeocodingTest {
                 )
                 .geocodingContext
 
-        val addressPoints = ctx.getAddressPoints(referenceLineGeometry(segment(Point(7.0, -2.0), Point(7.0, 8.0))))
+        val addressPoints =
+            ctx.getAddressPoints(referenceLineGeometry(segment(Point(7.0, -2.0), Point(7.0, 8.0))))?.addresses
+
         assertNotNull(addressPoints)
 
         assertTrue((Point(7.0, -2.0)).isSame(addressPoints.startPoint.point, 0.0001))
@@ -485,7 +487,7 @@ class GeocodingTest {
         val trackGeometry = trackGeometryOfSegments(segment(Point(1.1, 1.1), Point(8.9, 8.9)))
 
         // Verify basic ends + 1m points
-        val addressPoints = context.getAddressPoints(trackGeometry)
+        val addressPoints = context.getAddressPoints(trackGeometry).addresses
         assertAddressPoint(addressPoints?.startPoint, TrackMeter(1, "52.500"), trackGeometry.start!!)
         assertAddressPoint(addressPoints?.endPoint, TrackMeter(2, "3.900"), trackGeometry.end!!)
         listOf(
@@ -545,7 +547,7 @@ class GeocodingTest {
         // The address (after 1st km) m-values should match the x-coordinate minus KM start (20,40,60)
         val trackGeometry = trackGeometryOfSegments(segment(Point(5.1, 1.0), Point(65.3, 1.0)))
         fun getAddressPoints(filter: AddressFilter?) =
-            assertNotNull(context.getAddressPoints(trackGeometry, addressFilter = filter))
+            assertNotNull(context.getAddressPoints(trackGeometry, addressFilter = filter).addresses)
         fun assertMidPoints(midPoints: List<AddressPoint<*>>, km: KmNumber, count: Int) {
             val kmPoints = midPoints.filter { point -> point.address.kmNumber == km }
             assertEquals(
@@ -661,7 +663,7 @@ class GeocodingTest {
                 segment(Point(5.0, 1.0), Point(2.0, 1.1)), // zig-zag connector
                 segment(Point(2.0, 1.1), Point(9.0, 1.1)),
             )
-        val points = context.getAddressPoints(trackGeometry)!!
+        val points = context.getAddressPoints(trackGeometry).addresses!!
 
         assertEquals(TrackMeter(1, "0101.000".toBigDecimal()), points.startPoint.address)
         assertApproximatelyEquals(Point(x = 1.0, y = 1.0), points.startPoint.point)
@@ -1082,7 +1084,7 @@ class GeocodingTest {
     }
 
     @Test
-    fun `referenceLineAddresses is null if the end address would have invalid meters`() {
+    fun `referenceLineAddresses is InvalidEndpoint if the end address would have invalid meters`() {
         val geometry = ReferenceLineGeometry(listOf(segment(Point(0.0, 0.0), Point(15000.0, 0.0))))
         val result =
             GeocodingContext.create(
@@ -1091,7 +1093,7 @@ class GeocodingTest {
                 referenceLineGeometry = geometry,
                 kmPosts = listOf(),
             )
-        assertNull(result.geocodingContext.referenceLineAddresses)
+        assertTrue(result.geocodingContext.referenceLineAddresses is AddressPointsResult.InvalidEndpoint)
     }
 
     @Test
@@ -1120,11 +1122,11 @@ class GeocodingTest {
         // the zigzag is so horrible that what the implementation actually does on it doesn't matter
         // very much; but
         // at least the start and end addresses ought to be reasonable
-        val risingAddresses = context.getAddressPoints(risingZigzagGeometry)!!
+        val risingAddresses = context.getAddressPoints(risingZigzagGeometry).addresses!!
         assertEquals(0.0, risingAddresses.startPoint.point.x)
         assertEquals(10.0, risingAddresses.endPoint.point.x)
 
-        val terribleAddresses = context.getAddressPoints(terribleZigzagGeometry)!!
+        val terribleAddresses = context.getAddressPoints(terribleZigzagGeometry).addresses!!
         assertEquals(0.0, terribleAddresses.startPoint.point.x)
         assertEquals(10.0, terribleAddresses.endPoint.point.x)
     }
@@ -1186,7 +1188,7 @@ class GeocodingTest {
                     kmPosts = listOf(),
                 )
                 .geocodingContext
-        val addressPoints = context.getAddressPoints(locationTrackGeometry)!!
+        val addressPoints = context.getAddressPoints(locationTrackGeometry).addresses!!
         // the reference line is broken enough that we can't say much about it at all, but at least we
         // can say this
         assertTrue(addressPoints.midPoints.all { it.address > addressPoints.startPoint.address })
@@ -1228,7 +1230,7 @@ class GeocodingTest {
                     kmPosts = listOf(),
                 )
                 .geocodingContext
-        val result = context.getAddressPoints(locationTrackGeometry)!!
+        val result = context.getAddressPoints(locationTrackGeometry).addresses!!
         assertEqualsRounded(
             listOf(
                 // first midpoint hits right at the point where the zigzag starts
@@ -1246,12 +1248,12 @@ class GeocodingTest {
     }
 
     @Test
-    fun `getAddressPoints returns null if given a dummy between-kms address filter`() {
-        assertNull(
+    fun `getAddressPoints returns InvalidEndpoint if given a dummy between-kms address filter`() {
+        assertTrue(
             context.getAddressPoints(
                 referenceLineGeometry,
                 addressFilter = AddressFilter(KmLimit(KmNumber(3, "A")), KmLimit(KmNumber(3, "A"))),
-            )
+            ) is AddressPointsResult.InvalidEndpoint
         )
     }
 

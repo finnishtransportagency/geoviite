@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.ClientException
+import fi.fta.geoviite.infra.geocoding.AddressPointsResult
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.KmValidationIssue
 import fi.fta.geoviite.infra.geocoding.ValidatedGeocodingContext
@@ -1035,20 +1036,24 @@ fun validateAddressPoints(
     trackNumber: LayoutTrackNumber,
     locationTrack: LocationTrack,
     validationTargetLocalizationPrefix: String,
-    geocode: () -> AlignmentAddresses<*>?,
-): List<LayoutValidationIssue> =
-    try {
-        geocode()?.let { addresses -> validateAddressPoints(trackNumber, locationTrack, addresses) }
-            ?: listOf(
-                LayoutValidationIssue(
-                    ERROR,
-                    "$validationTargetLocalizationPrefix.no-addresses",
-                    mapOf("trackNumber" to trackNumber.number, "locationTrack" to locationTrack.name),
-                )
-            )
+    geocode: () -> AddressPointsResult<*>?,
+): List<LayoutValidationIssue> {
+    val params = mapOf("trackNumber" to trackNumber.number, "locationTrack" to locationTrack.name)
+    return try {
+        when (val result = geocode()) {
+            is AddressPointsResult.AddressPointsSuccess ->
+                validateAddressPoints(trackNumber, locationTrack, result.addresses)
+
+            is AddressPointsResult.EndBeforeStart ->
+                listOf(LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.end-before-start", params))
+
+            is AddressPointsResult.InvalidEndpoint,
+            null -> listOf(LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.no-addresses", params))
+        }
     } catch (e: ClientException) {
         listOf(LayoutValidationIssue(ERROR, e.localizationKey))
     }
+}
 
 fun validateAddressPoints(
     trackNumber: LayoutTrackNumber,

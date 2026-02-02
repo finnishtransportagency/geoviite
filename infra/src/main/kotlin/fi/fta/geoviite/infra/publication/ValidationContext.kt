@@ -6,7 +6,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.geocoding.AddressPointsResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.split.Split
@@ -257,10 +257,10 @@ class ValidationContext(
             geocodingService.getGeocodingContextCacheKey(tnId, publicationSet)
         }
 
-    fun getAddressPoints(trackId: IntId<LocationTrack>): AlignmentAddresses<LocationTrackM>? =
+    fun getAddressPoints(trackId: IntId<LocationTrack>): AddressPointsResult<LocationTrackM>? =
         getLocationTrack(trackId)?.let(::getAddressPoints)
 
-    fun getAddressPoints(track: LocationTrack): AlignmentAddresses<LocationTrackM>? =
+    fun getAddressPoints(track: LocationTrack): AddressPointsResult<LocationTrackM>? =
         getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
             geocodingService.getAddressPoints(key, track.getVersionOrThrow())
         }
