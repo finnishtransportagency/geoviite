@@ -53,11 +53,11 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
                     : undefined
             }
             startLinking={(id) => {
-                delegates.showLayers(linkingLayers);
+                delegates.addForcedVisibleLayer(linkingLayers);
                 delegates.startKmPostLinking(id);
             }}
             stopLinking={() => {
-                delegates.hideLayers(linkingLayers);
+                delegates.removeForcedVisibleLayer(linkingLayers);
                 delegates.stopLinking();
             }}
             onSelect={delegates.onSelect}

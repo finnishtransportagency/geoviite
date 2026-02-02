@@ -57,12 +57,12 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             changeTimes={changeTimes}
             linkingState={trackLayoutState.linkingState}
             onLinkingStart={(params) => {
-                delegates.showLayers(['alignment-linking-layer']);
+                delegates.addForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.startAlignmentLinking(params);
             }}
             onLockAlignment={delegates.lockAlignmentSelection}
             onStopLinking={() => {
-                delegates.hideLayers(['alignment-linking-layer']);
+                delegates.removeForcedVisibleLayer(['alignment-linking-layer']);
                 delegates.stopLinking();
             }}
             resolution={trackLayoutState.map.viewport.resolution}

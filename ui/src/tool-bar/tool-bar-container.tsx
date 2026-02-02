@@ -23,9 +23,6 @@ export const ToolBarContainer: React.FC = () => {
             onStopLinking={delegates.stopLinking}
             linkingState={trackLayoutState.linkingState}
             splittingState={trackLayoutState.splittingState}
-            visibleLayers={trackLayoutState.map.visibleLayers}
-            mapLayerMenuGroups={trackLayoutState.map.layerMenu}
-            onMapLayerChange={delegates.onLayerMenuItemChange}
         />
     );
 };
