@@ -125,8 +125,9 @@ class LayoutSwitchController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("id") switchId: IntId<LayoutSwitch>,
         @RequestBody switch: LayoutSwitchSaveRequest,
+        @RequestParam("deleteSwitchLinks", required = false) deleteSwitchLinks: Boolean?,
     ): IntId<LayoutSwitch> {
-        return switchService.updateSwitch(branch, switchId, switch)
+        return switchService.updateSwitch(branch, switchId, switch, deleteSwitchLinks)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

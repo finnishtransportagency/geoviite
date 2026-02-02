@@ -646,6 +646,146 @@ constructor(
         )
     }
 
+    @Test
+    fun `deleteSwitchLinks removes switch references from location tracks when set to true`() {
+        // Create track number and switch
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val switch =
+            switchService.getOrThrow(
+                MainLayoutContext.draft,
+                switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id,
+            )
+        val switchId = switch.id as IntId
+
+        // Create location track with switch link
+        val (track, _) =
+            insertDraft(
+                locationTrack(tnId, draft = true),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switchId, 1)),
+                        endNode = PlaceHolderNodeConnection,
+                        segments = listOf(someSegment()),
+                    )
+                ),
+            )
+
+        // Verify that the location track has switch reference before deletion
+        val (_, geometryBeforeDelete) =
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, track.id as IntId)
+        val startNodeBefore = geometryBeforeDelete.edges.first().startNode
+        assertTrue(startNodeBefore.node.containsSwitch(switchId), "Track should have switch link before deletion")
+
+        // Create switch save request with NOT_EXISTING state
+        val switchSaveRequest =
+            LayoutSwitchSaveRequest(
+                name = switch.name,
+                switchStructureId = switch.switchStructureId,
+                stateCategory = LayoutStateCategory.NOT_EXISTING,
+                ownerId = switch.ownerId,
+                trapPoint = switch.trapPoint,
+                draftOid = switch.draftOid,
+            )
+
+        // Update switch with deleteSwitchLinks = true
+        switchService.updateSwitch(LayoutBranch.main, switchId, switchSaveRequest, deleteSwitchLinks = true)
+
+        // Verify that the location track no longer has switch reference
+        val (_, geometryAfterDelete) =
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, track.id as IntId)
+        val startNodeAfter = geometryAfterDelete.edges.first().startNode
+        assertFalse(
+            startNodeAfter.node.containsSwitch(switchId),
+            "Switch reference should be removed from location track"
+        )
+    }
+
+    @Test
+    fun `deleteSwitchLinks keeps switch references when set to false`() {
+        // Create track number and switch
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val switch =
+            switchService.getOrThrow(
+                MainLayoutContext.draft,
+                switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id,
+            )
+        val switchId = switch.id as IntId
+
+        // Create location track with switch link
+        val (track, _) =
+            insertDraft(
+                locationTrack(tnId, draft = true),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switchId, 1)),
+                        endNode = PlaceHolderNodeConnection,
+                        segments = listOf(someSegment()),
+                    )
+                ),
+            )
+
+        // Verify that the location track has switch reference before update
+        val (_, geometryBeforeUpdate) =
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, track.id as IntId)
+        val startNodeBefore = geometryBeforeUpdate.edges.first().startNode
+        assertTrue(startNodeBefore.node.containsSwitch(switchId), "Track should have switch link before update")
+
+        // Create switch save request with NOT_EXISTING state
+        val switchSaveRequest =
+            LayoutSwitchSaveRequest(
+                name = switch.name,
+                switchStructureId = switch.switchStructureId,
+                stateCategory = LayoutStateCategory.NOT_EXISTING,
+                ownerId = switch.ownerId,
+                trapPoint = switch.trapPoint,
+                draftOid = switch.draftOid,
+            )
+
+        // Update switch with deleteSwitchLinks = false
+        switchService.updateSwitch(LayoutBranch.main, switchId, switchSaveRequest, deleteSwitchLinks = false)
+
+        // Verify that the location track still has switch reference
+        val (_, geometryAfterUpdate) =
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, track.id as IntId)
+        val startNodeAfter = geometryAfterUpdate.edges.first().startNode
+        assertTrue(
+            startNodeAfter.node.containsSwitch(switchId),
+            "Switch reference should be kept in location track when deleteSwitchLinks is false"
+        )
+    }
+
+    @Test
+    fun `deleteSwitchLinks cannot be set to true when stateCategory is not NOT_EXISTING`() {
+        // Create switch
+        val switch =
+            switchService.getOrThrow(
+                MainLayoutContext.draft,
+                switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id,
+            )
+        val switchId = switch.id as IntId
+
+        // Create switch save request with EXISTING state
+        val switchSaveRequest =
+            LayoutSwitchSaveRequest(
+                name = switch.name,
+                switchStructureId = switch.switchStructureId,
+                stateCategory = LayoutStateCategory.EXISTING,
+                ownerId = switch.ownerId,
+                trapPoint = switch.trapPoint,
+                draftOid = switch.draftOid,
+            )
+
+        // Verify that updating with deleteSwitchLinks = true throws an exception
+        val exception =
+            assertThrows<IllegalArgumentException> {
+                switchService.updateSwitch(LayoutBranch.main, switchId, switchSaveRequest, deleteSwitchLinks = true)
+            }
+        assertEquals(
+            "deleteSwitchLinks can only be set to true when stateCategory is NOT_EXISTING",
+            exception.message
+        )
+    }
+
     private fun insertDraft(
         locationTrack: LocationTrack,
         geometry: LocationTrackGeometry,
