@@ -4,13 +4,13 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementIfExists
 import org.openqa.selenium.By
+import org.openqa.selenium.WebElement
 import waitUntilVisible
 
 class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
 
-    val infraModelsList: E2EInfraModelTable by lazy {
-        childComponent(By.className("infra-model-list-search-result__table"), ::E2EInfraModelTable)
-    }
+    val infraModelsList: E2EInfraModelTable
+        get() = childComponent(By.className("infra-model-list-search-result__table"), ::E2EInfraModelTable)
 
     fun upload(file: String): E2EInfraModelForm {
         logger.info("Upload infra model file $file")
@@ -50,10 +50,19 @@ class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
         return E2EInfraModelForm()
     }
 
-    val infraModelNavTabPlan =
-        waitUntilVisible(byQaId("im-form.tabs-bar")).let { getElementIfExists(byQaId("infra-model-nav-tab-plan")) }
-    val infraModelNavTabWaiting =
-        waitUntilVisible(byQaId("im-form.tabs-bar")).let { getElementIfExists(byQaId("infra-model-nav-tab-waiting")) }
-    val infraModelNavTabRejected =
-        waitUntilVisible(byQaId("im-form.tabs-bar")).let { getElementIfExists(byQaId("infra-model-nav-tab-rejected")) }
+    val infraModelNavTabPlan: WebElement?
+        get() =
+            waitUntilVisible(byQaId("im-form.tabs-bar")).let { getElementIfExists(byQaId("infra-model-nav-tab-plan")) }
+
+    val infraModelNavTabWaiting: WebElement?
+        get() =
+            waitUntilVisible(byQaId("im-form.tabs-bar")).let {
+                getElementIfExists(byQaId("infra-model-nav-tab-waiting"))
+            }
+
+    val infraModelNavTabRejected: WebElement?
+        get() =
+            waitUntilVisible(byQaId("im-form.tabs-bar")).let {
+                getElementIfExists(byQaId("infra-model-nav-tab-rejected"))
+            }
 }

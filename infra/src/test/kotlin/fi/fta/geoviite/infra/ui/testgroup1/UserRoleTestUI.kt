@@ -51,7 +51,7 @@ constructor(
     }
 
     @Test
-    fun `Page navigation test`() {
+    fun `Verify navigation works and views are available based on role`() {
         val trackNumber = trackNumber(HKI_TRACK_NUMBER_1, draft = false)
         val trackNumberId = trackNumberDao.save(trackNumber)
         val (referenceLine, geometry) = westReferenceLine(trackNumberId.id)
@@ -310,7 +310,7 @@ fun assertElementListingPage(role: E2ERole) {
                 E2ERole.Operator,
                 E2ERole.Team -> {
                     val entireNetworkPage = elementListPage.entireNetworkPage()
-                    assertNotNull(entireNetworkPage.downloadUrl)
+                    assertNotNull(entireNetworkPage.downloadUrl, "Expected downloadUrl to be present for $role")
                 }
 
                 else -> assertNull(elementListPage.entireRailNetworkGeometryRadioButton)
@@ -333,7 +333,11 @@ fun assertVerticalGeometryListPage(role: E2ERole) {
 
             when (role) {
                 E2ERole.Operator,
-                E2ERole.Team -> assertNotNull(verticalGeometryListPage.entireNetworkPage().downloadUrl)
+                E2ERole.Team ->
+                    assertNotNull(
+                        verticalGeometryListPage.entireNetworkPage().downloadUrl,
+                        "Expected downloadUrl to be present for $role",
+                    )
 
                 else -> assertNull(verticalGeometryListPage.entireRailNetworkVerticalGeometryRadioButton)
             }
@@ -355,7 +359,11 @@ fun assertKmLengthsPage(role: E2ERole) {
 
             when (role) {
                 E2ERole.Operator,
-                E2ERole.Team -> assertNotNull(kmLengthsPage.openEntireNetworkTab().downloadUrl)
+                E2ERole.Team ->
+                    assertNotNull(
+                        kmLengthsPage.openEntireNetworkTab().downloadUrl,
+                        "Expected downloadUrl to be present for $role",
+                    )
 
                 else -> assertNull(kmLengthsPage.entireRailNetworkKmLengthsRadioButton)
             }
