@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.util.produceIf
 import java.time.Instant
@@ -11,6 +12,7 @@ import java.time.Instant
 class StationLinkService(
     private val operationalPointDao: OperationalPointDao,
     private val layoutSwitchDao: LayoutSwitchDao,
+    private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val locationTrackService: LocationTrackService,
 ) {
 
@@ -30,6 +32,7 @@ class StationLinkService(
     }
 
     private data class TrackStationConnection(
+        val trackVersion: LayoutRowVersion<LocationTrack>,
         val track: LocationTrack,
         val op1Point: TrackStationPoint,
         val op2Point: TrackStationPoint,
@@ -45,30 +48,59 @@ class StationLinkService(
     }
 
     fun getStationLinks(branch: LayoutBranch, moment: Instant): List<StationLink> {
-        val operationalPoints =
-            operationalPointDao.listOfficialAtMoment(branch, moment).associateBy(OperationalPoint::id)
+        val operationalPoints = operationalPointDao.listOfficialAtMoment(branch, moment)
+        val switches = layoutSwitchDao.listOfficialAtMoment(branch, moment)
+        val tracksWithGeometry = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment)
+        val trackNumberIds = tracksWithGeometry.map { it.first.trackNumberId }.distinct()
+        val trackNumberVersions = layoutTrackNumberDao.fetchManyOfficialVersionsAtMoment(branch, trackNumberIds, moment)
+        return calculateStationLinks(operationalPoints, switches, tracksWithGeometry, trackNumberVersions)
+    }
+
+    fun getStationLinks(context: LayoutContext): List<StationLink> {
+        val operationalPoints = operationalPointDao.list(context, includeDeleted = false)
+        val switches = layoutSwitchDao.list(context, includeDeleted = false)
+        val tracksWithGeometry = locationTrackService.listWithGeometries(context, includeDeleted = false)
+        val trackNumberIds = tracksWithGeometry.map { it.first.trackNumberId }.distinct()
+        val trackNumberVersions = layoutTrackNumberDao.fetchVersions(context, trackNumberIds)
+        return calculateStationLinks(operationalPoints, switches, tracksWithGeometry, trackNumberVersions)
+    }
+
+    private fun calculateStationLinks(
+        operationalPoints: List<OperationalPoint>,
+        switches: List<LayoutSwitch>,
+        tracksWithGeometry: List<Pair<LocationTrack, LocationTrackGeometry>>,
+        trackNumberVersions: List<LayoutRowVersion<LayoutTrackNumber>>,
+    ): List<StationLink> {
+        val operationalPointsById = operationalPoints.associateBy { it.id as IntId }
+        fun getOp(id: IntId<OperationalPoint>): OperationalPoint =
+            requireNotNull(operationalPointsById[id]) { "Operational point $id not found" }
+        val trackNumberVersionById = trackNumberVersions.associateBy { it.id }
         val switchIdToOpId =
-            layoutSwitchDao
-                .listOfficialAtMoment(branch, moment)
-                .mapNotNull { s -> s.operationalPointId?.let { s.id as IntId to it } }
-                .associate { it }
-        return locationTrackService
-            .listOfficialWithGeometryAtMoment(branch, moment)
-            .flatMap { (track, geom) -> resolveTrackConnections(track, geom, switchIdToOpId) }
+            switches.mapNotNull { s -> s.operationalPointId?.let { s.id as IntId to it } }.associate { it }
+
+        return tracksWithGeometry
+            .flatMap { (track, geom) ->
+                val trackVersion = track.getVersionOrThrow()
+                resolveTrackConnections(trackVersion, track, geom, switchIdToOpId)
+            }
             .groupBy { connection -> connection.stationLinkKey }
             .map { (key, connections) ->
-                val op1 = requireNotNull(operationalPoints[key.op1Id]) { "Operational point ${key.op1Id} not found" }
-                val op2 = requireNotNull(operationalPoints[key.op2Id]) { "Operational point ${key.op2Id} not found" }
-                val link = connections.minBy { it.length }
+                val op1 = getOp(key.op1Id)
+                val op2 = getOp(key.op2Id)
+                val shortestLink = connections.minBy { it.length }
+                val trackNumberVersion =
+                    requireNotNull(trackNumberVersionById[key.trackNumberId]) {
+                        "Track number version ${key.trackNumberId} not found"
+                    }
                 StationLink(
-                    trackNumberId = key.trackNumberId,
-                    startOperationalPointId = key.op1Id,
-                    endOperationalPointId = key.op2Id,
-                    locationTrackIds = connections.map { it.track.id as IntId },
+                    trackNumberVersion = trackNumberVersion,
+                    startOperationalPointVersion = op1.getVersionOrThrow(),
+                    endOperationalPointVersion = op2.getVersionOrThrow(),
+                    locationTrackVersions = connections.map { it.trackVersion },
                     length =
-                        link.length.distance +
-                            calculateDistance(op1, link.op1Point) +
-                            calculateDistance(op2, link.op2Point),
+                        shortestLink.length.distance +
+                            calculateDistance(op1, shortestLink.op1Point) +
+                            calculateDistance(op2, shortestLink.op2Point),
                 )
             }
     }
@@ -81,6 +113,7 @@ class StationLinkService(
         )
 
     private fun resolveTrackConnections(
+        trackVersion: LayoutRowVersion<LocationTrack>,
         track: LocationTrack,
         geometry: LocationTrackGeometry,
         switchIdToOpId: Map<IntId<LayoutSwitch>, IntId<OperationalPoint>>,
@@ -91,6 +124,6 @@ class StationLinkService(
             }
             .zipWithNext()
             .mapNotNull { (prev, next) ->
-                produceIf(prev.opId != next.opId) { TrackStationConnection(track, prev, next) }
+                produceIf(prev.opId != next.opId) { TrackStationConnection(trackVersion, track, prev, next) }
             }
 }
