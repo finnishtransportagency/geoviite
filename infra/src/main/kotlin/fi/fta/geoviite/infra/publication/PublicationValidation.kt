@@ -72,6 +72,8 @@ fun validateReferencesToTrackNumber(
     locationTracks: List<LocationTrack>,
 ): List<LayoutValidationIssue> =
     validateReferenceLiveness(
+        // reference lines do have a presence in publication sets, so the validity of that must be checked, but they
+        // don't have their own existing/deleted state, so for the sake of this check, can always be considered deleted
         { false },
         { trackNumberLiveness.assetName },
         "$VALIDATION_TRACK_NUMBER.reference-from-reference-line",
