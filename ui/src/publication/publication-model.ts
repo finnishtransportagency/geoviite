@@ -336,6 +336,7 @@ export interface PublicationResultSummary {
     referenceLines: number;
     switches: number;
     kmPosts: number;
+    operationalPoints: number;
 }
 
 export interface TrackNumberChange {

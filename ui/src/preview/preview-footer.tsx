@@ -8,6 +8,7 @@ import { filterNotEmpty } from 'utils/array-utils';
 import {
     updateKmPostChangeTime,
     updateLocationTrackChangeTime,
+    updateOperationalPointsChangeTime,
     updateReferenceLineChangeTime,
     updateSwitchChangeTime,
     updateTrackNumberChangeTime,
@@ -87,6 +88,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         if (result?.referenceLines || 0 > 0) updateReferenceLineChangeTime();
         if (result?.locationTracks || 0 > 0) updateLocationTrackChangeTime();
         if (result?.switches || 0 > 0) updateSwitchChangeTime();
+        if (result?.operationalPoints || 0 > 0) updateOperationalPointsChangeTime();
     };
 
     const { t } = useTranslation();
