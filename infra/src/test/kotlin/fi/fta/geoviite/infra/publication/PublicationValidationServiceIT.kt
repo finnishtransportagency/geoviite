@@ -2626,6 +2626,122 @@ constructor(
         )
     }
 
+    @Test
+    fun `existing switches and location tracks must only reference existing operational points`() {
+        val existingOperationalPoint = mainDraftContext.save(operationalPoint(name = "existing")).id
+        val deletedOperationalPoint =
+            mainDraftContext.save(operationalPoint(name = "deleted", state = OperationalPointState.DELETED)).id
+        val existingReferencingExisting =
+            mainDraftContext.save(switch(name = "a", operationalPointId = existingOperationalPoint)).id
+        val existingReferencingDeleted =
+            mainDraftContext.save(switch(name = "b", operationalPointId = deletedOperationalPoint)).id
+        val deletedReferencingExisting =
+            mainDraftContext
+                .save(
+                    switch(
+                        name = "c",
+                        stateCategory = LayoutStateCategory.NOT_EXISTING,
+                        operationalPointId = existingOperationalPoint,
+                    )
+                )
+                .id
+        val deletedReferencingDeleted =
+            mainDraftContext
+                .save(
+                    switch(
+                        name = "d",
+                        stateCategory = LayoutStateCategory.NOT_EXISTING,
+                        operationalPointId = deletedOperationalPoint,
+                    )
+                )
+                .id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val trackObject =
+            locationTrack(
+                trackNumber,
+                name = "track",
+                operationalPointIds = setOf(existingOperationalPoint, deletedOperationalPoint),
+            )
+        val track = mainDraftContext.save(trackObject).id
+        val validation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(
+                    LayoutContextTransition.publicationIn(LayoutBranch.main)
+                ),
+                publicationRequestIds(
+                    switches =
+                        listOf(
+                            existingReferencingExisting,
+                            existingReferencingDeleted,
+                            deletedReferencingExisting,
+                            deletedReferencingDeleted,
+                        ),
+                    locationTracks = listOf(track),
+                    operationalPoints = listOf(existingOperationalPoint, deletedOperationalPoint),
+                ),
+            )
+
+        assertContains(
+            validation.validatedAsPublicationUnit.switches.find { s -> s.id == existingReferencingDeleted }!!.issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                "validation.layout.switch.reference-to-operational-point.deleted",
+                mapOf("target" to "deleted", "referrers" to "b"),
+            ),
+        )
+        listOf(existingReferencingExisting, deletedReferencingExisting, deletedReferencingDeleted).forEach { okReferrer
+            ->
+            assertFalse(
+                validation.validatedAsPublicationUnit.switches
+                    .find { s -> s.id == okReferrer }!!
+                    .issues
+                    .any {
+                        it.localizationKey.toString() ==
+                            "validation.layout.switch.reference-to-operational-point.deleted"
+                    }
+            )
+        }
+        assertContains(
+            validation.validatedAsPublicationUnit.locationTracks.find { s -> s.id == track }!!.issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                "validation.layout.location-track.reference-to-operational-point.deleted",
+                mapOf("target" to "deleted", "referrers" to "track"),
+            ),
+        )
+        assertContains(
+            validation.validatedAsPublicationUnit.operationalPoints
+                .find { s -> s.id == deletedOperationalPoint }!!
+                .issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                "validation.layout.operational-point.reference-from-switch.deleted",
+                mapOf("target" to "deleted", "referrers" to "b"),
+            ),
+        )
+        assertContains(
+            validation.validatedAsPublicationUnit.operationalPoints
+                .find { s -> s.id == deletedOperationalPoint }!!
+                .issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                "validation.layout.operational-point.reference-from-location-track.deleted",
+                mapOf("target" to "deleted", "referrers" to "track"),
+            ),
+        )
+        assertFalse(
+            validation.validatedAsPublicationUnit.operationalPoints
+                .find { s -> s.id == existingOperationalPoint }!!
+                .issues
+                .any {
+                    it.localizationKey.toString() ==
+                        "validation.layout.operational-point.reference-from-location-track.deleted" ||
+                        it.localizationKey.toString() ==
+                            "validation.layout.operational-point.reference-from-switch.deleted"
+                }
+        )
+    }
+
     private fun getTopologicalSwitchConnectionTestCases(
         trackNumberGenerator: () -> IntId<LayoutTrackNumber>,
         topologyStartSwitch: Pair<SwitchLink, Point>,
