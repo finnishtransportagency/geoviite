@@ -134,6 +134,12 @@ class ExtTrackLayoutTestApiService(mockMvc: MockMvc) {
             modifiedAssetCollectionClazz = ExtTestModifiedOperationalPointCollectionResponseV1::class,
         )
 
+    val stationLinkCollection =
+        AssetCollectionApi<ExtTestStationLinkCollectionResponseV1, Nothing>(
+            assetCollectionUrl = { "/geoviite/paikannuspohja/v1/liikennepaikkavalit" },
+            assetCollectionClazz = ExtTestStationLinkCollectionResponseV1::class,
+        )
+
     inner class AssetApi<AssetId : Any, AssetResponse : Any, AssetModificationResponse : Any>(
         private val assetUrl: (String) -> String,
         private val assetClazz: KClass<AssetResponse>,
