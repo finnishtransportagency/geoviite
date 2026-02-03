@@ -22,7 +22,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
-import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.NOT_EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -258,39 +257,39 @@ class PublicationValidationTest {
 
     @Test
     fun validationCatchesUnPublishedSwitch() {
-        assertSegmentSwitchError(
+        assertLocationTrackToSwitchReferenceError(
             false,
-            switchLinking(switchDraft = false, switchInPublication = false),
-            "$VALIDATION_LOCATION_TRACK.switch.not-published",
+            listOf(AssetLiveness("switch", AssetLivenessType.EXISTS)),
+            "$VALIDATION_LOCATION_TRACK.reference-to-switch.not-published",
             locationTrack(IntId(1), draft = false),
         )
-        assertSegmentSwitchError(
-            false,
-            switchLinking(EXISTING, switchDraft = true, switchInPublication = true),
-            "$VALIDATION_LOCATION_TRACK.switch.not-published",
-            locationTrack(IntId(1), draft = false),
-        )
-        assertSegmentSwitchError(
+        assertLocationTrackToSwitchReferenceError(
             true,
-            switchLinking(EXISTING, switchDraft = true, switchInPublication = false),
-            "$VALIDATION_LOCATION_TRACK.switch.not-published",
+            listOf(AssetLiveness("switch", AssetLivenessType.DRAFT_NOT_PUBLISHED)),
+            "$VALIDATION_LOCATION_TRACK.reference-to-switch.not-published",
             locationTrack(IntId(1), draft = false),
         )
     }
 
     @Test
     fun validationCatchesReferencingDeletedSwitch() {
-        assertSegmentSwitchError(
+        assertLocationTrackToSwitchReferenceError(
             false,
-            switchLinking(switchStateCategory = EXISTING),
-            "$VALIDATION_LOCATION_TRACK.switch.state-category.EXISTING",
+            listOf(AssetLiveness("switch", AssetLivenessType.EXISTS)),
+            "$VALIDATION_LOCATION_TRACK.reference-to-switch.deleted",
             locationTrack(IntId(1), draft = false),
         )
-        assertSegmentSwitchError(
+        assertLocationTrackToSwitchReferenceError(
             true,
-            switchLinking(switchStateCategory = NOT_EXISTING),
-            "$VALIDATION_LOCATION_TRACK.switch.state-category.NOT_EXISTING",
+            listOf(AssetLiveness("switch", AssetLivenessType.DELETED)),
+            "$VALIDATION_LOCATION_TRACK.reference-to-switch.deleted",
             locationTrack(IntId(1), draft = false),
+        )
+        assertLocationTrackToSwitchReferenceError(
+            false,
+            listOf(AssetLiveness("switch", AssetLivenessType.DELETED)),
+            "$VALIDATION_LOCATION_TRACK.reference-to-switch.deleted",
+            locationTrack(IntId(1), draft = false, state = LocationTrackState.DELETED),
         )
     }
 
@@ -1441,6 +1440,24 @@ class PublicationValidationTest {
                     if (referenceLine == null) AssetLivenessType.DRAFT_NOT_PUBLISHED
                     else if (trackNumber?.exists ?: false) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
                 ),
+            ),
+            error,
+        )
+
+    private fun assertLocationTrackToSwitchReferenceError(
+        hasError: Boolean,
+        switchLivenesses: List<AssetLiveness<LayoutSwitch>>,
+        error: String,
+        locationTrack: LocationTrack = locationTrack(IntId(1), draft = true),
+    ) =
+        assertContainsError(
+            hasError,
+            validateReferencesFromLocationTrack(
+                trackNumber = AssetLiveness("tracknum", AssetLivenessType.EXISTS),
+                switches = switchLivenesses,
+                operationalPoints = listOf(),
+                duplicateOf = null,
+                locationTrack = locationTrack,
             ),
             error,
         )
