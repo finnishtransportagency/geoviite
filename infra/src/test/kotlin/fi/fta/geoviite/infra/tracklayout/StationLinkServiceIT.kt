@@ -36,6 +36,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         val op2Id = mainOfficialContext.save(operationalPoint("OP2", location = Point(50.0, 0.0))).id
         val op3Id = mainOfficialContext.save(operationalPoint("OP3", location = Point(80.0, 0.0))).id
 
+        // The switches connect to the operational points with the same number
         val switch1Id = mainOfficialContext.save(switch(operationalPointId = op1Id)).id
         val switch2Id = mainOfficialContext.save(switch(operationalPointId = op2Id)).id
         val switch3Id = mainOfficialContext.save(switch(operationalPointId = op3Id)).id
@@ -46,16 +47,19 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 .save(
                     locationTrack(tnId),
                     trackGeometry(
+                        // Edge 1 goes from switch1 to switch2 (not switch-internal geometry)
                         edge(
                             startOuterSwitch = switchLinkYV(switch1Id, 3),
                             endOuterSwitch = switchLinkYV(switch2Id, 1),
                             segments = listOf(segment(Point(30.0, 5.0), Point(40.0, 5.0))),
                         ),
+                        // Edge 2 is switch2 internal geometry
                         edge(
                             startInnerSwitch = switchLinkYV(switch2Id, 1),
                             endInnerSwitch = switchLinkYV(switch2Id, 2),
                             segments = listOf(segment(Point(40.0, 5.0), Point(45.0, 5.0))),
                         ),
+                        // Edge 3 goes from switch2 to switch3 (not switch-internal geometry)
                         edge(
                             startOuterSwitch = switchLinkYV(switch2Id, 2),
                             endOuterSwitch = switchLinkYV(switch3Id, 1),
@@ -71,6 +75,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 .save(
                     locationTrack(tnId),
                     trackGeometry(
+                        // The only edge goes from switch2 to switch3 (not switch-internal geometry)
                         edge(
                             startOuterSwitch = switchLinkYV(switch2Id, 2),
                             endOuterSwitch = switchLinkYV(switch3Id, 1),
@@ -90,7 +95,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 ),
                 links.map { it.copy(length = 0.0) },
             )
-            // Assert correct lengths
+            // The first link length should be track1 edge1 + op<->switch distances
             assertEquals(
                 10.0 +
                     calculateDistance(LAYOUT_SRID, Point(30.0, 5.0), Point(20.0, 0.0)) +
@@ -98,6 +103,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 links[0].length,
                 LAYOUT_M_DELTA,
             )
+            // The second link length should be the shorter track 2 (only edge) + op<->switch distances
             assertEquals(
                 38.0 +
                     calculateDistance(LAYOUT_SRID, Point(46.0, 5.0), Point(50.0, 0.0)) +
