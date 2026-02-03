@@ -38,7 +38,7 @@ class GeocodingService(
         layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
         resolution: Resolution = Resolution.ONE_METER,
-    ): AlignmentAddresses<LocationTrackM>? {
+    ): AddressPointsResult<LocationTrackM>? {
         return addressPointsCache.getAddressPointCacheKey(layoutContext, locationTrackId, resolution)?.let { cacheKey ->
             addressPointsCache.getAddressPoints(cacheKey)
         }
@@ -48,7 +48,7 @@ class GeocodingService(
         contextKey: LayoutGeocodingContextCacheKey,
         trackVersion: LayoutRowVersion<LocationTrack>,
         resolution: Resolution = Resolution.ONE_METER,
-    ): AlignmentAddresses<LocationTrackM>? {
+    ): AddressPointsResult<LocationTrackM>? {
         return addressPointsCache.getAddressPoints(AddressPointCacheKey(trackVersion, contextKey, resolution))
     }
 

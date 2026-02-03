@@ -99,9 +99,8 @@ private fun getCommonAddressRange(
     oldGeometry: LocationTrackGeometry,
     newGeometry: LocationTrackGeometry,
 ): Pair<List<AddressPoint<LocationTrackM>>, List<AddressPoint<LocationTrackM>>>? {
-    val oldAddressPoints = geocodingContext.getAddressPoints(oldGeometry)
-    val newAddressPoints = geocodingContext.getAddressPoints(newGeometry)
-    if (oldAddressPoints == null || newAddressPoints == null) return null
+    val oldAddressPoints = geocodingContext.getAddressPoints(oldGeometry).addresses ?: return null
+    val newAddressPoints = geocodingContext.getAddressPoints(newGeometry).addresses ?: return null
 
     val (old, new) = getOldAndNewAddressPoints(oldAddressPoints, newAddressPoints)
     return findCommonSubsequenceInCompactLists(old.map { it.address }, new.map { it.address })?.let {
@@ -149,7 +148,8 @@ private fun summarizeChangedRange(
     val rangeEndAddress = oldPoints.last().address
     val rangeStartMOnReferenceLine =
         requireNotNull(geocodingContext.getProjectionLine(rangeStartAddress)).referenceLineM.distance
-    val rangeEndMOnReferenceLine = requireNotNull(geocodingContext.getProjectionLine(rangeEndAddress)).referenceLineM.distance
+    val rangeEndMOnReferenceLine =
+        requireNotNull(geocodingContext.getProjectionLine(rangeEndAddress)).referenceLineM.distance
     val changeLengthM = rangeEndMOnReferenceLine - rangeStartMOnReferenceLine
 
     val maxDistance =

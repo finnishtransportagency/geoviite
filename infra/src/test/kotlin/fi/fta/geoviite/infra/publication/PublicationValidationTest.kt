@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.geocoding.AddressPointsResult
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.ValidatedGeocodingContext
 import fi.fta.geoviite.infra.localization.LocalizationKey
@@ -324,17 +324,39 @@ class PublicationValidationTest {
     }
 
     @Test
+    fun `Validation gives error when end address is before start`() {
+        val context = simpleGeocodingContext(rawPoints(100, 0.0, 0.0, 0.0, 1000.0))
+        val testTrackNumber = trackNumber(draft = true)
+        val testLocationTrack = locationTrack(IntId(1), draft = true)
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.ERROR,
+                    "$VALIDATION_GEOCODING.end-before-start",
+                    mapOf(
+                        "trackNumber" to testTrackNumber.number.value,
+                        "locationTrack" to testLocationTrack.name.toString(),
+                    ),
+                )
+            ),
+            validateAddressPoints(testTrackNumber, testLocationTrack, VALIDATION_GEOCODING) {
+                context.getAddressPoints(
+                    // geometry being compared against (type is ignored) goes downward
+                    referenceLineGeometry(segment(Point(10.0, 100.0), Point(10.0, 10.0))).copy(id = IntId(2))
+                )
+            },
+        )
+    }
+
+    @Test
     fun validationOkForNormalAlignmentGeocoding() {
         // Reference line: straight up from origin, 1km
         val context = simpleGeocodingContext(rawPoints(100, 0.0, 0.0, 0.0, 1000.0))
         assertEquals(
             listOf(),
-            validateAddressPoints(
-                trackNumber(draft = true),
-                locationTrack(trackNumberId = IntId(1), draft = true),
-                "",
-            ) {
-                // Alignment at slight angle to reference line -> should be OK
+            validateAddressPoints(trackNumber(draft = true), locationTrack(trackNumberId = IntId(1), draft = true), "")
+            // Alignment at slight angle to reference line -> should be OK
+            {
                 context.getAddressPoints(
                     referenceLineGeometry(segment(Point(10.0, 10.0), Point(20.0, 100.0))).copy(id = IntId(2))
                 )
@@ -1443,9 +1465,9 @@ class PublicationValidationTest {
 
     private fun <M : AlignmentM<M>> assertAddressPointError(
         hasError: Boolean,
-        geocode: () -> AlignmentAddresses<M>?,
+        geocode: () -> AddressPointsResult<M>?,
         error: String,
-    ) {
+    ) =
         assertContainsError(
             hasError,
             validateAddressPoints(
@@ -1456,10 +1478,9 @@ class PublicationValidationTest {
             ),
             error,
         )
-    }
 
     private fun assertSingleAddressPointErrorRangeDescription(
-        geocode: () -> AlignmentAddresses<ReferenceLineM>?,
+        geocode: () -> AddressPointsResult<ReferenceLineM>?,
         errorRangeDescription: String,
     ) {
         val errors =
