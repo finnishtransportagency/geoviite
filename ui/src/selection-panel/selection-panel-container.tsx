@@ -11,6 +11,7 @@ import {
     useSwitches,
 } from 'track-layout/track-layout-react-utils';
 import { planDownloadAssetIdFromToolPanelAsset } from 'map/plan-download/plan-download-store';
+import { boundingBoxContains } from 'model/geometry';
 
 type SelectionPanelContainerProps = {
     setSwitchToOfficialDialogOpen: (open: boolean) => void;
@@ -53,26 +54,15 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
         changeTimes.operationalPoints,
     );
 
-    const operationalPoints = React.useMemo(() => {
-        const viewport = state.map.viewport;
-        if (!viewport.area) {
-            return [];
-        }
-
-        const viewportArea = viewport.area;
-        return allOperationalPoints.filter((op) => {
-            if (!op.location) {
-                return false;
-            }
-            const { x, y } = op.location;
-            return (
-                x >= viewportArea.x.min &&
-                x <= viewportArea.x.max &&
-                y >= viewportArea.y.min &&
-                y <= viewportArea.y.max
-            );
-        });
-    }, [allOperationalPoints, state.map.viewport]);
+    const operationalPoints = React.useMemo(
+        () =>
+            allOperationalPoints.filter((op) =>
+                op.location && state.map.viewport.area
+                    ? boundingBoxContains(state.map.viewport.area, op.location)
+                    : false,
+            ),
+        [allOperationalPoints, state.map.viewport],
+    );
 
     const togglePlanDownload = () => {
         if (state.planDownloadState) {

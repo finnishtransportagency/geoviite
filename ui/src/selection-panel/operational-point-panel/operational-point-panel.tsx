@@ -21,8 +21,6 @@ export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
     disabled,
 }: OperationalPointPanelProps) => {
     const { t } = useTranslation();
-
-    const [operationalPointsCount, setOperationalPointsCount] = React.useState(0);
     const [visibleOperationalPoints, setVisibleOperationalPoints] = React.useState(
         [] as OperationalPoint[],
     );
@@ -32,10 +30,8 @@ export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
             const sortedPoints = [...operationalPoints].sort(compareNamed);
 
             setVisibleOperationalPoints(sortedPoints.length < max + 1 ? sortedPoints : []);
-            setOperationalPointsCount(sortedPoints.length);
         } else {
             setVisibleOperationalPoints([]);
-            setOperationalPointsCount(0);
         }
     }, [operationalPoints, max]);
 
@@ -67,13 +63,13 @@ export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
                     );
                 })}
             </ul>
-            {operationalPointsCount > max && (
+            {visibleOperationalPoints.length > max && (
                 <span className={styles['operational-point-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',
                 )}`}</span>
             )}
 
-            {operationalPointsCount === 0 && (
+            {visibleOperationalPoints.length === 0 && (
                 <span className={styles['operational-point-panel__subtitle']}>{`${t(
                     'selection-panel.no-results',
                 )}`}</span>
