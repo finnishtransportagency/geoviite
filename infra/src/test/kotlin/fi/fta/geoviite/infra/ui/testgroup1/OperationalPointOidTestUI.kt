@@ -8,11 +8,12 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointService
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -61,16 +62,14 @@ constructor(
         // Verify the operational point does not have an OID yet in draft mode (UI verification)
         trackLayoutPage.selectionPanel.selectOperationalPoint("Test Point")
         val oidBeforePublicationUI = trackLayoutPage.toolPanel.operationalPointGeneralInfo.oid
-        assertTrue(
-            oidBeforePublicationUI == "Julkaisematon",
+        assertEquals(
+            "Julkaisematon",
+            oidBeforePublicationUI,
             "Operational point should not have an OID before publication (UI)",
         )
 
         val oidBeforePublication = operationalPointDao.fetchExternalId(LayoutBranch.main, operationalPointId)
-        assertTrue(
-            oidBeforePublication == null,
-            "Operational point should not have an OID before publication (backend)",
-        )
+        assertNull(oidBeforePublication, "Operational point should not have an OID before publication (backend)")
 
         // Navigate to preview and publish
         val previewPage = trackLayoutPage.goToPreview()
@@ -86,13 +85,13 @@ constructor(
         goToMap().switchToOfficialMode().also { page ->
             page.selectionPanel.selectOperationalPoint("Test Point")
             val oidAfterPublicationUI = page.toolPanel.operationalPointGeneralInfo.oid
-            assertNotNull(oidAfterPublicationUI, "Operational point OID should not be null (UI)")
-            assertFalse(oidAfterPublicationUI.isEmpty(), "Operational point OID should not be empty (UI)")
+            assertNotEquals(oidAfterPublicationUI, "", "Operational point OID should not be empty (UI)")
 
             val oidAfterPublication = operationalPointDao.fetchExternalId(LayoutBranch.main, operationalPointId)
             assertNotNull(oidAfterPublication?.oid, "Operational point OID should exist in backend")
-            assertTrue(
-                oidAfterPublicationUI == oidAfterPublication?.oid.toString(),
+            assertEquals(
+                oidAfterPublicationUI,
+                oidAfterPublication?.oid.toString(),
                 "UI OID ($oidAfterPublicationUI) should match backend OID (${oidAfterPublication?.oid})",
             )
         }
