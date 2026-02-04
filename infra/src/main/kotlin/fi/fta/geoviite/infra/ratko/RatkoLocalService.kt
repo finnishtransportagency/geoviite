@@ -82,14 +82,32 @@ constructor(
             val asset = getErrorAssetOrThrow(ratkoError)
 
             val errorWithAsset =
-                RatkoPushErrorWithAsset(
-                    ratkoError.id,
-                    ratkoError.ratkoPushId,
-                    ratkoError.errorType,
-                    ratkoError.operation,
-                    ratkoError.assetType,
-                    asset,
-                )
+                when (ratkoError) {
+                    is RatkoPushError.TrackNumber ->
+                        RatkoPushErrorWithAsset.TrackNumber(
+                            ratkoError.id,
+                            ratkoError.ratkoPushId,
+                            ratkoError.errorType,
+                            ratkoError.operation,
+                            asset as LayoutTrackNumber,
+                        )
+                    is RatkoPushError.LocationTrack ->
+                        RatkoPushErrorWithAsset.LocationTrack(
+                            ratkoError.id,
+                            ratkoError.ratkoPushId,
+                            ratkoError.errorType,
+                            ratkoError.operation,
+                            asset as LocationTrack,
+                        )
+                    is RatkoPushError.Switch ->
+                        RatkoPushErrorWithAsset.Switch(
+                            ratkoError.id,
+                            ratkoError.ratkoPushId,
+                            ratkoError.errorType,
+                            ratkoError.operation,
+                            asset as LayoutSwitch,
+                        )
+                }
             RatkoPushErrorAndDetails(errorWithAsset, publicationLogService.getPublicationDetails(publicationId))
         }
 
@@ -169,16 +187,15 @@ constructor(
         }
     }
 
-    private fun getErrorAssetOrThrow(ratkoError: RatkoPushError<*>): LayoutAsset<*> {
+    private fun getErrorAssetOrThrow(ratkoError: RatkoPushError): LayoutAsset<*> {
         val asset =
-            when (ratkoError.assetType) {
-                TRACK_NUMBER ->
-                    trackNumberService.get(MainLayoutContext.official, ratkoError.assetId as IntId<LayoutTrackNumber>)
-
-                LOCATION_TRACK ->
-                    locationTrackService.get(MainLayoutContext.official, ratkoError.assetId as IntId<LocationTrack>)
-
-                SWITCH -> switchService.get(MainLayoutContext.official, ratkoError.assetId as IntId<LayoutSwitch>)
+            when (ratkoError) {
+                is RatkoPushError.TrackNumber ->
+                    trackNumberService.get(MainLayoutContext.official, ratkoError.assetId)
+                is RatkoPushError.LocationTrack ->
+                    locationTrackService.get(MainLayoutContext.official, ratkoError.assetId)
+                is RatkoPushError.Switch ->
+                    switchService.get(MainLayoutContext.official, ratkoError.assetId)
             }
         checkNotNull(asset) { "No asset found for id! ${ratkoError.assetType} ${ratkoError.assetId}" }
         return asset
