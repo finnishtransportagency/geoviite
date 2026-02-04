@@ -6,6 +6,7 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 import {
     useKmPosts,
     useLocationTracks,
+    useOperationalPoints,
     useReferenceLines,
     useSwitches,
 } from 'track-layout/track-layout-react-utils';
@@ -47,6 +48,32 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
         changeTimes.layoutKmPost,
     );
 
+    const allOperationalPoints = useOperationalPoints(
+        state.layoutContext,
+        changeTimes.operationalPoints,
+    );
+
+    const operationalPoints = React.useMemo(() => {
+        const viewport = state.map.viewport;
+        if (!viewport.area) {
+            return [];
+        }
+
+        const viewportArea = viewport.area;
+        return allOperationalPoints.filter((op) => {
+            if (!op.location) {
+                return false;
+            }
+            const { x, y } = op.location;
+            return (
+                x >= viewportArea.x.min &&
+                x <= viewportArea.x.max &&
+                y >= viewportArea.y.min &&
+                y <= viewportArea.y.max
+            );
+        });
+    }, [allOperationalPoints, state.map.viewport]);
+
     const togglePlanDownload = () => {
         if (state.planDownloadState) {
             delegates.onClosePlanDownloadPopup();
@@ -75,6 +102,7 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
             referenceLines={referenceLines}
             locationTracks={locationTracks}
             switches={switches}
+            operationalPoints={operationalPoints}
             viewport={state.map.viewport}
             selectableItemTypes={selectableItemTypes}
             togglePlanOpen={delegates.togglePlanOpen}
