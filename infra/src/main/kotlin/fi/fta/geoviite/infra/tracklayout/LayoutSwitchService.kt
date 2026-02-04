@@ -59,12 +59,18 @@ constructor(
         branch: LayoutBranch,
         id: IntId<LayoutSwitch>,
         switch: LayoutSwitchSaveRequest,
+        deleteSwitchLinks: Boolean,
     ): IntId<LayoutSwitch> {
+        // Validate deleteSwitchLinks parameter - can only be true when deleting switch
+        require(deleteSwitchLinks != true || switch.stateCategory == LayoutStateCategory.NOT_EXISTING) {
+            "deleteSwitchLinks can only be set to true when stateCategory is NOT_EXISTING"
+        }
+
         val layoutSwitch = dao.getOrThrow(branch.draft, id)
         val switchStructureChanged = switch.switchStructureId != layoutSwitch.switchStructureId
         val switchJoints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
 
-        if (switchStructureChanged) {
+        if (switchStructureChanged || deleteSwitchLinks) {
             clearSwitchInformationFromTracks(branch, id)
         }
 

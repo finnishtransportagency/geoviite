@@ -148,9 +148,11 @@ export async function updateSwitch(
     id: LayoutSwitchId,
     updatedSwitch: LayoutSwitchSaveRequest,
     layoutContext: LayoutContext,
+    deleteSwitchLinks?: boolean,
 ): Promise<LayoutSwitchId> {
+    const queryParams = deleteSwitchLinks !== undefined ? `?deleteSwitchLinks=${deleteSwitchLinks}` : '';
     const result = await putNonNull<LayoutSwitchSaveRequest, LayoutSwitchId>(
-        layoutUri('switches', draftLayoutContext(layoutContext), id),
+        `${layoutUri('switches', draftLayoutContext(layoutContext), id)}${queryParams}`,
         updatedSwitch,
     );
     // Switch changes can also affect location track names & descriptions

@@ -332,6 +332,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     props.setStagedPublicationCandidateReferences(updatedCandidates);
 
                     Snackbar.success('publish.revert-success');
+                } else {
+                    Snackbar.error('publish.revert-failure');
                 }
             })
             .finally(() => {
