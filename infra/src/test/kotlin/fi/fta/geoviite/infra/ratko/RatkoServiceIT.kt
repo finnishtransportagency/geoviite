@@ -1802,7 +1802,7 @@ constructor(
         assertEquals(listOf<RatkoMetadataAsset>(), fakeRatko.getPushedMetadata(locationTrackOid = "2.2.2.2.2"))
     }
 
-    @Disabled
+    @Disabled // Pushing designs is not in the designs MVP
     @Test
     fun `objects that are cancelled before being ever pushed don't get pushed post-cancellation`() {
         val designBranch = testDBService.createDesignBranch()
@@ -1877,7 +1877,7 @@ constructor(
         assertNull(fakeRatko.getLastPushedRouteNumber("1.1.1.1.2"))
     }
 
-    @Disabled
+    @Disabled // Pushing designs to Ratko is not in the designs MVP
     @Test
     fun `cancellations get pushed as plan item states`() {
         val designBranch = testDBService.createDesignBranch()
