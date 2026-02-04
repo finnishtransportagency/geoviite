@@ -143,7 +143,7 @@ data class InternalOperationalPointSaveRequest(
     val uicCode: UicCode,
 )
 
-data class ExternalOperationalPointSaveRequest(val rinfType: OperationalPointRinfType)
+data class ExternalOperationalPointSaveRequest(val rinfType: OperationalPointRinfType?)
 
 enum class OperationalPointRinfType {
     STATION,

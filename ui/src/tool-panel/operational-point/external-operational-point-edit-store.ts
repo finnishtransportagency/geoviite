@@ -1,4 +1,8 @@
-import { OperationalPoint, OperationalPointRinfType } from 'track-layout/track-layout-model';
+import {
+    OperationalPoint,
+    OperationalPointRaideType,
+    OperationalPointRinfType,
+} from 'track-layout/track-layout-model';
 import {
     FieldValidationIssue,
     FieldValidationIssueType,
@@ -35,9 +39,11 @@ export const initialExternalOperationalPointEditState: ExternalOperationalPointE
 
 const validateExternalOperationalPoint = (
     saveRequest: ExternalOperationalPointSaveRequest,
+    raideType?: OperationalPointRaideType,
 ): FieldValidationIssue<ExternalOperationalPointSaveRequest>[] => {
+    const isOlp = raideType === 'OLP';
     const rinfTypeMissing = validate<ExternalOperationalPointSaveRequest>(
-        saveRequest.rinfType !== undefined,
+        isOlp || saveRequest.rinfType !== undefined,
         {
             field: 'rinfType',
             reason: 'mandatory-field',
@@ -60,7 +66,10 @@ const internalOperationalPointEditSlice = createSlice({
             state.operationalPoint = {
                 rinfType: existingOperationalPoint.rinfType,
             };
-            state.validationIssues = validateExternalOperationalPoint(state.operationalPoint);
+            state.validationIssues = validateExternalOperationalPoint(
+                state.operationalPoint,
+                existingOperationalPoint.raideType,
+            );
         },
         onUpdateProp: function <TKey extends keyof ExternalOperationalPointSaveRequest>(
             state: ExternalOperationalPointEditState,
@@ -69,8 +78,15 @@ const internalOperationalPointEditSlice = createSlice({
             }: PayloadAction<PropEdit<ExternalOperationalPointSaveRequest, TKey>>,
         ) {
             if (state.operationalPoint) {
-                state.operationalPoint[propEdit.key] = propEdit.value;
-                state.validationIssues = validateExternalOperationalPoint(state.operationalPoint);
+                if (propEdit.key === 'rinfType' && propEdit.value === undefined) {
+                    delete state.operationalPoint.rinfType;
+                } else {
+                    state.operationalPoint[propEdit.key] = propEdit.value;
+                }
+                state.validationIssues = validateExternalOperationalPoint(
+                    state.operationalPoint,
+                    state.existingOperationalPoint?.raideType,
+                );
 
                 if (
                     isPropEditFieldCommitted(
@@ -92,7 +108,10 @@ const internalOperationalPointEditSlice = createSlice({
         },
         validate: (state: ExternalOperationalPointEditState): void => {
             if (state.operationalPoint) {
-                state.validationIssues = validateExternalOperationalPoint(state.operationalPoint);
+                state.validationIssues = validateExternalOperationalPoint(
+                    state.operationalPoint,
+                    state.existingOperationalPoint?.raideType,
+                );
                 state.allFieldsCommitted = true;
             }
         },

@@ -60,6 +60,8 @@ export const ExternalOperationalPointEditDialog: React.FC<
     const [deleteDraftConfirmDialogOpen, setdeleteDraftConfirmDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
 
+    const isOlp = state.existingOperationalPoint?.raideType === 'OLP';
+
     const rinfTypeOptions: DropdownOption<OperationalPointRinfType>[] = rinfTypes.map((value) =>
         dropdownOption(value.value, value.name, `rinf-type-option-${value}`),
     );
@@ -70,7 +72,6 @@ export const ExternalOperationalPointEditDialog: React.FC<
         );
 
     const updateRinfType = (value: OperationalPointRinfType | undefined) =>
-        value &&
         stateActions.onUpdateProp({
             key: 'rinfType',
             value: value,
@@ -155,7 +156,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             }
                         />
                         <FieldLayout
-                            label={`${t('operational-point-dialog.type-rinf')} *`}
+                            label={`${t('operational-point-dialog.type-rinf')}${isOlp ? '' : ' *'}`}
                             value={
                                 <Dropdown
                                     options={rinfTypeOptions}
@@ -171,6 +172,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                                         state.validationIssues,
                                         'rinfType',
                                     )}
+                                    canUnselect={isOlp}
                                     wide
                                 />
                             }

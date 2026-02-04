@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingCacheService
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -675,25 +676,38 @@ constructor(
                     validationContext.getOperationalPointsByAbbreviation(operationalPoint.abbreviation),
                     validationContext.target.validationTargetType,
                 )
+
         val uicCodeIssues =
             if (operationalPoint.uicCode == null)
                 listOf(validationError("$VALIDATION_OPERATIONAL_POINT.uic-code-missing"))
+            else if (operationalPoint.raideType == OperationalPointRaideType.OLP) listOf()
             else
                 validateOperationalPointUicCodeDuplication(
                     operationalPoint,
-                    validationContext.getOperationalPointsByUicCode(operationalPoint.uicCode),
+                    validationContext.getOperationalPointsByUicCode(operationalPoint.uicCode).filter {
+                        it.raideType != OperationalPointRaideType.OLP
+                    },
                     validationContext.target.validationTargetType,
                 )
+
         val rinfCodeIssues =
             listOfNotNull(
-                validate(operationalPoint.rinfType != null) { "$VALIDATION_OPERATIONAL_POINT.rinf-code-missing" }
+                validate(
+                    operationalPoint.rinfType != null || operationalPoint.raideType == OperationalPointRaideType.OLP
+                ) {
+                    "$VALIDATION_OPERATIONAL_POINT.rinf-code-missing"
+                }
             )
         val polygonOverlapIssues =
-            validateOperationalPointPolygonOverlap(
-                operationalPoint,
-                validationContext.getOverlappingOperationalPoints(id),
-                validationContext.target.validationTargetType,
-            )
+            if (operationalPoint.raideType == OperationalPointRaideType.OLP) listOf()
+            else
+                validateOperationalPointPolygonOverlap(
+                    operationalPoint,
+                    validationContext.getOverlappingOperationalPoints(id).filter {
+                        it.raideType != OperationalPointRaideType.OLP
+                    },
+                    validationContext.target.validationTargetType,
+                )
         val locationIssues =
             listOfNotNull(
                 validate(operationalPoint.polygon != null) { "$VALIDATION_OPERATIONAL_POINT.polygon-missing" },
