@@ -17,10 +17,13 @@ class StationLinkService(
 ) {
 
     private data class TrackStationPoint(
-        val opId: IntId<OperationalPoint>,
+        val op: OperationalPoint,
         val location: AlignmentPoint<LocationTrackM>,
         val distance: Double,
-    )
+    ) {
+        val opId: IntId<OperationalPoint>
+            get() = op.id as IntId
+    }
 
     private data class StationLinkKey(
         val trackNumberId: IntId<LayoutTrackNumber>,
@@ -74,8 +77,6 @@ class StationLinkService(
         trackNumberVersions: List<LayoutRowVersion<LayoutTrackNumber>>,
     ): List<StationLink> {
         val operationalPointsById = operationalPoints.associateBy { it.id as IntId }
-        fun getOp(id: IntId<OperationalPoint>): OperationalPoint =
-            requireNotNull(operationalPointsById[id]) { "Operational point $id not found" }
         val trackNumberVersionById = trackNumberVersions.associateBy { it.id }
         val switchIdToOpId =
             switches.mapNotNull { s -> s.operationalPointId?.let { s.id as IntId to it } }.associate { it }
@@ -87,8 +88,6 @@ class StationLinkService(
             }
             .groupBy { connection -> connection.stationLinkKey }
             .map { (key, connections) ->
-                val op1 = getOp(key.op1Id)
-                val op2 = getOp(key.op2Id)
                 val shortestLink = connections.minBy { it.length }
                 val trackNumberVersion =
                     requireNotNull(trackNumberVersionById[key.trackNumberId]) {
@@ -96,9 +95,11 @@ class StationLinkService(
                     }
                 StationLink(
                     trackNumberVersion = trackNumberVersion,
-                    startOperationalPointVersion = op1.getVersionOrThrow(),
-                    endOperationalPointVersion = op2.getVersionOrThrow(),
+                    // The points will be the same on all connections, so just pick from the shortest one
+                    startOperationalPointVersion = shortestLink.op1Point.op.getVersionOrThrow(),
+                    endOperationalPointVersion = shortestLink.op2Point.op.getVersionOrThrow(),
                     locationTrackVersions = connections.map { it.trackVersion },
+                    // Use the shortest link length
                     length = shortestLink.length.distance,
                 )
             }
@@ -114,7 +115,8 @@ class StationLinkService(
         val connectedOpIds =
             geometry.trackSwitchLinks.mapNotNull { link -> switchIdToOpId[link.switchId] } + track.operationalPointIds
         return connectedOpIds
-            .mapNotNull { opId -> toTrackStationPoint(opId, operationalPoints, geometry) }
+            .map { id -> requireNotNull(operationalPoints[id]) { "Operational point $id not found" } }
+            .mapNotNull { op -> toTrackStationPoint(op, geometry) }
             .sortedBy { it.location.m }
             .zipWithNext()
             .mapNotNull { (prev, next) ->
@@ -122,14 +124,10 @@ class StationLinkService(
             }
     }
 
-    private fun toTrackStationPoint(
-        opId: IntId<OperationalPoint>,
-        operationalPoints: Map<IntId<OperationalPoint>, OperationalPoint>,
-        geometry: LocationTrackGeometry,
-    ): TrackStationPoint? =
-        operationalPoints[opId]?.location?.let { opLocation ->
+    private fun toTrackStationPoint(op: OperationalPoint, geometry: LocationTrackGeometry): TrackStationPoint? =
+        op.location?.let { opLocation ->
             geometry.getClosestPoint(opLocation)?.first?.let { trackLocation ->
-                TrackStationPoint(opId, trackLocation, calculateDistance(LAYOUT_SRID, opLocation, trackLocation))
+                TrackStationPoint(op, trackLocation, calculateDistance(LAYOUT_SRID, opLocation, trackLocation))
             }
         }
 }
