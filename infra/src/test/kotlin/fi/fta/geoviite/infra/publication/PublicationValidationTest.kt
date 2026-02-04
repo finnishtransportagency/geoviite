@@ -22,7 +22,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
-import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.NOT_EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -89,21 +88,21 @@ class PublicationValidationTest {
             trackNumber.copy(state = LayoutState.DELETED),
             referenceLine,
             locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.IN_USE),
-            "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
+            "$VALIDATION_TRACK_NUMBER.reference-from-location-track.deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = LayoutState.DELETED),
             referenceLine,
             alignment.copy(state = LocationTrackState.DELETED),
-            "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
+            "$VALIDATION_TRACK_NUMBER.reference-from-location-track.deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = LayoutState.IN_USE),
             referenceLine,
             alignment.copy(state = LocationTrackState.IN_USE),
-            "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
+            "$VALIDATION_TRACK_NUMBER.reference-from-location-track.deleted",
         )
     }
 
@@ -119,7 +118,7 @@ class PublicationValidationTest {
             null,
             referenceLine,
             trackNumber.number,
-            "$VALIDATION_KM_POST.track-number.not-published",
+            "$VALIDATION_KM_POST.reference-to-track-number.not-published",
         )
         assertKmPostReferenceError(
             true,
@@ -127,7 +126,7 @@ class PublicationValidationTest {
             trackNumber,
             null,
             trackNumber.number,
-            "$VALIDATION_KM_POST.reference-line.not-published",
+            "$VALIDATION_KM_POST.reference-to-reference-line.not-published",
         )
         assertKmPostReferenceError(
             false,
@@ -135,7 +134,7 @@ class PublicationValidationTest {
             trackNumber,
             referenceLine,
             trackNumber.number,
-            "$VALIDATION_KM_POST.track-number.not-published",
+            "$VALIDATION_KM_POST.reference-to-track-number.not-published",
         )
         assertKmPostReferenceError(
             false,
@@ -143,7 +142,7 @@ class PublicationValidationTest {
             trackNumber,
             referenceLine,
             trackNumber.number,
-            "$VALIDATION_KM_POST.reference-line.not-published",
+            "$VALIDATION_KM_POST.reference-to-reference-line.not-published",
         )
     }
 
@@ -258,39 +257,39 @@ class PublicationValidationTest {
 
     @Test
     fun validationCatchesUnPublishedSwitch() {
-        assertSegmentSwitchError(
+        assertLocationTrackToSwitchReferenceError(
             false,
-            switchLinking(switchDraft = false, switchInPublication = false),
-            "$VALIDATION_LOCATION_TRACK.switch.not-published",
+            listOf(AssetLiveness("switch", AssetLivenessType.EXISTS)),
+            "$VALIDATION_LOCATION_TRACK.reference-to-switch.not-published",
             locationTrack(IntId(1), draft = false),
         )
-        assertSegmentSwitchError(
-            false,
-            switchLinking(EXISTING, switchDraft = true, switchInPublication = true),
-            "$VALIDATION_LOCATION_TRACK.switch.not-published",
-            locationTrack(IntId(1), draft = false),
-        )
-        assertSegmentSwitchError(
+        assertLocationTrackToSwitchReferenceError(
             true,
-            switchLinking(EXISTING, switchDraft = true, switchInPublication = false),
-            "$VALIDATION_LOCATION_TRACK.switch.not-published",
+            listOf(AssetLiveness("switch", AssetLivenessType.DRAFT_NOT_PUBLISHED)),
+            "$VALIDATION_LOCATION_TRACK.reference-to-switch.not-published",
             locationTrack(IntId(1), draft = false),
         )
     }
 
     @Test
     fun validationCatchesReferencingDeletedSwitch() {
-        assertSegmentSwitchError(
+        assertLocationTrackToSwitchReferenceError(
             false,
-            switchLinking(switchStateCategory = EXISTING),
-            "$VALIDATION_LOCATION_TRACK.switch.state-category.EXISTING",
+            listOf(AssetLiveness("switch", AssetLivenessType.EXISTS)),
+            "$VALIDATION_LOCATION_TRACK.reference-to-switch.deleted",
             locationTrack(IntId(1), draft = false),
         )
-        assertSegmentSwitchError(
+        assertLocationTrackToSwitchReferenceError(
             true,
-            switchLinking(switchStateCategory = NOT_EXISTING),
-            "$VALIDATION_LOCATION_TRACK.switch.state-category.NOT_EXISTING",
+            listOf(AssetLiveness("switch", AssetLivenessType.DELETED)),
+            "$VALIDATION_LOCATION_TRACK.reference-to-switch.deleted",
             locationTrack(IntId(1), draft = false),
+        )
+        assertLocationTrackToSwitchReferenceError(
+            false,
+            listOf(AssetLiveness("switch", AssetLivenessType.DELETED)),
+            "$VALIDATION_LOCATION_TRACK.reference-to-switch.deleted",
+            locationTrack(IntId(1), draft = false, state = LocationTrackState.DELETED),
         )
     }
 
@@ -527,7 +526,7 @@ class PublicationValidationTest {
         val lt = locationTrack(IntId(0), duplicateOf = IntId(0), draft = true)
         assertContainsError(
             true,
-            validateDuplicateOfState(lt, lt, AlignmentName("duplicateof"), false, listOf()),
+            validateDuplicateStructure(lt, AlignmentName("duplicateof"), listOf()),
             "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-of-duplicated",
         )
     }
@@ -1359,13 +1358,13 @@ class PublicationValidationTest {
             )
         val joint1 = switch.joints.first()
         val joint2 = switch.joints.last()
+        val switchInContext = if (!switchDraft || switchInPublication) switch else null
         return SwitchTrackLinking(
             switchId = switch.id as IntId,
             switchName = switch.name,
-            switch = if (!switchDraft || switchInPublication) switch else null,
+            switch = switchInContext,
             switchStructure = structure,
             indexedLinks = listOf(0 to toTrackSwitchLink(switch, joint1), 1 to toTrackSwitchLink(switch, joint2)),
-            switchIsCancelled = false,
         )
     }
 
@@ -1407,9 +1406,11 @@ class PublicationValidationTest {
     ) =
         assertContainsError(
             hasError,
-            validateTrackNumberReferences(
-                trackNumberExists = trackNumber.exists,
-                trackNumberIsCancelled = trackNumber.isCancelled,
+            validateReferencesToTrackNumber(
+                AssetLiveness(
+                    trackNumber.number.toString(),
+                    if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
+                ),
                 referenceLine,
                 kmPosts,
                 locationTracks,
@@ -1429,10 +1430,34 @@ class PublicationValidationTest {
             hasError,
             validateKmPostReferences(
                 kmPost,
-                trackNumber,
-                referenceLine,
-                trackNumberNumber,
-                trackNumberIsCancelled = false,
+                AssetLiveness(
+                    trackNumberNumber.toString(),
+                    if (trackNumber == null) AssetLivenessType.DRAFT_NOT_PUBLISHED
+                    else if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
+                ),
+                AssetLiveness(
+                    trackNumberNumber.toString(),
+                    if (referenceLine == null) AssetLivenessType.DRAFT_NOT_PUBLISHED
+                    else if (trackNumber?.exists ?: false) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
+                ),
+            ),
+            error,
+        )
+
+    private fun assertLocationTrackToSwitchReferenceError(
+        hasError: Boolean,
+        switchLivenesses: List<AssetLiveness<LayoutSwitch>>,
+        error: String,
+        locationTrack: LocationTrack = locationTrack(IntId(1), draft = true),
+    ) =
+        assertContainsError(
+            hasError,
+            validateReferencesFromLocationTrack(
+                trackNumber = AssetLiveness("tracknum", AssetLivenessType.EXISTS),
+                switches = switchLivenesses,
+                operationalPoints = listOf(),
+                duplicateOf = null,
+                locationTrack = locationTrack,
             ),
             error,
         )
@@ -1442,7 +1467,12 @@ class PublicationValidationTest {
         segmentAndSwitch: SwitchTrackLinking,
         error: String,
         locationTrack: LocationTrack = locationTrack(IntId(1), draft = true),
-    ) = assertContainsError(hasError, validateTrackSwitchReferences(locationTrack, listOf(segmentAndSwitch)), error)
+    ) =
+        assertContainsError(
+            hasError,
+            validateTrackSwitchLinkingGeometry(locationTrack, listOf(segmentAndSwitch)),
+            error,
+        )
 
     private fun assertSwitchSegmentStructureError(
         hasError: Boolean,
