@@ -106,6 +106,7 @@ import { operationalPointPolygonStylesFunc } from 'map/layers/operational-point/
 import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
 import { createOperationalPointBadgeLayer } from 'map/layers/operational-point/operational-points-badge-layer';
 import { createSignalAssetLayer } from 'map/layers/ratko/signal-asset-layer';
+import type * as CssType from 'csstype';
 
 declare global {
     interface Window {
@@ -906,8 +907,25 @@ const MapView: React.FC<MapViewProps> = ({
 
     const mapClassNames = createClassName(styles.map);
 
+    const getCursor = (): CssType.Property.Cursor | undefined => {
+        // Operational point area operations always use crosshair cursor
+        if (linkingState?.type === 'PlacingOperationalPointArea') {
+            return 'crosshair';
+        }
+
+        // Check if active tool has a custom cursor (static or dynamic)
+        if (activeTool?.customCursor) {
+            if (typeof activeTool.customCursor === 'function') {
+                return activeTool.customCursor();
+            }
+            return activeTool.customCursor;
+        }
+
+        return undefined;
+    };
+
     const cssProperties = {
-        ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),
+        ...(getCursor() ? { cursor: getCursor() } : {}),
     };
     return (
         <div className={mapClassNames} style={cssProperties}>
