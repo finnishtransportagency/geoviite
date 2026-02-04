@@ -1742,7 +1742,7 @@
                 "reference-to-track-number": {
                     "not-published": "Raide viittaa ratanumeroon {{target}}, joka ei ole mukana julkaisussa",
                     "cancelled": "Raide viittaa suunnitelmasta peruttuun ratanumeroon {{target}}",
-                    "deleted": "Raide viittaa ratanumeroon {{target}} joka on tilassa \"Poistettu\""
+                    "deleted": "Raide on poistetulla ratanumerolla {{target}}"
                 },
                 "reference-to-operational-point": {
                     "not-published": "Raide viittaa toiminnalliseen pisteeseen {{target}}, joka ei ole mukana julkaisussa",
