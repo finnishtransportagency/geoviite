@@ -22,7 +22,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     }
 
     @Test
-    fun `getStationLinks returns correct links`() {
+    fun `getStationLinks returns correct links when connected through switches`() {
         val moment0 = testDBService.getDbTime()
         stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
         stationLinkService.getStationLinks(mainOfficialContext.context).also { links -> assertTrue(links.isEmpty()) }
@@ -121,5 +121,67 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
 
         // Verify that the 0-moment links is still empty
         stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
+    }
+
+    @Test
+    fun `getStationLinks returns correct links for tracks directly connected to operational points`() {
+        val tnVersion =
+            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
+                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
+            )
+        val op1Version = mainOfficialContext.save(operationalPoint("OP1", location = Point(10.0, 0.0)))
+        val op2Version = mainOfficialContext.save(operationalPoint("OP2", location = Point(50.0, 0.0)))
+        val op3Version = mainOfficialContext.save(operationalPoint("OP3", location = Point(90.0, 0.0)))
+
+        val track1Version =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId = tnVersion.id, operationalPointIds = setOf(op1Version.id, op2Version.id)),
+                trackGeometry(
+                    edge(segments = listOf(segment(Point(10.0, 2.0), Point(50.0, 2.0), calc = M_CALC.LAYOUT)))
+                ),
+            )
+
+        // Track 2 connects OP2 and OP3 directly (no switches)
+        val track2Version =
+            mainOfficialContext.save(
+                locationTrack(trackNumberId = tnVersion.id, operationalPointIds = setOf(op2Version.id, op3Version.id)),
+                trackGeometry(
+                    edge(segments = listOf(segment(Point(50.0, 3.0), Point(90.0, 3.0), calc = M_CALC.LAYOUT)))
+                ),
+            )
+
+        val links = stationLinkService.getStationLinks(mainOfficialContext.context)
+        links.also { links ->
+            // Assert correct links are found, ignoring length (due to floating-point comparison)
+            assertEquals(
+                listOf(
+                    StationLink(tnVersion, op1Version, op2Version, listOf(track1Version), 0.0),
+                    StationLink(tnVersion, op2Version, op3Version, listOf(track2Version), 0.0),
+                ),
+                links.map { it.copy(length = 0.0) },
+            )
+            // Verify length calculation for link 1 (OP1 to OP2)
+            assertEquals(
+                // Direct line from OP1 to closest point on track1
+                calculateDistance(LAYOUT_SRID, Point(10.0, 0.0), Point(10.0, 2.0)) +
+                    // From there, along the track to the location that is closest to OP2
+                    calculateDistance(LAYOUT_SRID, Point(10.0, 2.0), Point(50.0, 2.0)) +
+                    // From there, direct line to OP2
+                    calculateDistance(LAYOUT_SRID, Point(50.0, 2.0), Point(50.0, 0.0)),
+                links[0].length,
+                LAYOUT_M_DELTA,
+            )
+            // Verify length calculation for link 2 (OP2 to OP3)
+            assertEquals(
+                // Direct line from OP2 to closest point on track2
+                calculateDistance(LAYOUT_SRID, Point(50.0, 0.0), Point(50.0, 3.0)) +
+                    // From there, along the track to the location that is closest to OP3
+                    calculateDistance(LAYOUT_SRID, Point(50.0, 3.0), Point(90.0, 3.0)) +
+                    // From there, direct line to OP3
+                    calculateDistance(LAYOUT_SRID, Point(90.0, 3.0), Point(90.0, 0.0)),
+                links[1].length,
+                LAYOUT_M_DELTA,
+            )
+        }
     }
 }
