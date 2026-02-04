@@ -933,12 +933,14 @@ const MapView: React.FC<MapViewProps> = ({
                 <ol className="map__map-tools">
                     {mapTools.map((tool) => {
                         const ToolComponent = tool.component;
+                        const isActive = activeTool?.id === tool.id;
 
                         return (
                             <ToolComponent
                                 key={tool.id}
-                                isActive={activeTool?.id === tool.id}
+                                isActive={isActive}
                                 setActiveTool={setActiveTool}
+                                disabled={tool.disabled && !isActive}
                             />
                         );
                     })}

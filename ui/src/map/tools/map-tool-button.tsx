@@ -7,19 +7,22 @@ type MapToolButtonProps = {
     isActive: boolean;
     setActive: () => void;
     icon: IconComponent;
+    disabled?: boolean;
 };
 
 export const MapToolButton = ({
     isActive,
     setActive,
     icon: IconComponent,
+    disabled,
 }: MapToolButtonProps): React.JSX.Element => {
     return (
         <Button
             variant={ButtonVariant.GHOST}
             size={ButtonSize.BY_CONTENT}
             onClick={setActive}
-            isPressed={isActive}>
+            isPressed={isActive}
+            disabled={disabled}>
             <div className={styles['map-tool-button-content']}>
                 <div className={styles['map-tool-button-content__icon']}>
                     <IconComponent color={IconColor.INHERIT} size={IconSize.INHERIT} />
