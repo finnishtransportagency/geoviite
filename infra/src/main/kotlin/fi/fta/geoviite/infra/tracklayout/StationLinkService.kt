@@ -19,6 +19,7 @@ class StationLinkService(
     private data class TrackStationPoint(
         val opId: IntId<OperationalPoint>,
         val location: AlignmentPoint<LocationTrackM>,
+        val distance: Double,
     )
 
     private data class StationLinkKey(
@@ -37,7 +38,8 @@ class StationLinkService(
         val op1Point: TrackStationPoint,
         val op2Point: TrackStationPoint,
     ) {
-        val length: LineM<LocationTrackM> = abs(op2Point.location.m - op1Point.location.m)
+        val length: LineM<LocationTrackM> =
+            abs(op2Point.location.m - op1Point.location.m) + op1Point.distance + op2Point.distance
 
         val stationLinkKey: StationLinkKey =
             StationLinkKey(
@@ -81,7 +83,7 @@ class StationLinkService(
         return tracksWithGeometry
             .flatMap { (track, geom) ->
                 val trackVersion = track.getVersionOrThrow()
-                resolveTrackConnections(trackVersion, track, geom, switchIdToOpId)
+                resolveTrackConnections(trackVersion, track, geom, switchIdToOpId, operationalPointsById)
             }
             .groupBy { connection -> connection.stationLinkKey }
             .map { (key, connections) ->
@@ -97,33 +99,37 @@ class StationLinkService(
                     startOperationalPointVersion = op1.getVersionOrThrow(),
                     endOperationalPointVersion = op2.getVersionOrThrow(),
                     locationTrackVersions = connections.map { it.trackVersion },
-                    length =
-                        shortestLink.length.distance +
-                            calculateDistance(op1, shortestLink.op1Point) +
-                            calculateDistance(op2, shortestLink.op2Point),
+                    length = shortestLink.length.distance,
                 )
             }
     }
-
-    private fun calculateDistance(op: OperationalPoint, point: TrackStationPoint): Double =
-        calculateDistance(
-            LAYOUT_SRID,
-            point.location,
-            requireNotNull(op.location) { "Operational point has no location defined: id=${op.id}" },
-        )
 
     private fun resolveTrackConnections(
         trackVersion: LayoutRowVersion<LocationTrack>,
         track: LocationTrack,
         geometry: LocationTrackGeometry,
         switchIdToOpId: Map<IntId<LayoutSwitch>, IntId<OperationalPoint>>,
-    ): List<TrackStationConnection> =
-        geometry.trackSwitchLinks
-            .mapNotNull { link ->
-                switchIdToOpId[link.switchId]?.let { opId -> TrackStationPoint(opId, link.location) }
-            }
+        operationalPoints: Map<IntId<OperationalPoint>, OperationalPoint>,
+    ): List<TrackStationConnection> {
+        val connectedOpIds =
+            geometry.trackSwitchLinks.mapNotNull { link -> switchIdToOpId[link.switchId] } + track.operationalPointIds
+        return connectedOpIds
+            .mapNotNull { opId -> toTrackStationPoint(opId, operationalPoints, geometry) }
+            .sortedBy { it.location.m }
             .zipWithNext()
             .mapNotNull { (prev, next) ->
                 produceIf(prev.opId != next.opId) { TrackStationConnection(trackVersion, track, prev, next) }
             }
+    }
+
+    private fun toTrackStationPoint(
+        opId: IntId<OperationalPoint>,
+        operationalPoints: Map<IntId<OperationalPoint>, OperationalPoint>,
+        geometry: LocationTrackGeometry,
+    ): TrackStationPoint? =
+        operationalPoints[opId]?.location?.let { opLocation ->
+            geometry.getClosestPoint(opLocation)?.first?.let { trackLocation ->
+                TrackStationPoint(opId, trackLocation, calculateDistance(LAYOUT_SRID, opLocation, trackLocation))
+            }
+        }
 }

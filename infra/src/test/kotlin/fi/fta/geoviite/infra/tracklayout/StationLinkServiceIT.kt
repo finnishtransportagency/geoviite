@@ -49,19 +49,19 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                     edge(
                         startOuterSwitch = switchLinkYV(switch1Id, 3),
                         endOuterSwitch = switchLinkYV(switch2Id, 1),
-                        segments = listOf(segment(Point(30.0, 5.0), Point(40.0, 5.0))),
+                        segments = listOf(segment(Point(30.0, 5.0), Point(40.0, 5.0), calc = M_CALC.LAYOUT)),
                     ),
                     // Edge 2 is switch2 internal geometry
                     edge(
                         startInnerSwitch = switchLinkYV(switch2Id, 1),
                         endInnerSwitch = switchLinkYV(switch2Id, 2),
-                        segments = listOf(segment(Point(40.0, 5.0), Point(45.0, 5.0))),
+                        segments = listOf(segment(Point(40.0, 5.0), Point(45.0, 5.0), calc = M_CALC.LAYOUT)),
                     ),
                     // Edge 3 goes from switch2 to switch3 (not switch-internal geometry)
                     edge(
                         startOuterSwitch = switchLinkYV(switch2Id, 2),
                         endOuterSwitch = switchLinkYV(switch3Id, 1),
-                        segments = listOf(segment(Point(45.0, 5.0), Point(85.0, 5.0))),
+                        segments = listOf(segment(Point(45.0, 5.0), Point(85.0, 5.0), calc = M_CALC.LAYOUT)),
                     ),
                 ),
             )
@@ -75,7 +75,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                     edge(
                         startOuterSwitch = switchLinkYV(switch2Id, 2),
                         endOuterSwitch = switchLinkYV(switch3Id, 1),
-                        segments = listOf(segment(Point(46.0, 5.0), Point(84.0, 5.0))),
+                        segments = listOf(segment(Point(47.0, 2.0), Point(83.0, 2.0), calc = M_CALC.LAYOUT)),
                     )
                 ),
             )
@@ -91,19 +91,25 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 ),
                 links.map { it.copy(length = 0.0) },
             )
-            // The first link length should be track1 edge1 + op<->switch distances
+            // The first link length should be along track 1 as that's the only connection
             assertEquals(
-                10.0 +
-                    calculateDistance(LAYOUT_SRID, Point(30.0, 5.0), Point(20.0, 0.0)) +
-                    calculateDistance(LAYOUT_SRID, Point(40.0, 5.0), Point(50.0, 0.0)),
+                // Direct line from OP1 to closest point on track1
+                calculateDistance(LAYOUT_SRID, Point(20.0, 0.0), Point(30.0, 5.0)) +
+                    // From there, along the track to the location that is closest to OP2
+                    calculateDistance(LAYOUT_SRID, Point(30.0, 5.0), Point(50.0, 5.0)) +
+                    // From there, direct line from there to OP2
+                    calculateDistance(LAYOUT_SRID, Point(50.0, 5.0), Point(50.0, 0.0)),
                 links[0].length,
                 LAYOUT_M_DELTA,
             )
-            // The second link length should be the shorter track 2 (only edge) + op<->switch distances
+            // The second link length should be along the shorter one: track 2 (only edge)
             assertEquals(
-                38.0 +
-                    calculateDistance(LAYOUT_SRID, Point(46.0, 5.0), Point(50.0, 0.0)) +
-                    calculateDistance(LAYOUT_SRID, Point(84.0, 5.0), Point(80.0, 0.0)),
+                // Direct line from OP2 to closest point on track2
+                calculateDistance(LAYOUT_SRID, Point(50.0, 0.0), Point(50.0, 2.0)) +
+                    // From there, along the track to the location that is closest to OP3
+                    calculateDistance(LAYOUT_SRID, Point(50.0, 2.0), Point(80.0, 2.0)) +
+                    // From there, direct line from there to OP2
+                    calculateDistance(LAYOUT_SRID, Point(80.0, 2.0), Point(80.0, 0.0)),
                 links[1].length,
                 LAYOUT_M_DELTA,
             )
