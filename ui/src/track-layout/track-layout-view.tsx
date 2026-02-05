@@ -17,6 +17,8 @@ import {
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { ConfirmMoveToMainOfficialDialogContainer } from 'map/plan-download/confirm-move-to-main-official-dialog';
+import { useTrackLayoutAppSelector } from 'store/hooks';
+import { LinkingType } from 'linking/linking-model';
 
 export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
@@ -32,9 +34,22 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
         showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
     );
 
+    const linkingState = useTrackLayoutAppSelector((s) => s.linkingState);
+    const isPlacingOperationalPointArea =
+        linkingState?.type === LinkingType.PlacingOperationalPointArea;
+
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
     const [switchToOfficialDialogOpen, setSwitchToOfficialDialogOpen] = React.useState(false);
+
+    const mapTools = React.useMemo(
+        () =>
+            [selectOrHighlightComboTool, measurementTool].map((tool) => ({
+                ...tool,
+                disabled: isPlacingOperationalPointArea,
+            })),
+        [isPlacingOperationalPointArea],
+    );
 
     return (
         <div className={className} qa-id="track-layout-content">
@@ -64,7 +79,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                             <MapContext.Provider value="track-layout">
                                 <MapViewContainer
                                     hoveredOverPlanSection={hoveredOverPlanSection}
-                                    mapTools={[selectOrHighlightComboTool, measurementTool]}
+                                    mapTools={mapTools}
                                     customActiveMapTool={selectOrHighlightComboTool}
                                 />
                             </MapContext.Provider>

@@ -130,12 +130,13 @@ export function createAreaSelectTool(
                 map.removeOverlay(tooltip);
             };
         },
-        component: ({ isActive, setActiveTool }) => {
+        component: ({ isActive, setActiveTool, disabled }) => {
             return (
                 <MapToolButton
                     setActive={() => setActiveTool(createAreaSelectTool(onSelect))}
                     isActive={isActive}
                     icon={Icons.SelectArea}
+                    disabled={disabled}
                 />
             );
         },
