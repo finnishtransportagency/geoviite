@@ -208,9 +208,8 @@ export async function deleteNonNull<Output>(
 
 export async function deleteNonNullAdt<Input, Output>(
     path: string,
-    body: Input,
 ): Promise<Result<Output, ApiErrorResponse | undefined>> {
-    return fetchNonNullAdt(path, 'DELETE', body);
+    return fetchNonNullAdt(path, 'DELETE', undefined);
 }
 
 export async function deleteNullableAdt<Output>(

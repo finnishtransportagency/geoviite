@@ -318,23 +318,19 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             props.layoutContext.branch,
             changesBeingReverted.changeIncludingDependencies,
         )
-            .then((r) => {
-                if (r.isOk()) {
-                    const updatedCandidates = publicationCandidates.filter(
-                        (candidate) =>
-                            !changesBeingReverted.changeIncludingDependencies.some(
-                                (revertedCandidate) =>
-                                    candidateIdAndTypeMatches(revertedCandidate, candidate),
-                            ),
-                    );
+            .then(() => {
+                const updatedCandidates = publicationCandidates.filter(
+                    (candidate) =>
+                        !changesBeingReverted.changeIncludingDependencies.some(
+                            (revertedCandidate) =>
+                                candidateIdAndTypeMatches(revertedCandidate, candidate),
+                        ),
+                );
 
-                    setPublicationCandidates(dispatchPrevIfObjectsEqual(updatedCandidates));
-                    props.setStagedPublicationCandidateReferences(updatedCandidates);
+                setPublicationCandidates(dispatchPrevIfObjectsEqual(updatedCandidates));
+                props.setStagedPublicationCandidateReferences(updatedCandidates);
 
-                    Snackbar.success('publish.revert-success');
-                } else {
-                    Snackbar.error('publish.revert-failure');
-                }
+                Snackbar.success('publish.revert-success');
             })
             .finally(() => {
                 setChangesBeingReverted(undefined);
