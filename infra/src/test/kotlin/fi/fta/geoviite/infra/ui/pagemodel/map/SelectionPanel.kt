@@ -15,6 +15,8 @@ class E2ESelectionPanel(parentView: E2EViewFragment) : E2EViewFragment(parentVie
 
     val switchesList: E2ESwitchesSelectionList by lazy { E2ESwitchesSelectionList(viewBy) }
 
+    val operationalPointsList: E2EOperationalPointSelectionList by lazy { E2EOperationalPointSelectionList(viewBy) }
+
     val geometryPlans: List<E2EGeometryPlanAccordion> by lazy {
         childElements(By.cssSelector(".geometry-plan-panel .accordion__header-title"))
             .map { it.text }
@@ -51,6 +53,11 @@ class E2ESelectionPanel(parentView: E2EViewFragment) : E2EViewFragment(parentVie
     fun selectSwitch(name: String): E2ESelectionPanel = apply {
         logger.info("Select switch $name")
         switchesList.selectByName(name)
+    }
+
+    fun selectOperationalPoint(name: String): E2ESelectionPanel = apply {
+        logger.info("Select operational point $name")
+        operationalPointsList.selectByName(name)
     }
 
     fun selectPlanAlignment(planName: String, name: String): E2ESelectionPanel = apply {

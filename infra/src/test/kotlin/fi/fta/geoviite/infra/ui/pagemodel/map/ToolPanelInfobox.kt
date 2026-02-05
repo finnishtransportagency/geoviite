@@ -483,3 +483,14 @@ class E2EGeometrySwitchLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infobox
         childButton(byQaId("link-geometry-switch")).clickAndWaitToDisappear()
     }
 }
+
+class E2EOperationalPointGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
+    val oid: String
+        get() = getValueForField("operational-point-oid")
+
+    val name: String
+        get() = getValueForField("operational-point-name")
+
+    val abbreviation: String
+        get() = getValueForField("operational-point-abbreviation")
+}
