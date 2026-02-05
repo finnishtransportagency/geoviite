@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 
-private const val EXT_OPERATIONAL_POINTS_TAG_V1 = "Toiminnalliset pisteet"
+const val EXT_OPERATIONAL_POINTS_TAG_V1 = "Toiminnalliset pisteet"
 
 @PreAuthorize(AUTH_API_GEOMETRY)
 @GeoviiteExtApiController(

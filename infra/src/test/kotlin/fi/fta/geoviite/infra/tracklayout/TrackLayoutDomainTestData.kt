@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.geography.GeometryPoint
+import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
@@ -808,10 +809,25 @@ fun <M : AlignmentM<M>> toAlignmentPoints(points: List<IPoint3DM<M>>) =
         )
     }
 
-fun <M : AnyM<M>> to3DMPoints(points: List<IPoint>, start: Double = 0.0): List<IPoint3DM<M>> {
+enum class M_CALC {
+    SIMPLE,
+    LAYOUT;
+
+    fun length(p1: IPoint, p2: IPoint): Double =
+        when (this) {
+            SIMPLE -> lineLength(p1, p2)
+            LAYOUT -> calculateDistance(LAYOUT_SRID, p1, p2)
+        }
+}
+
+fun <M : AnyM<M>> to3DMPoints(
+    points: List<IPoint>,
+    start: Double = 0.0,
+    calc: M_CALC = M_CALC.SIMPLE,
+): List<IPoint3DM<M>> {
     val pointsWithDistance =
         points.mapIndexed { index, point ->
-            val distance = points.getOrNull(index - 1)?.let { prev -> lineLength(prev, point) } ?: 0.0
+            val distance = points.getOrNull(index - 1)?.let { prev -> calc.length(prev, point) } ?: 0.0
             point to distance
         }
     return pointsWithDistance.mapIndexed { index, (point, _) ->
@@ -840,9 +856,9 @@ fun segment(points: Int, minX: Double, maxX: Double, minY: Double, maxY: Double)
 
 fun segment(points: Int, start: Point, end: Point) = segment(points, start.x, end.x, start.y, end.y)
 
-fun segment(from: IPoint, to: IPoint, startM: Double = 0.0): LayoutSegment {
+fun segment(from: IPoint, to: IPoint, startM: Double = 0.0, calc: M_CALC = M_CALC.SIMPLE): LayoutSegment {
     return segment(
-        toSegmentPoints(to3DMPoints((listOf(from) + middlePoints(from, to) + listOf(to)).distinct(), startM))
+        toSegmentPoints(to3DMPoints((listOf(from) + middlePoints(from, to) + listOf(to)).distinct(), startM, calc))
     )
 }
 
