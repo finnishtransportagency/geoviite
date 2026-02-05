@@ -927,18 +927,12 @@ const MapView: React.FC<MapViewProps> = ({
         }
 
         // Check if active tool has a custom cursor (static or dynamic)
-        if (activeTool?.customCursor) {
-            if (typeof activeTool.customCursor === 'function') {
-                return activeTool.customCursor();
-            }
-            return activeTool.customCursor;
-        }
-
-        return undefined;
+        return activeTool?.customCursor ? activeTool.customCursor : undefined;
     };
 
+    const customCursor = getCursor();
     const cssProperties = {
-        ...(getCursor() ? { cursor: getCursor() } : {}),
+        ...(customCursor ? { cursor: customCursor } : {}),
     };
     return (
         <div className={mapClassNames} style={cssProperties}>

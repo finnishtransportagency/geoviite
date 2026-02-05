@@ -26,7 +26,7 @@ export type MapToolProps = {
 
 export type MapTool = {
     activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => DeactivateToolFn;
-    customCursor?: CssType.Property.Cursor | (() => CssType.Property.Cursor | undefined);
+    customCursor?: CssType.Property.Cursor;
     component?: React.ComponentType<MapToolProps>;
     id: string;
 };
