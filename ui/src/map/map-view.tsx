@@ -905,6 +905,19 @@ const MapView: React.FC<MapViewProps> = ({
         }
     }, [mapTools]);
 
+    React.useEffect(() => {
+        if (
+            linkingState?.type === 'PlacingOperationalPointArea' &&
+            mapTools &&
+            activeTool?.id !== 'select-or-highlight'
+        ) {
+            const selectTool = mapTools.find((tool) => tool.id === 'select-or-highlight');
+            if (selectTool) {
+                setActiveTool(selectTool);
+            }
+        }
+    }, [linkingState, mapTools, activeTool]);
+
     const mapClassNames = createClassName(styles.map);
 
     const getCursor = (): CssType.Property.Cursor | undefined => {
