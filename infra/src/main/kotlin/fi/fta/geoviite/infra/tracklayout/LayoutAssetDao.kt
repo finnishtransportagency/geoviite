@@ -362,6 +362,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
               t.id,
               t.design_id,
               t.deleted,
+              t.design_asset_state,
               t.version
               -- pre-filter by id to encourage PostgreSQL to use a better query plan
               from (select * from ${table.versionTable} where id = any(:ids) and not draft) t
@@ -374,9 +375,9 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
               ) arg on t.id = arg.id and
                        (t.design_id is null or t.design_id = arg.design_id) and
                        t.change_time <= arg.change_time
-            order by ordinality, t.id, t.design_id, t.change_time desc, version
+            order by ordinality, t.id, t.design_id, t.change_time desc, version desc
             ) tn
-          where not deleted
+          where not deleted and design_asset_state is distinct from 'CANCELLED'
           order by ordinality, id, design_id is not null desc;
         """
             .trimIndent()
@@ -390,14 +391,15 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>, SaveParams>(
               design_id,
               design_id is not null as is_design,
               deleted,
+              design_asset_state,
               version
               from ${table.versionTable}
             where not draft
               and (design_id is null or design_id = :design_id)
               and change_time <= :moment
-              order by id, design_id, change_time desc, version
+              order by id, design_id, change_time desc, version desc
             ) tn
-          where not deleted
+          where not deleted and design_asset_state is distinct from 'CANCELLED'
           order by id, is_design desc
         """
             .trimIndent()

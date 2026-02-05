@@ -113,9 +113,7 @@ abstract class LayoutAssetService<
             }
         dao.deleteRow(draftVersion.rowId)
 
-        if (
-            draft.designAssetState == DesignAssetState.COMPLETED || draft.designAssetState == DesignAssetState.CANCELLED
-        ) {
+        if (draft.designAssetState == DesignAssetState.COMPLETED) {
             dao.deleteRow(publicationVersion.rowId)
         }
 
