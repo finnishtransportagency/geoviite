@@ -2019,6 +2019,142 @@ constructor(
     }
 
     @Test
+    fun `deleted km post notices its track number's cancellation`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val trackNumberNumber = trackNumber()
+        val trackNumber = designOfficialContext.save(trackNumberNumber).id
+        val referenceLine =
+            designOfficialContext
+                .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .id
+        val kmPost = designOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(1.0, 0.0))).id
+        designDraftContext.save(designOfficialContext.fetch(kmPost)!!.copy(state = LayoutState.DELETED))
+        trackNumberService.cancel(designBranch, trackNumber)
+        referenceLineService.cancel(designBranch, referenceLine)
+
+        val validateTrackNumber =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine)),
+            )
+        val validateKmPost =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(kmPosts = listOf(kmPost)),
+            )
+        val validateBoth =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(
+                    trackNumbers = listOf(trackNumber),
+                    kmPosts = listOf(kmPost),
+                    referenceLines = listOf(referenceLine),
+                ),
+            )
+
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    localizationKey =
+                        LocalizationKey.of("validation.layout.track-number.reference-from-km-post.cancelled"),
+                    type = LayoutValidationIssueType.ERROR,
+                    params =
+                        LocalizationParams(
+                            mapOf("referrers" to "0001", "target" to trackNumberNumber.number.toString())
+                        ),
+                )
+            ),
+            validateTrackNumber.validatedAsPublicationUnit.trackNumbers[0].issues,
+        )
+        assertEquals(listOf<LayoutValidationIssue>(), validateKmPost.validatedAsPublicationUnit.kmPosts[0].issues)
+        assertContains(
+            validateBoth.validatedAsPublicationUnit.kmPosts[0].issues,
+            LayoutValidationIssue(
+                localizationKey = LocalizationKey.of("validation.layout.km-post.reference-to-track-number.cancelled"),
+                type = LayoutValidationIssueType.ERROR,
+                params =
+                    LocalizationParams(mapOf("target" to trackNumberNumber.number.toString(), "referrers" to "0001")),
+            ),
+        )
+    }
+
+    @Test
+    fun `deleted location track notices its switch's cancellation`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+        val designDraftContext = testDBService.testContext(designBranch, DRAFT)
+        val trackNumber = designOfficialContext.save(trackNumber()).id
+        designOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(40.0, 0.0))),
+        )
+        val switchName = "some switch"
+        val switch =
+            designOfficialContext
+                .save(
+                    switch(
+                        name = switchName,
+                        joints =
+                            listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
+                    )
+                )
+                .id
+        val locationTrackName = "some location track"
+        val locationTrack =
+            designOfficialContext
+                .save(
+                    locationTrack(trackNumber, name = locationTrackName),
+                    trackGeometry(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                            endOuterSwitch = switchLinkYV(switch, 1),
+                        )
+                    ),
+                )
+                .id
+        val (officialLocationTrack, officialLocationTrackGeometry) =
+            designOfficialContext.fetchLocationTrackWithGeometry(locationTrack)!!
+        designDraftContext.save(
+            officialLocationTrack.copy(state = LocationTrackState.DELETED),
+            officialLocationTrackGeometry,
+        )
+        switchService.cancel(designBranch, switch)
+
+        val validateSwitch =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(switches = listOf(switch)),
+            )
+        val validateBoth =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
+                publicationRequestIds(locationTracks = listOf(locationTrack), switches = listOf(switch)),
+            )
+
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    localizationKey =
+                        LocalizationKey.of("validation.layout.switch.reference-from-location-track.cancelled"),
+                    type = LayoutValidationIssueType.ERROR,
+                    params = LocalizationParams(mapOf("referrers" to locationTrackName, "target" to switchName)),
+                )
+            ),
+            validateSwitch.validatedAsPublicationUnit.switches[0].issues,
+        )
+        assertContains(
+            validateBoth.validatedAsPublicationUnit.locationTracks[0].issues,
+            LayoutValidationIssue(
+                localizationKey = LocalizationKey.of("validation.layout.location-track.reference-to-switch.cancelled"),
+                type = LayoutValidationIssueType.ERROR,
+                params = LocalizationParams(mapOf("target" to switchName, "referrers" to locationTrackName)),
+            ),
+        )
+    }
+
+    @Test
     fun `track number numbers are checked for uniqueness upon merge, even if any are deleted`() {
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)

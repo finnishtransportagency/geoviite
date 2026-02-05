@@ -98,22 +98,19 @@ class LayoutKmPostDao(
             select km_post.track_number_id, km_post.id, km_post.design_id, km_post.draft, km_post.version
             from (
               select * from layout.km_post_in_layout_context(:candidate_state::layout.publication_state, :candidate_design_id)
-                where id in (:km_post_ids_to_publish)
+                where id = any(:km_post_ids_to_publish)
               union all
               select * from layout.km_post_in_layout_context(:base_state::layout.publication_state, :base_design_id)
-                where (id in (:km_post_ids_to_publish)) is distinct from true
+                where not (id = any(:km_post_ids_to_publish))
               ) km_post
-            where track_number_id in (:track_number_ids)
+            where track_number_id = any(:track_number_ids)
             order by km_post.track_number_id, km_post.km_number
                         """
                 .trimIndent()
         val params =
             mapOf(
-                "track_number_ids" to trackNumberIds.map { id -> id.intValue },
-                // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is
-                // distinct from true" checks
-                // explicitly for false or null, since "foo in (null)" in SQL is null
-                "km_post_ids_to_publish" to (kmPostIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) }),
+                "track_number_ids" to trackNumberIds.map { id -> id.intValue }.toTypedArray(),
+                "km_post_ids_to_publish" to (kmPostIdsToPublish.map { id -> id.intValue }.toTypedArray()),
             ) + target.sqlParameters()
         val versions =
             jdbcTemplate.query(sql, params) { rs, _ ->
