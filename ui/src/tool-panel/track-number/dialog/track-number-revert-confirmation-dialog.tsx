@@ -35,17 +35,10 @@ const TrackNumberRevertConfirmationDialog: React.FC<TrackNumberRevertConfirmatio
             layoutContext.branch,
             changesBeingReverted.changeIncludingDependencies,
         )
-            .then((result) => {
-                result
-                    .map(() => {
-                        Snackbar.success('tool-panel.track-number.revert-dialog.revert-succeeded');
-                        onSave &&
-                            onSave(brand(changesBeingReverted.requestedRevertChange.source.id));
-                        onClose();
-                    })
-                    .mapErr(() => {
-                        Snackbar.error('tool-panel.track-number.revert-dialog.revert-failed');
-                    });
+            .then(() => {
+                Snackbar.success('tool-panel.track-number.revert-dialog.revert-succeeded');
+                onSave && onSave(brand(changesBeingReverted.requestedRevertChange.source.id));
+                onClose();
             })
             .finally(() => setIsSaving(false));
     };
