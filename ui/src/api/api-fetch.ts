@@ -206,7 +206,7 @@ export async function deleteNonNull<Output>(
     return fetchNonNull(path, 'DELETE', undefined, toastFailure);
 }
 
-export async function deleteNonNullAdt<Input, Output>(
+export async function deleteNonNullAdt<Output>(
     path: string,
 ): Promise<Result<Output, ApiErrorResponse | undefined>> {
     return fetchNonNullAdt(path, 'DELETE', undefined);
