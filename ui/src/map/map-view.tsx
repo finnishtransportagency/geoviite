@@ -922,7 +922,7 @@ const MapView: React.FC<MapViewProps> = ({
 
     const getCursor = (): CssType.Property.Cursor | undefined => {
         // Operational point area operations always use crosshair cursor
-        if (linkingState?.type === 'PlacingOperationalPointArea') {
+        if (linkingState?.type === 'PlacingOperationalPointArea' && !linkingState.area) {
             return 'crosshair';
         }
 
