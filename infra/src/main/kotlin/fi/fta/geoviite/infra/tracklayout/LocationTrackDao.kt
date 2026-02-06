@@ -588,6 +588,57 @@ class LocationTrackDao(
             .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchVersionsForPublication", trackIdsToPublish) }
     }
 
+    fun fetchVersionsForPublicationByOperationalPoints(
+        target: LayoutContextTransition,
+        operationalPointIds: List<IntId<OperationalPoint>>,
+        locationTrackIdsToPublish: List<IntId<LocationTrack>>,
+    ): Map<IntId<OperationalPoint>, List<LayoutRowVersion<LocationTrack>>> {
+        if (operationalPointIds.isEmpty()) return emptyMap()
+
+        val sql =
+            """
+                select operational_point_id, id, design_id, draft, version
+                from (
+                select state, operational_point_id, id, design_id, draft, version
+                  from layout.location_track_in_layout_context(:base_state::layout.publication_state, :base_design_id) official
+                    join layout.location_track_version_operational_point ltvo
+                      on official.id = ltvo.location_track_id
+                        and official.layout_context_id = ltvo.location_track_layout_context_id
+                        and official.version = ltvo.location_track_version
+                  where (id = any(:location_track_ids_to_publish)) is distinct from true
+                union all
+                select state, operational_point_id, id, design_id, draft, version
+                  from layout.location_track_in_layout_context(:candidate_state::layout.publication_state, :candidate_design_id) draft
+                    join layout.location_track_version_operational_point ltvo
+                      on draft.id = ltvo.location_track_id
+                        and draft.layout_context_id = ltvo.location_track_layout_context_id
+                        and draft.version = ltvo.location_track_version
+                  where id = any(:location_track_ids_to_publish)
+                ) track
+                where operational_point_id = any(:operational_point_ids)
+                  and track.state != 'DELETED'
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "operational_point_ids" to operationalPointIds.map { id -> id.intValue }.toTypedArray(),
+                "location_track_ids_to_publish" to locationTrackIdsToPublish.map { id -> id.intValue }.toTypedArray(),
+            ) + target.sqlParameters()
+        val versions =
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                val operationalPointId = rs.getIntId<OperationalPoint>("operational_point_id")
+                val trackVersion = rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
+                operationalPointId to trackVersion
+            }
+        return operationalPointIds
+            .associateWith { operationalPointId ->
+                versions.filter { (tnId, _) -> tnId == operationalPointId }.map { (_, trackVersions) -> trackVersions }
+            }
+            .also {
+                logger.daoAccess(AccessType.VERSION_FETCH, "fetchVersionsForPublication", locationTrackIdsToPublish)
+            }
+    }
+
     @Transactional
     fun savePlanItemId(id: IntId<LocationTrack>, branch: DesignBranch, planItemId: RatkoPlanItemId) {
         jdbcTemplate.setUser()

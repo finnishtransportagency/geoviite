@@ -74,6 +74,6 @@ class GeocodingController(
         @PathVariable("alignmentId") locationTrackId: IntId<LocationTrack>,
     ): ResponseEntity<AlignmentAddresses<LocationTrackM>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return toResponse(geocodingService.getAddressPoints(layoutContext, locationTrackId))
+        return toResponse(geocodingService.getAddressPoints(layoutContext, locationTrackId)?.addresses)
     }
 }

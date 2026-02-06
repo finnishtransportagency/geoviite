@@ -13,8 +13,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import org.springframework.transaction.annotation.Transactional
 import java.util.*
+import org.springframework.transaction.annotation.Transactional
 
 data class AddressPointCacheKey(
     val locationTrackVersion: LayoutRowVersion<LocationTrack>,
@@ -37,7 +37,7 @@ class AddressPointsCache(
     val geocodingDao: GeocodingDao,
     val geocodingCacheService: GeocodingCacheService,
 ) {
-    private val cache: Cache<AddressPointCacheKey, Optional<AlignmentAddresses<LocationTrackM>>> =
+    private val cache: Cache<AddressPointCacheKey, Optional<AddressPointsResult<LocationTrackM>>> =
         Caffeine.newBuilder().maximumSize(ADDRESS_POINT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
     @Transactional(readOnly = true)
@@ -58,7 +58,7 @@ class AddressPointsCache(
      * This is for caching address points. Please don't call this directly if possible, please prefer GeocodingService's
      * getAddressPoints method instead
      */
-    fun getAddressPoints(cacheKey: AddressPointCacheKey): AlignmentAddresses<LocationTrackM>? =
+    fun getAddressPoints(cacheKey: AddressPointCacheKey): AddressPointsResult<LocationTrackM>? =
         cache
             .get(cacheKey) {
                 Optional.ofNullable(

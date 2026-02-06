@@ -219,6 +219,14 @@ constructor(
 
                 PublicationState.OFFICIAL -> createValidationContext(target)
             }
+
+        validationContext.preloadOperationalPointOverlaps(ids)
+        validationContext.preloadOperationalPointsByName(ids)
+        validationContext.preloadOperationalPointsByAbbreviation(ids)
+        validationContext.preloadOperationalPointsByUicCode(ids)
+        validationContext.preloadLocationTracksByOperationalPoints(ids)
+        validationContext.preloadSwitchesByOperationalPoints(ids)
+
         return ids.mapNotNull { id ->
             validateOperationalPoint(id, validationContext)?.let { issues -> ValidatedAsset(id, issues) }
         }
@@ -373,28 +381,25 @@ constructor(
         validationContext: ValidationContext,
     ): List<LayoutValidationIssue>? {
         val trackNumber = validationContext.getTrackNumber(id)
+        val trackNumberExistence = validationContext.getTrackNumberLiveness(id)
         val kmPosts = validationContext.getKmPostsByTrackNumber(id)
         val referenceLine = validationContext.getReferenceLineByTrackNumber(id)
         val locationTracks = validationContext.getLocationTracksByTrackNumber(id)
-        val trackNumberIsCancelled = validationContext.trackNumberIsCancelled(id)
+
+        val incomingReferencesIssues =
+            validateReferencesToTrackNumber(trackNumberExistence, referenceLine, kmPosts, locationTracks)
 
         if (trackNumber == null) {
-            return validateTrackNumberReferences(
-                trackNumberExists = false,
-                trackNumberIsCancelled = trackNumberIsCancelled,
-                referenceLine,
-                kmPosts,
-                locationTracks,
-            )
+            return incomingReferencesIssues
         } else {
-            val referenceIssues =
-                validateTrackNumberReferences(
-                    trackNumberExists = trackNumber.exists,
-                    trackNumberIsCancelled = trackNumberIsCancelled,
-                    referenceLine,
-                    kmPosts,
-                    locationTracks,
-                )
+            val outgoingReferencesIssues =
+                if (trackNumber.referenceLineId == null)
+                    listOf(validationError("$VALIDATION_TRACK_NUMBER.reference-line.not-published"))
+                else
+                    validateReferencesFromTrackNumber(
+                        trackNumber,
+                        validationContext.getReferenceLineLiveness(trackNumber.referenceLineId),
+                    )
             val geocodingIssues =
                 if (trackNumber.exists && referenceLine != null) {
                     val geocodingContextCacheKey = validationContext.getGeocodingContextCacheKey(id)
@@ -408,7 +413,7 @@ constructor(
                     duplicates = validationContext.getTrackNumbersByNumber(trackNumber.number),
                     validationTargetType = validationContext.target.validationTargetType,
                 )
-            return referenceIssues + geocodingIssues + duplicateNameIssues
+            return incomingReferencesIssues + outgoingReferencesIssues + geocodingIssues + duplicateNameIssues
         }
     }
 
@@ -417,10 +422,15 @@ constructor(
             val trackNumber = kmPost.trackNumberId?.let(context::getTrackNumber)
             val trackNumberNumber = (trackNumber ?: kmPost.trackNumberId?.let(context::getCandidateTrackNumber))?.number
             val referenceLine = trackNumber?.referenceLineId?.let(context::getReferenceLine)
-            val trackNumberIsCancelled = kmPost.trackNumberId?.let(context::trackNumberIsCancelled) == true
 
             val referenceIssues =
-                validateKmPostReferences(kmPost, trackNumber, referenceLine, trackNumberNumber, trackNumberIsCancelled)
+                if (kmPost.trackNumberId == null) listOf()
+                else
+                    validateKmPostReferences(
+                        kmPost,
+                        context.getTrackNumberLiveness(kmPost.trackNumberId),
+                        trackNumber?.referenceLineId?.let(context::getReferenceLineLiveness),
+                    )
 
             val geocodingIssues =
                 if (kmPost.exists && trackNumber?.exists == true && referenceLine != null) {
@@ -451,24 +461,20 @@ constructor(
         validationContext: ValidationContext,
     ): List<LayoutValidationIssue> {
         val switch = validationContext.getSwitch(id)
-        val switchIsCancelled = validationContext.switchIsCancelled(id)
+        val switchLiveness = validationContext.getSwitchLiveness(id)
         val linkedTracksAndGeometries = validationContext.getSwitchTracksWithGeometries(id)
         val linkedTracks = linkedTracksAndGeometries.map(Pair<LocationTrack, *>::first)
+
+        val incomingReferencesIssues = validateReferencesToSwitch(switchLiveness, linkedTracks)
         if (switch == null) {
-            return validateSwitchLocationTrackLinkReferences(
-                switchExists = false,
-                switchIsCancelled = switchIsCancelled,
-                linkedTracks,
-            )
+            return incomingReferencesIssues
         } else {
             val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
 
-            val referenceIssues =
-                validateSwitchLocationTrackLinkReferences(
-                    switchExists = switch.exists,
-                    switchIsCancelled = switchIsCancelled,
-                    linkedTracks,
-                )
+            val outgoingReferencesIssues =
+                switch.operationalPointId?.let { opId ->
+                    validateReferencesFromSwitch(validationContext.getOperationalPointLiveness(opId), switch)
+                } ?: emptyList()
 
             val locationIssues = if (switch.exists) validateSwitchLocation(switch) else emptyList()
             val structureIssues =
@@ -489,7 +495,11 @@ constructor(
                         switchDao.get(row.context, row.id)
                     },
                 )
-            return referenceIssues + structureIssues + duplicationIssues + oidDuplicationIssues
+            return incomingReferencesIssues +
+                outgoingReferencesIssues +
+                structureIssues +
+                duplicationIssues +
+                oidDuplicationIssues
         }
     }
 
@@ -498,26 +508,23 @@ constructor(
         validationContext: ValidationContext,
     ): List<LayoutValidationIssue>? {
         val referenceLineWithAlignment = validationContext.getReferenceLineWithAlignment(id)
-        return if (referenceLineWithAlignment == null) {
-            if (validationContext.referenceLineIsCancelled(id)) {
-                val trackNumberId = validationContext.getTrackNumberIdByReferenceLine(id)
-                if (trackNumberId == null) null
-                else
-                    listOfNotNull(
-                        validate(validationContext.trackNumberIsCancelled(trackNumberId)) {
-                            "$VALIDATION_REFERENCE_LINE.track-number.cancelled"
-                        }
-                    )
-            } else null
-        } else {
+        val incomingReferenceIssues =
+            validateReferencesToReferenceLine(
+                validationContext.getTrackNumberIdByReferenceLine(id)?.let(validationContext::getTrackNumber),
+                validationContext.getReferenceLineLiveness(id),
+            )
+        return if (referenceLineWithAlignment == null) incomingReferenceIssues
+        else {
             val (referenceLine, alignment) = referenceLineWithAlignment
             val trackNumber = validationContext.getTrackNumber(referenceLine.trackNumberId)
-            val referenceIssues =
-                validateReferenceLineReference(
+            val outgoingReferenceIssues =
+                validateReferencesFromReferenceLine(
                     referenceLine = referenceLine,
-                    trackNumber = trackNumber,
-                    trackNumberNumber = validationContext.getCandidateTrackNumber(referenceLine.trackNumberId)?.number,
-                    trackNumberIsCancelled = validationContext.trackNumberIsCancelled(referenceLine.trackNumberId),
+                    trackNumberNumber =
+                        (validationContext.getTrackNumber(referenceLine.trackNumberId)
+                                ?: validationContext.getCandidateTrackNumber(referenceLine.trackNumberId))
+                            ?.number,
+                    trackNumberLiveness = validationContext.getTrackNumberLiveness(referenceLine.trackNumberId),
                 )
             val alignmentIssues =
                 if (trackNumber?.exists == true) {
@@ -543,7 +550,7 @@ constructor(
                     listOf()
                 }
 
-            return referenceIssues + alignmentIssues + geocodingIssues
+            return incomingReferenceIssues + outgoingReferenceIssues + alignmentIssues + geocodingIssues
         }
     }
 
@@ -551,6 +558,7 @@ constructor(
         id: IntId<LocationTrack>,
         validationContext: ValidationContext,
     ): List<LayoutValidationIssue>? {
+        val trackLiveness = validationContext.getLocationTrackLiveness(id)
         val trackAndGeometry = validationContext.getLocationTrackWithGeometry(id)
         // cancelling a track's creation can cause switches to become disconnected
         val trackNetworkTopologyIssues =
@@ -559,29 +567,29 @@ constructor(
                 val switchTracks = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
                 validateSwitchTopologicalConnectivity(switch, structure, switchTracks, trackAndGeometry?.first)
             }
+        val incomingReferenceIssues =
+            validateReferencesToLocationTrack(trackLiveness, validationContext.getDuplicateTracks(id))
+
         return if (trackAndGeometry == null) {
-            trackNetworkTopologyIssues
+            trackNetworkTopologyIssues + incomingReferenceIssues
         } else {
             val (track, geometry) = trackAndGeometry
             val trackNumber = validationContext.getTrackNumber(track.trackNumberId)
             val trackNumberName =
                 (trackNumber ?: validationContext.getCandidateTrackNumber(track.trackNumberId))?.number
 
-            val referenceIssues =
-                validateLocationTrackReference(
+            val outgoingReferenceIssues =
+                validateReferencesFromLocationTrack(
+                    validationContext.getTrackNumberLiveness(track.trackNumberId),
+                    geometry.switchIds.map(validationContext::getSwitchLiveness),
+                    track.operationalPointIds.map(validationContext::getOperationalPointLiveness),
+                    track.duplicateOf?.let(validationContext::getLocationTrackLiveness),
                     track,
-                    trackNumber,
-                    trackNumberName,
-                    trackNumberIsCancelled = validationContext.trackNumberIsCancelled(track.trackNumberId),
                 )
+
             val switchTrackLinkings: List<SwitchTrackLinking> = validationContext.getSwitchTrackLinks(geometry)
-            val switchTrackIssues = validateTrackSwitchReferences(track, switchTrackLinkings)
-            val trackNetworkTopologyIssues =
-                validationContext.getPotentiallyAffectedSwitches(id).filter(LayoutSwitch::exists).flatMap { switch ->
-                    val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-                    val switchTracks = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
-                    validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
-                }
+            val switchTrackIssues = validateTrackSwitchLinkingGeometry(track, switchTrackLinkings)
+
             val switchConnectivityIssues =
                 if (track.exists) {
                     validateLocationTrackSwitchConnectivity(track, geometry)
@@ -593,16 +601,16 @@ constructor(
             val duplicateOf = track.duplicateOf?.let(validationContext::getLocationTrack)
             // Draft-only won't be found if it's not in the publication set -> get name from draft
             // for validation issue
-            val duplicateOfName = track.duplicateOf?.let(validationContext::getCandidateLocationTrack)?.name
+            val duplicateOfName =
+                track.duplicateOf?.let { duplicateOfId ->
+                    (validationContext.getLocationTrack(duplicateOfId)
+                            ?: validationContext.getCandidateLocationTrack(duplicateOfId))
+                        ?.name
+                }
             val duplicateIssues =
-                validateDuplicateOfState(
-                    track,
-                    duplicateOf,
-                    duplicateOfName,
-                    duplicateOfLocationTrackIsCancelled =
-                        track.duplicateOf?.let(validationContext::locationTrackIsCancelled) ?: false,
-                    duplicatesAfterPublication,
-                )
+                if (track.duplicateOf != null)
+                    validateDuplicateStructure(duplicateOf, duplicateOfName, duplicatesAfterPublication)
+                else listOf()
 
             val alignmentIssues =
                 if (track.exists) {
@@ -632,14 +640,15 @@ constructor(
                     validationContext.target.validationTargetType,
                 )
 
-            (referenceIssues +
-                switchTrackIssues +
+            (switchTrackIssues +
                 duplicateIssues +
                 alignmentIssues +
                 geocodingIssues +
                 switchNameIssues +
                 nameDuplicationIssues +
                 trackNetworkTopologyIssues +
+                incomingReferenceIssues +
+                outgoingReferenceIssues +
                 switchConnectivityIssues)
         }
     }
@@ -648,14 +657,23 @@ constructor(
         id: IntId<OperationalPoint>,
         validationContext: ValidationContext,
     ): List<LayoutValidationIssue>? {
-        val operationalPoint = validationContext.getOperationalPoint(id) ?: return null
-        val operationalPointVersion = requireNotNull(operationalPoint.version)
+        val operationalPoint = validationContext.getOperationalPoint(id)
+        val switches = validationContext.getSwitchesByOperationalPoint(id)
+        val locationTracks = validationContext.getLocationTracksByOperationalPoint(id)
+        val liveness = validationContext.getOperationalPointLiveness(id)
 
-        return if (!operationalPoint.exists) listOf()
-        else validateExistingOperationalPoint(id, validationContext, operationalPoint, operationalPointVersion)
+        val incomingReferenceIssues = validateReferencesToOperationalPoint(liveness, switches, locationTracks)
+
+        return if (operationalPoint == null || !operationalPoint.exists) incomingReferenceIssues
+        else {
+            val operationalPointVersion = requireNotNull(operationalPoint.version)
+            val alivePointIssues =
+                validateAliveOperationalPoint(id, validationContext, operationalPoint, operationalPointVersion)
+            incomingReferenceIssues + alivePointIssues
+        }
     }
 
-    private fun validateExistingOperationalPoint(
+    private fun validateAliveOperationalPoint(
         id: IntId<OperationalPoint>,
         validationContext: ValidationContext,
         operationalPoint: OperationalPoint,

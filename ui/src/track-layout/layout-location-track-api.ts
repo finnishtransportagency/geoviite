@@ -119,6 +119,9 @@ export async function getLocationTrackInfoboxExtras(
     const changeTime = getMaxTimestamp(
         changeTimes.layoutLocationTrack,
         changeTimes.layoutSwitch,
+        changeTimes.layoutTrackNumber,
+        changeTimes.layoutReferenceLine,
+        changeTimes.layoutKmPost,
         changeTimes.split,
     );
     return locationTrackInfoboxExtrasCache.get(changeTime, cacheKey(id, layoutContext), () =>
@@ -390,7 +393,7 @@ export type OperationalPointLocationTracks = {
     assigned: LocationTrackId[];
 };
 
-export async function linkLocationTrackToOperationalPoint(
+export async function linkLocationTracksToOperationalPoint(
     branch: LayoutBranch,
     locationTrackIds: LocationTrackId[],
     operationalPointId: OperationalPointId,
@@ -401,7 +404,7 @@ export async function linkLocationTrackToOperationalPoint(
     );
 }
 
-export async function unlinkLocationTrackToOperationalPoint(
+export async function unlinkLocationTracksFromOperationalPoint(
     branch: LayoutBranch,
     locationTrackIds: LocationTrackId[],
     operationalPointId: OperationalPointId,

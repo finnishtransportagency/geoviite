@@ -130,7 +130,10 @@ constructor(
             require(trackNumber.id is IntId) { "Only layout route numbers can be updated, id=${trackNumber.id}" }
 
             val addresses =
-                geocodingService.getGeocodingContextAtMoment(branch, trackNumber.id, moment)?.referenceLineAddresses
+                geocodingService
+                    .getGeocodingContextAtMoment(branch, trackNumber.id, moment)
+                    ?.referenceLineAddresses
+                    ?.addresses
             checkNotNull(addresses) { "Cannot calculate addresses for track number, id=${trackNumber.id}" }
 
             val existingStartNode = existingRatkoRouteNumber.nodecollection?.getStartNode()
@@ -183,7 +186,10 @@ constructor(
             require(trackNumber.id is IntId) { "Only layout route numbers can be updated, id=${trackNumber.id}" }
 
             val addresses =
-                geocodingService.getGeocodingContextAtMoment(branch, trackNumber.id, moment)?.referenceLineAddresses
+                geocodingService
+                    .getGeocodingContextAtMoment(branch, trackNumber.id, moment)
+                    ?.referenceLineAddresses
+                    ?.addresses
             checkNotNull(addresses) { "Cannot calculate addresses for track number, id=${trackNumber.id}" }
 
             val ratkoNodes = convertToRatkoNodeCollection(addresses)

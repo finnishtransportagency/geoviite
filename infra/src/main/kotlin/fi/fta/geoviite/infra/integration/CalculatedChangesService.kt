@@ -52,9 +52,9 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.springframework.transaction.annotation.Transactional
 
 data class TrackNumberChange(
     val trackNumberId: IntId<LayoutTrackNumber>,
@@ -551,8 +551,10 @@ class CalculatedChangesService(
     ): Pair<TrackNumberChange, List<IntId<LocationTrack>>> {
         val beforeContext = changeContext.getGeocodingContextBefore(trackNumberId)
         val afterContext = changeContext.getGeocodingContextAfter(trackNumberId)
-        val addressChanges =
-            getAddressChanges(beforeContext?.referenceLineAddresses, afterContext?.referenceLineAddresses)
+        val beforeAddresses = beforeContext?.referenceLineAddresses?.addresses
+        val afterAddresses = afterContext?.referenceLineAddresses?.addresses
+
+        val addressChanges = getAddressChanges(beforeAddresses, afterAddresses)
         val trackNumberChange =
             TrackNumberChange(
                 trackNumberId = trackNumberId,
@@ -724,7 +726,7 @@ class CalculatedChangesService(
                 val geocodingCacheKey = changeContext.geocodingKeysAfter[locationTrack.trackNumberId]
                 val addresses =
                     geocodingCacheKey?.let { cacheKey ->
-                        geocodingService.getAddressPoints(cacheKey, locationTrack.getVersionOrThrow())
+                        geocodingService.getAddressPoints(cacheKey, locationTrack.getVersionOrThrow())?.addresses
                     }
 
                 LocationTrackChange(

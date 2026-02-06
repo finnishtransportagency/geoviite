@@ -132,6 +132,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 }>
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="operational-point-oid"
                         label={t('tool-panel.operational-point.identifier')}
                         value={
                             <OperationalPointOid
@@ -145,10 +146,12 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                         }
                     />
                     <InfoboxField
+                        qaId="operational-point-name"
                         label={t('tool-panel.operational-point.name')}
                         value={operationalPoint.name}
                     />
                     <InfoboxField
+                        qaId="operational-point-abbreviation"
                         label={t('tool-panel.operational-point.abbreviation')}
                         value={operationalPoint.abbreviation}
                     />

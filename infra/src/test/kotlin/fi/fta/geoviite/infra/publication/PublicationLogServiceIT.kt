@@ -684,6 +684,7 @@ constructor(
                         true,
                         draftOid = null,
                     ),
+                    false,
                 ),
             )
         publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
@@ -732,7 +733,12 @@ constructor(
         val updatedSwitch =
             switchService.getOrThrow(
                 MainLayoutContext.draft,
-                switchService.updateSwitch(LayoutBranch.main, switch.id, saveReq.copy(name = SwitchName("TEST 2"))),
+                switchService.updateSwitch(
+                    LayoutBranch.main,
+                    switch.id,
+                    saveReq.copy(name = SwitchName("TEST 2")),
+                    false,
+                ),
             )
         publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
 

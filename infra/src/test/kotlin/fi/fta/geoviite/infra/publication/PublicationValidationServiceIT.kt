@@ -71,6 +71,7 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.collections.plus
 import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -393,19 +394,33 @@ constructor(
 
         // Both tracks in validation set: this is fine
         assertFalse(
-            containsDuplicateOfNotPublishedError(
+            containsReferenceFromDuplicateOfNotPublishedError(
                 validateLocationTrack(toValidate = duplicateId, duplicateId, draftOnlyId)
             )
         )
         // Only the target (main) track in set: this is also fine
-        assertFalse(containsDuplicateOfNotPublishedError(validateLocationTrack(toValidate = draftOnlyId, draftOnlyId)))
+        assertFalse(
+            containsReferenceFromDuplicateOfNotPublishedError(
+                validateLocationTrack(toValidate = draftOnlyId, draftOnlyId)
+            )
+        )
         // Only the duplicate track in set: this would result in official referring to draft through
         // duplicateOf
-        assertTrue(containsDuplicateOfNotPublishedError(validateLocationTrack(toValidate = duplicateId, duplicateId)))
+        assertTrue(
+            containsReferenceToDuplicateOfNotPublishedError(
+                validateLocationTrack(toValidate = duplicateId, duplicateId)
+            )
+        )
     }
 
-    private fun containsDuplicateOfNotPublishedError(errors: List<LayoutValidationIssue>) =
-        containsError(errors, "validation.layout.location-track.duplicate-of.not-published")
+    private fun containsReferenceToDuplicateOfNotPublishedError(errors: List<LayoutValidationIssue>) =
+        containsError(errors, "validation.layout.location-track.reference-to-location-track-duplicate-of.not-published")
+
+    private fun containsReferenceFromDuplicateOfNotPublishedError(errors: List<LayoutValidationIssue>) =
+        containsError(
+            errors,
+            "validation.layout.location-track.reference-from-location-track-duplicate-of.not-published",
+        )
 
     private fun containsError(errors: List<LayoutValidationIssue>, key: String) =
         errors.any { e -> e.localizationKey.toString() == key }
@@ -786,11 +801,11 @@ constructor(
             mapOf("alignments" to alignments, "switch" to switchName),
         )
 
-    private fun switchNotPublishedError(switchName: String) =
+    private fun switchNotPublishedError(switchName: String, locationTrackName: String) =
         LayoutValidationIssue(
             LayoutValidationIssueType.ERROR,
-            "validation.layout.location-track.switch.not-published",
-            mapOf("switch" to switchName),
+            "validation.layout.location-track.reference-to-switch.not-published",
+            mapOf("target" to switchName, "referrers" to locationTrackName),
         )
 
     private fun switchFrontJointNotConnectedError(switchName: String) =
@@ -844,14 +859,20 @@ constructor(
     private val topoTestDataContextOnLocationTrackValidationError =
         listOf(validationError("validation.layout.location-track.no-context"))
     private val topoTestDataStartSwitchNotPublishedError =
-        switchNotPublishedError("Topological switch connection test start switch")
+        switchNotPublishedError(
+            switchName = "Topological switch connection test start switch",
+            locationTrackName = "track linked at start",
+        )
     private val topoTestDataStartSwitchJointsNotConnectedError =
         switchAlignmentNotConnectedTrackValidationError(
             "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
             "Topological switch connection test start switch",
         )
     private val topoTestDataEndSwitchNotPublishedError =
-        switchNotPublishedError("Topological switch connection test end switch")
+        switchNotPublishedError(
+            "Topological switch connection test end switch",
+            locationTrackName = "track linked at end",
+        )
     private val topoTestDataEndSwitchJointsNotConnectedError =
         switchAlignmentNotConnectedTrackValidationError(
             "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
@@ -875,7 +896,15 @@ constructor(
                 topoTestDataContextOnLocationTrackValidationError,
                 topoTestDataContextOnLocationTrackValidationError + noStart,
                 topoTestDataContextOnLocationTrackValidationError + noEnd,
-                topoTestDataContextOnLocationTrackValidationError + noStart + noEnd,
+                topoTestDataContextOnLocationTrackValidationError +
+                    switchNotPublishedError(
+                        switchName = "Topological switch connection test start switch",
+                        locationTrackName = "track linked at start and end",
+                    ) +
+                    switchNotPublishedError(
+                        switchName = "Topological switch connection test end switch",
+                        locationTrackName = "track linked at start and end",
+                    ),
             )
         val actual =
             topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
@@ -1599,11 +1628,11 @@ constructor(
                 ),
             )
         assertEquals(
-            listOf("validation.layout.reference-line.track-number.cancelled"),
+            listOf("validation.layout.reference-line.reference-to-track-number.cancelled"),
             validated.validatedAsPublicationUnit.referenceLines[0].issues.map { it.localizationKey.toString() },
         )
         assertEquals(
-            listOf("validation.layout.location-track.track-number.cancelled"),
+            listOf("validation.layout.location-track.reference-to-track-number.cancelled"),
             validated.validatedAsPublicationUnit.locationTracks[0].issues.map { it.localizationKey.toString() },
         )
     }
@@ -1638,7 +1667,7 @@ constructor(
                 publicationRequestIds(locationTracks = listOf(duplicatingLocationTrack, mainLocationTrack)),
             )
         assertEquals(
-            listOf("validation.layout.location-track.duplicate-of.cancelled"),
+            listOf("validation.layout.location-track.reference-to-location-track-duplicate-of.cancelled"),
             validatedIncludingCancellation.validatedAsPublicationUnit.locationTracks
                 .find { it.id == duplicatingLocationTrack }
                 ?.issues
@@ -1814,15 +1843,15 @@ constructor(
                 publicationRequestIds(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine)),
             )
         assertEquals(
-            listOf("validation.layout.track-number.reference-line.cancelled-from-track-number"),
+            listOf("validation.layout.track-number.reference-from-reference-line.cancelled"),
             validateBoth.validatedAsPublicationUnit.trackNumbers[0].issues.map { it.localizationKey.toString() },
         )
         assertEquals(
-            listOf("validation.layout.reference-line.track-number.cancelled"),
+            listOf("validation.layout.reference-line.reference-to-track-number.cancelled"),
             validateBoth.validatedAsPublicationUnit.referenceLines[0].issues.map { it.localizationKey.toString() },
         )
         assertEquals(
-            listOf("validation.layout.track-number.reference-line.cancelled-from-track-number"),
+            listOf("validation.layout.track-number.reference-from-reference-line.cancelled"),
             validateTrackNumber.validatedAsPublicationUnit.trackNumbers[0].issues.map { it.localizationKey.toString() },
         )
         assertEquals(0, validateReferenceLine.validatedAsPublicationUnit.referenceLines[0].issues.size)
@@ -1858,15 +1887,15 @@ constructor(
         // reference line is cancelled (implicitly as part of the track number's cancellation), but the track number's
         // cancellation has then been overwritten, meaning that publishing the reference line should fail
         assertEquals(
-            listOf("validation.layout.track-number.reference-line.not-published"),
+            listOf("validation.layout.track-number.reference-to-reference-line.cancelled"),
             validateBoth.validatedAsPublicationUnit.trackNumbers[0].issues.map { it.localizationKey.toString() },
         )
         assertEquals(
-            listOf("validation.layout.reference-line.track-number.cancelled"),
+            listOf("validation.layout.reference-line.reference-from-track-number.cancelled"),
             validateBoth.validatedAsPublicationUnit.referenceLines[0].issues.map { it.localizationKey.toString() },
         )
         assertEquals(
-            listOf("validation.layout.reference-line.track-number.cancelled"),
+            listOf("validation.layout.reference-line.reference-from-track-number.cancelled"),
             validateReferenceLine.validatedAsPublicationUnit.referenceLines[0].issues.map {
                 it.localizationKey.toString()
             },
@@ -1952,9 +1981,13 @@ constructor(
         assertEquals(
             listOf(
                 LayoutValidationIssue(
-                    localizationKey = LocalizationKey.of("validation.layout.track-number.km-post.reference-deleted"),
+                    localizationKey =
+                        LocalizationKey.of("validation.layout.track-number.reference-from-km-post.cancelled"),
                     type = LayoutValidationIssueType.ERROR,
-                    params = LocalizationParams(mapOf("kmPosts" to "0001")),
+                    params =
+                        LocalizationParams(
+                            mapOf("referrers" to "0001", "target" to trackNumberNumber.number.toString())
+                        ),
                 )
             ),
             validateTrackNumber.validatedAsPublicationUnit.trackNumbers[0].issues,
@@ -1963,9 +1996,13 @@ constructor(
         assertEquals(
             listOf(
                 LayoutValidationIssue(
-                    localizationKey = LocalizationKey.of("validation.layout.track-number.km-post.reference-deleted"),
+                    localizationKey =
+                        LocalizationKey.of("validation.layout.track-number.reference-from-km-post.cancelled"),
                     type = LayoutValidationIssueType.ERROR,
-                    params = LocalizationParams(mapOf("kmPosts" to "0001")),
+                    params =
+                        LocalizationParams(
+                            mapOf("referrers" to "0001", "target" to trackNumberNumber.number.toString())
+                        ),
                 )
             ),
             validateBoth.validatedAsPublicationUnit.trackNumbers[0].issues,
@@ -1973,9 +2010,10 @@ constructor(
         assertContains(
             validateBoth.validatedAsPublicationUnit.kmPosts[0].issues,
             LayoutValidationIssue(
-                localizationKey = LocalizationKey.of("validation.layout.km-post.track-number.cancelled"),
+                localizationKey = LocalizationKey.of("validation.layout.km-post.reference-to-track-number.cancelled"),
                 type = LayoutValidationIssueType.ERROR,
-                params = LocalizationParams(mapOf("trackNumber" to trackNumberNumber.number.toString())),
+                params =
+                    LocalizationParams(mapOf("referrers" to "0001", "target" to trackNumberNumber.number.toString())),
             ),
         )
     }
@@ -2588,6 +2626,122 @@ constructor(
         )
     }
 
+    @Test
+    fun `existing switches and location tracks must only reference existing operational points`() {
+        val existingOperationalPoint = mainDraftContext.save(operationalPoint(name = "existing")).id
+        val deletedOperationalPoint =
+            mainDraftContext.save(operationalPoint(name = "deleted", state = OperationalPointState.DELETED)).id
+        val existingReferencingExisting =
+            mainDraftContext.save(switch(name = "a", operationalPointId = existingOperationalPoint)).id
+        val existingReferencingDeleted =
+            mainDraftContext.save(switch(name = "b", operationalPointId = deletedOperationalPoint)).id
+        val deletedReferencingExisting =
+            mainDraftContext
+                .save(
+                    switch(
+                        name = "c",
+                        stateCategory = LayoutStateCategory.NOT_EXISTING,
+                        operationalPointId = existingOperationalPoint,
+                    )
+                )
+                .id
+        val deletedReferencingDeleted =
+            mainDraftContext
+                .save(
+                    switch(
+                        name = "d",
+                        stateCategory = LayoutStateCategory.NOT_EXISTING,
+                        operationalPointId = deletedOperationalPoint,
+                    )
+                )
+                .id
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        val trackObject =
+            locationTrack(
+                trackNumber,
+                name = "track",
+                operationalPointIds = setOf(existingOperationalPoint, deletedOperationalPoint),
+            )
+        val track = mainDraftContext.save(trackObject).id
+        val validation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(
+                    LayoutContextTransition.publicationIn(LayoutBranch.main)
+                ),
+                publicationRequestIds(
+                    switches =
+                        listOf(
+                            existingReferencingExisting,
+                            existingReferencingDeleted,
+                            deletedReferencingExisting,
+                            deletedReferencingDeleted,
+                        ),
+                    locationTracks = listOf(track),
+                    operationalPoints = listOf(existingOperationalPoint, deletedOperationalPoint),
+                ),
+            )
+
+        assertContains(
+            validation.validatedAsPublicationUnit.switches.find { s -> s.id == existingReferencingDeleted }!!.issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                "validation.layout.switch.reference-to-operational-point.deleted",
+                mapOf("target" to "deleted", "referrers" to "b"),
+            ),
+        )
+        listOf(existingReferencingExisting, deletedReferencingExisting, deletedReferencingDeleted).forEach { okReferrer
+            ->
+            assertFalse(
+                validation.validatedAsPublicationUnit.switches
+                    .find { s -> s.id == okReferrer }!!
+                    .issues
+                    .any {
+                        it.localizationKey.toString() ==
+                            "validation.layout.switch.reference-to-operational-point.deleted"
+                    }
+            )
+        }
+        assertContains(
+            validation.validatedAsPublicationUnit.locationTracks.find { s -> s.id == track }!!.issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                "validation.layout.location-track.reference-to-operational-point.deleted",
+                mapOf("target" to "deleted", "referrers" to "track"),
+            ),
+        )
+        assertContains(
+            validation.validatedAsPublicationUnit.operationalPoints
+                .find { s -> s.id == deletedOperationalPoint }!!
+                .issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                "validation.layout.operational-point.reference-from-switch.deleted",
+                mapOf("target" to "deleted", "referrers" to "b"),
+            ),
+        )
+        assertContains(
+            validation.validatedAsPublicationUnit.operationalPoints
+                .find { s -> s.id == deletedOperationalPoint }!!
+                .issues,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                "validation.layout.operational-point.reference-from-location-track.deleted",
+                mapOf("target" to "deleted", "referrers" to "track"),
+            ),
+        )
+        assertFalse(
+            validation.validatedAsPublicationUnit.operationalPoints
+                .find { s -> s.id == existingOperationalPoint }!!
+                .issues
+                .any {
+                    it.localizationKey.toString() ==
+                        "validation.layout.operational-point.reference-from-location-track.deleted" ||
+                        it.localizationKey.toString() ==
+                            "validation.layout.operational-point.reference-from-switch.deleted"
+                }
+        )
+    }
+
     private fun getTopologicalSwitchConnectionTestCases(
         trackNumberGenerator: () -> IntId<LayoutTrackNumber>,
         topologyStartSwitch: Pair<SwitchLink, Point>,
@@ -2596,14 +2750,26 @@ constructor(
         val (startSwitch, startPoint) = topologyStartSwitch
         val (endSwitch, endPoint) = topologyEndSwitch
         return listOf(
-            locationTrack(trackNumberGenerator(), draft = true) to
+            locationTrack(trackNumberGenerator(), name = "unlinked track", draft = true) to
                 topologyTrackGeometry(startSwitch = null, endSwitch = null, startPoint, endPoint),
-            locationTrack(trackNumberGenerator(), topologicalConnectivity = START, draft = true) to
-                topologyTrackGeometry(startSwitch = startSwitch, endSwitch = null, startPoint, endPoint),
-            locationTrack(trackNumberGenerator(), topologicalConnectivity = END, draft = true) to
-                topologyTrackGeometry(startSwitch = null, endSwitch = endSwitch, startPoint, endPoint),
-            locationTrack(trackNumberGenerator(), topologicalConnectivity = START_AND_END, draft = true) to
-                topologyTrackGeometry(startSwitch = startSwitch, endSwitch = endSwitch, startPoint, endPoint),
+            locationTrack(
+                trackNumberGenerator(),
+                name = "track linked at start",
+                topologicalConnectivity = START,
+                draft = true,
+            ) to topologyTrackGeometry(startSwitch = startSwitch, endSwitch = null, startPoint, endPoint),
+            locationTrack(
+                trackNumberGenerator(),
+                name = "track linked at end",
+                topologicalConnectivity = END,
+                draft = true,
+            ) to topologyTrackGeometry(startSwitch = null, endSwitch = endSwitch, startPoint, endPoint),
+            locationTrack(
+                trackNumberGenerator(),
+                name = "track linked at start and end",
+                topologicalConnectivity = START_AND_END,
+                draft = true,
+            ) to topologyTrackGeometry(startSwitch = startSwitch, endSwitch = endSwitch, startPoint, endPoint),
         )
     }
 

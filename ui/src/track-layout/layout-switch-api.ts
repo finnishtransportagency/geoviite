@@ -148,9 +148,11 @@ export async function updateSwitch(
     id: LayoutSwitchId,
     updatedSwitch: LayoutSwitchSaveRequest,
     layoutContext: LayoutContext,
+    deleteSwitchLinks?: boolean,
 ): Promise<LayoutSwitchId> {
+    const queryParams = deleteSwitchLinks !== undefined ? `?deleteSwitchLinks=${deleteSwitchLinks}` : '';
     const result = await putNonNull<LayoutSwitchSaveRequest, LayoutSwitchId>(
-        layoutUri('switches', draftLayoutContext(layoutContext), id),
+        `${layoutUri('switches', draftLayoutContext(layoutContext), id)}${queryParams}`,
         updatedSwitch,
     );
     // Switch changes can also affect location track names & descriptions
@@ -244,7 +246,7 @@ export async function getSwitchOidPresence(oid: Oid): Promise<SwitchOidPresence>
     return getNonNull<SwitchOidPresence>(`${TRACK_LAYOUT_URI}/switches/oid_presence/${oid}`);
 }
 
-export async function linkSwitchToOperationalPoint(
+export async function linkSwitchesToOperationalPoint(
     branch: LayoutBranch,
     switchIds: LayoutSwitchId[],
     operationalPointId: OperationalPointId,
@@ -255,7 +257,7 @@ export async function linkSwitchToOperationalPoint(
     );
 }
 
-export async function unlinkSwitchFromOperationalPoint(
+export async function unlinkSwitchesFromOperationalPoint(
     branch: LayoutBranch,
     switchIds: LayoutSwitchId[],
 ): Promise<LayoutSwitchId[]> {

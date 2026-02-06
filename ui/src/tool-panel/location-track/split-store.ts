@@ -316,9 +316,9 @@ export const splitReducers = {
                 ...prefilledSplitsNamed,
             };
 
-            mapReducers.showLayers(state.map, {
+            mapReducers.addForcedVisibleLayer(state.map, {
                 payload: ['location-track-split-location-layer'],
-                type: 'showLayers',
+                type: 'addForcedVisibleLayer',
             });
         }
     },
@@ -329,12 +329,6 @@ export const splitReducers = {
         if (state.splittingState) {
             state.splittingState.disabled = payload;
         }
-    },
-    addSplit: (
-        state: TrackLayoutState,
-        { payload: splitPoint }: PayloadAction<SplitPoint>,
-    ): void => {
-        addSplitToState(state, splitPoint, 'FOCUS');
     },
     unfocusSplit: (
         state: TrackLayoutState,
@@ -511,10 +505,10 @@ function splitPointToSplitTargetCandidate(
     } as const;
 }
 
-function addSplitToState(
+export function addSplitToState(
     state: TrackLayoutState,
     splitPoint: SplitPoint,
-    splitFocusBehaviour: SplitFocusBehaviour,
+    splitFocusBehaviour: SplitFocusBehaviour = 'FOCUS',
 ) {
     if (state.splittingState) {
         const switchForSplitPoint = findSwitchForSplitPoint(

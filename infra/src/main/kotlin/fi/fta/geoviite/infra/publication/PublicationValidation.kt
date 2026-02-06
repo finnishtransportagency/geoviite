@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.ClientException
+import fi.fta.geoviite.infra.geocoding.AddressPointsResult
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.KmValidationIssue
 import fi.fta.geoviite.infra.geocoding.ValidatedGeocodingContext
@@ -49,6 +50,7 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
 import kotlin.math.PI
+import kotlin.toString
 
 const val VALIDATION = "validation.layout"
 const val VALIDATION_TRACK_NUMBER = "$VALIDATION.track-number"
@@ -62,38 +64,119 @@ const val VALIDATION_OPERATIONAL_POINT = "$VALIDATION.operational-point"
 private const val JOINT_LOCATION_DELTA = 0.5
 const val MAX_LAYOUT_POINT_ANGLE_CHANGE = PI / 2
 const val MAX_LAYOUT_METER_LENGTH = 2.0
-const val MAX_KM_POST_OFFSET = 10.0
 
-fun validateTrackNumberReferences(
-    trackNumberExists: Boolean,
-    trackNumberIsCancelled: Boolean,
+fun validateReferencesToTrackNumber(
+    trackNumberLiveness: AssetLiveness<LayoutTrackNumber>,
     referenceLine: ReferenceLine?,
     kmPosts: List<LayoutKmPost>,
     locationTracks: List<LocationTrack>,
 ): List<LayoutValidationIssue> =
-    listOfNotNull(
-        referenceLine?.let {
-            validate(trackNumberExists || !trackNumberIsCancelled) {
-                "$VALIDATION_TRACK_NUMBER.reference-line.cancelled-from-track-number"
-            }
-        },
-        validate(!trackNumberExists || referenceLine != null) {
-            "$VALIDATION_TRACK_NUMBER.reference-line.not-published"
-        },
-        locationTracks.filter(LocationTrack::exists).let { existingTracks ->
-            validateWithParams(trackNumberExists || existingTracks.isEmpty()) {
-                val existingNames = existingTracks.joinToString(", ") { track -> track.name }
-                "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted" to
-                    localizationParams("locationTracks" to existingNames)
-            }
-        },
-        kmPosts.filter(LayoutKmPost::exists).let { existingKmPosts ->
-            validateWithParams(trackNumberExists || existingKmPosts.isEmpty()) {
-                val existingNames = existingKmPosts.joinToString(", ") { post -> post.kmNumber.toString() }
-                "$VALIDATION_TRACK_NUMBER.km-post.reference-deleted" to localizationParams("kmPosts" to existingNames)
-            }
-        },
+    validateReferenceLiveness(
+        // reference lines do have a presence in publication sets, so the validity of that must be checked, but they
+        // don't have their own existing/deleted state, so for the sake of this check, can always be considered deleted
+        { false },
+        { trackNumberLiveness.assetName },
+        "$VALIDATION_TRACK_NUMBER.reference-from-reference-line",
+        trackNumberLiveness,
+        listOfNotNull(referenceLine),
+    ) +
+        validateReferenceLivenessFromLocationTrack(
+            "$VALIDATION_TRACK_NUMBER.reference-from-location-track",
+            trackNumberLiveness,
+            locationTracks,
+        ) +
+        validateReferenceLivenessFromKmPost(
+            "$VALIDATION_TRACK_NUMBER.reference-from-km-post",
+            trackNumberLiveness,
+            kmPosts,
+        )
+
+fun validateReferencesFromTrackNumber(
+    trackNumber: LayoutTrackNumber,
+    referenceLineLiveness: AssetLiveness<ReferenceLine>,
+): List<LayoutValidationIssue> =
+    validateReferenceLivenessFromTrackNumber(
+        "$VALIDATION_TRACK_NUMBER.reference-to-reference-line",
+        referenceLineLiveness,
+        listOf(trackNumber),
     )
+
+fun validateReferencesToSwitch(
+    switchLiveness: AssetLiveness<LayoutSwitch>,
+    locationTracks: List<LocationTrack>,
+): List<LayoutValidationIssue> =
+    validateReferenceLivenessFromLocationTrack(
+        "$VALIDATION_SWITCH.reference-from-location-track",
+        switchLiveness,
+        locationTracks,
+    )
+
+fun validateReferencesFromSwitch(pointLiveness: AssetLiveness<OperationalPoint>, switch: LayoutSwitch) =
+    validateReferenceLivenessFromSwitch(
+        "$VALIDATION_SWITCH.reference-to-operational-point",
+        pointLiveness,
+        listOf(switch),
+    )
+
+fun validateReferencesToLocationTrack(
+    locationTrackLiveness: AssetLiveness<LocationTrack>,
+    duplicateTracks: List<LocationTrack>,
+) =
+    validateReferenceLivenessFromLocationTrack(
+        "$VALIDATION_LOCATION_TRACK.reference-from-location-track-duplicate-of",
+        locationTrackLiveness,
+        duplicateTracks,
+    )
+
+fun validateReferencesFromLocationTrack(
+    trackNumber: AssetLiveness<LayoutTrackNumber>,
+    switches: List<AssetLiveness<LayoutSwitch>>,
+    operationalPoints: List<AssetLiveness<OperationalPoint>>,
+    duplicateOf: AssetLiveness<LocationTrack>?,
+    locationTrack: LocationTrack,
+) =
+    validateReferenceLivenessFromLocationTrack(
+        "$VALIDATION_LOCATION_TRACK.reference-to-track-number",
+        trackNumber,
+        listOf(locationTrack),
+    ) +
+        switches.flatMap { switch ->
+            validateReferenceLivenessFromLocationTrack(
+                "$VALIDATION_LOCATION_TRACK.reference-to-switch",
+                switch,
+                listOf(locationTrack),
+            )
+        } +
+        operationalPoints.flatMap { operationalPoint ->
+            validateReferenceLivenessFromLocationTrack(
+                "$VALIDATION_LOCATION_TRACK.reference-to-operational-point",
+                operationalPoint,
+                listOf(locationTrack),
+            )
+        } +
+        listOfNotNull(duplicateOf).flatMap { duplicateOf ->
+            validateReferenceLivenessFromLocationTrack(
+                "$VALIDATION_LOCATION_TRACK.reference-to-location-track-duplicate-of",
+                duplicateOf,
+                listOf(locationTrack),
+            )
+        }
+
+fun validateReferencesToOperationalPoint(
+    operationalPointLiveness: AssetLiveness<OperationalPoint>,
+    switches: List<LayoutSwitch>,
+    locationTracks: List<LocationTrack>,
+) =
+    validateReferenceLivenessFromSwitch(
+        "$VALIDATION_OPERATIONAL_POINT.reference-from-switch",
+        operationalPointLiveness,
+        switches,
+    ) +
+        validateReferenceLivenessFromLocationTrack(
+            "$VALIDATION_OPERATIONAL_POINT.reference-from-location-track",
+            operationalPointLiveness,
+            locationTracks,
+        )
 
 fun validateTrackNumberNumberDuplication(
     trackNumber: LayoutTrackNumber,
@@ -172,27 +255,27 @@ fun validateOperationalPointPolygonOverlap(
 
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,
-    trackNumber: LayoutTrackNumber?,
-    referenceLine: ReferenceLine?,
-    trackNumberNumber: TrackNumber?,
-    trackNumberIsCancelled: Boolean,
+    trackNumberLiveness: AssetLiveness<LayoutTrackNumber>,
+    referenceLineLiveness: AssetLiveness<ReferenceLine>?,
 ): List<LayoutValidationIssue> =
-    listOfNotNull(
-        validateWithParams(trackNumber != null) {
-            cancelledOrNotPublishedKey("$VALIDATION_KM_POST.track-number", trackNumberIsCancelled) to
-                localizationParams("trackNumber" to trackNumberNumber)
-        },
-        validateWithParams(referenceLine != null) {
-            "$VALIDATION_KM_POST.reference-line.not-published" to localizationParams("trackNumber" to trackNumberNumber)
-        },
-        validateWithParams(!kmPost.exists || trackNumber == null || trackNumber.state.isLinkable()) {
-            "$VALIDATION_KM_POST.track-number.state.${trackNumber?.state}" to
-                localizationParams("trackNumber" to trackNumber?.number)
-        },
-        validateWithParams(trackNumber == null || kmPost.trackNumberId == trackNumber.id) {
-            "$VALIDATION_KM_POST.track-number.not-official" to localizationParams("trackNumber" to trackNumber?.number)
-        },
-    )
+    validateReferenceLivenessFromKmPost(
+        "$VALIDATION_KM_POST.reference-to-track-number",
+        trackNumberLiveness,
+        listOf(kmPost),
+    ) +
+        (if (referenceLineLiveness == null)
+            listOf(
+                validationError(
+                    "$VALIDATION_KM_POST.reference-to-reference-line.not-published",
+                    localizationParams("trackNumber" to trackNumberLiveness.assetName),
+                )
+            )
+        else
+            validateReferenceLivenessFromKmPost(
+                "$VALIDATION_KM_POST.reference-to-reference-line",
+                referenceLineLiveness,
+                listOf(kmPost),
+            ))
 
 fun validateKmPostNumberDuplication(
     kmPost: LayoutKmPost,
@@ -208,22 +291,6 @@ fun validateKmPostNumberDuplication(
     ) {
         listOf("kmNumber" to kmPost.kmNumber, "trackNumber" to trackNumber.toString())
     }
-
-fun validateSwitchLocationTrackLinkReferences(
-    switchExists: Boolean,
-    switchIsCancelled: Boolean,
-    locationTracks: List<LocationTrack>,
-): List<LayoutValidationIssue> {
-    return listOfNotNull(
-        locationTracks.filter(LocationTrack::exists).let { existingTracks ->
-            validateWithParams(switchExists || existingTracks.isEmpty()) {
-                val existingNames = existingTracks.joinToString(", ") { track -> track.name }
-                "$VALIDATION_SWITCH.location-track.${if (switchIsCancelled) "cancelled"  else "reference-deleted"}" to
-                    localizationParams("locationTracks" to existingNames)
-            }
-        }
-    )
-}
 
 fun validateSwitchLocation(switch: LayoutSwitch): List<LayoutValidationIssue> =
     listOfNotNull(validate(switch.joints.isNotEmpty()) { "$VALIDATION_SWITCH.no-location" })
@@ -773,32 +840,17 @@ private fun alignmentLinkingQuality(
     )
 }
 
-fun validateDuplicateOfState(
-    locationTrack: LocationTrack,
+fun validateDuplicateStructure(
     duplicateOfLocationTrack: LocationTrack?,
     duplicateOfLocationTrackDraftName: AlignmentName?,
-    duplicateOfLocationTrackIsCancelled: Boolean,
     duplicates: List<LocationTrack>,
 ): List<LayoutValidationIssue> {
     val duplicateNameParams =
         localizationParams("duplicateTrack" to (duplicateOfLocationTrack?.name ?: duplicateOfLocationTrackDraftName))
-    val ownDuplicateOfErrors =
-        if (duplicateOfLocationTrack == null) {
+    val duplicateValidityIssues =
+        if (duplicateOfLocationTrack == null) listOf()
+        else {
             listOfNotNull(
-                // Non-null reference, but the duplicateOf track doesn't exist in validation context
-                validateWithParams(locationTrack.duplicateOf == null) {
-                    cancelledOrNotPublishedKey(
-                        "$VALIDATION_LOCATION_TRACK.duplicate-of",
-                        duplicateOfLocationTrackIsCancelled,
-                    ) to duplicateNameParams
-                }
-            )
-        } else {
-            listOfNotNull(
-                validateWithParams(locationTrack.state.isRemoved() || duplicateOfLocationTrack.state.isLinkable()) {
-                    "$VALIDATION_LOCATION_TRACK.duplicate-of.state.${duplicateOfLocationTrack.state}" to
-                        duplicateNameParams
-                },
                 validateWithParams(duplicateOfLocationTrack.duplicateOf == null) {
                     "$VALIDATION_LOCATION_TRACK.duplicate-of.publishing-duplicate-of-duplicated" to duplicateNameParams
                 },
@@ -815,64 +867,32 @@ fun validateDuplicateOfState(
                 },
             )
         }
-    val otherDuplicateReferenceErrors =
-        if (!locationTrack.exists) {
-            val existingDuplicates = duplicates.filter { d -> d.exists }
-            listOfNotNull(
-                validateWithParams(existingDuplicates.isEmpty()) {
-                    "$VALIDATION_LOCATION_TRACK.deleted-duplicated-by-existing" to
-                        localizationParams("duplicates" to existingDuplicates.joinToString(",") { track -> track.name })
-                }
-            )
-        } else {
-            emptyList()
-        }
-    return ownDuplicateOfErrors + otherDuplicateReferenceErrors
+
+    return duplicateValidityIssues
 }
 
-fun validateReferenceLineReference(
+fun validateReferencesToReferenceLine(
+    trackNumber: LayoutTrackNumber?,
+    referenceLineLiveness: AssetLiveness<ReferenceLine>,
+) =
+    validateReferenceLivenessFromTrackNumber(
+        "$VALIDATION_REFERENCE_LINE.reference-from-track-number",
+        referenceLineLiveness,
+        listOfNotNull(trackNumber),
+    )
+
+fun validateReferencesFromReferenceLine(
     referenceLine: ReferenceLine,
     trackNumberNumber: TrackNumber?,
-    trackNumber: LayoutTrackNumber?,
-    trackNumberIsCancelled: Boolean,
-): List<LayoutValidationIssue> {
-    val numberParams = localizationParams("trackNumber" to trackNumberNumber)
-    return listOfNotNull(
-        validateWithParams(trackNumber != null) {
-            cancelledOrNotPublishedKey("$VALIDATION_REFERENCE_LINE.track-number", trackNumberIsCancelled) to
-                numberParams
-        },
-        validateWithParams(trackNumber == null || referenceLine.trackNumberId == trackNumber.id) {
-            "$VALIDATION_REFERENCE_LINE.track-number.not-official" to numberParams
-        },
+    trackNumberLiveness: AssetLiveness<LayoutTrackNumber>,
+): List<LayoutValidationIssue> =
+    validateReferenceLiveness(
+        { trackNumberLiveness.type == AssetLivenessType.EXISTS },
+        { trackNumberNumber?.toString() ?: "" },
+        "$VALIDATION_REFERENCE_LINE.reference-to-track-number",
+        trackNumberLiveness,
+        listOf(referenceLine),
     )
-}
-
-fun validateLocationTrackReference(
-    locationTrack: LocationTrack,
-    trackNumber: LayoutTrackNumber?,
-    trackNumberName: TrackNumber?,
-    trackNumberIsCancelled: Boolean,
-): List<LayoutValidationIssue> {
-    return if (trackNumber == null) {
-        listOf(
-            validationError(
-                cancelledOrNotPublishedKey("$VALIDATION_LOCATION_TRACK.track-number", trackNumberIsCancelled),
-                "trackNumber" to trackNumberName,
-            )
-        )
-    } else {
-        val numberParams = localizationParams("trackNumber" to trackNumber.number)
-        listOfNotNull(
-            validateWithParams(locationTrack.trackNumberId == trackNumber.id) {
-                "$VALIDATION_LOCATION_TRACK.track-number.not-official" to numberParams
-            },
-            validateWithParams(locationTrack.state.isRemoved() || trackNumber.state.isLinkable()) {
-                "$VALIDATION_LOCATION_TRACK.track-number.state.${trackNumber.state}" to numberParams
-            },
-        )
-    }
-}
 
 data class SwitchTrackLinking(
     val switchId: IntId<LayoutSwitch>,
@@ -880,10 +900,9 @@ data class SwitchTrackLinking(
     val switch: LayoutSwitch?,
     val switchStructure: SwitchStructure?,
     val indexedLinks: List<Pair<Int, TrackSwitchLink>>,
-    val switchIsCancelled: Boolean,
 )
 
-fun validateTrackSwitchReferences(
+fun validateTrackSwitchLinkingGeometry(
     locationTrack: LocationTrack,
     switchTrackLinkings: List<SwitchTrackLinking>,
 ): List<LayoutValidationIssue> {
@@ -894,21 +913,8 @@ fun validateTrackSwitchReferences(
         val nameLocalizationParams = localizationParams("switch" to linking.switchName)
 
         if (switch == null || switchStructure == null) {
-            listOf(
-                validationError(
-                    cancelledOrNotPublishedKey("$VALIDATION_LOCATION_TRACK.switch", linking.switchIsCancelled),
-                    nameLocalizationParams,
-                )
-            )
+            listOf()
         } else {
-            val stateErrors: List<LayoutValidationIssue> =
-                listOfNotNull(
-                    validateWithParams(!locationTrack.exists || switch.stateCategory.isLinkable()) {
-                        "$VALIDATION_LOCATION_TRACK.switch.state-category.${switch.stateCategory}" to
-                            nameLocalizationParams
-                    }
-                )
-
             val geometryErrors: List<LayoutValidationIssue> =
                 if (locationTrack.exists && switch.exists) {
                     val links = indexedLinks.map { it.second }
@@ -934,7 +940,7 @@ fun validateTrackSwitchReferences(
                         },
                     )
                 } else listOf()
-            stateErrors + geometryErrors
+            geometryErrors
         }
     }
 }
@@ -986,26 +992,20 @@ fun validateGeocodingContext(
                 )
             }
 
-    val kmPostsFarFromLine: LayoutValidationIssue? =
-        context.kms
-            .filter { km -> km.kmPostOffset > MAX_KM_POST_OFFSET }
-            .let { kmsWithFarawayPoints ->
-                validateWithParams(kmsWithFarawayPoints.isEmpty(), WARNING) {
-                    "$VALIDATION_GEOCODING.km-posts-far-from-line" to
-                        localizationParams(
-                            "trackNumber" to context.trackNumber,
-                            "kmNumbers" to kmsWithFarawayPoints.joinToString(",") { point -> point.kmNumber.toString() },
-                        )
-                }
-            }
-
     val kmPostsRejected: List<LayoutValidationIssue> =
-        validatedContext.kmErrors.map { (kmNumber, issue) ->
+        validatedContext.kmErrors.mapNotNull { (kmNumber, issue) ->
             val kmPostLocalizationParams = mapOf("trackNumber" to trackNumber, "kmNumber" to kmNumber)
 
             when (issue) {
                 KmValidationIssue.NO_LOCATION ->
                     LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.km-post-no-location", kmPostLocalizationParams)
+
+                KmValidationIssue.IS_TOO_FAR_FROM_REFERENCE_LINE ->
+                    LayoutValidationIssue(
+                        ERROR,
+                        "$VALIDATION_GEOCODING.km-post-too-far-from-reference-line",
+                        kmPostLocalizationParams,
+                    )
 
                 KmValidationIssue.IS_BEFORE_START_ADDRESS ->
                     LayoutValidationIssue(
@@ -1031,32 +1031,35 @@ fun validateGeocodingContext(
                 KmValidationIssue.DUPLICATE_KM ->
                     LayoutValidationIssue(FATAL, "$VALIDATION_GEOCODING.duplicate-km-posts", kmPostLocalizationParams)
 
-                KmValidationIssue.INCORRECT_ORDER ->
-                    LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.km-posts-invalid", kmPostLocalizationParams)
+                KmValidationIssue.INCORRECT_ORDER -> null // This is handled as a single message above
             }
         }
 
-    return kmPostsRejected + listOfNotNull(kmPostsFarFromLine, kmPostsInWrongOrder) + kmLengthErrors
+    return kmPostsRejected + listOfNotNull(kmPostsInWrongOrder) + kmLengthErrors
 }
 
 fun validateAddressPoints(
     trackNumber: LayoutTrackNumber,
     locationTrack: LocationTrack,
     validationTargetLocalizationPrefix: String,
-    geocode: () -> AlignmentAddresses<*>?,
-): List<LayoutValidationIssue> =
-    try {
-        geocode()?.let { addresses -> validateAddressPoints(trackNumber, locationTrack, addresses) }
-            ?: listOf(
-                LayoutValidationIssue(
-                    ERROR,
-                    "$validationTargetLocalizationPrefix.no-addresses",
-                    mapOf("trackNumber" to trackNumber.number, "locationTrack" to locationTrack.name),
-                )
-            )
+    geocode: () -> AddressPointsResult<*>?,
+): List<LayoutValidationIssue> {
+    val params = mapOf("trackNumber" to trackNumber.number, "locationTrack" to locationTrack.name)
+    return try {
+        when (val result = geocode()) {
+            is AddressPointsResult.AddressPointsSuccess ->
+                validateAddressPoints(trackNumber, locationTrack, result.addresses)
+
+            is AddressPointsResult.EndBeforeStart ->
+                listOf(LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.end-before-start", params))
+
+            is AddressPointsResult.InvalidEndpoint,
+            null -> listOf(LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.no-addresses", params))
+        }
     } catch (e: ClientException) {
         listOf(LayoutValidationIssue(ERROR, e.localizationKey))
     }
+}
 
 fun validateAddressPoints(
     trackNumber: LayoutTrackNumber,
@@ -1268,9 +1271,6 @@ fun validationWarning(
     inRelationTo: Set<PublicationLogAsset> = setOf(),
 ): LayoutValidationIssue = LayoutValidationIssue(WARNING, LocalizationKey.of(key), params, inRelationTo)
 
-private fun cancelledOrNotPublishedKey(keyPrefix: String, cancelled: Boolean) =
-    "$keyPrefix${if (cancelled) ".cancelled" else ".not-published"}"
-
 private fun relateTo(
     switches: List<DomainId<LayoutSwitch>> = listOf(),
     locationTracks: List<DomainId<LocationTrack>> = listOf(),
@@ -1288,3 +1288,73 @@ private fun relateIssuesTo(
     locationTracks: List<DomainId<LocationTrack>> = listOf(),
 ): List<LayoutValidationIssue> =
     issues.map { issue -> issue.copy(inRelationTo = relateTo(switches = switches, locationTracks = locationTracks)) }
+
+private fun validateReferenceLivenessFromTrackNumber(
+    keyPrefix: String,
+    targetLiveness: AssetLiveness<*>,
+    referrers: Collection<LayoutTrackNumber>,
+) =
+    validateReferenceLiveness(
+        LayoutTrackNumber::exists,
+        { tn -> tn.number.toString() },
+        keyPrefix,
+        targetLiveness,
+        referrers,
+    )
+
+private fun validateReferenceLivenessFromLocationTrack(
+    keyPrefix: String,
+    targetLiveness: AssetLiveness<*>,
+    referrers: Collection<LocationTrack>,
+) = validateReferenceLiveness(LocationTrack::exists, { lt -> lt.name.toString() }, keyPrefix, targetLiveness, referrers)
+
+private fun validateReferenceLivenessFromSwitch(
+    keyPrefix: String,
+    targetLiveness: AssetLiveness<*>,
+    referrers: Collection<LayoutSwitch>,
+) = validateReferenceLiveness(LayoutSwitch::exists, { s -> s.name.toString() }, keyPrefix, targetLiveness, referrers)
+
+private fun validateReferenceLivenessFromKmPost(
+    keyPrefix: String,
+    targetLiveness: AssetLiveness<*>,
+    referrers: Collection<LayoutKmPost>,
+) =
+    validateReferenceLiveness(
+        LayoutKmPost::exists,
+        { kp -> kp.kmNumber.toString() },
+        keyPrefix,
+        targetLiveness,
+        referrers,
+    )
+
+private fun <Referrer> validateReferenceLiveness(
+    exists: (x: Referrer) -> Boolean,
+    getName: (x: Referrer) -> String,
+    keyPrefix: String,
+    targetLiveness: AssetLiveness<*>,
+    referrers: Collection<Referrer>,
+): List<LayoutValidationIssue> {
+    if (referrers.isEmpty()) return emptyList()
+
+    fun paramsByReferrers(relevantReferrers: Collection<Referrer>) =
+        localizationParams(
+            "referrers" to relevantReferrers.map(getName).sorted().joinToString(", "),
+            "target" to targetLiveness.assetName,
+        )
+
+    return when (targetLiveness.type) {
+        AssetLivenessType.EXISTS -> emptyList()
+        AssetLivenessType.DELETED -> {
+            val aliveReferrers = referrers.filter(exists)
+            listOfNotNull(
+                validateWithParams(aliveReferrers.isEmpty()) {
+                    "$keyPrefix.deleted" to paramsByReferrers(aliveReferrers)
+                }
+            )
+        }
+        AssetLivenessType.DRAFT_NOT_PUBLISHED ->
+            listOf(validationError("$keyPrefix.not-published", paramsByReferrers(referrers)))
+        AssetLivenessType.CREATION_CANCELLED ->
+            listOf(validationError("$keyPrefix.cancelled", paramsByReferrers(referrers)))
+    }
+}

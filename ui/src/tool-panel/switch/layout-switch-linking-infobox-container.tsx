@@ -26,7 +26,7 @@ export const LayoutSwitchLinkingInfoboxContainer: React.FC<
     const layoutSwitch = useSwitch(layoutSwitchId, layoutContext, changeTimes.layoutSwitch);
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const onStopLinking = React.useCallback(() => {
-        delegates.hideLayers(['switch-linking-layer']);
+        delegates.removeForcedVisibleLayer(['switch-linking-layer']);
         delegates.stopLinking();
     }, []);
 

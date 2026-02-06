@@ -208,7 +208,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
 
     const stopSplitting = React.useCallback(() => {
         delegates.stopSplitting();
-        delegates.hideLayers(['location-track-split-location-layer']);
+        delegates.removeForcedVisibleLayer(['location-track-split-location-layer']);
     }, [delegates]);
 
     return (

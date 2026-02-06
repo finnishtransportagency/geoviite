@@ -8,10 +8,12 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanItemId
@@ -762,6 +764,49 @@ class LayoutSwitchDao(
     fun insertExternalId(id: IntId<LayoutSwitch>, branch: LayoutBranch, oid: Oid<LayoutSwitch>) {
         jdbcTemplate.setUser()
         insertExternalIdInExistingTransaction(branch, id, oid)
+    }
+
+    fun fetchVersionsForPublicationByOperationalPoints(
+        target: LayoutContextTransition,
+        operationalPointIds: List<IntId<OperationalPoint>>,
+        switchIdsToPublish: List<IntId<LayoutSwitch>>,
+    ): Map<IntId<OperationalPoint>, List<LayoutRowVersion<LayoutSwitch>>> {
+        if (operationalPointIds.isEmpty()) return emptyMap()
+
+        val sql =
+            """
+                select operational_point_id, id, design_id, draft, version
+                from (
+                select state_category, operational_point_id, id, design_id, draft, version
+                  from layout.switch_in_layout_context(:base_state::layout.publication_state, :base_design_id) official
+                  where (id = any(:switch_ids_to_publish)) is distinct from true
+                union all
+                select state_category, operational_point_id, id, design_id, draft, version
+                  from layout.switch_in_layout_context(:candidate_state::layout.publication_state, :candidate_design_id) draft
+                  where id = any(:switch_ids_to_publish)
+                ) switch
+                where operational_point_id = any(:operational_point_ids)
+                  and switch.state_category != 'NOT_EXISTING'
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "operational_point_ids" to operationalPointIds.map { id -> id.intValue }.toTypedArray(),
+                "switch_ids_to_publish" to switchIdsToPublish.map { id -> id.intValue }.toTypedArray(),
+            ) + target.sqlParameters()
+        val versions =
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                val operationalPointId = rs.getIntId<OperationalPoint>("operational_point_id")
+                val switchVersion = rs.getLayoutRowVersion<LayoutSwitch>("id", "design_id", "draft", "version")
+                operationalPointId to switchVersion
+            }
+        return operationalPointIds
+            .associateWith { operationalPointId ->
+                versions
+                    .filter { (tnId, _) -> tnId == operationalPointId }
+                    .map { (_, switchVersions) -> switchVersions }
+            }
+            .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchVersionsForPublication", switchIdsToPublish) }
     }
 }
 

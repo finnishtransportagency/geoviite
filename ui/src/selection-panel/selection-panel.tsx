@@ -9,6 +9,8 @@ import {
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
+    OperationalPoint,
+    OperationalPointId,
 } from 'track-layout/track-layout-model';
 import {
     OnSelectOptions,
@@ -19,6 +21,7 @@ import {
 } from 'selection/selection-model';
 import { KmPostsPanel } from 'selection-panel/km-posts-panel/km-posts-panel';
 import SwitchPanel from 'selection-panel/switch-panel/switch-panel';
+import { OperationalPointPanel } from 'selection-panel/operational-point-panel/operational-point-panel';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import TrackNumberPanel from 'selection-panel/track-number-panel/track-number-panel';
 import {
@@ -61,6 +64,7 @@ type SelectionPanelProps = {
     referenceLines: LayoutReferenceLine[];
     locationTracks: LayoutLocationTrack[];
     switches: LayoutSwitch[];
+    operationalPoints: OperationalPoint[];
     viewport: MapViewport;
     onSelect: (options: OnSelectOptions) => void;
     selectableItemTypes: SelectableItemType[];
@@ -93,6 +97,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     referenceLines,
     locationTracks,
     switches,
+    operationalPoints,
     viewport,
     onTogglePlanVisibility,
     onToggleAlignmentVisibility,
@@ -141,7 +146,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         trackNumberId: LayoutTrackNumberId,
         color: TrackNumberColorKey,
     ) => {
-        onMapLayerMenuItemChange({ name: 'track-number-diagram', visible: true });
+        onMapLayerMenuItemChange({ name: 'track-number-diagram', selected: true });
 
         onMapLayerSettingChange({
             name: 'track-number-diagram-layer',
@@ -175,6 +180,14 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         onSelect({
             ...createEmptyItemCollections(),
             locationTracks: [locationTrackId],
+            isToggle: true,
+        });
+    };
+
+    const onToggleOperationalPointSelection = (operationalPointId: OperationalPointId) => {
+        onSelect({
+            ...createEmptyItemCollections(),
+            operationalPoints: [operationalPointId],
             isToggle: true,
         });
     };
@@ -224,11 +237,11 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                                 if (diagramLayerMenuItem) {
                                     onMapLayerMenuItemChange({
                                         name: 'track-number-diagram',
-                                        visible: !diagramLayerMenuItem.visible,
+                                        selected: !diagramLayerMenuItem.selected,
                                     });
                                 }
                             }}
-                            visibility={diagramLayerMenuItem?.visible ?? false}
+                            visibility={diagramLayerMenuItem?.selected ?? false}
                         />
                     )}
                 </h3>
@@ -329,6 +342,21 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         switches={switches}
                         selectedSwitches={selectedItems.switches}
                         onToggleSwitchSelection={onToggleSwitchSelection}
+                    />
+                </div>
+            </section>
+            <section>
+                <h3 className={styles['selection-panel__title']}>
+                    {t('selection-panel.operational-points-title')} ({operationalPoints.length})
+                </h3>
+                <div className={styles['selection-panel__content']}>
+                    <OperationalPointPanel
+                        operationalPoints={operationalPoints}
+                        selectedOperationalPoints={selectedItems.operationalPoints}
+                        onToggleOperationalPointSelection={(op) =>
+                            onToggleOperationalPointSelection(op.id)
+                        }
+                        disabled={!!splittingState}
                     />
                 </div>
             </section>

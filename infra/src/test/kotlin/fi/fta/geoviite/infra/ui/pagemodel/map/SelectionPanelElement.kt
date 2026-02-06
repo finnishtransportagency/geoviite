@@ -146,3 +146,14 @@ class E2ESwitchesSelectionList(parentBy: By) :
         getContent = { e -> E2ESwitchSelectionListItem(e) },
         selectedItemBy = ByChained(parentBy, By.className("switch-badge--selected")),
     )
+
+data class E2EOperationalPointSelectionListItem(override val name: String) : E2ESelectionListItem {
+    constructor(element: WebElement) : this(element.findElement(By.xpath("./span/span[@class='operational-point-panel__name']")).text)
+}
+
+class E2EOperationalPointSelectionList(parentBy: By) :
+    E2ESelectionList<E2EOperationalPointSelectionListItem>(
+        listBy = ByChained(parentBy, By.className("operational-point-panel__operational-points")),
+        getContent = { e -> E2EOperationalPointSelectionListItem(e) },
+        selectedItemBy = ByChained(parentBy, By.className("operational-point-panel__item-container--selected")),
+    )

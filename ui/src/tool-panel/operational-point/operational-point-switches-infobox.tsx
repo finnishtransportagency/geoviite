@@ -1,37 +1,47 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
+    getSwitchLocation,
     LayoutSwitch,
     LayoutSwitchId,
     OperationalPoint,
     OperationalPointId,
 } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
+import { BoundingBox } from 'model/geometry';
 import {
     findOperationalPointSwitches,
     getSwitches,
-    linkSwitchToOperationalPoint,
+    linkSwitchesToOperationalPoint,
     SwitchWithOperationalPointPolygonInclusions,
-    unlinkSwitchFromOperationalPoint,
+    unlinkSwitchesFromOperationalPoint,
 } from 'track-layout/layout-switch-api';
 import Infobox from 'tool-panel/infobox/infobox';
 import { SwitchBadge } from 'geoviite-design-lib/switch/switch-badge';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
 import { ChangeTimes } from 'common/common-slice';
 import { compareIgnoreCase } from 'utils/string-utils';
-import { ShowMoreButton } from 'show-more-button/show-more-button';
 import { useOperationalPoint } from 'track-layout/track-layout-react-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import {
     createUseLinkingHook,
-    getSuccessToastMessageParams,
+    formatLinkingToast,
+    Hide,
     LinkingDirection,
 } from 'tool-panel/operational-point/operational-point-utils';
 import { updateSwitchChangeTime } from 'common/change-time-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_DEFAULT_BBOX_OFFSET,
+} from 'map/map-utils';
+import { createDelegates } from 'store/store-utils';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import styles from './operational-point-infobox.scss';
+import { createClassName } from 'vayla-design-lib/utils';
+import InfoboxText from 'tool-panel/infobox/infobox-text';
 
 type OperationalPointSwitchesInfoboxProps = {
     contentVisible: boolean;
@@ -41,8 +51,6 @@ type OperationalPointSwitchesInfoboxProps = {
     changeTimes: ChangeTimes;
 };
 
-const maxSwitchesToDisplay = 8;
-
 export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesInfoboxProps> = ({
     contentVisible,
     onVisibilityChange,
@@ -51,13 +59,46 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
     changeTimes,
 }) => {
     const { t } = useTranslation();
+    const delegates = useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
-    const { isInitializing, itemAssociation, linkedItems, unlinkedItems, linkItems, unlinkItems } =
-        useLinkingSwitches(layoutContext, operationalPoint, changeTimes);
+    const linkingHook = useLinkingSwitches(layoutContext, operationalPoint, changeTimes);
+    const {
+        isInitializing,
+        itemAssociation,
+        linkedItems,
+        unlinkedItems,
+        isEditing,
+        hasChanges,
+        startEditing,
+        cancelEditing,
+        saveEdits,
+        setLinks,
+    } = linkingHook;
 
     const polygonInclusion: Map<LayoutSwitchId, OperationalPointId[]> = (
         itemAssociation ?? []
     ).reduce((map, obj) => map.set(obj.switchId, obj.withinPolygon), new Map());
+
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            const { linkedNames, unlinkedNames } = await saveEdits();
+            const toastMessage = formatLinkingToast(
+                linkedNames,
+                unlinkedNames,
+                t,
+                'tool-panel.operational-point.switch-links',
+                operationalPoint.name,
+            );
+            if (toastMessage) {
+                Snackbar.success(toastMessage);
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     return (
         <Infobox
@@ -67,26 +108,56 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
             {isInitializing ? (
                 <Spinner />
             ) : (
-                <>
+                <InfoboxContent>
                     <OperationalPointSwitchesDirectionInfobox
                         layoutContext={layoutContext}
                         operationalPoint={operationalPoint}
-                        changeTimes={changeTimes}
                         switches={linkedItems}
-                        linkingAction={unlinkItems}
                         linkingDirection={'unlinking'}
                         polygonInclusion={polygonInclusion}
+                        isEditing={isEditing}
+                        setLinks={setLinks}
+                        showArea={delegates.showArea}
                     />
                     <OperationalPointSwitchesDirectionInfobox
                         layoutContext={layoutContext}
                         operationalPoint={operationalPoint}
-                        changeTimes={changeTimes}
                         switches={unlinkedItems}
-                        linkingAction={linkItems}
                         linkingDirection={'linking'}
                         polygonInclusion={polygonInclusion}
+                        isEditing={isEditing}
+                        setLinks={setLinks}
+                        showArea={delegates.showArea}
                     />
-                </>
+                    <div className={styles['operational-point-linking-infobox__edit-buttons']}>
+                        {!isEditing ? (
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                size={ButtonSize.SMALL}
+                                onClick={startEditing}>
+                                {t('tool-panel.operational-point.edit-links')}
+                            </Button>
+                        ) : (
+                            <>
+                                <Button
+                                    variant={ButtonVariant.SECONDARY}
+                                    size={ButtonSize.SMALL}
+                                    disabled={isSaving}
+                                    onClick={cancelEditing}>
+                                    {t('tool-panel.operational-point.cancel-editing-links')}
+                                </Button>
+                                <Button
+                                    variant={ButtonVariant.PRIMARY}
+                                    size={ButtonSize.SMALL}
+                                    disabled={!hasChanges || isSaving}
+                                    onClick={handleSave}>
+                                    {t('tool-panel.operational-point.save-links')}
+                                </Button>
+                                {isSaving && <Spinner />}
+                            </>
+                        )}
+                    </div>
+                </InfoboxContent>
             )}
         </Infobox>
     );
@@ -106,24 +177,19 @@ const useLinkingSwitches = createUseLinkingHook<
     (s) => (s.operationalPointId === undefined ? [] : [s.operationalPointId]),
     (changeTimes) => changeTimes.layoutSwitch,
     updateSwitchChangeTime,
-    linkSwitchToOperationalPoint,
-    unlinkSwitchFromOperationalPoint,
+    linkSwitchesToOperationalPoint,
+    unlinkSwitchesFromOperationalPoint,
 );
 
 type OperationalPointSwitchesDirectionInfoboxProps = {
     layoutContext: LayoutContext;
     operationalPoint: OperationalPoint;
-    changeTimes: ChangeTimes;
     switches: LayoutSwitch[];
     polygonInclusion: Map<LayoutSwitchId, OperationalPointId[]>;
-    linkingAction: (
-        switches: {
-            id: LayoutSwitchId;
-            name: string;
-        }[],
-        idsToImmediatelyToss: LayoutSwitchId[],
-    ) => Promise<string[]>;
     linkingDirection: LinkingDirection;
+    isEditing: boolean;
+    setLinks: (ids: LayoutSwitchId[], direction: LinkingDirection) => void;
+    showArea: (area: BoundingBox) => void;
 };
 
 const OperationalPointSwitchesDirectionInfobox: React.FC<
@@ -132,12 +198,13 @@ const OperationalPointSwitchesDirectionInfobox: React.FC<
     layoutContext,
     operationalPoint,
     switches,
-    linkingAction,
     linkingDirection,
     polygonInclusion,
+    isEditing,
+    setLinks,
+    showArea,
 }) => {
     const { t } = useTranslation();
-    const [showAll, setShowAll] = React.useState(false);
 
     const validatedSwitches = switches
         .map((item) => ({
@@ -153,83 +220,65 @@ const OperationalPointSwitchesDirectionInfobox: React.FC<
             const issuesComp = (b.issues.length > 0 ? 1 : 0) - (a.issues.length > 0 ? 1 : 0);
             return issuesComp === 0 ? compareIgnoreCase(a.item.name, b.item.name) : issuesComp;
         });
-    const idsToImmediatelyToss = validatedSwitches
-        .filter(({ issues }) => issues.some((issue) => issue.type === 'switch-not-in-polygon'))
-        .map(({ item }) => item.id);
 
-    const linkAndToast: (
-        switches: {
-            id: LayoutSwitchId;
-            name: string;
-        }[],
-    ) => void = async (switches) => {
-        const linkedSwitches = await linkingAction(switches, idsToImmediatelyToss);
-        const toastParams = getSuccessToastMessageParams(
-            'switch',
-            operationalPoint.name,
-            linkedSwitches,
+    const handleSetLinksAll = () => {
+        setLinks(
+            switches.map((s) => s.id),
             linkingDirection,
         );
-        if (toastParams) {
-            Snackbar.success(t(toastParams[0], toastParams[1]));
-        }
     };
 
     return (
-        <InfoboxContent>
+        <>
+            <div className={styles['operational-point-linking-infobox__direction-title']}>
+                {t(
+                    `tool-panel.operational-point.switch-links.${linkingDirection === 'linking' ? 'detached-in-polygon' : 'attached'}-header`,
+                    { count: switches.length },
+                )}
+            </div>
             <>
-                <div className={styles['operational-point-linking-infobox__direction-title']}>
-                    {t(
-                        `tool-panel.operational-point.switch-links.${linkingDirection === 'linking' ? 'detached-in-polygon' : 'attached'}-header`,
-                        { count: switches.length },
+                <div
+                    className={createClassName(
+                        styles['operational-point-linking-infobox__switch-direction-content'],
+                        validatedSwitches.length === 0 &&
+                            styles[
+                                'operational-point-linking-infobox__switch-direction-content--empty'
+                            ],
+                    )}>
+                    {validatedSwitches.length === 0 ? (
+                        <InfoboxText
+                            value={t(
+                                `tool-panel.operational-point.switch-links.none-for-${linkingDirection}`,
+                            )}
+                        />
+                    ) : (
+                        validatedSwitches.map(({ item, issues }) => (
+                            <OperationalPointSwitchRow
+                                key={item.id}
+                                layoutContext={layoutContext}
+                                switchItem={item}
+                                issues={issues}
+                                linkingDirection={linkingDirection}
+                                isEditing={isEditing}
+                                setLinks={setLinks}
+                                showArea={showArea}
+                            />
+                        ))
                     )}
                 </div>
-                {switches.length > 0 && (
-                    <>
-                        <div
-                            className={
-                                styles['operational-point-linking-infobox__direction-content']
-                            }>
-                            {validatedSwitches
-                                .slice(0, showAll ? undefined : maxSwitchesToDisplay)
-                                .map(({ item, issues }) => (
-                                    <OperationalPointSwitchRow
-                                        key={item.id}
-                                        layoutContext={layoutContext}
-                                        switchItem={item}
-                                        issues={issues}
-                                        linkingAction={linkAndToast}
-                                        linkingDirection={linkingDirection}
-                                    />
-                                ))}
-                        </div>
-                        <div>
-                            {switches.length > maxSwitchesToDisplay && (
-                                <ShowMoreButton
-                                    expanded={showAll}
-                                    onShowMore={() => setShowAll((v) => !v)}
-                                    showMoreText={t(
-                                        'tool-panel.operational-point.switch-links.show-all',
-                                        {
-                                            count: switches.length,
-                                        },
-                                    )}
-                                />
-                            )}
-                            <Button
-                                variant={ButtonVariant.GHOST}
-                                size={ButtonSize.SMALL}
-                                onClick={() => linkAndToast(switches)}>
-                                {t(
-                                    `tool-panel.operational-point.switch-links.${linkingDirection === 'linking' ? 'attach' : 'detach'}-all`,
-                                    { count: switches.length },
-                                )}
-                            </Button>
-                        </div>
-                    </>
-                )}
+                <Hide when={!isEditing}>
+                    <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SMALL}
+                        onClick={handleSetLinksAll}>
+                        {t(
+                            `tool-panel.operational-point.switch-links.${linkingDirection === 'linking' ? 'attach' : 'detach'}-all`,
+                            { count: switches.length },
+                        )}
+                    </Button>
+                </Hide>
             </>
-        </InfoboxContent>
+        </>
     );
 };
 
@@ -237,26 +286,54 @@ type OperationalPointSwitchRowProps = {
     layoutContext: LayoutContext;
     switchItem: LayoutSwitch;
     issues: SwitchRowValidationIssue[];
-    linkingAction: (switches: { id: LayoutSwitchId; name: string }[]) => void;
     linkingDirection: LinkingDirection;
+    isEditing: boolean;
+    setLinks: (ids: LayoutSwitchId[], direction: LinkingDirection) => void;
+    showArea: (area: BoundingBox) => void;
 };
 
 const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
     layoutContext,
     switchItem,
     issues,
-    linkingAction,
     linkingDirection,
+    isEditing,
+    setLinks,
+    showArea,
 }) => {
+    const switchLocation = getSwitchLocation(switchItem);
+
+    const handleZoomToSwitch = () => {
+        if (switchLocation) {
+            showArea(
+                calculateBoundingBoxToShowAroundLocation(
+                    switchLocation,
+                    MAP_POINT_DEFAULT_BBOX_OFFSET,
+                ),
+            );
+        }
+    };
+
     return (
         <>
             <SwitchBadge switchItem={switchItem} />
-            <Button
-                variant={ButtonVariant.GHOST}
-                size={ButtonSize.SMALL}
-                icon={linkingDirection === 'linking' ? Icons.Add : Icons.Subtract}
-                onClick={() => linkingAction([switchItem])}
-            />
+            {switchLocation ? (
+                <a
+                    className={styles['operational-point-linking-infobox__position-pin']}
+                    onClick={handleZoomToSwitch}>
+                    <Icons.Target size={IconSize.SMALL} />
+                </a>
+            ) : (
+                <div />
+            )}
+            <Hide when={!isEditing}>
+                <Button
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.SMALL}
+                    icon={linkingDirection === 'linking' ? Icons.Add : Icons.Subtract}
+                    onClick={() => setLinks([switchItem.id], linkingDirection)}
+                />
+            </Hide>
             <div>
                 {issues.slice(0, 1).map((issue, i) => (
                     <SwitchRowValidationIssueBadge

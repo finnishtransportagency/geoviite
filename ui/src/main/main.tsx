@@ -119,7 +119,7 @@ export const MainContainer: React.FC = () => {
             delegates.setUser(user);
 
             if (!user.role.privileges.map((priv) => priv.code).includes(VIEW_GEOMETRY)) {
-                mapDelegates.showLayers(['virtual-hide-geometry-layer']);
+                mapDelegates.addForcedVisibleLayer(['virtual-hide-geometry-layer']);
             }
         });
     }, []);

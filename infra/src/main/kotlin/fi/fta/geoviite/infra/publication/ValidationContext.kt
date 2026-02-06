@@ -6,7 +6,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.geocoding.AddressPointsResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.split.Split
@@ -35,6 +35,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.UicCode
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.component1
 
 class NullableCache<K, V> {
     val map: ConcurrentHashMap<K, NullableValue<V>> = ConcurrentHashMap()
@@ -107,6 +108,8 @@ class ValidationContext(
     private val switchTrackLinks = ReferenceCache<LayoutSwitch, LocationTrack>()
     private val trackDuplicateLinks = ReferenceCache<LocationTrack, LocationTrack>()
     private val operationalPointPolygonOverlaps = ReferenceCache<OperationalPoint, OperationalPoint>()
+    private val operationalPointLocationTracks = ReferenceCache<OperationalPoint, LocationTrack>()
+    private val operationalPointSwitches = ReferenceCache<OperationalPoint, LayoutSwitch>()
 
     private val geocodingContextKeys = NullableCache<IntId<LayoutTrackNumber>, LayoutGeocodingContextCacheKey>()
     private val switchNameCache = NameCache(::fetchSwitchesByName)
@@ -210,6 +213,16 @@ class ValidationContext(
     fun getSwitchTrackLinks(switchId: IntId<LayoutSwitch>): List<IntId<LocationTrack>>? =
         switchTrackLinks.get(switchId) { id -> fetchSwitchTrackLinks(listOf(id))[id] }
 
+    fun getLocationTracksByOperationalPoint(operationalPointId: IntId<OperationalPoint>): List<LocationTrack> =
+        operationalPointLocationTracks
+            .get(operationalPointId) { id -> fetchLocationTracksByOperationalPoints(listOf(id))[id] }
+            ?.mapNotNull(::getLocationTrack) ?: emptyList()
+
+    fun getSwitchesByOperationalPoint(operationalPointId: IntId<OperationalPoint>): List<LayoutSwitch> =
+        operationalPointSwitches
+            .get(operationalPointId) { id -> fetchSwitchesByOperationalPoints(listOf(id))[id] }
+            ?.mapNotNull(::getSwitch) ?: emptyList()
+
     fun getSwitchTracksWithGeometries(id: IntId<LayoutSwitch>): List<Pair<LocationTrack, LocationTrackGeometry>> =
         getSwitchTrackLinks(id)?.mapNotNull(::getLocationTrackWithGeometry) ?: emptyList()
 
@@ -240,7 +253,7 @@ class ValidationContext(
                 val switch = getSwitch(switchId)
                 val name = switch?.name ?: getCandidateSwitch(switchId)?.name
                 val structure = switch?.switchStructureId?.let(switchLibraryService::getSwitchStructure)
-                SwitchTrackLinking(switchId, name, switch, structure, links, switchIsCancelled(switchId))
+                SwitchTrackLinking(switchId, name, switch, structure, links)
             }
 
     fun getPublicationSplits(): List<Split> =
@@ -257,10 +270,10 @@ class ValidationContext(
             geocodingService.getGeocodingContextCacheKey(tnId, publicationSet)
         }
 
-    fun getAddressPoints(trackId: IntId<LocationTrack>): AlignmentAddresses<LocationTrackM>? =
+    fun getAddressPoints(trackId: IntId<LocationTrack>): AddressPointsResult<LocationTrackM>? =
         getLocationTrack(trackId)?.let(::getAddressPoints)
 
-    fun getAddressPoints(track: LocationTrack): AlignmentAddresses<LocationTrackM>? =
+    fun getAddressPoints(track: LocationTrack): AddressPointsResult<LocationTrackM>? =
         getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
             geocodingService.getAddressPoints(key, track.getVersionOrThrow())
         }
@@ -277,6 +290,9 @@ class ValidationContext(
     fun switchIsCancelled(id: IntId<LayoutSwitch>) = objectIsCancelled(id, publicationSet.switches, switchDao)
 
     fun kmPostIsCancelled(id: IntId<LayoutKmPost>) = objectIsCancelled(id, publicationSet.kmPosts, kmPostDao)
+
+    fun operationalPointIsCancelled(id: IntId<OperationalPoint>) =
+        objectIsCancelled(id, publicationSet.operationalPoints, operationalPointDao)
 
     fun preloadByPublicationSet() {
         preloadAssociatedTrackNumberAndReferenceLineVersions(publicationSet)
@@ -302,6 +318,8 @@ class ValidationContext(
         preloadOperationalPointsByName(publicationSet.getOperationalPointIds())
         preloadOperationalPointsByAbbreviation(publicationSet.getOperationalPointIds())
         preloadOperationalPointsByUicCode(publicationSet.getOperationalPointIds())
+        preloadLocationTracksByOperationalPoints(publicationSet.getOperationalPointIds())
+        preloadSwitchesByOperationalPoints(publicationSet.getOperationalPointIds())
     }
 
     fun preloadOperationalPointOverlaps(candidateIds: List<IntId<OperationalPoint>>) {
@@ -334,6 +352,12 @@ class ValidationContext(
 
     fun preloadLocationTracksByTrackNumbers(tnIds: List<IntId<LayoutTrackNumber>>) =
         trackNumberLocationTracks.preload(tnIds, ::fetchLocationTrackIdsByTrackNumbers)
+
+    fun preloadLocationTracksByOperationalPoints(opIds: List<IntId<OperationalPoint>>) =
+        operationalPointLocationTracks.preload(opIds, ::fetchLocationTracksByOperationalPoints)
+
+    fun preloadSwitchesByOperationalPoints(opIds: List<IntId<OperationalPoint>>) =
+        operationalPointSwitches.preload(opIds, ::fetchSwitchesByOperationalPoints)
 
     fun preloadAssociatedTrackNumberAndReferenceLineVersions(versions: ValidationVersions) =
         preloadAssociatedTrackNumberAndReferenceLineVersions(
@@ -477,6 +501,20 @@ class ValidationContext(
         locationTrackDao.fetchCandidateVersions(target.candidateContext).associateBy { it.id }
     }
 
+    fun getCandidateKmPost(id: IntId<LayoutKmPost>) = allCandidateKmPosts[id]?.let(kmPostDao::fetch)
+
+    private val allCandidateKmPosts: Map<IntId<LayoutKmPost>, LayoutRowVersion<LayoutKmPost>> by lazy {
+        kmPostDao.fetchCandidateVersions(target.candidateContext).associateBy { it.id }
+    }
+
+    fun getCandidateOperationalPoint(id: IntId<OperationalPoint>) =
+        allCandidateOperationalPoints[id]?.let(operationalPointDao::fetch)
+
+    private val allCandidateOperationalPoints:
+        Map<IntId<OperationalPoint>, LayoutRowVersion<OperationalPoint>> by lazy {
+        operationalPointDao.fetchCandidateVersions(target.candidateContext).associateBy { it.id }
+    }
+
     private fun fetchKmPostIdsByTrackNumbers(
         tnIds: List<IntId<LayoutTrackNumber>>
     ): Map<IntId<LayoutTrackNumber>, List<IntId<LayoutKmPost>>> =
@@ -495,6 +533,32 @@ class ValidationContext(
             .mapValues { (_, versions) ->
                 val officialVersions = versions.filterNot { v -> publicationSet.containsLocationTrack(v.id) }
                 cacheBaseVersions(officialVersions, locationTrackVersionCache)
+                versions.map { v -> v.id }
+            }
+
+    private fun fetchLocationTracksByOperationalPoints(
+        opIds: List<IntId<OperationalPoint>>
+    ): Map<IntId<OperationalPoint>, List<IntId<LocationTrack>>> =
+        locationTrackDao
+            .fetchVersionsForPublicationByOperationalPoints(
+                target,
+                opIds,
+                publicationSet.locationTracks.map { v -> v.id },
+            )
+            .mapValues { (_, versions) ->
+                val officialVersions = versions.filterNot { v -> publicationSet.containsLocationTrack(v.id) }
+                cacheBaseVersions(officialVersions, locationTrackVersionCache)
+                versions.map { v -> v.id }
+            }
+
+    private fun fetchSwitchesByOperationalPoints(
+        opIds: List<IntId<OperationalPoint>>
+    ): Map<IntId<OperationalPoint>, List<IntId<LayoutSwitch>>> =
+        switchDao
+            .fetchVersionsForPublicationByOperationalPoints(target, opIds, publicationSet.switches.map { v -> v.id })
+            .mapValues { (_, versions) ->
+                val officialVersions = versions.filterNot { v -> publicationSet.containsSwitch(v.id) }
+                cacheBaseVersions(officialVersions, switchVersionCache)
                 versions.map { v -> v.id }
             }
 
@@ -539,6 +603,66 @@ class ValidationContext(
             candidate + base
         }
     }
+
+    fun getTrackNumberLiveness(id: IntId<LayoutTrackNumber>): AssetLiveness<LayoutTrackNumber> =
+        getAssetLiveness(
+            ::getTrackNumber,
+            ::getCandidateTrackNumber,
+            ::trackNumberIsCancelled,
+            LayoutTrackNumber::number,
+            LayoutTrackNumber::exists,
+            id,
+        )
+
+    fun getReferenceLineLiveness(id: IntId<ReferenceLine>): AssetLiveness<ReferenceLine> =
+        getAssetLiveness(
+            ::getReferenceLine,
+            ::getCandidateReferenceLine,
+            ::referenceLineIsCancelled,
+            { rl -> (getTrackNumber(rl.trackNumberId) ?: getCandidateTrackNumber(rl.trackNumberId))?.number ?: "" },
+            { rl -> getTrackNumber(rl.trackNumberId)?.exists ?: false },
+            id,
+        )
+
+    fun getLocationTrackLiveness(id: IntId<LocationTrack>): AssetLiveness<LocationTrack> =
+        getAssetLiveness(
+            ::getLocationTrack,
+            ::getCandidateLocationTrack,
+            ::locationTrackIsCancelled,
+            LocationTrack::name,
+            LocationTrack::exists,
+            id,
+        )
+
+    fun getSwitchLiveness(id: IntId<LayoutSwitch>): AssetLiveness<LayoutSwitch> =
+        getAssetLiveness(
+            ::getSwitch,
+            ::getCandidateSwitch,
+            ::switchIsCancelled,
+            LayoutSwitch::name,
+            LayoutSwitch::exists,
+            id,
+        )
+
+    fun getKmPostLiveness(id: IntId<LayoutKmPost>): AssetLiveness<LayoutKmPost> =
+        getAssetLiveness(
+            ::getKmPost,
+            ::getCandidateKmPost,
+            ::kmPostIsCancelled,
+            LayoutKmPost::kmNumber,
+            LayoutKmPost::exists,
+            id,
+        )
+
+    fun getOperationalPointLiveness(id: IntId<OperationalPoint>): AssetLiveness<OperationalPoint> =
+        getAssetLiveness(
+            ::getOperationalPoint,
+            ::getCandidateOperationalPoint,
+            ::operationalPointIsCancelled,
+            OperationalPoint::name,
+            OperationalPoint::exists,
+            id,
+        )
 }
 
 private fun <T : LayoutAsset<T>> objectIsCancelled(
@@ -592,4 +716,37 @@ private fun <T : LayoutAsset<T>, Field> mapIdsByField(
                 ?.map { v -> v.id } ?: emptyList()
         (draftMatches + officialMatches).distinct()
     }
+}
+
+enum class AssetLivenessType {
+    EXISTS,
+    DELETED,
+    CREATION_CANCELLED,
+    DRAFT_NOT_PUBLISHED,
+}
+
+data class AssetLiveness<T : LayoutAsset<T>>(val assetName: String, val type: AssetLivenessType)
+
+private fun <T : LayoutAsset<T>> getAssetLiveness(
+    getAsset: (id: IntId<T>) -> T?,
+    getCandidateAsset: (id: IntId<T>) -> T?,
+    isCancelled: (id: IntId<T>) -> Boolean,
+    getAssetName: (asset: T) -> Any,
+    exists: (asset: T) -> Boolean,
+    id: IntId<T>,
+): AssetLiveness<T> {
+    val asset = getAsset(id)
+    val type =
+        if (asset == null) {
+            if (isCancelled(id)) AssetLivenessType.CREATION_CANCELLED else AssetLivenessType.DRAFT_NOT_PUBLISHED
+        } else {
+            if (exists(asset)) AssetLivenessType.EXISTS else AssetLivenessType.DELETED
+        }
+    val assetName =
+        getAssetName(
+            (asset
+                ?: getCandidateAsset(id)
+                ?: { throw IllegalStateException("Could not find publication candidate asset with id $id") }())
+        )
+    return AssetLiveness(assetName.toString(), type)
 }

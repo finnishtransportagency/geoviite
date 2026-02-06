@@ -53,9 +53,9 @@ import fi.fta.geoviite.infra.tracklayout.collectSplitPoints
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 const val MAX_SPLIT_GEOM_ADJUSTMENT = 5.0
 
@@ -336,8 +336,9 @@ class SplitService(
         val sourceGeometryErrors =
             splits.mapNotNull { (_, sourceTrack) ->
                 produceIf(trackId == sourceTrack.id) {
-                    val draftAddresses = context.getAddressPoints(sourceTrack)
-                    val officialAddresses = geocodingService.getAddressPoints(context.target.baseContext, trackId)
+                    val draftAddresses = context.getAddressPoints(sourceTrack)?.addresses
+                    val officialAddresses =
+                        geocodingService.getAddressPoints(context.target.baseContext, trackId)?.addresses
                     validateSourceGeometry(draftAddresses, officialAddresses)
                 }
             }
@@ -362,6 +363,7 @@ class SplitService(
             sourceAddressPointRange?.let { (start, end) ->
                 context
                     .getAddressPoints(sourceTrack)
+                    ?.addresses
                     ?.midPoints
                     ?.filter { p -> p.address > start.address && p.address < end.address }
                     ?.let { midPoints ->
@@ -374,7 +376,7 @@ class SplitService(
         val targetAddresses =
             sourceAddressPointRange?.let { (sourceStart, sourceEnd) ->
                 val addressRange = sourceStart.address..sourceEnd.address
-                context.getAddressPoints(target.locationTrackId)?.integerPrecisionPoints?.let { points ->
+                context.getAddressPoints(target.locationTrackId)?.addresses?.integerPrecisionPoints?.let { points ->
                     if (target.operation == SplitTargetOperation.TRANSFER) {
                         points.filter { p -> p.address in addressRange }
                     } else {
@@ -617,11 +619,7 @@ fun splitLocationTrack(
                                 )
 
                             val replacementIndices =
-                                findSplitEdgeIndices(
-                                    dup.geometry,
-                                    target.startSwitch,
-                                    cuttingPoint,
-                                )
+                                findSplitEdgeIndices(dup.geometry, target.startSwitch, cuttingPoint)
 
                             val newEdges = connectPartialDuplicateEdges(dup.geometry, edges, replacementIndices)
                             updateSplitTargetForTransferAssets(
@@ -849,11 +847,7 @@ private fun findNodeIndex(
     joint: JointNumber,
 ): Int? = geometry.nodes.indexOfFirst { node -> node.containsJoint(switchId, joint) }.takeIf { it >= startIndex }
 
-private fun findNodeIndex(
-    geometry: LocationTrackGeometry,
-    startIndex: Int,
-    splitPoint: SplitPoint,
-): Int =
+private fun findNodeIndex(geometry: LocationTrackGeometry, startIndex: Int, splitPoint: SplitPoint): Int =
     geometry.nodes
         .indexOfFirst { node ->
             val isMatchingNode =
