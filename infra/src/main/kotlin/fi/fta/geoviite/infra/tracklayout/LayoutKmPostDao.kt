@@ -20,11 +20,11 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
+import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 const val KM_POST_CACHE_SIZE = 10000L
 
@@ -61,16 +61,16 @@ class LayoutKmPostDao(
     ): List<LayoutRowVersion<LayoutKmPost>> {
         val sql =
             """
-            select id, design_id, draft, version 
-            from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) km_post
-            where (:include_deleted = true or km_post.state != 'DELETED')
-              and (:track_number_id::int is null or track_number_id = :track_number_id)
-              and (:polygon_wkt::varchar is null or postgis.st_intersects(
-                km_post.layout_location,
-                postgis.st_polygonfromtext(:polygon_wkt::varchar, :map_srid)
-              ))
-            order by km_post.track_number_id, km_post.km_number
-        """
+                select id, design_id, draft, version
+                from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) km_post
+                where (:include_deleted = true or km_post.state != 'DELETED')
+                  and (:track_number_id::int is null or track_number_id = :track_number_id)
+                  and (:polygon_wkt::varchar is null or postgis.st_intersects(
+                    km_post.layout_location,
+                    postgis.st_polygonfromtext(:polygon_wkt::varchar, :map_srid)
+                  ))
+                order by km_post.track_number_id, km_post.km_number
+            """
                 .trimIndent()
         return jdbcTemplate.query(
             sql,
@@ -98,22 +98,19 @@ class LayoutKmPostDao(
             select km_post.track_number_id, km_post.id, km_post.design_id, km_post.draft, km_post.version
             from (
               select * from layout.km_post_in_layout_context(:candidate_state::layout.publication_state, :candidate_design_id)
-                where id in (:km_post_ids_to_publish)
+                where id = any(:km_post_ids_to_publish)
               union all
               select * from layout.km_post_in_layout_context(:base_state::layout.publication_state, :base_design_id)
-                where (id in (:km_post_ids_to_publish)) is distinct from true
+                where not (id = any(:km_post_ids_to_publish))
               ) km_post
-            where track_number_id in (:track_number_ids)
+            where track_number_id = any(:track_number_ids)
             order by km_post.track_number_id, km_post.km_number
-        """
+                        """
                 .trimIndent()
         val params =
             mapOf(
-                "track_number_ids" to trackNumberIds.map { id -> id.intValue },
-                // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is
-                // distinct from true" checks
-                // explicitly for false or null, since "foo in (null)" in SQL is null
-                "km_post_ids_to_publish" to (kmPostIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) }),
+                "track_number_ids" to trackNumberIds.map { id -> id.intValue }.toTypedArray(),
+                "km_post_ids_to_publish" to (kmPostIdsToPublish.map { id -> id.intValue }.toTypedArray()),
             ) + target.sqlParameters()
         val versions =
             jdbcTemplate.query(sql, params) { rs, _ ->
@@ -134,12 +131,12 @@ class LayoutKmPostDao(
     ): LayoutRowVersion<LayoutKmPost>? {
         val sql =
             """
-            select id, design_id, draft, version 
-            from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) km_post
-            where (:include_deleted or km_post.state != 'DELETED')
-              and km_post.track_number_id = :track_number_id
-              and km_post.km_number = :km_number
-        """
+                select id, design_id, draft, version
+                from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) km_post
+                where (:include_deleted or km_post.state != 'DELETED')
+                  and km_post.track_number_id = :track_number_id
+                  and km_post.km_number = :km_number
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -162,32 +159,32 @@ class LayoutKmPostDao(
         if (versions.isEmpty()) return emptyMap()
         val sql =
             """
-            select 
-              kpv.id,
-              kpv.version,
-              kpv.design_id,
-              kpv.draft,
-              kpv.design_asset_state,
-              kpv.track_number_id,
-              kpv.geometry_km_post_id,
-              kpv.km_number,
-              postgis.st_x(kpv.layout_location) as layout_point_x, postgis.st_y(kpv.layout_location) as layout_point_y,
-              postgis.st_x(kpv.gk_location) as gk_point_x, postgis.st_y(kpv.gk_location) as gk_point_y,
-              postgis.st_srid(kpv.gk_location) as gk_srid,
-              kpv.gk_location_source,
-              kpv.gk_location_confirmed,
-              kpv.state,
-              kpv.origin_design_id
-            from layout.km_post_version kpv
-              inner join lateral
-                (
-                  select
-                    unnest(:ids) id,
-                    unnest(:layout_context_ids) layout_context_id,
-                    unnest(:versions) version
-                ) args on args.id = kpv.id and args.layout_context_id = kpv.layout_context_id and args.version = kpv.version
-              where kpv.deleted = false
-        """
+                select
+                  kpv.id,
+                  kpv.version,
+                  kpv.design_id,
+                  kpv.draft,
+                  kpv.design_asset_state,
+                  kpv.track_number_id,
+                  kpv.geometry_km_post_id,
+                  kpv.km_number,
+                  postgis.st_x(kpv.layout_location) as layout_point_x, postgis.st_y(kpv.layout_location) as layout_point_y,
+                  postgis.st_x(kpv.gk_location) as gk_point_x, postgis.st_y(kpv.gk_location) as gk_point_y,
+                  postgis.st_srid(kpv.gk_location) as gk_srid,
+                  kpv.gk_location_source,
+                  kpv.gk_location_confirmed,
+                  kpv.state,
+                  kpv.origin_design_id
+                from layout.km_post_version kpv
+                  inner join lateral
+                    (
+                      select
+                        unnest(:ids) id,
+                        unnest(:layout_context_ids) layout_context_id,
+                        unnest(:versions) version
+                    ) args on args.id = kpv.id and args.layout_context_id = kpv.layout_context_id and args.version = kpv.version
+                  where kpv.deleted = false
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -214,24 +211,24 @@ class LayoutKmPostDao(
     override fun preloadCache(): Int {
         val sql =
             """
-            select 
-              kp.id,
-              kp.design_id,
-              kp.draft,
-              kp.version,
-              kp.design_asset_state,
-              kp.track_number_id,
-              kp.geometry_km_post_id,
-              kp.km_number,
-              postgis.st_x(kp.layout_location) as layout_point_x, postgis.st_y(kp.layout_location) as layout_point_y,
-              postgis.st_x(kp.gk_location) as gk_point_x, postgis.st_y(kp.gk_location) as gk_point_y,
-              postgis.st_srid(kp.gk_location) as gk_srid,
-              kp.gk_location_source,
-              kp.gk_location_confirmed,
-              kp.state,
-              kp.origin_design_id
-            from layout.km_post kp
-        """
+                select
+                  kp.id,
+                  kp.design_id,
+                  kp.draft,
+                  kp.version,
+                  kp.design_asset_state,
+                  kp.track_number_id,
+                  kp.geometry_km_post_id,
+                  kp.km_number,
+                  postgis.st_x(kp.layout_location) as layout_point_x, postgis.st_y(kp.layout_location) as layout_point_y,
+                  postgis.st_x(kp.gk_location) as gk_point_x, postgis.st_y(kp.gk_location) as gk_point_y,
+                  postgis.st_srid(kp.gk_location) as gk_srid,
+                  kp.gk_location_source,
+                  kp.gk_location_confirmed,
+                  kp.state,
+                  kp.origin_design_id
+                from layout.km_post kp
+            """
                 .trimIndent()
 
         val kmPosts =
@@ -266,51 +263,51 @@ class LayoutKmPostDao(
             toDbId(requireNotNull(item.trackNumberId) { "KM post not linked to TrackNumber: kmPost=$item" })
         val sql =
             """
-            insert into layout.km_post(
-              layout_context_id,
-              id,
-              track_number_id, 
-              geometry_km_post_id, 
-              km_number, 
-              layout_location,
-              gk_location,
-              gk_location_confirmed,
-              gk_location_source,
-              state,
-              draft,
-              design_asset_state,
-              design_id,
-              origin_design_id
-            )
-            values (
-              :layout_context_id,
-              :id,
-              :track_number_id, 
-              :geometry_km_post_id, 
-              :km_number,
-              postgis.st_point(:layout_x, :layout_y, :layout_srid),
-              postgis.st_point(:gk_x, :gk_y, :gk_srid),
-              :gk_location_confirmed,
-              :gk_location_source::layout.gk_location_source,
-              :state::layout.state,
-              :draft,
-              :design_asset_state::layout.design_asset_state,
-              :design_id,
-              :origin_design_id
-            )
-            on conflict (id, layout_context_id) do update
-              set track_number_id = excluded.track_number_id,
-                  geometry_km_post_id = excluded.geometry_km_post_id,
-                  km_number = excluded.km_number,
-                  layout_location = excluded.layout_location,
-                  gk_location = excluded.gk_location,
-                  gk_location_confirmed = excluded.gk_location_confirmed,
-                  gk_location_source = excluded.gk_location_source,
-                  state = excluded.state,
-                  design_asset_state = excluded.design_asset_state,
-                  origin_design_id = excluded.origin_design_id
-            returning version 
-        """
+                insert into layout.km_post(
+                  layout_context_id,
+                  id,
+                  track_number_id, 
+                  geometry_km_post_id, 
+                  km_number, 
+                  layout_location,
+                  gk_location,
+                  gk_location_confirmed,
+                  gk_location_source,
+                  state,
+                  draft,
+                  design_asset_state,
+                  design_id,
+                  origin_design_id
+                )
+                values (
+                  :layout_context_id,
+                  :id,
+                  :track_number_id,
+                  :geometry_km_post_id,
+                  :km_number,
+                  postgis.st_point(:layout_x, :layout_y, :layout_srid),
+                  postgis.st_point(:gk_x, :gk_y, :gk_srid),
+                  :gk_location_confirmed,
+                  :gk_location_source::layout.gk_location_source,
+                  :state::layout.state,
+                  :draft,
+                  :design_asset_state::layout.design_asset_state,
+                  :design_id,
+                  :origin_design_id
+                )
+                on conflict (id, layout_context_id) do update
+                  set track_number_id = excluded.track_number_id,
+                      geometry_km_post_id = excluded.geometry_km_post_id,
+                      km_number = excluded.km_number,
+                      layout_location = excluded.layout_location,
+                      gk_location = excluded.gk_location,
+                      gk_location_confirmed = excluded.gk_location_confirmed,
+                      gk_location_source = excluded.gk_location_source,
+                      state = excluded.state,
+                      design_asset_state = excluded.design_asset_state,
+                      origin_design_id = excluded.origin_design_id
+                returning version
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -351,15 +348,15 @@ class LayoutKmPostDao(
     ): LayoutRowVersion<LayoutKmPost>? {
         val sql =
             """
-            select id, design_id, draft, version
-            from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
-            where track_number_id = :track_number_id
-              and state = :state::layout.state
-              and layout_location is not null
-              and km_number > :km_number
-            order by km_number asc
-            limit 1
-        """
+                select id, design_id, draft, version
+                from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                where track_number_id = :track_number_id
+                  and state = :state::layout.state
+                  and layout_location is not null
+                  and km_number > :km_number
+                order by km_number asc
+                limit 1
+            """
                 .trimIndent()
         return jdbcTemplate.queryOptional(
             sql,

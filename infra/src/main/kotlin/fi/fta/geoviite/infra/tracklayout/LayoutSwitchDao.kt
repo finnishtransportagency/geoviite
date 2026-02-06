@@ -777,16 +777,15 @@ class LayoutSwitchDao(
             """
                 select operational_point_id, id, design_id, draft, version
                 from (
-                select state_category, operational_point_id, id, design_id, draft, version
+                select operational_point_id, id, design_id, draft, version
                   from layout.switch_in_layout_context(:base_state::layout.publication_state, :base_design_id) official
                   where (id = any(:switch_ids_to_publish)) is distinct from true
                 union all
-                select state_category, operational_point_id, id, design_id, draft, version
+                select operational_point_id, id, design_id, draft, version
                   from layout.switch_in_layout_context(:candidate_state::layout.publication_state, :candidate_design_id) draft
                   where id = any(:switch_ids_to_publish)
                 ) switch
                 where operational_point_id = any(:operational_point_ids)
-                  and switch.state_category != 'NOT_EXISTING'
             """
                 .trimIndent()
         val params =
