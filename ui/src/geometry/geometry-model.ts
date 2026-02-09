@@ -144,7 +144,6 @@ export enum GeometrySortBy {
     NO_SORTING,
     FILE_NAME,
     LINKED_AT,
-    LINKED_BY,
 }
 
 export enum GeometrySortOrder {

@@ -35,6 +35,13 @@ const InfraModelSearchResultRowM: React.FC<InfraModelSearchResultRowProps> = ({
         downloadButtonRef.current?.contains(target as HTMLElement) ||
         hideButtonRef.current?.contains(target as HTMLElement);
 
+    const linkedAtTitle = linkingSummary?.linkedAt
+        ? t('im-form.linking-details', {
+              linkedAt: formatDateFull(linkingSummary?.linkedAt),
+              linkedByUsers: linkingSummary?.linkedByUsers?.join('\n'),
+          })
+        : undefined;
+
     return (
         <tr
             key={plan.id}
@@ -64,13 +71,14 @@ const InfraModelSearchResultRowM: React.FC<InfraModelSearchResultRowProps> = ({
                 <DecisionPhase decision={plan.decisionPhase} />
             </td>
             <td>{plan.planTime && formatDateShort(plan.planTime)}</td>
-            <td>{plan.uploadTime && formatDateFull(plan.uploadTime)}</td>
-            <td>
+            <td title={plan.uploadTime ? formatDateFull(plan.uploadTime) : undefined}>
+                {plan.uploadTime && formatDateShort(plan.uploadTime)}
+            </td>
+            <td title={linkedAtTitle}>
                 {linkingSummary?.linkedAt === undefined
                     ? ''
-                    : formatDateFull(linkingSummary.linkedAt)}
+                    : formatDateShort(linkingSummary.linkedAt)}
             </td>
-            <td>{linkingSummary?.linkedByUsers.join(', ') ?? ''}</td>
             <td>
                 <InfraModelDownloadButton
                     planHeader={plan}
