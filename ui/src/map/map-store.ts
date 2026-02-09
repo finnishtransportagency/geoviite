@@ -89,6 +89,7 @@ export const relatedMapLayers: LayerCollection = {
     'operational-points-icon-layer': ['operational-points-badge-layer'],
     'reference-line-alignment-layer': [
         'reference-line-background-layer',
+        'reference-line-selected-alignment-layer',        
         'reference-line-badge-layer',
     ],
 };
