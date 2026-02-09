@@ -2137,6 +2137,73 @@ constructor(
     }
 
     @Test
+    fun `operational point polygons are allowed to touch but not overlap`() {
+        val aPolygon =
+            Polygon(listOf(Point(0.0, 0.0), Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 10.0), Point(0.0, 0.0)))
+        // overlapping with a
+        val bPolygon = Polygon(aPolygon.points.map { it + Point(5.0, 0.0) })
+        // overlapping with b but only touching a
+        val cPolygon = Polygon(aPolygon.points.map { it + Point(10.0, 0.0) })
+        // existingOfficial touches all but overlaps none
+        val existingOfficialPoly = Polygon(bPolygon.points.map { it + Point(0.0, 10.0) })
+        mainOfficialContext.save(
+            operationalPoint(
+                name = "existingOfficial",
+                uicCode = "0",
+                location = Point(5.0, 5.0),
+                polygon = existingOfficialPoly,
+            )
+        )
+        val a =
+            mainDraftContext
+                .save(operationalPoint(name = "a", uicCode = "1", location = Point(5.0, 5.0), polygon = aPolygon))
+                .id
+        val b =
+            mainDraftContext
+                .save(operationalPoint(name = "b", uicCode = "2", location = Point(10.0, 5.0), polygon = bPolygon))
+                .id
+        val c =
+            mainDraftContext
+                .save(operationalPoint(name = "c", uicCode = "3", location = Point(15.0, 5.0), polygon = cPolygon))
+                .id
+
+        val validation =
+            publicationValidationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(operationalPoints = listOf(a, b, c)),
+            )
+
+        assertEquals(
+            listOf(
+                listOf(
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.overlapping-polygon-draft",
+                        mapOf("duplicateNames" to "b"),
+                    )
+                ),
+                listOf(
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.overlapping-polygon-draft",
+                        mapOf("duplicateNames" to "a, c"),
+                    )
+                ),
+                listOf(
+                    LayoutValidationIssue(
+                        LayoutValidationIssueType.FATAL,
+                        "validation.layout.operational-point.overlapping-polygon-draft",
+                        mapOf("duplicateNames" to "b"),
+                    )
+                ),
+            ),
+            validation.validatedAsPublicationUnit.operationalPoints
+                .sortedBy { it.name.toString() }
+                .map { point -> point.issues.sortedBy { issue -> issue.localizationKey } },
+        )
+    }
+
+    @Test
     fun `operational point validation checks for polygon overlap`() {
         val middleOfPolygon = Point(5.0, 5.0)
         val polyPoints = listOf(Point(0.0, 0.0), Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 10.0), Point(0.0, 0.0))
