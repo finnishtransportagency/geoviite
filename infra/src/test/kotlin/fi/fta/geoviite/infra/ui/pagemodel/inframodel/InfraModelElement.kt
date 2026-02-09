@@ -8,11 +8,10 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.localDateFromString
-import fi.fta.geoviite.infra.ui.util.localDateTimeFromString
+import java.time.LocalDateTime
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import waitUntilTextIs
-import java.time.LocalDateTime
 
 class E2EInfraModelTable(tableBy: By) :
     E2ETable<E2EInfraModelTableRow>(
@@ -63,7 +62,7 @@ data class E2EInfraModelTableRow(
         planPhase = getColumnContent("im-form.plan-phase-header", columns, headers),
         decisionPhase = getColumnContent("im-form.decision-phase-header", columns, headers),
         planTime = localDateFromString(getColumnContent("im-form.created-at-header", columns, headers)),
-        created = localDateTimeFromString(getColumnContent("im-form.uploaded-at-header", columns, headers)),
+        created = localDateFromString(getColumnContent("im-form.uploaded-at-header", columns, headers)),
         linked =
             getColumnContent("im-form.linked-at-header", columns, headers)
                 .takeIf(String::isNotBlank)
