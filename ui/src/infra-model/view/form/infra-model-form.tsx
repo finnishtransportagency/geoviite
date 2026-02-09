@@ -6,6 +6,7 @@ import {
     PlanSource,
     Project,
 } from 'geometry/geometry-model';
+import { getGeometryPlanLinkingSummaries } from 'geometry/geometry-api';
 import styles from './infra-model-form.module.scss';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import Formgroup from 'infra-model/view/formgroup/formgroup';
@@ -37,7 +38,7 @@ import NewProjectDialog from 'infra-model/view/dialogs/new-project-dialog';
 import { InfraModelVerticalCoordinateInfoboxField } from 'infra-model/view/form/fields/infra-model-vertical-coordinate-infobox-field';
 import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infra-model-form-chosen-date-dropdowns';
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
-import { formatDateShort } from 'utils/date-utils';
+import { formatDateFull, formatDateShort } from 'utils/date-utils';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { EMPTY_ARRAY, filterNotEmpty, filterUnique, first, last } from 'utils/array-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
@@ -48,7 +49,7 @@ import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
 import { PVOid } from 'infra-model/projektivelho/pv-oid';
 import FormgroupTextarea from 'infra-model/view/formgroup/formgroup-textarea';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import i18next from 'i18next';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_GEOMETRY_FILE, userHasPrivilege, VIEW_LAYOUT_DRAFT } from 'user/user-model';
@@ -60,6 +61,9 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { InfraModelDownloadButton } from 'geoviite-design-lib/infra-model-download/infra-model-download-button';
 import { InfraModelPlanApplicabilityField } from 'infra-model/view/form/fields/infra-model-plan-applicability';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
+
+export type InfraModelFileSource = 'STORED' | 'PV_IMPORT' | 'FILE_UPLOAD';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -77,6 +81,7 @@ type InframodelViewFormContainerProps = {
     overrideInfraModelParameters: OverrideInfraModelParameters;
     extraInframodelParameters: ExtraInfraModelParameters;
     committedFields: InfraModelParametersProp[];
+    inframodelSource: InfraModelFileSource;
 };
 
 export type EditablePlanField =
@@ -121,6 +126,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     overrideInfraModelParameters,
     extraInframodelParameters,
     committedFields,
+    inframodelSource,
 }: InframodelViewFormContainerProps) => {
     const { t } = useTranslation();
     const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
@@ -142,6 +148,15 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [trackNumberNameSuggestion, setTrackNumberNameSuggestion] = React.useState<string>();
     const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
     const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || EMPTY_ARRAY;
+    const [linkingSummary, linkingSummaryFetchStatus] = useLoaderWithStatus(
+        () =>
+            geometryPlan?.id && inframodelSource === 'STORED'
+                ? getGeometryPlanLinkingSummaries([geometryPlan.id]).then((summaries) =>
+                      summaries ? summaries[geometryPlan.id] : undefined,
+                  )
+                : Promise.resolve(undefined),
+        [geometryPlan?.id],
+    );
 
     const planSourceOptions: DropdownOption<PlanSource>[] = [
         dropdownOption(
@@ -274,6 +289,13 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         setTrackNumberNameSuggestion(nameSuggestion);
         setShowNewTrackNumberDialog(true);
     };
+
+    const linkedAtTitle = linkingSummary?.linkedAt
+        ? t('im-form.linking-details', {
+              linkedAt: formatDateFull(linkingSummary?.linkedAt),
+              linkedByUsers: linkingSummary?.linkedByUsers?.join('\n'),
+          })
+        : undefined;
 
     return (
         <React.Fragment>
@@ -647,6 +669,37 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                             />
                         )}
                     </FormgroupField>
+                    {inframodelSource === 'STORED' && (
+                        <React.Fragment>
+                            <FormgroupField
+                                label={t('im-form.created-field')}
+                                qaId="upload-time-im-field">
+                                <span
+                                    title={
+                                        geometryPlan.uploadTime
+                                            ? formatDateFull(geometryPlan.uploadTime)
+                                            : undefined
+                                    }>
+                                    {geometryPlan.uploadTime
+                                        ? formatDateShort(geometryPlan.uploadTime)
+                                        : t('im-form.information-missing')}
+                                </span>
+                            </FormgroupField>
+                            <FormgroupField
+                                label={t('im-form.linked-at-field')}
+                                qaId="linked-time-im-field">
+                                {linkingSummaryFetchStatus !== LoaderStatus.Loading ? (
+                                    <span title={linkedAtTitle}>
+                                        {linkingSummary?.linkedAt
+                                            ? formatDateShort(linkingSummary.linkedAt)
+                                            : t('im-form.not-linked')}
+                                    </span>
+                                ) : (
+                                    <Spinner />
+                                )}
+                            </FormgroupField>
+                        </React.Fragment>
+                    )}
                 </FormgroupContent>
             </Formgroup>
 

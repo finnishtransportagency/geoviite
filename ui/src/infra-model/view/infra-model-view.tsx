@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './form/infra-model-form.module.scss';
-import InfraModelForm from 'infra-model/view/form/infra-model-form';
+import InfraModelForm, { InfraModelFileSource } from 'infra-model/view/form/infra-model-form';
 import {
     ExtraInfraModelParameters,
     InfraModelState,
@@ -25,8 +25,6 @@ import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_GEOMETRY_FILE } from 'user/user-model';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
-
-type InfraModelFileSource = 'STORED' | 'PV_IMPORT' | 'FILE_UPLOAD';
 
 export type InfraModelBaseProps = InfraModelState & {
     onExtraParametersChange: <TKey extends keyof ExtraInfraModelParameters>(
@@ -132,6 +130,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             overrideInfraModelParameters={props.overrideInfraModelParameters}
                             extraInframodelParameters={props.extraInfraModelParameters}
                             committedFields={props.committedFields}
+                            inframodelSource={props.fileSource}
                         />
                     )}
                 </div>
