@@ -83,6 +83,7 @@ export const layersToHideByProxy: LayerCollection = {
 export const relatedMapLayers: LayerCollection = {
     'location-track-alignment-layer': [
         'location-track-background-layer',
+        'location-track-selected-alignment-layer',
         'location-track-badge-layer',
     ],
     'operational-points-icon-layer': ['operational-points-badge-layer'],
