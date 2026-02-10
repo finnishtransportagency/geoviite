@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
-import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.SwitchName
@@ -543,107 +542,6 @@ class PublicationDao(
 
         logger.daoAccess(INSERT, Publication::class, publicationId)
         return publicationId
-    }
-
-    /**
-     * @param switchIds Switches whose linked tracks to find.
-     * @param locationTrackIdsInPublicationUnit Optionally specify the location tracks in the publication unit. Leave
-     *   null to have all candidate location tracks considered in the publication unit.
-     * @param includeDeleted Filters location tracks, not switches
-     */
-    fun fetchLinkedLocationTracks(
-        target: LayoutContextTransition,
-        switchIds: List<IntId<LayoutSwitch>>,
-        locationTrackIdsInPublicationUnit: List<IntId<LocationTrack>>? = null,
-        includeDeleted: Boolean = false,
-    ): Map<IntId<LayoutSwitch>, Set<LayoutRowVersion<LocationTrack>>> {
-        if (switchIds.isEmpty()) return mapOf()
-
-        val candidateTrackIncludedCondition =
-            if (locationTrackIdsInPublicationUnit == null) "true"
-            else if (locationTrackIdsInPublicationUnit.isEmpty()) "false" else "lt.id in (:location_track_ids)"
-
-        // language="sql"
-        val sql =
-            """
-            with
-              lt as (
-                select *
-                  from layout.location_track_in_layout_context(:base_state::layout.publication_state,
-                                                               :base_design_id) lt
-                  where not ($candidateTrackIncludedCondition)
-                union all
-                select *
-                  from layout.location_track_in_layout_context(:candidate_state::layout.publication_state,
-                                                               :candidate_design_id) lt
-                  where ($candidateTrackIncludedCondition)
-              )
-            select
-              lt.id,
-              lt.design_id,
-              lt.draft,
-              lt.version,
-              array_agg(distinct lt_s.switch_id) as switch_ids
-            from layout.location_track_version_switch_view lt_s
-              inner join lt
-                   on lt_s.location_track_id = lt.id
-                     and lt_s.location_track_layout_context_id = lt.layout_context_id
-                     and lt_s.location_track_version = lt.version
-            where lt_s.switch_id in (:switch_ids)
-              and (:include_deleted or lt.state != 'DELETED')
-            group by lt.id, lt.design_id, lt.draft, lt.version
-            """
-                .trimIndent()
-
-        val params =
-            mapOf(
-                "switch_ids" to switchIds.map(IntId<LayoutSwitch>::intValue),
-                "location_track_ids" to
-                    locationTrackIdsInPublicationUnit?.takeIf { it.isNotEmpty() }?.map(IntId<*>::intValue),
-                "include_deleted" to includeDeleted,
-            ) + target.sqlParameters()
-        val result = mutableMapOf<IntId<LayoutSwitch>, Set<LayoutRowVersion<LocationTrack>>>()
-        jdbcTemplate
-            .query(sql, params) { rs, _ ->
-                val trackVersion = rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
-                val switchIdList = rs.getIntIdArray<LayoutSwitch>("switch_ids")
-                trackVersion to switchIdList
-            }
-            .forEach { (trackVersion, switchIdList) ->
-                switchIdList.forEach { id -> result[id] = result.getOrElse(id, ::setOf) + trackVersion }
-            }
-        logger.daoAccess(FETCH, "switch_track_link", result)
-        return result
-    }
-
-    fun fetchBaseDuplicateTrackVersions(
-        baseContext: LayoutContext,
-        ids: List<IntId<LocationTrack>>,
-    ): Map<IntId<LocationTrack>, List<LayoutRowVersion<LocationTrack>>> {
-        val sql =
-            """
-                select id, design_id, draft, version, duplicate_of_location_track_id
-                from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                where duplicate_of_location_track_id in (:ids)
-                  and state != 'DELETED'
-            """
-                .trimIndent()
-        val params =
-            mapOf(
-                "ids" to ids.map { id -> id.intValue },
-                "publication_state" to baseContext.state.name,
-                "design_id" to baseContext.branch.designId?.intValue,
-            )
-        val rows =
-            jdbcTemplate.query(sql, params) { rs, _ ->
-                val duplicateOfId = rs.getIntId<LocationTrack>("duplicate_of_location_track_id")
-                val version = rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
-                duplicateOfId to version
-            }
-        return ids.associateWith { id ->
-                rows.filter { (duplicateOfId, _) -> duplicateOfId == id }.map { (_, rv) -> rv }
-            }
-            .also { logger.daoAccess(FETCH, "Duplicate track versions", ids) }
     }
 
     fun getPublication(publicationId: IntId<Publication>) =
@@ -1858,9 +1756,7 @@ class PublicationDao(
             """
                 .trimIndent(),
             indirectChanges
-                .map { id ->
-                    mapOf("publication_id" to publicationId.intValue, "operational_point_id" to id.intValue)
-                }
+                .map { id -> mapOf("publication_id" to publicationId.intValue, "operational_point_id" to id.intValue) }
                 .toTypedArray(),
         )
     }

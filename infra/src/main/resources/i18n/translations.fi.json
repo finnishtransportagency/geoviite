@@ -1347,6 +1347,8 @@
         "vertical-coordinate-system-field": "Korkeusjärjestelmä",
         "save-changes": "Tallenna muutokset",
         "information-missing": "Ei tiedossa",
+        "not-linked": "Ei linkitetty",
+        "linking-details": "{{linkedAt}}\n\nLinkittäneet käyttäjät:\n{{linkedByUsers}}",
         "plan-source": "Suunnitelman lähde",
         "missing-source": "Suunnitelman lähde puuttuu",
         "toolbar": {
