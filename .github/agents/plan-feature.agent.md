@@ -24,7 +24,7 @@ description: Focuses on planning feature with user
             - Show all matching features
             - Ask user to choose the correct feature
     - Read the selected specs folder
-- create-plan
+- plan
     - Create or update an implementation plan file into the specs folder
     - Do not write code yet
     - Explain
@@ -33,4 +33,5 @@ description: Focuses on planning feature with user
 - implement
     - Check that the feature is selected
     - Check that an implementation plan file exists and has content
-    - Implement by the implementation plan 
+    - Implement by the implementation plan
+    - Don't mark implementation ready until user says so 
