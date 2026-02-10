@@ -35,7 +35,12 @@ import {
 } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import { GeometryPlanLayout, LAYOUT_SRID, LayoutGraphLevel } from 'track-layout/track-layout-model';
+import {
+    GeometryPlanLayout,
+    LAYOUT_SRID,
+    LayoutGraphLevel,
+    OperationalPointId,
+} from 'track-layout/track-layout-model';
 import { LayoutContext, LayoutContextMode, LayoutDesignId } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
@@ -78,7 +83,7 @@ import { coordsToPolygon, Point, Polygon, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { createLocationTrackSplitLocationLayer } from 'map/layers/alignment/location-track-split-location-layer';
 import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/duplicate-split-section-highlight-layer';
@@ -331,6 +336,13 @@ const MapView: React.FC<MapViewProps> = ({
         }
     };
 
+    const handleOperationalPointClusterMenuClick = (id: OperationalPointId) => {
+        onSelect({
+            operationalPoints: [id],
+            operationalPointClusters: [],
+        });
+    };
+
     useResizeObserver({
         ref: olMapContainer,
         onResize: () => olMap?.updateSize(),
@@ -409,6 +421,19 @@ const MapView: React.FC<MapViewProps> = ({
         });
         olMap.addOverlay(popup);
     }, [olMap, firstClusterPoint]);
+
+    const operationalPointCluster = first(selection.selectedItems.operationalPointClusters);
+    React.useEffect(() => {
+        if (!olMap || !operationalPointCluster) return;
+        const pos = pointToCoords(operationalPointCluster);
+        const popupElement = document.getElementById('operationalpointclusteroverlay') || undefined;
+        const popup = new Overlay({
+            position: pos,
+            offset: [7, 0],
+            element: popupElement,
+        });
+        olMap.addOverlay(popup);
+    }, [olMap, operationalPointCluster]);
 
     // Update the view"port" of the map
     React.useEffect(() => {
@@ -954,6 +979,22 @@ const MapView: React.FC<MapViewProps> = ({
                             onClick={() => handleClusterPointClick('remove')}>
                             {t('map-view.cluster-overlay-remove-both')}
                         </div>
+                    </div>
+                )}
+            </div>
+            <div id="operationalpointclusteroverlay">
+                {first(selection.selectedItems.operationalPointClusters) && (
+                    <div className={styles['map__popup-menu']}>
+                        {expectDefined(
+                            first(selection.selectedItems.operationalPointClusters),
+                        ).operationalPoints.map((point) => (
+                            <div
+                                key={point.id}
+                                className={styles['map__popup-item']}
+                                onClick={() => handleOperationalPointClusterMenuClick(point.id)}>
+                                {point.name}
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>

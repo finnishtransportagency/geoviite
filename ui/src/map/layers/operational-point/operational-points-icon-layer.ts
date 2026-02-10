@@ -1,7 +1,12 @@
 import { MapLayerName } from 'map/map-model';
 import { Point as OlPoint } from 'ol/geom';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
+import {
+    createLayer,
+    GeoviiteMapLayer,
+    getPlanarDistanceUnwrapped,
+    loadLayerData,
+} from 'map/layers/utils/layer-utils';
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import OlView from 'ol/View';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -15,6 +20,7 @@ import {
     operationalPointFeatureModeBySelection,
     renderOperationalPointCircleFeature,
     filterByResolution,
+    findMatchingOperationalPointCluster,
 } from 'map/layers/operational-point/operational-points-layer-utils';
 import { LinkingState } from 'linking/linking-model';
 
@@ -31,21 +37,46 @@ export function createOperationalPointIconLayer(
     const resolution = olView.getResolution() || 0;
     const onLoadingChange = () => {};
 
-    const createFeatures = (points: OperationalPoint[]) =>
-        points
+    const createFeatures = (points: OperationalPoint[]) => {
+        const pointsInStack: OperationalPoint[] = [];
+
+        return points
             .filter(
                 (point) =>
                     point.state !== 'DELETED' &&
                     !isBeingMoved(linkingState, point.id) &&
                     filterByResolution(point, resolution),
             )
-            .map((point) =>
-                renderOperationalPointCircleFeature(
-                    point,
-                    operationalPointFeatureModeBySelection(point.id, selection),
-                ),
-            )
+            .map((point, _, allPoints) => {
+                const stackedPoints = allPoints.filter(
+                    (point2) =>
+                        point.id !== point2.id &&
+                        point.location &&
+                        point2.location &&
+                        getPlanarDistanceUnwrapped(
+                            point.location.x,
+                            point.location.y,
+                            point2.location.x,
+                            point2.location.y,
+                        ) /
+                            resolution <
+                            1,
+                );
+
+                pointsInStack.push(...stackedPoints);
+                const currentPoints = [point, ...stackedPoints];
+
+                return !pointsInStack.includes(point)
+                    ? renderOperationalPointCircleFeature(
+                          point,
+                          operationalPointFeatureModeBySelection(point.id, selection),
+                          point.location,
+                          currentPoints,
+                      )
+                    : undefined;
+            })
             .filter(filterNotEmpty);
+    };
 
     loadLayerData(
         source,
@@ -58,10 +89,22 @@ export function createOperationalPointIconLayer(
     return {
         name: LAYER_NAME,
         layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => ({
-            operationalPoints: findMatchingOperationalPoints(hitArea, source, options).map(
-                (operationalPoint) => operationalPoint.id,
-            ),
-        }),
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => {
+            const clusters = findMatchingOperationalPointCluster(hitArea, source, options);
+
+            if (!clusters.length) {
+                return {
+                    operationalPoints: findMatchingOperationalPoints(hitArea, source, options).map(
+                        (operationalPoint) => operationalPoint.id,
+                    ),
+                    operationalPointClusters: [],
+                };
+            } else {
+                return {
+                    operationalPoints: [],
+                    operationalPointClusters: clusters,
+                };
+            }
+        },
     };
 }

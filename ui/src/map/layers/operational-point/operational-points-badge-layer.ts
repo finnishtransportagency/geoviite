@@ -1,16 +1,14 @@
 import { MapLayerName } from 'map/map-model';
 import { Point as OlPoint } from 'ol/geom';
-import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { MapLayer } from 'map/layers/utils/layer-model';
 import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import OlView from 'ol/View';
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 import { Selection } from 'selection/selection-model';
-import { Rectangle } from 'model/geometry';
 import {
     filterByResolution,
-    findMatchingOperationalPoints,
     getOperationalPointsFromApi,
     isBeingMoved,
     operationalPointFeatureModeBySelection,
@@ -57,10 +55,5 @@ export function createOperationalPointBadgeLayer(
     return {
         name: LAYER_NAME,
         layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => ({
-            operationalPoints: findMatchingOperationalPoints(hitArea, source, options).map(
-                (operationalPoint) => operationalPoint.id,
-            ),
-        }),
     };
 }

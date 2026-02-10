@@ -7,8 +7,18 @@ import {
     OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { GeometryAlignmentId, GeometryKmPostId, GeometryPlanId, GeometrySwitchId, } from 'geometry/geometry-model';
-import { ClusterPoint, LinkPoint, LinkPointId } from 'linking/linking-model';
+import {
+    GeometryAlignmentId,
+    GeometryKmPostId,
+    GeometryPlanId,
+    GeometrySwitchId,
+} from 'geometry/geometry-model';
+import {
+    ClusterPoint,
+    LinkPoint,
+    LinkPointId,
+    OperationalPointCluster,
+} from 'linking/linking-model';
 import { ensureAllKeys } from 'utils/type-utils';
 import { Point } from 'model/geometry';
 import { PublicationId, PublicationSearch } from 'publication/publication-model';
@@ -29,6 +39,7 @@ export type ItemCollections = {
     clusterPoints: ClusterPoint[];
     geometryPlans: GeometryPlanId[];
     operationalPoints: OperationalPointId[];
+    operationalPointClusters: OperationalPointCluster[];
 };
 
 export type UnselectableItemCollections = {
@@ -46,6 +57,7 @@ export type UnselectableItemCollections = {
     geometryLinkPoints: LinkPointId[];
     geometryPlans: GeometryPlanId[];
     operationalPoints: OperationalPointId[];
+    operationalPointClusters: string[];
 };
 
 export type OptionalUnselectableItemCollections = Partial<UnselectableItemCollections>;
@@ -71,6 +83,7 @@ export const allSelectableItemTypes: SelectableItemType[] = ensureAllKeys<Select
     'clusterPoints',
     'geometryPlans',
     'operationalPoints',
+    'operationalPointClusters',
 ]);
 
 export type OptionalItemCollections = Partial<ItemCollections>;
