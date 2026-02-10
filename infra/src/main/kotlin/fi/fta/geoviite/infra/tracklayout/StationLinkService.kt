@@ -61,6 +61,11 @@ class StationLinkService(
         return calculateStationLinks(operationalPoints, switches, tracksWithGeometry, trackNumberVersions)
     }
 
+    fun getStationLinks(context: LayoutContext, opId: IntId<OperationalPoint>): List<StationLink> =
+        getStationLinks(context).filter { link ->
+            link.startOperationalPointId == opId || link.endOperationalPointId == opId
+        }
+
     fun getStationLinks(context: LayoutContext): List<StationLink> {
         val operationalPoints = operationalPointDao.list(context, includeDeleted = false)
         val switches = layoutSwitchDao.list(context, includeDeleted = false)

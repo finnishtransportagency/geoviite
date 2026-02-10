@@ -1,4 +1,8 @@
-import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
+import {
+    OperationalPoint,
+    OperationalPointId,
+    StationLink,
+} from 'track-layout/track-layout-model';
 import { deleteNonNull, getNonNull, getNullable, postNonNull, putNonNull } from 'api/api-fetch';
 import { asyncCache } from 'cache/cache';
 import {
@@ -76,6 +80,14 @@ export const getOperationalPointChangeTimes = (
 ): Promise<LayoutAssetChangeInfo | undefined> =>
     getNonNull<LayoutAssetChangeInfo>(
         `${layoutUri('operational-points', layoutContext)}/${id}/change-info`,
+    );
+
+export const getOperationalPointStationLinks = (
+    id: OperationalPointId,
+    layoutContext: LayoutContext,
+): Promise<StationLink[]> =>
+    getNonNull<StationLink[]>(
+        `${layoutUri('operational-points', layoutContext)}/${id}/station-links`,
     );
 
 export async function insertOperationalPoint(

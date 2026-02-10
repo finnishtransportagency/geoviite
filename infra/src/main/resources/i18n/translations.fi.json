@@ -1036,6 +1036,11 @@
                 "none-for-linking": "Ei linkittämättömiä raiteita",
                 "none-for-unlinking": "Ei linkitettyjä raiteita",
                 "track-not-in-polygon": "Raide on linkitetty pisteelle, mutta sillä ei ole geometriaa pisteen alueella"
+            },
+            "station-links": {
+                "infobox-header": "Liikennepaikkavälit",
+                "count": "{{count}} liikennepaikkaväliä",
+                "no-links": "Ei liikennepaikkavälejä"
             }
         },
         "disabled": {
