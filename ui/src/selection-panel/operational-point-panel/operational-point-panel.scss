@@ -7,22 +7,20 @@
     }
 
     &__operational-points {
-        display: flex;
-        gap: 8px;
-        flex-direction: column;
-        list-style: none;
+        display: inline;
         margin: 0;
         padding: 0;
     }
 
     &__item-container {
-        gap: 8px;
+        display: inline-block;
         padding: 3px 6px;
         border: 1px solid rgba(vayla-design.$color-black-default, 0.8);
         border-radius: 2px;
         background: vayla-design.$color-white-default;
         width: fit-content;
         cursor: pointer;
+        margin: 0 6px 3px 0;
 
         &--selected {
             border-color: vayla-design.$color-blue-default;
