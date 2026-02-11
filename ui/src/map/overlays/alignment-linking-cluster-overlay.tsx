@@ -5,7 +5,7 @@ import OlMap from 'ol/Map';
 import { LinkingClusterPoint, LinkPoint } from 'linking/linking-model';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import styles from './cluster-overlay.module.scss';
+import styles from './map-overlay.scss';
 
 type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
 
@@ -68,24 +68,24 @@ export const AlignmentLinkingClusterOverlay: React.FC<AlignmentLinkingClusterOve
     return (
         <div id="clusteroverlay">
             {clusterPoint && (
-                <div className={styles['cluster-overlay__popup-menu']}>
+                <div className={styles['map-overlay__popup-menu']}>
                     <div
-                        className={styles['cluster-overlay__popup-item']}
+                        className={styles['map-overlay__popup-item']}
                         onClick={() => handleClusterPointClick('geometryPoint')}>
                         {t('map-view.cluster-overlay-choose-geometry')}
                     </div>
                     <div
-                        className={styles['cluster-overlay__popup-item']}
+                        className={styles['map-overlay__popup-item']}
                         onClick={() => handleClusterPointClick('layoutPoint')}>
                         {t('map-view.cluster-overlay-choose-layout')}
                     </div>
                     <div
-                        className={styles['cluster-overlay__popup-item']}
+                        className={styles['map-overlay__popup-item']}
                         onClick={() => handleClusterPointClick('all')}>
                         {t('map-view.cluster-overlay-choose-both')}
                     </div>
                     <div
-                        className={styles['cluster-overlay__popup-item']}
+                        className={styles['map-overlay__popup-item']}
                         onClick={() => handleClusterPointClick('remove')}>
                         {t('map-view.cluster-overlay-remove-both')}
                     </div>

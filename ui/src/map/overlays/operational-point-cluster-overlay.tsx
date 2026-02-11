@@ -6,7 +6,7 @@ import { OperationalPointId } from 'track-layout/track-layout-model';
 import { OnSelectFunction } from 'selection/selection-model';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
 import { expectDefined } from 'utils/type-utils';
-import styles from './operational-point-cluster-overlay.module.scss';
+import styles from './map-overlay.scss';
 
 type OperationalPointClusterOverlayProps = {
     olMap: OlMap | undefined;
@@ -45,11 +45,11 @@ export const OperationalPointClusterOverlay: React.FC<OperationalPointClusterOve
     return (
         <div id="operationalpointclusteroverlay">
             {cluster && (
-                <div className={styles['operational-point-cluster-overlay__popup-menu']}>
+                <div className={styles['map-overlay__popup-menu']}>
                     {expectDefined(cluster).operationalPoints.map((point) => (
                         <div
                             key={point.id}
-                            className={styles['operational-point-cluster-overlay__popup-item']}
+                            className={styles['map-overlay__popup-item']}
                             onClick={() => handleOperationalPointClick(point.id)}>
                             {point.name}
                         </div>
