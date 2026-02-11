@@ -1038,7 +1038,7 @@
                 "track-not-in-polygon": "Raide on linkitetty pisteelle, mutta sillä ei ole geometriaa pisteen alueella"
             },
             "station-links": {
-                "infobox-header": "Liikennepaikkavälit",
+                "infobox-header": "Yhteydet muille liikennepaikoille",
                 "count": "{{count}} liikennepaikkaväliä",
                 "no-links": "Ei liikennepaikkavälejä"
             }

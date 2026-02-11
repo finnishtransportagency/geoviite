@@ -71,7 +71,7 @@
 
         li {
             margin-bottom: 8px;
-            
+
             &:last-child {
                 margin-bottom: 0;
             }
@@ -80,7 +80,7 @@
 
     &__station-link-header {
         display: grid;
-        grid-template-columns: 1fr auto auto;
+        grid-template-columns: auto 1fr auto;
         grid-gap: 8px;
         align-items: center;
         margin-bottom: 4px;

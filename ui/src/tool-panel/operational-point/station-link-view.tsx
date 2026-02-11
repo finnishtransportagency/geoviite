@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-    StationLink,
-    OperationalPointId,
-    LocationTrackId,
-} from 'track-layout/track-layout-model';
+import { StationLink, OperationalPointId, LocationTrackId } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { useOperationalPoint, useLocationTracks } from 'track-layout/track-layout-react-utils';
@@ -47,14 +43,14 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
     return (
         <>
             <div className={styles['operational-point-infobox__station-link-header']}>
-                <span className={styles['operational-point-infobox__station-link-name']}>
-                    {otherOp.name}
-                </span>
                 <TrackNumberLink
                     trackNumberId={stationLink.trackNumberId}
                     layoutContext={layoutContext}
                     changeTime={changeTimes.layoutTrackNumber}
                 />
+                <span className={styles['operational-point-infobox__station-link-name']}>
+                    {otherOp.name}
+                </span>
                 <span className={styles['operational-point-infobox__station-link-length']}>
                     {Math.round(stationLink.length)} m
                 </span>
