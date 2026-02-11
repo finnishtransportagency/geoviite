@@ -253,13 +253,7 @@ class LayoutTrackNumberDao(
                     ),
                 )
             }
-            .let { allChangesHistory ->
-                allChangesHistory
-                    .groupBy { it.change.id }
-                    .mapValues { (_, trackNumberChanges) -> processTrackNumberChangeHistory(trackNumberChanges) }
-                    .values
-                    .flatten()
-            }
+            .let(::processTrackNumberChangeHistory)
             .also { logger.daoAccess(AccessType.FETCH, "track_number_version") }
     }
 
@@ -288,36 +282,45 @@ private data class AnyTrackNumberChange(
     val change: TrackNumberAndChangeTime,
 )
 
-private fun processTrackNumberChangeHistory(allChanges: List<AnyTrackNumberChange>): List<TrackNumberAndChangeTime> {
-    var currentInMain: TrackNumberAndChangeTime? = null
-    var currentInDesign: TrackNumberAndChangeTime? = null
-    return allChanges
-        .sortedBy { it.change.changeTime }
-        .mapNotNull { row ->
-            val (isDesign, isGone, change) = row
-            when {
-                isDesign && isGone -> {
-                    currentInDesign = null
-                    // if the design row goes away, go back to main's version of the track number, but at the time of
-                    // the deletion
-                    currentInMain?.let { inMain -> change.copy(number = inMain.number) }
-                }
+private fun processTrackNumberChangeHistory(
+    allChangesHistory: List<AnyTrackNumberChange>
+): List<TrackNumberAndChangeTime> =
+    allChangesHistory
+        .groupBy { it.change.id }
+        .mapValues { (_, trackNumberChanges) ->
+            var currentInMain: TrackNumberAndChangeTime? = null
+            var currentInDesign: TrackNumberAndChangeTime? = null
+            trackNumberChanges
+                .sortedBy { it.change.changeTime }
+                .mapNotNull { row ->
+                    val (isDesign, isGone, change) = row
+                    when {
+                        isDesign && isGone -> {
+                            currentInDesign = null
+                            // if the design row goes away, go back to main's version of the track number, but at the
+                            // time of the deletion
+                            currentInMain?.let { inMain -> change.copy(number = inMain.number) }
+                        }
 
-                isDesign -> {
-                    currentInDesign = change
-                    currentInDesign
-                }
+                        isDesign -> {
+                            currentInDesign = change
+                            currentInDesign
+                        }
 
-                else -> {
-                    currentInMain = change
-                    currentInDesign ?: currentInMain
+                        else -> {
+                            currentInMain = change
+                            currentInDesign ?: currentInMain
+                        }
+                    }
                 }
-            }
+                .let(::getSequentiallyDistinctTrackNumberChanges)
         }
-        .let(::getDistinctTrackNumberChanges)
-}
+        .values
+        .flatten()
 
-private fun getDistinctTrackNumberChanges(changes: List<TrackNumberAndChangeTime>): List<TrackNumberAndChangeTime> {
+private fun getSequentiallyDistinctTrackNumberChanges(
+    changes: List<TrackNumberAndChangeTime>
+): List<TrackNumberAndChangeTime> {
     var current: TrackNumber? = null
     return changes.filter { change ->
         if (change.number == current) false
