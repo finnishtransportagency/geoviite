@@ -25,6 +25,7 @@ export const OPERATIONAL_POINT_FEATURE_DATA_PROPERTY = 'operational-point-data';
 export const OPERATIONAL_POINT_CLUSTER_FEATURE_DATA_PROPERTY = 'operational-point-cluster-data';
 
 export enum OperationalPointLocationFeatureSize {
+    Huge,
     Large,
     Medium,
     Small,
@@ -61,6 +62,8 @@ export const featureStyleRadius = (size: OperationalPointLocationFeatureSize) =>
             return 5;
         case OperationalPointLocationFeatureSize.Large:
             return 6;
+        case OperationalPointLocationFeatureSize.Huge:
+            return 10;
         default:
             return exhaustiveMatchingGuard(size);
     }
@@ -73,6 +76,7 @@ export const featureStyleOffsetX = (size: OperationalPointLocationFeatureSize) =
         case OperationalPointLocationFeatureSize.Medium:
             return 12;
         case OperationalPointLocationFeatureSize.Large:
+        case OperationalPointLocationFeatureSize.Huge:
             return 14;
         default:
             return exhaustiveMatchingGuard(size);
@@ -87,6 +91,7 @@ export const featureStyleFont = (size: OperationalPointLocationFeatureSize) => {
         case OperationalPointLocationFeatureSize.Medium:
             return fontString(14);
         case OperationalPointLocationFeatureSize.Large:
+        case OperationalPointLocationFeatureSize.Huge:
             return fontString(16);
         default:
             return exhaustiveMatchingGuard(size);
@@ -139,7 +144,7 @@ const createOperationalPointClusterCircleStyle = (
 
     const styleArgs = {
         image: new Circle({
-            radius: 10,
+            radius: featureStyleRadius(OperationalPointLocationFeatureSize.Huge),
             stroke: new Stroke({ color: 'white', width: 2 }),
             fill: new Fill({ color }),
         }),
@@ -246,9 +251,9 @@ export const renderOperationalPointCircleFeature = (
 
 export const renderClusteredOperationalPointCircleFeature = (
     featureMode: OperationalPointFeatureMode,
-    stackedPoints: OperationalPoint[] = [],
+    clusteredPoints: OperationalPoint[] = [],
 ): Feature<OlPoint> | undefined => {
-    const location = stackedPoints.find((p) => !!p.location)?.location;
+    const location = clusteredPoints.find((p) => !!p.location)?.location;
     if (!location) {
         return undefined;
     }
@@ -257,10 +262,10 @@ export const renderClusteredOperationalPointCircleFeature = (
         geometry: new OlPoint(pointToCoords(location)),
     });
     const data: OperationalPointClusterPoint = {
-        id: stackedPoints.map((point) => point.id).join('__'),
+        id: clusteredPoints.map((point) => point.id).join('__'),
         x: location.x,
         y: location.y,
-        operationalPoints: stackedPoints.map((point) => ({
+        operationalPoints: clusteredPoints.map((point) => ({
             name: point.name,
             id: point.id,
         })),
@@ -268,7 +273,7 @@ export const renderClusteredOperationalPointCircleFeature = (
 
     feature.set(OPERATIONAL_POINT_CLUSTER_FEATURE_DATA_PROPERTY, data);
     feature.setStyle(() =>
-        createOperationalPointClusterCircleStyle(featureMode, stackedPoints.length),
+        createOperationalPointClusterCircleStyle(featureMode, clusteredPoints.length),
     );
 
     return feature;
