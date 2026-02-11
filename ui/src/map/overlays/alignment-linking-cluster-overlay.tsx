@@ -2,23 +2,23 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import Overlay from 'ol/Overlay';
 import OlMap from 'ol/Map';
-import { ClusterPoint, LinkPoint } from 'linking/linking-model';
+import { LinkingClusterPoint, LinkPoint } from 'linking/linking-model';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import styles from './cluster-overlay.module.scss';
 
 type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
 
-type ClusterOverlayProps = {
+type AlignmentLinkingClusterOverlayProps = {
     olMap: OlMap | undefined;
-    clusterPoint: ClusterPoint | undefined;
+    clusterPoint: LinkingClusterPoint | undefined;
     onSetLayoutClusterLinkPoint: (linkPoint: LinkPoint) => void;
     onSetGeometryClusterLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
 };
 
-export const ClusterOverlay: React.FC<ClusterOverlayProps> = ({
+export const AlignmentLinkingClusterOverlay: React.FC<AlignmentLinkingClusterOverlayProps> = ({
     olMap,
     clusterPoint,
     onSetLayoutClusterLinkPoint,

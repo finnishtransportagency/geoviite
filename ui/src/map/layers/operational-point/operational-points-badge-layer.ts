@@ -18,6 +18,15 @@ import { LinkingState } from 'linking/linking-model';
 
 const LAYER_NAME: MapLayerName = 'operational-points-badge-layer';
 
+const compareSelected = (a: OperationalPoint, b: OperationalPoint, selection: Selection) => {
+    const aSelected = selection.selectedItems.operationalPoints.includes(a.id);
+    const bSelected = selection.selectedItems.operationalPoints.includes(b.id);
+
+    if (aSelected && !bSelected) return -1;
+    if (!aSelected && bSelected) return 1;
+    return 0;
+};
+
 export function createOperationalPointBadgeLayer(
     existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
     olView: OlView,
@@ -37,6 +46,7 @@ export function createOperationalPointBadgeLayer(
                     !isBeingMoved(linkingState, point.id) &&
                     filterByResolution(point, resolution),
             )
+            .toSorted((a, b) => compareSelected(a, b, selection))
             .map((point) =>
                 renderOperationalPointTextFeature(
                     point,

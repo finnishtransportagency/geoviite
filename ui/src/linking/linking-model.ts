@@ -92,7 +92,7 @@ export type LinkPoint = {
     isInterpolated?: boolean;
 };
 
-export type ClusterPoint = {
+export type LinkingClusterPoint = {
     id: string;
     x: number;
     y: number;

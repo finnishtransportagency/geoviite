@@ -23,6 +23,10 @@ export const OperationalPointClusterOverlay: React.FC<OperationalPointClusterOve
         onSelect({
             operationalPoints: [id],
             operationalPointClusters: [],
+            selectedTab: {
+                type: 'OPERATIONAL_POINT',
+                id,
+            },
         });
     };
 

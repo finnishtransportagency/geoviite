@@ -35,11 +35,7 @@ import {
 } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import {
-    GeometryPlanLayout,
-    LAYOUT_SRID,
-    LayoutGraphLevel,
-} from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LAYOUT_SRID, LayoutGraphLevel } from 'track-layout/track-layout-model';
 import { LayoutContext, LayoutContextMode, LayoutDesignId } from 'common/common-model';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
 import { createDebug1mPointsLayer } from './layers/debug/debug-1m-points-layer';
@@ -108,7 +104,7 @@ import { operationalPointPolygonStylesFunc } from 'map/layers/operational-point/
 import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
 import { createOperationalPointBadgeLayer } from 'map/layers/operational-point/operational-points-badge-layer';
 import { createSignalAssetLayer } from 'map/layers/ratko/signal-asset-layer';
-import { ClusterOverlay } from 'map/overlays/cluster-overlay';
+import { AlignmentLinkingClusterOverlay } from 'map/overlays/alignment-linking-cluster-overlay';
 import { OperationalPointClusterOverlay } from 'map/overlays/operational-point-cluster-overlay';
 
 declare global {
@@ -893,7 +889,7 @@ const MapView: React.FC<MapViewProps> = ({
                 qa-resolution={olMap?.getView()?.getResolution()}
                 className={styles['map__ol-map']}
             />
-            <ClusterOverlay
+            <AlignmentLinkingClusterOverlay
                 olMap={olMap}
                 clusterPoint={first(selection.selectedItems.clusterPoints)}
                 onSetLayoutClusterLinkPoint={onSetLayoutClusterLinkPoint}

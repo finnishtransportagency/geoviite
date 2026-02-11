@@ -14,7 +14,7 @@ import {
     GeometrySwitchId,
 } from 'geometry/geometry-model';
 import {
-    ClusterPoint,
+    LinkingClusterPoint,
     LinkPoint,
     LinkPointId,
     OperationalPointClusterPoint,
@@ -36,7 +36,7 @@ export type ItemCollections = {
     geometryAlignmentIds: SelectedGeometryItem<GeometryAlignmentId>[];
     layoutLinkPoints: LinkPoint[];
     geometryLinkPoints: LinkPoint[];
-    clusterPoints: ClusterPoint[];
+    clusterPoints: LinkingClusterPoint[];
     geometryPlans: GeometryPlanId[];
     operationalPoints: OperationalPointId[];
     operationalPointClusters: OperationalPointClusterPoint[];
