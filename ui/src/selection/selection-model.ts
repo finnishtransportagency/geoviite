@@ -17,7 +17,7 @@ import {
     ClusterPoint,
     LinkPoint,
     LinkPointId,
-    OperationalPointCluster,
+    OperationalPointClusterPoint,
 } from 'linking/linking-model';
 import { ensureAllKeys } from 'utils/type-utils';
 import { Point } from 'model/geometry';
@@ -39,7 +39,7 @@ export type ItemCollections = {
     clusterPoints: ClusterPoint[];
     geometryPlans: GeometryPlanId[];
     operationalPoints: OperationalPointId[];
-    operationalPointClusters: OperationalPointCluster[];
+    operationalPointClusters: OperationalPointClusterPoint[];
 };
 
 export type UnselectableItemCollections = {

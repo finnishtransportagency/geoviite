@@ -100,7 +100,7 @@ export type ClusterPoint = {
     geometryPoint: LinkPoint;
 };
 
-export type OperationalPointCluster = {
+export type OperationalPointClusterPoint = {
     id: string;
     x: number;
     y: number;

@@ -16,8 +16,8 @@ import Feature, { FeatureLike } from 'ol/Feature';
 import { LineString, MultiPoint, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
 import mapStyles from 'map/map.module.scss';
 import CircleStyle from 'ol/style/Circle';
-import { Selection } from 'selection/selection-model';
-import { LinkingState, LinkingType, OperationalPointCluster } from 'linking/linking-model';
+import { ItemCollections, Selection } from 'selection/selection-model';
+import { LinkingState, LinkingType, OperationalPointClusterPoint } from 'linking/linking-model';
 import { LayoutContext } from 'common/common-model';
 import { getAllOperationalPoints } from 'track-layout/layout-operational-point-api';
 
@@ -123,8 +123,8 @@ export const findMatchingOperationalPointCluster = (
     hitArea: Rectangle,
     source: VectorSource,
     options: SearchItemsOptions,
-): OperationalPointCluster[] =>
-    findMatchingEntities<OperationalPointCluster>(
+): OperationalPointClusterPoint[] =>
+    findMatchingEntities<OperationalPointClusterPoint>(
         hitArea,
         source,
         OPERATIONAL_POINT_CLUSTER_FEATURE_DATA_PROPERTY,
@@ -228,7 +228,6 @@ export const renderOperationalPointCircleFeature = (
     point: OperationalPoint,
     featureMode: OperationalPointFeatureMode,
     location: Point | undefined = point.location,
-    stackedPoints: OperationalPoint[] = [],
 ): Feature<OlPoint> | undefined => {
     if (!location) {
         return undefined;
@@ -237,27 +236,40 @@ export const renderOperationalPointCircleFeature = (
     const feature = new Feature({
         geometry: new OlPoint(pointToCoords(location)),
     });
-    if (stackedPoints.length <= 1) {
-        feature.set(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY, point);
-        feature.setStyle((_, resolution) =>
-            getOperationalPointCircleStyleForFeature(resolution, featureMode),
-        );
-    } else {
-        const data: OperationalPointCluster = {
-            id: stackedPoints.map((point) => point.id).join('__'),
-            x: location.x,
-            y: location.y,
-            operationalPoints: stackedPoints.map((point) => ({
-                name: point.name,
-                id: point.id,
-            })),
-        };
+    feature.set(OPERATIONAL_POINT_FEATURE_DATA_PROPERTY, point);
+    feature.setStyle((_, resolution) =>
+        getOperationalPointCircleStyleForFeature(resolution, featureMode),
+    );
 
-        feature.set(OPERATIONAL_POINT_CLUSTER_FEATURE_DATA_PROPERTY, data);
-        feature.setStyle(() =>
-            createOperationalPointClusterCircleStyle(featureMode, stackedPoints.length),
-        );
+    return feature;
+};
+
+export const renderClusteredOperationalPointCircleFeature = (
+    featureMode: OperationalPointFeatureMode,
+    stackedPoints: OperationalPoint[] = [],
+): Feature<OlPoint> | undefined => {
+    const location = stackedPoints.find((p) => !!p.location)?.location;
+    if (!location) {
+        return undefined;
     }
+
+    const feature = new Feature({
+        geometry: new OlPoint(pointToCoords(location)),
+    });
+    const data: OperationalPointClusterPoint = {
+        id: stackedPoints.map((point) => point.id).join('__'),
+        x: location.x,
+        y: location.y,
+        operationalPoints: stackedPoints.map((point) => ({
+            name: point.name,
+            id: point.id,
+        })),
+    };
+
+    feature.set(OPERATIONAL_POINT_CLUSTER_FEATURE_DATA_PROPERTY, data);
+    feature.setStyle(() =>
+        createOperationalPointClusterCircleStyle(featureMode, stackedPoints.length),
+    );
 
     return feature;
 };
@@ -424,21 +436,19 @@ export const operationalPointPolygonStylesFunc =
             : [];
     };
 
-export const operationalPointFeatureModeBySelection = (
-    operationalPointId: OperationalPointId,
+export const operationalPointClusterFeatureModeBySelection = (
+    clusteredOperationalPointIds: OperationalPointId[],
     selection: Selection,
 ): OperationalPointFeatureMode => {
     if (
-        selection.selectedItems.operationalPoints.includes(operationalPointId) ||
-        selection.selectedItems.operationalPointClusters.some((cluster) =>
-            cluster.operationalPoints.some((point) => point.id === operationalPointId),
+        clusteredOperationalPointIds.some((id) =>
+            isOperationalPointInItemCollection(id, selection.selectedItems),
         )
     ) {
         return 'SELECTED';
     } else if (
-        selection.highlightedItems.operationalPoints.includes(operationalPointId) ||
-        selection.highlightedItems.operationalPointClusters.some((cluster) =>
-            cluster.operationalPoints.some((point) => point.id === operationalPointId),
+        clusteredOperationalPointIds.some((id) =>
+            isOperationalPointInItemCollection(id, selection.highlightedItems),
         )
     ) {
         return 'HIGHLIGHTED';
@@ -446,6 +456,25 @@ export const operationalPointFeatureModeBySelection = (
         return 'REGULAR';
     }
 };
+
+export const operationalPointFeatureModeBySelection = (
+    operationalPointId: OperationalPointId,
+    selection: Selection,
+): OperationalPointFeatureMode => {
+    if (isOperationalPointInItemCollection(operationalPointId, selection.selectedItems)) {
+        return 'SELECTED';
+    } else if (isOperationalPointInItemCollection(operationalPointId, selection.highlightedItems)) {
+        return 'HIGHLIGHTED';
+    } else {
+        return 'REGULAR';
+    }
+};
+
+const isOperationalPointInItemCollection = (id: OperationalPointId, selection: ItemCollections) =>
+    selection.operationalPoints.includes(id) ||
+    selection.operationalPointClusters.some((cluster) =>
+        cluster.operationalPoints.some((point) => point.id === id),
+    );
 
 export const isBeingMoved = (linkingState: LinkingState | undefined, id: OperationalPointId) =>
     linkingState &&

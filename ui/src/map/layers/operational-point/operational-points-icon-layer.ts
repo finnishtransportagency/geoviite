@@ -9,10 +9,10 @@ import {
 } from 'map/layers/utils/layer-utils';
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import OlView from 'ol/View';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 import { Selection } from 'selection/selection-model';
-import { Rectangle } from 'model/geometry';
+import { Point, Rectangle } from 'model/geometry';
 import {
     findMatchingOperationalPoints,
     getOperationalPointsFromApi,
@@ -21,10 +21,46 @@ import {
     renderOperationalPointCircleFeature,
     filterByResolution,
     findMatchingOperationalPointCluster,
+    renderClusteredOperationalPointCircleFeature,
+    operationalPointClusterFeatureModeBySelection,
 } from 'map/layers/operational-point/operational-points-layer-utils';
 import { LinkingState } from 'linking/linking-model';
+import { expectDefined } from 'utils/type-utils';
 
 const LAYER_NAME: MapLayerName = 'operational-points-icon-layer';
+const OPERATIONAL_POINT_CLUSTERING_DISTANCE = 1;
+
+const inTheSameLocation = (point: Point, point2: Point, resolution: number): boolean =>
+    getPlanarDistanceUnwrapped(point.x, point.y, point2.x, point2.y) / resolution <
+    OPERATIONAL_POINT_CLUSTERING_DISTANCE;
+
+type OperationalPointCluster = {
+    location: Point;
+    operationalPoints: OperationalPoint[];
+};
+
+const clusterNearbyOperationalPoints = (
+    prefilteredPoints: OperationalPoint[],
+    resolution: number,
+): OperationalPointCluster[] =>
+    prefilteredPoints.reduce((clusters, point) => {
+        if (point.location) {
+            const location = point.location;
+            const cluster = clusters.find(({ location: clusterLocation }) =>
+                inTheSameLocation(location, clusterLocation, resolution),
+            );
+
+            if (cluster) {
+                cluster.operationalPoints.push(point);
+            } else {
+                clusters.push({
+                    location: point.location,
+                    operationalPoints: [point],
+                });
+            }
+        }
+        return clusters;
+    }, [] as OperationalPointCluster[]);
 
 export function createOperationalPointIconLayer(
     existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
@@ -38,42 +74,33 @@ export function createOperationalPointIconLayer(
     const onLoadingChange = () => {};
 
     const createFeatures = (points: OperationalPoint[]) => {
-        const pointsInStack: OperationalPoint[] = [];
+        const prefilteredPoints = points.filter(
+            (point) =>
+                point.state !== 'DELETED' &&
+                !isBeingMoved(linkingState, point.id) &&
+                filterByResolution(point, resolution),
+        );
 
-        return points
-            .filter(
-                (point) =>
-                    point.state !== 'DELETED' &&
-                    !isBeingMoved(linkingState, point.id) &&
-                    filterByResolution(point, resolution),
-            )
-            .map((point, _, allPoints) => {
-                const stackedPoints = allPoints.filter(
-                    (point2) =>
-                        point.id !== point2.id &&
-                        point.location &&
-                        point2.location &&
-                        getPlanarDistanceUnwrapped(
-                            point.location.x,
-                            point.location.y,
-                            point2.location.x,
-                            point2.location.y,
-                        ) /
-                            resolution <
-                            1,
-                );
-
-                pointsInStack.push(...stackedPoints);
-                const currentPoints = [point, ...stackedPoints];
-
-                return !pointsInStack.includes(point)
-                    ? renderOperationalPointCircleFeature(
-                          point,
-                          operationalPointFeatureModeBySelection(point.id, selection),
-                          point.location,
-                          currentPoints,
-                      )
-                    : undefined;
+        return clusterNearbyOperationalPoints(prefilteredPoints, resolution)
+            .map((cluster) => {
+                if (cluster.operationalPoints.length === 0) {
+                    return undefined;
+                } else if (cluster.operationalPoints.length === 1) {
+                    const point = expectDefined(first(cluster.operationalPoints));
+                    return renderOperationalPointCircleFeature(
+                        point,
+                        operationalPointFeatureModeBySelection(point.id, selection),
+                        cluster.location,
+                    );
+                } else {
+                    return renderClusteredOperationalPointCircleFeature(
+                        operationalPointClusterFeatureModeBySelection(
+                            cluster.operationalPoints.map((point) => point.id),
+                            selection,
+                        ),
+                        cluster.operationalPoints,
+                    );
+                }
             })
             .filter(filterNotEmpty);
     };
