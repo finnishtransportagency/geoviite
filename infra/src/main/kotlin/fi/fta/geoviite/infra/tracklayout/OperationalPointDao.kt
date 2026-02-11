@@ -387,12 +387,12 @@ class OperationalPointDao(
             (select point.id as point_id, other.id as other_id
              from check_points point
                join comparison_points other
-                 on postgis.st_intersects(point.polygon, other.polygon))
+                 on postgis.st_intersects(point.polygon, other.polygon) and not postgis.st_touches(point.polygon, other.polygon))
             union all
             (select point_id, other_id
              from check_points a
                join check_points b
-                 on a.id < b.id and postgis.st_intersects(a.polygon, b.polygon)
+                 on a.id < b.id and postgis.st_intersects(a.polygon, b.polygon) and not postgis.st_touches(a.polygon, b.polygon)
                cross join lateral (
                  select a.id as point_id, b.id as other_id
                  union all
