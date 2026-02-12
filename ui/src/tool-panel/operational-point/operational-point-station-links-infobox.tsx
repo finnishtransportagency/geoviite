@@ -10,6 +10,7 @@ import { getOperationalPointStationLinks } from 'track-layout/layout-operational
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { StationLinkView } from 'tool-panel/operational-point/station-link-view';
 import styles from './operational-point-infobox.scss';
+import { getMaxTimestamp } from 'utils/date-utils';
 
 type OperationalPointStationLinksInfoboxProps = {
     contentVisible: boolean;
@@ -32,9 +33,15 @@ export const OperationalPointStationLinksInfobox: React.FC<
 }) => {
     const { t } = useTranslation();
 
+    const changeTime = getMaxTimestamp(
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutSwitch,
+        changeTimes.operationalPoints,
+    );
+
     const stationLinks = useLoader(
-        () => getOperationalPointStationLinks(operationalPoint.id, layoutContext),
-        [operationalPoint.id, layoutContext, changeTimes.layoutLocationTrack],
+        () => getOperationalPointStationLinks(operationalPoint.id, layoutContext, changeTime),
+        [operationalPoint.id, layoutContext, changeTime],
     );
 
     return (
