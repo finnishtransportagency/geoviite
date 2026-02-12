@@ -9,9 +9,9 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { useTranslation } from 'react-i18next';
 import { compareByField } from 'utils/array-utils';
 import {
-    ReferenceLineBadge,
-    ReferenceLineBadgeStatus,
-} from 'geoviite-design-lib/alignment/reference-line-badge';
+    TrackNumberBadge,
+    TrackNumberBadgeStatus,
+} from 'geoviite-design-lib/alignment/track-number-badge';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { LayoutContext, TimeStamp } from 'common/common-model';
 
@@ -73,8 +73,8 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                     );
                     const trackNumber = trackNumbers?.find((tn) => tn.id === line.trackNumberId);
                     const status = () => {
-                        if (disabled) return ReferenceLineBadgeStatus.DISABLED;
-                        else if (isSelected) return ReferenceLineBadgeStatus.SELECTED;
+                        if (disabled) return TrackNumberBadgeStatus.DISABLED;
+                        else if (isSelected) return TrackNumberBadgeStatus.SELECTED;
                         else return undefined;
                     };
                     return trackNumber ? (
@@ -85,7 +85,7 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                                 canSelectReferenceLine &&
                                 onToggleReferenceLineSelection(line.trackNumberId, line.id)
                             }>
-                            <ReferenceLineBadge trackNumber={trackNumber} status={status()} />
+                            <TrackNumberBadge trackNumber={trackNumber} status={status()} />
                             <span
                                 className={
                                     disabled

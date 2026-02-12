@@ -1,16 +1,17 @@
 import React from 'react';
-import { StationLink, OperationalPointId, LocationTrackId } from 'track-layout/track-layout-model';
+import { LocationTrackId, OperationalPointId, StationLink } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
-import { useOperationalPoint, useLocationTracks } from 'track-layout/track-layout-react-utils';
-import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
+import { useLocationTracks } from 'track-layout/track-layout-react-utils';
 import { LocationTrackBadge } from 'geoviite-design-lib/alignment/location-track-badge';
-import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { OperationalPointBadgeLink } from 'geoviite-design-lib/operational-point/operational-point-badge';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import styles from './operational-point-infobox.scss';
+import { TrackNumberBadgeLink } from 'geoviite-design-lib/alignment/track-number-badge';
 
 export type StationLinkViewProps = {
     stationLink: StationLink;
-    ownOperationalPointId: OperationalPointId;
+    ownOperationalPointId?: OperationalPointId;
     layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
     onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
@@ -23,34 +24,38 @@ export const StationLinkView: React.FC<StationLinkViewProps> = ({
     changeTimes,
     onSelectLocationTrack,
 }) => {
-    const otherOpId =
-        stationLink.startOperationalPointId === ownOperationalPointId
-            ? stationLink.endOperationalPointId
-            : stationLink.startOperationalPointId;
-
-    const otherOp = useOperationalPoint(otherOpId, layoutContext, changeTimes.operationalPoints);
-
     const locationTracks = useLocationTracks(
         stationLink.locationTrackIds,
         layoutContext,
         changeTimes.layoutLocationTrack,
     );
 
-    if (!otherOp) {
-        return <Spinner />;
-    }
+    const [firstOp, secondOp] =
+        ownOperationalPointId && stationLink.endOperationalPointId === ownOperationalPointId
+            ? [stationLink.endOperationalPointId, stationLink.startOperationalPointId]
+            : [stationLink.startOperationalPointId, stationLink.endOperationalPointId];
 
     return (
         <>
             <div className={styles['operational-point-infobox__station-link-header']}>
-                <TrackNumberLink
+                <span className={styles['operational-point-infobox__station-link-name']}>
+                    <OperationalPointBadgeLink
+                        operationalPointId={firstOp}
+                        layoutContext={layoutContext}
+                        changeTime={changeTimes.operationalPoints}
+                    />
+                    <Icons.Next size={IconSize.SMALL} color={IconColor.INHERIT} />
+                    <OperationalPointBadgeLink
+                        operationalPointId={secondOp}
+                        layoutContext={layoutContext}
+                        changeTime={changeTimes.operationalPoints}
+                    />
+                </span>
+                <TrackNumberBadgeLink
                     trackNumberId={stationLink.trackNumberId}
                     layoutContext={layoutContext}
                     changeTime={changeTimes.layoutTrackNumber}
                 />
-                <span className={styles['operational-point-infobox__station-link-name']}>
-                    {otherOp.name}
-                </span>
                 <span className={styles['operational-point-infobox__station-link-length']}>
                     {Math.round(stationLink.length)} m
                 </span>

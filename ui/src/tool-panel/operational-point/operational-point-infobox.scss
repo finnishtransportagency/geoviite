@@ -80,13 +80,16 @@
 
     &__station-link-header {
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: 1fr auto auto;
         grid-gap: 8px;
         align-items: center;
         margin-bottom: 4px;
     }
 
     &__station-link-name {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         font-weight: 500;
     }
 

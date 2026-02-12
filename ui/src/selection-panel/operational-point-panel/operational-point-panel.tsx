@@ -2,8 +2,11 @@ import * as React from 'react';
 import styles from './operational-point-panel.scss';
 import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
 import { useTranslation } from 'react-i18next';
-import { createClassName } from 'vayla-design-lib/utils';
 import { compareNamed } from 'common/common-model';
+import {
+    OperationalPointBadge,
+    OperationalPointBadgeStatus,
+} from 'geoviite-design-lib/operational-point/operational-point-badge';
 
 type OperationalPointPanelProps = {
     operationalPoints: OperationalPoint[];
@@ -41,23 +44,19 @@ export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
                 const isSelected = selectedOperationalPoints?.some(
                     (selectedOp) => selectedOp === op.id,
                 );
-                const containerClassName = createClassName(
-                    styles['operational-point-panel__item-container'],
-                    disabled && styles['operational-point-panel__item-container--disabled'],
-                    !disabled &&
-                        isSelected &&
-                        styles['operational-point-panel__item-container--selected'],
-                );
+                const status = disabled
+                    ? OperationalPointBadgeStatus.DISABLED
+                    : isSelected
+                      ? OperationalPointBadgeStatus.SELECTED
+                      : OperationalPointBadgeStatus.DEFAULT;
 
                 return (
-                    <li key={op.id} className={containerClassName}>
-                        <span
+                    <li key={op.id}>
+                        <OperationalPointBadge
+                            operationalPoint={op}
+                            status={status}
                             onClick={() => onToggleOperationalPointSelection(op)}
-                            className={styles['operational-point-panel__item']}>
-                            <span className={styles['operational-point-panel__name']}>
-                                {op.name}
-                            </span>
-                        </span>
+                        />
                     </li>
                 );
             })}

@@ -3,7 +3,7 @@ import styles from './linked-items-list.scss';
 import { useTranslation } from 'react-i18next';
 
 import { LayoutReferenceLine, LayoutTrackNumberId } from 'track-layout/track-layout-model';
-import { ReferenceLineBadge } from 'geoviite-design-lib/alignment/reference-line-badge';
+import { TrackNumberBadge } from 'geoviite-design-lib/alignment/track-number-badge';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { useLoader } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
@@ -87,7 +87,7 @@ const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
                                 <div
                                     className={styles['linked-items-list__list-item']}
                                     key={referenceLine.id}>
-                                    <ReferenceLineBadge
+                                    <TrackNumberBadge
                                         trackNumber={trackNumber}
                                         onClick={() => trackNumber && clickAction(trackNumber.id)}
                                     />

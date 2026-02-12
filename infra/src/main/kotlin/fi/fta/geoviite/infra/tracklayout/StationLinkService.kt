@@ -184,7 +184,7 @@ private data class TrackStationConnection(
 
 private val linkComparator =
     compareBy<StationLink>(
-        { it.trackNumberId.intValue },
         { it.startOperationalPointId.intValue },
         { it.endOperationalPointId.intValue },
+        { it.trackNumberId.intValue },
     )
