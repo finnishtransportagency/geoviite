@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
 import fi.fta.geoviite.infra.util.produceIf
+import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
 import kotlin.math.roundToInt
 
 enum class MapAlignmentSource {
@@ -170,49 +171,49 @@ fun <M : AlignmentM<M>> simplify(
     val isOverResolution = { mValue: LineM<M> ->
         resolution?.let { r -> (mValue - previousM).distance.roundToInt() >= r } ?: true
     }
-    return segments
-        .flatMapIndexed { sIndex, (s, m) ->
-            if (sIndex == 0 || sIndex == segments.lastIndex || isOverResolution(m.max)) {
-                val isEndPoint = { pIndex: Int ->
-                    val isTrackEndPoint =
-                        (sIndex == 0 && pIndex == 0) ||
-                            (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
-                    val isSegmentStartPoint = pIndex == 0
-                    isTrackEndPoint || includeSegmentEndPoints && isSegmentStartPoint
-                }
-                val isSegmentEndPoint = { pIndex: Int -> pIndex == 0 || pIndex == s.segmentPoints.lastIndex }
-                val bboxContains = { pIndex: Int ->
-                    bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
-                }
+    val rv = mutableListOf<AlignmentPoint<M>>()
+    segments.forEachIndexed { sIndex, (s, m) ->
+        if (sIndex == 0 || sIndex == segments.lastIndex || isOverResolution(m.max)) {
+            val isEndPoint = { pIndex: Int ->
+                val isTrackEndPoint =
+                    (sIndex == 0 && pIndex == 0) ||
+                        (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
+                val isSegmentStartPoint = pIndex == 0
+                isTrackEndPoint || includeSegmentEndPoints && isSegmentStartPoint
+            }
+            val isSegmentEndPoint = { pIndex: Int -> pIndex == 0 || pIndex == s.segmentPoints.lastIndex }
+            val bboxContains = { pIndex: Int ->
+                bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
+            }
 
-                s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-                    if (
-                        isPointIncluded(
-                            pIndex,
-                            p.m.segmentToAlignmentM(m.min),
-                            isEndPoint,
-                            isOverResolution,
-                            bboxContains,
-                        )
-                    ) {
-                        if (!isSegmentEndPoint(pIndex)) {
+            rangesOfConsecutiveIndicesOf(true, s.segmentPoints.indices.map(bboxContains)).forEach { range ->
+                if (range.first > 0) {
+                    rv.add(s.segmentPoints[range.first - 1].toAlignmentPoint(m.min))
+                }
+                range.forEach { index ->
+                    val point = s.segmentPoints[index]
+                    val pointM = point.m.segmentToAlignmentM(m.min)
+                    if (isOverResolution(pointM) || isEndPoint(index)) {
+                        if (!isSegmentEndPoint(index)) {
                             // segment end points should be additional points,
                             // so increase m-counter only when handling middle points
-                            previousM = p.m.segmentToAlignmentM(m.min)
+                            previousM = pointM
                         }
-                        p.toAlignmentPoint(m.min)
-                    } else null
+                        rv.add(point.toAlignmentPoint(m.min))
+                    }
                 }
-            } else {
-                if (includeSegmentEndPoints)
-                    listOf(
-                        s.segmentPoints.first().toAlignmentPoint(m.min),
-                        s.segmentPoints.last().toAlignmentPoint(m.max),
-                    )
-                else emptyList()
+                if (range.endInclusive < s.segmentPoints.lastIndex) {
+                    rv.add(s.segmentPoints[range.endInclusive + 1].toAlignmentPoint(m.min))
+                }
+            }
+        } else {
+            if (includeSegmentEndPoints) {
+                rv.add(s.segmentPoints.first().toAlignmentPoint(m.min))
+                rv.add(s.segmentPoints.last().toAlignmentPoint(m.min))
             }
         }
-        .let { points -> if (points.size >= 2) points else listOf() }
+    }
+    return if (rv.size >= 2) rv else listOf()
 }
 
 private fun <M : AlignmentM<M>> isPointIncluded(
