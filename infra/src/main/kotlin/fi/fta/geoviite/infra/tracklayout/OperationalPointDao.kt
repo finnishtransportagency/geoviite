@@ -97,6 +97,71 @@ class OperationalPointDao(
             .also { logger.daoAccess(FETCH, OperationalPoint::class, versions) }
     }
 
+    fun getLinkingTrackVersions(
+        context: LayoutContext,
+        opFilter: IntId<OperationalPoint>? = null,
+    ): Map<LayoutRowVersion<LocationTrack>, List<LayoutRowVersion<OperationalPoint>>> {
+        val sql =
+            """
+            with
+              switch_links as (
+                select
+                  lt_e.location_track_id,
+                  lt_e.location_track_layout_context_id,
+                  lt_e.location_track_version,
+                  s.operational_point_id
+                  from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id::int) s
+                    inner join layout.node_port np on np.switch_id = s.id
+                    inner join layout.edge e
+                               on (e.start_node_id = np.node_id and e.start_node_port = np.port) or
+                                  (e.end_node_id = np.node_id and end_node_port = np.port)
+                    inner join layout.location_track_version_edge lt_e on e.id = lt_e.edge_id
+                  where s.operational_point_id is not null
+                    and s.state_category != 'NOT_EXISTING'
+                    and (:op_id::int is null or s.operational_point_id = :op_id::int)
+              ),
+              track_links as (
+                select
+                  lt_op.location_track_id,
+                  lt_op.location_track_layout_context_id,
+                  lt_op.location_track_version,
+                  lt_op.operational_point_id
+                from layout.location_track_version_operational_point lt_op
+                where (:op_id::int is null or lt_op.operational_point_id = :op_id::int)
+              )
+            select distinct
+              lt.id lt_id,
+              lt.layout_context_id lt_layout_context_id,
+              lt.version lt_version,
+              op.id op_id,
+              op.layout_context_id op_layout_context_id,
+              op.version op_version
+              from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id::int) lt
+                left join switch_links sl
+                          on sl.location_track_id = lt.id and sl.location_track_layout_context_id = lt.layout_context_id and sl.location_track_version = lt.version
+                left join track_links tl
+                          on tl.location_track_id = lt.id and tl.location_track_layout_context_id = lt.layout_context_id and tl.location_track_version = lt.version
+                inner join layout.operational_point_in_layout_context(:publication_state::layout.publication_state, :design_id::int) op
+                           on op.id = sl.operational_point_id or op.id = tl.operational_point_id
+            where (sl.operational_point_id is not null or tl.operational_point_id is not null)
+              and lt.state != 'DELETED'
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "op_id" to opFilter?.intValue,
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+            )
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                val trackVersion = rs.getLayoutRowVersion<LocationTrack>("lt_id", "lt_layout_context_id", "lt_version")
+                val opVersion = rs.getLayoutRowVersion<OperationalPoint>("op_id", "op_layout_context_id", "op_version")
+                trackVersion to opVersion
+            }
+            .groupBy({ it.first }, { it.second })
+    }
+
     override fun preloadCache(): Int {
         TODO("Not yet implemented")
     }
