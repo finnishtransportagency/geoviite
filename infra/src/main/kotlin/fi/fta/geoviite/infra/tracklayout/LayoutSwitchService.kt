@@ -8,7 +8,8 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.linking.switches.GeoviiteSwitchOidPresence
-import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequestBase
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchUpdateRequest
 import fi.fta.geoviite.infra.linking.switches.SwitchOidPresence
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -24,6 +25,8 @@ import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 
+data class LayoutSwitchConnectionUpdates(val clearJoints: Boolean, val clearTracks: Boolean)
+
 @GeoviiteService
 class LayoutSwitchService
 @Autowired
@@ -35,7 +38,7 @@ constructor(
 ) : LayoutAssetService<LayoutSwitch, NoParams, LayoutSwitchDao>(dao) {
 
     @Transactional
-    fun insertSwitch(branch: LayoutBranch, request: LayoutSwitchSaveRequest): IntId<LayoutSwitch> {
+    fun insertSwitch(branch: LayoutBranch, request: LayoutSwitchSaveRequestBase): IntId<LayoutSwitch> {
         val switch =
             LayoutSwitch(
                 name = request.name,
@@ -58,34 +61,38 @@ constructor(
     fun updateSwitch(
         branch: LayoutBranch,
         id: IntId<LayoutSwitch>,
-        switch: LayoutSwitchSaveRequest,
-        deleteSwitchLinks: Boolean,
+        request: LayoutSwitchUpdateRequest,
     ): IntId<LayoutSwitch> {
-        // Validate deleteSwitchLinks parameter - can only be true when deleting switch
-        require(deleteSwitchLinks != true || switch.stateCategory == LayoutStateCategory.NOT_EXISTING) {
-            "deleteSwitchLinks can only be set to true when stateCategory is NOT_EXISTING"
-        }
-
         val layoutSwitch = dao.getOrThrow(branch.draft, id)
-        val switchStructureChanged = switch.switchStructureId != layoutSwitch.switchStructureId
-        val switchJoints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
 
-        if (switchStructureChanged || deleteSwitchLinks) {
-            clearSwitchInformationFromTracks(branch, id)
-        }
+        val connectionUpdates = calculateSwitchConnectionUpdateType(layoutSwitch, request)
+        if (connectionUpdates.clearTracks) clearSwitchInformationFromTracks(branch, id)
 
         val updatedLayoutSwitch =
             layoutSwitch.copy(
-                name = switch.name,
-                switchStructureId = switch.switchStructureId,
-                stateCategory = switch.stateCategory,
-                trapPoint = switch.trapPoint,
-                joints = switchJoints,
-                ownerId = switch.ownerId,
-                draftOid = switch.draftOid,
+                name = request.name,
+                switchStructureId = request.switchStructureId,
+                stateCategory = request.stateCategory,
+                trapPoint = request.trapPoint,
+                joints = if (connectionUpdates.clearJoints) emptyList() else layoutSwitch.joints,
+                ownerId = request.ownerId,
+                draftOid = request.draftOid,
             )
         return saveDraft(branch, updatedLayoutSwitch).id
     }
+
+    @Transactional
+    fun calculateSwitchConnectionUpdateType(
+        layoutSwitch: LayoutSwitch,
+        updateRequest: LayoutSwitchUpdateRequest,
+    ): LayoutSwitchConnectionUpdates =
+        if (layoutSwitch.switchStructureId != updateRequest.switchStructureId) {
+            LayoutSwitchConnectionUpdates(clearJoints = true, clearTracks = true)
+        } else if (updateRequest.removeSwitchLinks == true) {
+            LayoutSwitchConnectionUpdates(clearJoints = false, clearTracks = true)
+        } else {
+            LayoutSwitchConnectionUpdates(clearJoints = false, clearTracks = false)
+        }
 
     @Transactional
     fun linkToOperationalPoint(

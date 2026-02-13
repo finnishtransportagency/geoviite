@@ -11,7 +11,7 @@ import {
     SwitchOidPresence,
 } from 'track-layout/layout-switch-api';
 import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
-import { LayoutSwitchSaveRequest } from 'linking/linking-model';
+import { LayoutSwitchSaveRequestBase } from 'linking/linking-model';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import { moveToEditLinkText } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { LayoutSwitchId } from 'track-layout/track-layout-model';
@@ -223,11 +223,11 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
     );
 };
 
-export function validateDraftOid(oid: Oid): FieldValidationIssue<LayoutSwitchSaveRequest>[] {
+export function validateDraftOid(oid: Oid): FieldValidationIssue<LayoutSwitchSaveRequestBase>[] {
     if (oid === '') {
         return [];
     }
-    const errors: FieldValidationIssue<LayoutSwitchSaveRequest>[] = [];
+    const errors: FieldValidationIssue<LayoutSwitchSaveRequestBase>[] = [];
     if (!oid.startsWith(SWITCH_OID_REQUIRED_PREFIX)) {
         errors.push({
             field: 'draftOid',
