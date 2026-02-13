@@ -88,7 +88,7 @@ constructor(
     ): LayoutSwitchConnectionUpdates =
         if (layoutSwitch.switchStructureId != updateRequest.switchStructureId) {
             LayoutSwitchConnectionUpdates(clearJoints = true, clearTracks = true)
-        } else if (updateRequest.removeSwitchLinks == true) {
+        } else if (updateRequest.removeSwitchLinks) {
             LayoutSwitchConnectionUpdates(clearJoints = false, clearTracks = true)
         } else {
             LayoutSwitchConnectionUpdates(clearJoints = false, clearTracks = false)
