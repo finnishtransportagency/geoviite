@@ -1,11 +1,4 @@
-import {
-    API_URI,
-    deleteNonNullAdt,
-    getNonNull,
-    Page,
-    postNonNull,
-    queryParams,
-} from 'api/api-fetch';
+import { API_URI, deleteNonNull, getNonNull, Page, postNonNull, queryParams } from 'api/api-fetch';
 import {
     CalculatedChanges,
     DraftChangeType,
@@ -230,11 +223,27 @@ const validatePublicationCandidatesWith = (
 export const revertPublicationCandidates = (
     layoutBranch: LayoutBranch,
     candidates: PublicationCandidateReference[],
-) =>
-    deleteNonNullAdt<PublicationRequestIds, PublicationResultSummary>(
-        `${publicationUri(layoutBranch)}/candidates`,
-        toPublicationRequestIds(candidates),
+) => {
+    const params = queryParams({
+        trackNumbers: candidates
+            .filter((t) => t.type === DraftChangeType.TRACK_NUMBER)
+            .map((c) => c.id),
+        locationTracks: candidates
+            .filter((t) => t.type === DraftChangeType.LOCATION_TRACK)
+            .map((c) => c.id),
+        referenceLines: candidates
+            .filter((t) => t.type === DraftChangeType.REFERENCE_LINE)
+            .map((c) => c.id),
+        switches: candidates.filter((t) => t.type === DraftChangeType.SWITCH).map((c) => c.id),
+        kmPosts: candidates.filter((t) => t.type === DraftChangeType.KM_POST).map((c) => c.id),
+        operationalPoints: candidates
+            .filter((t) => t.type === DraftChangeType.OPERATIONAL_POINT)
+            .map((c) => c.id),
+    });
+    return deleteNonNull<PublicationRequestIds>(
+        `${publicationUri(layoutBranch)}/candidates${params}`,
     );
+};
 
 export const publishPublicationCandidates = (
     layoutBranch: LayoutBranch,
