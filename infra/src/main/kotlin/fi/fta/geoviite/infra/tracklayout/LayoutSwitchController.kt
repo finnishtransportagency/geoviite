@@ -13,7 +13,8 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
-import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequestBase
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchUpdateRequest
 import fi.fta.geoviite.infra.linking.switches.SwitchOidPresence
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -114,7 +115,7 @@ class LayoutSwitchController(
     @PostMapping("/{${LAYOUT_BRANCH}}/draft")
     fun insertSwitch(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @RequestBody request: LayoutSwitchSaveRequest,
+        @RequestBody request: LayoutSwitchSaveRequestBase,
     ): IntId<LayoutSwitch> {
         return switchService.insertSwitch(branch, request)
     }
@@ -124,10 +125,9 @@ class LayoutSwitchController(
     fun updateSwitch(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("id") switchId: IntId<LayoutSwitch>,
-        @RequestBody switch: LayoutSwitchSaveRequest,
-        @RequestParam("deleteSwitchLinks", required = false) deleteSwitchLinks: Boolean?,
+        @RequestBody switch: LayoutSwitchUpdateRequest,
     ): IntId<LayoutSwitch> {
-        return switchService.updateSwitch(branch, switchId, switch, deleteSwitchLinks ?: false)
+        return switchService.updateSwitch(branch, switchId, switch)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
