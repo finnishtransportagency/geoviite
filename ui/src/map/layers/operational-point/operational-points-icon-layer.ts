@@ -28,7 +28,7 @@ import { LinkingState } from 'linking/linking-model';
 import { expectDefined } from 'utils/type-utils';
 
 const LAYER_NAME: MapLayerName = 'operational-points-icon-layer';
-const OPERATIONAL_POINT_CLUSTERING_DISTANCE = 1;
+const OPERATIONAL_POINT_CLUSTERING_DISTANCE = 10;
 
 const inTheSameLocation = (point: Point, point2: Point, resolution: number): boolean =>
     getPlanarDistanceUnwrapped(point.x, point.y, point2.x, point2.y) / resolution <
