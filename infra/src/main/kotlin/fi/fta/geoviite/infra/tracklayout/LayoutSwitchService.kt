@@ -65,7 +65,7 @@ constructor(
     ): IntId<LayoutSwitch> {
         val layoutSwitch = dao.getOrThrow(branch.draft, id)
 
-        val connectionUpdates = calculateSwitchConnectionUpdateType(layoutSwitch, request)
+        val connectionUpdates = calculateSwitchConnectionUpdates(layoutSwitch, request)
         if (connectionUpdates.clearTracks) clearSwitchInformationFromTracks(branch, id)
 
         val updatedLayoutSwitch =
@@ -82,7 +82,7 @@ constructor(
     }
 
     @Transactional
-    fun calculateSwitchConnectionUpdateType(
+    fun calculateSwitchConnectionUpdates(
         layoutSwitch: LayoutSwitch,
         updateRequest: LayoutSwitchUpdateRequest,
     ): LayoutSwitchConnectionUpdates =
