@@ -19,7 +19,7 @@ import {
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
 import {
-    ClusterPoint,
+    LinkingClusterPoint,
     LayoutAlignmentTypeAndId,
     LinkingAlignment,
     LinkingGeometryWithAlignment,
@@ -221,7 +221,7 @@ enum FeatureType {
 }
 
 function createClusterPointFeature(
-    clusterPoint: ClusterPoint,
+    clusterPoint: LinkingClusterPoint,
     pointStyle: Style,
 ): Feature<OlPoint> {
     const pointFeature = new Feature({
@@ -267,7 +267,7 @@ function createLineFeature(
 }
 
 function getClusterPointStyle(
-    clusterPoint: ClusterPoint,
+    clusterPoint: LinkingClusterPoint,
     layoutInterval: LinkInterval,
     geometryInterval: LinkInterval,
 ): Style | undefined {
@@ -287,7 +287,7 @@ function getClusterPointStyle(
 }
 
 function createClusterPointFeatures(
-    clusterPoints: ClusterPoint[],
+    clusterPoints: LinkingClusterPoint[],
     unselectedStyle: Style,
     layoutInterval: LinkInterval,
     geometryInterval: LinkInterval,
@@ -565,7 +565,7 @@ function overlappingPoint(
     layoutPoint: LinkPoint,
     geometryPoint: LinkPoint,
     metersPerPixel: number,
-): ClusterPoint | undefined {
+): LinkingClusterPoint | undefined {
     const distance = getPlanarDistanceUnwrapped(
         geometryPoint.x,
         geometryPoint.y,
@@ -623,8 +623,8 @@ function getClusterPoints(
     layoutPoints: LinkPoint[],
     geometryPoints: LinkPoint[],
     metersPerPixel: number,
-): [ClusterPoint[], LinkPoint[]] {
-    const clusterPoints: ClusterPoint[] = [];
+): [LinkingClusterPoint[], LinkPoint[]] {
+    const clusterPoints: LinkingClusterPoint[] = [];
     const overlappingPoints: LinkPoint[] = [];
 
     layoutPoints.forEach((layoutPoint) => {
@@ -1077,7 +1077,7 @@ const searchItems = (
 ): LayerItemSearchResult => {
     const features = findIntersectingFeatures<OlPoint | LineString>(hitArea, source);
 
-    const clusterPoint: ClusterPoint | undefined = findFirstOfType<ClusterPoint>(
+    const clusterPoint: LinkingClusterPoint | undefined = findFirstOfType<LinkingClusterPoint>(
         features,
         FeatureType.ClusterPoint,
     );

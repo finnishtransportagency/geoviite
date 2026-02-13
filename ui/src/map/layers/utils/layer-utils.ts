@@ -275,6 +275,10 @@ export function mergePartialItemSearchResults(
                 merged.operationalPoints,
                 searchResult.operationalPoints,
             ),
+            operationalPointClusters: mergeOptionalArrays(
+                merged.operationalPointClusters,
+                searchResult.operationalPointClusters,
+            ),
             locationTrackPublicationCandidates: mergeOptionalArrays(
                 merged.locationTrackPublicationCandidates,
                 searchResult.locationTrackPublicationCandidates,

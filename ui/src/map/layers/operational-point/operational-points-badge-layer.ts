@@ -1,16 +1,14 @@
 import { MapLayerName } from 'map/map-model';
 import { Point as OlPoint } from 'ol/geom';
-import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { MapLayer } from 'map/layers/utils/layer-model';
 import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { OperationalPoint } from 'track-layout/track-layout-model';
 import OlView from 'ol/View';
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 import { Selection } from 'selection/selection-model';
-import { Rectangle } from 'model/geometry';
 import {
     filterByResolution,
-    findMatchingOperationalPoints,
     getOperationalPointsFromApi,
     isBeingMoved,
     operationalPointFeatureModeBySelection,
@@ -19,6 +17,15 @@ import {
 import { LinkingState } from 'linking/linking-model';
 
 const LAYER_NAME: MapLayerName = 'operational-points-badge-layer';
+
+const compareSelected = (a: OperationalPoint, b: OperationalPoint, selection: Selection) => {
+    const aSelected = selection.selectedItems.operationalPoints.includes(a.id);
+    const bSelected = selection.selectedItems.operationalPoints.includes(b.id);
+
+    if (aSelected && !bSelected) return -1;
+    if (!aSelected && bSelected) return 1;
+    return 0;
+};
 
 export function createOperationalPointBadgeLayer(
     existingOlLayer: GeoviiteMapLayer<OlPoint> | undefined,
@@ -39,6 +46,7 @@ export function createOperationalPointBadgeLayer(
                     !isBeingMoved(linkingState, point.id) &&
                     filterByResolution(point, resolution),
             )
+            .toSorted((a, b) => compareSelected(a, b, selection))
             .map((point) =>
                 renderOperationalPointTextFeature(
                     point,
@@ -57,10 +65,5 @@ export function createOperationalPointBadgeLayer(
     return {
         name: LAYER_NAME,
         layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => ({
-            operationalPoints: findMatchingOperationalPoints(hitArea, source, options).map(
-                (operationalPoint) => operationalPoint.id,
-            ),
-        }),
     };
 }
