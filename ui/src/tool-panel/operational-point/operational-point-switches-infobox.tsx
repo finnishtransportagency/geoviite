@@ -49,6 +49,7 @@ type OperationalPointSwitchesInfoboxProps = {
     layoutContext: LayoutContext;
     operationalPoint: OperationalPoint;
     changeTimes: ChangeTimes;
+    onSelectSwitch: (switchId: LayoutSwitchId) => void;
 };
 
 export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesInfoboxProps> = ({
@@ -57,6 +58,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
     layoutContext,
     operationalPoint,
     changeTimes,
+    onSelectSwitch,
 }) => {
     const { t } = useTranslation();
     const delegates = useMemo(() => createDelegates(trackLayoutActionCreators), []);
@@ -118,6 +120,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                         isEditing={isEditing}
                         setLinks={setLinks}
                         showArea={delegates.showArea}
+                        onSelectSwitch={onSelectSwitch}
                     />
                     <OperationalPointSwitchesDirectionInfobox
                         layoutContext={layoutContext}
@@ -128,6 +131,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                         isEditing={isEditing}
                         setLinks={setLinks}
                         showArea={delegates.showArea}
+                        onSelectSwitch={onSelectSwitch}
                     />
                     <div className={styles['operational-point-linking-infobox__edit-buttons']}>
                         {!isEditing ? (
@@ -190,6 +194,7 @@ type OperationalPointSwitchesDirectionInfoboxProps = {
     isEditing: boolean;
     setLinks: (ids: LayoutSwitchId[], direction: LinkingDirection) => void;
     showArea: (area: BoundingBox) => void;
+    onSelectSwitch: (switchId: LayoutSwitchId) => void;
 };
 
 const OperationalPointSwitchesDirectionInfobox: React.FC<
@@ -203,6 +208,7 @@ const OperationalPointSwitchesDirectionInfobox: React.FC<
     isEditing,
     setLinks,
     showArea,
+    onSelectSwitch,
 }) => {
     const { t } = useTranslation();
 
@@ -262,6 +268,7 @@ const OperationalPointSwitchesDirectionInfobox: React.FC<
                                 isEditing={isEditing}
                                 setLinks={setLinks}
                                 showArea={showArea}
+                                onSelectSwitch={onSelectSwitch}
                             />
                         ))
                     )}
@@ -290,6 +297,7 @@ type OperationalPointSwitchRowProps = {
     isEditing: boolean;
     setLinks: (ids: LayoutSwitchId[], direction: LinkingDirection) => void;
     showArea: (area: BoundingBox) => void;
+    onSelectSwitch: (switchId: LayoutSwitchId) => void;
 };
 
 const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
@@ -300,6 +308,7 @@ const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
     isEditing,
     setLinks,
     showArea,
+    onSelectSwitch,
 }) => {
     const switchLocation = getSwitchLocation(switchItem);
 
@@ -316,7 +325,7 @@ const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
 
     return (
         <>
-            <SwitchBadge switchItem={switchItem} />
+            <SwitchBadge switchItem={switchItem} onClick={() => onSelectSwitch(switchItem.id)} />
             {switchLocation ? (
                 <a
                     className={styles['operational-point-linking-infobox__position-pin']}

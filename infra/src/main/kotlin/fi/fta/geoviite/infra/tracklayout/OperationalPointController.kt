@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam
 @GeoviiteController("/track-layout")
 class OperationalPointController(
     private val operationalPointService: OperationalPointService,
+    private val stationLinkService: StationLinkService,
     private val publicationValidationService: PublicationValidationService,
 ) {
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -164,6 +165,17 @@ class OperationalPointController(
             .validateOperationalPoints(layoutBranch, publicationState, listOf(id))
             .firstOrNull()
             .let(::toResponse)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/station-links")
+    fun getOperationalPointStationLinks(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("id") id: IntId<OperationalPoint>,
+    ): List<StationLink> {
+        val context = LayoutContext.of(layoutBranch, publicationState)
+        return stationLinkService.getStationLinks(context, id)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

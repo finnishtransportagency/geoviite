@@ -1,0 +1,34 @@
+@use 'vayla-design-lib' as vayla-design;
+@use 'geoviite-design-lib' as geoviite-design;
+
+.operational-point-badge {
+    @include vayla-design.typography-body-strong;
+    font-size: 10px;
+    line-height: 10px;
+    white-space: pre-wrap;
+
+    color: vayla-design.$color-black-default;
+    background-color: vayla-design.$color-white-default;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 3px 6px;
+    border: 1px solid rgba(vayla-design.$color-black-default, 0.8);
+    border-radius: 2px;
+    user-select: none;
+
+    &--selected {
+        border-color: vayla-design.$color-blue-default;
+        color: vayla-design.$color-blue-default;
+    }
+
+    &--disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    &--clickable {
+        cursor: pointer;
+    }
+}

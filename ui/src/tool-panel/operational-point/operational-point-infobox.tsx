@@ -14,6 +14,8 @@ import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import {
     OperationalPoint,
     operationalPointRinfTypeToTypeCode,
+    LayoutSwitchId,
+    LocationTrackId,
 } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { useLoader } from 'utils/react-utils';
@@ -32,6 +34,8 @@ import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { useAppNavigate } from 'common/navigate';
 import { OperationalPointTracksInfobox } from 'tool-panel/operational-point/operational-point-tracks-infobox';
+import { OperationalPointStationLinksInfobox } from 'tool-panel/operational-point/operational-point-station-links-infobox';
+import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 type OperationalPointInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -43,6 +47,7 @@ type OperationalPointInfoboxProps = {
     onDataChange: () => void;
     onSelect: (items: OnSelectOptions) => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
+    setToolPanelTab: (tab: ToolPanelAsset | undefined) => void;
     onShowOnMap: () => void;
     onStartPlacingLocation: () => void;
     onStopPlacingLocation: () => void;
@@ -62,6 +67,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     onDataChange,
     onSelect,
     onUnselect,
+    setToolPanelTab,
     onShowOnMap,
     onStartPlacingLocation,
     onStopPlacingLocation,
@@ -76,6 +82,28 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     const visibilityChange = (key: keyof OperationalPointInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
+
+    const selectLocationTrack = React.useCallback(
+        (locationTrackId: LocationTrackId) => {
+            onSelect({ locationTracks: [locationTrackId] });
+            setToolPanelTab({
+                id: locationTrackId,
+                type: 'LOCATION_TRACK',
+            });
+        },
+        [onSelect, setToolPanelTab],
+    );
+
+    const selectSwitch = React.useCallback(
+        (switchId: LayoutSwitchId) => {
+            onSelect({ switches: [switchId] });
+            setToolPanelTab({
+                id: switchId,
+                type: 'SWITCH',
+            });
+        },
+        [onSelect, setToolPanelTab],
+    );
 
     const changeInfo = useLoader(
         () => getOperationalPointChangeTimes(operationalPoint.id, layoutContext),
@@ -203,6 +231,14 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 onStopPlacingArea={onStopPlacingArea}
                 onClearArea={onClearArea}
             />
+            <OperationalPointStationLinksInfobox
+                contentVisible={visibilities.stationLinks}
+                onVisibilityChange={visibilityChange}
+                layoutContext={layoutContext}
+                operationalPoint={operationalPoint}
+                changeTimes={changeTimes}
+                onSelectLocationTrack={selectLocationTrack}
+            />
             <EnvRestricted restrictTo={'dev'}>
                 {operationalPoint.polygon && (
                     <>
@@ -212,6 +248,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                             layoutContext={layoutContext}
                             operationalPoint={operationalPoint}
                             changeTimes={changeTimes}
+                            onSelectSwitch={selectSwitch}
                         />
                         <OperationalPointTracksInfobox
                             contentVisible={visibilities.tracks}
@@ -219,6 +256,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                             layoutContext={layoutContext}
                             operationalPoint={operationalPoint}
                             changeTimes={changeTimes}
+                            onSelectLocationTrack={selectLocationTrack}
                         />
                     </>
                 )}
