@@ -123,4 +123,30 @@ class AlignmentGeometryTest {
             "Adding resolution should produce fewer points than bbox alone",
         )
     }
+
+    @Test
+    fun `a single point outside of the bbox between two ranges within it is only returned once`() {
+        val alignment =
+            edge(
+                listOf(
+                    segment(
+                        Point(0.0, 0.0),
+                        Point(1.0, 1.0),
+                        Point(2.0, 2.0),
+                        Point(3.0, 3.0),
+                        Point(4.0, 2.0),
+                        Point(5.0, 1.0),
+                        Point(6.0, 0.0),
+                    )
+                )
+            )
+        val simplified =
+            simplify(
+                alignment,
+                includeSegmentEndPoints = true,
+                bbox = boundingBoxAroundPoints(Point(0.0, 0.0), Point(6.0, 2.5)),
+            )
+        assertEquals(listOf(0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0), simplified.map { it.x })
+        assertEquals(listOf(0.0, 1.0, 2.0, 3.0, 2.0, 1.0, 0.0), simplified.map { it.y })
+    }
 }

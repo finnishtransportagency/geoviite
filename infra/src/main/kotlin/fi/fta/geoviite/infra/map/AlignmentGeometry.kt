@@ -186,8 +186,12 @@ fun <M : AlignmentM<M>> simplify(
                 bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
             }
 
-            rangesOfConsecutiveIndicesOf(true, s.segmentPoints.indices.map(bboxContains)).forEach { range ->
-                if (range.first > 0) {
+            val rangesInsideBox = rangesOfConsecutiveIndicesOf(true, s.segmentPoints.indices.map(bboxContains))
+            rangesInsideBox.forEachIndexed { rangeIndex, range ->
+                // show one point outside bbox so that alignment lines get drawn correctly all the way to the screen
+                // edge; but avoid duplicating it in the edge case that it's the *one* point outside the bbox,
+                // between two ranges within it
+                if (range.first > 0 && !(rangeIndex > 0 && range.first == rangesInsideBox[rangeIndex - 1].last + 2)) {
                     rv.add(s.segmentPoints[range.first - 1].toAlignmentPoint(m.min))
                 }
                 range.forEach { index ->
