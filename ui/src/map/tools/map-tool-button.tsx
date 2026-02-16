@@ -9,6 +9,7 @@ type MapToolButtonProps = {
     setActive: () => void;
     icon: IconComponent;
     disabled?: boolean;
+    hidden?: boolean;
 };
 
 export const MapToolButton = ({
@@ -16,12 +17,15 @@ export const MapToolButton = ({
     setActive,
     icon: IconComponent,
     disabled,
+    hidden,
 }: MapToolButtonProps): React.JSX.Element => {
     const iconClassName = createClassName(
         styles['map-tool-button-content__icon'],
         disabled && styles['map-tool-button-content__icon--disabled'],
     );
-    return (
+    return hidden ? (
+        <React.Fragment />
+    ) : (
         <Button
             variant={ButtonVariant.GHOST}
             size={ButtonSize.BY_CONTENT}
