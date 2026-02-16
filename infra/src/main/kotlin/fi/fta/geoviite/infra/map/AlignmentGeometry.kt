@@ -215,20 +215,3 @@ fun <M : AlignmentM<M>> simplify(
     }
     return if (rv.size >= 2) rv else listOf()
 }
-
-private fun <M : AlignmentM<M>> isPointIncluded(
-    index: Int,
-    m: LineM<M>,
-    isEndPoint: (index: Int) -> Boolean,
-    isOverResolution: (m: LineM<M>) -> Boolean,
-    bboxContains: (index: Int) -> Boolean,
-): Boolean {
-    val isInsideBbox = bboxContains(index)
-    return if (!isInsideBbox) {
-        // Outside the box, take the first points on either side to extend the line out
-        bboxContains(index - 1) || bboxContains(index + 1)
-    } else {
-        // Inside the box, take points by resolution + always include endpoints
-        isOverResolution(m) || isEndPoint(index)
-    }
-}
