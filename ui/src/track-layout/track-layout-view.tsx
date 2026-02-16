@@ -19,6 +19,7 @@ import { measurementTool } from 'map/tools/measurement-tool';
 import { ConfirmMoveToMainOfficialDialogContainer } from 'map/plan-download/confirm-move-to-main-official-dialog';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { LinkingType } from 'linking/linking-model';
+import { operationalPointAreaTool } from 'map/tools/operational-point-area-tool';
 
 export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
@@ -42,14 +43,18 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
         React.useState<HighlightedAlignment>();
     const [switchToOfficialDialogOpen, setSwitchToOfficialDialogOpen] = React.useState(false);
 
-    const mapTools = React.useMemo(
-        () =>
-            [selectOrHighlightComboTool, measurementTool].map((tool) => ({
-                ...tool,
-                disabled: isPlacingOperationalPointArea,
-            })),
-        [isPlacingOperationalPointArea],
-    );
+    const mapTools = React.useMemo(() => {
+        const selectableTools = [selectOrHighlightComboTool, measurementTool].map((tool) => ({
+            ...tool,
+            disabled: isPlacingOperationalPointArea,
+        }));
+        const operationalPointTool = {
+            ...operationalPointAreaTool,
+            disabled: !isPlacingOperationalPointArea,
+            hidden: !isPlacingOperationalPointArea,
+        };
+        return [...selectableTools, operationalPointTool];
+    }, [isPlacingOperationalPointArea]);
 
     return (
         <div className={className} qa-id="track-layout-content">

@@ -8,6 +8,8 @@ import {
 } from 'selection/selection-model';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import type * as CssType from 'csstype';
+import { LinkingState } from 'linking/linking-model';
+import { Polygon } from 'model/geometry';
 
 export type DeactivateToolFn = () => void;
 
@@ -16,12 +18,15 @@ export type MapToolActivateOptions = {
     onHighlightItems: OnHighlightItemsFunction;
     onHoverLocation: OnHoverLocationFunction;
     onClickLocation: OnClickLocationFunction;
+    onSetOperationalPointPolygon: (polygon: Polygon) => void;
+    linkingState: LinkingState | undefined;
 };
 
 export type MapToolProps = {
     isActive: boolean;
     setActiveTool: (tool: MapTool) => void;
     disabled?: boolean;
+    hidden?: boolean;
 };
 
 export type MapTool = {
@@ -35,4 +40,5 @@ export type MapToolWithButton = MapTool & {
     component: React.ComponentType<MapToolProps>;
     id: string;
     disabled?: boolean;
+    hidden?: boolean;
 };
