@@ -218,6 +218,25 @@ constructor(
         super.saveDraftInternal(branch, draftAsset, params).also { v ->
             locationTrackService.updateDependencies(branch, switchId = v.id, noUpdateLocationTracks = setOf())
         }
+
+    fun getSwitchesInArea(
+        layoutContext: LayoutContext,
+        bbox: BoundingBox,
+        maxSwitches: Int,
+        includeSwitchesWithNoJoints: Boolean,
+    ): SwitchAreaSummary {
+        val filter = switchFilter(bbox = bbox, includeSwitchesWithNoJoints = includeSwitchesWithNoJoints)
+        val allSwitches = listWithStructure(layoutContext, includeDeleted = false)
+        val filteredSwitches = allSwitches.filter(filter)
+        val totalCount = filteredSwitches.size
+        val switches =
+            if (totalCount <= maxSwitches) {
+                filteredSwitches.map { (switch, _) -> switch }
+            } else {
+                emptyList()
+            }
+        return SwitchAreaSummary(totalCount = totalCount, switches = switches)
+    }
 }
 
 fun pageSwitches(

@@ -6,17 +6,17 @@ import { compareByFields } from 'utils/array-utils';
 import { useTranslation } from 'react-i18next';
 
 type SwitchPanelProps = {
+    switchCount: number;
     switches: LayoutSwitch[];
     onToggleSwitchSelection: (layoutSwitchId: LayoutSwitchId) => void;
     selectedSwitches?: LayoutSwitchId[];
-    max?: number;
 };
 
 const SwitchPanel: React.FC<SwitchPanelProps> = ({
     switches,
+    switchCount,
     onToggleSwitchSelection,
     selectedSwitches,
-    max = 32,
 }: SwitchPanelProps) => {
     const { t } = useTranslation();
     const switchComparator = (s1: LayoutSwitch, s2: LayoutSwitch) =>
@@ -27,31 +27,32 @@ const SwitchPanel: React.FC<SwitchPanelProps> = ({
             (s) => s.id,
         );
     const sortedSwitches = [...switches].sort(switchComparator);
+    const shouldShowZoomMessage = switchCount > 0 && switches.length === 0;
+    const shouldShowNoResults = switchCount === 0;
 
     return (
         <div>
             <ol className={styles['switch-panel__switches']}>
-                {switches.length <= max &&
-                    sortedSwitches.map((switchItem) => {
-                        const isSelected = selectedSwitches?.some((p) => p === switchItem.id);
-                        return (
-                            <li key={switchItem.id}>
-                                <SwitchBadge
-                                    switchItem={switchItem}
-                                    onClick={() => onToggleSwitchSelection(switchItem.id)}
-                                    status={isSelected ? SwitchBadgeStatus.SELECTED : undefined}
-                                />
-                            </li>
-                        );
-                    })}
+                {sortedSwitches.map((switchItem) => {
+                    const isSelected = selectedSwitches?.some((p) => p === switchItem.id);
+                    return (
+                        <li key={switchItem.id}>
+                            <SwitchBadge
+                                switchItem={switchItem}
+                                onClick={() => onToggleSwitchSelection(switchItem.id)}
+                                status={isSelected ? SwitchBadgeStatus.SELECTED : undefined}
+                            />
+                        </li>
+                    );
+                })}
             </ol>
-            {switches.length > max && (
+            {shouldShowZoomMessage && (
                 <span className={styles['switch-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',
                 )}`}</span>
             )}
 
-            {switches.length === 0 && (
+            {shouldShowNoResults && (
                 <span className={styles['switch-panel__subtitle']}>{`${t(
                     'selection-panel.no-results',
                 )}`}</span>

@@ -194,4 +194,19 @@ class LayoutSwitchController(
             LayoutContext.of(branch, publicationState),
             operationalPointId,
         )
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/area-summary")
+    fun getSwitchesAreaSummary(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @RequestParam("bbox") bbox: BoundingBox,
+        @RequestParam("maxSwitches") maxSwitches: Int,
+        @RequestParam("includeSwitchesWithNoJoints") includeSwitchesWithNoJoints: Boolean = false,
+    ): SwitchAreaSummary {
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        return switchService.getSwitchesInArea(layoutContext, bbox, maxSwitches, includeSwitchesWithNoJoints)
+    }
 }
+
+data class SwitchAreaSummary(val totalCount: Int, val switches: List<LayoutSwitch>)

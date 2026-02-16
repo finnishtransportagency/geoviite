@@ -63,6 +63,7 @@ type SelectionPanelProps = {
     kmPosts: LayoutKmPost[];
     referenceLines: LayoutReferenceLine[];
     locationTracks: LayoutLocationTrack[];
+    switchCount: number;
     switches: LayoutSwitch[];
     operationalPoints: OperationalPoint[];
     viewport: MapViewport;
@@ -96,6 +97,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     kmPosts,
     referenceLines,
     locationTracks,
+    switchCount,
     switches,
     operationalPoints,
     viewport,
@@ -335,11 +337,12 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             </section>
             <section>
                 <h3 className={styles['selection-panel__title']}>
-                    {t('selection-panel.switches-title')} ({switches.length})
+                    {t('selection-panel.switches-title')} ({switchCount})
                 </h3>
                 <div className={styles['selection-panel__content']}>
                     <SwitchPanel
                         switches={switches}
+                        switchCount={switchCount}
                         selectedSwitches={selectedItems.switches}
                         onToggleSwitchSelection={onToggleSwitchSelection}
                     />

@@ -15,14 +15,7 @@ import {
     LayoutSwitchJointConnection,
     OperationalPointId,
 } from 'track-layout/track-layout-model';
-import {
-    deleteNonNull,
-    getNonNull,
-    getNullable,
-    postNonNull,
-    putNonNull,
-    queryParams,
-} from 'api/api-fetch';
+import { deleteNonNull, getNonNull, getNullable, postNonNull, putNonNull, queryParams, } from 'api/api-fetch';
 import {
     changeInfoUri,
     layoutUri,
@@ -31,11 +24,7 @@ import {
     TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
-import {
-    getChangeTimes,
-    updateLocationTrackChangeTime,
-    updateSwitchChangeTime,
-} from 'common/change-time-api';
+import { getChangeTimes, updateLocationTrackChangeTime, updateSwitchChangeTime, } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { LayoutSwitchSaveRequest } from 'linking/linking-model';
@@ -68,6 +57,27 @@ export async function getSwitchesByBoundingBox(
         includeSwitchesWithNoJoints: includeSwitchesWithNoJoints,
     });
     return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', layoutContext)}${params}`);
+}
+
+export type SwitchAreaSummary = {
+    switchCount: number;
+    switches: LayoutSwitch[];
+};
+
+export async function getSwitchesAreaSummary(
+    bbox: BoundingBox,
+    layoutContext: LayoutContext,
+    maxSwitches: number,
+    includeSwitchesWithNoJoints = false,
+): Promise<SwitchAreaSummary> {
+    const params = queryParams({
+        bbox: bboxString(bbox),
+        maxSwitches: maxSwitches.toString(),
+        includeSwitchesWithNoJoints: includeSwitchesWithNoJoints,
+    });
+    return await getNonNull<SwitchAreaSummary>(
+        `${layoutUri('switches', layoutContext)}/area-summary${params}`,
+    );
 }
 
 export async function getSwitchesByTile(
@@ -150,7 +160,8 @@ export async function updateSwitch(
     layoutContext: LayoutContext,
     deleteSwitchLinks?: boolean,
 ): Promise<LayoutSwitchId> {
-    const queryParams = deleteSwitchLinks !== undefined ? `?deleteSwitchLinks=${deleteSwitchLinks}` : '';
+    const queryParams =
+        deleteSwitchLinks !== undefined ? `?deleteSwitchLinks=${deleteSwitchLinks}` : '';
     const result = await putNonNull<LayoutSwitchSaveRequest, LayoutSwitchId>(
         `${layoutUri('switches', draftLayoutContext(layoutContext), id)}${queryParams}`,
         updatedSwitch,
