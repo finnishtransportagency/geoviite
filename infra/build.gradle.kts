@@ -112,6 +112,7 @@ dependencies {
         exclude("commons-collections", "commons-collections")
     }
     implementation("org.aspectj:aspectjweaver:1.9.24")
+    implementation("org.jgrapht:jgrapht-core:1.5.2")
     compileOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.5")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
