@@ -2,7 +2,7 @@ import React from 'react';
 import { Draw } from 'ol/interaction';
 import { Polygon as OlPolygon } from 'ol/geom';
 import { Feature } from 'ol';
-import { DeactivateToolFn, MapToolWithButton } from './tool-model';
+import { DeactivateToolFn, MapToolActivateOptions, MapToolWithButton } from './tool-model';
 import { LinkingType } from 'linking/linking-model';
 import { coordsToPolygon } from 'model/geometry';
 import { operationalPointPolygonStylesFunc } from 'map/layers/operational-point/operational-points-layer-utils';
@@ -12,7 +12,10 @@ import { MapToolButton } from 'map/tools/map-tool-button';
 
 export const operationalPointAreaTool: MapToolWithButton = {
     id: 'operational-point-area',
-    customCursor: 'crosshair',
+    customCursor: (options: MapToolActivateOptions) =>
+        options.linkingState?.type === 'PlacingOperationalPointArea' && !options.linkingState.area
+            ? 'crosshair'
+            : undefined,
     activate: (map, _, options): DeactivateToolFn => {
         const linkingState = options.linkingState;
         const onSetOperationalPointPolygon = options.onSetOperationalPointPolygon;

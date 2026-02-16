@@ -105,7 +105,6 @@ import { createOperationalPointsPlacingLayer } from 'map/layers/operational-poin
 import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
 import { createOperationalPointBadgeLayer } from 'map/layers/operational-point/operational-points-badge-layer';
 import { createSignalAssetLayer } from 'map/layers/ratko/signal-asset-layer';
-import type * as CssType from 'csstype';
 
 declare global {
     interface Window {
@@ -879,14 +878,16 @@ const MapView: React.FC<MapViewProps> = ({
 
     const mapClassNames = createClassName(styles.map);
 
-    const getCursor = (): CssType.Property.Cursor | undefined => {
-        // Check if active tool has a custom cursor (static or dynamic)
-        return activeTool?.customCursor ? activeTool.customCursor : undefined;
+    const customCursorFromActiveTool = () => {
+        if (!activeTool || !activeTool.customCursor) return undefined;
+        else
+            return typeof activeTool.customCursor === 'function'
+                ? activeTool.customCursor(toolActivateOptions)
+                : activeTool.customCursor;
     };
 
-    const customCursor = getCursor();
     const cssProperties = {
-        ...(customCursor ? { cursor: customCursor } : {}),
+        cursor: customCursorFromActiveTool(),
     };
     return (
         <div className={mapClassNames} style={cssProperties}>
