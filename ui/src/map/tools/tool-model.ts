@@ -13,6 +13,15 @@ import { Polygon } from 'model/geometry';
 
 export type DeactivateToolFn = () => void;
 
+type MapToolId =
+    | 'select'
+    | 'highlight'
+    | 'select-or-highlight'
+    | 'measure'
+    | 'point-location'
+    | 'area-select'
+    | 'operational-point-area';
+
 export type MapToolActivateOptions = {
     onSelect: OnSelectFunction;
     onHighlightItems: OnHighlightItemsFunction;
@@ -33,12 +42,11 @@ export type MapTool = {
     activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => DeactivateToolFn;
     customCursor?: CssType.Property.Cursor;
     component?: React.ComponentType<MapToolProps>;
-    id: string;
+    id: MapToolId;
 };
 
 export type MapToolWithButton = MapTool & {
     component: React.ComponentType<MapToolProps>;
-    id: string;
     disabled?: boolean;
     hidden?: boolean;
 };
