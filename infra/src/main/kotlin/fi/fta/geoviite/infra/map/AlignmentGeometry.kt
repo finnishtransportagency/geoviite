@@ -167,7 +167,7 @@ fun <M : AlignmentM<M>> simplify(
     includeSegmentEndPoints: Boolean,
 ): List<AlignmentPoint<M>> {
     val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segmentsWithM
-    var previousM = LineM<M>(Double.NEGATIVE_INFINITY)
+    var previousM = LineM<M>(0.0)
     val isOverResolution = { mValue: LineM<M> ->
         resolution?.let { r -> (mValue - previousM).distance.roundToInt() >= r } ?: true
     }
