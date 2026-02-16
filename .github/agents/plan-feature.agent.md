@@ -34,4 +34,6 @@ description: Focuses on planning feature with user
     - Check that the feature is selected
     - Check that an implementation plan file exists and has content
     - Implement by the implementation plan
-    - Don't mark implementation ready until user says so 
+    - Don't mark implementation ready until user says so
+    - Don't run spotless or other formatting tools for unmodified files
+    - Don't add code comments
