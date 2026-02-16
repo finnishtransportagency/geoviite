@@ -878,16 +878,8 @@ const MapView: React.FC<MapViewProps> = ({
 
     const mapClassNames = createClassName(styles.map);
 
-    const customCursorFromActiveTool = () => {
-        if (!activeTool || !activeTool.customCursor) return undefined;
-        else
-            return typeof activeTool.customCursor === 'function'
-                ? activeTool.customCursor(toolActivateOptions)
-                : activeTool.customCursor;
-    };
-
     const cssProperties = {
-        cursor: customCursorFromActiveTool(),
+        cursor: activeTool?.customCursor ? activeTool.customCursor(toolActivateOptions) : undefined,
     };
     return (
         <div className={mapClassNames} style={cssProperties}>
