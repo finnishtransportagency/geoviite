@@ -874,7 +874,7 @@ const MapView: React.FC<MapViewProps> = ({
                 setActiveTool(selectTool);
             }
         }
-    }, [linkingState, mapTools]);
+    }, [linkingState, mapTools, activeTool]);
 
     const mapClassNames = createClassName(styles.map);
 
