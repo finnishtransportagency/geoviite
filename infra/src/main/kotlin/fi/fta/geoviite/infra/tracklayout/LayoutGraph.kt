@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
@@ -70,22 +69,22 @@ data class SimplifiedEdgeData(val edges: List<DbEdgeData>) : GraphEdgeData() {
 
 data class LayoutGraph
 private constructor(
-    val context: LayoutContext,
     val detailLevel: DetailLevel,
     val nodes: Map<IntId<LayoutNode>, LayoutGraphNode>,
     val edges: Map<DomainId<LayoutEdge>, LayoutGraphEdge>,
 ) {
+    val key = Objects.hash(nodes.keys, edges.keys)
+
     private constructor(
-        context: LayoutContext,
         detailLevel: DetailLevel,
         edges: List<GraphEdgeData>,
-    ) : this(context, detailLevel, creteGraphNodes(edges), createGraphEdges(edges))
+    ) : this(detailLevel, creteGraphNodes(edges), createGraphEdges(edges))
 
     companion object {
-        fun of(context: LayoutContext, detailLevel: DetailLevel, edges: List<DbEdgeData>): LayoutGraph =
+        fun of(detailLevel: DetailLevel, edges: List<DbEdgeData>): LayoutGraph =
             when (detailLevel) {
-                NANO -> LayoutGraph(context, NANO, edges)
-                MICRO -> LayoutGraph(context, MICRO, simplifyEdgesToMicro(edges))
+                NANO -> LayoutGraph(NANO, edges)
+                MICRO -> LayoutGraph(MICRO, simplifyEdgesToMicro(edges))
             }
     }
 }
@@ -106,7 +105,16 @@ data class LayoutGraphEdge(
     val tracks: Set<IntId<LocationTrack>>,
 ) {
     constructor(edge: GraphEdgeData) : this(edge.id, edge.startNode.id, edge.endNode.id, edge.length, edge.tracks)
+
+    fun flip() = LayoutGraphEdge(flipId(id), endNode, startNode, length, tracks)
 }
+
+private fun <T> flipId(id: DomainId<T>): DomainId<T> =
+    when (id) {
+        is IntId -> StringId("R_${id.intValue}")
+        is StringId -> StringId("R_${id.stringValue.also { require(!it.startsWith("R_")) } }}")
+        else -> throw IllegalArgumentException("Unsupported id type for flipping: ${id::class}")
+    }
 
 data class LayoutGraphNode(
     val id: IntId<LayoutNode>,
