@@ -21,6 +21,7 @@ export type MapToolActivateOptions = {
 export type MapToolProps = {
     isActive: boolean;
     setActiveTool: (tool: MapTool) => void;
+    disabled?: boolean;
 };
 
 export type MapTool = {
@@ -33,4 +34,5 @@ export type MapTool = {
 export type MapToolWithButton = MapTool & {
     component: React.ComponentType<MapToolProps>;
     id: string;
+    disabled?: boolean;
 };

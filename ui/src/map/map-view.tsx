@@ -106,6 +106,7 @@ import { operationalPointPolygonStylesFunc } from 'map/layers/operational-point/
 import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
 import { createOperationalPointBadgeLayer } from 'map/layers/operational-point/operational-points-badge-layer';
 import { createSignalAssetLayer } from 'map/layers/ratko/signal-asset-layer';
+import type * as CssType from 'csstype';
 
 declare global {
     interface Window {
@@ -904,10 +905,34 @@ const MapView: React.FC<MapViewProps> = ({
         }
     }, [mapTools]);
 
+    React.useEffect(() => {
+        if (
+            linkingState?.type === 'PlacingOperationalPointArea' &&
+            mapTools &&
+            activeTool?.id !== 'select-or-highlight'
+        ) {
+            const selectTool = mapTools.find((tool) => tool.id === 'select-or-highlight');
+            if (selectTool) {
+                setActiveTool(selectTool);
+            }
+        }
+    }, [linkingState, mapTools, activeTool]);
+
     const mapClassNames = createClassName(styles.map);
 
+    const getCursor = (): CssType.Property.Cursor | undefined => {
+        // Operational point area operations always use crosshair cursor
+        if (linkingState?.type === 'PlacingOperationalPointArea' && !linkingState.area) {
+            return 'crosshair';
+        }
+
+        // Check if active tool has a custom cursor (static or dynamic)
+        return activeTool?.customCursor ? activeTool.customCursor : undefined;
+    };
+
+    const customCursor = getCursor();
     const cssProperties = {
-        ...(activeTool?.customCursor ? { cursor: activeTool.customCursor } : {}),
+        ...(customCursor ? { cursor: customCursor } : {}),
     };
     return (
         <div className={mapClassNames} style={cssProperties}>
@@ -915,12 +940,14 @@ const MapView: React.FC<MapViewProps> = ({
                 <ol className="map__map-tools">
                     {mapTools.map((tool) => {
                         const ToolComponent = tool.component;
+                        const isActive = activeTool?.id === tool.id;
 
                         return (
                             <ToolComponent
                                 key={tool.id}
-                                isActive={activeTool?.id === tool.id}
+                                isActive={isActive}
                                 setActiveTool={setActiveTool}
+                                disabled={tool.disabled && !isActive}
                             />
                         );
                     })}
