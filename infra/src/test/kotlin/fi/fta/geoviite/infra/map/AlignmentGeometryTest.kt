@@ -39,7 +39,7 @@ class AlignmentGeometryTest {
     }
 
     @Test
-    fun `resolution larger than alignment still includes track endpoints and second point`() {
+    fun `resolution larger than alignment still includes track endpoints`() {
         val alignment = edge(listOf(segment(Point(0.0, 0.0), Point(5.0, 0.0))))
         val result = simplify(alignment, resolution = 1000, includeSegmentEndPoints = true)
         // Track start and track end only
@@ -105,12 +105,6 @@ class AlignmentGeometryTest {
     @Test
     fun `bbox combined with resolution filters both spatially and by density`() {
         val alignment = edge(listOf(segment(Point(0.0, 0.0), Point(30.0, 0.0))))
-        val bboxOnly =
-            simplify(
-                alignment,
-                includeSegmentEndPoints = true,
-                bbox = boundingBoxAroundPoints(Point(10.0, -1.0), Point(20.0, 1.0)),
-            )
         val bboxAndResolution =
             simplify(
                 alignment,
@@ -118,10 +112,7 @@ class AlignmentGeometryTest {
                 includeSegmentEndPoints = true,
                 bbox = boundingBoxAroundPoints(Point(10.0, -1.0), Point(20.0, 1.0)),
             )
-        assertTrue(
-            bboxAndResolution.size < bboxOnly.size,
-            "Adding resolution should produce fewer points than bbox alone",
-        )
+        assertEquals(listOf(9.0, 10.0, 15.0, 20.0, 21.0), bboxAndResolution.map { it.x })
     }
 
     @Test
