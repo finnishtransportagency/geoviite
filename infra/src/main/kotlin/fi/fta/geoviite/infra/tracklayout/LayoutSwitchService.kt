@@ -235,7 +235,40 @@ constructor(
             } else {
                 emptyList()
             }
-        return SwitchAreaSummary(totalCount = totalCount, switches = switches)
+        return SwitchAreaSummary(switchCount = totalCount, switches = switches)
+    }
+
+    fun previewNameFixes(layoutContext: LayoutContext, bbox: BoundingBox): List<SwitchNameFixPreview> {
+        val filter = switchFilter(bbox = bbox, includeSwitchesWithNoJoints = false)
+        val allSwitches = listWithStructure(layoutContext, includeDeleted = false)
+        return allSwitches
+            .filter(filter)
+            .mapNotNull { (switch, _) ->
+                val fixedName = fixSwitchName(switch.name)
+                if (fixedName != switch.name) {
+                    SwitchNameFixPreview(
+                        switchId = switch.id as IntId,
+                        currentName = switch.name,
+                        fixedName = fixedName,
+                    )
+                } else {
+                    null
+                }
+            }
+            .sortedBy { preview -> preview.currentName }
+    }
+
+    @Transactional
+    fun fixSwitchNames(branch: LayoutBranch, switchIds: List<IntId<LayoutSwitch>>): List<IntId<LayoutSwitch>> {
+        return switchIds.map { id ->
+            val switch = dao.getOrThrow(branch.draft, id)
+            val fixedName = fixSwitchName(switch.name)
+            saveDraft(branch, switch.copy(name = fixedName)).id
+        }
+    }
+
+    private fun fixSwitchName(name: SwitchName): SwitchName {
+        return SwitchName(name.toString().replace(Regex("\\s{2,}"), " "))
     }
 }
 

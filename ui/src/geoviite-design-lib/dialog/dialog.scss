@@ -119,6 +119,10 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
     }
 }
 
+.dialog__content-padding {
+    padding: 0 $dialog-padding-horizontal;
+}
+
 .dialog__footer {
     display: flex;
     padding: $dialog-padding;

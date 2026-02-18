@@ -207,6 +207,32 @@ class LayoutSwitchController(
         val layoutContext = LayoutContext.of(branch, publicationState)
         return switchService.getSwitchesInArea(layoutContext, bbox, maxSwitches, includeSwitchesWithNoJoints)
     }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}/preview-name-fixes")
+    fun previewSwitchNameFixes(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @RequestParam("bbox") bbox: BoundingBox,
+    ): List<SwitchNameFixPreview> {
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        return switchService.previewNameFixes(layoutContext, bbox)
+    }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/{${LAYOUT_BRANCH}}/draft/fix-names")
+    fun fixSwitchNames(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody switchIds: List<IntId<LayoutSwitch>>,
+    ): List<IntId<LayoutSwitch>> {
+        return switchService.fixSwitchNames(branch, switchIds)
+    }
 }
 
-data class SwitchAreaSummary(val totalCount: Int, val switches: List<LayoutSwitch>)
+data class SwitchAreaSummary(val switchCount: Int, val switches: List<LayoutSwitch>)
+
+data class SwitchNameFixPreview(
+    val switchId: IntId<LayoutSwitch>,
+    val currentName: SwitchName,
+    val fixedName: SwitchName,
+)

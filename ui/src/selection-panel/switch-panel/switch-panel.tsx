@@ -19,6 +19,7 @@ const SwitchPanel: React.FC<SwitchPanelProps> = ({
     selectedSwitches,
 }: SwitchPanelProps) => {
     const { t } = useTranslation();
+
     const switchComparator = (s1: LayoutSwitch, s2: LayoutSwitch) =>
         compareByFields(
             s1,

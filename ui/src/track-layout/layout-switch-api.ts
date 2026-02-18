@@ -306,3 +306,31 @@ export type GeoviiteSwitchOidPresence = {
     stateCategory: LayoutStateCategory;
     name: string;
 };
+
+export type SwitchNameFixPreview = {
+    switchId: LayoutSwitchId;
+    currentName: string;
+    fixedName: string;
+};
+
+export async function previewSwitchNameFixes(
+    bbox: BoundingBox,
+    layoutContext: LayoutContext,
+): Promise<SwitchNameFixPreview[]> {
+    const params = queryParams({ bbox: bboxString(bbox) });
+    return await getNonNull<SwitchNameFixPreview[]>(
+        `${layoutUri('switches', layoutContext)}/preview-name-fixes${params}`,
+    );
+}
+
+export async function fixSwitchNames(
+    branch: LayoutBranch,
+    switchIds: LayoutSwitchId[],
+): Promise<LayoutSwitchId[]> {
+    const result = await postNonNull<LayoutSwitchId[], LayoutSwitchId[]>(
+        `${layoutUriByBranch('switches', branch)}/draft/fix-names`,
+        switchIds,
+    );
+    await updateSwitchChangeTime();
+    return result;
+}

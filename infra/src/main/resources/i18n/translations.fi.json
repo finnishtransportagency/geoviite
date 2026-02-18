@@ -2122,6 +2122,15 @@
             "transparent": "Ei väriä"
         }
     },
+    "fix-switch-names": {
+        "menu-item": "Korjaa vaihteiden nimet ({{count}})",
+        "dialog-title": "Korjaa vaihteiden nimet",
+        "count-message": "Haluatko korjata vaihteiden nimet seuraavasti ({{count}} kpl)?",
+        "confirm-button": "Korjaa nimet",
+        "cancel-button": "Peruuta",
+        "success-message": "Vaihteiden nimet korjattu ({{count}} kpl)",
+        "no-fixes-needed": "Vaihteiden nimet ovat kunnossa"
+    },
     "tool-bar": {
         "search-from-whole-network": "Hae koko rataverkolta...",
         "search-from-track": "Hae raiteelta {{track}}...",
