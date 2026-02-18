@@ -275,8 +275,12 @@ $button-animation-size-small: 12px;
 
     .button__icon-and-animation {
         width: 20px;
-        margin-right: 5px;
+        margin-right: 8px;
         margin-bottom: 0;
+    }
+
+    &.button--size-small .button__icon-and-animation {
+        margin-right: 4px;
     }
 }
 
@@ -290,13 +294,26 @@ $button-animation-size-small: 12px;
     .button__icon {
         opacity: 0;
     }
+
+    .button__icon-and-animation {
+        margin-right: 3px;
+    }
+
+    &.button--size-small .button__icon-and-animation {
+        margin-right: 0;
+    }
 }
 
 .button--has-animation.button--has-icon.button--no-label {
     padding-left: 8px;
 
-    &.button--size-small {
+    &.button--size-small,
+    &.button--size-x-small {
         padding-left: 5px;
+    }
+
+    .button__icon-and-animation {
+        margin-right: 0;
     }
 }
 
@@ -312,7 +329,8 @@ $button-animation-size-small: 12px;
     box-sizing: border-box;
 }
 
-.button--size-small .button__animation {
+.button--size-small .button__animation,
+.button--size-x-small .button__animation {
     width: $button-animation-size-small;
     height: $button-animation-size-small;
     margin-top: -$button-animation-size-small * 0.5;
