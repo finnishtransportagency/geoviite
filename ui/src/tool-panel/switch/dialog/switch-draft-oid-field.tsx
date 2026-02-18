@@ -1,13 +1,12 @@
 import styles from './switch-edit-dialog.scss';
 import React, { useState } from 'react';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
-import { Oid, TimeStamp } from 'common/common-model';
+import { Oid } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
-import { LoaderStatus, useLoaderWithStatus, useRateLimitedTwoPartEffect } from 'utils/react-utils';
+import { useRateLimitedTwoPartEffect } from 'utils/react-utils';
 import {
     GeoviiteSwitchOidPresence,
     getSwitchOidPresence,
-    getSwitchOids,
     SwitchOidPresence,
 } from 'track-layout/layout-switch-api';
 import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
@@ -51,8 +50,6 @@ const ExistingSwitchEditLink: React.FC<ExistingSwitchEditLinkProps> = ({
 };
 
 type SwitchDraftOidFieldProps = {
-    switchId: LayoutSwitchId | undefined;
-    changeTime: TimeStamp;
     draftOid: Oid;
     setDraftOid: (oid: Oid) => void;
     setDraftOidExistsInRatko: (exists: boolean) => void;
@@ -65,8 +62,6 @@ type SwitchDraftOidFieldProps = {
 };
 
 export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
-    switchId,
-    changeTime,
     draftOid,
     setDraftOid,
     setDraftOidExistsInRatko,
@@ -78,10 +73,6 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
     onEdit,
 }) => {
     const { t } = useTranslation();
-    const [existingSwitchOid, existingSwitchOidLoaderStatus] = useLoaderWithStatus(
-        () => switchId && getSwitchOids(switchId, changeTime).then((oids) => oids['MAIN']),
-        [switchId, changeTime],
-    );
 
     const [oidPresence, setOidPresence] = useState<SwitchOidPresence>();
     const [mostRecentlyCheckedOid, setMostRecentlyCheckedOid] = useState<Oid>();
@@ -179,47 +170,40 @@ export const SwitchDraftOidField: React.FC<SwitchDraftOidFieldProps> = ({
 
     const helpComponent = spinnerIfLoading ?? oidOkIndicator;
 
-    return existingSwitchOid !== undefined ||
-        existingSwitchOidLoaderStatus !== LoaderStatus.Ready ? (
-        <React.Fragment />
-    ) : (
-        <React.Fragment>
-            <FieldLayout
-                label={
-                    <div className={styles['switch-edit-dialog__switch-oid-label']}>
-                        <span>{`${t('switch-dialog.switch-draft-oid')} * `}</span>
-                        <Switch
-                            checked={editingOid}
-                            onCheckedChange={() => setEditingOid(!editingOid)}
-                            contentOrder={'CONTENT_FIRST'}>
-                            <span className={styles['switch-edit-dialog__switch-oid-switch-label']}>
-                                {t('switch-dialog.open-switch-draft-field')}
-                            </span>
-                        </Switch>
-                    </div>
-                }
-                errors={combinedErrors}
-                warnings={oidPresenceWarnings}
-                help={helpComponent}
-                value={
-                    <React.Fragment>
-                        <TextField
-                            qa-id="switch-draft-oid"
-                            value={editingOid ? draftOid : ''}
-                            disabled={!editingOid}
-                            ref={oidFieldRef}
-                            placeholder={
-                                !editingOid ? t('switch-dialog.switch-draft-oid-unset') : ''
-                            }
-                            onChange={(e) => setDraftOid(e.target.value)}
-                            hasError={isVisited && combinedErrors.length > 0}
-                            onBlur={visitField}
-                            wide
-                        />
-                    </React.Fragment>
-                }
-            />
-        </React.Fragment>
+    return (
+        <FieldLayout
+            label={
+                <div className={styles['switch-edit-dialog__switch-oid-label']}>
+                    <span>{`${t('switch-dialog.switch-draft-oid')} * `}</span>
+                    <Switch
+                        checked={editingOid}
+                        onCheckedChange={() => setEditingOid(!editingOid)}
+                        contentOrder={'CONTENT_FIRST'}>
+                        <span className={styles['switch-edit-dialog__switch-oid-switch-label']}>
+                            {t('switch-dialog.open-switch-draft-field')}
+                        </span>
+                    </Switch>
+                </div>
+            }
+            errors={combinedErrors}
+            warnings={oidPresenceWarnings}
+            help={helpComponent}
+            value={
+                <React.Fragment>
+                    <TextField
+                        qa-id="switch-draft-oid"
+                        value={editingOid ? draftOid : ''}
+                        disabled={!editingOid}
+                        ref={oidFieldRef}
+                        placeholder={!editingOid ? t('switch-dialog.switch-draft-oid-unset') : ''}
+                        onChange={(e) => setDraftOid(e.target.value)}
+                        hasError={isVisited && combinedErrors.length > 0}
+                        onBlur={visitField}
+                        wide
+                    />
+                </React.Fragment>
+            }
+        />
     );
 };
 
