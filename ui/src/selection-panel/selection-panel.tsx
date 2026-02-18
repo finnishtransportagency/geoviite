@@ -134,6 +134,9 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     const [showSwitchMenu, setShowSwitchMenu] = React.useState(false);
     const switchMenuRef = React.useRef<HTMLButtonElement>(null);
 
+    const fixSwitchNamesDisabled = switchCount === 0;
+    const showSwitchContextMenu = layoutContext.publicationState === 'DRAFT';
+
     const switchMenuOptions = [
         menuOption(
             () => {
@@ -142,6 +145,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             },
             t('fix-switch-names.menu-item', { count: switchCount }),
             'fix-switch-names',
+            fixSwitchNamesDisabled,
         ),
     ];
 
@@ -378,7 +382,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     <span className={styles['selection-panel__title-text']}>
                         {t('selection-panel.switches-title')} ({switchCount})
                     </span>
-                    {switchCount > 0 && (
+                    {showSwitchContextMenu && (
                         <PrivilegeRequired privilege={EDIT_LAYOUT}>
                             <Button
                                 ref={switchMenuRef}

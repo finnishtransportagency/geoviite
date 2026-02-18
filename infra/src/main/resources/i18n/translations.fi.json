@@ -2123,9 +2123,9 @@
         }
     },
     "fix-switch-names": {
-        "menu-item": "Korjaa vaihteiden nimet ({{count}})",
-        "dialog-title": "Korjaa vaihteiden nimet",
-        "count-message": "Haluatko korjata vaihteiden nimet seuraavasti ({{count}} kpl)?",
+        "menu-item": "Tarkasta vaihteiden nimet ({{count}} kpl)",
+        "dialog-title": "Vaihteiden nimien tarkastus",
+        "count-message": "Vaihteiden nimissä esiintyi korjattavaa. Korjataanko vaihteiden nimet seuraavasti ({{count}} muutosta)?",
         "confirm-button": "Korjaa nimet",
         "cancel-button": "Peruuta",
         "success-message": "Vaihteiden nimet korjattu ({{count}} kpl)",
