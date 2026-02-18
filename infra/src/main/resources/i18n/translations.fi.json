@@ -980,6 +980,7 @@
             "name": "Nimi",
             "abbreviation": "Lyhenne",
             "state": "Tila",
+            "rinf-code": "Tunnus (RINF)",
             "type-raide": "Tyyppi (RATO)",
             "type-rinf": "Tyyppi (RINF)",
             "uic-code": "UIC-koodi",
@@ -2361,12 +2362,17 @@
             "invalid-name": "Virheellinen nimi",
             "invalid-abbreviation": "Virheellinen lyhenne",
             "invalid-uic-code": "Virheellinen UIC-koodi",
+            "invalid-rinf-code": "Tunnuksen tulee alkaa kahdella isolla kirjaimella ja sisältää korkeintaan 10 numeroa",
+            "must-start-with-eu": "Tunnuksen täytyy alkaa etuliitteellä \"EU\"",
             "mandatory-field": "Pakollinen kenttä",
             "name-in-use": "Paikannuspohjassa on toinen toiminnallinen piste samalla nimellä",
             "name-in-use-deleted": "Paikannuspohjassa on poistettu toiminnallinen piste samalla nimellä",
             "abbreviation-in-use": "Lyhenne on jo käytössä",
             "uic-code-in-use": "UIC-koodi on jo käytössä"
-        }
+        },
+        "rinf-code": "Tunnus (RINF)",
+        "set-rinf-code-manually": "Aseta käsin",
+        "rinf-code-will-be-generated": "Asetetaan automaattisesti"
     },
     "licenses-page": {
         "title": "Lisenssitiedot",

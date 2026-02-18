@@ -467,6 +467,8 @@ export type OperationalPoint = {
     abbreviation?: string;
     uicCode: UICCode;
     rinfType?: OperationalPointRinfType;
+    rinfCodeGenerated?: string;
+    rinfCodeOverride?: string;
     raideType?: OperationalPointRaideType;
     location?: Point;
     polygon?: Polygon;

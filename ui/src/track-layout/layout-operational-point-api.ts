@@ -17,8 +17,8 @@ import {
     TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
 import { getChangeTimes, updateOperationalPointsChangeTime } from 'common/change-time-api';
-import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/internal-operational-point-edit-store';
-import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
+import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/dialog/internal-operational-point-edit-store';
+import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/dialog/external-operational-point-edit-store';
 import { Point, Polygon } from 'model/geometry';
 import { ValidatedOperationalPoint } from 'publication/publication-model';
 

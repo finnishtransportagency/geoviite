@@ -9,7 +9,7 @@ import { Dropdown, dropdownOption, DropdownOption } from 'vayla-design-lib/dropd
 import { operationalPointStates, rinfTypes } from 'utils/enum-localization-utils';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
+import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/dialog/operational-point-delete-draft-confirm-dialog';
 import {
     OperationalPoint,
     OperationalPointId,
@@ -22,7 +22,7 @@ import {
     InternalOperationalPointEditState,
     InternalOperationalPointSaveRequest,
     reducer,
-} from 'tool-panel/operational-point/internal-operational-point-edit-store';
+} from 'tool-panel/operational-point/dialog/internal-operational-point-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { UnknownAction } from 'redux';
 import {
@@ -36,16 +36,18 @@ import {
     insertOperationalPoint,
     updateInternalOperationalPoint,
 } from 'track-layout/layout-operational-point-api';
-import { LayoutContext, officialLayoutContext } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
-import { useOperationalPoint } from 'track-layout/track-layout-react-utils';
+import { OperationalPointRinfCodeField } from './operational-point-rinf-code-field';
+import { withConditionalRinfCodeOverride } from 'tool-panel/operational-point/operational-point-utils';
 
 type InternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint | undefined;
     layoutContext: LayoutContext;
     allOperationalPoints: OperationalPoint[];
+    isDraftOnly: boolean;
     onSave: (id: OperationalPointId) => void;
     onClose: () => void;
     onEditOperationalPoint: (operationalPoint: OperationalPointId) => void;
@@ -59,6 +61,7 @@ export const InternalOperationalPointEditDialog: React.FC<
     operationalPoint,
     layoutContext,
     allOperationalPoints,
+    isDraftOnly,
     onClose,
     onSave,
     onEditOperationalPoint,
@@ -76,14 +79,14 @@ export const InternalOperationalPointEditDialog: React.FC<
     );
 
     const isNew = !operationalPoint;
-    const officialOperationalPointExists = !!useOperationalPoint(
-        operationalPoint?.id,
-        officialLayoutContext(layoutContext),
-    );
 
     React.useEffect(() => {
         stateActions.onInit(operationalPoint);
     }, [operationalPoint]);
+
+    React.useEffect(() => {
+        stateActions.setEditingRinfCode(!isNew && !!operationalPoint.rinfCodeOverride);
+    }, [isNew, operationalPoint?.rinfCodeOverride]);
 
     const [deleteDraftConfirmDialogOpen, setShowDeleteDraftConfirmDialog] = React.useState(false);
     const [deleteOperationalPointConfirmDialogOpen, setDeleteOperationalPointConfirmDialogOpen] =
@@ -91,7 +94,7 @@ export const InternalOperationalPointEditDialog: React.FC<
     const [isSaving, setIsSaving] = React.useState(false);
 
     const stateOptions = operationalPointStates.map((s) =>
-        s.value !== 'DELETED' || officialOperationalPointExists ? s : { ...s, disabled: true },
+        s.value !== 'DELETED' || !isDraftOnly ? s : { ...s, disabled: true },
     );
     const rinfTypeOptions: DropdownOption<OperationalPointRinfType>[] = rinfTypes.map((value) =>
         dropdownOption(value.value, value.name, `rinf-type-option-${value}`),
@@ -150,9 +153,16 @@ export const InternalOperationalPointEditDialog: React.FC<
     const translateErrors = (errors: string[]): string[] =>
         errors.map((err) => t(`operational-point-dialog.validation.${err}`));
 
-    function saveNewOperationalPoint(newOperationalPoint: InternalOperationalPointSaveRequest) {
+    function saveNewOperationalPoint(
+        newOperationalPoint: InternalOperationalPointSaveRequest,
+        allowRinfCodeOverride: boolean,
+    ) {
         setIsSaving(true);
-        insertOperationalPoint(newOperationalPoint, layoutContext)
+        const saveRequest = withConditionalRinfCodeOverride(
+            newOperationalPoint,
+            allowRinfCodeOverride,
+        );
+        insertOperationalPoint(saveRequest, layoutContext)
             .then(
                 (opId) => {
                     onSave(opId);
@@ -167,9 +177,14 @@ export const InternalOperationalPointEditDialog: React.FC<
     function saveUpdatedOperationalPoint(
         id: OperationalPointId,
         updatedOperationalPoint: InternalOperationalPointSaveRequest,
+        allowRinfCodeOverride: boolean,
     ) {
         setIsSaving(true);
-        updateInternalOperationalPoint(id, updatedOperationalPoint, layoutContext)
+        const saveRequest = withConditionalRinfCodeOverride(
+            updatedOperationalPoint,
+            allowRinfCodeOverride,
+        );
+        updateInternalOperationalPoint(id, saveRequest, layoutContext)
             .then(
                 () => {
                     onSave(id);
@@ -183,8 +198,12 @@ export const InternalOperationalPointEditDialog: React.FC<
 
     const save = () =>
         isNew
-            ? saveNewOperationalPoint(state.operationalPoint)
-            : saveUpdatedOperationalPoint(operationalPoint.id, state.operationalPoint);
+            ? saveNewOperationalPoint(state.operationalPoint, state.editingRinfCode)
+            : saveUpdatedOperationalPoint(
+                  operationalPoint.id,
+                  state.operationalPoint,
+                  state.editingRinfCode,
+              );
 
     const saveOrConfirm = () =>
         state.operationalPoint.state === 'DELETED'
@@ -260,6 +279,19 @@ export const InternalOperationalPointEditDialog: React.FC<
                         <Heading size={HeadingSize.SUB}>
                             {t('operational-point-dialog.basic-info')}
                         </Heading>
+                        <OperationalPointRinfCodeField
+                            rinfCodeOverride={state.operationalPoint?.rinfCodeOverride ?? ''}
+                            rinfCodeGenerated={
+                                state.existingOperationalPoint?.rinfCodeGenerated ?? ''
+                            }
+                            onChange={(value) => updateProp('rinfCodeOverride', value)}
+                            editingRinfCode={state.editingRinfCode}
+                            onEditingRinfCodeChange={(editing) =>
+                                stateActions.setEditingRinfCode(editing)
+                            }
+                            disabled={!isDraftOnly}
+                            hasError={hasErrors('rinfCodeOverride')}
+                        />
                         <FieldLayout
                             label={`${t('operational-point-dialog.name')} *`}
                             value={

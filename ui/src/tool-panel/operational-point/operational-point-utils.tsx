@@ -6,6 +6,10 @@ import { useRateLimitedTwoPartEffect } from 'utils/react-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { indexIntoMap, partitionBy } from 'utils/array-utils';
 
+export type OperationalPointSaveRequestBase = {
+    rinfCodeOverride?: string;
+};
+
 export type UseLinkingHookResult<Id, T, ItemAssociation> = {
     isInitializing: boolean;
     itemAssociation: ItemAssociation | undefined;
@@ -235,3 +239,8 @@ export function formatLinkingToast(
 export const Hide: React.FC<React.PropsWithChildren<{ when: boolean }>> = ({ when, children }) => (
     <div style={{ display: 'contents', ...(when && { visibility: 'hidden' }) }}>{children}</div>
 );
+
+export const withConditionalRinfCodeOverride = <T,>(
+    request: T,
+    allowRinfCodeOverride: boolean,
+): T => (allowRinfCodeOverride ? request : { ...request, rinfCodeOverride: undefined });

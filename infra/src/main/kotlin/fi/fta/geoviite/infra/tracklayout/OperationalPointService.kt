@@ -52,6 +52,8 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao, privat
                 origin = OperationalPointOrigin.GEOVIITE,
                 ratkoVersion = null,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
+                rinfCodeOverride = request.rinfCodeOverride,
+                rinfCodeGenerated = null,
             ),
         )
 
@@ -76,6 +78,7 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao, privat
                     abbreviation = request.abbreviation?.toString()?.let(::OperationalPointAbbreviation),
                     uicCode = request.uicCode,
                     rinfType = request.rinfType,
+                    rinfCodeOverride = request.rinfCodeOverride,
                 ),
         )
 
@@ -94,7 +97,7 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao, privat
                             "Only operational points originating from Ratko can be updated with this method. pointId=$id"
                         )
                 }
-                .copy(rinfType = request.rinfType)),
+                .copy(rinfType = request.rinfType, rinfCodeOverride = request.rinfCodeOverride)),
         )
 
     @Transactional

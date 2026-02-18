@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.util.StringSanitizer
 import fi.fta.geoviite.infra.util.assertLength
+import fi.fta.geoviite.infra.util.assertSanitized
 
 data class OperationalPoint(
     val name: OperationalPointName,
@@ -21,6 +22,8 @@ data class OperationalPoint(
     val state: OperationalPointState,
     val origin: OperationalPointOrigin,
     val ratkoVersion: Int?,
+    val rinfCodeGenerated: RinfCode?,
+    val rinfCodeOverride: RinfCode?,
     @JsonIgnore override val contextData: LayoutContextData<OperationalPoint>,
 ) : LayoutAsset<OperationalPoint>(contextData) {
     override fun toLog(): String =
@@ -63,6 +66,19 @@ data class OperationalPointAbbreviation @JsonCreator(mode = DELEGATING) construc
         val allowedLength = 1..maxOperationalPointAbbreviationLength
 
         fun isSanitized(value: String) = value.length in allowedLength
+    }
+
+    @JsonValue override fun toString(): String = value
+}
+
+data class RinfCode @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
+    init {
+        assertLength(RinfCode::class, value, 1..20)
+        assertSanitized(RinfCode::class, value, Regex("^[A-Z]{2}[0-9]{1,10}\$"))
+    }
+
+    companion object {
+        val allowedLength = 1..20
     }
 
     @JsonValue override fun toString(): String = value
@@ -141,9 +157,10 @@ data class InternalOperationalPointSaveRequest(
     val rinfType: OperationalPointRinfType,
     val state: OperationalPointState,
     val uicCode: UicCode,
+    val rinfCodeOverride: RinfCode?,
 )
 
-data class ExternalOperationalPointSaveRequest(val rinfType: OperationalPointRinfType?)
+data class ExternalOperationalPointSaveRequest(val rinfType: OperationalPointRinfType?, val rinfCodeOverride: RinfCode?)
 
 enum class OperationalPointRinfType {
     STATION,

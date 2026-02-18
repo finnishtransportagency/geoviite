@@ -7,7 +7,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown, DropdownOption, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
+import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/dialog/operational-point-delete-draft-confirm-dialog';
 import {
     OperationalPoint,
     OperationalPointId,
@@ -22,7 +22,7 @@ import {
     ExternalOperationalPointSaveRequest,
     initialExternalOperationalPointEditState,
     reducer,
-} from 'tool-panel/operational-point/external-operational-point-edit-store';
+} from 'tool-panel/operational-point/dialog/external-operational-point-edit-store';
 import { UnknownAction } from 'redux';
 import {
     getVisibleErrorsByProp as getVisibleErrorsByPropGeneric,
@@ -34,17 +34,20 @@ import {
     deleteDraftOperationalPoint,
     updateExternalOperationalPoint,
 } from 'track-layout/layout-operational-point-api';
+import { OperationalPointRinfCodeField } from './operational-point-rinf-code-field';
+import { withConditionalRinfCodeOverride } from 'tool-panel/operational-point/operational-point-utils';
 
 type ExternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint;
     layoutContext: LayoutContext;
+    isDraftOnly: boolean;
     onSave: (id: OperationalPointId) => void;
     onClose: () => void;
 };
 
 export const ExternalOperationalPointEditDialog: React.FC<
     ExternalOperationalPointEditDialogProps
-> = ({ operationalPoint, layoutContext, onClose, onSave }) => {
+> = ({ operationalPoint, layoutContext, isDraftOnly, onClose, onSave }) => {
     const { t } = useTranslation();
 
     const [state, dispatcher] = React.useReducer<
@@ -56,6 +59,9 @@ export const ExternalOperationalPointEditDialog: React.FC<
     React.useEffect(() => {
         if (operationalPoint) stateActions.onOperationalPointLoaded(operationalPoint);
     }, [operationalPoint]);
+    React.useEffect(() => {
+        stateActions.setEditingRinfCode(isDraftOnly);
+    }, [isDraftOnly]);
 
     const [deleteDraftConfirmDialogOpen, setdeleteDraftConfirmDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
@@ -71,19 +77,27 @@ export const ExternalOperationalPointEditDialog: React.FC<
             (err) => t(`operational-point-dialog.validation.${err}`),
         );
 
-    const updateRinfType = (value: OperationalPointRinfType | undefined) =>
+    const updateProp = <K extends keyof ExternalOperationalPointSaveRequest>(
+        key: K,
+        value: ExternalOperationalPointSaveRequest[K],
+    ) =>
         stateActions.onUpdateProp({
-            key: 'rinfType',
-            value: value,
+            key,
+            value,
             editingExistingValue: !!state.operationalPoint,
         });
 
     const saveUpdatedOperationalPoint = (
         id: OperationalPointId,
         updatedOperationalPoint: ExternalOperationalPointSaveRequest,
+        allowRinfCodeOverride: boolean,
     ) => {
         setIsSaving(true);
-        updateExternalOperationalPoint(id, updatedOperationalPoint, layoutContext)
+        const saveRequest = withConditionalRinfCodeOverride(
+            updatedOperationalPoint,
+            allowRinfCodeOverride,
+        );
+        updateExternalOperationalPoint(id, saveRequest, layoutContext)
             .then(
                 () => {
                     onSave(id);
@@ -126,6 +140,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                                     saveUpdatedOperationalPoint(
                                         operationalPoint.id,
                                         state.operationalPoint,
+                                        state.editingRinfCode,
                                     )
                                 }>
                                 {t('button.save')}
@@ -138,6 +153,23 @@ export const ExternalOperationalPointEditDialog: React.FC<
                         <Heading size={HeadingSize.SUB}>
                             {t('operational-point-dialog.basic-info')}
                         </Heading>
+                        <OperationalPointRinfCodeField
+                            rinfCodeOverride={state.operationalPoint?.rinfCodeOverride ?? ''}
+                            rinfCodeGenerated={
+                                state.existingOperationalPoint?.rinfCodeGenerated ?? ''
+                            }
+                            onChange={(value) => updateProp('rinfCodeOverride', value)}
+                            editingRinfCode={state.editingRinfCode}
+                            onEditingRinfCodeChange={(editing) =>
+                                stateActions.setEditingRinfCode(editing)
+                            }
+                            disabled={!isDraftOnly}
+                            hasError={hasErrors(
+                                state.committedFields,
+                                state.validationIssues,
+                                'rinfCodeOverride',
+                            )}
+                        />
                         <FieldLayout
                             label={t('operational-point-dialog.name')}
                             value={state.existingOperationalPoint?.name}
@@ -165,7 +197,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                                             (o) => o.value === state.operationalPoint.rinfType,
                                         )?.value
                                     }
-                                    onChange={updateRinfType}
+                                    onChange={(value) => updateProp('rinfType', value)}
                                     onBlur={() => stateActions.onCommitField('rinfType')}
                                     hasError={hasErrors(
                                         state.committedFields,

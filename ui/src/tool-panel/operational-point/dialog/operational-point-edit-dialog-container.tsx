@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { OperationalPointId } from 'track-layout/track-layout-model';
-import { LayoutContext } from 'common/common-model';
-import { ExternalOperationalPointEditDialog } from 'tool-panel/operational-point/external-operational-point-edit-dialog';
-import { InternalOperationalPointEditDialog } from 'tool-panel/operational-point/internal-operational-point-edit-dialog';
-import { useLoader } from 'utils/react-utils';
+import { LayoutContext, officialLayoutContext } from 'common/common-model';
+import { ExternalOperationalPointEditDialog } from 'tool-panel/operational-point/dialog/external-operational-point-edit-dialog';
+import { InternalOperationalPointEditDialog } from 'tool-panel/operational-point/dialog/internal-operational-point-edit-dialog';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getAllOperationalPoints } from 'track-layout/layout-operational-point-api';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
@@ -23,16 +23,31 @@ export const OperationalPointEditDialogContainer: React.FC<
     >(operationalPointId);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
-    const allOperationalPoints = useLoader(
+    const [allOperationalPoints, allOperationalPointsFetchStatus] = useLoaderWithStatus(
         () => getAllOperationalPoints(layoutContext, changeTimes.operationalPoints),
         [layoutContext, changeTimes.operationalPoints],
     );
+    const [isDraftOnly, isDraftOnlyFetchStatus] = useLoaderWithStatus(
+        () =>
+            getAllOperationalPoints(
+                officialLayoutContext(layoutContext),
+                changeTimes.operationalPoints,
+            ).then(
+                (points) =>
+                    !points.some((official) => official.id === existingOperationalPointInEdit),
+            ),
+        [layoutContext, changeTimes.operationalPoints],
+    );
+
     const existingOperationalPointOrUndefined = allOperationalPoints?.find(
         (op) => op.id === existingOperationalPointInEdit,
     );
     const origin = existingOperationalPointOrUndefined?.origin;
 
-    if (!allOperationalPoints) {
+    if (
+        allOperationalPointsFetchStatus !== LoaderStatus.Ready &&
+        isDraftOnlyFetchStatus !== LoaderStatus.Ready
+    ) {
         return <React.Fragment />;
     } else {
         switch (origin) {
@@ -41,6 +56,7 @@ export const OperationalPointEditDialogContainer: React.FC<
                     <ExternalOperationalPointEditDialog
                         operationalPoint={expectDefined(existingOperationalPointOrUndefined)}
                         layoutContext={layoutContext}
+                        isDraftOnly={isDraftOnly ?? false}
                         onSave={onSave}
                         onClose={onClose}
                     />
@@ -51,7 +67,8 @@ export const OperationalPointEditDialogContainer: React.FC<
                     <InternalOperationalPointEditDialog
                         operationalPoint={existingOperationalPointOrUndefined}
                         onEditOperationalPoint={setExistingOperationalPointInEdit}
-                        allOperationalPoints={allOperationalPoints}
+                        allOperationalPoints={allOperationalPoints ?? []}
+                        isDraftOnly={isDraftOnly ?? false}
                         layoutContext={layoutContext}
                         onSave={onSave}
                         onClose={onClose}

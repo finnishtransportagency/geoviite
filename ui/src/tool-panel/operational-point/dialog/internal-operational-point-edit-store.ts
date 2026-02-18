@@ -14,6 +14,8 @@ import {
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
+import { validateRinfCode } from './operational-point-rinf-code-field';
+import { OperationalPointSaveRequestBase } from 'tool-panel/operational-point/operational-point-utils';
 
 export const UIC_CODE_REGEX = /^[0-9]+$/g;
 export const NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 _\-\\!?]+$/g;
@@ -21,7 +23,7 @@ const UIC_CODE_MAX_LENGTH = 20;
 const ABBREVIATION_MAX_LENGTH = 50;
 const NAME_MAX_LENGTH = 150;
 
-export type InternalOperationalPointSaveRequest = {
+export type InternalOperationalPointSaveRequest = OperationalPointSaveRequestBase & {
     name: string;
     abbreviation?: string;
     rinfType?: OperationalPointRinfType;
@@ -31,6 +33,7 @@ export type InternalOperationalPointSaveRequest = {
 
 function validateInternalOperationalPoint(
     saveRequest: InternalOperationalPointSaveRequest,
+    editingRinfCode: boolean,
 ): FieldValidationIssue<InternalOperationalPointSaveRequest>[] {
     const mandatoryFieldErrors: FieldValidationIssue<InternalOperationalPointSaveRequest>[] = [
         saveRequest.rinfType === undefined
@@ -84,6 +87,16 @@ function validateInternalOperationalPoint(
                 params: { max: NAME_MAX_LENGTH },
             },
         ),
+        editingRinfCode && saveRequest.rinfCodeOverride
+            ? validate<InternalOperationalPointSaveRequest>(
+                  validateRinfCode(saveRequest.rinfCodeOverride) === undefined,
+                  {
+                      field: 'rinfCodeOverride',
+                      reason: 'invalid-rinf-code',
+                      type: FieldValidationIssueType.ERROR,
+                  },
+              )
+            : undefined,
     ].filter(filterNotEmpty);
 
     return [...mandatoryFieldErrors, ...regexAndLengthErrors];
@@ -94,6 +107,7 @@ export type InternalOperationalPointEditState = {
     existingOperationalPoint?: OperationalPoint;
     isSaving: boolean;
     operationalPoint: InternalOperationalPointSaveRequest;
+    editingRinfCode: boolean;
     validationIssues: FieldValidationIssue<InternalOperationalPointSaveRequest>[];
     committedFields: (keyof InternalOperationalPointSaveRequest)[];
     allFieldsCommitted: boolean;
@@ -107,9 +121,11 @@ export const initialInternalOperationalPointEditState: InternalOperationalPointE
         name: '',
         abbreviation: undefined,
         rinfType: undefined,
+        rinfCodeOverride: undefined,
         state: 'IN_USE',
         uicCode: '',
     },
+    editingRinfCode: false,
     validationIssues: [],
     committedFields: [],
     allFieldsCommitted: false,
@@ -129,11 +145,16 @@ const internalOperationalPointEditSlice = createSlice({
                     name: existingOperationalPoint.name,
                     abbreviation: existingOperationalPoint.abbreviation,
                     rinfType: existingOperationalPoint.rinfType,
+                    rinfCodeOverride: existingOperationalPoint.rinfCodeOverride,
                     state: existingOperationalPoint.state,
                     uicCode: existingOperationalPoint.uicCode,
                 };
+                state.editingRinfCode = false;
             }
-            state.validationIssues = validateInternalOperationalPoint(state.operationalPoint);
+            state.validationIssues = validateInternalOperationalPoint(
+                state.operationalPoint,
+                state.editingRinfCode,
+            );
         },
         onUpdateProp: function <TKey extends keyof InternalOperationalPointSaveRequest>(
             state: InternalOperationalPointEditState,
@@ -144,10 +165,15 @@ const internalOperationalPointEditSlice = createSlice({
             if (state.operationalPoint) {
                 if (propEdit.key === 'abbreviation' && propEdit.value === '') {
                     state.operationalPoint.abbreviation = undefined;
+                } else if (propEdit.key === 'rinfCodeOverride' && propEdit.value === '') {
+                    state.operationalPoint.rinfCodeOverride = undefined;
                 } else {
                     state.operationalPoint[propEdit.key] = propEdit.value;
                 }
-                state.validationIssues = validateInternalOperationalPoint(state.operationalPoint);
+                state.validationIssues = validateInternalOperationalPoint(
+                    state.operationalPoint,
+                    state.editingRinfCode,
+                );
 
                 if (
                     isPropEditFieldCommitted(
@@ -167,9 +193,22 @@ const internalOperationalPointEditSlice = createSlice({
         ) {
             state.committedFields = [...state.committedFields, key];
         },
+        setEditingRinfCode: (
+            state: InternalOperationalPointEditState,
+            { payload: editing }: PayloadAction<boolean>,
+        ): void => {
+            state.editingRinfCode = editing;
+            state.validationIssues = validateInternalOperationalPoint(
+                state.operationalPoint,
+                state.editingRinfCode,
+            );
+        },
         validate: (state: InternalOperationalPointEditState): void => {
             if (state.operationalPoint) {
-                state.validationIssues = validateInternalOperationalPoint(state.operationalPoint);
+                state.validationIssues = validateInternalOperationalPoint(
+                    state.operationalPoint,
+                    state.editingRinfCode,
+                );
                 state.allFieldsCommitted = true;
             }
         },
