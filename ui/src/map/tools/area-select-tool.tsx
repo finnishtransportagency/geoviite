@@ -69,7 +69,7 @@ export function createAreaSelectTool(
 ): MapToolWithButton {
     return {
         id: 'area-select',
-        customCursor: 'crosshair',
+        customCursor: () => 'crosshair',
         activate: (map: OlMap, layers: MapLayer[]) => {
             const tooltipElement = document.createElement('div');
             tooltipElement.className = 'ol-tooltip-measure';
@@ -130,12 +130,13 @@ export function createAreaSelectTool(
                 map.removeOverlay(tooltip);
             };
         },
-        component: ({ isActive, setActiveTool }) => {
+        component: ({ isActive, setActiveTool, disabled }) => {
             return (
                 <MapToolButton
                     setActive={() => setActiveTool(createAreaSelectTool(onSelect))}
                     isActive={isActive}
                     icon={Icons.SelectArea}
+                    disabled={disabled}
                 />
             );
         },

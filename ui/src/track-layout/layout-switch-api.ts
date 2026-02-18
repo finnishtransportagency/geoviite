@@ -27,7 +27,7 @@ import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateLocationTrackChangeTime, updateSwitchChangeTime, } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
-import { LayoutSwitchSaveRequest } from 'linking/linking-model';
+import { LayoutSwitchSaveRequestBase, LayoutSwitchUpdateRequest } from 'linking/linking-model';
 import { filterNotEmpty, first, indexIntoMap } from 'utils/array-utils';
 import { ValidatedSwitch } from 'publication/publication-model';
 import { getMaxTimestamp } from 'utils/date-utils';
@@ -143,10 +143,10 @@ export async function getSwitchJointConnections(
 }
 
 export async function insertSwitch(
-    newSwitch: LayoutSwitchSaveRequest,
+    newSwitch: LayoutSwitchSaveRequestBase,
     layoutContext: LayoutContext,
 ): Promise<LayoutSwitchId> {
-    const result = await postNonNull<LayoutSwitchSaveRequest, LayoutSwitchId>(
+    const result = await postNonNull<LayoutSwitchSaveRequestBase, LayoutSwitchId>(
         layoutUri('switches', draftLayoutContext(layoutContext)),
         newSwitch,
     );
@@ -156,14 +156,11 @@ export async function insertSwitch(
 
 export async function updateSwitch(
     id: LayoutSwitchId,
-    updatedSwitch: LayoutSwitchSaveRequest,
+    updatedSwitch: LayoutSwitchUpdateRequest,
     layoutContext: LayoutContext,
-    deleteSwitchLinks?: boolean,
 ): Promise<LayoutSwitchId> {
-    const queryParams =
-        deleteSwitchLinks !== undefined ? `?deleteSwitchLinks=${deleteSwitchLinks}` : '';
-    const result = await putNonNull<LayoutSwitchSaveRequest, LayoutSwitchId>(
-        `${layoutUri('switches', draftLayoutContext(layoutContext), id)}${queryParams}`,
+    const result = await putNonNull<LayoutSwitchUpdateRequest, LayoutSwitchId>(
+        `${layoutUri('switches', draftLayoutContext(layoutContext), id)}`,
         updatedSwitch,
     );
     // Switch changes can also affect location track names & descriptions

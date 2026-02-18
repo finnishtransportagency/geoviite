@@ -36,33 +36,31 @@ export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
     }, [operationalPoints, max]);
 
     return (
-        <div>
-            <ul className={styles['operational-point-panel__operational-points']}>
-                {visibleOperationalPoints.map((op) => {
-                    const isSelected = selectedOperationalPoints?.some(
-                        (selectedOp) => selectedOp === op.id,
-                    );
-                    const containerClassName = createClassName(
-                        styles['operational-point-panel__item-container'],
-                        disabled && styles['operational-point-panel__item-container--disabled'],
-                        !disabled &&
-                            isSelected &&
-                            styles['operational-point-panel__item-container--selected'],
-                    );
+        <ol className={styles['operational-point-panel__operational-points']}>
+            {visibleOperationalPoints.map((op) => {
+                const isSelected = selectedOperationalPoints?.some(
+                    (selectedOp) => selectedOp === op.id,
+                );
+                const containerClassName = createClassName(
+                    styles['operational-point-panel__item-container'],
+                    disabled && styles['operational-point-panel__item-container--disabled'],
+                    !disabled &&
+                        isSelected &&
+                        styles['operational-point-panel__item-container--selected'],
+                );
 
-                    return (
-                        <li key={op.id} className={containerClassName}>
-                            <span
-                                onClick={() => onToggleOperationalPointSelection(op)}
-                                className={styles['operational-point-panel__item']}>
-                                <span className={styles['operational-point-panel__name']}>
-                                    {op.name}
-                                </span>
+                return (
+                    <li key={op.id} className={containerClassName}>
+                        <span
+                            onClick={() => onToggleOperationalPointSelection(op)}
+                            className={styles['operational-point-panel__item']}>
+                            <span className={styles['operational-point-panel__name']}>
+                                {op.name}
                             </span>
-                        </li>
-                    );
-                })}
-            </ul>
+                        </span>
+                    </li>
+                );
+            })}
             {visibleOperationalPoints.length > max && (
                 <span className={styles['operational-point-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',
@@ -74,6 +72,6 @@ export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
                     'selection-panel.no-results',
                 )}`}</span>
             )}
-        </div>
+        </ol>
     );
 };

@@ -113,7 +113,7 @@ class StationLinkService(
         operationalPoints: Map<IntId<OperationalPoint>, OperationalPoint>,
     ): List<TrackStationConnection> {
         val connectedOpIds =
-            geometry.trackSwitchLinks.mapNotNull { link -> switchIdToOpId[link.switchId] } + track.operationalPointIds
+            track.switchIds.mapNotNull { switchId -> switchIdToOpId[switchId] } + track.operationalPointIds
         return connectedOpIds
             .map { id -> requireNotNull(operationalPoints[id]) { "Operational point $id not found" } }
             .mapNotNull { op -> toTrackStationPoint(op, geometry) }

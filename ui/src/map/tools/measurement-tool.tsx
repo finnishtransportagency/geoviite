@@ -170,12 +170,13 @@ export const measurementTool: MapToolWithButton = {
         };
     },
 
-    component: ({ isActive, setActiveTool }) => {
+    component: ({ isActive, setActiveTool, disabled }) => {
         return (
             <MapToolButton
                 isActive={isActive}
                 setActive={() => setActiveTool(measurementTool)}
                 icon={Icons.Measure}
+                disabled={disabled}
             />
         );
     },
