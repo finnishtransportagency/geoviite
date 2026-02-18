@@ -3,9 +3,13 @@
 ## Overview
 This implementation plan details how to add a bulk switch name fixing tool to Geoviite. The implementation is divided into two phases as specified in the specs.
 
+## Status
+- ✅ **Phase 1 COMPLETE** - Switch display in selection panel modified
+- ⏳ **Phase 2 PENDING** - Name fixing tool/dialog
+
 ---
 
-## Phase 1: Modify Switch Display in Selection Panel
+## Phase 1: Modify Switch Display in Selection Panel ✅ COMPLETE
 
 ### Backend Changes
 
@@ -227,14 +231,15 @@ data class SwitchAreaSummary(
 
 **File:** `ui/src/selection-panel/switch-panel/fix-switch-names-dialog.tsx` (new file)
 
-**Why:** Dialog to preview and confirm switch name fixes.
+**Why:** Dialog to preview and confirm switch name fixes. This component owns the entire name-fixing flow including the backend call.
 
 **Details:**
 - Props:
   - `isOpen: boolean`
   - `onClose: () => void`
-  - `onConfirm: () => void`
+  - `onSuccess: () => void` - Callback when fixes are successfully applied (for refreshing parent data)
   - `previews: SwitchNameFixPreview[]`
+  - `layoutBranch: LayoutBranch` - Needed for the fix API call
 - UI elements:
   - Title: "Fix Switch Names"
   - Subtitle showing count: "X switch names will be fixed"
@@ -244,7 +249,15 @@ data class SwitchAreaSummary(
     - Fixed name (bold)
   - Buttons:
     - "Cancel" - closes dialog
-    - "Fix Names" - calls onConfirm, shows loading state
+    - "Fix Names" - handles the fix operation internally, shows loading state
+- Internal logic:
+  - When "Fix Names" clicked:
+    - Extract switch IDs from previews
+    - Call `fixSwitchNames` API with layoutBranch and switch IDs
+    - Show success notification
+    - Call `onSuccess()` callback
+    - Close dialog
+  - Handle error states with error notifications
 - Use existing dialog components from `geoviite-design-lib` if available
 
 #### 15. Add menu button to SwitchPanel header
@@ -263,19 +276,19 @@ data class SwitchAreaSummary(
 
 **File:** `ui/src/selection-panel/selection-panel.tsx`
 
-**Why:** Manage dialog state and orchestrate preview/fix flow.
+**Why:** Manage dialog state and preview data fetching.
 
 **Details:**
 - Add state for dialog open/closed
+- Add state for preview data
 - Add handler for opening dialog:
-  - Fetch preview using current viewport bbox
-  - Open dialog with preview data
-- Add handler for confirming fixes:
-  - Call `fixSwitchNames` API with switch IDs from preview
-  - Show success notification
-  - Close dialog
+  - Fetch preview using current viewport bbox and layoutContext
+  - Store preview data in state
+  - Open dialog
+- Add success handler (passed to dialog):
   - Refresh switch data
   - Update change times to trigger re-fetch
+  - Dialog will handle closing itself after calling this callback
 
 #### 17. Add translations
 
