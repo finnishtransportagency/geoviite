@@ -16,6 +16,7 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
+import { createRouteFindingTool } from 'map/tools/route-finding-tool';
 import { ConfirmMoveToMainOfficialDialogContainer } from 'map/plan-download/confirm-move-to-main-official-dialog';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { LinkingType } from 'linking/linking-model';
@@ -30,6 +31,8 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     showVerticalGeometryDiagram,
     enabled,
 }) => {
+    const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
+
     const className = createClassName(
         styles['track-layout'],
         showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
@@ -43,8 +46,13 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
         React.useState<HighlightedAlignment>();
     const [switchToOfficialDialogOpen, setSwitchToOfficialDialogOpen] = React.useState(false);
 
+    const routeFindingTool = React.useMemo(
+        () => createRouteFindingTool(layoutContext),
+        [layoutContext],
+    );
+
     const mapTools = React.useMemo(() => {
-        const selectableTools = [selectOrHighlightComboTool, measurementTool].map((tool) => ({
+        const selectableTools = [selectOrHighlightComboTool, measurementTool, routeFindingTool].map((tool) => ({
             ...tool,
             disabled: isPlacingOperationalPointArea,
         }));
