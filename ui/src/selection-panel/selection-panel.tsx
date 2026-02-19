@@ -131,7 +131,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
     const [fixNamesDialogOpen, setFixNamesDialogOpen] = React.useState(false);
     const [fixNamesPreviews, setFixNamesPreviews] = React.useState<SwitchNameFixPreview[]>([]);
-    const [showSwitchMenu, setShowSwitchMenu] = React.useState(false);
+    const [switchMenuOpen, setSwitchMenuOpen] = React.useState(false);
     const switchMenuRef = React.useRef<HTMLButtonElement>(null);
 
     const fixSwitchNamesDisabled = switchCount === 0;
@@ -140,7 +140,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     const switchMenuOptions = [
         menuOption(
             () => {
-                setShowSwitchMenu(false);
+                setSwitchMenuOpen(false);
                 handleOpenFixNamesDialog();
             },
             t('fix-switch-names.menu-item', { count: switchCount }),
@@ -389,16 +389,16 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                                 variant={ButtonVariant.GHOST}
                                 size={ButtonSize.SMALL}
                                 icon={Icons.More}
-                                onClick={() => setShowSwitchMenu(!showSwitchMenu)}
+                                onClick={() => setSwitchMenuOpen(!switchMenuOpen)}
                             />
-                            {showSwitchMenu && (
+                            {switchMenuOpen && (
                                 <Menu
                                     anchorElementRef={
                                         switchMenuRef as React.MutableRefObject<HTMLElement | null>
                                     }
                                     items={switchMenuOptions}
-                                    onClickOutside={() => setShowSwitchMenu(false)}
-                                    onClose={() => setShowSwitchMenu(false)}
+                                    onClickOutside={() => setSwitchMenuOpen(false)}
+                                    onClose={() => setSwitchMenuOpen(false)}
                                 />
                             )}
                         </PrivilegeRequired>
