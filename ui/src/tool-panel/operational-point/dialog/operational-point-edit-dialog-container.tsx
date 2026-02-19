@@ -56,7 +56,6 @@ export const OperationalPointEditDialogContainer: React.FC<
                     <ExternalOperationalPointEditDialog
                         operationalPoint={expectDefined(existingOperationalPointOrUndefined)}
                         layoutContext={layoutContext}
-                        isDraftOnly={isDraftOnly ?? false}
                         onSave={onSave}
                         onClose={onClose}
                     />

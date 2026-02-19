@@ -148,7 +148,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                     <InfoboxField
                         qaId="operational-point-rinf-code"
                         label={t('tool-panel.operational-point.rinf-code')}
-                        value={operationalPoint.rinfCode}
+                        value={operationalPoint.rinfCode ?? t('tool-panel.operational-point.unset')}
                     />
                     <InfoboxField
                         qaId="operational-point-name"

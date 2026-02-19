@@ -289,7 +289,6 @@ export const InternalOperationalPointEditDialog: React.FC<
                             onEditingRinfCodeChange={(editing) =>
                                 stateActions.setEditingRinfCode(editing)
                             }
-                            disabled={!isDraftOnly}
                             hasError={hasErrors('rinfCodeOverride')}
                         />
                         <FieldLayout

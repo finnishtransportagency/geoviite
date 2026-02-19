@@ -40,14 +40,13 @@ import { withConditionalRinfCodeOverride } from 'tool-panel/operational-point/op
 type ExternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint;
     layoutContext: LayoutContext;
-    isDraftOnly: boolean;
     onSave: (id: OperationalPointId) => void;
     onClose: () => void;
 };
 
 export const ExternalOperationalPointEditDialog: React.FC<
     ExternalOperationalPointEditDialogProps
-> = ({ operationalPoint, layoutContext, isDraftOnly, onClose, onSave }) => {
+> = ({ operationalPoint, layoutContext, onClose, onSave }) => {
     const { t } = useTranslation();
 
     const [state, dispatcher] = React.useReducer<
@@ -60,8 +59,8 @@ export const ExternalOperationalPointEditDialog: React.FC<
         if (operationalPoint) stateActions.onOperationalPointLoaded(operationalPoint);
     }, [operationalPoint]);
     React.useEffect(() => {
-        stateActions.setEditingRinfCode(isDraftOnly);
-    }, [isDraftOnly]);
+        stateActions.setEditingRinfCode(!!operationalPoint.rinfCodeOverride);
+    }, [operationalPoint.rinfCodeOverride]);
 
     const [deleteDraftConfirmDialogOpen, setdeleteDraftConfirmDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
@@ -163,7 +162,6 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             onEditingRinfCodeChange={(editing) =>
                                 stateActions.setEditingRinfCode(editing)
                             }
-                            disabled={!isDraftOnly}
                             hasError={hasErrors(
                                 state.committedFields,
                                 state.validationIssues,

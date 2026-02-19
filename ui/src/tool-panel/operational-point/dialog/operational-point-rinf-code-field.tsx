@@ -23,7 +23,6 @@ type OperationalPointRinfCodeFieldProps = {
     onChange: (value: string) => void;
     editingRinfCode: boolean;
     onEditingRinfCodeChange: (editing: boolean) => void;
-    disabled: boolean;
     hasError: boolean;
 };
 
@@ -33,7 +32,6 @@ export const OperationalPointRinfCodeField: React.FC<OperationalPointRinfCodeFie
     onChange,
     editingRinfCode,
     onEditingRinfCodeChange,
-    disabled,
     hasError,
 }) => {
     const { t } = useTranslation();
@@ -60,7 +58,6 @@ export const OperationalPointRinfCodeField: React.FC<OperationalPointRinfCodeFie
                     <Switch
                         checked={editingRinfCode}
                         onCheckedChange={() => onEditingRinfCodeChange(!editingRinfCode)}
-                        disabled={disabled}
                         contentOrder={'CONTENT_FIRST'}>
                         <span
                             className={
