@@ -16,7 +16,9 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
+import { createRouteFindingTool } from 'map/tools/route-finding-tool';
 import { ConfirmMoveToMainOfficialDialogContainer } from 'map/plan-download/confirm-move-to-main-official-dialog';
+import { useTrackLayoutAppSelector } from 'store/hooks';
 
 export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
@@ -27,6 +29,8 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     showVerticalGeometryDiagram,
     enabled,
 }) => {
+    const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
+
     const className = createClassName(
         styles['track-layout'],
         showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
@@ -35,6 +39,11 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
     const [switchToOfficialDialogOpen, setSwitchToOfficialDialogOpen] = React.useState(false);
+
+    const routeFindingTool = React.useMemo(
+        () => createRouteFindingTool(layoutContext),
+        [layoutContext],
+    );
 
     return (
         <div className={className} qa-id="track-layout-content">
@@ -64,7 +73,11 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                             <MapContext.Provider value="track-layout">
                                 <MapViewContainer
                                     hoveredOverPlanSection={hoveredOverPlanSection}
-                                    mapTools={[selectOrHighlightComboTool, measurementTool]}
+                                    mapTools={[
+                                        selectOrHighlightComboTool,
+                                        measurementTool,
+                                        routeFindingTool,
+                                    ]}
                                     customActiveMapTool={selectOrHighlightComboTool}
                                 />
                             </MapContext.Provider>
