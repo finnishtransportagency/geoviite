@@ -21,7 +21,7 @@ private fun createGraph(
 ): LayoutGraph {
     val edgeData =
         tracks
-            .flatMap { (track, geom) -> geom.edges.map { e -> e to (track.id as IntId) } }
+            .flatMap { (track, geom) -> geom.edgesWithM.map { (e, m) -> e to TrackSection(track.id as IntId, m) } }
             .groupBy { it.first.id }
             .map { (_, edgesAndTrackIds) ->
                 DbEdgeData(edgesAndTrackIds[0].first, edgesAndTrackIds.map { it.second }.toSet())

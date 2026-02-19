@@ -311,7 +311,7 @@ class LayoutAlignmentDao(
             }
         val nodes = getNodes(edges.flatMap { d -> listOf(d.startNode.first, d.endNode.first) }.toSet())
         val geometries = fetchSegmentGeometries(edges.flatMap { d -> d.segments.map { s -> s.geometryId } }.distinct())
-        return createEdges(edges, nodes, geometries).associateBy { e -> e.id }
+        return createRoutingConnections(edges, nodes, geometries).associateBy { e -> e.id }
     }
 
     private fun saveEdges(
@@ -1445,7 +1445,7 @@ fun parseSegmentPointLineString(
 private fun parseNullableDoubleList(listString: String?): List<Double?>? =
     listString?.split(",")?.map(String::toDoubleOrNull)
 
-private fun createEdges(
+private fun createRoutingConnections(
     edgeResults: List<EdgeData>,
     nodes: Map<IntId<LayoutNode>, DbLayoutNode>,
     geometries: Map<IntId<SegmentGeometry>, SegmentGeometry>,
