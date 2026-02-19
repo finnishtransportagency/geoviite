@@ -1755,7 +1755,7 @@
                 "reference-to-location-track-duplicate-of": {
                     "not-published": "Raiteen duplikaattiustieto viittaa raiteeseen {{target}}, joka ei ole mukana julkaisussa",
                     "cancelled": "Raiteen duplikaattiustieto viittaa suunnitelmasta peruttuun  raiteeseen {{target}}",
-                    "deleted": "Raiteen duplikaattiustieto viittaa raiteeseen {{target}} joka on tilassa \"Poistettu\""
+                    "deleted": "Raiteen duplikaattiustieto viittaa poistettuun raiteeseen {{target}}"
                 },
                 "reference-from-location-track-duplicate-of": {
                     "cancelled": "Suunnitelmassa on olemassa muita raiteita, jotka on merkitty tämän raiteen duplikaatiksi: {{referrers}}. Duplikaattiussuhde pitää purkaa tai näiden raiteiden luominen perua.",
