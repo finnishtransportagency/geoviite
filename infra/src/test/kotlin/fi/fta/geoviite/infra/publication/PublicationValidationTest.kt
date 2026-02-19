@@ -1388,10 +1388,7 @@ class PublicationValidationTest {
         assertContainsError(
             hasError,
             validateReferencesToTrackNumber(
-                AssetLiveness(
-                    trackNumber.number.toString(),
-                    if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
-                ),
+                if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
                 referenceLine,
                 kmPosts,
                 locationTracks,
