@@ -5,34 +5,24 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import styles from './operational-point-edit-dialog.scss';
 
-const RINF_CODE_REGEX = /^[A-Z]{2}[0-9]{0,10}$/;
-
-export function validateRinfCode(value: string): string | undefined {
-    if (!value.startsWith('EU')) {
-        return 'must-start-with-eu';
-    }
-    if (!RINF_CODE_REGEX.test(value)) {
-        return 'invalid-rinf-code';
-    }
-    return undefined;
-}
-
 type OperationalPointRinfCodeFieldProps = {
     rinfCodeGenerated: string;
     rinfCodeOverride: string;
     onChange: (value: string) => void;
+    onCommitField: (fieldName: string) => void;
     editingRinfCode: boolean;
     onEditingRinfCodeChange: (editing: boolean) => void;
-    hasError: boolean;
+    errors: string[];
 };
 
 export const OperationalPointRinfCodeField: React.FC<OperationalPointRinfCodeFieldProps> = ({
     rinfCodeGenerated,
     rinfCodeOverride,
-    onChange,
     editingRinfCode,
+    onChange,
+    onCommitField,
     onEditingRinfCodeChange,
-    hasError,
+    errors,
 }) => {
     const { t } = useTranslation();
     const fieldRef = React.useRef<HTMLInputElement>(null);
@@ -43,12 +33,7 @@ export const OperationalPointRinfCodeField: React.FC<OperationalPointRinfCodeFie
         }
     }, [editingRinfCode]);
 
-    const validationError = validateRinfCode(rinfCodeOverride);
-
-    const errors =
-        hasError && validationError
-            ? [t(`operational-point-dialog.validation.${validationError}`)]
-            : [];
+    const errorStrings = errors.map((err) => t(`operational-point-dialog.validation.${err}`));
 
     return (
         <FieldLayout
@@ -68,20 +53,21 @@ export const OperationalPointRinfCodeField: React.FC<OperationalPointRinfCodeFie
                     </Switch>
                 </div>
             }
-            errors={errors}
+            errors={errorStrings}
             value={
                 <TextField
                     qa-id="operational-point-rinf-code"
                     value={editingRinfCode ? rinfCodeOverride : rinfCodeGenerated}
                     disabled={!editingRinfCode}
                     ref={fieldRef}
+                    onBlur={() => onCommitField('name')}
                     placeholder={
                         !editingRinfCode
                             ? t('operational-point-dialog.rinf-code-will-be-generated')
                             : ''
                     }
                     onChange={(e) => onChange(e.target.value)}
-                    hasError={hasError}
+                    hasError={errorStrings.length > 0}
                     wide
                 />
             }

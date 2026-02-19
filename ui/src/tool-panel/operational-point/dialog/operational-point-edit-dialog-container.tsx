@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { OperationalPointId } from 'track-layout/track-layout-model';
+import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
 import { LayoutContext, officialLayoutContext } from 'common/common-model';
 import { ExternalOperationalPointEditDialog } from 'tool-panel/operational-point/dialog/external-operational-point-edit-dialog';
 import { InternalOperationalPointEditDialog } from 'tool-panel/operational-point/dialog/internal-operational-point-edit-dialog';
@@ -14,6 +14,8 @@ type OperationalPointEditDialogContainerProps = {
     onSave: (id: OperationalPointId) => void;
     onClose: () => void;
 };
+
+const isNotItself = (op: OperationalPoint, id: OperationalPointId | undefined) => op.id !== id;
 
 export const OperationalPointEditDialogContainer: React.FC<
     OperationalPointEditDialogContainerProps
@@ -43,6 +45,10 @@ export const OperationalPointEditDialogContainer: React.FC<
         (op) => op.id === existingOperationalPointInEdit,
     );
     const origin = existingOperationalPointOrUndefined?.origin;
+    const allOtherOperationalPoints =
+        allOperationalPoints?.filter((op) =>
+            isNotItself(op, existingOperationalPointOrUndefined?.id),
+        ) ?? [];
 
     if (
         allOperationalPointsFetchStatus !== LoaderStatus.Ready &&
@@ -56,6 +62,7 @@ export const OperationalPointEditDialogContainer: React.FC<
                     <ExternalOperationalPointEditDialog
                         operationalPoint={expectDefined(existingOperationalPointOrUndefined)}
                         layoutContext={layoutContext}
+                        allOtherOperationalPoints={allOtherOperationalPoints}
                         onSave={onSave}
                         onClose={onClose}
                     />
@@ -66,7 +73,7 @@ export const OperationalPointEditDialogContainer: React.FC<
                     <InternalOperationalPointEditDialog
                         operationalPoint={existingOperationalPointOrUndefined}
                         onEditOperationalPoint={setExistingOperationalPointInEdit}
-                        allOperationalPoints={allOperationalPoints ?? []}
+                        allOtherOperationalPoints={allOtherOperationalPoints}
                         isDraftOnly={isDraftOnly ?? false}
                         layoutContext={layoutContext}
                         onSave={onSave}

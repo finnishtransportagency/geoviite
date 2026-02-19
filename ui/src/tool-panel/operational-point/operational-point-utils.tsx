@@ -4,7 +4,8 @@ import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-
 import { ChangeTimes } from 'common/common-slice';
 import { useRateLimitedTwoPartEffect } from 'utils/react-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
-import { indexIntoMap, partitionBy } from 'utils/array-utils';
+import { filterNotEmpty, indexIntoMap, partitionBy } from 'utils/array-utils';
+import { FieldValidationIssue, FieldValidationIssueType, validate } from 'utils/validation-utils';
 
 export type OperationalPointSaveRequestBase = {
     rinfCodeOverride?: string;
@@ -240,7 +241,39 @@ export const Hide: React.FC<React.PropsWithChildren<{ when: boolean }>> = ({ whe
     <div style={{ display: 'contents', ...(when && { visibility: 'hidden' }) }}>{children}</div>
 );
 
+const RINF_CODE_REGEX = /^[A-Z]{2}[0-9]{0,10}$/;
+
 export const withConditionalRinfCodeOverride = <T,>(
     request: T,
     allowRinfCodeOverride: boolean,
 ): T => (allowRinfCodeOverride ? request : { ...request, rinfCodeOverride: undefined });
+
+export const validateRinfCodeOverride = (
+    rinfCodeOverride: string | undefined,
+): FieldValidationIssue<OperationalPointSaveRequestBase>[] =>
+    [
+        validate<OperationalPointSaveRequestBase>(
+            rinfCodeOverride === undefined || rinfCodeOverride.startsWith('EU'),
+            {
+                field: 'rinfCodeOverride',
+                reason: 'rinf-code-must-start-with-eu',
+                type: FieldValidationIssueType.ERROR,
+            },
+        ),
+        validate<OperationalPointSaveRequestBase>(
+            rinfCodeOverride === undefined || RINF_CODE_REGEX.test(rinfCodeOverride),
+            {
+                field: 'rinfCodeOverride',
+                reason: 'invalid-rinf-code',
+                type: FieldValidationIssueType.ERROR,
+            },
+        ),
+        validate<OperationalPointSaveRequestBase>(
+            !!rinfCodeOverride && rinfCodeOverride.length > 0,
+            {
+                field: 'rinfCodeOverride',
+                reason: 'mandatory-field',
+                type: FieldValidationIssueType.ERROR,
+            },
+        ),
+    ].filter(filterNotEmpty);

@@ -14,8 +14,10 @@ import {
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { validateRinfCode } from './operational-point-rinf-code-field';
-import { OperationalPointSaveRequestBase } from 'tool-panel/operational-point/operational-point-utils';
+import {
+    OperationalPointSaveRequestBase,
+    validateRinfCodeOverride,
+} from 'tool-panel/operational-point/operational-point-utils';
 
 export const UIC_CODE_REGEX = /^[0-9]+$/g;
 export const NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 _\-\\!?]+$/g;
@@ -87,19 +89,14 @@ function validateInternalOperationalPoint(
                 params: { max: NAME_MAX_LENGTH },
             },
         ),
-        editingRinfCode && saveRequest.rinfCodeOverride
-            ? validate<InternalOperationalPointSaveRequest>(
-                  validateRinfCode(saveRequest.rinfCodeOverride) === undefined,
-                  {
-                      field: 'rinfCodeOverride',
-                      reason: 'invalid-rinf-code',
-                      type: FieldValidationIssueType.ERROR,
-                  },
-              )
-            : undefined,
     ].filter(filterNotEmpty);
+    const rinfCodeErrors = editingRinfCode
+        ? validateRinfCodeOverride(saveRequest.rinfCodeOverride)
+        : [];
 
-    return [...mandatoryFieldErrors, ...regexAndLengthErrors];
+    return [...mandatoryFieldErrors, ...regexAndLengthErrors, ...rinfCodeErrors].filter(
+        filterNotEmpty,
+    );
 }
 
 export type InternalOperationalPointEditState = {

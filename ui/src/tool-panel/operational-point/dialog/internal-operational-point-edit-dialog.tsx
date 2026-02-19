@@ -46,21 +46,19 @@ import { withConditionalRinfCodeOverride } from 'tool-panel/operational-point/op
 type InternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint | undefined;
     layoutContext: LayoutContext;
-    allOperationalPoints: OperationalPoint[];
+    allOtherOperationalPoints: OperationalPoint[];
     isDraftOnly: boolean;
     onSave: (id: OperationalPointId) => void;
     onClose: () => void;
     onEditOperationalPoint: (operationalPoint: OperationalPointId) => void;
 };
 
-const isNotItself = (op: OperationalPoint, id: OperationalPointId | undefined) => op.id !== id;
-
 export const InternalOperationalPointEditDialog: React.FC<
     InternalOperationalPointEditDialogProps
 > = ({
     operationalPoint,
     layoutContext,
-    allOperationalPoints,
+    allOtherOperationalPoints,
     isDraftOnly,
     onClose,
     onSave,
@@ -73,10 +71,6 @@ export const InternalOperationalPointEditDialog: React.FC<
         [action: UnknownAction]
     >(reducer, initialInternalOperationalPointEditState);
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
-
-    const allOtherOperationalPoints = allOperationalPoints.filter((op) =>
-        isNotItself(op, operationalPoint?.id),
-    );
 
     const isNew = !operationalPoint;
 
@@ -129,6 +123,13 @@ export const InternalOperationalPointEditDialog: React.FC<
             !!state.operationalPoint.uicCode &&
             isEqualIgnoreCase(operationalPoint.uicCode, state.operationalPoint.uicCode),
     );
+    const duplicateRinfCodePoint = allOtherOperationalPoints?.find(
+        (operationalPoint) =>
+            operationalPoint.state !== 'DELETED' &&
+            !!state.operationalPoint?.rinfCodeOverride &&
+            !!operationalPoint.rinfCode &&
+            isEqualIgnoreCase(operationalPoint.rinfCode, state.operationalPoint.rinfCodeOverride),
+    );
 
     const hasErrors = (fieldName: keyof InternalOperationalPointSaveRequest) =>
         hasErrorsGeneric(state.committedFields, state.validationIssues, fieldName);
@@ -148,6 +149,11 @@ export const InternalOperationalPointEditDialog: React.FC<
     const visibleUicCodeErrors = [
         ...getVisibleErrorsByProp('uicCode'),
         duplicateUicCodePoint !== undefined ? 'uic-code-in-use' : undefined,
+    ].filter(filterNotEmpty);
+
+    const visibleRinfCodeErrors = [
+        ...getVisibleErrorsByProp('rinfCodeOverride'),
+        duplicateRinfCodePoint !== undefined ? 'rinf-code-in-use' : undefined,
     ].filter(filterNotEmpty);
 
     const translateErrors = (errors: string[]): string[] =>
@@ -234,6 +240,7 @@ export const InternalOperationalPointEditDialog: React.FC<
         !duplicateNamePoint &&
         !duplicateAbbreviationPoint &&
         !duplicateUicCodePoint &&
+        !duplicateRinfCodePoint &&
         !state.validationIssues.some((issue) => issue.type === FieldValidationIssueType.ERROR);
 
     return (
@@ -285,11 +292,12 @@ export const InternalOperationalPointEditDialog: React.FC<
                                 state.existingOperationalPoint?.rinfCodeGenerated ?? ''
                             }
                             onChange={(value) => updateProp('rinfCodeOverride', value)}
+                            onCommitField={actions.onCommitField}
                             editingRinfCode={state.editingRinfCode}
                             onEditingRinfCodeChange={(editing) =>
                                 stateActions.setEditingRinfCode(editing)
                             }
-                            hasError={hasErrors('rinfCodeOverride')}
+                            errors={visibleRinfCodeErrors}
                         />
                         <FieldLayout
                             label={`${t('operational-point-dialog.name')} *`}

@@ -12,8 +12,10 @@ import {
 } from 'utils/validation-utils';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { filterNotEmpty } from 'utils/array-utils';
-import { validateRinfCode } from './operational-point-rinf-code-field';
-import { OperationalPointSaveRequestBase } from 'tool-panel/operational-point/operational-point-utils';
+import {
+    OperationalPointSaveRequestBase,
+    validateRinfCodeOverride,
+} from 'tool-panel/operational-point/operational-point-utils';
 
 export type ExternalOperationalPointSaveRequest = OperationalPointSaveRequestBase & {
     rinfType?: OperationalPointRinfType;
@@ -57,19 +59,11 @@ const validateExternalOperationalPoint = (
         },
     );
 
-    const rinfCodeValidation =
-        editingRinfCode && saveRequest.rinfCodeOverride
-            ? validate<ExternalOperationalPointSaveRequest>(
-                  validateRinfCode(saveRequest.rinfCodeOverride) === undefined,
-                  {
-                      field: 'rinfCodeOverride',
-                      reason: 'invalid-rinf-code',
-                      type: FieldValidationIssueType.ERROR,
-                  },
-              )
-            : undefined;
+    const rinfCodeValidation = editingRinfCode
+        ? validateRinfCodeOverride(saveRequest.rinfCodeOverride)
+        : [];
 
-    return [rinfTypeMissing, rinfCodeValidation].filter(filterNotEmpty);
+    return [rinfTypeMissing, ...rinfCodeValidation].filter(filterNotEmpty);
 };
 
 const internalOperationalPointEditSlice = createSlice({
