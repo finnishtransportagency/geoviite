@@ -2363,12 +2363,13 @@
             "invalid-abbreviation": "Virheellinen lyhenne",
             "invalid-uic-code": "Virheellinen UIC-koodi",
             "invalid-rinf-code": "Tunnuksen tulee alkaa kahdella isolla kirjaimella ja sisältää korkeintaan 10 numeroa",
-            "must-start-with-eu": "Tunnuksen täytyy alkaa etuliitteellä \"EU\"",
+            "rinf-code-must-start-with-eu": "Tunnuksen täytyy alkaa etuliitteellä \"EU\"",
             "mandatory-field": "Pakollinen kenttä",
             "name-in-use": "Paikannuspohjassa on toinen toiminnallinen piste samalla nimellä",
             "name-in-use-deleted": "Paikannuspohjassa on poistettu toiminnallinen piste samalla nimellä",
             "abbreviation-in-use": "Lyhenne on jo käytössä",
-            "uic-code-in-use": "UIC-koodi on jo käytössä"
+            "uic-code-in-use": "UIC-koodi on jo käytössä",
+            "rinf-code-in-use": "Tunnus on jo käytössä"
         },
         "rinf-code": "Tunnus (RINF)",
         "set-rinf-code-manually": "Aseta käsin",

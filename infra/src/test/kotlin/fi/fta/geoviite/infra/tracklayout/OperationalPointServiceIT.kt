@@ -279,7 +279,7 @@ constructor(
         operationalPointService.update(
             LayoutBranch.main,
             point,
-            ExternalOperationalPointSaveRequest(OperationalPointRinfType.SMALL_STATION),
+            ExternalOperationalPointSaveRequest(OperationalPointRinfType.SMALL_STATION, null),
         )
 
         // initially we have a pending update of the operational point's Ratko version to publish; as well as the
@@ -301,6 +301,7 @@ constructor(
         rinfType: OperationalPointRinfType = OperationalPointRinfType.SMALL_STATION,
         state: OperationalPointState = OperationalPointState.IN_USE,
         uicCode: String = "10101",
+        rinfCodeOverride: RinfCode? = null,
     ) =
         InternalOperationalPointSaveRequest(
             OperationalPointInputName(name),
@@ -308,8 +309,11 @@ constructor(
             rinfType,
             state,
             UicCode(uicCode),
+            rinfCodeOverride,
         )
 
-    private fun externalPointSaveRequest(rinfType: OperationalPointRinfType = OperationalPointRinfType.SMALL_STATION) =
-        ExternalOperationalPointSaveRequest(rinfType)
+    private fun externalPointSaveRequest(
+        rinfType: OperationalPointRinfType = OperationalPointRinfType.SMALL_STATION,
+        rinfCodeOverride: RinfCode? = null,
+    ) = ExternalOperationalPointSaveRequest(rinfType, rinfCodeOverride)
 }

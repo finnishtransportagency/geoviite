@@ -159,6 +159,7 @@ class OperationalPointDao(
 
     @Transactional
     fun insertRatkoPoint(id: IntId<OperationalPoint>, ratkoPointVersion: Int): LayoutRowVersion<OperationalPoint> {
+        val rinfCode = getNextRinfCode()
         val sql =
             """
             insert into
@@ -169,7 +170,8 @@ class OperationalPointDao(
                 layout_context_id,
                 state,
                 origin,
-                ratko_operational_point_version
+                ratko_operational_point_version,
+                rinf_code_generated
             )
             values (
               :id,
@@ -178,7 +180,8 @@ class OperationalPointDao(
               'main_draft',
               'IN_USE',
               'RATKO',
-              :ratko_operational_point_version
+              :ratko_operational_point_version,
+              :rinf_code_generated
             )
             returning id, design_id, draft, version
             """
@@ -188,7 +191,11 @@ class OperationalPointDao(
         val response: LayoutRowVersion<OperationalPoint> =
             jdbcTemplate.queryForObject(
                 sql,
-                mapOf("id" to id.intValue, "ratko_operational_point_version" to ratkoPointVersion),
+                mapOf(
+                    "id" to id.intValue,
+                    "ratko_operational_point_version" to ratkoPointVersion,
+                    "rinf_code_generated" to rinfCode.toString(),
+                ),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save operational point")
@@ -198,9 +205,7 @@ class OperationalPointDao(
 
     @Transactional
     override fun save(item: OperationalPoint, params: NoParams): LayoutRowVersion<OperationalPoint> {
-        val isNew = item.version == null
-        val id = if (isNew) createId() else item.id as IntId
-        val generatedRinfCode = if (isNew) getNextRinfCode() else item.rinfCodeGenerated
+        val id = item.id as? IntId ?: createId()
 
         val sql =
             """
@@ -279,7 +284,7 @@ class OperationalPointDao(
                 "rinf_type" to item.rinfType?.name,
                 "ratko_operational_point_version" to item.ratkoVersion,
                 "rinf_code_override" to item.rinfCodeOverride?.toString(),
-                "rinf_code_generated" to generatedRinfCode?.toString(),
+                "rinf_code_generated" to item.rinfCodeGenerated?.toString(),
             )
         val originParams =
             when (item.origin) {
