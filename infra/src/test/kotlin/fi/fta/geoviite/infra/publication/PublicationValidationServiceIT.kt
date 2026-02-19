@@ -801,7 +801,7 @@ constructor(
             mapOf("alignments" to alignments, "switch" to switchName),
         )
 
-    private fun switchNotPublishedError(switchName: String, locationTrackName: String) =
+    private fun switchNotPublishedError(switchName: String) =
         LayoutValidationIssue(
             LayoutValidationIssueType.ERROR,
             "validation.layout.location-track.reference-to-switch.not-published",
