@@ -53,7 +53,7 @@ class OperationalPointService(val operatingPointDao: OperationalPointDao, privat
                 ratkoVersion = null,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
                 rinfCodeOverride = request.rinfCodeOverride,
-                rinfCodeGenerated = dao.getNextRinfCode(),
+                rinfCodeGenerated = null,
             ),
         )
 

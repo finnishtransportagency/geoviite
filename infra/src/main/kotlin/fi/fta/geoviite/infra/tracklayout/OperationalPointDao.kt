@@ -159,7 +159,6 @@ class OperationalPointDao(
 
     @Transactional
     fun insertRatkoPoint(id: IntId<OperationalPoint>, ratkoPointVersion: Int): LayoutRowVersion<OperationalPoint> {
-        val rinfCode = getNextRinfCode()
         val sql =
             """
             insert into
@@ -181,7 +180,7 @@ class OperationalPointDao(
               'IN_USE',
               'RATKO',
               :ratko_operational_point_version,
-              :rinf_code_generated
+              layout.generate_rinf_code()
             )
             returning id, design_id, draft, version
             """
@@ -191,11 +190,7 @@ class OperationalPointDao(
         val response: LayoutRowVersion<OperationalPoint> =
             jdbcTemplate.queryForObject(
                 sql,
-                mapOf(
-                    "id" to id.intValue,
-                    "ratko_operational_point_version" to ratkoPointVersion,
-                    "rinf_code_generated" to rinfCode.toString(),
-                ),
+                mapOf("id" to id.intValue, "ratko_operational_point_version" to ratkoPointVersion),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save operational point")
@@ -248,7 +243,7 @@ class OperationalPointDao(
               :origin::layout.operational_point_origin,
               :ratko_operational_point_version,
               :rinf_code_override,
-              :rinf_code_generated
+              coalesce(:rinf_code_generated, layout.generate_rinf_code())
             )
             on conflict (id, layout_context_id) do update set
               design_asset_state = excluded.design_asset_state,
@@ -263,7 +258,7 @@ class OperationalPointDao(
               polygon = excluded.polygon,
               ratko_operational_point_version = excluded.ratko_operational_point_version,
               rinf_code_override = excluded.rinf_code_override,
-              rinf_code_generated = excluded.rinf_code_generated
+              rinf_code_generated = operational_point.rinf_code_generated
             returning id, design_id, draft, version
             """
                 .trimIndent()
@@ -466,13 +461,6 @@ class OperationalPointDao(
                 OperationalPointGeometryQuality(polygonContainsLocation, polygonIsSimple)
             else null
         }
-    }
-
-    fun getNextRinfCode(): RinfCode {
-        val sql = "select layout.generate_rinf_code() as rinf_code"
-        return jdbcTemplate.queryForObject(sql, emptyMap<String, Any>()) { rs, _ ->
-            rs.getString("rinf_code").let(::RinfCode)
-        } ?: throw IllegalStateException("Failed to generate RINF code")
     }
 
     @Transactional
