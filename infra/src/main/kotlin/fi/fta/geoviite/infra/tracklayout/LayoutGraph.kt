@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.DetailLevel.MICRO
 import fi.fta.geoviite.infra.tracklayout.DetailLevel.NANO
 import java.util.*
@@ -14,17 +15,43 @@ enum class DetailLevel {
     MICRO,
 }
 
+data class TrackSection(val id: IntId<LocationTrack>, val mRange: Range<LineM<LocationTrackM>>) {
+    val length: Double
+        get() = (mRange.max - mRange.min).distance
+
+    fun cutFrom(startM: LineM<LocationTrackM>): TrackSection {
+        require(mRange.contains(startM)) { "Track section cut outside range: cut=$startM range=$mRange" }
+        return copy(mRange = Range(startM, mRange.max))
+    }
+
+    fun cutUntil(endM: LineM<LocationTrackM>): TrackSection {
+        require(mRange.contains(endM)) { "Track section cut outside range: cut=$endM range=$mRange" }
+        return copy(mRange = Range(mRange.min, endM))
+    }
+
+    companion object {
+        fun of(sections: List<TrackSection>): TrackSection? =
+            if (sections.size <= 1) sections.firstOrNull()
+            else {
+                require(sections.all { s -> s.id == sections[0].id }) {
+                    "Combined sections must have the same track id"
+                }
+                TrackSection(sections[0].id, Range(sections.minOf { it.mRange.min }, sections.maxOf { it.mRange.max }))
+            }
+    }
+}
+
 sealed class GraphEdgeData {
     abstract val id: DomainId<LayoutEdge>
     abstract val startNode: DbNodeConnection
     abstract val endNode: DbNodeConnection
-    abstract val tracks: Set<IntId<LocationTrack>>
+    abstract val tracks: Set<TrackSection>
     abstract val length: Double
     abstract val start: Point
     abstract val end: Point
 }
 
-data class DbEdgeData(val edge: DbLayoutEdge, override val tracks: Set<IntId<LocationTrack>>) : GraphEdgeData() {
+data class DbEdgeData(val edge: DbLayoutEdge, override val tracks: Set<TrackSection>) : GraphEdgeData() {
     override val id: DomainId<LayoutEdge>
         get() = edge.id
 
@@ -50,8 +77,8 @@ data class SimplifiedEdgeData(val edges: List<DbEdgeData>) : GraphEdgeData() {
     override val endNode: DbNodeConnection
         get() = edges.last().endNode
 
-    override val tracks: Set<IntId<LocationTrack>>
-        get() = edges.flatMap { e -> e.tracks }.toSet()
+    override val tracks: Set<TrackSection>
+        get() = edges.flatMap { e -> e.tracks.groupBy { it.id }.values.mapNotNull { TrackSection.of(it) } }.toSet()
 
     override val length: Double by lazy { edges.sumOf { e -> e.length } }
 
@@ -102,7 +129,7 @@ data class LayoutGraphEdge(
     val startNode: IntId<LayoutNode>,
     val endNode: IntId<LayoutNode>,
     val length: Double,
-    val tracks: Set<IntId<LocationTrack>>,
+    val tracks: Set<TrackSection>,
 ) {
     constructor(edge: GraphEdgeData) : this(edge.id, edge.startNode.id, edge.endNode.id, edge.length, edge.tracks)
 
