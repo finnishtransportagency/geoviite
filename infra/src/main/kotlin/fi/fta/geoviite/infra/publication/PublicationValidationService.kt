@@ -430,7 +430,6 @@ constructor(
                     validateKmPostReferences(
                         kmPost,
                         context.getTrackNumberLiveness(kmPost.trackNumberId),
-                        trackNumber?.referenceLineId?.let(context::getReferenceLineLiveness),
                     )
 
             val geocodingIssues =

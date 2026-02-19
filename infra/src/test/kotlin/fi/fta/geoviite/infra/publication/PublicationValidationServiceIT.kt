@@ -175,7 +175,7 @@ constructor(
 
         val validation =
             publicationValidationService.validateKmPosts(LayoutBranch.main, OFFICIAL, listOf(kmPostId)).first()
-        assertEquals(validation.errors.size, 1)
+        assertEquals(validation.errors.size, 0)
     }
 
     @Test
@@ -2096,8 +2096,7 @@ constructor(
                 .save(
                     switch(
                         name = switchName,
-                        joints =
-                            listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
                     )
                 )
                 .id

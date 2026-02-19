@@ -256,26 +256,12 @@ fun validateOperationalPointPolygonOverlap(
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,
     trackNumberLiveness: AssetLiveness<LayoutTrackNumber>,
-    referenceLineLiveness: AssetLiveness<ReferenceLine>?,
 ): List<LayoutValidationIssue> =
     validateReferenceLivenessFromKmPost(
         "$VALIDATION_KM_POST.reference-to-track-number",
         trackNumberLiveness,
         listOf(kmPost),
-    ) +
-        (if (referenceLineLiveness == null)
-            listOf(
-                validationError(
-                    "$VALIDATION_KM_POST.reference-to-reference-line.not-published",
-                    localizationParams("trackNumber" to trackNumberLiveness.assetName),
-                )
-            )
-        else
-            validateReferenceLivenessFromKmPost(
-                "$VALIDATION_KM_POST.reference-to-reference-line",
-                referenceLineLiveness,
-                listOf(kmPost),
-            ))
+    )
 
 fun validateKmPostNumberDuplication(
     kmPost: LayoutKmPost,
