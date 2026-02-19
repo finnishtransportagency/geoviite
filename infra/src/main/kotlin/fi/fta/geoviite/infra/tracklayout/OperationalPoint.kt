@@ -33,6 +33,8 @@ data class OperationalPoint(
         copy(contextData = contextData)
 
     @JsonIgnore val exists = !state.isRemoved()
+
+    val rinfCode = rinfCodeOverride ?: rinfCodeGenerated
 }
 
 const val maxOperationalPointNameLength = 150
