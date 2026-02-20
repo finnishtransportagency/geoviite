@@ -8,7 +8,7 @@ import styles from './operational-point-edit-dialog.scss';
 type OperationalPointRinfCodeFieldProps = {
     rinfCodeGenerated: string;
     rinfCodeOverride: string;
-    onChange: (value: string) => void;
+    onUpdateRinfCode: (rinfCode: string) => void;
     onCommitField: (fieldName: string) => void;
     editingRinfCode: boolean;
     onEditingRinfCodeChange: (editing: boolean) => void;
@@ -19,7 +19,7 @@ export const OperationalPointRinfCodeField: React.FC<OperationalPointRinfCodeFie
     rinfCodeGenerated,
     rinfCodeOverride,
     editingRinfCode,
-    onChange,
+    onUpdateRinfCode,
     onCommitField,
     onEditingRinfCodeChange,
     errors,
@@ -60,13 +60,13 @@ export const OperationalPointRinfCodeField: React.FC<OperationalPointRinfCodeFie
                     value={editingRinfCode ? rinfCodeOverride : rinfCodeGenerated}
                     disabled={!editingRinfCode}
                     ref={fieldRef}
-                    onBlur={() => onCommitField('name')}
+                    onBlur={() => onCommitField('rinfCodeOverride')}
                     placeholder={
                         !editingRinfCode
                             ? t('operational-point-dialog.rinf-code-will-be-generated')
                             : ''
                     }
-                    onChange={(e) => onChange(e.target.value)}
+                    onChange={(e) => onUpdateRinfCode(e.target.value)}
                     hasError={errorStrings.length > 0}
                     wide
                 />

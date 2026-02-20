@@ -243,6 +243,14 @@ export const InternalOperationalPointEditDialog: React.FC<
         !duplicateRinfCodePoint &&
         !state.validationIssues.some((issue) => issue.type === FieldValidationIssueType.ERROR);
 
+    const onUpdateRinfCode = (rinfCode: string) => {
+        stateActions.onUpdateProp({
+            key: 'rinfCodeOverride',
+            value: rinfCode,
+            editingExistingValue: !isNew && !!state.existingOperationalPoint?.rinfCodeOverride,
+        });
+    };
+
     return (
         <React.Fragment>
             <Dialog
@@ -291,8 +299,8 @@ export const InternalOperationalPointEditDialog: React.FC<
                             rinfCodeGenerated={
                                 state.existingOperationalPoint?.rinfCodeGenerated ?? ''
                             }
-                            onChange={(value) => updateProp('rinfCodeOverride', value)}
-                            onCommitField={actions.onCommitField}
+                            onUpdateRinfCode={onUpdateRinfCode}
+                            onCommitField={stateActions.onCommitField}
                             editingRinfCode={state.editingRinfCode}
                             onEditingRinfCodeChange={(editing) =>
                                 stateActions.setEditingRinfCode(editing)

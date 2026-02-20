@@ -241,7 +241,7 @@ export const Hide: React.FC<React.PropsWithChildren<{ when: boolean }>> = ({ whe
     <div style={{ display: 'contents', ...(when && { visibility: 'hidden' }) }}>{children}</div>
 );
 
-const RINF_CODE_REGEX = /^[A-Z]{2}[0-9]{0,10}$/;
+const RINF_CODE_REGEX = /^[A-Z]{2}[0-9]{0,}$/;
 
 export const withConditionalRinfCodeOverride = <T,>(
     request: T,
@@ -253,10 +253,20 @@ export const validateRinfCodeOverride = (
 ): FieldValidationIssue<OperationalPointSaveRequestBase>[] =>
     [
         validate<OperationalPointSaveRequestBase>(
-            rinfCodeOverride === undefined || rinfCodeOverride.startsWith('EU'),
+            rinfCodeOverride === undefined ||
+                rinfCodeOverride.length < 2 ||
+                rinfCodeOverride.startsWith('EU'),
             {
                 field: 'rinfCodeOverride',
                 reason: 'rinf-code-must-start-with-eu',
+                type: FieldValidationIssueType.ERROR,
+            },
+        ),
+        validate<OperationalPointSaveRequestBase>(
+            rinfCodeOverride === undefined || rinfCodeOverride.length <= 12,
+            {
+                field: 'rinfCodeOverride',
+                reason: 'rinf-code-too-long',
                 type: FieldValidationIssueType.ERROR,
             },
         ),

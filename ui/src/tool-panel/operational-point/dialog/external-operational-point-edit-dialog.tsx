@@ -126,6 +126,13 @@ export const ExternalOperationalPointEditDialog: React.FC<
         setdeleteDraftConfirmDialogOpen(false);
         onClose();
     };
+    const onUpdateRinfCode = (rinfCode: string) => {
+        stateActions.onUpdateProp({
+            key: 'rinfCodeOverride',
+            value: rinfCode,
+            editingExistingValue: !!state.existingOperationalPoint?.rinfCodeOverride,
+        });
+    };
 
     return (
         <React.Fragment>
@@ -170,7 +177,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             rinfCodeGenerated={
                                 state.existingOperationalPoint?.rinfCodeGenerated ?? ''
                             }
-                            onChange={(value) => updateProp('rinfCodeOverride', value)}
+                            onUpdateRinfCode={onUpdateRinfCode}
                             onCommitField={actions.onCommitField}
                             editingRinfCode={state.editingRinfCode}
                             onEditingRinfCodeChange={(editing) =>
