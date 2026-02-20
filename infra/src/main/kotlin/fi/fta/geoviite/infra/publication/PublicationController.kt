@@ -19,12 +19,6 @@ import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.localizationParams
-import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.OperationalPoint
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
@@ -37,7 +31,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -101,28 +94,13 @@ constructor(
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @DeleteMapping("/{$LAYOUT_BRANCH}/candidates")
+    @PostMapping("/{$LAYOUT_BRANCH}/candidates/revert-request")
     fun revertPublicationCandidates(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @RequestParam("trackNumbers", required = false) trackNumberIds: List<IntId<LayoutTrackNumber>>?,
-        @RequestParam("referenceLines", required = false) referenceLineIds: List<IntId<ReferenceLine>>?,
-        @RequestParam("locationTracks", required = false) locationTrackIds: List<IntId<LocationTrack>>?,
-        @RequestParam("switches", required = false) switchIds: List<IntId<LayoutSwitch>>?,
-        @RequestParam("kmPosts", required = false) kmPostIds: List<IntId<LayoutKmPost>>?,
-        @RequestParam("operationalPoints", required = false) operationalPointIds: List<IntId<OperationalPoint>>?,
+        @RequestBody toRevert: PublicationRequestIds,
     ): PublicationResultSummary {
-        val toDelete =
-            PublicationRequestIds(
-                trackNumbers = (trackNumberIds ?: emptyList()),
-                referenceLines = (referenceLineIds ?: emptyList()),
-                locationTracks = (locationTrackIds ?: emptyList()),
-                switches = (switchIds ?: emptyList()),
-                kmPosts = (kmPostIds ?: emptyList()),
-                operationalPoints = (operationalPointIds ?: emptyList()),
-            )
-
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publicationService.revertPublicationCandidates(branch, toDelete)
+            publicationService.revertPublicationCandidates(branch, toRevert)
         }
             ?: throw PublicationFailureException(
                 message = "Could not reserve publication lock",

@@ -15,14 +15,7 @@ import {
     LayoutSwitchJointConnection,
     OperationalPointId,
 } from 'track-layout/track-layout-model';
-import {
-    deleteNonNull,
-    getNonNull,
-    getNullable,
-    postNonNull,
-    putNonNull,
-    queryParams,
-} from 'api/api-fetch';
+import { deleteNonNull, getNonNull, getNullable, postNonNull, putNonNull, queryParams, } from 'api/api-fetch';
 import {
     changeInfoUri,
     layoutUri,
@@ -31,11 +24,7 @@ import {
     TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
-import {
-    getChangeTimes,
-    updateLocationTrackChangeTime,
-    updateSwitchChangeTime,
-} from 'common/change-time-api';
+import { getChangeTimes, updateLocationTrackChangeTime, updateSwitchChangeTime, } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { LayoutSwitchSaveRequestBase, LayoutSwitchUpdateRequest } from 'linking/linking-model';
@@ -68,6 +57,27 @@ export async function getSwitchesByBoundingBox(
         includeSwitchesWithNoJoints: includeSwitchesWithNoJoints,
     });
     return await getNonNull<LayoutSwitch[]>(`${layoutUri('switches', layoutContext)}${params}`);
+}
+
+export type SwitchAreaSummary = {
+    switchCount: number;
+    switches: LayoutSwitch[];
+};
+
+export async function getSwitchesAreaSummary(
+    bbox: BoundingBox,
+    layoutContext: LayoutContext,
+    maxSwitches: number,
+    includeSwitchesWithNoJoints = false,
+): Promise<SwitchAreaSummary> {
+    const params = queryParams({
+        bbox: bboxString(bbox),
+        maxSwitches: maxSwitches.toString(),
+        includeSwitchesWithNoJoints: includeSwitchesWithNoJoints,
+    });
+    return await getNonNull<SwitchAreaSummary>(
+        `${layoutUri('switches', layoutContext)}/area-summary${params}`,
+    );
 }
 
 export async function getSwitchesByTile(
@@ -293,3 +303,31 @@ export type GeoviiteSwitchOidPresence = {
     stateCategory: LayoutStateCategory;
     name: string;
 };
+
+export type SwitchNameFixPreview = {
+    switchId: LayoutSwitchId;
+    currentName: string;
+    fixedName: string;
+};
+
+export async function previewSwitchNameFixes(
+    bbox: BoundingBox,
+    layoutContext: LayoutContext,
+): Promise<SwitchNameFixPreview[]> {
+    const params = queryParams({ bbox: bboxString(bbox) });
+    return await getNonNull<SwitchNameFixPreview[]>(
+        `${layoutUri('switches', layoutContext)}/preview-name-fixes${params}`,
+    );
+}
+
+export async function fixSwitchNames(
+    branch: LayoutBranch,
+    switchIds: LayoutSwitchId[],
+): Promise<LayoutSwitchId[]> {
+    const result = await postNonNull<LayoutSwitchId[], LayoutSwitchId[]>(
+        `${layoutUriByBranch('switches', branch)}/draft/fix-names`,
+        switchIds,
+    );
+    await updateSwitchChangeTime();
+    return result;
+}
