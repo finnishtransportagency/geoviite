@@ -859,20 +859,14 @@ constructor(
     private val topoTestDataContextOnLocationTrackValidationError =
         listOf(validationError("validation.layout.location-track.no-context"))
     private val topoTestDataStartSwitchNotPublishedError =
-        switchNotPublishedError(
-            switchName = "Topological switch connection test start switch",
-            locationTrackName = "track linked at start",
-        )
+        switchNotPublishedError(switchName = "Topological switch connection test start switch")
     private val topoTestDataStartSwitchJointsNotConnectedError =
         switchAlignmentNotConnectedTrackValidationError(
             "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
             "Topological switch connection test start switch",
         )
     private val topoTestDataEndSwitchNotPublishedError =
-        switchNotPublishedError(
-            "Topological switch connection test end switch",
-            locationTrackName = "track linked at end",
-        )
+        switchNotPublishedError("Topological switch connection test end switch")
     private val topoTestDataEndSwitchJointsNotConnectedError =
         switchAlignmentNotConnectedTrackValidationError(
             "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
@@ -897,14 +891,8 @@ constructor(
                 topoTestDataContextOnLocationTrackValidationError + noStart,
                 topoTestDataContextOnLocationTrackValidationError + noEnd,
                 topoTestDataContextOnLocationTrackValidationError +
-                    switchNotPublishedError(
-                        switchName = "Topological switch connection test start switch",
-                        locationTrackName = "track linked at start and end",
-                    ) +
-                    switchNotPublishedError(
-                        switchName = "Topological switch connection test end switch",
-                        locationTrackName = "track linked at start and end",
-                    ),
+                    switchNotPublishedError(switchName = "Topological switch connection test start switch") +
+                    switchNotPublishedError(switchName = "Topological switch connection test end switch"),
             )
         val actual =
             topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
