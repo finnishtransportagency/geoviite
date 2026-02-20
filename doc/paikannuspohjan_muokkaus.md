@@ -9,7 +9,7 @@ voi linkittää ratanumeroita/pituusmittauslinjoja, sijaintiraiteita, vaihteita 
 linkityksistä tapahtuu geometriasuunnitelmien ja Geoviitteen paikannuspohjan välillä ja se on Geoviitteen pääasiallinen
 mekanismi paikannuspohjan geometrioiden ja sen käsitteiden välisten yhteyksien muokkaamiseen.
 
-Linkitys koskee _lähes_ pelkästään kohteiden geometriatietoja. Paikannuspohjan käsitteiden metatiedot (nimi/tunnus, tila
+Linkitys koskee _lähes_ pelkästään kohteiden geometriatietoja. Paikannuspohjan käsitteiden ominaisuustiedot (nimi/tunnus, tila
 jne.) on siis määriteltävä käsin. Tähän ainoa poikkeus on sijaintiraiteet (sijaintiraidetunnus ja kuvaukset voivat
 riippua vaihdelinkityksistä), josta on tarkempi maininta sijaintiraiteiden ja pituusmittauslinjojen linkityksen
 yhteydessä.
@@ -20,7 +20,7 @@ julkaisuvalidointi ja ne julkaistaan Geoviitteen julkaisuprosessin mukaisesti.
 ## Geometriasuunnitelmien käsitteistön suhde paikannuspohjan käsitteistöön
 
 Geometriasuunnitelmissa käytetty käsitteistö eroaa jonkin verran paikannuspohjan käsitteistöstä, sillä suunnitelmissa
-kaikki nauhamaiset kohteet on esitetty Alignmenteina. Paikannuspohjassa nauhamaiset kohteet voivat olla joko
+kaikki nauhamaiset kohteet on esitetty alignment-olioina. Paikannuspohjassa nauhamaiset kohteet voivat olla joko
 sijaintiraiteita tai pituusmittauslinjoja. Alla on esitetty taulukko, joka yhdistää nämä toisiinsa korkealla tasolla.
 Tarkempi kuvaus tietomallista ja käsitteiden välisistä suhteista löytyy tiedostosta [Tietomalli](tietomalli.md):
 
@@ -33,7 +33,7 @@ Tarkempi kuvaus tietomallista ja käsitteiden välisistä suhteista löytyy tied
 
 ## Kohteiden muokkaus
 
-Kohteiden metatietoja hallinnoidaan Geoviitteessä pääasiassa käsin. Geometriaa hallinnoidaan pääasiassa linkittämällä,
+Kohteiden ominaisuustietoja hallinnoidaan Geoviitteessä pääasiassa käsin. Geometriaa hallinnoidaan pääasiassa linkittämällä,
 mutta tiettyjen kohteiden geometriaa tai linkityksiä muihin kohteisiin voidaan kuitenkin hallinnoida myös käsin. Näistä
 on selitetty tarkemmin kuhunkin kohdetyyppiin keskittyvissä kappaleissa.
 
@@ -44,11 +44,11 @@ käsin.
 ### Nauhamaisten kohteiden (sijaintiraiteiden ja pituusmittauslinjojen) muokkaus
 
 Nauhamaisten kohteiden geometrian muokkaaminen tapahtuu pääosin linkittämällä sitä geometriatiedostoista. Tällöin
-geometriatiedostossa määritellyt alignmentit linkitetään joko paikannuspohjan sijaintiraiteisiin tai
-pituusmittauslinjoihin. Alignmentia ei ole pakko linkittää kokonaan, vaan siitä voidaan valita myös vain osa. Jos
-paikannuspohjan kohteella oli jo geometriaa kyseisessä kohdassa, linkitys ylikirjoittaa sen.
+geometriatiedostossa määritellyt keskilinjat linkitetään joko paikannuspohjan sijaintiraiteisiin tai
+pituusmittauslinjoihin. Geometriatiedoston keskilinjaa ei ole pakko linkittää kokonaan, vaan siitä voidaan valita myös vain
+osa. Jos paikannuspohjan kohteella oli jo geometriaa kyseisessä kohdassa, linkitys ylikirjoittaa sen.
 
-Nauhamaisten kohteiden linkitys perustuu segmentteihin. Kokonaan linkitettävät geometria-alignmentin segmentit
+Nauhamaisten kohteiden linkitys perustuu segmentteihin. Kokonaan linkitettävät geometria-keskilinjan segmentit
 linkitetään sellaisinaan. Jos linkitys katkaisee paikannuspohjan ja/tai geometrian segmentin, paikannuspohjaan
 generoidaan aiemman geometrian perusteella segmentti joka sisältää vain jäljellejäävän osuuden (näin voi käydä vain
 linkitettävän osuuden alussa tai lopussa). Linkityksessä poistetut segmentit poistetaan kokonaan paikannuspohjan
@@ -64,7 +64,7 @@ Geoviitteen generoimana sillä ei ole suunnitelmaviittausta. Sille ei myöskää
   osoitteistoa, joten se aiheuttaa laskettuja muutoksia myös kaikkiin sen varrella oleviin kohteisiin muuttuneiden
   ratakilometrien matkalta.
 - Sijaintiraiteen nimeämisskeemasta ja kuvauksen tyypistä riippuen sen päihin linkitettyjen vaihteiden nimet voivat
-  kuulua osaksi sen nimeä ja kuvausta. Tällöin nämä metatiedot muuttuvat raitteen vaihdelinkitysten muuttuessa.
+  kuulua osaksi sen nimeä ja kuvausta. Tällöin nämä ominaisuustiedot muuttuvat raitteen vaihdelinkitysten muuttuessa.
 - Raiteen ja vaihteen välisiä linkityksiä voidaan irrottaa käsin käyttöliittymältä.
 - Raiteen vaihdelinkitysten muuttuessa [rataverkon graafimalli](rataverkko_graafi.md) päivittyy automaattisesti.
 
@@ -121,10 +121,10 @@ geometriasuunnitelman kilometripylvääseen.
 
 Toiminnalliset pisteet jakautuvat Ratkosta tulleisiin ja Geoviitteen hallinnoimiin toiminnallisiin pistesiin. Ratkosta
 tulleet toiminnalliset pisteet ovat pääosin Ratkon hallinnassa ja Geoviitteessä vain rikastetaan niitä Geoviitteen
-hallinnoimilla tiedoilla. Täten niiltä voidaan muokata Geoviitteessä ainoastaan niitä metatietoja jotka eivät tule
+hallinnoimilla tiedoilla. Täten niiltä voidaan muokata Geoviitteessä ainoastaan niitä ominaisuustietoja jotka eivät tule
 Ratkosta, niiden polygonimaista aluetta ja niiden raide- ja vaihdelinkkejä. Myös niiden elinkaari on Ratkon hallinnassa.
 Geoviitteen hallinnoimat toiminnalliset pisteet ovat täysin muokattavissa käyttöliittymän kautta, eli niiltä voi muokata
-kaikkia niiden metatietoja, pistemäistä sijaintia, aluetta ja niiden alueelle osuvia raiteita ja vaihteita.
+kaikkia niiden ominaisuustietoja, pistemäistä sijaintia, aluetta ja niiden alueelle osuvia raiteita ja vaihteita.
 
 #### Hyvä tietää
 
@@ -132,8 +132,8 @@ kaikkia niiden metatietoja, pistemäistä sijaintia, aluetta ja niiden alueelle 
   geometrialinkitystä.
 - Ratkon hallinnoimat toiminnalliset pisteet päivitetään Ratkosta määräajoin. Niiden muutoksista syntyy luonnoksia,
   jotka operaattorin pitää käydä julkaisemassa.
-- Ratkon hallinnoimilla toiminnallisilla pisteillä on metatietoja, jotka eivät ole relevantteja Geoviitteen
-  hallinnoimille toiminnallisille pisteille. Näitä metatietoja ei voi asettaa niille.
+- Ratkon hallinnoimilla toiminnallisilla pisteillä on ominaisuustietoja, jotka eivät ole relevantteja Geoviitteen
+  hallinnoimille toiminnallisille pisteille. Näitä ominaisuustietoja ei voi asettaa niille.
 
 ## Liittyvät dokumentit
 
