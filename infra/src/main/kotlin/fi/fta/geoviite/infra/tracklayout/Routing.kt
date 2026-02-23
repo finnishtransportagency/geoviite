@@ -50,7 +50,11 @@ data class RouteSection(
     fun reverse(): RouteSection = copy(direction = direction.reverse())
 }
 
-data class RouteEdgeData(val edge: DbLayoutEdge, val tracks: Set<TrackSection>) {
+data class RouteEdgeData(
+    val edge: DbLayoutEdge,
+    val tracks: Set<TrackSection>,
+    val switchConnection: Pair<RoutingSwitchAlignment, EdgeDirection>?
+) {
     val startNode: DbNodeConnection
         get() = edge.startNode
 
@@ -131,7 +135,6 @@ data class RoutingSwitchAlignment(
 data class RoutingGraph(
     private val jgraph: Graph<RoutingVertex, RoutingEdge>,
     private val edgeData: Map<IntId<LayoutEdge>, RouteEdgeData>,
-    private val structures: Map<IntId<SwitchStructure>, SwitchStructure>,
     private val switchInternalEdges: Map<RoutingSwitchAlignment, List<Pair<IntId<LayoutEdge>, EdgeDirection>>>,
 ) {
     fun getVertices(): Set<RoutingVertex> = jgraph.vertexSet()
@@ -220,7 +223,6 @@ data class RoutingGraph(
                     endVertex,
                     startEdge to startMRange,
                     endEdge to endMRange,
-                    structures
                 )
                 // Route the start->end in a union graph of the main graph + temp additions
                 val dijkstra = DijkstraShortestPath(AsGraphUnion(jgraph, tmpGraph))
@@ -228,6 +230,92 @@ data class RoutingGraph(
             }
         }
     }
+
+    private fun buildTempRoutingGraph(
+        startVertex: TrackMidPointVertex,
+        endVertex: TrackMidPointVertex,
+        startEdgeWithM: Pair<DbLayoutEdge, Range<LineM<LocationTrackM>>>,
+        endEdgeWithM: Pair<DbLayoutEdge, Range<LineM<LocationTrackM>>>,
+    ): DirectedWeightedMultigraph<RoutingVertex, RoutingEdge> {
+        val (startEdge, startMRange) = startEdgeWithM
+        val (endEdge, endMRange) = endEdgeWithM
+
+        val (preStartVertex, postStartVertex) = createEdgeEndVertices(startEdge, VertexDirection.OUT)
+        val (preEndVertex, postEndVertex) = createEdgeEndVertices(endEdge, VertexDirection.IN)
+
+        // TODO: GVT-3495 This is a touch sus. Can we make it better?
+        // Note: This isn't strictly correct for switch inner links (routing start/end inside a switch) if the edge
+        // doesn't span the entire alignment. For example, it could be the edge 1-5 from alignment 1-5-2, in which case
+        // the postStartM should continue beyond the edge end. The proper information is a bit tricky to get here, so
+        // we accept this minor inaccuracy.
+        val (preStartM, postStartM) = startMRange.split(startVertex.m)
+            .map { r -> r.map { m -> m.toEdgeM(startMRange.min) } }
+        val (preEndM, postEndM) = endMRange.split(endVertex.m)
+            .map { r -> r.map { m -> m.toEdgeM(endMRange.min) } }
+
+        val graph = DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>(RoutingEdge::class.java)
+
+        // Add all the vertices. Note: only the start/end are actually new -- the others exist in the main graph
+        // Nonetheless, we need them all in the temp graph to add in the temp edges
+        listOfNotNull(startVertex, endVertex, preStartVertex, postStartVertex, preEndVertex, postEndVertex)
+            .also { println("Adding tmp vertices: $it") }
+            .forEach { v -> graph.addVertex(v) }
+
+        // Add edges outwards from the start
+        if (preStartVertex != null) PartialTrackEdge(startEdge.id, EdgeDirection.DOWN, preStartM)
+            .also { edge ->
+                println("Adding temp edge: edge=$edge from=$startVertex to=$preStartVertex")
+                graph.addEdge(startVertex, preStartVertex, edge)
+                graph.setEdgeWeight(edge, preStartM.length().distance)
+            }
+        if (postStartVertex != null) PartialTrackEdge(startEdge.id, EdgeDirection.UP, postStartM)
+            .also { edge ->
+                println("Adding temp edge: edge=$edge from=$startVertex to=$postStartVertex")
+                graph.addEdge(startVertex, postStartVertex, edge)
+                graph.setEdgeWeight(edge, postStartM.length().distance)
+            }
+
+        // Add edges inwards to the end
+        if (preEndVertex != null) PartialTrackEdge(endEdge.id, EdgeDirection.UP, preEndM)
+            .also { edge ->
+                println("Adding temp edge: edge=$edge from=$preEndVertex to=$endVertex")
+                graph.addEdge(preEndVertex, endVertex, edge)
+                graph.setEdgeWeight(edge, preEndM.length().distance)
+            }
+        if (postEndVertex != null) PartialTrackEdge(endEdge.id, EdgeDirection.DOWN, postEndM)
+            .also { edge ->
+                println("Adding temp edge: edge=$edge from=$postEndVertex to=$endVertex")
+                graph.addEdge(postEndVertex, endVertex, edge)
+                graph.setEdgeWeight(edge, postEndM.length().distance)
+            }
+
+        return graph
+    }
+
+    private fun createEdgeEndVertices(
+        edge: DbLayoutEdge,
+        vertexDirection: VertexDirection,
+    ): Pair<RoutingVertex?, RoutingVertex?> =
+        if (edge.isSwitchInnerLink()) {
+            val data = edgeData.getValue(edge.id)
+            val (alignment, edgeDirection) = requireNotNull(data.switchConnection)
+            val alignmentStart = SwitchJointVertex(alignment.id, alignment.jointNumbers.first(), vertexDirection)
+            val alignmentEnd = SwitchJointVertex(alignment.id, alignment.jointNumbers.last(), vertexDirection)
+            if (edgeDirection == EdgeDirection.UP) {
+                alignmentStart to alignmentEnd
+            } else {
+                alignmentEnd to alignmentStart
+            }
+        } else {
+            val incomingPreVertex = createIncomingTrackConnectionVertex(edge.startNode)
+            val incomingPostVertex = createIncomingTrackConnectionVertex(edge.endNode)
+            if (vertexDirection == VertexDirection.IN) {
+                incomingPreVertex to incomingPostVertex
+            } else {
+                incomingPreVertex?.reverse() to incomingPostVertex?.reverse()
+            }
+        }
+
 }
 
 fun buildGraph(
@@ -235,20 +323,12 @@ fun buildGraph(
     switches: List<LayoutSwitch>,
     structures: Map<IntId<SwitchStructure>, SwitchStructure>,
 ): RoutingGraph {
-    val edgeData =
-        trackGeoms
-            .flatMap { geom -> geom.edgesWithM.map { (e, m) -> e to TrackSection(geom.trackId, m) } }
-            .groupBy { it.first.id }
-            .mapValues { (_, edgesAndTrackIds) ->
-                RouteEdgeData(edgesAndTrackIds[0].first, edgesAndTrackIds.map { it.second }.toSet())
-            }
-
+    val edgeData = createEdgeData(trackGeoms, switches, structures)
     val edges = edgeData.values.map { edgeData -> edgeData.edge }.toSet()
     val nodes = edges.flatMap { edge-> listOf(edge.startNode.node, edge.endNode.node) }.toSet()
-    val switchesById = switches.associateBy { it.id as IntId }
-    val switchInternalEdges = edges
-        .mapNotNull { edge -> resolveSwitchAlignment(edge, switchesById, structures)?.let { it.first to (edge.id to it.second)} }
-        .groupBy({ it.first }, {it.second})
+    val switchInternalEdges = edgeData.entries
+        .mapNotNull { (edgeId, data) -> data.switchConnection?.let { it.first to (edgeId to it.second) } }
+        .groupBy({ it.first }, {it.second })
 
     // Graph types: https://jgrapht.org/guide/UserOverview#graph-structures
     val jgraph = DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>(RoutingEdge::class.java)
@@ -256,16 +336,13 @@ fun buildGraph(
     val switchVertices = switches.flatMap { s -> createSwitchVertices(s, structures) }
     val trackVertices = trackGeoms.flatMap(::createTrackEndVertices)
     (switchVertices.asSequence() + trackVertices.asSequence()).forEach { v ->
-//        if (v is SwitchJointVertex && v.switchId == IntId<LayoutSwitch>(6432)) println("Adding vertex: vertex=$v")
         jgraph.addVertex(v)
     }
 
     val switchConnections = switches.flatMap { s -> createThroughSwitchConnections(s, structures) }
-    println(nodes)
     val directConnections = nodes.flatMap(::createDirectConnections)
     val trackConnections = edges.flatMap(::createTrackConnections)
     (switchConnections.asSequence() + directConnections.asSequence() + trackConnections.asSequence()).forEach { (connection, edge) ->
-//        println("Adding edge: edge=$edge connection=$connection")
         try {
             if (jgraph.addEdge(connection.from, connection.to, edge)) {
                 jgraph.setEdgeWeight(edge, connection.length)
@@ -280,9 +357,23 @@ fun buildGraph(
     return RoutingGraph(
         jgraph = jgraph,
         edgeData = edgeData,
-        structures = structures,
         switchInternalEdges = switchInternalEdges,
     )
+}
+
+fun createEdgeData(
+    trackGeoms: List<DbLocationTrackGeometry>,
+    switches: List<LayoutSwitch>,
+    structures: Map<IntId<SwitchStructure>, SwitchStructure>,
+): Map<IntId<LayoutEdge>, RouteEdgeData> {
+    val switchesById = switches.associateBy { it.id as IntId }
+    return trackGeoms
+        .flatMap { geom -> geom.edgesWithM.map { (e, m) -> e to TrackSection(geom.trackId, m) } }
+        .groupBy { it.first.id }
+        .mapValues { (_, edgesAndTrackIds) ->
+            val switchConnection = resolveSwitchAlignment(edgesAndTrackIds[0].first, switchesById, structures)
+            RouteEdgeData(edgesAndTrackIds[0].first, edgesAndTrackIds.map { it.second }.toSet(), switchConnection)
+        }
 }
 
 fun resolveSwitchAlignment(
@@ -306,81 +397,6 @@ fun resolveSwitchAlignment(
 }
 
 fun <A, B> Pair<A,A>.map(transform: (A) -> B): Pair<B,B> = transform(first) to transform(second)
-
-fun buildTempRoutingGraph(
-    startVertex: TrackMidPointVertex,
-    endVertex: TrackMidPointVertex,
-    startEdgeWithM: Pair<DbLayoutEdge, Range<LineM<LocationTrackM>>>,
-    endEdgeWithM: Pair<DbLayoutEdge, Range<LineM<LocationTrackM>>>,
-    structures: Map<IntId<SwitchStructure>, SwitchStructure>,
-): DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>? {
-    val (startEdge, startMRange) = startEdgeWithM
-    val (endEdge, endMRange) = endEdgeWithM
-
-    val (preStartVertex, postStartVertex) = createEdgeEndVertices(startEdge, VertexDirection.OUT, structures)
-    val (preEndVertex, postEndVertex) = createEdgeEndVertices(endEdge, VertexDirection.IN, structures)
-    val (preStartM, postStartM) = startMRange.split(startVertex.m)
-        .map { r -> r.map { m -> m.toEdgeM(startMRange.min) } }
-    val (preEndM, postEndM) = endMRange.split(endVertex.m)
-        .map { r -> r.map { m -> m.toEdgeM(endMRange.min) } }
-
-    val graph = DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>(RoutingEdge::class.java)
-
-    // Add all the vertices. Note: only the start/end are actually new -- the others exist in the main graph
-    // Nonetheless, we need them all in the temp graph to add in the temp edges
-    listOfNotNull(startVertex, endVertex, preStartVertex, postStartVertex, preEndVertex, postEndVertex)
-        .also { println("Adding tmp vertices: $it") }
-        .forEach { v -> graph.addVertex(v) }
-
-    // Add edges outwards from the start
-    if (preStartVertex != null) PartialTrackEdge(startEdge.id, EdgeDirection.DOWN, preStartM)
-        .also { edge ->
-            println("Adding temp edge: edge=$edge from=$startVertex to=$preStartVertex")
-            graph.addEdge(startVertex, preStartVertex, edge)
-            graph.setEdgeWeight(edge, preStartM.length().distance)
-        }
-    if (postStartVertex != null) PartialTrackEdge(startEdge.id, EdgeDirection.UP, postStartM)
-        .also { edge ->
-            println("Adding temp edge: edge=$edge from=$startVertex to=$postStartVertex")
-            graph.addEdge(startVertex, postStartVertex, edge)
-            graph.setEdgeWeight(edge, postStartM.length().distance)
-        }
-
-    // Add edges inwards to the end
-    if (preEndVertex != null) PartialTrackEdge(endEdge.id, EdgeDirection.UP, preEndM)
-        .also { edge ->
-            println("Adding temp edge: edge=$edge from=$preEndVertex to=$endVertex")
-            graph.addEdge(preEndVertex, endVertex, edge)
-            graph.setEdgeWeight(edge, preEndM.length().distance)
-        }
-    if (postEndVertex != null) PartialTrackEdge(endEdge.id, EdgeDirection.DOWN, postEndM)
-        .also { edge ->
-            println("Adding temp edge: edge=$edge from=$postEndVertex to=$endVertex")
-            graph.addEdge(postEndVertex, endVertex, edge)
-            graph.setEdgeWeight(edge, postEndM.length().distance)
-        }
-
-    return graph
-}
-
-private fun createEdgeEndVertices(
-    edge: DbLayoutEdge,
-    direction: VertexDirection,
-    structures: Map<IntId<SwitchStructure>, SwitchStructure>,
-): Pair<RoutingVertex?, RoutingVertex?> =
-    if (edge.isSwitchInnerLink()) {
-        requireNotNull(edge.startNode.switchIn?.id)
-        // TODO: Handle routing to/from inner switch connections
-        null to null
-    } else {
-        val incomingPreVertex = createIncomingTrackConnectionVertex(edge.startNode)
-        val incomingPostVertex = createIncomingTrackConnectionVertex(edge.endNode)
-        if (direction == VertexDirection.IN) {
-            incomingPreVertex to incomingPostVertex
-        } else {
-            incomingPreVertex?.reverse() to incomingPostVertex?.reverse()
-        }
-    }
 
 fun createSwitchVertices(switch: LayoutSwitch, structures: Map<IntId<SwitchStructure>, SwitchStructure>): List<SwitchJointVertex> {
     val structure = structures.getValue(switch.switchStructureId)
