@@ -26,10 +26,10 @@ data class ClosestTrackPoint(
 data class RouteResult(
     val startConnection: ClosestTrackPoint,
     val endConnection: ClosestTrackPoint,
-    val route: Route?,
+    val route: Route,
 ) {
-    val totalLength: Double?
-        get() = route?.totalLength?.let { it + startConnection.distance + endConnection.distance }
+    val totalLength: Double
+        get() = route.totalLength.let { it + startConnection.distance + endConnection.distance }
 }
 
 data class Route(val sections: List<RouteSection>) {
@@ -134,11 +134,12 @@ data class RoutingGraph(
         jgraph.getEdgeSource(edge) to jgraph.getEdgeTarget(edge)
     }
 
-    fun findPath(start: LocationTrackCacheHit, end: LocationTrackCacheHit): List<RouteSection>? {
+    fun findPath(start: LocationTrackCacheHit, end: LocationTrackCacheHit): Route? {
         val edges = findPathEdges(start, end)
-        return edges?.flatMap { edge ->
-            toRouteSections(edge, setOf(start.track.id as IntId, end.track.id as IntId))
-        }?.let(::compress)
+        return edges
+            ?.flatMap { edge -> toRouteSections(edge, setOf(start.track.id as IntId, end.track.id as IntId)) }
+            ?.let(::compress)
+            ?.let(::Route)
     }
 
     private fun compress(sections: List<RouteSection>): List<RouteSection> =

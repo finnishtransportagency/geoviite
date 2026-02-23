@@ -14,7 +14,7 @@ export type ClosestTrackPoint = {
 export type RouteResult = {
     startConnection: ClosestTrackPoint;
     endConnection: ClosestTrackPoint;
-    route: Route | null;
+    route: Route;
     totalLength: number | null;
 };
 

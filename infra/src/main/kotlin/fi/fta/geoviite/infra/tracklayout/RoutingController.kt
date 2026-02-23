@@ -8,6 +8,8 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.util.toResponse
+import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -26,12 +28,12 @@ class RoutingController(private val routingService: RoutingService) {
         @RequestParam("x") x: Double,
         @RequestParam("y") y: Double,
         @RequestParam("maxDistance", required = false) maxDistance: Double?,
-    ): ClosestTrackPoint? =
+    ): ResponseEntity<ClosestTrackPoint> =
         routingService.getClosestTrackPoint(
             context = LayoutContext.of(layoutBranch, publicationState),
             location = Point(x, y),
             maxDistance = maxDistance ?: MAX_TRACK_SEEK_DISTANCE,
-        )
+        ).let(::toResponse)
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}")
@@ -43,11 +45,11 @@ class RoutingController(private val routingService: RoutingService) {
         @RequestParam("endX") endX: Double,
         @RequestParam("endY") endY: Double,
         @RequestParam("maxDistance", required = false) maxDistance: Double?,
-    ): RouteResult? =
+    ): ResponseEntity<RouteResult> =
         routingService.getRoute(
             context = LayoutContext.of(layoutBranch, publicationState),
             startLocation = Point(startX, startY),
             endLocation = Point(endX, endY),
             trackSeekDistance = maxDistance ?: MAX_TRACK_SEEK_DISTANCE,
-        )
+        ).let(::toResponse)
 }
