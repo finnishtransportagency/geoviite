@@ -178,6 +178,7 @@ data class RoutingGraph(
                     if (edge.direction == EdgeDirection.UP) switchDirection else switchDirection.reverse(),
                     favoredTrackIds
                 ) }
+                // TODO: GVT-3495 Some switch alignments aren't linked to tracks. We could create fake point-to-point route sections for these from the switch joint locations
                 ?: emptyList()
             is DirectConnectionEdge -> emptyList()
         }
@@ -258,19 +259,16 @@ data class RoutingGraph(
         // Add all the vertices. Note: only the start/end are actually new -- the others exist in the main graph
         // Nonetheless, we need them all in the temp graph to add in the temp edges
         listOfNotNull(startVertex, endVertex, preStartVertex, postStartVertex, preEndVertex, postEndVertex)
-            .also { println("Adding tmp vertices: $it") }
             .forEach { v -> graph.addVertex(v) }
 
         // Add edges outwards from the start
         if (preStartVertex != null) PartialTrackEdge(startEdge.id, EdgeDirection.DOWN, preStartM)
             .also { edge ->
-                println("Adding temp edge: edge=$edge from=$startVertex to=$preStartVertex")
                 graph.addEdge(startVertex, preStartVertex, edge)
                 graph.setEdgeWeight(edge, preStartM.length().distance)
             }
         if (postStartVertex != null) PartialTrackEdge(startEdge.id, EdgeDirection.UP, postStartM)
             .also { edge ->
-                println("Adding temp edge: edge=$edge from=$startVertex to=$postStartVertex")
                 graph.addEdge(startVertex, postStartVertex, edge)
                 graph.setEdgeWeight(edge, postStartM.length().distance)
             }
@@ -278,13 +276,11 @@ data class RoutingGraph(
         // Add edges inwards to the end
         if (preEndVertex != null) PartialTrackEdge(endEdge.id, EdgeDirection.UP, preEndM)
             .also { edge ->
-                println("Adding temp edge: edge=$edge from=$preEndVertex to=$endVertex")
                 graph.addEdge(preEndVertex, endVertex, edge)
                 graph.setEdgeWeight(edge, preEndM.length().distance)
             }
         if (postEndVertex != null) PartialTrackEdge(endEdge.id, EdgeDirection.DOWN, postEndM)
             .also { edge ->
-                println("Adding temp edge: edge=$edge from=$postEndVertex to=$endVertex")
                 graph.addEdge(postEndVertex, endVertex, edge)
                 graph.setEdgeWeight(edge, postEndM.length().distance)
             }
@@ -346,12 +342,19 @@ fun buildGraph(
         try {
             if (jgraph.addEdge(connection.from, connection.to, edge)) {
                 jgraph.setEdgeWeight(edge, connection.length)
-            } else {
-                println("Dropping duplicate edge: edge=$edge connection=$connection")
             }
         }
         catch (e: Exception) {
-            println("Error adding edge: edge=$edge connection=$connection error=${e.message}")
+            // TODO: GVT-3495 Find out why we get so many of these. Bad linkings maybe, but there shouldn't be that many?
+            // Error adding edge:
+            //  edge=TrackEdge(edgeId=INT_12717, direction=DOWN)
+            //  connection=RoutingConnection(
+            //    from=SwitchJointVertex(switchId=INT_3033, jointNumber=JOINT_2, direction=OUT),
+            //    to=SwitchJointVertex(switchId=INT_3033, jointNumber=JOINT_5, direction=IN),
+            //    length=17.103634298782094
+            //  )
+            // error=no such vertex in graph: SwitchJointVertex(switchId=INT_3033, jointNumber=JOINT_5, direction=IN)
+            logger.error("Error adding edge: edge=$edge connection=$connection error=${e.message}")
         }
     }
     return RoutingGraph(
