@@ -80,8 +80,8 @@ class OperationalPointDao(
               postgis.st_astext(op.polygon) as polygon,
               op.ratko_operational_point_version,
               op.origin,
-              op.rinf_code_generated,
-              op.rinf_code_override
+              op.rinf_id_generated,
+              op.rinf_id_override
             from layout.operational_point_version_view op
               left join common.rinf_operational_point_type rt on op.rinf_type = rt.enum_name
             where not op.deleted
@@ -161,7 +161,7 @@ class OperationalPointDao(
     fun insertRatkoPoint(
         id: IntId<OperationalPoint>,
         ratkoPointVersion: Int,
-        rinfCode: RinfCode?,
+        rinfId: RinfId?,
     ): LayoutRowVersion<OperationalPoint> {
         val sql =
             """
@@ -174,7 +174,7 @@ class OperationalPointDao(
                 state,
                 origin,
                 ratko_operational_point_version,
-                rinf_code_generated
+                rinf_id_generated
             )
             values (
               :id,
@@ -184,7 +184,7 @@ class OperationalPointDao(
               'IN_USE',
               'RATKO',
               :ratko_operational_point_version,
-              :rinf_code_generated
+              :rinf_id_generated
             )
             returning id, design_id, draft, version
             """
@@ -197,7 +197,7 @@ class OperationalPointDao(
                 mapOf(
                     "id" to id.intValue,
                     "ratko_operational_point_version" to ratkoPointVersion,
-                    "rinf_code_generated" to rinfCode?.toString(),
+                    "rinf_id_generated" to rinfId?.toString(),
                 ),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
@@ -230,8 +230,8 @@ class OperationalPointDao(
                 polygon,
                 origin,
                 ratko_operational_point_version,
-                rinf_code_override,
-                rinf_code_generated
+                rinf_id_override,
+                rinf_id_generated
             )
             values (
               :id,
@@ -250,8 +250,8 @@ class OperationalPointDao(
               postgis.st_polygonfromtext(:polygon_wkt, :srid),
               :origin::layout.operational_point_origin,
               :ratko_operational_point_version,
-              :rinf_code_override,
-              :rinf_code_generated
+              :rinf_id_override,
+              :rinf_id_generated
             )
             on conflict (id, layout_context_id) do update set
               design_asset_state = excluded.design_asset_state,
@@ -265,8 +265,8 @@ class OperationalPointDao(
               rinf_type = excluded.rinf_type,
               polygon = excluded.polygon,
               ratko_operational_point_version = excluded.ratko_operational_point_version,
-              rinf_code_override = excluded.rinf_code_override,
-              rinf_code_generated = operational_point.rinf_code_generated
+              rinf_id_override = excluded.rinf_id_override,
+              rinf_id_generated = operational_point.rinf_id_generated
             returning id, design_id, draft, version
             """
                 .trimIndent()
@@ -286,8 +286,8 @@ class OperationalPointDao(
                 "srid" to LAYOUT_SRID.code,
                 "rinf_type" to item.rinfType?.name,
                 "ratko_operational_point_version" to item.ratkoVersion,
-                "rinf_code_override" to item.rinfCodeOverride?.toString(),
-                "rinf_code_generated" to item.rinfCodeGenerated?.toString(),
+                "rinf_id_override" to item.rinfIdOverride?.toString(),
+                "rinf_id_generated" to item.rinfIdGenerated?.toString(),
             )
         val originParams =
             when (item.origin) {
@@ -342,8 +342,8 @@ class OperationalPointDao(
                     "design_asset_state",
                     "origin_design_id",
                 ),
-            rinfCodeGenerated = rs.getString("rinf_code_generated")?.let(::RinfCode),
-            rinfCodeOverride = rs.getString("rinf_code_override")?.let(::RinfCode),
+            rinfIdGenerated = rs.getString("rinf_id_generated")?.let(::RinfId),
+            rinfIdOverride = rs.getString("rinf_id_override")?.let(::RinfId),
         )
 
     fun getChangeTime(): Instant {
@@ -370,20 +370,20 @@ class OperationalPointDao(
     ): Map<UicCode, List<LayoutRowVersion<OperationalPoint>>> =
         findFieldDuplicates(context, items, "uic_code") { rs -> rs.getString("uic_code").let(::UicCode) }
 
-    fun findRinfCodeOverrideDuplicates(
+    fun findRinfIdOverrideDuplicates(
         context: LayoutContext,
-        items: List<RinfCode>,
-    ): Map<RinfCode, List<LayoutRowVersion<OperationalPoint>>> =
-        findFieldDuplicates(context, items, "rinf_code_override") { rs ->
-            rs.getString("rinf_code_override").let(::RinfCode)
+        items: List<RinfId>,
+    ): Map<RinfId, List<LayoutRowVersion<OperationalPoint>>> =
+        findFieldDuplicates(context, items, "rinf_id_override") { rs ->
+            rs.getString("rinf_id_override").let(::RinfId)
         }
 
-    fun findRinfCodeGeneratedDuplicates(
+    fun findRinfIdGeneratedDuplicates(
         context: LayoutContext,
-        items: List<RinfCode>,
-    ): Map<RinfCode, List<LayoutRowVersion<OperationalPoint>>> =
-        findFieldDuplicates(context, items, "rinf_code_generated") { rs ->
-            rs.getString("rinf_code_generated").let(::RinfCode)
+        items: List<RinfId>,
+    ): Map<RinfId, List<LayoutRowVersion<OperationalPoint>>> =
+        findFieldDuplicates(context, items, "rinf_id_generated") { rs ->
+            rs.getString("rinf_id_generated").let(::RinfId)
         }
 
     /**
@@ -494,11 +494,11 @@ class OperationalPointDao(
     }
 
     @Transactional
-    fun generateRinfCode(): RinfCode {
-        val sql = "select layout.generate_rinf_code()"
+    fun generateRinfId(): RinfId {
+        val sql = "select layout.generate_rinf_id()"
         return jdbcTemplate.queryForObject(sql, emptyMap<String, Any>()) { rs, _ ->
-            rs.getString(1)?.let(::RinfCode) ?: throw IllegalStateException("Failed to generate RINF code")
-        } ?: throw IllegalStateException("Failed to generate RINF code")
+            rs.getString(1)?.let(::RinfId) ?: throw IllegalStateException("Failed to generate RINF ID")
+        } ?: throw IllegalStateException("Failed to generate RINF ID")
     }
 }
 

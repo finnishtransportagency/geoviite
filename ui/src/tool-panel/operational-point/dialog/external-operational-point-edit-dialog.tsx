@@ -34,8 +34,8 @@ import {
     deleteDraftOperationalPoint,
     updateExternalOperationalPoint,
 } from 'track-layout/layout-operational-point-api';
-import { OperationalPointRinfCodeField } from './operational-point-rinf-code-field';
-import { withConditionalRinfCodeOverride } from 'tool-panel/operational-point/operational-point-utils';
+import { OperationalPointRinfIdField } from './operational-point-rinf-id-field';
+import { withConditionalRinfIdOverride } from 'tool-panel/operational-point/operational-point-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 
@@ -62,20 +62,20 @@ export const ExternalOperationalPointEditDialog: React.FC<
         if (operationalPoint) stateActions.onOperationalPointLoaded(operationalPoint);
     }, [operationalPoint]);
     React.useEffect(() => {
-        stateActions.setEditingRinfCode(!!operationalPoint.rinfCodeOverride);
-    }, [operationalPoint.rinfCodeOverride]);
+        stateActions.setEditingRinfId(!!operationalPoint.rinfIdOverride);
+    }, [operationalPoint.rinfIdOverride]);
 
     const [deleteDraftConfirmDialogOpen, setdeleteDraftConfirmDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
 
     const isOlp = state.existingOperationalPoint?.raideType === 'OLP';
 
-    const duplicateRinfCodePoint = allOtherOperationalPoints?.find(
+    const duplicateRinfIdPoint = allOtherOperationalPoints?.find(
         (operationalPoint) =>
             operationalPoint.state !== 'DELETED' &&
-            !!state.operationalPoint?.rinfCodeOverride &&
-            !!operationalPoint.rinfCode &&
-            isEqualIgnoreCase(operationalPoint.rinfCode, state.operationalPoint.rinfCodeOverride),
+            !!state.operationalPoint?.rinfIdOverride &&
+            !!operationalPoint.rinfId &&
+            isEqualIgnoreCase(operationalPoint.rinfId, state.operationalPoint.rinfIdOverride),
     );
 
     const rinfTypeOptions: DropdownOption<OperationalPointRinfType>[] = rinfTypes.map((value) =>
@@ -84,9 +84,9 @@ export const ExternalOperationalPointEditDialog: React.FC<
 
     const getVisibleErrorsByProp = (prop: keyof ExternalOperationalPointSaveRequest) =>
         getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop);
-    const rinfCodeErrors = [
-        ...getVisibleErrorsByProp('rinfCodeOverride'),
-        duplicateRinfCodePoint ? 'rinf-code-in-use' : undefined,
+    const rinfIdErrors = [
+        ...getVisibleErrorsByProp('rinfIdOverride'),
+        duplicateRinfIdPoint ? 'rinf-id-in-use' : undefined,
     ].filter(filterNotEmpty);
 
     const updateProp = <K extends keyof ExternalOperationalPointSaveRequest>(
@@ -102,12 +102,12 @@ export const ExternalOperationalPointEditDialog: React.FC<
     const saveUpdatedOperationalPoint = (
         id: OperationalPointId,
         updatedOperationalPoint: ExternalOperationalPointSaveRequest,
-        allowRinfCodeOverride: boolean,
+        allowRinfIdOverride: boolean,
     ) => {
         setIsSaving(true);
-        const saveRequest = withConditionalRinfCodeOverride(
+        const saveRequest = withConditionalRinfIdOverride(
             updatedOperationalPoint,
-            allowRinfCodeOverride,
+            allowRinfIdOverride,
         );
         updateExternalOperationalPoint(id, saveRequest, layoutContext)
             .then(
@@ -126,11 +126,11 @@ export const ExternalOperationalPointEditDialog: React.FC<
         setdeleteDraftConfirmDialogOpen(false);
         onClose();
     };
-    const onUpdateRinfCode = (rinfCode: string) => {
+    const onUpdateRinfId = (rinfId: string) => {
         stateActions.onUpdateProp({
-            key: 'rinfCodeOverride',
-            value: rinfCode,
-            editingExistingValue: !!state.existingOperationalPoint?.rinfCodeOverride,
+            key: 'rinfIdOverride',
+            value: rinfId,
+            editingExistingValue: !!state.existingOperationalPoint?.rinfIdOverride,
         });
     };
 
@@ -159,7 +159,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                                     saveUpdatedOperationalPoint(
                                         operationalPoint.id,
                                         state.operationalPoint,
-                                        state.editingRinfCode,
+                                        state.editingRinfId,
                                     )
                                 }>
                                 {t('button.save')}
@@ -174,20 +174,20 @@ export const ExternalOperationalPointEditDialog: React.FC<
                         </Heading>
                         <React.Fragment>
                             {!isOlp && (
-                                <OperationalPointRinfCodeField
-                                    rinfCodeOverride={
-                                        state.operationalPoint?.rinfCodeOverride ?? ''
+                                <OperationalPointRinfIdField
+                                    rinfIdOverride={
+                                        state.operationalPoint?.rinfIdOverride ?? ''
                                     }
-                                    rinfCodeGenerated={
-                                        state.existingOperationalPoint?.rinfCodeGenerated ?? ''
+                                    rinfIdGenerated={
+                                        state.existingOperationalPoint?.rinfIdGenerated ?? ''
                                     }
-                                    onUpdateRinfCode={onUpdateRinfCode}
+                                    onUpdateRinfId={onUpdateRinfId}
                                     onCommitField={actions.onCommitField}
-                                    editingRinfCode={state.editingRinfCode}
-                                    onEditingRinfCodeChange={(editing) =>
-                                        stateActions.setEditingRinfCode(editing)
+                                    editingRinfId={state.editingRinfId}
+                                    onEditingRinfIdChange={(editing) =>
+                                        stateActions.setEditingRinfId(editing)
                                     }
-                                    errors={rinfCodeErrors}
+                                    errors={rinfIdErrors}
                                 />
                             )}
                         </React.Fragment>

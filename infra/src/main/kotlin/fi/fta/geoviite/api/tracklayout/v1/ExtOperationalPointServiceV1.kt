@@ -183,7 +183,7 @@ constructor(
     private fun createExtOperationalPoint(data: OperationalPointData, coordinateSystem: Srid): ExtOperationalPointV1 {
         return ExtOperationalPointV1(
             operationalPointOid = ExtOidV1(data.oid),
-            rinfId = data.operationalPoint.rinfCode,
+            rinfId = data.operationalPoint.rinfId,
             name = data.operationalPoint.name,
             abbreviation = data.operationalPoint.abbreviation,
             state = ExtOperationalPointStateV1.of(data.operationalPoint.state),

@@ -22,8 +22,8 @@ data class OperationalPoint(
     val state: OperationalPointState,
     val origin: OperationalPointOrigin,
     val ratkoVersion: Int?,
-    val rinfCodeGenerated: RinfCode?,
-    val rinfCodeOverride: RinfCode?,
+    val rinfIdGenerated: RinfId?,
+    val rinfIdOverride: RinfId?,
     @JsonIgnore override val contextData: LayoutContextData<OperationalPoint>,
 ) : LayoutAsset<OperationalPoint>(contextData) {
     override fun toLog(): String =
@@ -34,7 +34,7 @@ data class OperationalPoint(
 
     @JsonIgnore val exists = !state.isRemoved()
 
-    val rinfCode = rinfCodeOverride ?: rinfCodeGenerated
+    val rinfId = rinfIdOverride ?: rinfIdGenerated
 }
 
 const val maxOperationalPointNameLength = 150
@@ -73,10 +73,10 @@ data class OperationalPointAbbreviation @JsonCreator(mode = DELEGATING) construc
     @JsonValue override fun toString(): String = value
 }
 
-data class RinfCode @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
+data class RinfId @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
     init {
-        assertLength(RinfCode::class, value, 1..12)
-        assertSanitized(RinfCode::class, value, Regex("^[A-Z]{2}[0-9]{1,10}\$"))
+        assertLength(RinfId::class, value, 1..12)
+        assertSanitized(RinfId::class, value, Regex("^[A-Z]{2}[0-9]{1,10}\$"))
     }
 
     companion object {
@@ -159,10 +159,10 @@ data class InternalOperationalPointSaveRequest(
     val rinfType: OperationalPointRinfType,
     val state: OperationalPointState,
     val uicCode: UicCode,
-    val rinfCodeOverride: RinfCode?,
+    val rinfIdOverride: RinfId?,
 )
 
-data class ExternalOperationalPointSaveRequest(val rinfType: OperationalPointRinfType?, val rinfCodeOverride: RinfCode?)
+data class ExternalOperationalPointSaveRequest(val rinfType: OperationalPointRinfType?, val rinfIdOverride: RinfId?)
 
 enum class OperationalPointRinfType {
     STATION,

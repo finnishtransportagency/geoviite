@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
-import fi.fta.geoviite.infra.tracklayout.RinfCode
+import fi.fta.geoviite.infra.tracklayout.RinfId
 import fi.fta.geoviite.infra.tracklayout.UicCode
 import io.swagger.v3.oas.annotations.media.Schema
 
@@ -45,7 +45,7 @@ data class ExtOperationalPointV1(
     @Schema(example = "1.2.246.578.3.139.310520")
     @JsonProperty(OPERATIONAL_POINT_OID)
     val operationalPointOid: ExtOidV1<OperationalPoint>,
-    @Schema(example = "FI0000012345") @JsonProperty(RINF_ID) val rinfId: RinfCode?,
+    @Schema(example = "FI0000012345") @JsonProperty(RINF_ID) val rinfId: RinfId?,
     @Schema(type = "string", example = "Pasila asema") @JsonProperty(NAME) val name: OperationalPointName,
     @Schema(type = "string", example = "Psl")
     @JsonProperty(ABBREVIATION)

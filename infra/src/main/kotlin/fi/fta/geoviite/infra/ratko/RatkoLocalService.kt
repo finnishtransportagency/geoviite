@@ -164,11 +164,11 @@ constructor(
         ratkoPointsWithVersions.forEach { (ratkoPoint, ratkoPointVersion) ->
             val id = layoutPointsByOid[ratkoPoint.externalId.cast()]
             if (id != null && layoutPoints.none { layoutPoint -> layoutPoint.id == id }) {
-                val rinfCodeGenerated =
-                    if (ratkoPoint.type != OperationalPointRaideType.OLP) operationalPointDao.generateRinfCode()
+                val rinfIdGenerated =
+                    if (ratkoPoint.type != OperationalPointRaideType.OLP) operationalPointDao.generateRinfId()
                     else null
 
-                operationalPointDao.insertRatkoPoint(id, ratkoPointVersion, rinfCodeGenerated)
+                operationalPointDao.insertRatkoPoint(id, ratkoPointVersion, rinfIdGenerated)
             }
         }
     }

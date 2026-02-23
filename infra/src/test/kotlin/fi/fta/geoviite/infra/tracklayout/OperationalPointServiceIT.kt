@@ -301,7 +301,7 @@ constructor(
         rinfType: OperationalPointRinfType = OperationalPointRinfType.SMALL_STATION,
         state: OperationalPointState = OperationalPointState.IN_USE,
         uicCode: String = "10101",
-        rinfCodeOverride: RinfCode? = null,
+        rinfIdOverride: RinfId? = null,
     ) =
         InternalOperationalPointSaveRequest(
             OperationalPointInputName(name),
@@ -309,11 +309,11 @@ constructor(
             rinfType,
             state,
             UicCode(uicCode),
-            rinfCodeOverride,
+            rinfIdOverride,
         )
 
     private fun externalPointSaveRequest(
         rinfType: OperationalPointRinfType = OperationalPointRinfType.SMALL_STATION,
-        rinfCodeOverride: RinfCode? = null,
-    ) = ExternalOperationalPointSaveRequest(rinfType, rinfCodeOverride)
+        rinfIdOverride: RinfId? = null,
+    ) = ExternalOperationalPointSaveRequest(rinfType, rinfIdOverride)
 }

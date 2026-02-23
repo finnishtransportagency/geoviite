@@ -14,7 +14,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     OperationalPointSaveRequestBase,
-    validateRinfCodeOverride,
+    validateRinfIdOverride,
 } from 'tool-panel/operational-point/operational-point-utils';
 
 export type ExternalOperationalPointSaveRequest = OperationalPointSaveRequestBase & {
@@ -25,7 +25,7 @@ export type ExternalOperationalPointEditState = {
     existingOperationalPoint?: OperationalPoint;
     isSaving: boolean;
     operationalPoint: ExternalOperationalPointSaveRequest;
-    editingRinfCode: boolean;
+    editingRinfId: boolean;
     validationIssues: FieldValidationIssue<ExternalOperationalPointSaveRequest>[];
     committedFields: (keyof ExternalOperationalPointSaveRequest)[];
     allFieldsCommitted: boolean;
@@ -36,9 +36,9 @@ export const initialExternalOperationalPointEditState: ExternalOperationalPointE
     isSaving: false,
     operationalPoint: {
         rinfType: undefined,
-        rinfCodeOverride: undefined,
+        rinfIdOverride: undefined,
     },
-    editingRinfCode: false,
+    editingRinfId: false,
     validationIssues: [],
     committedFields: [],
     allFieldsCommitted: false,
@@ -46,7 +46,7 @@ export const initialExternalOperationalPointEditState: ExternalOperationalPointE
 
 const validateExternalOperationalPoint = (
     saveRequest: ExternalOperationalPointSaveRequest,
-    editingRinfCode: boolean,
+    editingRinfId: boolean,
     raideType?: OperationalPointRaideType,
 ): FieldValidationIssue<ExternalOperationalPointSaveRequest>[] => {
     const isOlp = raideType === 'OLP';
@@ -59,11 +59,11 @@ const validateExternalOperationalPoint = (
         },
     );
 
-    const rinfCodeValidation = editingRinfCode
-        ? validateRinfCodeOverride(saveRequest.rinfCodeOverride)
+    const rinfIdValidation = editingRinfId
+        ? validateRinfIdOverride(saveRequest.rinfIdOverride)
         : [];
 
-    return [rinfTypeMissing, ...rinfCodeValidation].filter(filterNotEmpty);
+    return [rinfTypeMissing, ...rinfIdValidation].filter(filterNotEmpty);
 };
 
 const internalOperationalPointEditSlice = createSlice({
@@ -77,12 +77,12 @@ const internalOperationalPointEditSlice = createSlice({
             state.existingOperationalPoint = existingOperationalPoint;
             state.operationalPoint = {
                 rinfType: existingOperationalPoint.rinfType,
-                rinfCodeOverride: existingOperationalPoint.rinfCodeOverride,
+                rinfIdOverride: existingOperationalPoint.rinfIdOverride,
             };
-            state.editingRinfCode = !!existingOperationalPoint.rinfCodeOverride;
+            state.editingRinfId = !!existingOperationalPoint.rinfIdOverride;
             state.validationIssues = validateExternalOperationalPoint(
                 state.operationalPoint,
-                state.editingRinfCode,
+                state.editingRinfId,
                 existingOperationalPoint.raideType,
             );
         },
@@ -95,14 +95,14 @@ const internalOperationalPointEditSlice = createSlice({
             if (state.operationalPoint) {
                 if (propEdit.key === 'rinfType' && propEdit.value === undefined) {
                     delete state.operationalPoint.rinfType;
-                } else if (propEdit.key === 'rinfCodeOverride' && propEdit.value === '') {
-                    state.operationalPoint.rinfCodeOverride = undefined;
+                } else if (propEdit.key === 'rinfIdOverride' && propEdit.value === '') {
+                    state.operationalPoint.rinfIdOverride = undefined;
                 } else {
                     state.operationalPoint[propEdit.key] = propEdit.value;
                 }
                 state.validationIssues = validateExternalOperationalPoint(
                     state.operationalPoint,
-                    state.editingRinfCode,
+                    state.editingRinfId,
                     state.existingOperationalPoint?.raideType,
                 );
 
@@ -124,14 +124,14 @@ const internalOperationalPointEditSlice = createSlice({
         ) {
             state.committedFields = [...state.committedFields, key];
         },
-        setEditingRinfCode: (
+        setEditingRinfId: (
             state: ExternalOperationalPointEditState,
             { payload: editing }: PayloadAction<boolean>,
         ): void => {
-            state.editingRinfCode = editing;
+            state.editingRinfId = editing;
             state.validationIssues = validateExternalOperationalPoint(
                 state.operationalPoint,
-                state.editingRinfCode,
+                state.editingRinfId,
                 state.existingOperationalPoint?.raideType,
             );
         },
@@ -139,7 +139,7 @@ const internalOperationalPointEditSlice = createSlice({
             if (state.operationalPoint) {
                 state.validationIssues = validateExternalOperationalPoint(
                     state.operationalPoint,
-                    state.editingRinfCode,
+                    state.editingRinfId,
                     state.existingOperationalPoint?.raideType,
                 );
                 state.allFieldsCommitted = true;

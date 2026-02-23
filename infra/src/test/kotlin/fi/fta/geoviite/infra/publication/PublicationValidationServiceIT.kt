@@ -2797,14 +2797,14 @@ constructor(
 
     @Test
     fun `operational point must have unique rinf code`() {
-        val op1 = operationalPoint(name = "OP1", uicCode = "1234", rinfCodeOverride = "FI012")
+        val op1 = operationalPoint(name = "OP1", uicCode = "1234", rinfIdOverride = "FI012")
         val op1Id = mainDraftContext.save(op1).id
 
         val op2 =
             operationalPoint(
                 name = "OP2",
                 uicCode = "1235",
-                rinfCodeGenerated = "FI012",
+                rinfIdGenerated = "FI012",
                 location = Point(op1.location?.let { Point(it.x + 100, it.y + 100) } ?: Point(100.0, 100.0)),
                 polygon = Polygon(op1.polygon?.points?.map { Point(it.x + 100, it.y + 100) } ?: listOf()),
             )
@@ -2818,8 +2818,8 @@ constructor(
             listOf(
                 LayoutValidationIssue(
                     LayoutValidationIssueType.FATAL,
-                    "validation.layout.operational-point.duplicate-rinf-code-draft",
-                    mapOf("rinfCodeOverride" to "FI012"),
+                    "validation.layout.operational-point.duplicate-rinf-id-draft",
+                    mapOf("rinfIdOverride" to "FI012"),
                 )
             ),
             issues,

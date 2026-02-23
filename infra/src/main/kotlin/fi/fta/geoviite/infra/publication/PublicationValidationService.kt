@@ -743,18 +743,18 @@ constructor(
                 },
             )
 
-        val rinfCodeIssues =
+        val rinfIdIssues =
             listOfNotNull(
                 validate(
-                    operationalPoint.raideType == OperationalPointRaideType.OLP || operationalPoint.rinfCode != null
+                    operationalPoint.raideType == OperationalPointRaideType.OLP || operationalPoint.rinfId != null
                 ) {
-                    "$VALIDATION_OPERATIONAL_POINT.rinf-code-missing"
+                    "$VALIDATION_OPERATIONAL_POINT.rinf-id-missing"
                 }
             ) +
-                if (operationalPoint.rinfCodeOverride != null) {
-                    validateOperationalPointRinfCodeOverrideDuplication(
+                if (operationalPoint.rinfIdOverride != null) {
+                    validateOperationalPointRinfIdOverrideDuplication(
                         operationalPoint,
-                        validationContext.getOperationalPointsByRinfCode(operationalPoint.rinfCodeOverride).filter {
+                        validationContext.getOperationalPointsByRinfId(operationalPoint.rinfIdOverride).filter {
                             it.raideType != OperationalPointRaideType.OLP
                         },
                         validationContext.target.validationTargetType,
@@ -765,7 +765,7 @@ constructor(
             abbreviationDuplicationIssues +
             uicCodeIssues +
             rinfTypeIssues +
-            rinfCodeIssues +
+            rinfIdIssues +
             polygonOverlapIssues +
             locationIssues +
             geometryQualityIssues

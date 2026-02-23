@@ -8,7 +8,7 @@ import { filterNotEmpty, indexIntoMap, partitionBy } from 'utils/array-utils';
 import { FieldValidationIssue, FieldValidationIssueType, validate } from 'utils/validation-utils';
 
 export type OperationalPointSaveRequestBase = {
-    rinfCodeOverride?: string;
+    rinfIdOverride?: string;
 };
 
 export type UseLinkingHookResult<Id, T, ItemAssociation> = {
@@ -241,47 +241,47 @@ export const Hide: React.FC<React.PropsWithChildren<{ when: boolean }>> = ({ whe
     <div style={{ display: 'contents', ...(when && { visibility: 'hidden' }) }}>{children}</div>
 );
 
-const RINF_CODE_REGEX = /^[A-Z]{2}[0-9]{0,}$/;
+const RINF_ID_REGEX = /^[A-Z]{2}[0-9]{0,}$/;
 
-export const withConditionalRinfCodeOverride = <T,>(
+export const withConditionalRinfIdOverride = <T,>(
     request: T,
-    allowRinfCodeOverride: boolean,
-): T => (allowRinfCodeOverride ? request : { ...request, rinfCodeOverride: undefined });
+    allowRinfIdOverride: boolean,
+): T => (allowRinfIdOverride ? request : { ...request, rinfIdOverride: undefined });
 
-export const validateRinfCodeOverride = (
-    rinfCodeOverride: string | undefined,
+export const validateRinfIdOverride = (
+    rinfIdOverride: string | undefined,
 ): FieldValidationIssue<OperationalPointSaveRequestBase>[] =>
     [
         validate<OperationalPointSaveRequestBase>(
-            rinfCodeOverride === undefined ||
-                rinfCodeOverride.length < 2 ||
-                rinfCodeOverride.startsWith('EU'),
+            rinfIdOverride === undefined ||
+                rinfIdOverride.length < 2 ||
+                rinfIdOverride.startsWith('EU'),
             {
-                field: 'rinfCodeOverride',
-                reason: 'rinf-code-must-start-with-eu',
+                field: 'rinfIdOverride',
+                reason: 'rinf-id-must-start-with-eu',
                 type: FieldValidationIssueType.ERROR,
             },
         ),
         validate<OperationalPointSaveRequestBase>(
-            rinfCodeOverride === undefined || rinfCodeOverride.length <= 12,
+            rinfIdOverride === undefined || rinfIdOverride.length <= 12,
             {
-                field: 'rinfCodeOverride',
-                reason: 'rinf-code-too-long',
+                field: 'rinfIdOverride',
+                reason: 'rinf-id-too-long',
                 type: FieldValidationIssueType.ERROR,
             },
         ),
         validate<OperationalPointSaveRequestBase>(
-            rinfCodeOverride === undefined || RINF_CODE_REGEX.test(rinfCodeOverride),
+            rinfIdOverride === undefined || RINF_ID_REGEX.test(rinfIdOverride),
             {
-                field: 'rinfCodeOverride',
-                reason: 'invalid-rinf-code',
+                field: 'rinfIdOverride',
+                reason: 'invalid-rinf-id',
                 type: FieldValidationIssueType.ERROR,
             },
         ),
         validate<OperationalPointSaveRequestBase>(
-            !!rinfCodeOverride && rinfCodeOverride.length > 0,
+            !!rinfIdOverride && rinfIdOverride.length > 0,
             {
-                field: 'rinfCodeOverride',
+                field: 'rinfIdOverride',
                 reason: 'mandatory-field',
                 type: FieldValidationIssueType.ERROR,
             },

@@ -22,8 +22,8 @@ select
   op.change_user,
   op.change_time,
   op.expiry_time,
-  op.rinf_code_generated,
-  op.rinf_code_override
+  op.rinf_id_generated,
+  op.rinf_id_override
   from layout.operational_point_version op
     left join layout.operational_point_external_id ext_id
               on op.origin = 'RATKO' and op.id = ext_id.id and ext_id.layout_context_id = 'main_official'
