@@ -75,10 +75,12 @@ import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/track-number-end-point-addresses-layer';
 import { Point, Polygon, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
+import { createRouteHighlightLayer } from 'map/layers/highlight/route-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { RouteResult } from 'track-layout/layout-routing-api';
 import { createLocationTrackSplitLocationLayer } from 'map/layers/alignment/location-track-split-location-layer';
 import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/duplicate-split-section-highlight-layer';
 import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/location-track-duplicate-endpoint-indicator-layer';
@@ -134,6 +136,7 @@ export type MapViewProps = {
     onClosePlanDownloadPopup: () => void;
     onSetOperationalPointPolygon: (polygon: Polygon) => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
+    routeResult?: RouteResult | undefined;
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     publicationCandidates?: PublicationCandidate[];
@@ -243,6 +246,7 @@ const MapView: React.FC<MapViewProps> = ({
     onSelect,
     onViewportUpdate,
     hoveredOverPlanSection,
+    routeResult,
     manuallySetPlan,
     onSetLayoutClusterLinkPoint,
     onSetGeometryClusterLinkPoint,
@@ -523,6 +527,16 @@ const MapView: React.FC<MapViewProps> = ({
                             hoveredOverPlanSection,
                             (loading) => onLayerLoading(layerName, loading),
                         );
+                    case 'route-highlight-layer':
+                        return createRouteHighlightLayer(
+                            mapTiles,
+                            existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
+                            layoutContext,
+                            changeTimes,
+                            resolution,
+                            routeResult,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
                     case 'km-post-layer':
                         return createKmPostLayer(
                             mapTiles,
@@ -776,6 +790,7 @@ const MapView: React.FC<MapViewProps> = ({
         manuallySetPlan,
         map.layerMenu,
         publicationCandidates,
+        routeResult,
     ]);
 
     const toolActivateOptions: MapToolActivateOptions = {

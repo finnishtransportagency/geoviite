@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
@@ -37,7 +38,12 @@ data class Route(val sections: List<RouteSection>) {
         get() = sections.sumOf { it.length }
 }
 
-data class RouteSection(val trackId: IntId<LocationTrack>, val mRange: Range<LineM<LocationTrackM>>, val direction: EdgeDirection) {
+data class RouteSection(
+    val trackId: IntId<LocationTrack>,
+    // Jackson bungles up names with a single lowercase letter in the beginning
+    @get:JsonProperty("mRange") val mRange: Range<LineM<LocationTrackM>>,
+    val direction: EdgeDirection
+) {
     val length: Double
         get() = mRange.length().distance
 

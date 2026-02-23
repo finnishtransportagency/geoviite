@@ -3,9 +3,9 @@ import {
     HELSINKI_RAILWAY_STATION_COORDS,
     Map,
     MapLayerMenuChange,
+    MapLayerMenuGroups,
     MapLayerMenuItem,
     MapLayerMenuItemName,
-    MapLayerMenuGroups,
     MapLayerName,
     MapLayerSettingChange,
     MapViewport,
@@ -41,7 +41,7 @@ export const isLayerInProxyLayerCollection = (
     return visibleLayers.some((layer) => keys.includes(layer));
 };
 
-const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer'];
+const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer', 'route-highlight-layer'];
 
 type LayerCollection = { [key in MapLayerName]?: MapLayerName[] };
 
@@ -89,7 +89,7 @@ export const relatedMapLayers: LayerCollection = {
     'operational-points-icon-layer': ['operational-points-badge-layer'],
     'reference-line-alignment-layer': [
         'reference-line-background-layer',
-        'reference-line-selected-alignment-layer',        
+        'reference-line-selected-alignment-layer',
         'reference-line-badge-layer',
     ],
 };

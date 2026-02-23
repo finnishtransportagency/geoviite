@@ -19,6 +19,7 @@ import { measurementTool } from 'map/tools/measurement-tool';
 import { createRouteFindingTool } from 'map/tools/route-finding-tool';
 import { ConfirmMoveToMainOfficialDialogContainer } from 'map/plan-download/confirm-move-to-main-official-dialog';
 import { useTrackLayoutAppSelector } from 'store/hooks';
+import { RouteResult } from 'track-layout/layout-routing-api';
 import { LinkingType } from 'linking/linking-model';
 import { operationalPointAreaTool } from 'map/tools/operational-point-area-tool';
 
@@ -44,10 +45,11 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
 
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
+    const [routeResult, setRouteResult] = React.useState<RouteResult | undefined>();
     const [switchToOfficialDialogOpen, setSwitchToOfficialDialogOpen] = React.useState(false);
 
     const routeFindingTool = React.useMemo(
-        () => createRouteFindingTool(layoutContext),
+        () => createRouteFindingTool(layoutContext, setRouteResult),
         [layoutContext],
     );
 
@@ -92,6 +94,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                             <MapContext.Provider value="track-layout">
                                 <MapViewContainer
                                     hoveredOverPlanSection={hoveredOverPlanSection}
+                                    routeResult={routeResult}
                                     mapTools={mapTools}
                                     customActiveMapTool={selectOrHighlightComboTool}
                                 />

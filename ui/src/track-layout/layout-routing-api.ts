@@ -33,12 +33,8 @@ export type RouteSection = {
 };
 
 export type MRange = {
-    min: LineM;
-    max: LineM;
-};
-
-export type LineM = {
-    distance: number;
+    min: number;
+    max: number;
 };
 
 const ROUTING_URI = `${TRACK_LAYOUT_URI}/route`;

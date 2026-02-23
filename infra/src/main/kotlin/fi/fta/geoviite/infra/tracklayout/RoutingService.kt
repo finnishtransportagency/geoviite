@@ -35,20 +35,17 @@ class RoutingService(
                 structures = switchLibraryService.getSwitchStructuresById(),
             )
             graph.findPath(startTrackHit, endTrackHit)?.let { route ->
-                toRouteResult(startLocation, startTrackHit, route)
+                RouteResult(
+                    startConnection = toClosestTrackPoint(startLocation, startTrackHit),
+                    endConnection = toClosestTrackPoint(endLocation, endTrackHit),
+                    route = route,
+                )
             }
         } else {
             null
         }
     }
 }
-
-private fun toRouteResult(requestedPoint: Point, hit: LocationTrackCacheHit, route: Route): RouteResult =
-    RouteResult(
-        startConnection = toClosestTrackPoint(requestedPoint, hit),
-        endConnection = toClosestTrackPoint(requestedPoint, hit),
-        route = route,
-    )
 
 private fun toClosestTrackPoint(requestedPoint: Point, hit: LocationTrackCacheHit): ClosestTrackPoint =
     ClosestTrackPoint(

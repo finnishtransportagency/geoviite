@@ -15,7 +15,12 @@ import Feature from 'ol/Feature';
 import { debounce } from 'ts-debounce';
 import { coordsToPoint } from 'model/geometry';
 import { LayoutContext } from 'common/common-model';
-import { ClosestTrackPoint, getClosestTrackPoint, getRoute } from 'track-layout/layout-routing-api';
+import {
+    ClosestTrackPoint,
+    getClosestTrackPoint,
+    getRoute,
+    RouteResult,
+} from 'track-layout/layout-routing-api';
 
 const DEBOUNCE_MS = 100;
 const MAX_TRACK_SEEK_DISTANCE = 100.0;
@@ -52,12 +57,14 @@ function createTrackConnector(location: RouteLocation): Feature<LineString> {
     return createConnector(location.clickedCoordinate, trackCoordinate);
 }
 
-export function createRouteFindingTool(layoutContext: LayoutContext): MapToolWithButton {
+export function createRouteFindingTool(
+    layoutContext: LayoutContext,
+    onRouteFound: (route: RouteResult | undefined) => void,
+): MapToolWithButton {
+    let route: RouteResult | undefined;
     const tool: MapToolWithButton = {
         id: 'route-finding',
         activate: (map: OlMap) => {
-            console.log('Activating route finding tool');
-
             const vectorSource = new VectorSource();
             const vectorLayer = new VectorLayer({
                 source: vectorSource,
@@ -65,39 +72,48 @@ export function createRouteFindingTool(layoutContext: LayoutContext): MapToolWit
                 zIndex: 1000,
             });
 
-            map.addLayer(vectorLayer);
-
             let firstLocation: RouteLocation | undefined;
             let secondLocation: RouteLocation | undefined;
             let hoverCoordinate: Coordinate | undefined;
             let hoverClosestPoint: ClosestTrackPoint | undefined;
+
+            map.addLayer(vectorLayer);
 
             const updateVisuals = () => {
                 vectorSource.clear();
 
                 const features: Feature<LineString>[] = [];
 
-                // Dashed lines from clicked/hovered locations to the closest point on track
-                if (firstLocation) features.push(createTrackConnector(firstLocation));
-                if (secondLocation) features.push(createTrackConnector(secondLocation));
-                if (hoverCoordinate && hoverClosestPoint && !secondLocation)
-                    features.push(
-                        createTrackConnector({
-                            clickedCoordinate: hoverCoordinate,
-                            closestTrackPoint: hoverClosestPoint,
-                        }),
-                    );
+                if (!route) {
+                    // Dashed lines from clicked/hovered locations to the closest point on track
+                    if (firstLocation) features.push(createTrackConnector(firstLocation));
+                    if (secondLocation) features.push(createTrackConnector(secondLocation));
+                    if (hoverCoordinate && hoverClosestPoint && !secondLocation)
+                        features.push(
+                            createTrackConnector({
+                                clickedCoordinate: hoverCoordinate,
+                                closestTrackPoint: hoverClosestPoint,
+                            }),
+                        );
+                }
 
                 vectorSource.addFeatures(features);
             };
 
-            const debouncedUpdateHover = debounce(async (coordinate: Coordinate) => {
+            const resetTempVisuals = () => {
+                firstLocation = undefined;
+                secondLocation = undefined;
+                hoverClosestPoint = undefined;
+                updateVisuals();
+            };
+
+            const getClosest = async (coordinate: Coordinate) => {
                 const point = coordsToPoint(coordinate);
-                hoverClosestPoint = await getClosestTrackPoint(
-                    layoutContext,
-                    point,
-                    MAX_TRACK_SEEK_DISTANCE,
-                );
+                return await getClosestTrackPoint(layoutContext, point, MAX_TRACK_SEEK_DISTANCE);
+            };
+
+            const debouncedUpdateHover = debounce(async (coordinate: Coordinate) => {
+                hoverClosestPoint = await getClosest(coordinate);
                 updateVisuals();
             }, DEBOUNCE_MS);
 
@@ -118,15 +134,16 @@ export function createRouteFindingTool(layoutContext: LayoutContext): MapToolWit
             };
 
             const handleClick = async (event: PointerEvent) => {
-                if (firstLocation && secondLocation) {
-                    firstLocation = undefined;
-                    secondLocation = undefined;
+                if (route) {
+                    // Reset on third click
+                    route = undefined;
+                    onRouteFound(undefined);
+                    resetTempVisuals();
                     return;
                 }
 
                 const pixel = map.getEventPixel(event);
                 const coordinate = map.getCoordinateFromPixel(pixel);
-                console.log('click', pixel, coordinate);
                 if (!coordinate) return;
 
                 const closestPoint = await getClosestTrackPoint(
@@ -153,20 +170,19 @@ export function createRouteFindingTool(layoutContext: LayoutContext): MapToolWit
 
                 if (firstLocation && secondLocation) {
                     // Call the backend to get the route
-                    console.log('Requesting route from backend...');
-                    const routeResult = await getRoute(
+                    route = await getRoute(
                         layoutContext,
                         firstLocation.closestTrackPoint.requestedLocation,
                         secondLocation.closestTrackPoint.requestedLocation,
                         MAX_TRACK_SEEK_DISTANCE,
                     );
-                    console.log('Route result:', routeResult);
+
+                    if (route) {
+                        onRouteFound(route);
+                        resetTempVisuals();
+                    }
                 }
 
-                console.log('click END:');
-                console.log(' - clicked:', coordinate, closestPoint);
-                console.log(' - first', firstLocation);
-                console.log(' - second', secondLocation);
                 updateVisuals();
             };
 

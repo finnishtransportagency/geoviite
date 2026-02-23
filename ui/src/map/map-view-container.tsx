@@ -15,6 +15,7 @@ import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { PublicationCandidate } from 'publication/publication-model';
 import { MapTool, MapToolWithButton } from 'map/tools/tool-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
+import { RouteResult } from 'track-layout/layout-routing-api';
 
 const emptyFn = () => void 0;
 
@@ -85,6 +86,7 @@ export type PublicationCandidateState = 'non-staged' | 'staged';
 type MapViewContainerProps = {
     layoutContext?: LayoutContext;
     hoveredOverPlanSection?: HighlightedAlignment;
+    routeResult?: RouteResult;
     manuallySetPlan?: GeometryPlanLayout;
     publicationCandidates?: PublicationCandidate[];
     customActiveMapTool?: MapTool;
@@ -94,6 +96,7 @@ type MapViewContainerProps = {
 export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     layoutContext,
     hoveredOverPlanSection,
+    routeResult,
     manuallySetPlan,
     publicationCandidates,
     customActiveMapTool,
@@ -106,6 +109,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
 
     mapProps.layoutContext = layoutContext ? layoutContext : mapProps.layoutContext;
     mapProps.hoveredOverPlanSection = hoveredOverPlanSection;
+    mapProps.routeResult = routeResult;
     mapProps.manuallySetPlan = manuallySetPlan;
     mapProps.publicationCandidates = publicationCandidates;
     mapProps.customActiveMapTool = customActiveMapTool;
