@@ -36,7 +36,6 @@ constructor(
 
     @Test
     fun `operational point OID is displayed after publication`() {
-        // Create a draft operational point at the default map location
         val centerPoint = Point(385782.89, 6672277.83)
         val operationalPointVersion =
             mainDraftContext.save(
@@ -56,12 +55,9 @@ constructor(
             )
         val operationalPointId = operationalPointVersion.id
 
-        // Navigate to map view and switch to draft mode
-        val trackLayoutPage = goToMap().switchToDraftMode()
-
-        // Verify the operational point does not have an OID yet in draft mode (UI verification)
-        trackLayoutPage.selectionPanel.selectOperationalPoint("Test Point")
-        val oidBeforePublicationUI = trackLayoutPage.toolPanel.operationalPointGeneralInfo.oid
+        val trackLayoutDraftPage = goToMap().switchToDraftMode()
+        trackLayoutDraftPage.selectionPanel.selectOperationalPoint("Test Point")
+        val oidBeforePublicationUI = trackLayoutDraftPage.toolPanel.operationalPointGeneralInfo.oid
         assertEquals(
             "Julkaisematon",
             oidBeforePublicationUI,
@@ -71,29 +67,22 @@ constructor(
         val oidBeforePublication = operationalPointDao.fetchExternalId(LayoutBranch.main, operationalPointId)
         assertNull(oidBeforePublication, "Operational point should not have an OID before publication (backend)")
 
-        // Navigate to preview and publish
-        val previewPage = trackLayoutPage.goToPreview()
+        val previewPage = trackLayoutDraftPage.goToPreview()
         previewPage.waitForAllTableValidationsToComplete()
-
-        // Stage the operational point change
         previewPage.stageChange("Toiminnallinen piste Test Point")
-
-        // Publish the changes
         previewPage.publish()
 
-        // Navigate back to map and verify the OID is displayed in the UI
-        goToMap().switchToOfficialMode().also { page ->
-            page.selectionPanel.selectOperationalPoint("Test Point")
-            val oidAfterPublicationUI = page.toolPanel.operationalPointGeneralInfo.oid
-            assertNotEquals(oidAfterPublicationUI, "", "Operational point OID should not be empty (UI)")
+        val trackLayoutOfficialPage = goToMap().switchToOfficialMode()
+        trackLayoutOfficialPage.selectionPanel.selectOperationalPoint("Test Point")
+        val oidAfterPublicationUI = trackLayoutOfficialPage.toolPanel.operationalPointGeneralInfo.oid
+        assertNotEquals(oidAfterPublicationUI, "", "Operational point OID should not be empty (UI)")
 
-            val oidAfterPublication = operationalPointDao.fetchExternalId(LayoutBranch.main, operationalPointId)
-            assertNotNull(oidAfterPublication?.oid, "Operational point OID should exist in backend")
-            assertEquals(
-                oidAfterPublicationUI,
-                oidAfterPublication?.oid.toString(),
-                "UI OID ($oidAfterPublicationUI) should match backend OID (${oidAfterPublication?.oid})",
-            )
-        }
+        val oidAfterPublication = operationalPointDao.fetchExternalId(LayoutBranch.main, operationalPointId)
+        assertNotNull(oidAfterPublication?.oid, "Operational point OID should exist in backend")
+        assertEquals(
+            oidAfterPublicationUI,
+            oidAfterPublication?.oid.toString(),
+            "UI OID ($oidAfterPublicationUI) should match backend OID (${oidAfterPublication?.oid})",
+        )
     }
 }

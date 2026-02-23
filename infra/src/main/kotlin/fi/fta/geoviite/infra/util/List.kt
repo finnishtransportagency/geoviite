@@ -7,17 +7,22 @@ fun <T : Comparable<T>> nullsLastComparator(a: T?, b: T?) =
 fun <T : Comparable<T>> nullsFirstComparator(a: T?, b: T?) =
     if (a == null && b == null) 0 else if (a == null) -1 else if (b == null) 1 else a.compareTo(b)
 
-fun rangesOfConsecutiveIndicesOf(value: Boolean, ts: List<Boolean>, offsetRangeEndsBy: Int = 0): List<IntRange> =
-    sequence {
-            yield(!value)
-            yieldAll(ts.asSequence())
-            yield(!value)
+fun rangesOfConsecutiveIndicesOf(value: Boolean, ts: List<Boolean>, offsetRangeEndsBy: Int = 0): List<IntRange> {
+    val result = mutableListOf<IntRange>()
+    var rangeStart: Int? = null
+    for (i in ts.indices) {
+        if (ts[i] == value) {
+            if (rangeStart == null) rangeStart = i
+        } else if (rangeStart != null) {
+            result.add(rangeStart until i + offsetRangeEndsBy)
+            rangeStart = null
         }
-        .zipWithNext()
-        .mapIndexedNotNull { i, (a, b) -> if (a != b) i else null }
-        .chunked(2)
-        .map { c -> c[0] until c[1] + offsetRangeEndsBy }
-        .toList()
+    }
+    if (rangeStart != null) {
+        result.add(rangeStart until ts.size + offsetRangeEndsBy)
+    }
+    return result
+}
 
 /**
  * "Compact list" = lists containing all values between their endpoints, in order. Generally this is meant for the

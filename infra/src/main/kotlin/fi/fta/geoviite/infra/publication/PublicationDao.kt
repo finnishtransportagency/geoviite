@@ -2318,7 +2318,7 @@ class PublicationDao(
                 ptn.base_layout_context_id,
                 ptn.base_version,
                 ptn.id,
-                publication.design_id,
+                ptn.layout_context_id,
                 version,
                 number,
                 layout.infer_operation_from_state_transition(
@@ -2342,12 +2342,7 @@ class PublicationDao(
             .query(sql, mapOf("publication_ids" to publicationIds.map { it.intValue })) { rs, _ ->
                 (rs.getIntId<Publication>("publication_id") to rs.getBoolean("direct_change")) to
                     PublishedTrackNumber(
-                        version =
-                            LayoutRowVersion(
-                                rs.getIntId("id"),
-                                rs.getLayoutBranch("design_id").official,
-                                rs.getInt("version"),
-                            ),
+                        version = rs.getLayoutRowVersion("id", "layout_context_id", "version"),
                         baseVersion = rs.getLayoutRowVersionOrNull("id", "base_layout_context_id", "base_version"),
                         number = rs.getTrackNumber("number"),
                         operation = rs.getEnum("operation"),

@@ -22,7 +22,8 @@ import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.linking.LayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
-import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequestBase
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchUpdateRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
@@ -659,7 +660,7 @@ constructor(
                 MainLayoutContext.draft,
                 switchService.insertSwitch(
                     LayoutBranch.main,
-                    LayoutSwitchSaveRequest(
+                    LayoutSwitchSaveRequestBase(
                         SwitchName("TEST"),
                         IntId(1),
                         LayoutStateCategory.EXISTING,
@@ -676,15 +677,15 @@ constructor(
                 switchService.updateSwitch(
                     LayoutBranch.main,
                     switch.id,
-                    LayoutSwitchSaveRequest(
+                    LayoutSwitchUpdateRequest(
                         SwitchName("TEST 2"),
                         IntId(2),
                         LayoutStateCategory.NOT_EXISTING,
                         IntId(2),
                         true,
                         draftOid = null,
+                        removeSwitchLinks = false,
                     ),
-                    false,
                 ),
             )
         publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
@@ -717,8 +718,8 @@ constructor(
 
     @Test
     fun `Changing specific switch field returns only that field`() {
-        val saveReq =
-            LayoutSwitchSaveRequest(
+        val switchSaveRequest =
+            LayoutSwitchSaveRequestBase(
                 SwitchName("TEST"),
                 IntId(1),
                 LayoutStateCategory.EXISTING,
@@ -728,7 +729,10 @@ constructor(
             )
 
         val switch =
-            switchService.getOrThrow(MainLayoutContext.draft, switchService.insertSwitch(LayoutBranch.main, saveReq))
+            switchService.getOrThrow(
+                MainLayoutContext.draft,
+                switchService.insertSwitch(LayoutBranch.main, switchSaveRequest),
+            )
         publish(publicationService, switches = listOf(switch.id as IntId))
         val updatedSwitch =
             switchService.getOrThrow(
@@ -736,8 +740,15 @@ constructor(
                 switchService.updateSwitch(
                     LayoutBranch.main,
                     switch.id,
-                    saveReq.copy(name = SwitchName("TEST 2")),
-                    false,
+                    LayoutSwitchUpdateRequest(
+                        name = SwitchName("TEST 2"),
+                        switchStructureId = switchSaveRequest.switchStructureId,
+                        stateCategory = switchSaveRequest.stateCategory,
+                        ownerId = switchSaveRequest.ownerId,
+                        trapPoint = switchSaveRequest.trapPoint,
+                        draftOid = switchSaveRequest.draftOid,
+                        removeSwitchLinks = false,
+                    ),
                 ),
             )
         publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
@@ -958,9 +969,9 @@ constructor(
         assertEquals("linked-switches", diff.propKey.key.toString())
         assertEquals(
             """
-                Vaihteiden sw-deleted, sw-replaced-with-new-same-name (1.1.1.1.8), sw-unlinked-from-alignment,
-                sw-unlinked-from-topology linkitys purettu. Vaihteet sw-added-to-alignment, sw-added-to-topo-end,
-                sw-added-to-topo-start, sw-replaced-with-new-same-name (1.1.1.1.9) linkitetty.
+            Vaihteiden sw-deleted, sw-replaced-with-new-same-name (1.1.1.1.8), sw-unlinked-from-alignment,
+            sw-unlinked-from-topology linkitys purettu. Vaihteet sw-added-to-alignment, sw-added-to-topo-end,
+            sw-added-to-topo-start, sw-replaced-with-new-same-name (1.1.1.1.9) linkitetty.
             """
                 .trimIndent()
                 .replace("\n", " "),

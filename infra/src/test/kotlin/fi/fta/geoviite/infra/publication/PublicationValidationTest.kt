@@ -107,32 +107,14 @@ class PublicationValidationTest {
     }
 
     @Test
-    fun `Km-post validation catches un-published track number or reference line`() {
+    fun `Km-post validation catches un-published track number`() {
         val trackNumberId = IntId<LayoutTrackNumber>(1)
-        val referenceLine = referenceLine(trackNumberId = IntId(1), id = IntId(1), draft = false)
         val kmPost = kmPost(trackNumberId, KmNumber(1), draft = true)
         val trackNumber = trackNumber(id = IntId(2), draft = false)
         assertKmPostReferenceError(
             true,
             kmPost,
             null,
-            referenceLine,
-            trackNumber.number,
-            "$VALIDATION_KM_POST.reference-to-track-number.not-published",
-        )
-        assertKmPostReferenceError(
-            true,
-            kmPost,
-            trackNumber,
-            null,
-            trackNumber.number,
-            "$VALIDATION_KM_POST.reference-to-reference-line.not-published",
-        )
-        assertKmPostReferenceError(
-            false,
-            kmPost,
-            trackNumber,
-            referenceLine,
             trackNumber.number,
             "$VALIDATION_KM_POST.reference-to-track-number.not-published",
         )
@@ -140,9 +122,8 @@ class PublicationValidationTest {
             false,
             kmPost,
             trackNumber,
-            referenceLine,
             trackNumber.number,
-            "$VALIDATION_KM_POST.reference-to-reference-line.not-published",
+            "$VALIDATION_KM_POST.reference-to-track-number.not-published",
         )
     }
 
@@ -1407,10 +1388,7 @@ class PublicationValidationTest {
         assertContainsError(
             hasError,
             validateReferencesToTrackNumber(
-                AssetLiveness(
-                    trackNumber.number.toString(),
-                    if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
-                ),
+                if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
                 referenceLine,
                 kmPosts,
                 locationTracks,
@@ -1422,7 +1400,6 @@ class PublicationValidationTest {
         hasError: Boolean,
         kmPost: LayoutKmPost,
         trackNumber: LayoutTrackNumber?,
-        referenceLine: ReferenceLine?,
         trackNumberNumber: TrackNumber,
         error: String,
     ) =
@@ -1434,11 +1411,6 @@ class PublicationValidationTest {
                     trackNumberNumber.toString(),
                     if (trackNumber == null) AssetLivenessType.DRAFT_NOT_PUBLISHED
                     else if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
-                ),
-                AssetLiveness(
-                    trackNumberNumber.toString(),
-                    if (referenceLine == null) AssetLivenessType.DRAFT_NOT_PUBLISHED
-                    else if (trackNumber?.exists ?: false) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
                 ),
             ),
             error,

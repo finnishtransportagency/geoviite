@@ -66,28 +66,26 @@ const val MAX_LAYOUT_POINT_ANGLE_CHANGE = PI / 2
 const val MAX_LAYOUT_METER_LENGTH = 2.0
 
 fun validateReferencesToTrackNumber(
-    trackNumberLiveness: AssetLiveness<LayoutTrackNumber>,
+    trackNumberLivenessType: AssetLivenessType,
     referenceLine: ReferenceLine?,
     kmPosts: List<LayoutKmPost>,
     locationTracks: List<LocationTrack>,
 ): List<LayoutValidationIssue> =
-    validateReferenceLiveness(
-        // reference lines do have a presence in publication sets, so the validity of that must be checked, but they
-        // don't have their own existing/deleted state, so for the sake of this check, can always be considered deleted
-        { false },
-        { trackNumberLiveness.assetName },
-        "$VALIDATION_TRACK_NUMBER.reference-from-reference-line",
-        trackNumberLiveness,
-        listOfNotNull(referenceLine),
+    // Reference lines don't have their own existing/deleted state, so the only problematic case is the track
+    // number's creation being cancelled while a reference line still exists for it.
+    listOfNotNull(
+        validate(referenceLine == null || trackNumberLivenessType != AssetLivenessType.CREATION_CANCELLED) {
+            "$VALIDATION_TRACK_NUMBER.reference-from-reference-line.cancelled"
+        }
     ) +
-        validateReferenceLivenessFromLocationTrack(
+        validateReferenceFromByLocationTrack(
             "$VALIDATION_TRACK_NUMBER.reference-from-location-track",
-            trackNumberLiveness,
+            trackNumberLivenessType,
             locationTracks,
         ) +
-        validateReferenceLivenessFromKmPost(
+        validateReferenceFromByKmPost(
             "$VALIDATION_TRACK_NUMBER.reference-from-km-post",
-            trackNumberLiveness,
+            trackNumberLivenessType,
             kmPosts,
         )
 
@@ -95,36 +93,32 @@ fun validateReferencesFromTrackNumber(
     trackNumber: LayoutTrackNumber,
     referenceLineLiveness: AssetLiveness<ReferenceLine>,
 ): List<LayoutValidationIssue> =
-    validateReferenceLivenessFromTrackNumber(
+    validateReferenceToLiveness(
         "$VALIDATION_TRACK_NUMBER.reference-to-reference-line",
         referenceLineLiveness,
-        listOf(trackNumber),
+        trackNumber.exists,
     )
 
 fun validateReferencesToSwitch(
-    switchLiveness: AssetLiveness<LayoutSwitch>,
+    switchLivenessType: AssetLivenessType,
     locationTracks: List<LocationTrack>,
 ): List<LayoutValidationIssue> =
-    validateReferenceLivenessFromLocationTrack(
+    validateReferenceFromByLocationTrack(
         "$VALIDATION_SWITCH.reference-from-location-track",
-        switchLiveness,
+        switchLivenessType,
         locationTracks,
     )
 
 fun validateReferencesFromSwitch(pointLiveness: AssetLiveness<OperationalPoint>, switch: LayoutSwitch) =
-    validateReferenceLivenessFromSwitch(
-        "$VALIDATION_SWITCH.reference-to-operational-point",
-        pointLiveness,
-        listOf(switch),
-    )
+    validateReferenceToLiveness("$VALIDATION_SWITCH.reference-to-operational-point", pointLiveness, switch.exists)
 
 fun validateReferencesToLocationTrack(
-    locationTrackLiveness: AssetLiveness<LocationTrack>,
+    locationTrackLivenessType: AssetLivenessType,
     duplicateTracks: List<LocationTrack>,
 ) =
-    validateReferenceLivenessFromLocationTrack(
+    validateReferenceFromByLocationTrack(
         "$VALIDATION_LOCATION_TRACK.reference-from-location-track-duplicate-of",
-        locationTrackLiveness,
+        locationTrackLivenessType,
         duplicateTracks,
     )
 
@@ -135,46 +129,42 @@ fun validateReferencesFromLocationTrack(
     duplicateOf: AssetLiveness<LocationTrack>?,
     locationTrack: LocationTrack,
 ) =
-    validateReferenceLivenessFromLocationTrack(
+    validateReferenceToLiveness(
         "$VALIDATION_LOCATION_TRACK.reference-to-track-number",
         trackNumber,
-        listOf(locationTrack),
+        locationTrack.exists,
     ) +
         switches.flatMap { switch ->
-            validateReferenceLivenessFromLocationTrack(
-                "$VALIDATION_LOCATION_TRACK.reference-to-switch",
-                switch,
-                listOf(locationTrack),
-            )
+            validateReferenceToLiveness("$VALIDATION_LOCATION_TRACK.reference-to-switch", switch, locationTrack.exists)
         } +
         operationalPoints.flatMap { operationalPoint ->
-            validateReferenceLivenessFromLocationTrack(
+            validateReferenceToLiveness(
                 "$VALIDATION_LOCATION_TRACK.reference-to-operational-point",
                 operationalPoint,
-                listOf(locationTrack),
+                locationTrack.exists,
             )
         } +
-        listOfNotNull(duplicateOf).flatMap { duplicateOf ->
-            validateReferenceLivenessFromLocationTrack(
+        listOfNotNull(duplicateOf).flatMap { dup ->
+            validateReferenceToLiveness(
                 "$VALIDATION_LOCATION_TRACK.reference-to-location-track-duplicate-of",
-                duplicateOf,
-                listOf(locationTrack),
+                dup,
+                locationTrack.exists,
             )
         }
 
 fun validateReferencesToOperationalPoint(
-    operationalPointLiveness: AssetLiveness<OperationalPoint>,
+    operationalPointLivenessType: AssetLivenessType,
     switches: List<LayoutSwitch>,
     locationTracks: List<LocationTrack>,
 ) =
-    validateReferenceLivenessFromSwitch(
+    validateReferenceFromBySwitch(
         "$VALIDATION_OPERATIONAL_POINT.reference-from-switch",
-        operationalPointLiveness,
+        operationalPointLivenessType,
         switches,
     ) +
-        validateReferenceLivenessFromLocationTrack(
+        validateReferenceFromByLocationTrack(
             "$VALIDATION_OPERATIONAL_POINT.reference-from-location-track",
-            operationalPointLiveness,
+            operationalPointLivenessType,
             locationTracks,
         )
 
@@ -256,26 +246,8 @@ fun validateOperationalPointPolygonOverlap(
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,
     trackNumberLiveness: AssetLiveness<LayoutTrackNumber>,
-    referenceLineLiveness: AssetLiveness<ReferenceLine>?,
 ): List<LayoutValidationIssue> =
-    validateReferenceLivenessFromKmPost(
-        "$VALIDATION_KM_POST.reference-to-track-number",
-        trackNumberLiveness,
-        listOf(kmPost),
-    ) +
-        (if (referenceLineLiveness == null)
-            listOf(
-                validationError(
-                    "$VALIDATION_KM_POST.reference-to-reference-line.not-published",
-                    localizationParams("trackNumber" to trackNumberLiveness.assetName),
-                )
-            )
-        else
-            validateReferenceLivenessFromKmPost(
-                "$VALIDATION_KM_POST.reference-to-reference-line",
-                referenceLineLiveness,
-                listOf(kmPost),
-            ))
+    validateReferenceToLiveness("$VALIDATION_KM_POST.reference-to-track-number", trackNumberLiveness, kmPost.exists)
 
 fun validateKmPostNumberDuplication(
     kmPost: LayoutKmPost,
@@ -871,27 +843,21 @@ fun validateDuplicateStructure(
     return duplicateValidityIssues
 }
 
-fun validateReferencesToReferenceLine(
-    trackNumber: LayoutTrackNumber?,
-    referenceLineLiveness: AssetLiveness<ReferenceLine>,
-) =
-    validateReferenceLivenessFromTrackNumber(
+fun validateReferencesToReferenceLine(trackNumber: LayoutTrackNumber?, referenceLineLivenessType: AssetLivenessType) =
+    validateReferenceFromByTrackNumber(
         "$VALIDATION_REFERENCE_LINE.reference-from-track-number",
-        referenceLineLiveness,
+        referenceLineLivenessType,
         listOfNotNull(trackNumber),
     )
 
 fun validateReferencesFromReferenceLine(
-    referenceLine: ReferenceLine,
-    trackNumberNumber: TrackNumber?,
-    trackNumberLiveness: AssetLiveness<LayoutTrackNumber>,
+    trackNumberLiveness: AssetLiveness<LayoutTrackNumber>
 ): List<LayoutValidationIssue> =
-    validateReferenceLiveness(
-        { trackNumberLiveness.type == AssetLivenessType.EXISTS },
-        { trackNumberNumber?.toString() ?: "" },
+    validateReferenceToLiveness(
         "$VALIDATION_REFERENCE_LINE.reference-to-track-number",
         trackNumberLiveness,
-        listOf(referenceLine),
+        // reference lines don't have their own existing/deleted state
+        referrerIsAlive = false,
     )
 
 data class SwitchTrackLinking(
@@ -1289,63 +1255,74 @@ private fun relateIssuesTo(
 ): List<LayoutValidationIssue> =
     issues.map { issue -> issue.copy(inRelationTo = relateTo(switches = switches, locationTracks = locationTracks)) }
 
-private fun validateReferenceLivenessFromTrackNumber(
+private fun validateReferenceFromByTrackNumber(
     keyPrefix: String,
-    targetLiveness: AssetLiveness<*>,
+    targetLivenessType: AssetLivenessType,
     referrers: Collection<LayoutTrackNumber>,
 ) =
-    validateReferenceLiveness(
+    validateReferenceFromLiveness(
         LayoutTrackNumber::exists,
         { tn -> tn.number.toString() },
         keyPrefix,
-        targetLiveness,
+        targetLivenessType,
         referrers,
     )
 
-private fun validateReferenceLivenessFromLocationTrack(
+private fun validateReferenceFromByLocationTrack(
     keyPrefix: String,
-    targetLiveness: AssetLiveness<*>,
+    targetLivenessType: AssetLivenessType,
     referrers: Collection<LocationTrack>,
-) = validateReferenceLiveness(LocationTrack::exists, { lt -> lt.name.toString() }, keyPrefix, targetLiveness, referrers)
+) =
+    validateReferenceFromLiveness(
+        LocationTrack::exists,
+        { lt -> lt.name.toString() },
+        keyPrefix,
+        targetLivenessType,
+        referrers,
+    )
 
-private fun validateReferenceLivenessFromSwitch(
+private fun validateReferenceFromBySwitch(
     keyPrefix: String,
-    targetLiveness: AssetLiveness<*>,
+    targetLivenessType: AssetLivenessType,
     referrers: Collection<LayoutSwitch>,
-) = validateReferenceLiveness(LayoutSwitch::exists, { s -> s.name.toString() }, keyPrefix, targetLiveness, referrers)
+) =
+    validateReferenceFromLiveness(
+        LayoutSwitch::exists,
+        { s -> s.name.toString() },
+        keyPrefix,
+        targetLivenessType,
+        referrers,
+    )
 
-private fun validateReferenceLivenessFromKmPost(
+private fun validateReferenceFromByKmPost(
     keyPrefix: String,
-    targetLiveness: AssetLiveness<*>,
+    targetLivenessType: AssetLivenessType,
     referrers: Collection<LayoutKmPost>,
 ) =
-    validateReferenceLiveness(
+    validateReferenceFromLiveness(
         LayoutKmPost::exists,
         { kp -> kp.kmNumber.toString() },
         keyPrefix,
-        targetLiveness,
+        targetLivenessType,
         referrers,
     )
 
-private fun <Referrer> validateReferenceLiveness(
-    exists: (x: Referrer) -> Boolean,
-    getName: (x: Referrer) -> String,
+private fun <Referrer> validateReferenceFromLiveness(
+    referrerExists: (x: Referrer) -> Boolean,
+    referrerName: (x: Referrer) -> String,
     keyPrefix: String,
-    targetLiveness: AssetLiveness<*>,
+    targetLivenessType: AssetLivenessType,
     referrers: Collection<Referrer>,
 ): List<LayoutValidationIssue> {
     if (referrers.isEmpty()) return emptyList()
 
     fun paramsByReferrers(relevantReferrers: Collection<Referrer>) =
-        localizationParams(
-            "referrers" to relevantReferrers.map(getName).sorted().joinToString(", "),
-            "target" to targetLiveness.assetName,
-        )
+        localizationParams("referrers" to relevantReferrers.map(referrerName).sorted().joinToString(", "))
 
-    return when (targetLiveness.type) {
+    return when (targetLivenessType) {
         AssetLivenessType.EXISTS -> emptyList()
         AssetLivenessType.DELETED -> {
-            val aliveReferrers = referrers.filter(exists)
+            val aliveReferrers = referrers.filter(referrerExists)
             listOfNotNull(
                 validateWithParams(aliveReferrers.isEmpty()) {
                     "$keyPrefix.deleted" to paramsByReferrers(aliveReferrers)
@@ -1356,5 +1333,22 @@ private fun <Referrer> validateReferenceLiveness(
             listOf(validationError("$keyPrefix.not-published", paramsByReferrers(referrers)))
         AssetLivenessType.CREATION_CANCELLED ->
             listOf(validationError("$keyPrefix.cancelled", paramsByReferrers(referrers)))
+    }
+}
+
+private fun validateReferenceToLiveness(
+    keyPrefix: String,
+    targetLiveness: AssetLiveness<*>,
+    referrerIsAlive: Boolean,
+): List<LayoutValidationIssue> {
+    fun params() = localizationParams("target" to targetLiveness.assetName)
+
+    return when (targetLiveness.type) {
+        AssetLivenessType.EXISTS -> emptyList()
+        AssetLivenessType.DELETED -> {
+            if (referrerIsAlive) listOf(validationError("$keyPrefix.deleted", params())) else emptyList()
+        }
+        AssetLivenessType.DRAFT_NOT_PUBLISHED -> listOf(validationError("$keyPrefix.not-published", params()))
+        AssetLivenessType.CREATION_CANCELLED -> listOf(validationError("$keyPrefix.cancelled", params()))
     }
 }

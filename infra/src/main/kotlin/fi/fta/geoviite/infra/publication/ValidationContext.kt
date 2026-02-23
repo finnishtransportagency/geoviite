@@ -608,6 +608,9 @@ class ValidationContext(
             .flatten()
             .distinct()
 
+    fun getTrackNumberLivenessType(id: IntId<LayoutTrackNumber>): AssetLivenessType =
+        getAssetLivenessType(::getTrackNumber, ::trackNumberIsCancelled, LayoutTrackNumber::exists, id)
+
     fun getTrackNumberLiveness(id: IntId<LayoutTrackNumber>): AssetLiveness<LayoutTrackNumber> =
         getAssetLiveness(
             ::getTrackNumber,
@@ -615,6 +618,14 @@ class ValidationContext(
             ::trackNumberIsCancelled,
             LayoutTrackNumber::number,
             LayoutTrackNumber::exists,
+            id,
+        )
+
+    fun getReferenceLineLivenessType(id: IntId<ReferenceLine>): AssetLivenessType =
+        getAssetLivenessType(
+            ::getReferenceLine,
+            ::referenceLineIsCancelled,
+            { rl -> getTrackNumber(rl.trackNumberId)?.exists ?: false },
             id,
         )
 
@@ -628,6 +639,9 @@ class ValidationContext(
             id,
         )
 
+    fun getLocationTrackLivenessType(id: IntId<LocationTrack>): AssetLivenessType =
+        getAssetLivenessType(::getLocationTrack, ::locationTrackIsCancelled, LocationTrack::exists, id)
+
     fun getLocationTrackLiveness(id: IntId<LocationTrack>): AssetLiveness<LocationTrack> =
         getAssetLiveness(
             ::getLocationTrack,
@@ -637,6 +651,9 @@ class ValidationContext(
             LocationTrack::exists,
             id,
         )
+
+    fun getSwitchLivenessType(id: IntId<LayoutSwitch>): AssetLivenessType =
+        getAssetLivenessType(::getSwitch, ::switchIsCancelled, LayoutSwitch::exists, id)
 
     fun getSwitchLiveness(id: IntId<LayoutSwitch>): AssetLiveness<LayoutSwitch> =
         getAssetLiveness(
@@ -648,13 +665,11 @@ class ValidationContext(
             id,
         )
 
-    fun getKmPostLiveness(id: IntId<LayoutKmPost>): AssetLiveness<LayoutKmPost> =
-        getAssetLiveness(
-            ::getKmPost,
-            ::getCandidateKmPost,
-            ::kmPostIsCancelled,
-            LayoutKmPost::kmNumber,
-            LayoutKmPost::exists,
+    fun getOperationalPointLivenessType(id: IntId<OperationalPoint>): AssetLivenessType =
+        getAssetLivenessType(
+            ::getOperationalPoint,
+            ::operationalPointIsCancelled,
+            OperationalPoint::exists,
             id,
         )
 
@@ -757,6 +772,20 @@ enum class AssetLivenessType {
 }
 
 data class AssetLiveness<T : LayoutAsset<T>>(val assetName: String, val type: AssetLivenessType)
+
+private fun <T : LayoutAsset<T>> getAssetLivenessType(
+    getAsset: (id: IntId<T>) -> T?,
+    isCancelled: (id: IntId<T>) -> Boolean,
+    exists: (asset: T) -> Boolean,
+    id: IntId<T>,
+): AssetLivenessType {
+    val asset = getAsset(id)
+    return if (asset == null) {
+        if (isCancelled(id)) AssetLivenessType.CREATION_CANCELLED else AssetLivenessType.DRAFT_NOT_PUBLISHED
+    } else {
+        if (exists(asset)) AssetLivenessType.EXISTS else AssetLivenessType.DELETED
+    }
+}
 
 private fun <T : LayoutAsset<T>> getAssetLiveness(
     getAsset: (id: IntId<T>) -> T?,

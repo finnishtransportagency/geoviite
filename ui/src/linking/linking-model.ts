@@ -353,13 +353,17 @@ export type KmPostLinkingParameters = {
     layoutKmPostId: LayoutKmPostId;
 };
 
-export type LayoutSwitchSaveRequest = {
+export type LayoutSwitchSaveRequestBase = {
     name: string;
     switchStructureId: SwitchStructureId;
     stateCategory: LayoutStateCategory;
     ownerId: SwitchOwnerId;
     trapPoint?: boolean;
     draftOid?: Oid;
+};
+
+export type LayoutSwitchUpdateRequest = LayoutSwitchSaveRequestBase & {
+    removeSwitchLinks: boolean;
 };
 
 export type SwitchRelinkingValidationResult = {

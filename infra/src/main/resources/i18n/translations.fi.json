@@ -1715,11 +1715,6 @@
                     "cancelled": "Tasakilometripisteen ratanumeron {{target}} luomisen peruminen vaatii myös tasakilometripisteen itsensä perumisen",
                     "deleted": "Tasakilometripisteen ratanumeron {{target}} poistaminen vaatii myös tasakilometripisteen itsensä poistamisen"
                 },
-                "reference-to-reference-line": {
-                    "not-published": "Tasakilometripisteen pituusmittauslinja {{target}} ei ole mukana julkaisussa",
-                    "cancelled": "Tasakilometripisteen pituusmittauslinja {{target}} luomisen peruminen vaatii myös tasakilometripisteen itsensä perumisen",
-                    "deleted": "Tasakilometripisteen pituusmittauslinja {{target}} poistaminen vaatii myös tasakilometripisteen itsensä poistamisen"
-                },
                 "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "duplicate-name-official": "Ratanumerolla {{trackNumber}} on jo kilometri tunnuksella {{kmNumber}}",
                 "duplicate-name-draft": "Muutosjoukossa on monta tasakilometripistettä tunnuksella {{kmNumber}} ratanumerolla {{trackNumber}}",
@@ -1760,7 +1755,7 @@
                 "reference-to-location-track-duplicate-of": {
                     "not-published": "Raiteen duplikaattiustieto viittaa raiteeseen {{target}}, joka ei ole mukana julkaisussa",
                     "cancelled": "Raiteen duplikaattiustieto viittaa suunnitelmasta peruttuun  raiteeseen {{target}}",
-                    "deleted": "Raiteen duplikaattiustieto viittaa raiteeseen {{target}} joka on tilassa \"Poistettu\""
+                    "deleted": "Raiteen duplikaattiustieto viittaa poistettuun raiteeseen {{target}}"
                 },
                 "reference-from-location-track-duplicate-of": {
                     "cancelled": "Suunnitelmassa on olemassa muita raiteita, jotka on merkitty tämän raiteen duplikaatiksi: {{referrers}}. Duplikaattiussuhde pitää purkaa tai näiden raiteiden luominen perua.",

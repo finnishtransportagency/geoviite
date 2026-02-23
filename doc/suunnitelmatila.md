@@ -102,6 +102,52 @@ Viimeisenä vaiheena main-draft -kohteet julkaistaan normaalin julkaisuprosessin
 - Muutokset viedään viralliseen paikannuspohjaan, josta niitä voidaan jakaa eteenpäin
 - Kohteet säilyvät edelleen suunnitelmassa, mutta niiden tila muuttuu COMPLETED-tilaan
 
+## Muutosten periminen
+
+Epäsuorat muutokset (esim. geokoodauksen kautta tulevat osoitteistomuutokset) voivat aiheuttaa virallisen
+paikannuspohjan muutosten julkaisuista vaikutuksia myös suunnitelmiin. Geoviitteessä itsessään näille ei tarvita
+kummempaa seurantaa, koska nämä tiedot lasketaan joka tapauksessa dynaamisesti, mutta ulkoisille järjestelmille
+lähetettävän tiedon vuoksi näitä pitää myös seurata.
+
+Tässä on hyvä pitää mielessä täysin erillisinä konsepteina:
+
+- Onko Geoviitteessä oliosta suunnitelman (virallinen) olioversio, eli oliorivi, jolla on suunnitelman design_id
+- Olioon viittaava rivi julkaisutaulussa; tämä voidaan päätyä tallentamaan suorien tai epäsuorien muutosten perusteella
+- Olion OID (suunnitelmaversioilla ja maini-versiolla oliosta on omat OIDinsa)
+
+Suunnitelman oliorivi luodaan oliolle ainoastaan silloin, kun käyttäjä varsinaisesti muokkaa oliota suunnitelmassa
+tai luo sen suunnitelmassa.
+
+OID haetaan silloin, kun mistään syystä halutaan alkaa kertoa ulkomaailmalle jonkin suunnitelman olion tilasta. Suorin
+syy on tietenkin, että olio on luotu tai olemassaolevaa oliota on muokattu suunnitelmassa suoraan; mutta voi olla myös,
+että suunnitelmassa tehty muutos aiheuttaa epäsuoria muutoksia olioon, jota suunnitelmassa ei ole muokattu. Tällöin
+sille haetaan OID, mutta ei luoda suunnitelman olioriviä.
+
+Varsinainen ajatus sitten on, että julkaisutauluihin (`publication.track_number`, jne.) saadaan mukaan kaikki
+muutokset, jotka voidaan haluta kertoa esim. ext-APIen kautta ulkomaailmalle: Osa voi tulla normaalisti suunnitelman
+omista muutoksista, osa voi tulla laskennan kautta mainista tulleista muutoksista, mutta kaikki löytyy näistä tauluista
+sitten suoraan.
+
+Perimiseen liittyvää koodia on julkaisussa kahta polkua:
+
+### Peritty muutos mainista
+
+Kun tehdään julkaisu mainissa, Geoviite käy läpi kaikki suunnitelmat, ja katsoo, päätyykö julkaisusta epäsuoria
+muutoksia johonkin sellaiseen suunnitelman olioon, joka katsotaan ulkomaailmalle julkaistuksi, ts. sellaiselle, jolla
+on OID. Jos on, tallennetaan suunnitelmittain CALCULATED_CHANGE-julkaisuja, joissa on mukana nämä epäsuorat muutokset.
+
+Mainista perittävissä muutoksissa on siis ihan normaalia, että voidaan tarkastella muutoksia ympäri rataverkon, ja
+nähdä että kyllähän tämä muutos periytyy ympäriinsä suunnitelmiin; mutta vain sellaisille tapauksille, joissa oliolla
+on suunnitelman OID, siitä tallennetaan julkaisutauluun muutos.
+
+### Suunnitelmasta itseensä periytyvä muutos
+
+Kun tehdään julkaisu suunnitelmassa, Geoviite tarkistaa, aiheuttaako tämä epäsuoria muutoksia johonkin sellaiseen
+olioon, josta ei ole erikseen ole olemassa suunnitelman versiota. Eli esimerkiksi sellainen tapaus, että muutetaan
+suunnitelmassa geokoodausta niin, että se vaikuttaa jonkin virallisessa paikannuspohjassa olemassaolevan olion
+rataosoitteisiin. Tässä tapauksessa julkaisuprosessi sekä tallentaa näille olioille epäsuoran muutoksen että hakee
+niille OIDin, minkä tuloksena ne katsotaan ulkomaailmalle julkaistuksi, että tallentaa niistä julkaisutauluun muutoksen.
+
 ## Tietomalli
 
 ```mermaid
