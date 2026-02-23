@@ -18,7 +18,7 @@ import { LinkingState } from 'linking/linking-model';
 
 const LAYER_NAME: MapLayerName = 'operational-points-badge-layer';
 
-const compareSelected = (a: OperationalPoint, b: OperationalPoint, selection: Selection) => {
+const orderSelectedFirst = (a: OperationalPoint, b: OperationalPoint, selection: Selection) => {
     const aSelected = selection.selectedItems.operationalPoints.includes(a.id);
     const bSelected = selection.selectedItems.operationalPoints.includes(b.id);
 
@@ -46,7 +46,7 @@ export function createOperationalPointBadgeLayer(
                     !isBeingMoved(linkingState, point.id) &&
                     filterByResolution(point, resolution),
             )
-            .toSorted((a, b) => compareSelected(a, b, selection))
+            .toSorted((a, b) => orderSelectedFirst(a, b, selection))
             .map((point) =>
                 renderOperationalPointTextFeature(
                     point,
