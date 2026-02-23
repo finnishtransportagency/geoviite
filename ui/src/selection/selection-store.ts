@@ -41,6 +41,7 @@ export function createEmptyItemCollections(): ItemCollections {
         clusterPoints: [],
         geometryPlans: [],
         operationalPoints: [],
+        operationalPointClusters: [],
     };
 }
 
@@ -221,6 +222,11 @@ export function updateItemCollectionsByOptions(
         options['operationalPoints'],
         flags,
     );
+    itemCollections['operationalPointClusters'] = getNewItemCollection(
+        itemCollections['operationalPointClusters'],
+        options['operationalPointClusters'],
+        flags,
+    );
 }
 
 function updateItemCollectionsByUnselecting(
@@ -270,6 +276,10 @@ function updateItemCollectionsByUnselecting(
     itemCollections['operationalPoints'] = filterIdCollection(
         itemCollections['operationalPoints'],
         unselectItemCollections['operationalPoints'],
+    );
+    itemCollections['operationalPointClusters'] = filterItemCollection(
+        itemCollections['operationalPointClusters'],
+        unselectItemCollections['operationalPointClusters'],
     );
 }
 

@@ -16,6 +16,7 @@ import {
     LocationTrackType,
     MapAlignmentType,
     OperationalPoint,
+    OperationalPointId,
     ReferenceLineId,
     TopologicalConnectivityType,
 } from 'track-layout/track-layout-model';
@@ -91,12 +92,19 @@ export type LinkPoint = {
     isInterpolated?: boolean;
 };
 
-export type ClusterPoint = {
+export type LinkingClusterPoint = {
     id: string;
     x: number;
     y: number;
     layoutPoint: LinkPoint;
     geometryPoint: LinkPoint;
+};
+
+export type OperationalPointClusterPoint = {
+    id: string;
+    x: number;
+    y: number;
+    operationalPoints: { name: string; id: OperationalPointId }[];
 };
 
 export type LinkInterval = {

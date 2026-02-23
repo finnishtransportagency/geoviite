@@ -1,0 +1,20 @@
+@use 'vayla-design-lib' as vayla-design;
+@use 'vayla-design-lib/menu/menu';
+
+.map-overlay {
+    &__popup-menu {
+        @extend .menu;
+        background: vayla-design.$color-blue-darker;
+    }
+
+    &__popup-item {
+        @extend .menu__item;
+
+        color: vayla-design.$color-white-default;
+        border-bottom-color: vayla-design.$color-black-lighter;
+
+        &:hover {
+            background: vayla-design.$color-blue-dark !important;
+        }
+    }
+}

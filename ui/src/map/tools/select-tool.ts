@@ -21,6 +21,7 @@ export const selectTool: MapTool = {
                 trackNumbers: items.trackNumbers ?? [],
                 geometryPlans: items.geometryPlans ?? [],
                 operationalPoints: items.operationalPoints ?? [],
+                operationalPointClusters: items.operationalPointClusters ?? [],
             });
         });
 
