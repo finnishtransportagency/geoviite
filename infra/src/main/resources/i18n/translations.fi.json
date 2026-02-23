@@ -1869,7 +1869,7 @@
                 "overlapping-polygon-draft": "Muutosjoukossa on päällekkäisiä toiminnallisten pisteiden alueita: {{duplicateNames}}",
                 "overlapping-polygon-draft-in-main": "Toiminnallisen pisteen alue on päällekkäin paikannuspohjan luonnoksen kanssa: {{duplicateNames}}",
                 "rinf-type-missing": "RINF-tyyppi puuttuu",
-                "rinf-code-missing": "Tunnus (RINF) puuttuu",
+                "rinf-code-missing": "RINF-tunnus puuttuu",
                 "polygon-missing": "Alue puuttuu",
                 "location-outside-polygon": "Pistemäinen sijainti on toiminnallisen pisteen alueen ulkopuolella",
                 "polygon-is-not-simple": "Alueen muoto ei ole yksinkertainen polygoni"

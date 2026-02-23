@@ -172,19 +172,25 @@ export const ExternalOperationalPointEditDialog: React.FC<
                         <Heading size={HeadingSize.SUB}>
                             {t('operational-point-dialog.basic-info')}
                         </Heading>
-                        <OperationalPointRinfCodeField
-                            rinfCodeOverride={state.operationalPoint?.rinfCodeOverride ?? ''}
-                            rinfCodeGenerated={
-                                state.existingOperationalPoint?.rinfCodeGenerated ?? ''
-                            }
-                            onUpdateRinfCode={onUpdateRinfCode}
-                            onCommitField={actions.onCommitField}
-                            editingRinfCode={state.editingRinfCode}
-                            onEditingRinfCodeChange={(editing) =>
-                                stateActions.setEditingRinfCode(editing)
-                            }
-                            errors={rinfCodeErrors}
-                        />
+                        <React.Fragment>
+                            {!isOlp && (
+                                <OperationalPointRinfCodeField
+                                    rinfCodeOverride={
+                                        state.operationalPoint?.rinfCodeOverride ?? ''
+                                    }
+                                    rinfCodeGenerated={
+                                        state.existingOperationalPoint?.rinfCodeGenerated ?? ''
+                                    }
+                                    onUpdateRinfCode={onUpdateRinfCode}
+                                    onCommitField={actions.onCommitField}
+                                    editingRinfCode={state.editingRinfCode}
+                                    onEditingRinfCodeChange={(editing) =>
+                                        stateActions.setEditingRinfCode(editing)
+                                    }
+                                    errors={rinfCodeErrors}
+                                />
+                            )}
+                        </React.Fragment>
                         <FieldLayout
                             label={t('operational-point-dialog.name')}
                             value={state.existingOperationalPoint?.name}

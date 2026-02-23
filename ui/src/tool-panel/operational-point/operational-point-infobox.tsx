@@ -145,11 +145,18 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                             />
                         }
                     />
-                    <InfoboxField
-                        qaId="operational-point-rinf-code"
-                        label={t('tool-panel.operational-point.rinf-code')}
-                        value={operationalPoint.rinfCode ?? t('tool-panel.operational-point.unset')}
-                    />
+                    <React.Fragment>
+                        {operationalPoint.raideType !== 'OLP' && (
+                            <InfoboxField
+                                qaId="operational-point-rinf-code"
+                                label={t('tool-panel.operational-point.rinf-code')}
+                                value={
+                                    operationalPoint.rinfCode ??
+                                    t('tool-panel.operational-point.unset')
+                                }
+                            />
+                        )}
+                    </React.Fragment>
                     <InfoboxField
                         qaId="operational-point-name"
                         label={t('tool-panel.operational-point.name')}

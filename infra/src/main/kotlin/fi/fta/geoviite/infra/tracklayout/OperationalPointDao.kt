@@ -158,7 +158,11 @@ class OperationalPointDao(
     @Transactional fun save(item: OperationalPoint): LayoutRowVersion<OperationalPoint> = save(item, NoParams.instance)
 
     @Transactional
-    fun insertRatkoPoint(id: IntId<OperationalPoint>, ratkoPointVersion: Int): LayoutRowVersion<OperationalPoint> {
+    fun insertRatkoPoint(
+        id: IntId<OperationalPoint>,
+        ratkoPointVersion: Int,
+        rinfCode: RinfCode?,
+    ): LayoutRowVersion<OperationalPoint> {
         val sql =
             """
             insert into
@@ -180,7 +184,7 @@ class OperationalPointDao(
               'IN_USE',
               'RATKO',
               :ratko_operational_point_version,
-              layout.generate_rinf_code()
+              :rinf_code_generated
             )
             returning id, design_id, draft, version
             """
@@ -190,7 +194,11 @@ class OperationalPointDao(
         val response: LayoutRowVersion<OperationalPoint> =
             jdbcTemplate.queryForObject(
                 sql,
-                mapOf("id" to id.intValue, "ratko_operational_point_version" to ratkoPointVersion),
+                mapOf(
+                    "id" to id.intValue,
+                    "ratko_operational_point_version" to ratkoPointVersion,
+                    "rinf_code_generated" to rinfCode?.toString(),
+                ),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save operational point")
@@ -243,7 +251,7 @@ class OperationalPointDao(
               :origin::layout.operational_point_origin,
               :ratko_operational_point_version,
               :rinf_code_override,
-              coalesce(:rinf_code_generated, layout.generate_rinf_code())
+              :rinf_code_generated
             )
             on conflict (id, layout_context_id) do update set
               design_asset_state = excluded.design_asset_state,
@@ -483,6 +491,14 @@ class OperationalPointDao(
     fun insertExternalId(id: IntId<OperationalPoint>, branch: LayoutBranch, oid: Oid<OperationalPoint>) {
         jdbcTemplate.setUser()
         insertExternalIdInExistingTransaction(branch, id, oid)
+    }
+
+    @Transactional
+    fun generateRinfCode(): RinfCode {
+        val sql = "select layout.generate_rinf_code()"
+        return jdbcTemplate.queryForObject(sql, emptyMap<String, Any>()) { rs, _ ->
+            rs.getString(1)?.let(::RinfCode) ?: throw IllegalStateException("Failed to generate RINF code")
+        } ?: throw IllegalStateException("Failed to generate RINF code")
     }
 }
 
