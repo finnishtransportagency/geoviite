@@ -1,37 +1,31 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import com.github.benmanes.caffeine.cache.Cache
-import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import org.jgrapht.Graph
-import org.jgrapht.alg.shortestpath.DijkstraShortestPath
-import org.jgrapht.graph.SimpleDirectedWeightedGraph
 
-data class RoutingGraph(val graph: LayoutGraph) {
-    private val jgraph: Graph<IntId<LayoutNode>, LayoutGraphEdge> = buildJGraph(graph)
-    private val dijkstra = DijkstraShortestPath(jgraph)
-
-    fun findPath(startNode: IntId<LayoutNode>, endNode: IntId<LayoutNode>): List<LayoutGraphEdge>? =
-        dijkstra.getPath(startNode, endNode)?.edgeList?.filterNotNull()
-}
-
-private fun buildJGraph(graph: LayoutGraph): Graph<IntId<LayoutNode>, LayoutGraphEdge> =
-    // Graph types: https://jgrapht.org/guide/UserOverview#graph-structures
-    SimpleDirectedWeightedGraph<IntId<LayoutNode>, LayoutGraphEdge>(LayoutGraphEdge::class.java).also { jgraph ->
-        graph.nodes.keys.forEach { nodeId -> jgraph.addVertex(nodeId) }
-        graph.edges.values
-            .asSequence()
-            .flatMap { edge -> sequenceOf(edge, edge.flip()) }
-            .forEach { edge ->
-                jgraph.addEdge(edge.startNode, edge.endNode, edge)
-                jgraph.setEdgeWeight(edge, edge.length)
-            }
-    }
+//data class RoutingGraph(val graph: LayoutGraph) {
+//    private val jgraph: Graph<IntId<LayoutNode>, LayoutGraphEdge> = buildJGraph(graph)
+//    private val dijkstra = DijkstraShortestPath(jgraph)
+//
+//    fun findPath(startNode: IntId<LayoutNode>, endNode: IntId<LayoutNode>): List<LayoutGraphEdge>? =
+//        dijkstra.getPath(startNode, endNode)?.edgeList?.filterNotNull()
+//}
+//
+//private fun buildJGraph(graph: LayoutGraph): Graph<IntId<LayoutNode>, LayoutGraphEdge> =
+//    // Graph types: https://jgrapht.org/guide/UserOverview#graph-structures
+//    SimpleDirectedWeightedGraph<IntId<LayoutNode>, LayoutGraphEdge>(LayoutGraphEdge::class.java).also { jgraph ->
+//        graph.nodes.keys.forEach { nodeId -> jgraph.addVertex(nodeId) }
+//        graph.edges.values
+//            .asSequence()
+//            .flatMap { edge -> sequenceOf(edge, edge.flip()) }
+//            .forEach { edge ->
+//                jgraph.addEdge(edge.startNode, edge.endNode, edge)
+//                jgraph.setEdgeWeight(edge, edge.length)
+//            }
+//    }
 
 // For immutable edit patterns, see: https://jgrapht.org/guide/UserOverview#graph-wrappers
 
@@ -44,19 +38,19 @@ class RoutingService(
     private val switchLibraryService: SwitchLibraryService,
 ) {
 
-    private val routingCache: Cache<Int, RoutingGraph> =
-        Caffeine.newBuilder().maximumSize(100).expireAfterAccess(layoutCacheDuration).build()
+//    private val routingCache: Cache<Int, RoutingGraph> =
+//        Caffeine.newBuilder().maximumSize(100).expireAfterAccess(layoutCacheDuration).build()
 
-    private fun getRouting(graph: LayoutGraph) = routingCache.get(graph.key) { RoutingGraph(graph) }
+//    private fun getRouting(graph: LayoutGraph) = routingCache.get(graph.key) { RoutingGraph(graph) }
 
     fun getClosestTrackPoint(context: LayoutContext, location: Point, maxDistance: Double): ClosestTrackPoint? =
         locationTrackSpatialCache.get(context).getClosest(location, maxDistance).firstOrNull()?.let { hit ->
             toClosestTrackPoint(location, hit)
         }
 
-    fun findPath(graph: LayoutGraph, startNode: IntId<LayoutNode>, endNode: IntId<LayoutNode>): List<LayoutGraphEdge>? {
-        return getRouting(graph).findPath(startNode, endNode)
-    }
+//    fun findPath(graph: LayoutGraph, startNode: IntId<LayoutNode>, endNode: IntId<LayoutNode>): List<LayoutGraphEdge>? {
+//        return getRouting(graph).findPath(startNode, endNode)
+//    }
 
     fun getRoute(
         context: LayoutContext,
@@ -99,7 +93,7 @@ class RoutingService(
 //                        }
 //                    )
 //                }
-            val graph =buildGraph(
+            val graph = buildGraph(
                 trackGeoms = locationTrackService.listWithGeometries(context, includeDeleted = false).map { (t,g) -> g },
                 switches = switchService.list(context, includeDeleted = false),
                 structures = switchLibraryService.getSwitchStructuresById(),

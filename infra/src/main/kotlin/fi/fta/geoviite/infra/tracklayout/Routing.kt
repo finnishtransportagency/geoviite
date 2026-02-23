@@ -4,12 +4,17 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.math.combine
 import fi.fta.geoviite.infra.math.length
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import org.jgrapht.Graph
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath
 import org.jgrapht.graph.AsGraphUnion
 import org.jgrapht.graph.DirectedWeightedMultigraph
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
+private val logger: Logger = LoggerFactory.getLogger(RoutingGraph::class.java)
 
 data class ClosestTrackPoint(
     val locationTrackId: IntId<LocationTrack>,
@@ -27,9 +32,30 @@ data class RouteResult(
         get() = route?.totalLength?.let { it + startConnection.distance + endConnection.distance }
 }
 
-data class Route(val sections: List<TrackSection>) {
+data class Route(val sections: List<RouteSection>) {
     val totalLength: Double
         get() = sections.sumOf { it.length }
+}
+
+data class RouteSection(val trackId: IntId<LocationTrack>, val mRange: Range<LineM<LocationTrackM>>, val direction: EdgeDirection) {
+    val length: Double
+        get() = mRange.length().distance
+
+    fun reverse(): RouteSection = copy(direction = direction.reverse())
+}
+
+data class RouteEdgeData(val edge: DbLayoutEdge, val tracks: Set<TrackSection>) {
+    val startNode: DbNodeConnection
+        get() = edge.startNode
+
+    val endNode: DbNodeConnection
+        get() = edge.endNode
+
+    val length: Double
+        get() = edge.length.distance
+
+    val start: Point by lazy { edge.start.toPoint() }
+    val end: Point by lazy { edge.end.toPoint() }
 }
 
 enum class VertexDirection {
@@ -67,7 +93,7 @@ data class RoutingConnection(val from: RoutingVertex, val to: RoutingVertex, val
 data class SwitchJointVertex(val switchId: IntId<LayoutSwitch>, val jointNumber: JointNumber, val direction: VertexDirection): RoutingVertex() {
     override fun reverse(): SwitchJointVertex = copy(direction = direction.reverse())
 }
-data class SwitchInternalEdge(val switchId: IntId<LayoutSwitch>, val alignment: List<JointNumber>, val direction: EdgeDirection): RoutingEdge() {
+data class SwitchInternalEdge(val alignment: RoutingSwitchAlignment, val direction: EdgeDirection): RoutingEdge() {
     override fun reverse(): SwitchInternalEdge = copy(direction = direction.reverse())
 }
 
@@ -76,7 +102,7 @@ data class TrackBoundaryVertex(val trackId: IntId<LocationTrack>, val type: Trac
 }
 
 data class TrackMidPointVertex(val trackId: IntId<LocationTrack>, val m: LineM<LocationTrackM>, val direction: VertexDirection): RoutingVertex() {
-    override fun reverse(): TrackMidPointVertex = error("Midpoints are not directional")
+    override fun reverse(): TrackMidPointVertex = copy(direction = direction.reverse())
 }
 
 data class TrackEdge(val edgeId: IntId<LayoutEdge>, val direction: EdgeDirection): RoutingEdge() {
@@ -91,12 +117,16 @@ data class DirectConnectionEdge(val nodeId: IntId<LayoutNode>, val direction: Ed
     override fun reverse(): DirectConnectionEdge = copy(direction = direction.reverse())
 }
 
+data class RoutingSwitchAlignment(
+    val id: IntId<LayoutSwitch>,
+    val jointNumbers: List<JointNumber>,
+)
 
-data class RoutingGraph2(
+data class RoutingGraph(
     private val jgraph: Graph<RoutingVertex, RoutingEdge>,
-    private val edgeData: Map<IntId<LayoutEdge>, DbEdgeData>,
+    private val edgeData: Map<IntId<LayoutEdge>, RouteEdgeData>,
     private val structures: Map<IntId<SwitchStructure>, SwitchStructure>,
-    private val switchInternalEdges: Map<IntId<LayoutSwitch>, List<IntId<LayoutEdge>>>,
+    private val switchInternalEdges: Map<RoutingSwitchAlignment, List<Pair<IntId<LayoutEdge>, EdgeDirection>>>,
 ) {
     fun getVertices(): Set<RoutingVertex> = jgraph.vertexSet()
 
@@ -104,55 +134,73 @@ data class RoutingGraph2(
         jgraph.getEdgeSource(edge) to jgraph.getEdgeTarget(edge)
     }
 
-    fun findPath(start: LocationTrackCacheHit, end: LocationTrackCacheHit): List<TrackSection>? {
+    fun findPath(start: LocationTrackCacheHit, end: LocationTrackCacheHit): List<RouteSection>? {
         val edges = findPathEdges(start, end)
         return edges?.flatMap { edge ->
-            toTrackSections(edge, setOf(start.track.id as IntId, end.track.id as IntId))
-        }.also { println("Routed: edges=${edges?.size} trackSections=${it?.size}") }
+            toRouteSections(edge, setOf(start.track.id as IntId, end.track.id as IntId))
+        }?.let(::compress)
     }
 
-    // TODO: We could easily add the direction in here as well
-    private fun toTrackSections(edge: RoutingEdge, favoredTrackIds: Set<IntId<LocationTrack>>): List<TrackSection> =
+    private fun compress(sections: List<RouteSection>): List<RouteSection> =
+        sections.fold(emptyList()) { acc, section ->
+            if (acc.isEmpty()) listOf(section)
+            else {
+                val last = acc.last()
+                if (last.trackId == section.trackId && last.direction == section.direction) {
+                    acc.dropLast(1) + last.copy(mRange = combine(last.mRange, section.mRange))
+                } else {
+                    acc + section
+                }
+            }
+        }
+
+    private fun toRouteSections(edge: RoutingEdge, favoredTrackIds: Set<IntId<LocationTrack>>): List<RouteSection> =
         when (edge) {
-            is TrackEdge -> listOfNotNull(findTrack(edge.edgeId, favoredTrackIds))
+            is TrackEdge -> listOfNotNull(findRouteSection(edge.edgeId, edge.direction, favoredTrackIds))
             is PartialTrackEdge -> listOfNotNull(
-                findTrack(edge.edgeId, favoredTrackIds)?.let { full ->
-                    TrackSection(full.id, edge.mRange.map { it.toLocationTrackM(full.mRange.min) } )
+                findRouteSection(edge.edgeId, edge.direction, favoredTrackIds)?.let { full ->
+                    full.copy(mRange = edge.mRange.map { it.toLocationTrackM(full.mRange.min) })
                 }
             )
-            is SwitchInternalEdge -> switchInternalEdges[edge.switchId]
-                ?.mapNotNull { edgeId -> findTrack(edgeId, favoredTrackIds) }
+            is SwitchInternalEdge -> switchInternalEdges[edge.alignment]
+                ?.mapNotNull { (edgeId, switchDirection) -> findRouteSection(
+                    edgeId,
+                    if (edge.direction == EdgeDirection.UP) switchDirection else switchDirection.reverse(),
+                    favoredTrackIds
+                ) }
                 ?: emptyList()
             is DirectConnectionEdge -> emptyList()
         }
 
-    private fun findTrack(edgeId: IntId<LayoutEdge>, favoredTrackIds: Set<IntId<LocationTrack>>): TrackSection? =
-        edgeData[edgeId]
-            ?.tracks
-            ?.let { tracks -> tracks.firstOrNull { favoredTrackIds.contains(it.id) } ?: tracks.firstOrNull() }
+    private fun findRouteSection(edgeId: IntId<LayoutEdge>, direction: EdgeDirection, favoredTrackIds: Set<IntId<LocationTrack>>): RouteSection? =
+        edgeData.getValue(edgeId).tracks
+            .let { tracks -> tracks.firstOrNull { favoredTrackIds.contains(it.id) } ?: tracks.firstOrNull() }
+            ?.let { (id, mRange) -> RouteSection(id, mRange, direction) }
 
     fun findPathEdges(start: LocationTrackCacheHit, end: LocationTrackCacheHit): List<RoutingEdge>? {
         val (startEdge, startMRange) = start.getEdge()
         val (endEdge, endMRange) = end.getEdge()
         val startVertex = TrackMidPointVertex(start.track.id as IntId, start.closestPoint.m, VertexDirection.IN)
         val endVertex = TrackMidPointVertex(end.track.id as IntId, end.closestPoint.m, VertexDirection.OUT)
+        val startEdgeM = start.closestPoint.m.toEdgeM(startMRange.min)
+        val endEdgeM = end.closestPoint.m.toEdgeM(endMRange.min)
 
         return when {
             // Special case: no distance between points -> no need for path
-            abs(start.closestPoint.m - end.closestPoint.m).distance < LAYOUT_M_DELTA -> emptyList()
+            abs(startEdgeM - endEdgeM).distance < LAYOUT_M_DELTA -> emptyList()
 
             // Special case: on the same edge -> a direct single-step path along the edge is the shortest
             startEdge.id == endEdge.id -> listOf(
                 when {
-                    (start.closestPoint.m < end.closestPoint.m) -> PartialTrackEdge(
+                    (startEdgeM <= endEdgeM) -> PartialTrackEdge(
                         startEdge.id,
                         EdgeDirection.UP,
-                        Range(start.closestPoint.m, end.closestPoint.m).map { it.toEdgeM(startMRange.min) }
+                        Range(startEdgeM, endEdgeM)
                     )
                     else -> PartialTrackEdge(
                         startEdge.id,
                         EdgeDirection.DOWN,
-                        Range(end.closestPoint.m, start.closestPoint.m).map { it.toEdgeM(endMRange.min) }
+                        Range(endEdgeM, startEdgeM)
                     )
                 }
             )
@@ -167,7 +215,7 @@ data class RoutingGraph2(
                     endEdge to endMRange,
                     structures
                 )
-                // Route the start->end in a union graph with the main graph + the temp additions
+                // Route the start->end in a union graph of the main graph + temp additions
                 val dijkstra = DijkstraShortestPath(AsGraphUnion(jgraph, tmpGraph))
                 dijkstra.getPath(startVertex, endVertex)?.edgeList?.filterNotNull()
             }
@@ -179,17 +227,21 @@ fun buildGraph(
     trackGeoms: List<DbLocationTrackGeometry>,
     switches: List<LayoutSwitch>,
     structures: Map<IntId<SwitchStructure>, SwitchStructure>,
-): RoutingGraph2 {
+): RoutingGraph {
     val edgeData =
         trackGeoms
             .flatMap { geom -> geom.edgesWithM.map { (e, m) -> e to TrackSection(geom.trackId, m) } }
             .groupBy { it.first.id }
             .mapValues { (_, edgesAndTrackIds) ->
-                DbEdgeData(edgesAndTrackIds[0].first, edgesAndTrackIds.map { it.second }.toSet())
+                RouteEdgeData(edgesAndTrackIds[0].first, edgesAndTrackIds.map { it.second }.toSet())
             }
 
     val edges = edgeData.values.map { edgeData -> edgeData.edge }.toSet()
     val nodes = edges.flatMap { edge-> listOf(edge.startNode.node, edge.endNode.node) }.toSet()
+    val switchesById = switches.associateBy { it.id as IntId }
+    val switchInternalEdges = edges
+        .mapNotNull { edge -> resolveSwitchAlignment(edge, switchesById, structures)?.let { it.first to (edge.id to it.second)} }
+        .groupBy({ it.first }, {it.second})
 
     // Graph types: https://jgrapht.org/guide/UserOverview#graph-structures
     val jgraph = DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>(RoutingEdge::class.java)
@@ -218,14 +270,32 @@ fun buildGraph(
             println("Error adding edge: edge=$edge connection=$connection error=${e.message}")
         }
     }
-
-    return RoutingGraph2(
+    return RoutingGraph(
         jgraph = jgraph,
         edgeData = edgeData,
         structures = structures,
-        switchInternalEdges = edges.filter { it.isSwitchInnerLink() }
-            .groupBy({ requireNotNull(it.startNode.switchIn).id}, {it.id})
+        switchInternalEdges = switchInternalEdges,
     )
+}
+
+fun resolveSwitchAlignment(
+    edge: DbLayoutEdge,
+    switches: Map<IntId<LayoutSwitch>, LayoutSwitch>,
+    structures: Map<IntId<SwitchStructure>, SwitchStructure>,
+): Pair<RoutingSwitchAlignment, EdgeDirection>? {
+    val switchId = edge.startNode.switchIn?.id?.takeIf { edge.endNode.switchIn?.id == it } ?: return null
+    val startJoint = edge.startNode.switchIn?.jointNumber ?: return null
+    val endJoint = edge.endNode.switchIn?.jointNumber ?: return null
+    val structure = structures.getValue(switches.getValue(switchId).switchStructureId)
+    val alignment = structure.alignments
+        .map { it.jointNumbers }
+        .firstOrNull { it.contains(startJoint) && it.contains(endJoint) }
+    if (alignment == null) {
+        logger.warn("Switch structure does not have matching edge alignment: switchId=$switchId edge=${edge.id}")
+        return null
+    }
+    val direction = if (alignment.indexOf(startJoint) < alignment.indexOf(endJoint)) EdgeDirection.UP else EdgeDirection.DOWN
+    return RoutingSwitchAlignment(switchId, alignment) to direction
 }
 
 fun <A, B> Pair<A,A>.map(transform: (A) -> B): Pair<B,B> = transform(first) to transform(second)
@@ -330,7 +400,7 @@ fun createThroughSwitchConnections(switch: LayoutSwitch, structures: Map<IntId<S
             to = SwitchJointVertex(id, alignment.jointNumbers.first(), VertexDirection.OUT),
             length = alignment.length(),
         )
-        val edgeStraight = SwitchInternalEdge(id, alignment.jointNumbers, EdgeDirection.UP)
+        val edgeStraight = SwitchInternalEdge(RoutingSwitchAlignment(id, alignment.jointNumbers), EdgeDirection.UP)
         val edgeReverse = edgeStraight.reverse()
         listOf(connectionStraight to edgeStraight, connectionReverse to edgeReverse)
     }
@@ -399,7 +469,7 @@ fun createTrackConnections(edge: DbLayoutEdge): List<Pair<RoutingConnection, Tra
             val edge = TrackEdge(e.id, EdgeDirection.UP)
             listOf(connection to edge, connection.reverse() to edge.reverse())
         } else {
-            // TODO: Log error: this edge won't work for routing. It's possible when the track is poorly linked (old data).
+            logger.warn("Cannot route vai edge with invalid switch linking: edgeId=${e.id} startNode=${e.startNode} endNode=${e.endNode}")
             null
         }
     } ?: emptyList()

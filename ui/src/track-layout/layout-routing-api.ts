@@ -19,13 +19,16 @@ export type RouteResult = {
 };
 
 export type Route = {
-    sections: TrackSection[];
+    sections: RouteSection[];
     totalLength: number;
 };
 
-export type TrackSection = {
-    id: LocationTrackId;
+export type RouteDirection = 'UP' | 'DOWN';
+
+export type RouteSection = {
+    trackId: LocationTrackId;
     mRange: MRange;
+    direction: RouteDirection;
     length: number;
 };
 
