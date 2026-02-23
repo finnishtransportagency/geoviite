@@ -1,3 +1,9 @@
+alter table layout.operational_point
+  disable trigger version_update_trigger;
+alter table layout.operational_point
+  disable trigger version_row_trigger;
+
+
 create sequence if not exists layout.rinf_code_seq
   start with 100000
   increment by 1;
@@ -19,3 +25,8 @@ alter table layout.operational_point_version
   add column rinf_code_generated varchar(12);
 alter table layout.operational_point_version
   add column rinf_code_override varchar(12);
+
+alter table layout.operational_point
+  enable trigger version_update_trigger;
+alter table layout.operational_point
+  enable trigger version_row_trigger;

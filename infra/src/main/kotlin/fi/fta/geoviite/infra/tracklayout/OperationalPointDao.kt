@@ -362,6 +362,22 @@ class OperationalPointDao(
     ): Map<UicCode, List<LayoutRowVersion<OperationalPoint>>> =
         findFieldDuplicates(context, items, "uic_code") { rs -> rs.getString("uic_code").let(::UicCode) }
 
+    fun findRinfCodeOverrideDuplicates(
+        context: LayoutContext,
+        items: List<RinfCode>,
+    ): Map<RinfCode, List<LayoutRowVersion<OperationalPoint>>> =
+        findFieldDuplicates(context, items, "rinf_code_override") { rs ->
+            rs.getString("rinf_code_override").let(::RinfCode)
+        }
+
+    fun findRinfCodeGeneratedDuplicates(
+        context: LayoutContext,
+        items: List<RinfCode>,
+    ): Map<RinfCode, List<LayoutRowVersion<OperationalPoint>>> =
+        findFieldDuplicates(context, items, "rinf_code_generated") { rs ->
+            rs.getString("rinf_code_generated").let(::RinfCode)
+        }
+
     /**
      * baseContext, candidateContext, and publicationCandidateIds define a publication set. If publicationCandidateIds
      * is null, all candidates are considered to be in the publication set. Find all overlaps between polygons in

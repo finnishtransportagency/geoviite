@@ -1195,8 +1195,8 @@ fun operationalPoint(
     origin: OperationalPointOrigin = OperationalPointOrigin.GEOVIITE,
     draft: Boolean = true,
     ratkoVersion: Int? = null,
-    rinfCodeGenerated: RinfCode? = RinfCode("FI1234"),
-    rinfCodeOverride: RinfCode? = null,
+    rinfCodeGenerated: String? = "FI1234",
+    rinfCodeOverride: String? = null,
     contextData: LayoutContextData<OperationalPoint> = createMainContext(null, draft),
 ): OperationalPoint =
     OperationalPoint(
@@ -1211,8 +1211,8 @@ fun operationalPoint(
         origin = origin,
         ratkoVersion = ratkoVersion,
         contextData = contextData,
-        rinfCodeGenerated = rinfCodeGenerated,
-        rinfCodeOverride = rinfCodeOverride,
+        rinfCodeGenerated = rinfCodeGenerated?.let(::RinfCode),
+        rinfCodeOverride = rinfCodeOverride?.let(::RinfCode),
     )
 
 fun moveOperationalPointBy(point: OperationalPoint, x: Double, y: Double) =

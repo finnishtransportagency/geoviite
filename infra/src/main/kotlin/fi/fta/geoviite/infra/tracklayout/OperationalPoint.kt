@@ -75,7 +75,7 @@ data class OperationalPointAbbreviation @JsonCreator(mode = DELEGATING) construc
 
 data class RinfCode @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
     init {
-        assertLength(RinfCode::class, value, 1..20)
+        assertLength(RinfCode::class, value, 1..12)
         assertSanitized(RinfCode::class, value, Regex("^[A-Z]{2}[0-9]{1,10}\$"))
     }
 

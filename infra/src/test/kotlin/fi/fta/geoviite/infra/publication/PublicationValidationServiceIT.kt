@@ -2096,8 +2096,7 @@ constructor(
                 .save(
                     switch(
                         name = switchName,
-                        joints =
-                            listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
                     )
                 )
                 .id
@@ -2787,12 +2786,43 @@ constructor(
             listOf(
                 LayoutValidationIssue(
                     LayoutValidationIssueType.ERROR,
-                    "validation.layout.operational-point.rinf-code-missing",
+                    "validation.layout.operational-point.rinf-type-missing",
                 )
             ),
             publicationValidationService
                 .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(rinfless))[0]
                 .errors,
+        )
+    }
+
+    @Test
+    fun `operational point must have unique rinf code`() {
+        val op1 = operationalPoint(name = "OP1", uicCode = "1234", rinfCodeOverride = "FI012")
+        val op1Id = mainDraftContext.save(op1).id
+
+        val op2 =
+            operationalPoint(
+                name = "OP2",
+                uicCode = "1235",
+                rinfCodeGenerated = "FI012",
+                location = Point(op1.location?.let { Point(it.x + 100, it.y + 100) } ?: Point(100.0, 100.0)),
+                polygon = Polygon(op1.polygon?.points?.map { Point(it.x + 100, it.y + 100) } ?: listOf()),
+            )
+        val op2Id = mainDraftContext.save(op2).id
+
+        val issues =
+            publicationValidationService
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(op1Id, op2Id))[0]
+                .errors
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.FATAL,
+                    "validation.layout.operational-point.duplicate-rinf-code-draft",
+                    mapOf("rinfCodeOverride" to "FI012"),
+                )
+            ),
+            issues,
         )
     }
 

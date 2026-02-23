@@ -36,8 +36,8 @@ import {
 } from 'track-layout/layout-operational-point-api';
 import { OperationalPointRinfCodeField } from './operational-point-rinf-code-field';
 import { withConditionalRinfCodeOverride } from 'tool-panel/operational-point/operational-point-utils';
-import { isEqualIgnoreCase } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
+import { isEqualIgnoreCase } from 'utils/string-utils';
 
 type ExternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint;
