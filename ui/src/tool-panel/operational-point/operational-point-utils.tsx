@@ -6,6 +6,7 @@ import { useRateLimitedTwoPartEffect } from 'utils/react-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { filterNotEmpty, indexIntoMap, partitionBy } from 'utils/array-utils';
 import { FieldValidationIssue, FieldValidationIssueType, validate } from 'utils/validation-utils';
+import { isEqualIgnoreCase } from 'utils/string-utils';
 
 export type OperationalPointSaveRequestBase = {
     rinfIdOverride?: string;
@@ -241,12 +242,10 @@ export const Hide: React.FC<React.PropsWithChildren<{ when: boolean }>> = ({ whe
     <div style={{ display: 'contents', ...(when && { visibility: 'hidden' }) }}>{children}</div>
 );
 
-const RINF_ID_REGEX = /^[A-Z]{2}[0-9]{0,}$/;
+const RINF_ID_REGEX = /^[A-Z]{2}[0-9]{1,}$/;
 
-export const withConditionalRinfIdOverride = <T,>(
-    request: T,
-    allowRinfIdOverride: boolean,
-): T => (allowRinfIdOverride ? request : { ...request, rinfIdOverride: undefined });
+export const withConditionalRinfIdOverride = <T,>(request: T, allowRinfIdOverride: boolean): T =>
+    allowRinfIdOverride ? request : { ...request, rinfIdOverride: undefined };
 
 export const validateRinfIdOverride = (
     rinfIdOverride: string | undefined,
@@ -278,12 +277,21 @@ export const validateRinfIdOverride = (
                 type: FieldValidationIssueType.ERROR,
             },
         ),
-        validate<OperationalPointSaveRequestBase>(
-            !!rinfIdOverride && rinfIdOverride.length > 0,
-            {
-                field: 'rinfIdOverride',
-                reason: 'mandatory-field',
-                type: FieldValidationIssueType.ERROR,
-            },
-        ),
+        validate<OperationalPointSaveRequestBase>(!!rinfIdOverride && rinfIdOverride.length > 0, {
+            field: 'rinfIdOverride',
+            reason: 'mandatory-field',
+            type: FieldValidationIssueType.ERROR,
+        }),
     ].filter(filterNotEmpty);
+
+export const hasSameRinfId = (
+    rinfId: string | undefined,
+    otherOperationalPoint: OperationalPoint,
+): boolean => {
+    return (
+        !!rinfId &&
+        otherOperationalPoint.state !== 'DELETED' &&
+        !!otherOperationalPoint.rinfId &&
+        isEqualIgnoreCase(otherOperationalPoint.rinfId, rinfId)
+    );
+};

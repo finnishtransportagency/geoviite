@@ -35,9 +35,11 @@ import {
     updateExternalOperationalPoint,
 } from 'track-layout/layout-operational-point-api';
 import { OperationalPointRinfIdField } from './operational-point-rinf-id-field';
-import { withConditionalRinfIdOverride } from 'tool-panel/operational-point/operational-point-utils';
+import {
+    hasSameRinfId,
+    withConditionalRinfIdOverride,
+} from 'tool-panel/operational-point/operational-point-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { isEqualIgnoreCase } from 'utils/string-utils';
 
 type ExternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint;
@@ -70,12 +72,8 @@ export const ExternalOperationalPointEditDialog: React.FC<
 
     const isOlp = state.existingOperationalPoint?.raideType === 'OLP';
 
-    const duplicateRinfIdPoint = allOtherOperationalPoints?.find(
-        (operationalPoint) =>
-            operationalPoint.state !== 'DELETED' &&
-            !!state.operationalPoint?.rinfIdOverride &&
-            !!operationalPoint.rinfId &&
-            isEqualIgnoreCase(operationalPoint.rinfId, state.operationalPoint.rinfIdOverride),
+    const duplicateRinfIdPoint = allOtherOperationalPoints?.find((operationalPoint) =>
+        hasSameRinfId(state.operationalPoint?.rinfIdOverride, operationalPoint),
     );
 
     const rinfTypeOptions: DropdownOption<OperationalPointRinfType>[] = rinfTypes.map((value) =>
@@ -175,14 +173,12 @@ export const ExternalOperationalPointEditDialog: React.FC<
                         <React.Fragment>
                             {!isOlp && (
                                 <OperationalPointRinfIdField
-                                    rinfIdOverride={
-                                        state.operationalPoint?.rinfIdOverride ?? ''
-                                    }
+                                    rinfIdOverride={state.operationalPoint?.rinfIdOverride ?? ''}
                                     rinfIdGenerated={
                                         state.existingOperationalPoint?.rinfIdGenerated ?? ''
                                     }
                                     onUpdateRinfId={onUpdateRinfId}
-                                    onCommitField={actions.onCommitField}
+                                    onCommitField={stateActions.onCommitField}
                                     editingRinfId={state.editingRinfId}
                                     onEditingRinfIdChange={(editing) =>
                                         stateActions.setEditingRinfId(editing)

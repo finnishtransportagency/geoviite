@@ -39,6 +39,7 @@ data class OperationalPoint(
 
 const val maxOperationalPointNameLength = 150
 const val maxOperationalPointAbbreviationLength = 50
+const val maxOperationalPointRinfIdLength = 12
 
 // operational point name and abbreviation fields only have the same restrictions as the database has for them,
 // as Ratko is the master of their actual content
@@ -75,12 +76,8 @@ data class OperationalPointAbbreviation @JsonCreator(mode = DELEGATING) construc
 
 data class RinfId @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
     init {
-        assertLength(RinfId::class, value, 1..12)
+        assertLength(RinfId::class, value, 1..maxOperationalPointRinfIdLength)
         assertSanitized(RinfId::class, value, Regex("^[A-Z]{2}[0-9]{1,10}\$"))
-    }
-
-    companion object {
-        val allowedLength = 1..20
     }
 
     @JsonValue override fun toString(): String = value

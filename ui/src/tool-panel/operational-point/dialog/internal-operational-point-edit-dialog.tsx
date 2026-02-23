@@ -41,7 +41,10 @@ import { isEqualIgnoreCase } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 import { OperationalPointRinfIdField } from './operational-point-rinf-id-field';
-import { withConditionalRinfIdOverride } from 'tool-panel/operational-point/operational-point-utils';
+import {
+    hasSameRinfId,
+    withConditionalRinfIdOverride,
+} from 'tool-panel/operational-point/operational-point-utils';
 
 type InternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint | undefined;
@@ -123,12 +126,8 @@ export const InternalOperationalPointEditDialog: React.FC<
             !!state.operationalPoint.uicCode &&
             isEqualIgnoreCase(operationalPoint.uicCode, state.operationalPoint.uicCode),
     );
-    const duplicateRinfIdPoint = allOtherOperationalPoints?.find(
-        (operationalPoint) =>
-            operationalPoint.state !== 'DELETED' &&
-            !!state.operationalPoint?.rinfIdOverride &&
-            !!operationalPoint.rinfId &&
-            isEqualIgnoreCase(operationalPoint.rinfId, state.operationalPoint.rinfIdOverride),
+    const duplicateRinfIdPoint = allOtherOperationalPoints?.find((operationalPoint) =>
+        hasSameRinfId(state.operationalPoint?.rinfIdOverride, operationalPoint),
     );
 
     const hasErrors = (fieldName: keyof InternalOperationalPointSaveRequest) =>
@@ -164,10 +163,7 @@ export const InternalOperationalPointEditDialog: React.FC<
         allowRinfIdOverride: boolean,
     ) {
         setIsSaving(true);
-        const saveRequest = withConditionalRinfIdOverride(
-            newOperationalPoint,
-            allowRinfIdOverride,
-        );
+        const saveRequest = withConditionalRinfIdOverride(newOperationalPoint, allowRinfIdOverride);
         insertOperationalPoint(saveRequest, layoutContext)
             .then(
                 (opId) => {
@@ -296,9 +292,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                         </Heading>
                         <OperationalPointRinfIdField
                             rinfIdOverride={state.operationalPoint?.rinfIdOverride ?? ''}
-                            rinfIdGenerated={
-                                state.existingOperationalPoint?.rinfIdGenerated ?? ''
-                            }
+                            rinfIdGenerated={state.existingOperationalPoint?.rinfIdGenerated ?? ''}
                             onUpdateRinfId={onUpdateRinfId}
                             onCommitField={stateActions.onCommitField}
                             editingRinfId={state.editingRinfId}
