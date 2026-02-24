@@ -38,7 +38,6 @@ import {
 import {
     getLocationTrack,
     getLocationTrackChangeTimes,
-    getLocationTrackIdsByTrackNumber,
     getLocationTrackInfoboxExtras,
     getLocationTracks,
     getLocationTracksByName,
@@ -129,19 +128,6 @@ export function useLocationTracks(
         useLoader(
             () => (ids.length > 0 ? getLocationTracks(ids, layoutContext, changeTime) : undefined),
             [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
-        ) || EMPTY_ARRAY
-    );
-}
-
-export function useLocationTrackIdsByTrackNumber(
-    trackNumberId: LayoutTrackNumberId,
-    layoutContext: LayoutContext,
-    changeTime?: TimeStamp,
-): LocationTrackId[] {
-    return (
-        useLoader(
-            () => getLocationTrackIdsByTrackNumber(trackNumberId, layoutContext, changeTime),
-            [trackNumberId, layoutContext.branch, layoutContext.publicationState, changeTime],
         ) || EMPTY_ARRAY
     );
 }
