@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Rads
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
-import fi.fta.geoviite.infra.math.circleArcLength
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.rotateAroundPoint
 import fi.fta.geoviite.infra.util.formatForException
@@ -194,18 +193,15 @@ sealed class SwitchStructureElement {
     abstract val type: SwitchStructureElementType
     abstract val start: Point
     abstract val end: Point
-    abstract val length: Double
 }
 
 data class SwitchStructureLine(override val start: Point, override val end: Point) : SwitchStructureElement() {
     override val type: SwitchStructureElementType = SwitchStructureElementType.LINE
-    override val length: Double = lineLength(start, end)
 }
 
 data class SwitchStructureCurve(override val start: Point, override val end: Point, val radius: Double) :
     SwitchStructureElement() {
     override val type: SwitchStructureElementType = SwitchStructureElementType.CURVE
-    override val length: Double = circleArcLength(radius, lineLength(start, end))
 }
 
 data class SwitchStructureAlignment(val jointNumbers: List<JointNumber>, val elements: List<SwitchStructureElement>) {
@@ -214,7 +210,9 @@ data class SwitchStructureAlignment(val jointNumbers: List<JointNumber>, val ele
         require(elements.isNotEmpty()) { "Switch structure alignment must have some elements" }
     }
 
-    fun length(): Double = elements.sumOf(SwitchStructureElement::length)
+    fun length(): Double {
+        return elements.sumOf { element -> lineLength(element.start, element.end) }
+    }
 }
 
 interface ISwitchStructure {

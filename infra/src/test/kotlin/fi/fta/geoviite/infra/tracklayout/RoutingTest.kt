@@ -59,13 +59,11 @@ class RoutingTest {
     @Test
     fun `SwitchInternalEdges can be reversed`() {
         val edge = SwitchInternalEdge(
-            IntId(123),
-            listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
+            RoutingSwitchAlignment(IntId(123), listOf(JointNumber(1), JointNumber(5), JointNumber(2))),
             UP,
         )
         val reversed = SwitchInternalEdge(
-            IntId(123),
-            listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
+            RoutingSwitchAlignment( IntId(123), listOf(JointNumber(1), JointNumber(5), JointNumber(2))),
             DOWN,
         )
         assertEquals(reversed, edge.reverse())
@@ -420,7 +418,7 @@ class RoutingTest {
 }
 
 private fun edgeSwitch(switchId: Int, direction: EdgeDirection, vararg joints: Int) =
-    SwitchInternalEdge(IntId(switchId), joints.map(::JointNumber), direction)
+    SwitchInternalEdge(RoutingSwitchAlignment(IntId(switchId), joints.map(::JointNumber)), direction)
 
 private fun directTrackConnection(fromTrackId: Int, fromBoundary: TrackBoundaryType, toTrackId: Int, toBoundary: TrackBoundaryType) =
     RoutingConnection(
