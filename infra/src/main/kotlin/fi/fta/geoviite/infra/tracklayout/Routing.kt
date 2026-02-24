@@ -191,8 +191,6 @@ data class RoutingGraph(
     fun findPathEdges(start: LocationTrackCacheHit, end: LocationTrackCacheHit): List<RoutingEdge>? {
         val (startEdge, startMRange) = start.getEdge()
         val (endEdge, endMRange) = end.getEdge()
-        val startVertex = TrackMidPointVertex(start.track.id as IntId, start.closestPoint.m, VertexDirection.IN)
-        val endVertex = TrackMidPointVertex(end.track.id as IntId, end.closestPoint.m, VertexDirection.OUT)
         val startEdgeM = start.closestPoint.m.toEdgeM(startMRange.min)
         val endEdgeM = end.closestPoint.m.toEdgeM(endMRange.min)
 
@@ -219,6 +217,8 @@ data class RoutingGraph(
             // The actual pathfinding case
             else -> {
                 // Create a second temp graph for the things in this routing
+                val startVertex = TrackMidPointVertex(start.track.id as IntId, start.closestPoint.m, VertexDirection.IN)
+                val endVertex = TrackMidPointVertex(end.track.id as IntId, end.closestPoint.m, VertexDirection.OUT)
                 val tmpGraph = buildTempRoutingGraph(
                     startVertex,
                     endVertex,
@@ -495,7 +495,7 @@ fun createTrackConnections(edge: DbLayoutEdge): List<Pair<RoutingConnection, Tra
             val edge = TrackEdge(e.id, EdgeDirection.UP)
             listOf(connection to edge, connection.reverse() to edge.reverse())
         } else {
-            logger.warn("Cannot route vai edge with invalid switch linking: edgeId=${e.id} startNode=${e.startNode} endNode=${e.endNode}")
+            logger.warn("Cannot route via edge with invalid switch linking: edgeId=${e.id} startNode=${e.startNode} endNode=${e.endNode}")
             null
         }
     } ?: emptyList()
