@@ -608,8 +608,7 @@
             "cannot-shorten-deleted-track-number": "Poistettua ratanumeroa ei voi lyhentää",
             "no-geometry": "Ratanumerolla ei ole geometriaa",
             "cant-edit-while-linking": "Ratanumeron tietoja ei voi muokata linkitystilassa",
-            "location-tracks-title": "Sijaintiraiteet",
-            "location-tracks-count": "{{count}} sijaintiraidetta",
+            "location-tracks-title": "Sijaintiraiteet ({{count}})",
             "location-tracks-filter-by-area": "Vain kartalle osuvat raiteet",
             "no-location-tracks": "Ei sijaintiraiteita",
             "revert-dialog": {
