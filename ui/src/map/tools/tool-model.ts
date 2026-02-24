@@ -20,6 +20,7 @@ type MapToolId =
     | 'measure'
     | 'point-location'
     | 'area-select'
+    | 'route-finding'
     | 'operational-point-area';
 
 export type MapToolActivateOptions = {
