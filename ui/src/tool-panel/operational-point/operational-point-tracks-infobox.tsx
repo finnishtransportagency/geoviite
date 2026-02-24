@@ -41,6 +41,7 @@ type OperationalPointTracksInfoboxProps = {
     layoutContext: LayoutContext;
     operationalPoint: OperationalPoint;
     changeTimes: ChangeTimes;
+    onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
 };
 
 export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfoboxProps> = ({
@@ -49,6 +50,7 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
     layoutContext,
     operationalPoint,
     changeTimes,
+    onSelectLocationTrack,
 }) => {
     const { t } = useTranslation();
 
@@ -103,6 +105,7 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
                         linkingDirection={'unlinking'}
                         isEditing={isEditing}
                         setLinks={setLinks}
+                        onSelectLocationTrack={onSelectLocationTrack}
                     />
                     <OperationalPointTracksDirectionInfobox
                         tracksInOperationalPointPolygon={tracksInOperationalPointPolygon}
@@ -110,6 +113,7 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
                         linkingDirection={'linking'}
                         isEditing={isEditing}
                         setLinks={setLinks}
+                        onSelectLocationTrack={onSelectLocationTrack}
                     />
                     <div className={styles['operational-point-linking-infobox__edit-buttons']}>
                         {!isEditing ? (
@@ -175,11 +179,19 @@ type OperationalPointTracksDirectionInfoboxProps = {
     linkingDirection: LinkingDirection;
     isEditing: boolean;
     setLinks: (ids: LocationTrackId[], direction: LinkingDirection) => void;
+    onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
 };
 
 const OperationalPointTracksDirectionInfobox: React.FC<
     OperationalPointTracksDirectionInfoboxProps
-> = ({ tracksInOperationalPointPolygon, tracks, linkingDirection, isEditing, setLinks }) => {
+> = ({
+    tracksInOperationalPointPolygon,
+    tracks,
+    linkingDirection,
+    isEditing,
+    setLinks,
+    onSelectLocationTrack,
+}) => {
     const { t } = useTranslation();
 
     const validatedTracks = tracks
@@ -237,6 +249,7 @@ const OperationalPointTracksDirectionInfobox: React.FC<
                                 linkingDirection={linkingDirection}
                                 isEditing={isEditing}
                                 setLinks={setLinks}
+                                onSelectLocationTrack={onSelectLocationTrack}
                             />
                         ))
                     )}
@@ -263,6 +276,7 @@ type OperationalPointTrackRowProps = {
     linkingDirection: LinkingDirection;
     isEditing: boolean;
     setLinks: (ids: LocationTrackId[], direction: LinkingDirection) => void;
+    onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
 };
 
 const OperationalPointTrackRow: React.FC<OperationalPointTrackRowProps> = ({
@@ -271,10 +285,14 @@ const OperationalPointTrackRow: React.FC<OperationalPointTrackRowProps> = ({
     linkingDirection,
     isEditing,
     setLinks,
+    onSelectLocationTrack,
 }) => {
     return (
         <>
-            <LocationTrackBadge locationTrack={trackItem} />
+            <LocationTrackBadge
+                locationTrack={trackItem}
+                onClick={() => onSelectLocationTrack(trackItem.id)}
+            />
             <Hide when={!isEditing}>
                 <Button
                     variant={ButtonVariant.GHOST}

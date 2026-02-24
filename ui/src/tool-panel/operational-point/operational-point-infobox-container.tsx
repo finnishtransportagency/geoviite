@@ -84,6 +84,7 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
                     onDataChange={onDataChange}
                     onSelect={delegates.onSelect}
                     onUnselect={delegates.onUnselect}
+                    setToolPanelTab={delegates.setToolPanelTab}
                     onStartPlacingLocation={startPlacingOperationalPoint}
                     onStopPlacingLocation={stopPlacingOperationalPoint}
                     onStartPlacingArea={startPlacingOperationalPointArea}

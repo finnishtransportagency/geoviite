@@ -473,6 +473,14 @@ export type OperationalPoint = {
     state: OperationalPointState;
 } & LayoutAssetFields;
 
+export type StationLink = {
+    trackNumberId: LayoutTrackNumberId;
+    startOperationalPointId: OperationalPointId;
+    endOperationalPointId: OperationalPointId;
+    locationTrackIds: LocationTrackId[];
+    length: number;
+};
+
 export type PlanArea = {
     id: GeometryPlanId;
     name: string;
