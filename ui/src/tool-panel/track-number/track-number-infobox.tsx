@@ -1,6 +1,5 @@
 import * as React from 'react';
 import styles from './track-number-infobox.scss';
-import infoboxStyles from 'tool-panel/infobox/infobox.module.scss';
 import Infobox from 'tool-panel/infobox/infobox';
 import {
     AlignmentEndPoint,
@@ -21,9 +20,6 @@ import {
     useCoordinateSystem,
     useReferenceLineStartAndEnd,
 } from 'track-layout/track-layout-react-utils';
-import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
-import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { InfoboxList, InfoboxListRow } from 'tool-panel/infobox/infobox-list';
 import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
@@ -43,18 +39,10 @@ import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_GEOMETRY } from 'user/user-model';
-import { compareNamed, draftLayoutContext, LayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { TrackNumberOid } from 'track-layout/oid';
 import { TrackNumberChangeInfoInfobox } from 'tool-panel/track-number/track-number-change-info-infobox';
-import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
-import {
-    getLocationTrackIdsByTrackNumber,
-    getLocationTracks,
-} from 'track-layout/layout-location-track-api';
-import {
-    ProgressIndicatorType,
-    ProgressIndicatorWrapper,
-} from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { TrackNumberLocationTrackInfobox } from './track-number-location-track-infobox';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -125,20 +113,6 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const isOfficial = layoutContext.publicationState === 'OFFICIAL';
-    const [filterByVisibleArea, setFilterByVisibleArea] = React.useState(true);
-
-    const [locationTracks, locationTrackFetchStatus] = useLoaderWithStatus(
-        () =>
-            getLocationTrackIdsByTrackNumber(trackNumber.id, layoutContext)
-                .then((ids) => getLocationTracks(ids, layoutContext))
-                .then((tracks) => tracks.toSorted(compareNamed)),
-        [trackNumber.id, layoutContext, changeTimes.layoutLocationTrack],
-    );
-
-    const visibleLocationTracks =
-        (filterByVisibleArea
-            ? locationTracks?.filter((lt) => shownLocationTrackIds.includes(lt.id))
-            : locationTracks) ?? [];
 
     React.useEffect(() => {
         setCanUpdate(
@@ -376,62 +350,14 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     </InfoboxContent>
                 </Infobox>
             )}
-            <Infobox
+            <TrackNumberLocationTrackInfobox
+                trackNumberId={trackNumber.id}
+                layoutContext={layoutContext}
+                visibleLocationTrackIds={shownLocationTrackIds}
                 contentVisible={visibilities.locationTracks}
                 onContentVisibilityChange={() => visibilityChange('locationTracks')}
-                title={t('tool-panel.track-number.location-tracks-title', {
-                    count: locationTracks?.length || 0,
-                })}
-                qa-id="track-number-location-tracks-infobox">
-                <InfoboxContent>
-                    <ProgressIndicatorWrapper
-                        indicator={ProgressIndicatorType.Area}
-                        inProgress={locationTrackFetchStatus !== LoaderStatus.Ready}
-                        inline={false}>
-                        <InfoboxList>
-                            <InfoboxListRow
-                                label={t('tool-panel.track-number.location-tracks-filter-by-area')}
-                                content={
-                                    <Checkbox
-                                        checked={filterByVisibleArea}
-                                        onChange={(e) => setFilterByVisibleArea(e.target.checked)}
-                                    />
-                                }
-                            />
-                        </InfoboxList>
-                        {visibleLocationTracks?.length > 0 ? (
-                            <ul className={styles['track-number-infobox__location-tracks-list']}>
-                                {visibleLocationTracks?.map((lt) => (
-                                    <li key={lt.id}>
-                                        <span
-                                            className={
-                                                styles['track-number-infobox__location-track-name']
-                                            }>
-                                            <LocationTrackLink
-                                                locationTrackId={lt.id}
-                                                locationTrackName={lt.name}
-                                            />
-                                        </span>
-                                        <span
-                                            className={
-                                                styles[
-                                                    'track-number-infobox__location-track-description'
-                                                ]
-                                            }
-                                            title={lt.description}>
-                                            {lt.description}
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className={infoboxStyles['infobox__text']}>
-                                {t('tool-panel.track-number.no-location-tracks')}
-                            </p>
-                        )}
-                    </ProgressIndicatorWrapper>
-                </InfoboxContent>
-            </Infobox>
+                changeTime={changeTimes.layoutLocationTrack}
+            />
             {referenceLine && (
                 <PrivilegeRequired privilege={VIEW_GEOMETRY}>
                     <TrackNumberGeometryInfobox
