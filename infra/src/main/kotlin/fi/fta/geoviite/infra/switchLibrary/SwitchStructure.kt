@@ -193,6 +193,7 @@ sealed class SwitchStructureElement {
     abstract val type: SwitchStructureElementType
     abstract val start: Point
     abstract val end: Point
+    val length: Double get() = lineLength(start, end)
 }
 
 data class SwitchStructureLine(override val start: Point, override val end: Point) : SwitchStructureElement() {
@@ -210,8 +211,19 @@ data class SwitchStructureAlignment(val jointNumbers: List<JointNumber>, val ele
         require(elements.isNotEmpty()) { "Switch structure alignment must have some elements" }
     }
 
-    fun length(): Double {
-        return elements.sumOf { element -> lineLength(element.start, element.end) }
+    fun length(): Double = elements.sumOf(SwitchStructureElement::length)
+
+    fun contains(joint: JointNumber) = jointNumbers.contains(joint)
+
+    fun distance(from: JointNumber, to: JointNumber): Double {
+        val fromIndex = jointNumbers.indexOf(from)
+        val toIndex = jointNumbers.indexOf(to)
+        require (fromIndex >= 0 && toIndex >= 0) {
+            "Alignment must contain both joints: from=$from to=$to alignmentJoints=$jointNumbers"
+        }
+        val (startIndex, endIndex) = if (fromIndex < toIndex) fromIndex to toIndex else toIndex to fromIndex
+        return elements.subList(startIndex, endIndex).sumOf(SwitchStructureElement::length)
+
     }
 }
 

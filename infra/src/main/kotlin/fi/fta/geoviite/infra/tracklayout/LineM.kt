@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonValue
-import org.eclipse.emf.common.util.BasicMonitor.Delegating
 import kotlin.math.abs
 
 sealed interface AnyM<M : AnyM<M>>
@@ -20,6 +19,8 @@ sealed interface GeocodingAlignmentM<M : GeocodingAlignmentM<M>> : AlignmentM<M>
 data object ReferenceLineM : AlignmentM<ReferenceLineM>, GeocodingAlignmentM<ReferenceLineM>
 
 data object PlanLayoutAlignmentM : AlignmentM<PlanLayoutAlignmentM>, GeocodingAlignmentM<PlanLayoutAlignmentM>
+
+data object SwitchStructureAlignmentM : AnyM<SwitchStructureAlignmentM>
 
 data class LineM<M : AnyM<M>> @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(
     @JsonValue val distance: Double,
