@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
 import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Autowired
@@ -68,10 +69,21 @@ data class SpatialCacheEntry(
 
 data class LocationTrackCacheHit(
     val track: LocationTrack,
-    val geometry: LocationTrackGeometry,
+    val geometry: DbLocationTrackGeometry,
     val closestPoint: AlignmentPoint<LocationTrackM>,
     val distance: Double,
-)
+) {
+    fun getEdge(): Pair<DbLayoutEdge, Range<LineM<LocationTrackM>>> =
+        geometry.getEdgeAtM(closestPoint.m)?.let { (e, r) -> e as DbLayoutEdge to r }
+            ?: error("Closest point is outside of track geometry")
+
+    fun getClosestNode(): DbLayoutNode {
+        val (edge, mRange) = getEdge()
+        val startDist = abs(mRange.min - closestPoint.m)
+        val endDist = abs(mRange.max - closestPoint.m)
+        return if (startDist < endDist) edge.startNode.node else edge.endNode.node
+    }
+}
 
 private val cacheHitComparator =
     compareBy<LocationTrackCacheHit>(

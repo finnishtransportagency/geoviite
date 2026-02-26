@@ -16,8 +16,10 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
+import { createRouteFindingTool } from 'map/tools/route-finding-tool';
 import { ConfirmMoveToMainOfficialDialogContainer } from 'map/plan-download/confirm-move-to-main-official-dialog';
 import { useTrackLayoutAppSelector } from 'store/hooks';
+import { RouteResult } from 'track-layout/layout-routing-api';
 import { LinkingType } from 'linking/linking-model';
 import { operationalPointAreaTool } from 'map/tools/operational-point-area-tool';
 
@@ -30,6 +32,8 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     showVerticalGeometryDiagram,
     enabled,
 }) => {
+    const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
+
     const className = createClassName(
         styles['track-layout'],
         showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
@@ -41,10 +45,16 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
 
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
+    const [routeResult, setRouteResult] = React.useState<RouteResult | undefined>();
     const [switchToOfficialDialogOpen, setSwitchToOfficialDialogOpen] = React.useState(false);
 
+    const routeFindingTool = React.useMemo(
+        () => createRouteFindingTool(layoutContext, setRouteResult),
+        [layoutContext],
+    );
+
     const mapTools = React.useMemo(() => {
-        const selectableTools = [selectOrHighlightComboTool, measurementTool].map((tool) => ({
+        const selectableTools = [selectOrHighlightComboTool, measurementTool, routeFindingTool].map((tool) => ({
             ...tool,
             disabled: isPlacingOperationalPointArea,
         }));
@@ -84,6 +94,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                             <MapContext.Provider value="track-layout">
                                 <MapViewContainer
                                     hoveredOverPlanSection={hoveredOverPlanSection}
+                                    routeResult={routeResult}
                                     mapTools={mapTools}
                                     customActiveMapTool={selectOrHighlightComboTool}
                                 />

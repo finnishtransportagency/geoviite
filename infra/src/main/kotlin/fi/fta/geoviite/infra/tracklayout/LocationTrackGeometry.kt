@@ -414,6 +414,9 @@ sealed class LayoutEdge : IAlignment<EdgeM> {
 
     @get:JsonIgnore val contentHash: EdgeHash by lazy { EdgeHash.of(startNode, endNode, segments) }
 
+    fun isSwitchInnerLink(): Boolean =
+        startNode.switchIn?.id != null && startNode.switchIn?.id == endNode.switchIn?.id
+
     fun withSegments(newSegments: List<LayoutSegment>) = TmpLayoutEdge(startNode, endNode, newSegments)
 
     fun withStartNode(newStartNode: NodeConnection) = TmpLayoutEdge(newStartNode, endNode, segments)
@@ -558,10 +561,10 @@ sealed class NodeConnection {
 
     @get:JsonIgnore abstract val node: LayoutNode
 
-    val innerPort
+    val innerPort: NodePort?
         get() = node.get(portConnection)
 
-    val outerPort
+    val outerPort: NodePort?
         get() = node.get(portConnection.opposite)
 
     val type: LayoutNodeType

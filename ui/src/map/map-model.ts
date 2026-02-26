@@ -27,6 +27,7 @@ export type MapLayerName =
     | 'missing-profile-highlight-layer'
     | 'missing-linking-highlight-layer'
     | 'plan-section-highlight-layer'
+    | 'route-highlight-layer'
     | 'duplicate-tracks-highlight-layer'
     | 'duplicate-split-section-highlight-layer'
     | 'location-track-selected-alignment-layer'
