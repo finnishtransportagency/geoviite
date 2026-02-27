@@ -2797,14 +2797,14 @@ constructor(
 
     @Test
     fun `operational point must have unique rinf code`() {
-        val op1 = operationalPoint(name = "OP1", uicCode = "1234", rinfIdOverride = "FI012")
+        val op1 = operationalPoint(name = "OP1", uicCode = "1234", rinfIdOverride = "EU012")
         val op1Id = mainDraftContext.save(op1).id
 
         val op2 =
             operationalPoint(
                 name = "OP2",
                 uicCode = "1235",
-                rinfIdGenerated = "FI012",
+                rinfIdGenerated = "EU012",
                 location = Point(op1.location?.let { Point(it.x + 100, it.y + 100) } ?: Point(100.0, 100.0)),
                 polygon = Polygon(op1.polygon?.points?.map { Point(it.x + 100, it.y + 100) } ?: listOf()),
             )
@@ -2819,10 +2819,47 @@ constructor(
                 LayoutValidationIssue(
                     LayoutValidationIssueType.FATAL,
                     "validation.layout.operational-point.duplicate-rinf-id-draft",
-                    mapOf("rinfIdOverride" to "FI012"),
+                    mapOf("rinfIdOverride" to "EU012"),
                 )
             ),
             issues,
+        )
+    }
+
+    @Test
+    fun `operational point rinf id override must be in right format`() {
+        val validOp = operationalPoint(name = "OP1", uicCode = "1234", rinfIdOverride = "EU012")
+        val validOpId = mainDraftContext.save(validOp).id
+
+        val brokenOp =
+            operationalPoint(
+                name = "OP2",
+                uicCode = "1235",
+                rinfIdGenerated = "FI01",
+                rinfIdOverride = "FI2222",
+                location = Point(validOp.location?.let { Point(it.x + 100, it.y + 100) } ?: Point(100.0, 100.0)),
+                polygon = Polygon(validOp.polygon?.points?.map { Point(it.x + 100, it.y + 100) } ?: listOf()),
+            )
+        val brokenOpId = mainDraftContext.save(brokenOp).id
+
+        val validValidationErrors =
+            publicationValidationService
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(validOpId))[0]
+                .errors
+        val brokenValidationErrors =
+            publicationValidationService
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(brokenOpId))[0]
+                .errors
+
+        assertEquals(emptyList<LayoutValidationIssue>(), validValidationErrors)
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.ERROR,
+                    "validation.layout.operational-point.rinf-id-override-invalid-format",
+                )
+            ),
+            brokenValidationErrors,
         )
     }
 

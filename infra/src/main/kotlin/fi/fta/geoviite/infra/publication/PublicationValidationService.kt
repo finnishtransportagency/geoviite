@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.RINF_ID_OVERRIDE_REGEX
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import org.slf4j.Logger
@@ -749,23 +750,31 @@ constructor(
                     operationalPoint.raideType == OperationalPointRaideType.OLP || operationalPoint.rinfId != null
                 ) {
                     "$VALIDATION_OPERATIONAL_POINT.rinf-id-missing"
-                }
-            ) +
-                if (operationalPoint.rinfIdOverride != null) {
-                    validateOperationalPointRinfIdOverrideDuplication(
-                        operationalPoint,
-                        validationContext.getOperationalPointsByRinfId(operationalPoint.rinfIdOverride).filter {
-                            it.raideType != OperationalPointRaideType.OLP
-                        },
-                        validationContext.target.validationTargetType,
-                    )
-                } else emptyList()
+                },
+                validate(
+                    operationalPoint.rinfIdOverride == null ||
+                        RINF_ID_OVERRIDE_REGEX.matches(operationalPoint.rinfIdOverride.toString())
+                ) {
+                    "$VALIDATION_OPERATIONAL_POINT.rinf-id-override-invalid-format"
+                },
+            )
+        val rinfIdDuplicationIssues =
+            if (operationalPoint.rinfIdOverride != null) {
+                validateOperationalPointRinfIdOverrideDuplication(
+                    operationalPoint,
+                    validationContext.getOperationalPointsByRinfId(operationalPoint.rinfIdOverride).filter {
+                        it.raideType != OperationalPointRaideType.OLP
+                    },
+                    validationContext.target.validationTargetType,
+                )
+            } else emptyList()
 
         return nameDuplicationIssues +
             abbreviationDuplicationIssues +
             uicCodeIssues +
             rinfTypeIssues +
             rinfIdIssues +
+            rinfIdDuplicationIssues +
             polygonOverlapIssues +
             locationIssues +
             geometryQualityIssues
