@@ -42,16 +42,19 @@ export const FrontpageLink: React.FC = () => {
         return `/`;
     }
 
-    const ratkoErrorIndicatorTitle = () => {
-        if (hasRatkoPushError) {
-            return 'push-error';
-        } else if (ratkoIsOffline) {
-            return 'ratko-unreachable.';
+    const ratkoErrors = () => {
+        const errors: string[] = [];
+        if (ratkoIsOffline) {
+            errors.push('ratko-unreachable');
         } else if (ratkoNotConfigured) {
-            return 'ratko-not-configured';
-        } else {
-            return undefined;
+            errors.push('ratko-not-configured');
         }
+
+        if (hasRatkoPushError) {
+            errors.push('push-error');
+        }
+
+        return errors.map((err) => t(`app-bar.ratko-errors.${err}`)).join('\n');
     };
 
     return (
@@ -66,7 +69,7 @@ export const FrontpageLink: React.FC = () => {
                 <React.Fragment>
                     <span
                         className={styles['app-bar__link--exclamation-point']}
-                        title={t(`app-bar.ratko-errors.${ratkoErrorIndicatorTitle()}`)}>
+                        title={ratkoErrors()}>
                         <ExclamationPoint />
                     </span>
                 </React.Fragment>
