@@ -751,14 +751,15 @@ const MapView: React.FC<MapViewProps> = ({
                             resolution,
                             getLayoutGraphLevel(map.layerMenu),
                         );
-                    case 'virtual-km-post-linking-layer': // Virtual map layers
-                    case 'virtual-hide-geometry-layer':
-                        return undefined;
                     case 'signal-asset-layer':
                         return createSignalAssetLayer(
                             existingOlLayer as TileLayer<TileSource>,
                             (loading) => onLayerLoading(layerName, loading),
                         );
+                    case 'virtual-km-post-linking-layer': // Virtual map layers
+                    case 'virtual-hide-geometry-layer':
+                    case 'virtual-hide-signal-asset-layer':
+                        return undefined;
                     default:
                         return exhaustiveMatchingGuard(layerName);
                 }

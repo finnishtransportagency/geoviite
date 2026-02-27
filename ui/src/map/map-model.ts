@@ -59,7 +59,8 @@ export type MapLayerName =
     | 'publication-candidate-layer'
     | 'deleted-publication-candidate-icon-layer'
     | 'debug-geometry-graph-layer'
-    | 'signal-asset-layer';
+    | 'signal-asset-layer'
+    | 'virtual-hide-signal-asset-layer';
 
 export type MapViewportSource = 'Map';
 

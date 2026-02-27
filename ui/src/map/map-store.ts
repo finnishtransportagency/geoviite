@@ -78,6 +78,7 @@ export const layersToHideByProxy: LayerCollection = {
         'geometry-km-post-layer',
         'plan-area-layer',
     ],
+    'virtual-hide-signal-asset-layer': ['signal-asset-layer'],
 };
 
 export const relatedMapLayers: LayerCollection = {
