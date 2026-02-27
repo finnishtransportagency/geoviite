@@ -434,7 +434,12 @@
         },
         "licenses": "Lisenssitiedot",
         "vertical-geometry-diagram-demo": "Korkeuskaavio-demo",
-        "more": "Lisää"
+        "more": "Lisää",
+        "ratko-errors": {
+            "push-error": "Viimeisimmän julkaisun vienti Ratkoon epäonnistui",
+            "ratko-not-configured": "Ratko-integraatio ei ole käytössä tässä ympäristössä",
+            "ratko-unreachable": "Ratkoon ei saada yhteyttä"
+        }
     },
     "app-bar-debug": {
         "expired-token": "Debug: Vanhentunut tokeni"
