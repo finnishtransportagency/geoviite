@@ -1,4 +1,3 @@
--- drop table if exists fixed_edges;
 -- Table to collect the new edge data
 create temporary table fixed_edges as (
   with edges_missing_inner as (
@@ -81,7 +80,6 @@ create temporary table fixed_edges as (
     from edges_with_new_hash fixed
 );
 
--- drop table if exists replacement_edges;
 create temporary table replacement_edges as (
   -- Insert the new edges that don't already exist
   with inserted as (
