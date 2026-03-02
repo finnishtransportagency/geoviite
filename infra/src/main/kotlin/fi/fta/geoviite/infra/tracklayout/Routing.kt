@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.EdgeDirection.DOWN
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.UP
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.IN
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.OUT
+import fi.fta.geoviite.infra.util.produceIf
 import org.jgrapht.Graph
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath
 import org.jgrapht.graph.AsGraphUnion
@@ -211,7 +212,7 @@ data class RoutingGraph(
             val edgeRangeLimit = mRangeLimit?.let { switchM ->
                 val edgeMin = switchEdge.toEdgeM(switchM.min)
                 val edgeMax = switchEdge.toEdgeM(switchM.max)
-                Range(minOf(edgeMin, edgeMax), maxOf(edgeMin, edgeMax))
+                Range(minOf(edgeMin, edgeMax), maxOf(edgeMin, edgeMax)).takeIf { it.length().distance >= LAYOUT_M_DELTA }
             }
             findRouteSection(switchEdge.id, edgeDirection, favoredTrackIds, edgeRangeLimit)
         } ?: emptyList()
@@ -219,17 +220,24 @@ data class RoutingGraph(
     private fun findRouteSection(edgeId: IntId<LayoutEdge>, direction: EdgeDirection, favoredTrackIds: Set<IntId<LocationTrack>>, mRangeLimit: Range<LineM<EdgeM>>? = null): RouteSection? =
         edgeData
             .getValue(edgeId)
-            .tracks
-            .mapNotNull { (id, mRange) ->
-                val limitedRange = if (mRangeLimit == null) {
-                    mRange
-                } else {
-                    val limitInLocationTrackM = mRangeLimit.map { it.toLocationTrackM(mRange.min) }
-                    mRange.intersection(limitInLocationTrackM)
+            .let { data ->
+                data
+                .tracks
+                .mapNotNull { (id, mRange) ->
+                    val limitedRange = if (mRangeLimit == null) {
+                        mRange
+                    } else {
+                        val edgeMin = maxOf(mRangeLimit.min, LineM(0.0)).toLocationTrackM(mRange.min)
+                        val edgeMax = minOf(mRangeLimit.max, data.edge.length).toLocationTrackM(mRange.min)
+                        produceIf((edgeMax-edgeMin).distance >= LAYOUT_M_DELTA) { Range(edgeMin, edgeMax) }
+                    }
+                    limitedRange?.let { RouteSection(id, it, direction) }
                 }
-                limitedRange?.let { RouteSection(id, it, direction) }
+              }
+            .let { sections ->
+                sections.firstOrNull { favoredTrackIds.contains(it.trackId) }
+                    ?: sections.minByOrNull { it.trackId.intValue }
             }
-            .let { sections -> sections.firstOrNull { favoredTrackIds.contains(it.trackId) } ?: sections.firstOrNull() }
 
     fun findPathEdges(start: LocationTrackCacheHit, end: LocationTrackCacheHit): List<RoutingEdge>? {
         val (startEdge, startMRange) = start.getEdge()
@@ -278,7 +286,6 @@ data class RoutingGraph(
                 // Route the start->end in a union graph of the main graph + temp additions
                 val dijkstra = DijkstraShortestPath(AsGraphUnion(jgraph, tmpGraph))
                 dijkstra.getPath(startVertex, endVertex)?.edgeList?.filterNotNull()
-                    .also { println("**** Found: path=$it") }
             }
         }
     }
@@ -316,7 +323,6 @@ data class RoutingGraph(
                         }
                     }
                     val (start, end) = if (vertexDirection == OUT) (midPoint to data.vertex) else (data.vertex to midPoint)
-                    println("Adding tmp edge: edge=$edge vertexDirection=$vertexDirection start=$start end=$end")
                     graph.addEdge(start, end, edge)
                     graph.setEdgeWeight(edge, length)
                 }
@@ -464,13 +470,17 @@ fun resolveSwitchAlignments(
     return if (switchId != null && startJoint != null && endJoint != null) {
         val structure = structures.getValue(switches.getValue(switchId).switchStructureId)
         val alignments = structure.alignments.filter { it.contains(startJoint) && it.contains(endJoint) }
-        alignments.associate { alignment ->
-            val direction =
-                if (alignment.jointNumbers.indexOf(startJoint) < alignment.jointNumbers.indexOf(endJoint)) UP else DOWN
-            val startSwitchM = alignment.distance(alignment.jointNumbers.first(), startJoint)
-            val endSwitchM = alignment.distance(alignment.jointNumbers.first(), startJoint)
-            RoutingSwitchAlignment(switchId, alignment) to SwitchEdge(edge.id, direction, Range(LineM(startSwitchM), LineM(endSwitchM)))
-        }
+        alignments.mapNotNull { alignment ->
+            val startJointSwitchM = structure.distance(alignment.jointNumbers.first(), startJoint, alignment)
+            val endJointSwitchM = structure.distance(alignment.jointNumbers.first(), endJoint, alignment)
+            val startSwitchM = minOf(startJointSwitchM, endJointSwitchM)
+            val endSwitchM = maxOf(startJointSwitchM, endJointSwitchM)
+            produceIf(endSwitchM-startSwitchM >= LAYOUT_M_DELTA) {
+                val direction = if (startJointSwitchM < endJointSwitchM) UP else DOWN
+                val switchEdge = SwitchEdge(edge.id, direction, Range(LineM(startSwitchM), LineM(endSwitchM)))
+                RoutingSwitchAlignment(switchId, alignment) to switchEdge
+            }
+        }.associate {it}
     } else emptyMap()
 }
 
