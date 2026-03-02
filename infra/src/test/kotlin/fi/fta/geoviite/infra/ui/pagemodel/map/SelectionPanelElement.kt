@@ -148,7 +148,7 @@ class E2ESwitchesSelectionList(parentBy: By) :
     )
 
 data class E2EOperationalPointSelectionListItem(override val name: String) : E2ESelectionListItem {
-    constructor(element: WebElement) : this(element.findElement(By.xpath("./span/span[@class='operational-point-panel__name']")).text)
+    constructor(element: WebElement) : this(element.findElement(byQaId("operational-point-badge")).text)
 }
 
 class E2EOperationalPointSelectionList(parentBy: By) :

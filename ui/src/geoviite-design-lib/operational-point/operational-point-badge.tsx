@@ -63,8 +63,8 @@ export const OperationalPointBadge: React.FC<OperationalPointBadgeProps> = ({
     );
 
     return (
-        <span className={classes} onClick={onClick}>
-            <span>{operationalPoint.name}</span>
+        <span className={classes} onClick={onClick} qa-id={'operational-point-badge'}>
+            {operationalPoint.name}
         </span>
     );
 };
