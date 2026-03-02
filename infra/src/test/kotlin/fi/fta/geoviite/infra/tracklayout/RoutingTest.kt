@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.DOWN
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.UP
@@ -367,6 +368,78 @@ class RoutingTest {
     }
 
     @Test
+    fun `resolveSwitchAlignments returns empty for a non-switch edge`() {
+        val (switches, structures) = switchAndStructureAsMaps(IntId(1))
+
+        val edge = dbEdgeEndToEnd(100, 42)
+        assertEquals(emptyMap<RoutingSwitchAlignment, SwitchEdge>(), resolveSwitchAlignments(edge, switches, structures))
+    }
+
+    @Test
+    fun `resolveSwitchAlignments returns empty for an outer switch connector edge`() {
+        val (switches, structures) = switchAndStructureAsMaps(IntId(1))
+
+        val edge = dbEdgeOuterSwitchConnector(100, 1, 1, 1, 2)
+        assertEquals(emptyMap<RoutingSwitchAlignment, SwitchEdge>(), resolveSwitchAlignments(edge, switches, structures))
+    }
+
+    @Test
+    fun `resolveSwitchAlignments resolves correct switch alignment (UP) for edge that is a part of the alignment`() {
+        val switchId: IntId<LayoutSwitch> = IntId(1)
+        val (switches, structures) = switchAndStructureAsMaps(switchId)
+        val structure = switchStructureYV60_300_1_9()
+
+        // YV alignment[0] joints: [1, 5, 2] - test edge from joint 1 to joint 5
+        // Partial switch connection from start to the middle
+        val edge = dbEdgeSwitchInner(100, 1, 1, 5)
+        val result = resolveSwitchAlignments(edge, switches, structures)
+
+        val alignment = structure.alignments[0]
+        val endM = structure.distance(JointNumber(1), JointNumber(5), alignment)
+        val expectedMRange = Range(LineM<SwitchStructureAlignmentM>(0.0), LineM(endM))
+
+        assertEquals(1, result.size)
+        assertEquals(SwitchEdge(IntId(100), UP, expectedMRange), result[RoutingSwitchAlignment(switchId, alignment)])
+    }
+
+    @Test
+    fun `resolveSwitchAlignments resolves correct switch alignment (DOWN) for edge that is a part of the alignment`() {
+        val switchId: IntId<LayoutSwitch> = IntId(1)
+        val (switches, structures) = switchAndStructureAsMaps(switchId)
+        val structure = switchStructureYV60_300_1_9()
+
+        // YV alignment[0] joints: [1, 5, 2] - test edge from joint 5 to joint 1
+        // => partial switch connection, reversed, from the middle to the end
+        val edge = dbEdgeSwitchInner(100, 1, 5, 1)
+        val result = resolveSwitchAlignments(edge, switches, structures)
+
+        val alignment = structure.alignments[0]
+        val endM = structure.distance(JointNumber(1), JointNumber(5), alignment)
+        val expectedMRange = Range(LineM<SwitchStructureAlignmentM>(0.0), LineM(endM))
+
+        assertEquals(1, result.size)
+        assertEquals(SwitchEdge(IntId(100), DOWN, expectedMRange), result[RoutingSwitchAlignment(switchId, alignment)])
+    }
+
+    @Test
+    fun `resolveSwitchAlignments resolves the branching alignment for an inner edge using branch joints`() {
+        val switchId: IntId<LayoutSwitch> = IntId(1)
+        val (switches, structures) = switchAndStructureAsMaps(switchId)
+        val structure = switchStructureYV60_300_1_9()
+
+        // YV alignment[1] joints: [1, 3] — edge from joint 1 to joint 3
+        val edge = dbEdgeSwitchInner(100, 1, 1, 3)
+        val result = resolveSwitchAlignments(edge, switches, structures)
+
+        val alignment = structure.alignments[1]
+        val endM = structure.distance(JointNumber(1), JointNumber(3), alignment)
+        val expectedMRange = Range(LineM<SwitchStructureAlignmentM>(0.0), LineM(endM))
+
+        assertEquals(1, result.size)
+        assertEquals(SwitchEdge(IntId(100), UP, expectedMRange), result[RoutingSwitchAlignment(switchId, alignment)])
+    }
+
+    @Test
     fun `A sane graph is created for a simple track layout`() {
         val structure1 = switchStructureYV60_300_1_9()
         val structure2 = switchStructureRR54_4x1_9()
@@ -546,6 +619,14 @@ private fun jointVertex(switchId: Int, joint: Int, direction: VertexDirection) =
 private fun trackBoundaryVertex(trackId: Int, boundary: TrackBoundaryType, direction: VertexDirection) =
     TrackBoundaryVertex(IntId(trackId), boundary, direction)
 
+private fun dbEdgeSwitchInner(edgeId: Int, switchId: Int, startJoint: Int, endJoint: Int) =
+    DbLayoutEdge(
+        id = IntId(edgeId),
+        startNode = DbNodeConnection(NodePortType.A, dbSwitchNode(100, switchId, startJoint)),
+        endNode = DbNodeConnection(NodePortType.A, dbSwitchNode(200, switchId, endJoint)),
+        segments = listOf(someSegment()),
+    )
+
 private fun dbEdgeOuterSwitchConnector(edgeId: Int, fromSwitchId: Int, fromSwitchJoint: Int, toSwitchId: Int, toSwitchJoint: Int) =
     DbLayoutEdge(
         id = IntId(edgeId),
@@ -578,3 +659,8 @@ private fun dbTrackEndNode(nodeId: Int, trackId: Int, type: TrackBoundaryType) =
 
 private fun <T: LayoutAsset<T>> layoutRowVersion(id: Int): LayoutRowVersion<T> =
     LayoutRowVersion(LayoutRowId(IntId(id),  LayoutContext.of(LayoutBranch.main, PublicationState.OFFICIAL)), 1)
+
+private fun switchAndStructureAsMaps(id: IntId<LayoutSwitch>): Pair<Map<IntId<LayoutSwitch>, LayoutSwitch>, Map<IntId<SwitchStructure>, SwitchStructure>> {
+    val structure = switchStructureYV60_300_1_9()
+    return mapOf(id to switch(id = id, structureId = structure.id)) to mapOf(structure.id to structure)
+}
