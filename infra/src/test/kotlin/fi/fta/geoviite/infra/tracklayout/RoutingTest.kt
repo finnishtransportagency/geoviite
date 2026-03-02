@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.DOWN
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.UP
@@ -13,9 +14,9 @@ import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.IN
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.OUT
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 
 class RoutingTest {
 
@@ -244,7 +245,7 @@ class RoutingTest {
             trackRowVersion = layoutRowVersion(456),
             edges = listOf(dbEdgeOuterSwitchConnector(789, 123, 1, 456, 1)),
         )
-        assertEquals(emptyList(), createTrackEndVertices(connectedGeom))
+        assertEquals(emptyList<TrackBoundaryVertex>(), createTrackEndVertices(connectedGeom))
     }
 
     @Test
@@ -280,7 +281,89 @@ class RoutingTest {
     @Test
     fun `Track connections are not created for switch internal edges (they have a separate processing)`() {
         val edge = dbEdgeInnerSwitch(123, 456)
-        assertEquals(emptyList(), createTrackConnections(edge))
+        assertEquals(emptyList<Pair<RoutingConnection, TrackEdge>>(), createTrackConnections(edge))
+    }
+
+    @Test
+    fun `SwitchEdge toSwitchM converts edge M to switch alignment M in UP direction`() {
+        val edge = SwitchEdge(
+            id = IntId(1),
+            direction = UP,
+            mRange = Range(LineM(10.0), LineM(30.0)),
+        )
+        assertEquals(LineM<SwitchStructureAlignmentM>(10.0), edge.toSwitchM(LineM(0.0)))
+        assertEquals(LineM<SwitchStructureAlignmentM>(20.0), edge.toSwitchM(LineM(10.0)))
+        assertEquals(LineM<SwitchStructureAlignmentM>(30.0), edge.toSwitchM(LineM(20.0)))
+    }
+
+    @Test
+    fun `SwitchEdge toSwitchM converts edge M to switch alignment M in DOWN direction`() {
+        val edge = SwitchEdge(
+            id = IntId(1),
+            direction = DOWN,
+            mRange = Range(LineM(10.0), LineM(30.0)),
+        )
+        assertEquals(LineM<SwitchStructureAlignmentM>(30.0), edge.toSwitchM(LineM(0.0)))
+        assertEquals(LineM<SwitchStructureAlignmentM>(20.0), edge.toSwitchM(LineM(10.0)))
+        assertEquals(LineM<SwitchStructureAlignmentM>(10.0), edge.toSwitchM(LineM(20.0)))
+    }
+
+    @Test
+    fun `SwitchEdge toEdgeM converts switch alignment M to edge M in UP direction`() {
+        val edge = SwitchEdge(
+            id = IntId(1),
+            direction = UP,
+            mRange = Range(LineM(10.0), LineM(30.0)),
+        )
+        assertEquals(LineM<EdgeM>(0.0), edge.toEdgeM(LineM(10.0)))
+        assertEquals(LineM<EdgeM>(10.0), edge.toEdgeM(LineM(20.0)))
+        assertEquals(LineM<EdgeM>(20.0), edge.toEdgeM(LineM(30.0)))
+    }
+
+    @Test
+    fun `SwitchEdge toEdgeM converts switch alignment M to edge M in DOWN direction`() {
+        val edge = SwitchEdge(
+            id = IntId(1),
+            direction = DOWN,
+            mRange = Range(LineM(10.0), LineM(30.0)),
+        )
+        assertEquals(LineM<EdgeM>(20.0), edge.toEdgeM(LineM(10.0)))
+        assertEquals(LineM<EdgeM>(10.0), edge.toEdgeM(LineM(20.0)))
+        assertEquals(LineM<EdgeM>(0.0), edge.toEdgeM(LineM(30.0)))
+    }
+
+    @Test
+    fun `SwitchEdge toSwitchM and toEdgeM are inverse operations in UP direction`() {
+        val edge = SwitchEdge(
+            id = IntId(1),
+            direction = UP,
+            mRange = Range(LineM(5.0), LineM(25.0)),
+        )
+        listOf(0.0, 7.5, 10.0, 15.0, 20.0).forEach { distanceOnEdge ->
+            val edgeM = LineM<EdgeM>(distanceOnEdge)
+            assertEquals(edgeM, edge.toEdgeM(edge.toSwitchM(edgeM)))
+        }
+        listOf(5.0, 10.0, 15.0, 20.0, 25.0).forEach { distanceOnSwitch ->
+            val switchM = LineM<SwitchStructureAlignmentM>(distanceOnSwitch)
+            assertEquals(switchM, edge.toSwitchM(edge.toEdgeM(switchM)))
+        }
+    }
+
+    @Test
+    fun `SwitchEdge toSwitchM and toEdgeM are inverse operations in DOWN direction`() {
+        val edge = SwitchEdge(
+            id = IntId(1),
+            direction = DOWN,
+            mRange = Range(LineM(5.0), LineM(25.0)),
+        )
+        listOf(0.0, 7.5, 10.0, 15.0, 20.0).forEach { distanceOnEdge ->
+            val edgeM = LineM<EdgeM>(distanceOnEdge)
+            assertEquals(edgeM, edge.toEdgeM(edge.toSwitchM(edgeM)))
+        }
+        listOf(5.0, 10.0, 15.0, 20.0, 25.0).forEach { distanceOnSwitch ->
+            val switchM = LineM<SwitchStructureAlignmentM>(distanceOnSwitch)
+            assertEquals(switchM, edge.toSwitchM(edge.toEdgeM(switchM)))
+        }
     }
 
     @Test
