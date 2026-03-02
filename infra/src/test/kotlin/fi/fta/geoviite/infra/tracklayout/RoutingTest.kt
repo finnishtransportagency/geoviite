@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.DOWN
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.UP
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
@@ -58,12 +59,13 @@ class RoutingTest {
 
     @Test
     fun `SwitchInternalEdges can be reversed`() {
+        val structure = switchStructureYV60_300_1_9()
         val edge = SwitchInternalEdge(
-            RoutingSwitchAlignment(IntId(123), listOf(JointNumber(1), JointNumber(5), JointNumber(2))),
+            RoutingSwitchAlignment(IntId(123), structure.alignments[0]),
             UP,
         )
         val reversed = SwitchInternalEdge(
-            RoutingSwitchAlignment( IntId(123), listOf(JointNumber(1), JointNumber(5), JointNumber(2))),
+            RoutingSwitchAlignment( IntId(123), structure.alignments[0]),
             DOWN,
         )
         assertEquals(reversed, edge.reverse())
@@ -128,13 +130,13 @@ class RoutingTest {
         assertEquals(
             listOf(
                 connectionThroughSwitch(123, 1, 2, structureYv.alignments[0].length()) to
-                    edgeSwitch(123, UP, 1, 5, 2),
+                    edgeSwitch(123, UP, structureYv.alignments[0]),
                 connectionThroughSwitch(123, 2, 1, structureYv.alignments[0].length()) to
-                    edgeSwitch(123, DOWN, 1, 5, 2),
+                    edgeSwitch(123, DOWN, structureYv.alignments[0]),
                 connectionThroughSwitch(123, 1, 3, structureYv.alignments[1].length()) to
-                    edgeSwitch(123, UP, 1, 3),
+                    edgeSwitch(123, UP, structureYv.alignments[1]),
                 connectionThroughSwitch(123, 3, 1, structureYv.alignments[1].length()) to
-                    edgeSwitch(123, DOWN, 1, 3),
+                    edgeSwitch(123, DOWN, structureYv.alignments[1]),
             ),
             connectionsYv)
 
@@ -142,13 +144,13 @@ class RoutingTest {
         val connectionsRr = createThroughSwitchConnections(switchRr, structuresMap)
         assertEquals(listOf(
             connectionThroughSwitch(456, 1, 2, structureRr.alignments[0].length()) to
-                edgeSwitch(456, UP, 1, 5, 2),
+                edgeSwitch(456, UP, structureRr.alignments[0]),
             connectionThroughSwitch(456, 2, 1, structureRr.alignments[0].length()) to
-                edgeSwitch(456, DOWN, 1, 5, 2),
+                edgeSwitch(456, DOWN, structureRr.alignments[0]),
             connectionThroughSwitch(456, 4, 3, structureRr.alignments[1].length()) to
-                edgeSwitch(456, UP, 4, 5, 3),
+                edgeSwitch(456, UP, structureRr.alignments[1]),
             connectionThroughSwitch(456, 3, 4, structureRr.alignments[1].length()) to
-                edgeSwitch(456, DOWN, 4, 5, 3),
+            edgeSwitch(456, DOWN, structureRr.alignments[1]),
         ), connectionsRr)
     }
 
@@ -377,21 +379,21 @@ class RoutingTest {
         assertEquals(
             mapOf(
                 // Inner switch edges
-                edgeSwitch(1, UP, 1, 5, 2)
+                edgeSwitch(1, UP, structure1.alignments[0])
                     to (jointVertex(1, 1, IN) to jointVertex(1, 2, OUT)),
-                edgeSwitch(1, DOWN, 1, 5, 2)
+                edgeSwitch(1, DOWN, structure1.alignments[0])
                     to (jointVertex(1, 2, IN) to jointVertex(1, 1, OUT)),
-                edgeSwitch(1, UP, 1, 3)
+                edgeSwitch(1, UP, structure1.alignments[1])
                     to (jointVertex(1, 1, IN) to jointVertex(1, 3, OUT)),
-                edgeSwitch(1, DOWN, 1, 3)
+                edgeSwitch(1, DOWN, structure1.alignments[1])
                     to (jointVertex(1, 3, IN) to jointVertex(1, 1, OUT)),
-                edgeSwitch(2, UP, 1, 5, 2)
+                edgeSwitch(2, UP, structure2.alignments[0])
                     to (jointVertex(2, 1, IN) to jointVertex(2, 2, OUT)),
-                edgeSwitch(2, DOWN, 1, 5, 2)
+                edgeSwitch(2, DOWN, structure2.alignments[0])
                     to (jointVertex(2, 2, IN) to jointVertex(2, 1, OUT)),
-                edgeSwitch(2, UP, 4, 5, 3)
+                edgeSwitch(2, UP, structure2.alignments[1])
                     to (jointVertex(2, 4, IN) to jointVertex(2, 3, OUT)),
-                edgeSwitch(2, DOWN, 4, 5, 3)
+                edgeSwitch(2, DOWN, structure2.alignments[1])
                     to (jointVertex(2, 3, IN) to jointVertex(2, 4, OUT)),
                 // Direct return connection at track ends
                 DirectConnectionEdge(track1StartNode.id, UP)
@@ -417,8 +419,8 @@ class RoutingTest {
     }
 }
 
-private fun edgeSwitch(switchId: Int, direction: EdgeDirection, vararg joints: Int) =
-    SwitchInternalEdge(RoutingSwitchAlignment(IntId(switchId), joints.map(::JointNumber)), direction)
+private fun edgeSwitch(switchId: Int, direction: EdgeDirection, alignment: SwitchStructureAlignment) =
+    SwitchInternalEdge(RoutingSwitchAlignment(IntId(switchId), alignment), direction)
 
 private fun directTrackConnection(fromTrackId: Int, fromBoundary: TrackBoundaryType, toTrackId: Int, toBoundary: TrackBoundaryType) =
     RoutingConnection(
