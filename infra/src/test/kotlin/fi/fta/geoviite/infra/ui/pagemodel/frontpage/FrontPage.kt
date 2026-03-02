@@ -7,13 +7,14 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilExists
 import waitUntilNotExist
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
 
@@ -60,7 +61,8 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
     fun pushToRatko(): E2EFrontPage = apply {
         logger.info("Push to Ratko")
 
-        clickChild(byQaId("publish-to-ratko"))
+        // Ratko connection status is updated every 30 seconds, wait for at least one check before timing out
+        clickChild(byQaId("publish-to-ratko"), timeout = Duration.ofSeconds(35))
         E2EDialog().clickPrimaryButton()
     }
 
