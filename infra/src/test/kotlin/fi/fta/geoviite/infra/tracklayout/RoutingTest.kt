@@ -224,6 +224,19 @@ class RoutingTest {
     }
 
     @Test
+    fun `Direct connections are not created for single-switch nodes`() {
+        val switchJointNode = DbSwitchNode(
+            IntId(123),
+            switchLinkYV(IntId(456),1),
+            null,
+        )
+        createDirectConnections(switchJointNode).also { result ->
+            assertEquals(emptyList<Pair<RoutingConnection, DirectConnectionEdge>>(), result)
+        }
+    }
+
+
+    @Test
     fun `Track endpoint vertices are created for track endpoint nodes`() {
         val unconnectedGeom = DbLocationTrackGeometry(
             trackRowVersion = layoutRowVersion(456),
