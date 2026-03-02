@@ -484,8 +484,6 @@ fun resolveSwitchAlignments(
     } else emptyMap()
 }
 
-fun <A, B> Pair<A,A>.map(transform: (A) -> B): Pair<B,B> = transform(first) to transform(second)
-
 fun createSwitchVertices(switch: LayoutSwitch, structures: Map<IntId<SwitchStructure>, SwitchStructure>): List<SwitchJointVertex> {
     val structure = structures.getValue(switch.switchStructureId)
     val id = switch.id as? IntId ?: error { "Switch must be stored in DB and hence have a db ID: switch=$switch" }

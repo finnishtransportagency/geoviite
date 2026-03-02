@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.DOWN
@@ -586,7 +587,214 @@ class RoutingTest {
             graph.getEdges().entries.sortedBy { it.key.toString() },
         )
     }
+
+    @Test
+    fun `Basic pathfinding works`() {
+        val structure = switchStructureYV60_300_1_9()
+        val structures = mapOf(structure.id to structure)
+
+        val switchId = IntId<LayoutSwitch>(1)
+        val switch1 = switch(id = switchId, structureId = structure.id)
+
+        // Build the following tracks
+        //  Track1 (Straight): Start at nowhere, go through the switch and continue on to end at nowhere
+        //  Track2 (Branching): start at switch1 joint 1, go through the switch and end at nowhere
+
+        val track1StartNode = dbTrackEndNode(10, 111, START)
+        val track1EndNode = dbTrackEndNode(11, 111, END)
+        val switchStartNode = dbSwitchNode(12, 1, 1)
+        val switchStraightMidNode = dbSwitchNode(13, 1, 5)
+        val switchStraightEndNode = dbSwitchNode(14, 1, 2)
+        val switchBranchEndNode = dbSwitchNode(15, 1, 3)
+        val track2EndNode = dbTrackEndNode(16, 222, END)
+
+        val track1Start = Point(0.0, 0.0)
+        val joint1Location = Point(100.0, 0.0) + structure.getJointLocation(JointNumber(1))
+        val joint5Location = Point(100.0, 0.0) + structure.getJointLocation(JointNumber(5))
+        val joint2Location = Point(100.0, 0.0) + structure.getJointLocation(JointNumber(2))
+        val joint3Location = Point(100.0, 0.0) + structure.getJointLocation(JointNumber(3))
+        val track1End = joint2Location + Point(100.0, 0.0)
+        val track2End = joint3Location + Point(100.0, 20.0)
+
+        val track1StartEdge = DbLayoutEdge(
+            id = IntId(10000),
+            startNode = DbNodeConnection(NodePortType.A, track1StartNode),
+            endNode = DbNodeConnection(NodePortType.B, switchStartNode),
+            segments = listOf(segment(track1Start, joint1Location)),
+        )
+        val switchInnerMainEdge1 = DbLayoutEdge(
+            id = IntId(10001),
+            startNode = DbNodeConnection(NodePortType.A, switchStartNode),
+            endNode = DbNodeConnection(NodePortType.A,switchStraightMidNode),
+            segments = listOf(segment(joint1Location, joint5Location)),
+        )
+        val switchInnerMainEdge2 = DbLayoutEdge(
+            id = IntId(10002),
+            startNode = DbNodeConnection(NodePortType.A, switchStraightMidNode),
+            endNode = DbNodeConnection(NodePortType.A,switchStraightEndNode),
+            segments = listOf(segment(joint5Location, joint2Location)),
+        )
+        val track1EndEdge = DbLayoutEdge(
+            id = IntId(10003),
+            startNode = DbNodeConnection(NodePortType.B, switchStraightEndNode),
+            endNode = DbNodeConnection(NodePortType.A, track1EndNode),
+            segments = listOf(segment(joint2Location, track1End)),
+        )
+
+        val switchInnerBranchEdge = DbLayoutEdge(
+            id = IntId(10004),
+            startNode = DbNodeConnection(NodePortType.A, switchStartNode),
+            endNode = DbNodeConnection(NodePortType.A,switchBranchEndNode),
+            segments = listOf(segment(joint1Location, joint3Location)),
+        )
+        val track2EndEdge = DbLayoutEdge(
+            id = IntId(10005),
+            startNode = DbNodeConnection(NodePortType.B, switchBranchEndNode),
+            endNode = DbNodeConnection(NodePortType.A, track2EndNode),
+            segments = listOf(segment(joint3Location, track2End)),
+        )
+
+        val trackGeom1 = DbLocationTrackGeometry(
+            trackRowVersion = layoutRowVersion(111),
+            edges = listOf(track1StartEdge, switchInnerMainEdge1, switchInnerMainEdge2, track1EndEdge)
+        )
+        val trackGeom2 = DbLocationTrackGeometry(
+            trackRowVersion = layoutRowVersion(222),
+            edges = listOf(switchInnerBranchEdge, track2EndEdge)
+        )
+
+        val graph = buildGraph(trackGeoms = listOf(trackGeom1, trackGeom2), switches = listOf(switch1), structures = structures)
+        val getRoute = {
+                (from, fromTrack): Pair<Point, DbLocationTrackGeometry>,
+                (to, toTrack): Pair<Point,DbLocationTrackGeometry> ->
+            graph.findPath(trackCacheHit(fromTrack, from), trackCacheHit(toTrack, to))
+        }
+
+        // Verify various routing cases on the same graph
+
+        // The closest points should be on the same spot of the track -> no actual route
+        assertEquals(
+            Route(emptyList()),
+            getRoute(Point(10.0, 0.0) to trackGeom1, Point(10.0, 5.0) to trackGeom1)
+        )
+
+        // On the same edge -> route should be found inside the edge (both ways)
+        assertEquals(
+            Route(listOf(routeSection(111, 10.0, 50.0, UP))),
+            getRoute(Point(10.0, 0.0) to trackGeom1, Point(50.0, 5.0) to trackGeom1),
+        )
+        assertEquals(
+            Route(listOf(routeSection(111, 10.0, 50.0, DOWN))),
+            getRoute(Point(50.0, 0.0) to trackGeom1, Point(10.0, 5.0) to trackGeom1),
+        )
+
+        // Inside the same switch but on different edges -> route should be found within switch alignment
+        ((joint1Location + Point(1.0, 0.0)) to (joint2Location - Point(1.0, 0.0)))
+            .let { (start, end) ->
+                val startM = lineLength(track1Start, start)
+                val endM = lineLength(track1Start, end)
+                assertEquals(
+                    Route(listOf(routeSection(111, startM, endM, UP))),
+                    getRoute(start to trackGeom1, end to trackGeom1),
+                )
+                assertEquals(
+                    Route(listOf(routeSection(111, startM, endM, DOWN))),
+                    getRoute(end to trackGeom1, start to trackGeom1),
+                )
+            }
+
+        // Inside the same switch but on different edges, while very short
+        ((joint5Location - Point(1.0, 0.0)) to (joint5Location + Point(1.0, 0.0)))
+            .let { (start, end) ->
+                val startM = lineLength(track1Start, start)
+                val endM = lineLength(track1Start, end)
+                assertEquals(
+                    Route(listOf(routeSection(111, startM, endM, UP))),
+                    getRoute(start to trackGeom1, end to trackGeom1),
+                )
+                assertEquals(
+                    Route(listOf(routeSection(111, startM, endM, DOWN))),
+                    getRoute(end to trackGeom1, start to trackGeom1),
+                )
+            }
+
+        // Through track 1
+        assertEquals(
+            Route(listOf(routeSection(111, 0.0, trackGeom1.length.distance, UP))),
+            getRoute(track1Start to trackGeom1, track1End to trackGeom1),
+        )
+        assertEquals(
+            Route(listOf(routeSection(111, 0.0, trackGeom1.length.distance, DOWN))),
+            getRoute(track1End to trackGeom1, track1Start to trackGeom1),
+        )
+
+        // From track 1 to track 2
+        assertEquals(
+            Route(listOf(
+                routeSection(111, 0.0, 100.0, UP),
+                routeSection(222, 0.0, trackGeom2.length.distance, UP),
+            )),
+            getRoute(track1Start to trackGeom1, track2End to trackGeom2),
+        )
+        assertEquals(
+            Route(listOf(
+                routeSection(222, 0.0, trackGeom2.length.distance, DOWN),
+                routeSection(111, 0.0, 100.0, DOWN),
+            )),
+            getRoute(track2End to trackGeom2, track1Start to trackGeom1),
+        )
+
+        // Start on track, end in switch
+        (Point(50.0, 0.0) to (joint2Location - Point(1.0, 0.0)))
+            .let { (start, end) ->
+                val startM = lineLength(track1Start, start)
+                val endM = lineLength(track1Start, end)
+                assertEquals(
+                    Route(listOf(routeSection(111, startM, endM, UP))),
+                    getRoute(start to trackGeom1, end to trackGeom1),
+                )
+                assertEquals(
+                    Route(listOf(routeSection(111, startM, endM, DOWN))),
+                    getRoute(end to trackGeom1, start to trackGeom1),
+                )
+            }
+
+        // Start in switch, end on track
+        ((joint1Location + Point(1.0, 0.0)) to track1End - Point(50.0, 0.0))
+            .let { (start, end) ->
+                val startM = lineLength(track1Start, start)
+                val endM = lineLength(track1Start, end)
+                assertEquals(
+                    Route(listOf(routeSection(111, startM, endM, UP))),
+                    getRoute(start to trackGeom1, end to trackGeom1),
+                )
+                assertEquals(
+                    Route(listOf(routeSection(111, startM, endM, DOWN))),
+                    getRoute(end to trackGeom1, start to trackGeom1),
+                )
+            }
+    }
 }
+
+private fun routeSection(
+    trackId: Int,
+    startM: Double,
+    endM: Double,
+    direction: EdgeDirection,
+) = RouteSection(IntId(trackId), Range(LineM(startM), LineM(endM)), direction)
+
+private fun trackCacheHit(
+    geometry: DbLocationTrackGeometry,
+    target: Point,
+): LocationTrackCacheHit =
+    geometry.getClosestPoint(target)!!.first.let { closest ->
+        LocationTrackCacheHit(
+            track = locationTrack(IntId(1), id = geometry.trackId),
+            geometry = geometry,
+            closestPoint = closest,
+            distance = lineLength(target, closest),
+        )
+    }
 
 private fun edgeSwitch(switchId: Int, direction: EdgeDirection, alignment: SwitchStructureAlignment) =
     SwitchInternalEdge(RoutingSwitchAlignment(IntId(switchId), alignment), direction)
