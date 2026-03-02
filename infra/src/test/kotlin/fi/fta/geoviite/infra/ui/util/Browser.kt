@@ -1,6 +1,13 @@
 package fi.fta.geoviite.infra.ui.util
 
 import defaultWait
+import java.io.File
+import java.net.URL
+import java.time.Duration
+import java.time.Instant
+import java.util.*
+import java.util.concurrent.atomic.AtomicReference
+import java.util.logging.Level
 import org.apache.commons.io.FileUtils
 import org.json.JSONObject
 import org.openqa.selenium.By
@@ -22,17 +29,8 @@ import org.openqa.selenium.remote.RemoteWebDriver
 import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.net.URL
-import java.time.Duration
-import java.time.Instant
-import java.util.*
-import java.util.concurrent.atomic.AtomicReference
-import java.util.logging.Level
 
-/**
- * Set DEV_DEBUG true to run UI-tests in visible browser.
- */
+/** Set DEV_DEBUG true to run UI-tests in visible browser. */
 const val DEV_DEBUG = false
 
 const val E2E_TASKBAR_BUFFER_PIXELS = 80
@@ -90,8 +88,8 @@ private fun createFirefoxDriver(headless: Boolean): WebDriver {
     val firefoxOptions = FirefoxOptions()
     if (headless) firefoxOptions.addArguments("-headless")
     firefoxOptions.addArguments("-private")
-    firefoxOptions.addArguments("-width=2560")
-    firefoxOptions.addArguments("-height=1640")
+    firefoxOptions.addArguments("-width=$E2E_WINDOW_WIDTH")
+    firefoxOptions.addArguments("-height=$E2E_WINDOW_HEIGHT")
     firefoxOptions.addArguments("-purgecaches")
     firefoxOptions.addArguments("-safe-mode")
     return FirefoxDriver(firefoxOptions)
