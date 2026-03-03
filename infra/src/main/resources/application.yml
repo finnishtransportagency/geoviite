@@ -129,6 +129,8 @@ geoviite:
     url-path-prefixes: [ ]
 
 server:
+  max-http-request-header-size: 100KB
+
   compression:
     enabled: true
     mime-types: application/json,text/plain,text/csv
