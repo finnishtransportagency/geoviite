@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
@@ -15,6 +14,7 @@ import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
 import fi.fta.geoviite.infra.publication.PublicationDetails
 import fi.fta.geoviite.infra.publication.PublicationLogService
 import fi.fta.geoviite.infra.ratko.RatkoClient.RatkoStatus
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -164,7 +164,11 @@ constructor(
         ratkoPointsWithVersions.forEach { (ratkoPoint, ratkoPointVersion) ->
             val id = layoutPointsByOid[ratkoPoint.externalId.cast()]
             if (id != null && layoutPoints.none { layoutPoint -> layoutPoint.id == id }) {
-                operationalPointDao.insertRatkoPoint(id, ratkoPointVersion)
+                val rinfIdGenerated =
+                    if (ratkoPoint.type != OperationalPointRaideType.OLP) operationalPointDao.generateRinfId()
+                    else null
+
+                operationalPointDao.insertRatkoPoint(id, ratkoPointVersion, rinfIdGenerated)
             }
         }
     }

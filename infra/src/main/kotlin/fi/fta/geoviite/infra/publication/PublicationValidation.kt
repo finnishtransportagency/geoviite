@@ -228,6 +228,21 @@ fun validateOperationalPointUicCodeDuplication(
         )
     }
 
+fun validateOperationalPointRinfIdOverrideDuplication(
+    operationalPoint: OperationalPoint,
+    duplicates: List<OperationalPoint>,
+    validationTargetType: ValidationTargetType,
+): List<LayoutValidationIssue> =
+    validateDuplication(
+        "duplicate-rinf-id",
+        VALIDATION_OPERATIONAL_POINT,
+        validationTargetType,
+        operationalPoint,
+        duplicates.filter { it.state != OperationalPointState.DELETED },
+    ) {
+        listOf("rinfIdOverride" to operationalPoint.rinfIdOverride)
+    }
+
 fun validateOperationalPointPolygonOverlap(
     operationalPoint: OperationalPoint,
     overlapsWith: List<OperationalPoint>,

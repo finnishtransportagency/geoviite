@@ -60,29 +60,31 @@ class OperationalPointDao(
         if (versions.isEmpty()) return emptyMap()
         val sql =
             """
-                select
-                  op.id,
-                  op.draft,
-                  op.design_id,
-                  op.version,
-                  op.layout_context_id,
-                  op.design_asset_state,
-                  op.origin_design_id,
-                  op.name,
-                  op.abbreviation,
-                  op.uic_code,
-                  op.type,
-                  postgis.st_x(op.location) as location_x,
-                  postgis.st_y(op.location) as location_y,
-                  op.state,
-                  op.rinf_type,
-                  rt.code as rinf_type_code,
-                  postgis.st_astext(op.polygon) as polygon,
-                  op.ratko_operational_point_version,
-                  op.origin
-                from layout.operational_point_version_view op
-                  left join common.rinf_operational_point_type rt on op.rinf_type = rt.enum_name
-                where not op.deleted
+            select
+              op.id,
+              op.draft,
+              op.design_id,
+              op.version,
+              op.layout_context_id,
+              op.design_asset_state,
+              op.origin_design_id,
+              op.name,
+              op.abbreviation,
+              op.uic_code,
+              op.type,
+              postgis.st_x(op.location) as location_x,
+              postgis.st_y(op.location) as location_y,
+              op.state,
+              op.rinf_type,
+              rt.code as rinf_type_code,
+              postgis.st_astext(op.polygon) as polygon,
+              op.ratko_operational_point_version,
+              op.origin,
+              op.rinf_id_generated,
+              op.rinf_id_override
+            from layout.operational_point_version_view op
+              left join common.rinf_operational_point_type rt on op.rinf_type = rt.enum_name
+            where not op.deleted
             """
                 .trimIndent()
         val params =
@@ -221,29 +223,35 @@ class OperationalPointDao(
     @Transactional fun save(item: OperationalPoint): LayoutRowVersion<OperationalPoint> = save(item, NoParams.instance)
 
     @Transactional
-    fun insertRatkoPoint(id: IntId<OperationalPoint>, ratkoPointVersion: Int): LayoutRowVersion<OperationalPoint> {
+    fun insertRatkoPoint(
+        id: IntId<OperationalPoint>,
+        ratkoPointVersion: Int,
+        rinfId: RinfId?,
+    ): LayoutRowVersion<OperationalPoint> {
         val sql =
             """
-                insert into
-                  layout.operational_point(
-                    id,
-                    draft,
-                    design_id,
-                    layout_context_id,
-                    state,
-                    origin,
-                    ratko_operational_point_version
-                )
-                values (
-                  :id,
-                  true,
-                  null,
-                  'main_draft',
-                  'IN_USE',
-                  'RATKO',
-                  :ratko_operational_point_version
-                )
-                returning id, design_id, draft, version
+            insert into
+              layout.operational_point(
+                id,
+                draft,
+                design_id,
+                layout_context_id,
+                state,
+                origin,
+                ratko_operational_point_version,
+                rinf_id_generated
+            )
+            values (
+              :id,
+              true,
+              null,
+              'main_draft',
+              'IN_USE',
+              'RATKO',
+              :ratko_operational_point_version,
+              :rinf_id_generated
+            )
+            returning id, design_id, draft, version
             """
                 .trimIndent()
 
@@ -251,7 +259,11 @@ class OperationalPointDao(
         val response: LayoutRowVersion<OperationalPoint> =
             jdbcTemplate.queryForObject(
                 sql,
-                mapOf("id" to id.intValue, "ratko_operational_point_version" to ratkoPointVersion),
+                mapOf(
+                    "id" to id.intValue,
+                    "ratko_operational_point_version" to ratkoPointVersion,
+                    "rinf_id_generated" to rinfId?.toString(),
+                ),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save operational point")
@@ -265,56 +277,62 @@ class OperationalPointDao(
 
         val sql =
             """
-                insert into
-                  layout.operational_point(
-                    id,
-                    draft,
-                    design_id,
-                    layout_context_id,
-                    design_asset_state,
-                    origin_design_id,
-                    name,
-                    abbreviation,
-                    uic_code,
-                    type,
-                    location,
-                    state,
-                    rinf_type,
-                    polygon,
-                    origin,
-                    ratko_operational_point_version
-                )
-                values (
-                  :id,
-                  :draft,
-                  :design_id,
-                  :layout_context_id,
-                  :design_asset_state::layout.design_asset_state,
-                  :origin_design_id,
-                  :name,
-                  :abbreviation,
-                  :uic_code,
-                  :type::layout.operational_point_type,
-                  postgis.st_setsrid(postgis.st_point(:location_x, :location_y), :srid),
-                  :state::layout.operational_point_state,
-                  :rinf_type,
-                  postgis.st_polygonfromtext(:polygon_wkt, :srid),
-                  :origin::layout.operational_point_origin,
-                  :ratko_operational_point_version
-                )
-                on conflict (id, layout_context_id) do update set
-                  design_asset_state = excluded.design_asset_state,
-                  origin_design_id = excluded.origin_design_id,
-                  name = excluded.name,
-                  abbreviation = excluded.abbreviation,
-                  uic_code = excluded.uic_code,
-                  type = excluded.type,
-                  location = excluded.location,
-                  state = excluded.state,
-                  rinf_type = excluded.rinf_type,
-                  polygon = excluded.polygon,
-                  ratko_operational_point_version = excluded.ratko_operational_point_version
-                returning id, design_id, draft, version
+            insert into
+              layout.operational_point(
+                id,
+                draft,
+                design_id,
+                layout_context_id,
+                design_asset_state,
+                origin_design_id,
+                name,
+                abbreviation,
+                uic_code,
+                type,
+                location,
+                state,
+                rinf_type,
+                polygon,
+                origin,
+                ratko_operational_point_version,
+                rinf_id_override,
+                rinf_id_generated
+            )
+            values (
+              :id,
+              :draft,
+              :design_id,
+              :layout_context_id,
+              :design_asset_state::layout.design_asset_state,
+              :origin_design_id,
+              :name,
+              :abbreviation,
+              :uic_code,
+              :type::layout.operational_point_type,
+              postgis.st_setsrid(postgis.st_point(:location_x, :location_y), :srid),
+              :state::layout.operational_point_state,
+              :rinf_type,
+              postgis.st_polygonfromtext(:polygon_wkt, :srid),
+              :origin::layout.operational_point_origin,
+              :ratko_operational_point_version,
+              :rinf_id_override,
+              :rinf_id_generated
+            )
+            on conflict (id, layout_context_id) do update set
+              design_asset_state = excluded.design_asset_state,
+              origin_design_id = excluded.origin_design_id,
+              name = excluded.name,
+              abbreviation = excluded.abbreviation,
+              uic_code = excluded.uic_code,
+              type = excluded.type,
+              location = excluded.location,
+              state = excluded.state,
+              rinf_type = excluded.rinf_type,
+              polygon = excluded.polygon,
+              ratko_operational_point_version = excluded.ratko_operational_point_version,
+              rinf_id_override = excluded.rinf_id_override,
+              rinf_id_generated = operational_point.rinf_id_generated
+            returning id, design_id, draft, version
             """
                 .trimIndent()
         jdbcTemplate.setUser()
@@ -333,6 +351,8 @@ class OperationalPointDao(
                 "srid" to LAYOUT_SRID.code,
                 "rinf_type" to item.rinfType?.name,
                 "ratko_operational_point_version" to item.ratkoVersion,
+                "rinf_id_override" to item.rinfIdOverride?.toString(),
+                "rinf_id_generated" to item.rinfIdGenerated?.toString(),
             )
         val originParams =
             when (item.origin) {
@@ -379,7 +399,16 @@ class OperationalPointDao(
             origin = rs.getEnum("origin"),
             ratkoVersion = rs.getIntOrNull("ratko_operational_point_version"),
             contextData =
-                rs.getLayoutContextData("id", "design_id", "draft", "version", "design_asset_state", "origin_design_id"),
+                rs.getLayoutContextData(
+                    "id",
+                    "design_id",
+                    "draft",
+                    "version",
+                    "design_asset_state",
+                    "origin_design_id",
+                ),
+            rinfIdGenerated = rs.getString("rinf_id_generated")?.let(::RinfId),
+            rinfIdOverride = rs.getString("rinf_id_override")?.let(::RinfId),
         )
 
     fun getChangeTime(): Instant {
@@ -405,6 +434,22 @@ class OperationalPointDao(
         items: List<UicCode>,
     ): Map<UicCode, List<LayoutRowVersion<OperationalPoint>>> =
         findFieldDuplicates(context, items, "uic_code") { rs -> rs.getString("uic_code").let(::UicCode) }
+
+    fun findRinfIdOverrideDuplicates(
+        context: LayoutContext,
+        items: List<RinfId>,
+    ): Map<RinfId, List<LayoutRowVersion<OperationalPoint>>> =
+        findFieldDuplicates(context, items, "rinf_id_override") { rs ->
+            rs.getString("rinf_id_override").let(::RinfId)
+        }
+
+    fun findRinfIdGeneratedDuplicates(
+        context: LayoutContext,
+        items: List<RinfId>,
+    ): Map<RinfId, List<LayoutRowVersion<OperationalPoint>>> =
+        findFieldDuplicates(context, items, "rinf_id_generated") { rs ->
+            rs.getString("rinf_id_generated").let(::RinfId)
+        }
 
     /**
      * baseContext, candidateContext, and publicationCandidateIds define a publication set. If publicationCandidateIds
@@ -487,9 +532,9 @@ class OperationalPointDao(
     fun getGeometryQuality(rowVersion: LayoutRowVersion<OperationalPoint>): OperationalPointGeometryQuality? {
         val sql =
             """
-                select postgis.st_intersects(polygon, location) contains, postgis.st_issimple(polygon) is_simple 
-                from layout.operational_point_version_view opv
-                where opv.id = :id and opv.version = :version and opv.layout_context_id = :context
+            select postgis.st_intersects(polygon, location) contains, postgis.st_issimple(polygon) is_simple 
+            from layout.operational_point_version_view opv
+            where opv.id = :id and opv.version = :version and opv.layout_context_id = :context
             """
                 .trimIndent()
         val params =
@@ -511,6 +556,14 @@ class OperationalPointDao(
     fun insertExternalId(id: IntId<OperationalPoint>, branch: LayoutBranch, oid: Oid<OperationalPoint>) {
         jdbcTemplate.setUser()
         insertExternalIdInExistingTransaction(branch, id, oid)
+    }
+
+    @Transactional
+    fun generateRinfId(): RinfId {
+        val sql = "select layout.generate_rinf_id()"
+        return jdbcTemplate.queryForObject(sql, emptyMap<String, Any>()) { rs, _ ->
+            rs.getString(1)?.let(::RinfId) ?: throw IllegalStateException("Failed to generate RINF ID")
+        } ?: throw IllegalStateException("Failed to generate RINF ID")
     }
 }
 

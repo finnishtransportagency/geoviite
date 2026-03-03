@@ -60,7 +60,7 @@ import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
-import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/operational-point-edit-dialog-container';
+import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/dialog/operational-point-edit-dialog-container';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED = 3;

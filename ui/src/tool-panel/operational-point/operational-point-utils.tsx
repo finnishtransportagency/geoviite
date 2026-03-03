@@ -4,7 +4,13 @@ import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-
 import { ChangeTimes } from 'common/common-slice';
 import { useRateLimitedTwoPartEffect } from 'utils/react-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
-import { indexIntoMap, partitionBy } from 'utils/array-utils';
+import { filterNotEmpty, indexIntoMap, partitionBy } from 'utils/array-utils';
+import { FieldValidationIssue, FieldValidationIssueType, validate } from 'utils/validation-utils';
+import { isEqualIgnoreCase } from 'utils/string-utils';
+
+export type OperationalPointSaveRequestBase = {
+    rinfIdOverride?: string;
+};
 
 export type UseLinkingHookResult<Id, T, ItemAssociation> = {
     isInitializing: boolean;
@@ -235,3 +241,57 @@ export function formatLinkingToast(
 export const Hide: React.FC<React.PropsWithChildren<{ when: boolean }>> = ({ when, children }) => (
     <div style={{ display: 'contents', ...(when && { visibility: 'hidden' }) }}>{children}</div>
 );
+
+const RINF_ID_REGEX = /^[A-Z]{2}[0-9]{1,}$/;
+
+export const withConditionalRinfIdOverride = <T,>(request: T, allowRinfIdOverride: boolean): T =>
+    allowRinfIdOverride ? request : { ...request, rinfIdOverride: undefined };
+
+export const validateRinfIdOverride = (
+    rinfIdOverride: string | undefined,
+): FieldValidationIssue<OperationalPointSaveRequestBase>[] =>
+    [
+        validate<OperationalPointSaveRequestBase>(
+            rinfIdOverride === undefined ||
+                rinfIdOverride.length < 2 ||
+                rinfIdOverride.startsWith('EU'),
+            {
+                field: 'rinfIdOverride',
+                reason: 'rinf-id-must-start-with-eu',
+                type: FieldValidationIssueType.ERROR,
+            },
+        ),
+        validate<OperationalPointSaveRequestBase>(
+            rinfIdOverride === undefined || rinfIdOverride.length <= 12,
+            {
+                field: 'rinfIdOverride',
+                reason: 'rinf-id-too-long',
+                type: FieldValidationIssueType.ERROR,
+            },
+        ),
+        validate<OperationalPointSaveRequestBase>(
+            rinfIdOverride === undefined || RINF_ID_REGEX.test(rinfIdOverride),
+            {
+                field: 'rinfIdOverride',
+                reason: 'invalid-rinf-id',
+                type: FieldValidationIssueType.ERROR,
+            },
+        ),
+        validate<OperationalPointSaveRequestBase>(!!rinfIdOverride && rinfIdOverride.length > 0, {
+            field: 'rinfIdOverride',
+            reason: 'mandatory-field',
+            type: FieldValidationIssueType.ERROR,
+        }),
+    ].filter(filterNotEmpty);
+
+export const hasSameRinfId = (
+    rinfId: string | undefined,
+    otherOperationalPoint: OperationalPoint,
+): boolean => {
+    return (
+        !!rinfId &&
+        otherOperationalPoint.state !== 'DELETED' &&
+        !!otherOperationalPoint.rinfId &&
+        isEqualIgnoreCase(otherOperationalPoint.rinfId, rinfId)
+    );
+};

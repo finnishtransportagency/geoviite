@@ -33,6 +33,7 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
+import fi.fta.geoviite.infra.tracklayout.RinfId
 import fi.fta.geoviite.infra.tracklayout.UicCode
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
@@ -116,9 +117,11 @@ class ValidationContext(
     private val trackNameCache = NameCache(::fetchLocationTracksByName)
     private val trackNumberNumberCache = NameCache(::fetchTrackNumbersByNumber)
 
-    private val operationalPointNameCache = NameCache(::fetchOperationalPointsByName)
-    private val operationalPointAbbreviationCache = NameCache(::fetchOperationalPointsByAbbreviation)
-    private val operationalPointUicCodeCache = NameCache(::fetchOperationalPointsByUicCode)
+    private val operationalPointNameCache = NameCache<OperationalPointName, OperationalPoint>(::fetchOperationalPointsByName)
+    private val operationalPointAbbreviationCache = NameCache<OperationalPointAbbreviation, OperationalPoint>(::fetchOperationalPointsByAbbreviation)
+    private val operationalPointUicCodeCache = NameCache<UicCode, OperationalPoint>(::fetchOperationalPointsByUicCode)
+    private val operationalPointRinfIdOverrideCache = NameCache<RinfId, OperationalPoint>(::fetchOperationalPointsByRinfIdOverride)
+    private val operationalPointRinfIdGeneratedCache = NameCache<RinfId, OperationalPoint>(::fetchOperationalPointsByRinfIdGenerated)
 
     private val allUnfinishedSplits: List<Split> by lazy { splitService.findUnfinishedSplits(target.candidateBranch) }
 
@@ -187,6 +190,10 @@ class ValidationContext(
 
     fun getOperationalPointsByUicCode(uicCode: UicCode): List<OperationalPoint> =
         operationalPointUicCodeCache.get(uicCode).mapNotNull(::getOperationalPoint)
+
+    fun getOperationalPointsByRinfId(rinfId: RinfId): List<OperationalPoint> =
+        operationalPointRinfIdOverrideCache.get(rinfId).mapNotNull(::getOperationalPoint) +
+            operationalPointRinfIdGeneratedCache.get(rinfId).mapNotNull(::getOperationalPoint)
 
     fun getReferenceLineByTrackNumber(trackNumberId: IntId<LayoutTrackNumber>): ReferenceLine? =
         getReferenceLineIdByTrackNumber(trackNumberId)?.let(::getReferenceLine)
@@ -322,6 +329,8 @@ class ValidationContext(
         preloadOperationalPointsByName(publicationSet.getOperationalPointIds())
         preloadOperationalPointsByAbbreviation(publicationSet.getOperationalPointIds())
         preloadOperationalPointsByUicCode(publicationSet.getOperationalPointIds())
+        preloadOperationalPointsByRinfIdOverride(publicationSet.getOperationalPointIds())
+        preloadOperationalPointsByRinfIdGenerated(publicationSet.getOperationalPointIds())
         preloadSwitchesByOperationalPoints(publicationSet.getOperationalPointIds())
     }
 
@@ -444,6 +453,16 @@ class ValidationContext(
             ids.mapNotNull(::getOperationalPoint).mapNotNull(OperationalPoint::uicCode).distinct()
         )
 
+    fun preloadOperationalPointsByRinfIdOverride(ids: List<IntId<OperationalPoint>>) =
+        operationalPointRinfIdOverrideCache.preload(
+            ids.mapNotNull(::getOperationalPoint).mapNotNull(OperationalPoint::rinfIdOverride).distinct()
+        )
+
+    fun preloadOperationalPointsByRinfIdGenerated(ids: List<IntId<OperationalPoint>>) =
+        operationalPointRinfIdGeneratedCache.preload(
+            ids.mapNotNull(::getOperationalPoint).mapNotNull(OperationalPoint::rinfIdGenerated).distinct()
+        )
+
     fun preloadTrackNumbersByNumber(trackNumberIds: List<IntId<LayoutTrackNumber>>) =
         trackNumberNumberCache.preload(
             trackNumberIds.mapNotNull(::getTrackNumber).map(LayoutTrackNumber::number).distinct()
@@ -491,6 +510,34 @@ class ValidationContext(
         return mapIdsByField(
             items,
             { op -> op.uicCode },
+            publicationSet.operationalPoints,
+            baseVersions,
+            operationalPointDao,
+        )
+    }
+
+    private fun fetchOperationalPointsByRinfIdOverride(
+        items: List<RinfId>
+    ): Map<RinfId, List<IntId<OperationalPoint>>> {
+        val baseVersions = operationalPointDao.findRinfIdOverrideDuplicates(target.baseContext, items)
+        cacheBaseVersions(baseVersions.values.flatten(), operationalPointVersionCache)
+        return mapIdsByField(
+            items,
+            { op -> op.rinfIdOverride },
+            publicationSet.operationalPoints,
+            baseVersions,
+            operationalPointDao,
+        )
+    }
+
+    private fun fetchOperationalPointsByRinfIdGenerated(
+        items: List<RinfId>
+    ): Map<RinfId, List<IntId<OperationalPoint>>> {
+        val baseVersions = operationalPointDao.findRinfIdGeneratedDuplicates(target.baseContext, items)
+        cacheBaseVersions(baseVersions.values.flatten(), operationalPointVersionCache)
+        return mapIdsByField(
+            items,
+            { op -> op.rinfIdGenerated },
             publicationSet.operationalPoints,
             baseVersions,
             operationalPointDao,
