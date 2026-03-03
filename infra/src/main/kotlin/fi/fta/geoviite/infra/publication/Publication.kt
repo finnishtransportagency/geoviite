@@ -67,6 +67,7 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import fi.fta.geoviite.infra.tracklayout.RinfId
 import fi.fta.geoviite.infra.tracklayout.UicCode
 import fi.fta.geoviite.infra.util.ESCAPED_NEW_LINE
 import fi.fta.geoviite.infra.util.FreeText
@@ -767,6 +768,8 @@ data class OperationalPointChanges(
     val uicCode: Change<UicCode>,
     val rinfType: Change<OperationalPointRinfTypeWithCode?>,
     val raideType: Change<OperationalPointRaideType?>,
+    val rinfIdGenerated: Change<RinfId?>,
+    val rinfIdOverride: Change<RinfId?>,
     val polygon: Change<Polygon?>,
     val location: Change<Point>,
     val state: Change<OperationalPointState>,

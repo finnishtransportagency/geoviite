@@ -54,6 +54,7 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
 import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfTypeWithCode
+import fi.fta.geoviite.infra.tracklayout.RinfId
 import fi.fta.geoviite.infra.tracklayout.StoredAssetId
 import fi.fta.geoviite.infra.tracklayout.UicCode
 import java.math.BigDecimal
@@ -397,6 +398,8 @@ fun ResultSet.getOperationalPointAbbreviationOrNull(name: String): OperationalPo
     getUnsafeStringOrNull(name)?.toString()?.let(::OperationalPointAbbreviation)
 
 fun ResultSet.getUicCodeOrNull(name: String): UicCode? = getUnsafeStringOrNull(name)?.toString()?.let(::UicCode)
+
+fun ResultSet.getRinfIdOrNull(name: String): RinfId? = getUnsafeStringOrNull(name)?.toString()?.let(::RinfId)
 
 fun <T> ResultSet.getChange(name: String, nullableGetter: (name: String) -> T?): Change<T> =
     Change(

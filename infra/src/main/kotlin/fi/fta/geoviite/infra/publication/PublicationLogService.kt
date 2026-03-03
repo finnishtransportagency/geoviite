@@ -844,11 +844,22 @@ constructor(
             compareChangeValues(changes.gkLocationConfirmed, { it }, PropKey("gk-location-confirmed")),
         )
 
-    fun diffOperationalPoint(translation: Translation, changes: OperationalPointChanges): List<PublicationChange<*>> =
-        listOfNotNull(
+    fun diffOperationalPoint(translation: Translation, changes: OperationalPointChanges): List<PublicationChange<*>> {
+        val oldRinfId = changes.rinfIdOverride.old ?: changes.rinfIdGenerated.old
+        val newRinfId = changes.rinfIdOverride.new ?: changes.rinfIdGenerated.new
+
+        return listOfNotNull(
             compareChangeValues(changes.name, { it }, PropKey("operational-point")),
             compareChangeValues(changes.abbreviation, { it }, PropKey("abbreviation")),
             compareChangeValues(changes.uicCode, { it }, PropKey("uic-code")),
+            compareChange(
+                predicate = { oldRinfId != newRinfId },
+                oldValue = oldRinfId,
+                newValue = newRinfId,
+                valueTransform = { it.toString() },
+                propKey = PropKey("rinf-id"),
+                remark = getOperationalPointRinfIdChangedRemarkOrNull(translation, changes.rinfIdOverride),
+            ),
             compareChangeValues(
                 changes.rinfType,
                 { rinfType ->
@@ -878,6 +889,7 @@ constructor(
             ),
             compareChangeValues(changes.state, { it }, PropKey("state"), enumLocalizationKey = "OperationalPointState"),
         )
+    }
 
     private fun projectPointToReferenceLineAtTime(
         timestamp: Instant,
