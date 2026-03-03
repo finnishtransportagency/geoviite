@@ -1968,7 +1968,9 @@
             "operational-point-link-added-singular": "Lisätty liitos toiminnalliseen pisteeseen {{value}}",
             "operational-point-link-removed-singular": "Lisätty liitos toiminnalliseen pisteeseen {{value}}",
             "operational-point-link-added-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}",
-            "operational-point-link-removed-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}"
+            "operational-point-link-removed-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}",
+            "rinf-id-is-override": "Arvo on asetettu käsin",
+            "rinf-id-is-generated": "Arvo on asetettu automaattisesti"
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
@@ -2011,6 +2013,7 @@
             "uic-code": "UIC-tunnus",
             "rinf-type": "Tyyppi (RINF)",
             "raide-type": "Tyyppi (RATO)",
+            "rinf-id": "Tunnus (RINF)",
             "polygon": "Alue",
             "linked-switches": "Vaihdelinkitykset",
             "linked-operational-point": "Toiminnallisen pisteen asetus"
