@@ -64,6 +64,7 @@ export function createRouteFindingTool(
     let route: RouteResult | undefined;
     const tool: MapToolWithButton = {
         id: 'route-finding',
+        housesInteraction: false,
         activate: (map: OlMap) => {
             const vectorSource = new VectorSource();
             const vectorLayer = new VectorLayer({

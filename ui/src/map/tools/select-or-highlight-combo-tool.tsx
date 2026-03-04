@@ -7,6 +7,7 @@ import { MapToolButton } from 'map/tools/map-tool-button';
 
 export const selectOrHighlightComboTool: MapToolWithButton = {
     id: 'select-or-highlight',
+    housesInteraction: selectTool.housesInteraction || highlightTool.housesInteraction,
     activate: (map, layers, options) => {
         const deactivateSelect = selectTool.activate(map, layers, options);
         const deactivateHighlight = highlightTool.activate(map, layers, options);
