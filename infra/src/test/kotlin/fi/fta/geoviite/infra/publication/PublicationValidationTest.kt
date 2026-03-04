@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.BuildTrackTopology
@@ -50,6 +51,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.offsetGeometry
+import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.rawPoints
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
@@ -1308,6 +1310,50 @@ class PublicationValidationTest {
         assertEquals(
             listOf(),
             validateSwitchAlignmentTopology(switchId, switchStructureYV60_300_1_9(), tracks, switchName, null),
+        )
+    }
+
+    @Test
+    fun `RINF id validation returns no errors for valid override`() {
+        val op = operationalPoint(rinfIdOverride = "EU12345", rinfIdGenerated = "FI1234")
+        val errors = validateOperationalPointRinfId(op)
+        assertEquals(0, errors.size)
+    }
+
+    @Test
+    fun `RINF id validation accepts null as override`() {
+        val op = operationalPoint(rinfIdOverride = null, rinfIdGenerated = "FI1234")
+        val errors = validateOperationalPointRinfId(op)
+        assertEquals(0, errors.size)
+    }
+
+    @Test
+    fun `RINF id validation accepts operational points without RINF id if they are OLPs`() {
+        val op =
+            operationalPoint(rinfIdGenerated = null, rinfIdOverride = null, raideType = OperationalPointRaideType.OLP)
+        val errors = validateOperationalPointRinfId(op)
+        assertEquals(0, errors.size)
+    }
+
+    @Test
+    fun `RINF id validation returns error if rinfId is missing entirely`() {
+        val op =
+            operationalPoint(rinfIdGenerated = null, rinfIdOverride = null, raideType = OperationalPointRaideType.SEIS)
+        assertContainsError(true, validateOperationalPointRinfId(op), "$VALIDATION_OPERATIONAL_POINT.rinf-id-missing")
+    }
+
+    @Test
+    fun `RINF id validation returns error for invalid overrides`() {
+        // Valid override format: "EU" followed by 1-10 digits, e.g. "EU0123"
+        assertContainsError(
+            true,
+            validateOperationalPointRinfId(operationalPoint(rinfIdOverride = "FI12345")),
+            "$VALIDATION_OPERATIONAL_POINT.rinf-id-override-invalid-format",
+        )
+        assertContainsError(
+            true,
+            validateOperationalPointRinfId(operationalPoint(rinfIdOverride = "EUabc")),
+            "$VALIDATION_OPERATIONAL_POINT.rinf-id-override-invalid-format",
         )
     }
 

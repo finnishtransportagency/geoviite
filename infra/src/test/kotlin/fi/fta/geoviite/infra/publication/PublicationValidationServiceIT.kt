@@ -2773,7 +2773,7 @@ constructor(
     }
 
     @Test
-    fun `operational point must have unique rinf code`() {
+    fun `operational point must have unique rinf id`() {
         val op1 = operationalPoint(name = "OP1", uicCode = "1234", rinfIdOverride = "EU012")
         val op1Id = mainDraftContext.save(op1).id
 

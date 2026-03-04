@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.FATAL
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
 import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
@@ -42,6 +43,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameChord
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
+import fi.fta.geoviite.infra.tracklayout.RINF_ID_OVERRIDE_REGEX
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
@@ -242,6 +244,19 @@ fun validateOperationalPointRinfIdOverrideDuplication(
     ) {
         listOf("rinfIdOverride" to operationalPoint.rinfIdOverride)
     }
+
+fun validateOperationalPointRinfId(operationalPoint: OperationalPoint): List<LayoutValidationIssue> =
+    listOfNotNull(
+        validate(operationalPoint.raideType == OperationalPointRaideType.OLP || operationalPoint.rinfId != null) {
+            "$VALIDATION_OPERATIONAL_POINT.rinf-id-missing"
+        },
+        validate(
+            operationalPoint.rinfIdOverride == null ||
+                RINF_ID_OVERRIDE_REGEX.matches(operationalPoint.rinfIdOverride.toString())
+        ) {
+            "$VALIDATION_OPERATIONAL_POINT.rinf-id-override-invalid-format"
+        },
+    )
 
 fun validateOperationalPointPolygonOverlap(
     operationalPoint: OperationalPoint,

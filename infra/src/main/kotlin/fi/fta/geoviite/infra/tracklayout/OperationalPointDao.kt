@@ -132,12 +132,12 @@ class OperationalPointDao(
                 where (:op_id::int is null or lt_op.operational_point_id = :op_id::int)
               )
             select distinct
-              lt.id lt_id,
-              lt.layout_context_id lt_layout_context_id,
-              lt.version lt_version,
-              op.id op_id,
-              op.layout_context_id op_layout_context_id,
-              op.version op_version
+              lt.id as lt_id,
+              lt.layout_context_id as lt_layout_context_id,
+              lt.version as lt_version,
+              op.id as op_id,
+              op.layout_context_id as op_layout_context_id,
+              op.version as op_version
               from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id::int) lt
                 left join switch_links sl
                           on sl.location_track_id = lt.id and sl.location_track_layout_context_id = lt.layout_context_id and sl.location_track_version = lt.version
@@ -365,6 +365,7 @@ class OperationalPointDao(
                         "location_x" to null,
                         "location_y" to null,
                     )
+
                 OperationalPointOrigin.GEOVIITE ->
                     mapOf(
                         "name" to item.name.toString(),
@@ -439,9 +440,7 @@ class OperationalPointDao(
         context: LayoutContext,
         items: List<RinfId>,
     ): Map<RinfId, List<LayoutRowVersion<OperationalPoint>>> =
-        findFieldDuplicates(context, items, "rinf_id_override") { rs ->
-            rs.getString("rinf_id_override").let(::RinfId)
-        }
+        findFieldDuplicates(context, items, "rinf_id_override") { rs -> rs.getString("rinf_id_override").let(::RinfId) }
 
     fun findRinfIdGeneratedDuplicates(
         context: LayoutContext,
@@ -561,9 +560,9 @@ class OperationalPointDao(
     @Transactional
     fun generateRinfId(): RinfId {
         val sql = "select layout.generate_rinf_id()"
-        return jdbcTemplate.queryForObject(sql, emptyMap<String, Any>()) { rs, _ ->
-            rs.getString(1)?.let(::RinfId) ?: throw IllegalStateException("Failed to generate RINF ID")
-        } ?: throw IllegalStateException("Failed to generate RINF ID")
+        return jdbcTemplate
+            .queryForObject(sql, emptyMap<String, Any>()) { rs, _ -> rs.getString(1)?.let(::RinfId) }
+            .let { checkNotNull(it) { "Failed to generate RINF ID" } }
     }
 }
 

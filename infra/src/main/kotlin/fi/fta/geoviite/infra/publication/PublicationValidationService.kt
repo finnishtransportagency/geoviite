@@ -27,7 +27,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
-import fi.fta.geoviite.infra.tracklayout.RINF_ID_OVERRIDE_REGEX
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import org.slf4j.Logger
@@ -427,11 +426,7 @@ constructor(
 
             val referenceIssues =
                 if (kmPost.trackNumberId == null) listOf()
-                else
-                    validateKmPostReferences(
-                        kmPost,
-                        context.getTrackNumberLiveness(kmPost.trackNumberId),
-                    )
+                else validateKmPostReferences(kmPost, context.getTrackNumberLiveness(kmPost.trackNumberId))
 
             val geocodingIssues =
                 if (kmPost.exists && trackNumber?.exists == true && referenceLine != null) {
@@ -520,7 +515,7 @@ constructor(
             val trackNumber = validationContext.getTrackNumber(referenceLine.trackNumberId)
             val outgoingReferenceIssues =
                 validateReferencesFromReferenceLine(
-                    trackNumberLiveness = validationContext.getTrackNumberLiveness(referenceLine.trackNumberId),
+                    trackNumberLiveness = validationContext.getTrackNumberLiveness(referenceLine.trackNumberId)
                 )
             val alignmentIssues =
                 if (trackNumber?.exists == true) {
@@ -738,22 +733,10 @@ constructor(
                 },
             )
 
-        val rinfIdIssues =
-            listOfNotNull(
-                validate(
-                    operationalPoint.raideType == OperationalPointRaideType.OLP || operationalPoint.rinfId != null
-                ) {
-                    "$VALIDATION_OPERATIONAL_POINT.rinf-id-missing"
-                },
-                validate(
-                    operationalPoint.rinfIdOverride == null ||
-                        RINF_ID_OVERRIDE_REGEX.matches(operationalPoint.rinfIdOverride.toString())
-                ) {
-                    "$VALIDATION_OPERATIONAL_POINT.rinf-id-override-invalid-format"
-                },
-            )
+        val rinfIdIssues = validateOperationalPointRinfId(operationalPoint)
         val rinfIdDuplicationIssues =
-            if (operationalPoint.rinfIdOverride != null) {
+            if (operationalPoint.rinfIdOverride == null) emptyList()
+            else
                 validateOperationalPointRinfIdOverrideDuplication(
                     operationalPoint,
                     validationContext.getOperationalPointsByRinfId(operationalPoint.rinfIdOverride).filter {
@@ -761,7 +744,6 @@ constructor(
                     },
                     validationContext.target.validationTargetType,
                 )
-            } else emptyList()
 
         return nameDuplicationIssues +
             abbreviationDuplicationIssues +

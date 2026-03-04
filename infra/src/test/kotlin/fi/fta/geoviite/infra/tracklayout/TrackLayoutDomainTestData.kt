@@ -1188,6 +1188,7 @@ fun operationalPoint(
     abbreviation: String = name,
     rinfType: OperationalPointRinfType? = OperationalPointRinfType.STATION,
     state: OperationalPointState = OperationalPointState.IN_USE,
+    raideType: OperationalPointRaideType? = null,
     uicCode: String? = "1234",
     location: Point = Point(10.0, 10.0),
     polygon: Polygon? =
@@ -1206,7 +1207,7 @@ fun operationalPoint(
         state = state,
         uicCode = uicCode?.let(::UicCode),
         location = location,
-        raideType = null,
+        raideType = raideType,
         polygon = polygon,
         origin = origin,
         ratkoVersion = ratkoVersion,
