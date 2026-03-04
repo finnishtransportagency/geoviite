@@ -34,7 +34,7 @@ data class OperationalPoint(
 
     @JsonIgnore val exists = !state.isRemoved()
 
-    val rinfId = rinfIdOverride ?: rinfIdGenerated
+    val rinfId: RinfId? = rinfIdOverride ?: rinfIdGenerated
 }
 
 const val maxOperationalPointNameLength = 150
