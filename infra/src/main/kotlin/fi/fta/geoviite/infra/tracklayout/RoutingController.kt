@@ -29,11 +29,13 @@ class RoutingController(private val routingService: RoutingService) {
         @RequestParam("y") y: Double,
         @RequestParam("maxDistance", required = false) maxDistance: Double?,
     ): ResponseEntity<ClosestTrackPoint> =
-        routingService.getClosestTrackPoint(
-            context = LayoutContext.of(layoutBranch, publicationState),
-            location = Point(x, y),
-            maxDistance = maxDistance ?: MAX_TRACK_SEEK_DISTANCE,
-        ).let(::toResponse)
+        routingService
+            .getClosestTrackPoint(
+                context = LayoutContext.of(layoutBranch, publicationState),
+                location = Point(x, y),
+                maxDistance = maxDistance ?: MAX_TRACK_SEEK_DISTANCE,
+            )
+            .let(::toResponse)
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}")
@@ -46,10 +48,12 @@ class RoutingController(private val routingService: RoutingService) {
         @RequestParam("endY") endY: Double,
         @RequestParam("maxDistance", required = false) maxDistance: Double?,
     ): ResponseEntity<RouteResult> =
-        routingService.getRoute(
-            context = LayoutContext.of(layoutBranch, publicationState),
-            startLocation = Point(startX, startY),
-            endLocation = Point(endX, endY),
-            trackSeekDistance = maxDistance ?: MAX_TRACK_SEEK_DISTANCE,
-        ).let(::toResponse)
+        routingService
+            .getRoute(
+                context = LayoutContext.of(layoutBranch, publicationState),
+                startLocation = Point(startX, startY),
+                endLocation = Point(endX, endY),
+                trackSeekDistance = maxDistance ?: MAX_TRACK_SEEK_DISTANCE,
+            )
+            .let(::toResponse)
 }

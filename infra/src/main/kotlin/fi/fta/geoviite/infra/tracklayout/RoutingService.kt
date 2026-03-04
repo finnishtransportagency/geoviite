@@ -19,10 +19,7 @@ class RoutingService(
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
 ) {
-    private data class GraphCacheKey(
-        val context: LayoutContext,
-        val changeTimes: List<Instant>,
-    )
+    private data class GraphCacheKey(val context: LayoutContext, val changeTimes: List<Instant>)
 
     private val graphCache: Cache<GraphCacheKey, RoutingGraph> =
         Caffeine.newBuilder().maximumSize(10).expireAfterAccess(layoutCacheDuration).build()
@@ -33,13 +30,15 @@ class RoutingService(
         }
 
     private fun getGraph(context: LayoutContext): RoutingGraph {
-        val cacheKey = GraphCacheKey(
-            context = context,
-            changeTimes = listOf(locationTrackDao.fetchChangeTime(), switchDao.fetchChangeTime()),
-        )
+        val cacheKey =
+            GraphCacheKey(
+                context = context,
+                changeTimes = listOf(locationTrackDao.fetchChangeTime(), switchDao.fetchChangeTime()),
+            )
         return graphCache.get(cacheKey) { key ->
             buildGraph(
-                trackGeoms = locationTrackService.listWithGeometries(key.context, includeDeleted = false).map { (_,g) -> g },
+                trackGeoms =
+                    locationTrackService.listWithGeometries(key.context, includeDeleted = false).map { (_, g) -> g },
                 switches = switchService.list(key.context, includeDeleted = false),
                 structures = switchLibraryService.getSwitchStructuresById(),
             )

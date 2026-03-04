@@ -414,8 +414,7 @@ sealed class LayoutEdge : IAlignment<EdgeM> {
 
     @get:JsonIgnore val contentHash: EdgeHash by lazy { EdgeHash.of(startNode, endNode, segments) }
 
-    fun isSwitchInnerLink(): Boolean =
-        startNode.switchIn?.id != null && startNode.switchIn?.id == endNode.switchIn?.id
+    fun isSwitchInnerLink(): Boolean = startNode.switchIn?.id != null && startNode.switchIn?.id == endNode.switchIn?.id
 
     fun withSegments(newSegments: List<LayoutSegment>) = TmpLayoutEdge(startNode, endNode, newSegments)
 

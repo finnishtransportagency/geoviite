@@ -22,9 +22,9 @@ data object PlanLayoutAlignmentM : AlignmentM<PlanLayoutAlignmentM>, GeocodingAl
 
 data object SwitchStructureAlignmentM : AnyM<SwitchStructureAlignmentM>
 
-data class LineM<M : AnyM<M>> @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(
-    @JsonValue val distance: Double,
-) : Comparable<LineM<M>> {
+data class LineM<M : AnyM<M>>
+@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+constructor(@JsonValue val distance: Double) : Comparable<LineM<M>> {
 
     constructor(distance: Int) : this(distance.toDouble())
 
@@ -39,9 +39,11 @@ data class LineM<M : AnyM<M>> @JsonCreator(mode = JsonCreator.Mode.DELEGATING) c
     operator fun minus(other: LineM<M>) = LineM<M>(distance - other.distance)
 
     operator fun times(scale: Double) = LineM<M>(distance * scale)
+
     operator fun times(scale: Int) = LineM<M>(distance * scale)
 
     operator fun div(denominator: Double) = LineM<M>(distance / denominator)
+
     operator fun div(denominator: Int) = LineM<M>(distance / denominator)
 
     fun isFinite() = distance.isFinite()
@@ -52,11 +54,10 @@ data class LineM<M : AnyM<M>> @JsonCreator(mode = JsonCreator.Mode.DELEGATING) c
 
     fun toInt() = distance.toInt()
 
-    fun <OtherM: AnyM<OtherM>> castToDifferentM() = LineM<OtherM>(distance)
+    fun <OtherM : AnyM<OtherM>> castToDifferentM() = LineM<OtherM>(distance)
 }
 
 fun locationTrackM(m: Double) = LineM<LocationTrackM>(m)
-
 
 fun <M : AnyM<M>> maxM(a: LineM<M>, b: LineM<M>) = if (a.distance > b.distance) a else b
 
