@@ -834,10 +834,13 @@ const MapView: React.FC<MapViewProps> = ({
             ? activeTool?.activate(map, layers, toolActivateOptions)
             : () => undefined;
 
-    React.useEffect(
-        () => recreateActiveMapTool(olMap, visibleLayers, toolActivateOptions),
-        [olMap, activeTool, linkingState],
-    );
+    React.useEffect(() => {
+        if (activeTool?.housesInteraction) {
+            return recreateActiveMapTool(olMap, visibleLayers, toolActivateOptions);
+        } else {
+            return () => undefined;
+        }
+    }, [olMap, activeTool, linkingState]);
 
     React.useEffect(() => {
         if (activeTool && !activeTool.housesInteraction) {
@@ -845,7 +848,7 @@ const MapView: React.FC<MapViewProps> = ({
         } else {
             return () => undefined;
         }
-    }, [visibleLayers]);
+    }, [olMap, activeTool, linkingState, visibleLayers]);
 
     React.useEffect(() => {
         if (mapTools && activeTool) {
