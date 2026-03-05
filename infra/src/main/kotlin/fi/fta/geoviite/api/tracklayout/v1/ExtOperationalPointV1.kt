@@ -59,6 +59,7 @@ data class ExtOperationalPointV1(
     @JsonProperty(TRACKS) val tracks: List<ExtOperationalPointTrackV1>,
     @JsonProperty(SWITCHES) val switches: List<ExtOperationalPointSwitchV1>,
     @JsonProperty(AREA) val area: ExtPolygonV1?,
+    @JsonProperty(AREA_WKT) val areaWkt: String?,
 )
 
 @Schema(name = "Vastaus: Toiminnallinen piste")

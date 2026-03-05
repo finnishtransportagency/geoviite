@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.publication.Publication
@@ -30,7 +31,6 @@ import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -360,9 +360,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     @Test
     fun `Operational point with polygon area is returned correctly`() {
         val polygon =
-            Polygon(
-                listOf(Point(0.0, 0.0), Point(100.0, 0.0), Point(100.0, 50.0), Point(0.0, 50.0), Point(0.0, 0.0))
-            )
+            Polygon(listOf(Point(0.0, 0.0), Point(100.0, 0.0), Point(100.0, 50.0), Point(0.0, 50.0), Point(0.0, 0.0)))
 
         val opId = mainDraftContext.save(operationalPoint(polygon = polygon, location = Point(50.0, 25.0))).id
         val oid = mainDraftContext.generateOid(opId)
@@ -452,10 +450,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 .id
         mainDraftContext.generateOid(switchId)
 
-        val switchPublication =
-            extTestDataService.publishInMain(
-                switches = listOf(switchId),
-            )
+        val switchPublication = extTestDataService.publishInMain(switches = listOf(switchId))
 
         // Operational point should show as changed even though it wasn't directly edited
         val switchModification = api.operationalPoint.getModifiedSince(opOid, basePublication.uuid)
@@ -516,10 +511,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         mainDraftContext.mutate(trackId) { track -> track.copy(name = AlignmentName("${track.name}-EDIT")) }
 
         val trivialChangePublication =
-            extTestDataService.publishInMain(
-                switches = listOf(switchId),
-                locationTracks = listOf(trackId),
-            )
+            extTestDataService.publishInMain(switches = listOf(switchId), locationTracks = listOf(trackId))
 
         // Operational point should NOT show as changed since references didn't change
         api.operationalPoint.assertNoModificationSince(opOid, trackPublication.uuid)
@@ -707,6 +699,14 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             assertNotNull(actual.alue)
             assertEquals("polygoni", actual.alue!!.tyyppi)
             assertEquals(polygon.points.size, actual.alue.pisteet.size)
+
+            assertNotNull(actual.alue_wkt)
+            val polygon = parse2DPolygon(actual.alue_wkt!!)
+            assertEquals(polygon.size, actual.alue.pisteet.size)
+            polygon.forEachIndexed { index, point ->
+                assertEquals(point.x, actual.alue.pisteet[index].x, 0.001)
+                assertEquals(point.y, actual.alue.pisteet[index].y, 0.001)
+            }
         }
         operationalPoint.rinfType?.let { rinfType ->
             assertNotNull(actual.tyyppi_rinf)

@@ -253,6 +253,7 @@ data class ExtTestOperationalPointV1(
     val raiteet: List<ExtTestOperationalPointTrackV1>,
     val vaihteet: List<ExtTestOperationalPointSwitchV1>,
     val alue: ExtTestPolygonV1?,
+    val alue_wkt: String?,
 )
 
 data class ExtTestPolygonV1(val tyyppi: String, val pisteet: List<ExtTestCoordinateV1>)
