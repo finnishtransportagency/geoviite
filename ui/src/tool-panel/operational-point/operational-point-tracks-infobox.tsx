@@ -120,6 +120,14 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 size={ButtonSize.SMALL}
+                                disabled={layoutContext.publicationState === 'OFFICIAL'}
+                                title={
+                                    layoutContext.publicationState === 'OFFICIAL'
+                                        ? t(
+                                              'tool-panel.disabled.activity-disabled-in-official-mode',
+                                          )
+                                        : ''
+                                }
                                 onClick={startEditing}>
                                 {t('tool-panel.operational-point.edit-links')}
                             </Button>
