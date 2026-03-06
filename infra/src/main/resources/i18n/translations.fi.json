@@ -1783,6 +1783,7 @@
             "switch": {
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava vaihde ei ole luonnos",
                 "no-location": "Vaihdetta ei ole linkitetty paikannuspohjaan",
+                "duplicate-track-locations-differ": "Vaihteella {{switchName}} linjaraiteen ja duplikaattiraiteen pistesijainnit poikkeavat toisistaan, {{trackName}}, {{duplicateTrackName}}, pisteet {{jointNumbers}} ",
                 "location-track": {
                     "reference-deleted": "Poistettavaan vaihteeseen viittaa edelleen raiteita: {{locationTracks}}",
                     "not-published": "Vaihteeseen liittyvä raide ei ole mukana julkaisussa: {{locationTrack}}",

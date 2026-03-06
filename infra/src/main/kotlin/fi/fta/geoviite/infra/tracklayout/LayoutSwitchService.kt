@@ -20,9 +20,9 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.mapNonNullValues
 import fi.fta.geoviite.infra.util.page
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class LayoutSwitchService
@@ -159,10 +159,7 @@ constructor(
         layoutContext: LayoutContext,
         switchId: IntId<LayoutSwitch>,
     ): List<LayoutSwitchJointConnection> {
-        return dao.fetchSwitchJointConnections(layoutContext, switchId)
-            .groupBy { joint -> joint.number }
-            .values
-            .map { jointConnections -> jointConnections.reduceRight(LayoutSwitchJointConnection::merge) }
+        return dao.fetchSwitchJointConnections(layoutContext, switchId).let { groupConnectionsByJointNumber(it) }
     }
 
     fun getLocationTracksLinkedToSwitch(
@@ -275,3 +272,11 @@ data class SwitchWithOperationalPointPolygonInclusions(
     val switchId: IntId<LayoutSwitch>,
     val withinPolygon: List<IntId<OperationalPoint>>,
 )
+
+fun groupConnectionsByJointNumber(
+    jointConnections: List<LayoutSwitchJointConnection>
+): List<LayoutSwitchJointConnection> =
+    jointConnections
+        .groupBy { joint -> joint.number }
+        .values
+        .map { jointConnections -> jointConnections.reduceRight(LayoutSwitchJointConnection::merge) }
