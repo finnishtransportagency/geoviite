@@ -357,21 +357,7 @@ constructor(
     @Test
     fun `should allow multiple operational points with null rinf_id_generated`() {
         mainDraftContext.save(operationalPoint(name = "op1", rinfIdGenerated = null))
-        mainDraftContext.save(
-            operationalPoint(
-                name = "op2",
-                rinfIdGenerated = null,
-                location = Point(100.0, 100.0),
-                polygon =
-                    Polygon(
-                        Point(90.0, 90.0),
-                        Point(110.0, 90.0),
-                        Point(110.0, 110.0),
-                        Point(90.0, 110.0),
-                        Point(90.0, 90.0),
-                    ),
-            )
-        )
+        mainDraftContext.save(operationalPoint(name = "op2", rinfIdGenerated = null))
         val points = operationalPointService.list(mainDraftContext.context)
         assertEquals(2, points.size)
         assertEquals(listOf(null, null), points.map { it.rinfIdGenerated })
