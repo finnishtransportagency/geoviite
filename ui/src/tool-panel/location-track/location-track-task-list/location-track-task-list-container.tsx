@@ -16,7 +16,7 @@ import {
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
-import { getSwitches } from 'track-layout/layout-switch-api';
+import { getSwitches, getSwitchesValidation } from 'track-layout/layout-switch-api';
 import { createPortal } from 'react-dom';
 import { Point } from 'model/geometry';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
@@ -105,10 +105,19 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
             layoutContext.branch,
             locationTrackId,
         );
-        const switchIds = relinkingResults
-            .filter((r) => r.validationIssues.length > 0 || r.successfulSuggestion === undefined)
-            .map((s) => s.id);
-        const switches = await getSwitches(switchIds, draftLayoutContext(layoutContext));
+        const validation = await getSwitchesValidation(
+            draftLayoutContext(layoutContext),
+            relinkingResults.map((r) => r.id),
+        );
+        const switchIds = new Set([
+            ...validation.filter((s) => s.errors.length > 0).map((v) => v.id),
+            ...relinkingResults
+                .filter(
+                    (r) => r.validationIssues.length > 0 || r.successfulSuggestion === undefined,
+                )
+                .map((s) => s.id),
+        ]);
+        const switches = await getSwitches([...switchIds], draftLayoutContext(layoutContext));
 
         return {
             relinkingResults,
