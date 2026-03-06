@@ -1827,6 +1827,7 @@
                     "deleted": "Vaihde viittaa poistettuun toiminnalliseen pisteeseen {{target}}"
                 },
                 "no-location": "Vaihdetta ei ole linkitetty paikannuspohjaan",
+                "duplicate-track-locations-differ": "Vaihteella {{switchName}} linjaraiteen ja duplikaattiraiteen pistesijainnit poikkeavat toisistaan, {{trackName}}, {{duplicateTrackName}}, pisteet {{jointNumbers}} ",
                 "location-track": {
                     "not-continuous": "Sama raide ({{locationTracks}}) on kytketty vaihteeseen eri kohdista",
                     "joint-location-mismatch": "Vaihteen ja raiteen vaihdepisteiden sijainnit eivät kohtaa: {{locationTracks}}",
