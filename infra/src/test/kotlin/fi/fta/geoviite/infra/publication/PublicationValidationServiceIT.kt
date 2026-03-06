@@ -45,6 +45,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.RinfId
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
@@ -2295,9 +2296,12 @@ constructor(
 
     @Test
     fun `operational points are allowed to overlap with deleted ones`() {
-        val op = operationalPoint()
+        val op = operationalPoint(rinfIdGenerated = "FI00000")
         val a = mainDraftContext.save(op).id
-        val b = mainDraftContext.save(op.copy(state = OperationalPointState.DELETED)).id
+        val b =
+            mainDraftContext
+                .save(op.copy(state = OperationalPointState.DELETED, rinfIdGenerated = RinfId("FI12345")))
+                .id
 
         val validated =
             publicationValidationService.validatePublicationCandidates(
@@ -2322,21 +2326,46 @@ constructor(
             operationalPoint(
                 name = "existingOfficial",
                 uicCode = "0",
+                rinfIdGenerated = "FI0",
                 location = Point(5.0, 5.0),
                 polygon = existingOfficialPoly,
             )
         )
         val a =
             mainDraftContext
-                .save(operationalPoint(name = "a", uicCode = "1", location = Point(5.0, 5.0), polygon = aPolygon))
+                .save(
+                    operationalPoint(
+                        name = "a",
+                        uicCode = "1",
+                        location = Point(5.0, 5.0),
+                        rinfIdGenerated = "FI1",
+                        polygon = aPolygon,
+                    )
+                )
                 .id
         val b =
             mainDraftContext
-                .save(operationalPoint(name = "b", uicCode = "2", location = Point(10.0, 5.0), polygon = bPolygon))
+                .save(
+                    operationalPoint(
+                        name = "b",
+                        uicCode = "2",
+                        location = Point(10.0, 5.0),
+                        rinfIdGenerated = "FI2",
+                        polygon = bPolygon,
+                    )
+                )
                 .id
         val c =
             mainDraftContext
-                .save(operationalPoint(name = "c", uicCode = "3", location = Point(15.0, 5.0), polygon = cPolygon))
+                .save(
+                    operationalPoint(
+                        name = "c",
+                        uicCode = "3",
+                        location = Point(15.0, 5.0),
+                        rinfIdGenerated = "FI3",
+                        polygon = cPolygon,
+                    )
+                )
                 .id
 
         val validation =
@@ -2383,7 +2412,13 @@ constructor(
         // official at 0..10
         mainOfficialContext
             .save(
-                operationalPoint(name = "a", uicCode = "1", location = middleOfPolygon, polygon = Polygon(polyPoints))
+                operationalPoint(
+                    name = "a",
+                    uicCode = "1",
+                    rinfIdGenerated = "FI1",
+                    location = middleOfPolygon,
+                    polygon = Polygon(polyPoints),
+                )
             )
             .id
         val draftAt1to11 =
@@ -2392,6 +2427,7 @@ constructor(
                     operationalPoint(
                         name = "b",
                         uicCode = "2",
+                        rinfIdGenerated = "FI2",
                         location = middleOfPolygon + Point(1.0, 0.0),
                         polygon = Polygon(polyPoints.map { it + Point(1.0, 0.0) }),
                     )
@@ -2403,6 +2439,7 @@ constructor(
                     operationalPoint(
                         name = "c",
                         uicCode = "3",
+                        rinfIdGenerated = "FI3",
                         location = middleOfPolygon + Point(5.0, 0.0),
                         polygon = Polygon(polyPoints.map { it + Point(5.0, 0.0) }),
                     )
@@ -2414,6 +2451,7 @@ constructor(
                     operationalPoint(
                         name = "d",
                         uicCode = "4",
+                        rinfIdGenerated = "FI4",
                         location = middleOfPolygon + Point(20.0, 0.0),
                         polygon = Polygon(polyPoints.map { it + Point(20.0, 0.0) }),
                     )
@@ -2522,14 +2560,54 @@ constructor(
         )
 
         val internal123 =
-            mainDraftContext.save(moveOperationalPointBy(operationalPoint("int 123", uicCode = "123"), 100.0, 100.0)).id
+            mainDraftContext
+                .save(
+                    moveOperationalPointBy(
+                        operationalPoint("int 123", uicCode = "123", rinfIdGenerated = "FI123"),
+                        100.0,
+                        100.0,
+                    )
+                )
+                .id
         val internalNull =
-            mainDraftContext.save(moveOperationalPointBy(operationalPoint("int null", uicCode = null), 150.0, 150.0)).id
+            mainDraftContext
+                .save(
+                    moveOperationalPointBy(
+                        operationalPoint("int null", uicCode = null, rinfIdGenerated = "FI0000"),
+                        150.0,
+                        150.0,
+                    )
+                )
+                .id
         val internal234 =
-            mainDraftContext.save(moveOperationalPointBy(operationalPoint("int 234", uicCode = "234"), 200.0, 200.0)).id
-        mainDraftContext.save(moveOperationalPointBy(operationalPoint("other 234", uicCode = "234"), 250.0, 250.0)).id
+            mainDraftContext
+                .save(
+                    moveOperationalPointBy(
+                        operationalPoint("int 234", uicCode = "234", rinfIdGenerated = "FI234"),
+                        200.0,
+                        200.0,
+                    )
+                )
+                .id
+        mainDraftContext
+            .save(
+                moveOperationalPointBy(
+                    operationalPoint("other 234", uicCode = "234", rinfIdGenerated = "FI999"),
+                    250.0,
+                    250.0,
+                )
+            )
+            .id
         val internal345 =
-            mainDraftContext.save(moveOperationalPointBy(operationalPoint("int 345", uicCode = "345"), 300.0, 300.0)).id
+            mainDraftContext
+                .save(
+                    moveOperationalPointBy(
+                        operationalPoint("int 345", uicCode = "345", rinfIdGenerated = "FI345"),
+                        300.0,
+                        300.0,
+                    )
+                )
+                .id
 
         assertEquals(
             listOf(
@@ -2602,6 +2680,7 @@ constructor(
                         name = "complexpoly",
                         location = Point(2.5, 2.5),
                         uicCode = "123",
+                        rinfIdGenerated = "FI123",
                         polygon =
                             Polygon(
                                 Point(0.0, 0.0),
@@ -2641,6 +2720,7 @@ constructor(
                         name = "borderline",
                         location = Point(5.0, 5.0),
                         uicCode = "123",
+                        rinfIdGenerated = "FI123",
                         polygon =
                             Polygon(Point(0.0, 0.0), Point(5.0, 0.0), Point(5.0, 5.0), Point(0.0, 5.0), Point(0.0, 0.0)),
                     )
@@ -2660,6 +2740,7 @@ constructor(
                         name = "outside",
                         location = Point(5.0, 5.0),
                         uicCode = "234",
+                        rinfIdGenerated = "FI234",
                         polygon =
                             Polygon(
                                 Point(10.0, 10.0),
@@ -2687,12 +2768,22 @@ constructor(
 
     @Test
     fun `operational point name and abbreviation must be unique`() {
-        val aa = mainDraftContext.save(operationalPoint(name = "aName", abbreviation = "aAbbrev", uicCode = "1")).id
+        val aa =
+            mainDraftContext
+                .save(
+                    operationalPoint(name = "aName", abbreviation = "aAbbrev", uicCode = "1", rinfIdGenerated = "FI1")
+                )
+                .id
         val ab =
             mainDraftContext
                 .save(
                     moveOperationalPointBy(
-                        operationalPoint(name = "aName", abbreviation = "bAbbrev", uicCode = "2"),
+                        operationalPoint(
+                            name = "aName",
+                            abbreviation = "bAbbrev",
+                            uicCode = "2",
+                            rinfIdGenerated = "FI2",
+                        ),
                         50.0,
                         50.0,
                     )
@@ -2702,7 +2793,12 @@ constructor(
             mainDraftContext
                 .save(
                     moveOperationalPointBy(
-                        operationalPoint(name = "bName", abbreviation = "aAbbrev", uicCode = "3"),
+                        operationalPoint(
+                            name = "bName",
+                            abbreviation = "aAbbrev",
+                            uicCode = "3",
+                            rinfIdGenerated = "FI3",
+                        ),
                         100.0,
                         100.0,
                     )
@@ -2712,7 +2808,12 @@ constructor(
             mainDraftContext
                 .save(
                     moveOperationalPointBy(
-                        operationalPoint(name = "bName", abbreviation = "bAbbrev", uicCode = "4"),
+                        operationalPoint(
+                            name = "bName",
+                            abbreviation = "bAbbrev",
+                            uicCode = "4",
+                            rinfIdGenerated = "FI4",
+                        ),
                         150.0,
                         150.0,
                     )
@@ -2758,7 +2859,7 @@ constructor(
 
     @Test
     fun `operational point must have rinf type`() {
-        val rinfless = mainDraftContext.save(operationalPoint(rinfType = null)).id
+        val rinfless = mainDraftContext.save(operationalPoint(rinfType = null, rinfIdGenerated = "FI123")).id
         assertEquals(
             listOf(
                 LayoutValidationIssue(
@@ -2843,14 +2944,18 @@ constructor(
     @Test
     fun `operational points can be validated without having a draft`() {
         val poly = operationalPoint().polygon
-        val a = mainOfficialContext.save(operationalPoint(name = "a", polygon = poly)).id
-        val b = mainOfficialContext.save(operationalPoint(name = "b", uicCode = "1235", polygon = poly)).id
+        val a = mainOfficialContext.save(operationalPoint(name = "a", polygon = poly, rinfIdGenerated = "FI1")).id
+        val b =
+            mainOfficialContext
+                .save(operationalPoint(name = "b", uicCode = "1235", polygon = poly, rinfIdGenerated = "FI1235"))
+                .id
         val c =
             mainOfficialContext
                 .save(
                     operationalPoint(
                         name = "c",
                         uicCode = "1236",
+                        rinfIdGenerated = "FI1236",
                         location = Point(55.0, 55.0),
                         polygon = poly?.moveBy(Point(50.0, 50.0)),
                     )

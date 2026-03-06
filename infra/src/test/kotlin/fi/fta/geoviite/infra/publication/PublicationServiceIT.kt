@@ -1962,7 +1962,7 @@ constructor(
 
     @Test
     fun `operational point creation and edit can be published`() {
-        val op = operationalPoint()
+        val op = operationalPoint(rinfIdGenerated = "FI1")
         val id = mainDraftContext.save(op).id
         publicationService.publishManualPublication(
             LayoutBranch.main,

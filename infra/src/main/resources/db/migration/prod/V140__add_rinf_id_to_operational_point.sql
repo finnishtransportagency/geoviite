@@ -30,3 +30,11 @@ alter table layout.operational_point
   enable trigger version_update_trigger;
 alter table layout.operational_point
   enable trigger version_row_trigger;
+
+create unique index operational_point_unique_rinf_id_generated_official
+  on layout.operational_point (rinf_id_generated)
+  where rinf_id_generated is not null and not draft;
+
+create unique index operational_point_unique_rinf_id_generated_draft
+  on layout.operational_point (rinf_id_generated)
+  where rinf_id_generated is not null and draft;
