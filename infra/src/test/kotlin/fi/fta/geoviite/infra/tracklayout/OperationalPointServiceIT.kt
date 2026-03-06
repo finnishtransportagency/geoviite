@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -374,5 +375,47 @@ constructor(
         val points = operationalPointService.list(mainDraftContext.context)
         assertEquals(2, points.size)
         assertEquals(listOf(null, null), points.map { it.rinfIdGenerated })
+    }
+
+    @Test
+    fun `should not allow clashing rinf ids in other layout contexts`() {
+        mainOfficialContext.save(operationalPoint(name = "op1", rinfIdGenerated = "FI999999"))
+        assertThrows<DataIntegrityViolationException> {
+            mainDraftContext.save(
+                operationalPoint(
+                    name = "op2",
+                    rinfIdGenerated = "FI999999",
+                    location = Point(100.0, 100.0),
+                    polygon =
+                        Polygon(
+                            Point(90.0, 90.0),
+                            Point(110.0, 90.0),
+                            Point(110.0, 110.0),
+                            Point(90.0, 110.0),
+                            Point(90.0, 90.0),
+                        ),
+                )
+            )
+        }
+
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        assertThrows<DataIntegrityViolationException> {
+            designDraftContext.save(
+                operationalPoint(
+                    name = "op3",
+                    rinfIdGenerated = "FI999999",
+                    location = Point(100.0, 100.0),
+                    polygon =
+                        Polygon(
+                            Point(90.0, 90.0),
+                            Point(110.0, 90.0),
+                            Point(110.0, 110.0),
+                            Point(90.0, 110.0),
+                            Point(90.0, 90.0),
+                        ),
+                )
+            )
+        }
     }
 }

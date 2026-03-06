@@ -31,10 +31,26 @@ alter table layout.operational_point
 alter table layout.operational_point
   enable trigger version_row_trigger;
 
-create unique index operational_point_unique_rinf_id_generated_official
-  on layout.operational_point (rinf_id_generated)
-  where rinf_id_generated is not null and not draft;
+create or replace function layout.check_rinf_id_generated_uniqueness()
+  returns trigger
+  language plpgsql
+as $$
+begin
+  if new.rinf_id_generated is not null then
+    if exists (
+      select 1 from layout.operational_point
+      where rinf_id_generated = new.rinf_id_generated
+        and id != new.id
+    ) then
+      raise exception 'rinf_id_generated % already exists for a different operational point', new.rinf_id_generated
+        using errcode = 'unique_violation';
+    end if;
+  end if;
+  return new;
+end;
+$$;
 
-create unique index operational_point_unique_rinf_id_generated_draft
-  on layout.operational_point (rinf_id_generated)
-  where rinf_id_generated is not null and draft;
+create trigger operational_point_rinf_id_generated_unique_check
+  before insert or update on layout.operational_point
+  for each row
+  execute function layout.check_rinf_id_generated_uniqueness();
