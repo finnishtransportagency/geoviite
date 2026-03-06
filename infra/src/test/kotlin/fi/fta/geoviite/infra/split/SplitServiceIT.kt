@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.split
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.OVERWRITE
@@ -13,6 +14,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionStructure
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
@@ -210,6 +213,89 @@ constructor(
 
         assertEquals(sourceEdges.size, geometry.edges.size)
         sourceEdges.forEachIndexed { i, sourceEdge -> assertMatches(sourceEdge, geometry.edges[i]) }
+    }
+
+    private fun assertTransferTargetTrack(
+        request: SplitRequestTarget,
+        response: SplitTarget,
+    ) {
+        val (track, _) =
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
+        assertEquals(request.descriptionBase, track.descriptionStructure.base)
+        assertEquals(request.descriptionSuffix, track.descriptionStructure.suffix)
+        assertNull(track.duplicateOf)
+    }
+
+    @Test
+    fun `location track split should apply description from request for TRANSFER duplicate`() {
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.save(
+            referenceLine(trackNumberId),
+            referenceLineGeometry(segment(Point(-1000.0, 0.0), Point(1000.0, 0.0))),
+        )
+
+        val switchStartPoints =
+            listOf(Point(100.0, 0.0), Point(200.0, 0.0), Point(300.0, 0.0), Point(400.0, 0.0), Point(500.0, 0.0))
+
+        val (switchesAndSegments, geometry) = geometryWithMultipleSwitches(switchStartPoints)
+
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
+
+        val duplicateIds =
+            listOf(
+                mainOfficialContext.save(
+                    locationTrack(
+                        name = "duplicate between second and third switch",
+                        descriptionStructure = LocationTrackDescriptionStructure(
+                            LocationTrackDescriptionBase("original description"),LocationTrackDescriptionSuffix.NONE
+                        ) ,
+                        trackNumberId = trackNumberId,
+                        duplicateOf = sourceTrack.id,
+                    ),
+                    trackGeometryOfSegments(segment(switchStartPoints[1], switchStartPoints[2])),
+                ),
+                    mainOfficialContext.save(
+                        locationTrack(
+                            name = "duplicate between third and fourth switch",
+                            descriptionStructure = LocationTrackDescriptionStructure(
+                                LocationTrackDescriptionBase("original description 2"),LocationTrackDescriptionSuffix.NONE
+                            ) ,
+                            trackNumberId = trackNumberId,
+                            duplicateOf = sourceTrack.id,
+                        ),
+                        trackGeometryOfSegments(segment(switchStartPoints[2], switchStartPoints[3])),
+                ),
+            )
+                .map { daoResponse -> daoResponse.id }
+
+        val splitRequest =
+            SplitRequest(
+                sourceTrack.id,
+                listOf(
+                    targetRequest(null, "track start"),
+                    targetRequest(
+                        switchesAndSegments.switchIds[1],
+                        "duplicate track between switch 1 and 2",
+                        descriptionBase = "new description",
+                        descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
+                        duplicateTrackId = duplicateIds[0],
+                        operation = SplitTargetDuplicateOperation.OVERWRITE
+                    ),
+                    targetRequest(
+                        switchesAndSegments.switchIds[2],
+                        "duplicate track between switch 2 and 3",
+                        descriptionBase = "new description 2",
+                        descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
+                        duplicateTrackId = duplicateIds[1],
+                        operation = SplitTargetDuplicateOperation.TRANSFER
+                    ),
+                    targetRequest(switchesAndSegments.switchIds[3], "track end"),
+                ),
+            )
+        val splitResult = splitDao.getOrThrow(splitService.split(LayoutBranch.main, splitRequest))
+
+        assertTransferTargetTrack(splitRequest.targetTracks[1], splitResult.targetLocationTracks[1])
+        assertTransferTargetTrack(splitRequest.targetTracks[2], splitResult.targetLocationTracks[2])
     }
 
     @Test
