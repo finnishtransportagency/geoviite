@@ -16,6 +16,7 @@ import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
@@ -316,4 +317,62 @@ constructor(
         rinfType: OperationalPointRinfType = OperationalPointRinfType.SMALL_STATION,
         rinfIdOverride: RinfId? = null,
     ) = ExternalOperationalPointSaveRequest(rinfType, rinfIdOverride)
+
+    @Test
+    fun `should reject duplicate rinf_id_generated values for different operational points`() {
+        val op1 = mainDraftContext.save(operationalPoint(name = "op1", rinfIdGenerated = "FI999999"))
+        assertThrows<DataIntegrityViolationException> {
+            mainDraftContext.save(
+                operationalPoint(
+                    name = "op2",
+                    rinfIdGenerated = "FI999999",
+                    location = Point(100.0, 100.0),
+                    polygon =
+                        Polygon(
+                            Point(90.0, 90.0),
+                            Point(110.0, 90.0),
+                            Point(110.0, 110.0),
+                            Point(90.0, 110.0),
+                            Point(90.0, 90.0),
+                        ),
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `should allow same rinf_id_generated for same operational point in draft and official contexts`() {
+        val draftVersion = mainDraftContext.save(operationalPoint(name = "op1", rinfIdGenerated = "FI888888"))
+        val draft = mainDraftContext.fetch<OperationalPoint>(draftVersion.id)!!
+        mainOfficialContext.save(draft)
+
+        val draftPoint = mainDraftContext.fetch<OperationalPoint>(draftVersion.id)
+        val officialPoint = mainOfficialContext.fetch<OperationalPoint>(draftVersion.id)
+        assertNotNull(draftPoint)
+        assertNotNull(officialPoint)
+        assertEquals(draftPoint.rinfIdGenerated, officialPoint.rinfIdGenerated)
+    }
+
+    @Test
+    fun `should allow multiple operational points with null rinf_id_generated`() {
+        mainDraftContext.save(operationalPoint(name = "op1", rinfIdGenerated = null))
+        mainDraftContext.save(
+            operationalPoint(
+                name = "op2",
+                rinfIdGenerated = null,
+                location = Point(100.0, 100.0),
+                polygon =
+                    Polygon(
+                        Point(90.0, 90.0),
+                        Point(110.0, 90.0),
+                        Point(110.0, 110.0),
+                        Point(90.0, 110.0),
+                        Point(90.0, 90.0),
+                    ),
+            )
+        )
+        val points = operationalPointService.list(mainDraftContext.context)
+        assertEquals(2, points.size)
+        assertEquals(listOf(null, null), points.map { it.rinfIdGenerated })
+    }
 }
