@@ -34,6 +34,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJointConnection
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDescriptionSuffix
@@ -296,6 +297,57 @@ fun validateKmPostNumberDuplication(
 
 fun validateSwitchLocation(switch: LayoutSwitch): List<LayoutValidationIssue> =
     listOfNotNull(validate(switch.joints.isNotEmpty()) { "$VALIDATION_SWITCH.no-location" })
+
+fun validateSwitchJointConnectionsOnDuplicateTracks(
+    switch: LayoutSwitch,
+    jointConnections: List<LayoutSwitchJointConnection>,
+    tracks: List<LocationTrack>
+): List<LayoutValidationIssue> {
+    val trackById = tracks.associateBy { track -> track.id as IntId }
+
+    val differingJointsOnDuplicateTracks =
+        jointConnections.flatMap { jointConnection ->
+            jointConnection.accurateMatches.flatMap { match ->
+                val duplicateTrackMatches =
+                    jointConnection.accurateMatches.filter { otherMatch ->
+                        trackById[otherMatch.locationTrackId]?.duplicateOf == match.locationTrackId
+                    }
+                duplicateTrackMatches.mapNotNull { duplicateMatch ->
+                    if (!match.location.isSame(duplicateMatch.location, 0.0001)) {
+                        val track =
+                            requireNotNull(trackById[match.locationTrackId]) {
+                                "Location track ${match.locationTrackId} not found in given tracks"
+                            }
+                        val duplicateTrack =
+                            requireNotNull(trackById[duplicateMatch.locationTrackId]) {
+                                "Duplicate location track ${duplicateMatch.locationTrackId} not found in given tracks"
+                            }
+                        (track to duplicateTrack) to jointConnection.number
+                    } else {
+                        null
+                    }
+                }
+            }
+        }
+
+    val validationIssues =
+        differingJointsOnDuplicateTracks
+            .groupBy({ (trackPair, _) -> trackPair }, { (_, jointNumber) -> jointNumber })
+            .map { (trackPair, joints) ->
+                val (track, duplicateTrack) = trackPair
+                val jointsStr = joints.map { joint -> joint.intValue }.joinToString(", ")
+                LayoutValidationIssue(
+                    ERROR,
+                    LocalizationKey.of("$VALIDATION_SWITCH.duplicate-track-locations-differ"),
+                    localizationParams(
+                        "switchName" to switch.name,
+                        "trackName" to track.name,
+                        "duplicateTrackName" to duplicateTrack.name,
+                        "jointNumbers" to jointsStr),
+                    inRelationTo = setOf(PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH)))
+            }
+    return validationIssues
+}
 
 private fun <T : LayoutAsset<T>> validateNameDuplication(
     messagePrefix: String,

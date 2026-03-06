@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AddressPointsResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -20,6 +21,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJointConnection
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJointMatch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -35,8 +38,8 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.RinfId
 import fi.fta.geoviite.infra.tracklayout.UicCode
+import fi.fta.geoviite.infra.tracklayout.groupConnectionsByJointNumber
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.component1
 
 class NullableCache<K, V> {
     val map: ConcurrentHashMap<K, NullableValue<V>> = ConcurrentHashMap()
@@ -262,6 +265,24 @@ class ValidationContext(
                 val structure = switch?.switchStructureId?.let(switchLibraryService::getSwitchStructure)
                 SwitchTrackLinking(switchId, name, switch, structure, links)
             }
+
+    fun getSwitchJointConnections(
+        switchId: IntId<LayoutSwitch>,
+        tracks: List<Pair<LocationTrack, LocationTrackGeometry>>
+    ): List<LayoutSwitchJointConnection> {
+        return tracks
+            .flatMap { (track, geometry) ->
+                geometry.trackSwitchLinks
+                    .filter { link -> link.switchId == switchId }
+                    .map { link ->
+                        LayoutSwitchJointConnection(
+                            link.jointNumber,
+                            accurateMatches = listOf(LayoutSwitchJointMatch(track.id as IntId, Point(link.location))),
+                            locationAccuracy = null)
+                    }
+            }
+            .let { groupConnectionsByJointNumber(it) }
+    }
 
     fun getPublicationSplits(): List<Split> =
         allUnfinishedSplits.filter { split -> publicationSet.containsSplit(split.id) }
