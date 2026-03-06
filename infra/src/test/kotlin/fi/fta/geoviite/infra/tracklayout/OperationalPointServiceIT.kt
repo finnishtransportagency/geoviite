@@ -320,24 +320,24 @@ constructor(
     ) = ExternalOperationalPointSaveRequest(rinfType, rinfIdOverride)
 
     @Test
-    fun `should reject duplicate rinf_id_generated values for different operational points`() {
-        val op1 = mainDraftContext.save(operationalPoint(name = "op1", rinfIdGenerated = "FI999999"))
+    fun `should reject duplicate rinf_id_generated values for drafts`() {
+        mainDraftContext.save(operationalPoint(name = "op1", rinfIdGenerated = "FI999999"))
         assertThrows<DataIntegrityViolationException> {
-            mainDraftContext.save(
-                operationalPoint(
-                    name = "op2",
-                    rinfIdGenerated = "FI999999",
-                    location = Point(100.0, 100.0),
-                    polygon =
-                        Polygon(
-                            Point(90.0, 90.0),
-                            Point(110.0, 90.0),
-                            Point(110.0, 110.0),
-                            Point(90.0, 110.0),
-                            Point(90.0, 90.0),
-                        ),
-                )
-            )
+            mainDraftContext.save(operationalPoint(name = "op2", rinfIdGenerated = "FI999999"))
+        }
+    }
+
+    @Test
+    fun `should reject duplicate rinf_id_generated values found in other layout contexts`() {
+        mainOfficialContext.save(operationalPoint(name = "op1", rinfIdGenerated = "FI999999"))
+        assertThrows<DataIntegrityViolationException> {
+            mainDraftContext.save(operationalPoint(name = "op2", rinfIdGenerated = "FI999999"))
+        }
+
+        val designBranch = testDBService.createDesignBranch()
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+        assertThrows<DataIntegrityViolationException> {
+            designDraftContext.save(operationalPoint(name = "op3", rinfIdGenerated = "FI999999"))
         }
     }
 
@@ -375,47 +375,5 @@ constructor(
         val points = operationalPointService.list(mainDraftContext.context)
         assertEquals(2, points.size)
         assertEquals(listOf(null, null), points.map { it.rinfIdGenerated })
-    }
-
-    @Test
-    fun `should not allow clashing rinf ids in other layout contexts`() {
-        mainOfficialContext.save(operationalPoint(name = "op1", rinfIdGenerated = "FI999999"))
-        assertThrows<DataIntegrityViolationException> {
-            mainDraftContext.save(
-                operationalPoint(
-                    name = "op2",
-                    rinfIdGenerated = "FI999999",
-                    location = Point(100.0, 100.0),
-                    polygon =
-                        Polygon(
-                            Point(90.0, 90.0),
-                            Point(110.0, 90.0),
-                            Point(110.0, 110.0),
-                            Point(90.0, 110.0),
-                            Point(90.0, 90.0),
-                        ),
-                )
-            )
-        }
-
-        val designBranch = testDBService.createDesignBranch()
-        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        assertThrows<DataIntegrityViolationException> {
-            designDraftContext.save(
-                operationalPoint(
-                    name = "op3",
-                    rinfIdGenerated = "FI999999",
-                    location = Point(100.0, 100.0),
-                    polygon =
-                        Polygon(
-                            Point(90.0, 90.0),
-                            Point(110.0, 90.0),
-                            Point(110.0, 110.0),
-                            Point(90.0, 110.0),
-                            Point(90.0, 90.0),
-                        ),
-                )
-            )
-        }
     }
 }
