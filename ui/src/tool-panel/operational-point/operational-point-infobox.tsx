@@ -35,7 +35,6 @@ import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { useAppNavigate } from 'common/navigate';
 import { OperationalPointTracksInfobox } from 'tool-panel/operational-point/operational-point-tracks-infobox';
 import { OperationalPointStationLinksInfobox } from 'tool-panel/operational-point/operational-point-station-links-infobox';
-import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 type OperationalPointInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -47,7 +46,6 @@ type OperationalPointInfoboxProps = {
     onDataChange: () => void;
     onSelect: (items: OnSelectOptions) => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    setToolPanelTab: (tab: ToolPanelAsset | undefined) => void;
     onShowOnMap: () => void;
     onStartPlacingLocation: () => void;
     onStopPlacingLocation: () => void;
@@ -67,7 +65,6 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     onDataChange,
     onSelect,
     onUnselect,
-    setToolPanelTab,
     onShowOnMap,
     onStartPlacingLocation,
     onStopPlacingLocation,
@@ -85,24 +82,28 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
 
     const selectLocationTrack = React.useCallback(
         (locationTrackId: LocationTrackId) => {
-            onSelect({ locationTracks: [locationTrackId] });
-            setToolPanelTab({
-                id: locationTrackId,
-                type: 'LOCATION_TRACK',
+            onSelect({
+                locationTracks: [locationTrackId],
+                selectedTab: {
+                    id: locationTrackId,
+                    type: 'LOCATION_TRACK',
+                },
             });
         },
-        [onSelect, setToolPanelTab],
+        [onSelect],
     );
 
     const selectSwitch = React.useCallback(
         (switchId: LayoutSwitchId) => {
-            onSelect({ switches: [switchId] });
-            setToolPanelTab({
-                id: switchId,
-                type: 'SWITCH',
+            onSelect({
+                switches: [switchId],
+                selectedTab: {
+                    id: switchId,
+                    type: 'SWITCH',
+                },
             });
         },
-        [onSelect, setToolPanelTab],
+        [onSelect],
     );
 
     const changeInfo = useLoader(

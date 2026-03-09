@@ -16,6 +16,16 @@ type OperationalPointPanelProps = {
     disabled: boolean;
 };
 
+function getStatus(selected: boolean, disabled: boolean): OperationalPointBadgeStatus {
+    if (disabled) {
+        return OperationalPointBadgeStatus.DISABLED;
+    } else if (selected) {
+        return OperationalPointBadgeStatus.SELECTED;
+    } else {
+        return OperationalPointBadgeStatus.DEFAULT;
+    }
+}
+
 export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
     operationalPoints,
     onToggleOperationalPointSelection,
@@ -41,14 +51,9 @@ export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
     return (
         <ol className={styles['operational-point-panel__operational-points']}>
             {visibleOperationalPoints.map((op) => {
-                const isSelected = selectedOperationalPoints?.some(
-                    (selectedOp) => selectedOp === op.id,
-                );
-                const status = disabled
-                    ? OperationalPointBadgeStatus.DISABLED
-                    : isSelected
-                      ? OperationalPointBadgeStatus.SELECTED
-                      : OperationalPointBadgeStatus.DEFAULT;
+                const isSelected =
+                    selectedOperationalPoints?.some((selectedOp) => selectedOp === op.id) ?? false;
+                const status = getStatus(isSelected, disabled);
 
                 return (
                     <li key={op.id}>
