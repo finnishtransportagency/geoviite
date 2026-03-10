@@ -1,6 +1,5 @@
 import {
     DuplicateStatus,
-    LayoutLocationTrack,
     LayoutSwitch,
     LocationTrackId,
     SplitPoint,
@@ -15,7 +14,6 @@ import {
     SplitTargetId,
     SplitTargetOperation,
 } from 'tool-panel/location-track/split-store';
-import { findById } from 'utils/array-utils';
 import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
 import {
     validateLocationTrackDescriptionBase,
@@ -43,20 +41,13 @@ export const splitRequest = (
     sourceTrackId: LocationTrackId,
     firstSplit: FirstSplitTargetCandidate,
     splits: SplitTargetCandidate[],
-    allDuplicates: LayoutLocationTrack[],
 ): SplitRequest => ({
     sourceTrackId,
-    targetTracks: [firstSplit, ...splits].map((s) => {
-        const duplicate = s.duplicateTrackId
-            ? findById(allDuplicates, s.duplicateTrackId)
-            : undefined;
-        return splitToRequestTarget(s, duplicate);
-    }),
+    targetTracks: [firstSplit, ...splits].map((s) => splitToRequestTarget(s)),
 });
 
 const splitToRequestTarget = (
     split: SplitTargetCandidate | FirstSplitTargetCandidate,
-    duplicate: LayoutLocationTrack | undefined,
 ): SplitRequestTarget => {
     const duplicateTrack: SplitRequestTargetDuplicate | undefined =
         split.duplicateTrackId && split.operation !== 'CREATE'
@@ -69,10 +60,8 @@ const splitToRequestTarget = (
         namingScheme: split.namingScheme,
         nameFreeText: split.nameFreeText,
         nameSpecifier: split.nameSpecifier,
-        descriptionBase:
-            (duplicate ? duplicate.descriptionStructure.base : split.descriptionBase) ?? '',
-        descriptionSuffix:
-            (duplicate ? duplicate.descriptionStructure.suffix : split.suffixMode) ?? 'NONE',
+        descriptionBase: split.descriptionBase ?? '',
+        descriptionSuffix: split.suffixMode ?? 'NONE',
         duplicateTrack: duplicateTrack,
         startAtSwitchId:
             split.splitPoint.type === 'SWITCH_SPLIT_POINT' ? split.splitPoint.switchId : undefined,

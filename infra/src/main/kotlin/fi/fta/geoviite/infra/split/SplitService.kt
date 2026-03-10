@@ -624,6 +624,7 @@ fun splitLocationTrack(
                             val newEdges = connectPartialDuplicateEdges(dup.geometry, edges, replacementIndices)
                             updateSplitTargetForTransferAssets(
                                 duplicateTrack = dup.track,
+                                request = target.request,
                                 topologicalConnectivityType = connectivityType,
                             ) to TmpLocationTrackGeometry.of(newEdges, dup.track.id as? IntId)
                         }
@@ -710,9 +711,11 @@ fun validateSplitResult(results: List<SplitTargetResult>, geometry: LocationTrac
 
 private fun updateSplitTargetForTransferAssets(
     duplicateTrack: LocationTrack,
+    request: SplitRequestTarget,
     topologicalConnectivityType: TopologicalConnectivityType,
 ): LocationTrack {
     return duplicateTrack.copy(
+        descriptionStructure = request.descriptionStructure,
         // After split, the track is no longer duplicate
         duplicateOf = null,
         topologicalConnectivity = topologicalConnectivityType,

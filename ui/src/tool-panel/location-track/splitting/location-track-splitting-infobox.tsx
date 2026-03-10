@@ -288,7 +288,6 @@ const createSplitComponent = (
                 split={split}
                 onRemove={split.type === 'SPLIT' ? removeSplit : undefined}
                 updateSplit={updateSplit}
-                duplicateTrackId={split.duplicateTrackId}
                 nameIssues={nameIssues}
                 descriptionIssues={descriptionIssues}
                 switchIssues={switchIssues}
@@ -431,12 +430,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const postSplit = () => {
         startPostingSplit();
         postSplitLocationTrack(
-            splitRequest(
-                locationTrack.id,
-                splittingState.firstSplit,
-                splittingState.splits,
-                duplicateTracksInCurrentSplits,
-            ),
+            splitRequest(locationTrack.id, splittingState.firstSplit, splittingState.splits),
             layoutContext.branch,
         )
             .then(async () => {
