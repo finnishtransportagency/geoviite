@@ -64,11 +64,12 @@ const subtractCursor = new Style({
     }),
 });
 
+const id = 'area-select';
 export function createAreaSelectTool(
     onSelect: (items: LayerItemSearchResult, mode: SelectMode) => void,
 ): MapToolWithButton {
     return {
-        id: 'area-select',
+        id,
         housesInteraction: true,
         customCursor: () => 'crosshair',
         activate: (map: OlMap, layers: MapLayer[]) => {
@@ -134,7 +135,8 @@ export function createAreaSelectTool(
         component: ({ isActive, setActiveTool, disabled }) => {
             return (
                 <MapToolButton
-                    setActive={() => setActiveTool(createAreaSelectTool(onSelect))}
+                    id={id}
+                    setActive={setActiveTool}
                     isActive={isActive}
                     icon={Icons.SelectArea}
                     disabled={disabled}

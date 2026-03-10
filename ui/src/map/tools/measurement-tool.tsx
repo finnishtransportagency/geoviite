@@ -68,8 +68,9 @@ function findClosestPoints(
 //Tolerance for snapping, in pixels
 const hitTolerance = 8;
 
+const id = 'measure';
 export const measurementTool: MapToolWithButton = {
-    id: 'measure',
+    id,
     housesInteraction: true,
     activate: (map: OlMap) => {
         const tooltipElement = document.createElement('div');
@@ -174,8 +175,9 @@ export const measurementTool: MapToolWithButton = {
     component: ({ isActive, setActiveTool, disabled }) => {
         return (
             <MapToolButton
+                id={id}
                 isActive={isActive}
-                setActive={() => setActiveTool(measurementTool)}
+                setActive={setActiveTool}
                 icon={Icons.Measure}
                 disabled={disabled}
             />

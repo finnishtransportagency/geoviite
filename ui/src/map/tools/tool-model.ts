@@ -13,7 +13,7 @@ import { Polygon } from 'model/geometry';
 
 export type DeactivateToolFn = () => void;
 
-type MapToolId =
+export type MapToolId =
     | 'select'
     | 'highlight'
     | 'select-or-highlight'
@@ -34,7 +34,7 @@ export type MapToolActivateOptions = {
 
 export type MapToolProps = {
     isActive: boolean;
-    setActiveTool: (tool: MapTool) => void;
+    setActiveTool: (id: MapToolId) => void;
     disabled?: boolean;
     hidden?: boolean;
 };

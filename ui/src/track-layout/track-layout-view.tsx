@@ -54,10 +54,12 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     );
 
     const mapTools = React.useMemo(() => {
-        const selectableTools = [selectOrHighlightComboTool, measurementTool, routeFindingTool].map((tool) => ({
-            ...tool,
-            disabled: isPlacingOperationalPointArea,
-        }));
+        const selectableTools = [selectOrHighlightComboTool, measurementTool, routeFindingTool].map(
+            (tool) => ({
+                ...tool,
+                disabled: isPlacingOperationalPointArea,
+            }),
+        );
         const operationalPointTool = {
             ...operationalPointAreaTool,
             disabled: !isPlacingOperationalPointArea,
@@ -96,7 +98,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                                     hoveredOverPlanSection={hoveredOverPlanSection}
                                     routeResult={routeResult}
                                     mapTools={mapTools}
-                                    customActiveMapTool={selectOrHighlightComboTool}
+                                    customActiveMapToolId={selectOrHighlightComboTool?.id}
                                 />
                             </MapContext.Provider>
                         </div>

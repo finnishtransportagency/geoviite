@@ -10,8 +10,9 @@ import { getFeatureCoords } from 'map/layers/utils/layer-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { MapToolButton } from 'map/tools/map-tool-button';
 
+const id = 'operational-point-area';
 export const operationalPointAreaTool: MapToolWithButton = {
-    id: 'operational-point-area',
+    id,
     housesInteraction: true,
     customCursor: (options: MapToolActivateOptions) =>
         options.linkingState?.type === 'PlacingOperationalPointArea' && !options.linkingState.area
@@ -49,8 +50,9 @@ export const operationalPointAreaTool: MapToolWithButton = {
     component: ({ isActive, setActiveTool, disabled, hidden }) => {
         return (
             <MapToolButton
+                id={id}
                 isActive={isActive}
-                setActive={() => setActiveTool(operationalPointAreaTool)}
+                setActive={setActiveTool}
                 icon={Icons.Add}
                 disabled={disabled}
                 hidden={hidden}

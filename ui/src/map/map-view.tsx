@@ -24,8 +24,8 @@ import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import {
     DeactivateToolFn,
-    MapTool,
     MapToolActivateOptions,
+    MapToolId,
     MapToolWithButton,
 } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
@@ -145,7 +145,7 @@ export type MapViewProps = {
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     publicationCandidates?: PublicationCandidate[];
-    customActiveMapTool?: MapTool;
+    customActiveMapToolId?: MapToolId;
     designPublicationMode?: DesignPublicationMode;
     mapTools?: MapToolWithButton[];
     layoutContextMode?: LayoutContextMode;
@@ -264,7 +264,7 @@ const MapView: React.FC<MapViewProps> = ({
     onMapLayerChange,
     onSetOperationalPointPolygon,
     publicationCandidates,
-    customActiveMapTool,
+    customActiveMapToolId,
     designPublicationMode,
     mapTools,
     layoutContextMode,
@@ -274,9 +274,10 @@ const MapView: React.FC<MapViewProps> = ({
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
-    const [activeTool, setActiveTool] = React.useState<MapTool | undefined>(
-        customActiveMapTool || (mapTools && first(mapTools)),
+    const [activeToolId, setActiveToolId] = React.useState<MapToolId | undefined>(
+        customActiveMapToolId || (mapTools && first(mapTools)?.id),
     );
+    const activeTool = mapTools?.find((tool) => tool.id === activeToolId);
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
     const inPreviewView = !!designPublicationMode;
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
@@ -821,10 +822,6 @@ const MapView: React.FC<MapViewProps> = ({
         };
     }, [olMap, visibleLayers, activeTool]);
 
-    React.useEffect(() => {
-        setActiveTool(customActiveMapTool);
-    }, [customActiveMapTool]);
-
     const recreateActiveMapTool = (
         map: OlMap | undefined,
         layers: MapLayer[],
@@ -851,23 +848,16 @@ const MapView: React.FC<MapViewProps> = ({
     }, [olMap, activeTool, linkingState, visibleLayers]);
 
     React.useEffect(() => {
-        if (mapTools && activeTool) {
-            const newVersionOfTool = mapTools.find((tool) => tool.id === activeTool.id);
-            setActiveTool(newVersionOfTool);
-        }
-    }, [mapTools]);
-
-    React.useEffect(() => {
         if (linkingState?.type === LinkingType.PlacingOperationalPointArea) {
             const areaTool = mapTools?.find((tool) => tool.id === 'operational-point-area');
             if (areaTool) {
-                setActiveTool(areaTool);
+                setActiveToolId(areaTool?.id);
             }
         } else if (activeTool?.id === 'operational-point-area') {
             // When leaving operational point area mode, revert to default tool
             const selectTool = mapTools?.find((tool) => tool.id === 'select-or-highlight');
             if (selectTool) {
-                setActiveTool(selectTool);
+                setActiveToolId(selectTool?.id);
             }
         }
     }, [linkingState, mapTools, activeTool]);
@@ -889,7 +879,7 @@ const MapView: React.FC<MapViewProps> = ({
                             <ToolComponent
                                 key={tool.id}
                                 isActive={isActive}
-                                setActiveTool={setActiveTool}
+                                setActiveTool={setActiveToolId}
                                 disabled={tool.disabled}
                                 hidden={tool.hidden}
                             />

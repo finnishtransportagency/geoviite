@@ -5,8 +5,9 @@ import { highlightTool } from 'map/tools/highlight-tool';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { MapToolButton } from 'map/tools/map-tool-button';
 
+const id = 'select-or-highlight';
 export const selectOrHighlightComboTool: MapToolWithButton = {
-    id: 'select-or-highlight',
+    id,
     housesInteraction: selectTool.housesInteraction || highlightTool.housesInteraction,
     activate: (map, layers, options) => {
         const deactivateSelect = selectTool.activate(map, layers, options);
@@ -21,8 +22,9 @@ export const selectOrHighlightComboTool: MapToolWithButton = {
     component: ({ isActive, setActiveTool, disabled }) => {
         return (
             <MapToolButton
+                id={id}
                 isActive={isActive}
-                setActive={() => setActiveTool(selectOrHighlightComboTool)}
+                setActive={setActiveTool}
                 icon={Icons.Select}
                 disabled={disabled}
             />
