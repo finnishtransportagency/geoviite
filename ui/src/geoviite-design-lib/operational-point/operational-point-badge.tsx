@@ -22,7 +22,7 @@ type OperationalPointBadgeProps = {
 };
 
 export enum OperationalPointBadgeStatus {
-    DEFAULT = 'operational-point-badge--default',
+    DEFAULT = 'operational-point-badge',
     SELECTED = 'operational-point-badge--selected',
     DISABLED = 'operational-point-badge--disabled',
 }
