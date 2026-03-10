@@ -301,7 +301,7 @@ fun validateSwitchLocation(switch: LayoutSwitch): List<LayoutValidationIssue> =
 fun validateSwitchJointConnectionsOnDuplicateTracks(
     switch: LayoutSwitch,
     jointConnections: List<LayoutSwitchJointConnection>,
-    tracks: List<LocationTrack>
+    tracks: List<LocationTrack>,
 ): List<LayoutValidationIssue> {
     val trackById = tracks.associateBy { track -> track.id as IntId }
 
@@ -343,8 +343,10 @@ fun validateSwitchJointConnectionsOnDuplicateTracks(
                         "switchName" to switch.name,
                         "trackName" to track.name,
                         "duplicateTrackName" to duplicateTrack.name,
-                        "jointNumbers" to jointsStr),
-                    inRelationTo = setOf(PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH)))
+                        "jointNumbers" to jointsStr,
+                    ),
+                    inRelationTo = setOf(PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH)),
+                )
             }
     return validationIssues
 }
@@ -423,6 +425,7 @@ fun validateSwitchNameShortenability(switch: LayoutSwitch) =
 
 fun validateDescriptionMandatedSwitchLinks(track: LocationTrack): List<LayoutValidationIssue> {
     val hasBothEndSwitches = track.startSwitchId != null && track.endSwitchId != null
+    val isInternalToSwitch = hasBothEndSwitches && track.startSwitchId == track.endSwitchId
     val hasOnlyOneEndSwitch = (track.startSwitchId != null || track.endSwitchId != null) && !hasBothEndSwitches
 
     return when (track.descriptionStructure.suffix) {
@@ -435,8 +438,13 @@ fun validateDescriptionMandatedSwitchLinks(track: LocationTrack): List<LayoutVal
         LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY,
         LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER -> {
             listOfNotNull(
-                validate(hasOnlyOneEndSwitch) { "$VALIDATION_LOCATION_TRACK.switch.missing-one-switch" },
-                validate(!hasBothEndSwitches) { "$VALIDATION_LOCATION_TRACK.switch.too-many-switches" },
+                validate(hasOnlyOneEndSwitch || isInternalToSwitch) {
+                    if (hasBothEndSwitches) {
+                        "$VALIDATION_LOCATION_TRACK.switch.too-many-switches"
+                    } else {
+                        "$VALIDATION_LOCATION_TRACK.switch.missing-one-switch"
+                    }
+                }
             )
         }
 

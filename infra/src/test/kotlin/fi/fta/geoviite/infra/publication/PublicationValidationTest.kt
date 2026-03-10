@@ -706,7 +706,8 @@ class PublicationValidationTest {
 
     @Test
     fun `Track that ends in ownership boundary accepts exactly one terminus switch`() {
-        val switchId = switch(id = IntId(0)).id as IntId
+        val startSwitchId = IntId<LayoutSwitch>(0)
+        val endSwitchId = IntId<LayoutSwitch>(1)
         val trackWithoutSwitches =
             locationTrack(
                 IntId(0),
@@ -716,9 +717,9 @@ class PublicationValidationTest {
                         suffix = LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY,
                     ),
             )
-        val trackWithStartSwitch = trackWithoutSwitches.copy(startSwitchId = switchId)
-        val trackWithEndSwitch = trackWithoutSwitches.copy(endSwitchId = switchId)
-        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = switchId, endSwitchId = switchId)
+        val trackWithStartSwitch = trackWithoutSwitches.copy(startSwitchId = startSwitchId)
+        val trackWithEndSwitch = trackWithoutSwitches.copy(endSwitchId = endSwitchId)
+        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = startSwitchId, endSwitchId = endSwitchId)
 
         assertContainsError(
             true,
@@ -736,7 +737,8 @@ class PublicationValidationTest {
 
     @Test
     fun `Track that ends in buffer accepts exactly one terminus switch`() {
-        val switchId = switch(id = IntId(0)).id as IntId
+        val startSwitchId = IntId<LayoutSwitch>(0)
+        val endSwitchId = IntId<LayoutSwitch>(1)
         val trackWithoutSwitches =
             locationTrack(
                 IntId(0),
@@ -746,9 +748,9 @@ class PublicationValidationTest {
                         suffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
                     ),
             )
-        val trackWithStartSwitch = trackWithoutSwitches.copy(startSwitchId = switchId)
-        val trackWithEndSwitch = trackWithoutSwitches.copy(endSwitchId = switchId)
-        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = switchId, endSwitchId = switchId)
+        val trackWithStartSwitch = trackWithoutSwitches.copy(startSwitchId = startSwitchId)
+        val trackWithEndSwitch = trackWithoutSwitches.copy(endSwitchId = endSwitchId)
+        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = startSwitchId, endSwitchId = endSwitchId)
 
         assertContainsError(
             true,
@@ -762,6 +764,31 @@ class PublicationValidationTest {
             validateDescriptionMandatedSwitchLinks(trackWithBothSwitches),
             "$VALIDATION_LOCATION_TRACK.switch.too-many-switches",
         )
+    }
+
+    @Test
+    fun `track that's internal to switch can have a single-ended name`() {
+        val switchId = IntId<LayoutSwitch>(0)
+        val track = locationTrack(IntId(0), startSwitch = switchId, endSwitch = switchId)
+
+        val bufferTrack =
+            track.copy(
+                descriptionStructure =
+                    LocationTrackDescriptionStructure(
+                        base = LocationTrackDescriptionBase("desc"),
+                        suffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
+                    )
+            )
+        val ownershipBoundaryTrack =
+            track.copy(
+                descriptionStructure =
+                    LocationTrackDescriptionStructure(
+                        base = LocationTrackDescriptionBase("desc"),
+                        suffix = LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY,
+                    )
+            )
+        assertEquals(0, validateDescriptionMandatedSwitchLinks(bufferTrack).size)
+        assertEquals(0, validateDescriptionMandatedSwitchLinks(ownershipBoundaryTrack).size)
     }
 
     @Test
