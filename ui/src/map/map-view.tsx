@@ -22,7 +22,12 @@ import {
 } from 'map/map-model';
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
-import { MapTool, MapToolActivateOptions, MapToolWithButton } from './tools/tool-model';
+import {
+    DeactivateToolFn,
+    MapTool,
+    MapToolActivateOptions,
+    MapToolWithButton,
+} from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { LineString, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
@@ -820,13 +825,30 @@ const MapView: React.FC<MapViewProps> = ({
         setActiveTool(customActiveMapTool);
     }, [customActiveMapTool]);
 
+    const recreateActiveMapTool = (
+        map: OlMap | undefined,
+        layers: MapLayer[],
+        toolActivateOptions: MapToolActivateOptions,
+    ): DeactivateToolFn =>
+        map && activeTool
+            ? activeTool?.activate(map, layers, toolActivateOptions)
+            : () => undefined;
+
     React.useEffect(() => {
-        if (activeTool && olMap) {
-            return activeTool.activate(olMap, visibleLayers, toolActivateOptions);
+        if (activeTool?.housesInteraction) {
+            return recreateActiveMapTool(olMap, visibleLayers, toolActivateOptions);
         } else {
             return () => undefined;
         }
-    }, [olMap, activeTool, visibleLayers]);
+    }, [olMap, activeTool, linkingState]);
+
+    React.useEffect(() => {
+        if (activeTool && !activeTool.housesInteraction) {
+            return recreateActiveMapTool(olMap, visibleLayers, toolActivateOptions);
+        } else {
+            return () => undefined;
+        }
+    }, [olMap, activeTool, linkingState, visibleLayers]);
 
     React.useEffect(() => {
         if (mapTools && activeTool) {

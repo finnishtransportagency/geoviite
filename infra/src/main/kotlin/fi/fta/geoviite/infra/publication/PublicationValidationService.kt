@@ -426,11 +426,7 @@ constructor(
 
             val referenceIssues =
                 if (kmPost.trackNumberId == null) listOf()
-                else
-                    validateKmPostReferences(
-                        kmPost,
-                        context.getTrackNumberLiveness(kmPost.trackNumberId),
-                    )
+                else validateKmPostReferences(kmPost, context.getTrackNumberLiveness(kmPost.trackNumberId))
 
             val geocodingIssues =
                 if (kmPost.exists && trackNumber?.exists == true && referenceLine != null) {
@@ -464,6 +460,7 @@ constructor(
         val switchLivenessType = validationContext.getSwitchLivenessType(id)
         val linkedTracksAndGeometries = validationContext.getSwitchTracksWithGeometries(id)
         val linkedTracks = linkedTracksAndGeometries.map(Pair<LocationTrack, *>::first)
+        val jointConnections = validationContext.getSwitchJointConnections(id, linkedTracksAndGeometries)
 
         val incomingReferencesIssues = validateReferencesToSwitch(switchLivenessType, linkedTracks)
         if (switch == null) {
@@ -477,6 +474,10 @@ constructor(
                 } ?: emptyList()
 
             val locationIssues = if (switch.exists) validateSwitchLocation(switch) else emptyList()
+
+            val jointConnectionsDifferIssues =
+                validateSwitchJointConnectionsOnDuplicateTracks(switch, jointConnections, linkedTracks)
+
             val structureIssues =
                 locationIssues.ifEmpty {
                     validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndGeometries)
@@ -499,7 +500,8 @@ constructor(
                 outgoingReferencesIssues +
                 structureIssues +
                 duplicationIssues +
-                oidDuplicationIssues
+                oidDuplicationIssues +
+                jointConnectionsDifferIssues
         }
     }
 
@@ -519,7 +521,7 @@ constructor(
             val trackNumber = validationContext.getTrackNumber(referenceLine.trackNumberId)
             val outgoingReferenceIssues =
                 validateReferencesFromReferenceLine(
-                    trackNumberLiveness = validationContext.getTrackNumberLiveness(referenceLine.trackNumberId),
+                    trackNumberLiveness = validationContext.getTrackNumberLiveness(referenceLine.trackNumberId)
                 )
             val alignmentIssues =
                 if (trackNumber?.exists == true) {
@@ -559,8 +561,17 @@ constructor(
         val trackNetworkTopologyIssues =
             validationContext.getPotentiallyAffectedSwitches(id).filter(LayoutSwitch::exists).flatMap { switch ->
                 val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-                val switchTracks = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
-                validateSwitchTopologicalConnectivity(switch, structure, switchTracks, trackAndGeometry?.first)
+                val switchTracksAndGeometries = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
+                val switchTracks = switchTracksAndGeometries.map { (track, _) -> track }
+
+                val jointConnections = validationContext.getSwitchJointConnections(switch.id, switchTracksAndGeometries)
+                val jointConnectionsDifferIssues =
+                    validateSwitchJointConnectionsOnDuplicateTracks(switch, jointConnections, switchTracks)
+                val topologicalConnectivityIssues =
+                    validateSwitchTopologicalConnectivity(
+                        switch, structure, switchTracksAndGeometries, trackAndGeometry?.first)
+
+                jointConnectionsDifferIssues + topologicalConnectivityIssues
             }
         val incomingReferenceIssues =
             validateReferencesToLocationTrack(trackLivenessType, validationContext.getDuplicateTracks(id))
@@ -702,12 +713,12 @@ constructor(
                     validationContext.target.validationTargetType,
                 )
 
-        val rinfCodeIssues =
+        val rinfTypeIssues =
             listOfNotNull(
                 validate(
                     operationalPoint.rinfType != null || operationalPoint.raideType == OperationalPointRaideType.OLP
                 ) {
-                    "$VALIDATION_OPERATIONAL_POINT.rinf-code-missing"
+                    "$VALIDATION_OPERATIONAL_POINT.rinf-type-missing"
                 }
             )
         val polygonOverlapIssues =
@@ -737,10 +748,24 @@ constructor(
                 },
             )
 
+        val rinfIdIssues = validateOperationalPointRinfId(operationalPoint)
+        val rinfIdDuplicationIssues =
+            if (operationalPoint.rinfIdOverride == null) emptyList()
+            else
+                validateOperationalPointRinfIdOverrideDuplication(
+                    operationalPoint,
+                    validationContext.getOperationalPointsByRinfId(operationalPoint.rinfIdOverride).filter {
+                        it.raideType != OperationalPointRaideType.OLP
+                    },
+                    validationContext.target.validationTargetType,
+                )
+
         return nameDuplicationIssues +
             abbreviationDuplicationIssues +
             uicCodeIssues +
-            rinfCodeIssues +
+            rinfTypeIssues +
+            rinfIdIssues +
+            rinfIdDuplicationIssues +
             polygonOverlapIssues +
             locationIssues +
             geometryQualityIssues

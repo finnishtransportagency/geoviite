@@ -5,6 +5,7 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 
 export const selectTool: MapTool = {
     id: 'select',
+    housesInteraction: false,
     activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => {
         const clickEvent = map.on('click', ({ coordinate }) => {
             const hitArea = getDefaultHitArea(map, coordinate);

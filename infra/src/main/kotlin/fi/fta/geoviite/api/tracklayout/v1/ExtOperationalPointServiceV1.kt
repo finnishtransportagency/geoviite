@@ -6,6 +6,8 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.geography.create2DPolygonString
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -181,9 +183,12 @@ constructor(
     }
 
     private fun createExtOperationalPoint(data: OperationalPointData, coordinateSystem: Srid): ExtOperationalPointV1 {
+        val polygonPointsTransformed =
+            data.operationalPoint.polygon?.points?.map { point -> toExtCoordinate(point, coordinateSystem) }
+
         return ExtOperationalPointV1(
             operationalPointOid = ExtOidV1(data.oid),
-            rinfId = null,
+            rinfId = data.operationalPoint.rinfId,
             name = data.operationalPoint.name,
             abbreviation = data.operationalPoint.abbreviation,
             state = ExtOperationalPointStateV1.of(data.operationalPoint.state),
@@ -196,10 +201,8 @@ constructor(
                 data.trackOids.map { trackOid -> ExtOperationalPointTrackV1(locationTrackOid = ExtOidV1(trackOid)) },
             switches =
                 data.switchOids.map { switchOid -> ExtOperationalPointSwitchV1(switchOid = ExtOidV1(switchOid)) },
-            area =
-                data.operationalPoint.polygon?.let { polygon ->
-                    ExtPolygonV1(points = polygon.points.map { point -> toExtCoordinate(point, coordinateSystem) })
-                },
+            area = polygonPointsTransformed?.let(::ExtPolygonV1),
+            areaWkt = polygonPointsTransformed?.map { (x, y) -> Point(x, y) }?.let(::create2DPolygonString),
         )
     }
 

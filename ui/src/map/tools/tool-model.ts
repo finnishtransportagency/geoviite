@@ -43,6 +43,7 @@ export type MapTool = {
     activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => DeactivateToolFn;
     customCursor?: (options: MapToolActivateOptions) => CssType.Property.Cursor | undefined;
     component?: React.ComponentType<MapToolProps>;
+    housesInteraction: boolean;
     id: MapToolId;
 };
 

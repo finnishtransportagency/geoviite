@@ -12,6 +12,7 @@ import { MapToolButton } from 'map/tools/map-tool-button';
 
 export const operationalPointAreaTool: MapToolWithButton = {
     id: 'operational-point-area',
+    housesInteraction: true,
     customCursor: (options: MapToolActivateOptions) =>
         options.linkingState?.type === 'PlacingOperationalPointArea' && !options.linkingState.area
             ? 'crosshair'

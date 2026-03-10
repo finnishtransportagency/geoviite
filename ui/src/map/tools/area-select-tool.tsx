@@ -69,6 +69,7 @@ export function createAreaSelectTool(
 ): MapToolWithButton {
     return {
         id: 'area-select',
+        housesInteraction: true,
         customCursor: () => 'crosshair',
         activate: (map: OlMap, layers: MapLayer[]) => {
             const tooltipElement = document.createElement('div');

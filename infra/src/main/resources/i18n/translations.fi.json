@@ -984,6 +984,7 @@
             "name": "Nimi",
             "abbreviation": "Lyhenne",
             "state": "Tila",
+            "rinf-id": "Tunnus (RINF)",
             "type-raide": "Tyyppi (RATO)",
             "type-rinf": "Tyyppi (RINF)",
             "uic-code": "UIC-koodi",
@@ -1826,6 +1827,7 @@
                     "deleted": "Vaihde viittaa poistettuun toiminnalliseen pisteeseen {{target}}"
                 },
                 "no-location": "Vaihdetta ei ole linkitetty paikannuspohjaan",
+                "duplicate-track-locations-differ": "Vaihteella {{switchName}} linjaraiteen ja duplikaattiraiteen pistesijainnit poikkeavat toisistaan, {{trackName}}, {{duplicateTrackName}}, pisteet {{jointNumbers}} ",
                 "location-track": {
                     "not-continuous": "Sama raide ({{locationTracks}}) on kytketty vaihteeseen eri kohdista",
                     "joint-location-mismatch": "Vaihteen ja raiteen vaihdepisteiden sijainnit eivät kohtaa: {{locationTracks}}",
@@ -1866,12 +1868,16 @@
                 "duplicate-uic-code-official": "Pisteen UIC-tunnus {{uicCode}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä: {{duplicateNames}}",
                 "duplicate-uic-code-draft": "Muutosjoukossa on monta toiminnallista pistettä UIC-tunnuksella {{uicCode}}: {{duplicateNames}}",
                 "duplicate-uic-code-draft-in-main": "Pisteen UIC-tunnus {{uicCode}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä luonnostilassa: {{duplicateNames}}",
+                "duplicate-rinf-id-official": "Pisteen RINF-tunnus {{rinfIdOverride}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä: {{duplicateNames}}",
+                "duplicate-rinf-id-draft": "Muutosjoukossa on monta toiminnallista pistettä RINF-tunnuksella {{rinfIdOverride}}: {{duplicateNames}}",
+                "duplicate-rinf-id-draft-in-main": "Pisteen RINF-tunnus {{rinfIdOverride}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä luonnostilassa: {{duplicateNames}}",
                 "uic-code-missing": "UIC-tunnus puuttuu",
                 "location-missing": "Pistemäinen sijainti puuttuu",
                 "overlapping-polygon-official": "Toiminnallisen pisteen alue on päällekkäin toisen toiminnallisen pisteen alueen kanssa: {{duplicateNames}}",
                 "overlapping-polygon-draft": "Muutosjoukossa on päällekkäisiä toiminnallisten pisteiden alueita: {{duplicateNames}}",
                 "overlapping-polygon-draft-in-main": "Toiminnallisen pisteen alue on päällekkäin paikannuspohjan luonnoksen kanssa: {{duplicateNames}}",
-                "rinf-code-missing": "RINF-tyyppi puuttuu",
+                "rinf-type-missing": "RINF-tyyppi puuttuu",
+                "rinf-id-missing": "RINF-tunnus puuttuu",
                 "polygon-missing": "Alue puuttuu",
                 "location-outside-polygon": "Pistemäinen sijainti on toiminnallisen pisteen alueen ulkopuolella",
                 "polygon-is-not-simple": "Alueen muoto ei ole yksinkertainen polygoni"
@@ -1967,7 +1973,9 @@
             "operational-point-link-added-singular": "Lisätty liitos toiminnalliseen pisteeseen {{value}}",
             "operational-point-link-removed-singular": "Lisätty liitos toiminnalliseen pisteeseen {{value}}",
             "operational-point-link-added-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}",
-            "operational-point-link-removed-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}"
+            "operational-point-link-removed-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}",
+            "rinf-id-is-override": "Arvo on asetettu käsin",
+            "rinf-id-is-generated": "Arvo on asetettu automaattisesti"
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
@@ -2010,6 +2018,7 @@
             "uic-code": "UIC-tunnus",
             "rinf-type": "Tyyppi (RINF)",
             "raide-type": "Tyyppi (RATO)",
+            "rinf-id": "Tunnus (RINF)",
             "polygon": "Alue",
             "linked-switches": "Vaihdelinkitykset",
             "linked-operational-point": "Toiminnallisen pisteen asetus"
@@ -2365,12 +2374,19 @@
             "invalid-name": "Virheellinen nimi",
             "invalid-abbreviation": "Virheellinen lyhenne",
             "invalid-uic-code": "Virheellinen UIC-koodi",
+            "invalid-rinf-id": "Virheellinen tunnus",
+            "rinf-id-too-long": "Tunnuksen maksimipituus on 12 merkkiä",
+            "rinf-id-must-start-with-eu": "Käsin syötetyn tunnuksen tulee alkaa etuliitteellä \"EU\"",
             "mandatory-field": "Pakollinen kenttä",
             "name-in-use": "Paikannuspohjassa on toinen toiminnallinen piste samalla nimellä",
             "name-in-use-deleted": "Paikannuspohjassa on poistettu toiminnallinen piste samalla nimellä",
             "abbreviation-in-use": "Lyhenne on jo käytössä",
-            "uic-code-in-use": "UIC-koodi on jo käytössä"
-        }
+            "uic-code-in-use": "UIC-koodi on jo käytössä",
+            "rinf-id-in-use": "Tunnus on jo käytössä"
+        },
+        "rinf-id": "Tunnus (RINF)",
+        "set-rinf-id-manually": "Aseta käsin",
+        "rinf-id-will-be-generated": "Asetetaan automaattisesti"
     },
     "licenses-page": {
         "title": "Lisenssitiedot",

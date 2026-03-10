@@ -70,6 +70,7 @@ const hitTolerance = 8;
 
 export const measurementTool: MapToolWithButton = {
     id: 'measure',
+    housesInteraction: true,
     activate: (map: OlMap) => {
         const tooltipElement = document.createElement('div');
         tooltipElement.className = 'ol-tooltip-measure';

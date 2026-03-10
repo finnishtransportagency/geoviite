@@ -24,7 +24,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { formatDateShort } from 'utils/date-utils';
 import { refreshOperationalPointSelection } from 'track-layout/track-layout-react-utils';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/operational-point-edit-dialog-container';
+import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/dialog/operational-point-edit-dialog-container';
 import { OperationalPointLocationInfobox } from 'tool-panel/operational-point/operational-point-location-infobox';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { OperationalPointSwitchesInfobox } from 'tool-panel/operational-point/operational-point-switches-infobox';
@@ -173,6 +173,18 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                             />
                         }
                     />
+                    <React.Fragment>
+                        {operationalPoint.raideType !== 'OLP' && (
+                            <InfoboxField
+                                qaId="operational-point-rinf-id"
+                                label={t('tool-panel.operational-point.rinf-id')}
+                                value={
+                                    operationalPoint.rinfId ??
+                                    t('tool-panel.operational-point.unset')
+                                }
+                            />
+                        )}
+                    </React.Fragment>
                     <InfoboxField
                         qaId="operational-point-name"
                         label={t('tool-panel.operational-point.name')}
