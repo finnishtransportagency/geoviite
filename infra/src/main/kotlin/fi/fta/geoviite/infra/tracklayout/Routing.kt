@@ -315,7 +315,7 @@ data class RoutingGraph(
                     buildTempRoutingGraph(startVertex, endVertex, startEdge to startMRange, endEdge to endMRange)
                 // Route the start->end in a union graph of the main graph + temp additions
                 val dijkstra = DijkstraShortestPath(AsGraphUnion(jgraph, tmpGraph))
-                dijkstra.getPath(startVertex, endVertex)?.edgeList?.filterNotNull()
+                dijkstra.getPath(startVertex, endVertex)?.edgeList?.filterNotNull()?.takeIf { it.isNotEmpty() }
             }
         }
     }
