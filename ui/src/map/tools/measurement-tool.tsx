@@ -19,7 +19,6 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { MapToolButton } from 'map/tools/map-tool-button';
 
 const MAX_POINTS = 8;
-
 function formatMeasurement(distance: number): string {
     if (distance < 1) {
         return Math.round(distance * 1000) + ' mm';
@@ -71,7 +70,6 @@ const hitTolerance = 8;
 const id = 'measure';
 export const measurementTool: MapToolWithButton = {
     id,
-    housesInteraction: true,
     activate: (map: OlMap) => {
         const tooltipElement = document.createElement('div');
         tooltipElement.className = 'ol-tooltip-measure';
@@ -166,9 +164,11 @@ export const measurementTool: MapToolWithButton = {
         map.addOverlay(tooltip);
 
         // Return function to clean up this tool
-        return () => {
-            map.removeInteraction(tooltipDraw);
-            map.removeOverlay(tooltip);
+        return {
+            deactivate: () => {
+                map.removeInteraction(tooltipDraw);
+                map.removeOverlay(tooltip);
+            },
         };
     },
 

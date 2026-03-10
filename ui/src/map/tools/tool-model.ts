@@ -32,6 +32,13 @@ export type MapToolActivateOptions = {
     linkingState: LinkingState | undefined;
 };
 
+// Returned by activate() so map-view can push updates without re-activating the tool.
+export type MapToolHandle = {
+    deactivate: DeactivateToolFn;
+    onLayersChanged?: (layers: MapLayer[]) => void;
+    onLinkingStateChanged?: (linkingState: LinkingState | undefined) => void;
+};
+
 export type MapToolProps = {
     isActive: boolean;
     setActiveTool: (id: MapToolId) => void;
@@ -40,10 +47,9 @@ export type MapToolProps = {
 };
 
 export type MapTool = {
-    activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => DeactivateToolFn;
-    customCursor?: (options: MapToolActivateOptions) => CssType.Property.Cursor | undefined;
+    activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => MapToolHandle;
+    customCursor?: (linkingState: LinkingState | undefined) => CssType.Property.Cursor | undefined;
     component?: React.ComponentType<MapToolProps>;
-    housesInteraction: boolean;
     id: MapToolId;
 };
 

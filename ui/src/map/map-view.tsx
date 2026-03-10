@@ -23,8 +23,8 @@ import {
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import {
-    DeactivateToolFn,
     MapToolActivateOptions,
+    MapToolHandle,
     MapToolId,
     MapToolWithButton,
 } from './tools/tool-model';
@@ -809,43 +809,35 @@ const MapView: React.FC<MapViewProps> = ({
         linkingState: linkingState,
     };
 
+    // Point location tool is always active, independent of the selected tool, and doesn't need updates on layersChanged
+    // or linkingStateChanged
     React.useEffect(() => {
         if (!olMap) return;
+        const handle = pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions);
+        return () => handle.deactivate();
+    }, [olMap]);
 
-        const deactivateCallbacks = [
-            pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions),
-        ];
-
-        // Return function to clean up initialized stuff
+    const activeToolHandleRef = React.useRef<MapToolHandle | undefined>(undefined);
+    React.useEffect(() => {
+        if (!olMap || !activeTool) {
+            activeToolHandleRef.current = undefined;
+            return;
+        }
+        const handle = activeTool.activate(olMap, visibleLayers, toolActivateOptions);
+        activeToolHandleRef.current = handle;
         return () => {
-            deactivateCallbacks.forEach((f) => f());
+            handle.deactivate();
+            activeToolHandleRef.current = undefined;
         };
-    }, [olMap, visibleLayers, activeTool]);
-
-    const recreateActiveMapTool = (
-        map: OlMap | undefined,
-        layers: MapLayer[],
-        toolActivateOptions: MapToolActivateOptions,
-    ): DeactivateToolFn =>
-        map && activeTool
-            ? activeTool?.activate(map, layers, toolActivateOptions)
-            : () => undefined;
+    }, [olMap, activeTool]);
 
     React.useEffect(() => {
-        if (activeTool?.housesInteraction) {
-            return recreateActiveMapTool(olMap, visibleLayers, toolActivateOptions);
-        } else {
-            return () => undefined;
-        }
-    }, [olMap, activeTool, linkingState]);
+        activeToolHandleRef.current?.onLayersChanged?.(visibleLayers);
+    }, [visibleLayers]);
 
     React.useEffect(() => {
-        if (activeTool && !activeTool.housesInteraction) {
-            return recreateActiveMapTool(olMap, visibleLayers, toolActivateOptions);
-        } else {
-            return () => undefined;
-        }
-    }, [olMap, activeTool, linkingState, visibleLayers]);
+        activeToolHandleRef.current?.onLinkingStateChanged?.(linkingState);
+    }, [linkingState]);
 
     React.useEffect(() => {
         if (linkingState?.type === LinkingType.PlacingOperationalPointArea) {
@@ -865,7 +857,7 @@ const MapView: React.FC<MapViewProps> = ({
     const mapClassNames = createClassName(styles.map);
 
     const cssProperties = {
-        cursor: activeTool?.customCursor ? activeTool.customCursor(toolActivateOptions) : undefined,
+        cursor: activeTool?.customCursor ? activeTool.customCursor(linkingState) : undefined,
     };
     return (
         <div className={mapClassNames} style={cssProperties}>

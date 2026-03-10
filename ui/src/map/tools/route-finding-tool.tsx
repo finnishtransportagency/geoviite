@@ -65,7 +65,6 @@ export function createRouteFindingTool(
     let route: RouteResult | undefined;
     const tool: MapToolWithButton = {
         id,
-        housesInteraction: false,
         activate: (map: OlMap) => {
             const vectorSource = new VectorSource();
             const vectorLayer = new VectorLayer({
@@ -193,10 +192,12 @@ export function createRouteFindingTool(
             mapViewport.addEventListener('click', handleClick);
 
             // Return cleanup function
-            return () => {
-                mapViewport.removeEventListener('pointermove', handlePointerMove);
-                mapViewport.removeEventListener('click', handleClick);
-                map.removeLayer(vectorLayer);
+            return {
+                deactivate: () => {
+                    mapViewport.removeEventListener('pointermove', handlePointerMove);
+                    mapViewport.removeEventListener('click', handleClick);
+                    map.removeLayer(vectorLayer);
+                },
             };
         },
 
