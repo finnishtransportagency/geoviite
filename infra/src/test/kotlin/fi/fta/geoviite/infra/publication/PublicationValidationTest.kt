@@ -767,7 +767,7 @@ class PublicationValidationTest {
     }
 
     @Test
-    fun `track that's internal to switch can have a single-ended name`() {
+    fun `track that's internal to switch can have a single-ended description`() {
         val switchId = IntId<LayoutSwitch>(0)
         val track = locationTrack(IntId(0), startSwitch = switchId, endSwitch = switchId)
 
