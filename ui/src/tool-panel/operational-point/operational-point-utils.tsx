@@ -1,12 +1,17 @@
 import React from 'react';
 import { LayoutBranch, LayoutContext, TimeStamp } from 'common/common-model';
-import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
+import {
+    LayoutSwitch,
+    OperationalPoint,
+    OperationalPointId,
+} from 'track-layout/track-layout-model';
 import { ChangeTimes } from 'common/common-slice';
 import { LoaderStatus, useRateLimitedTwoPartEffect } from 'utils/react-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { filterNotEmpty, indexIntoMap, partitionBy } from 'utils/array-utils';
 import { FieldValidationIssue, FieldValidationIssueType, validate } from 'utils/validation-utils';
 import { isEqualIgnoreCase } from 'utils/string-utils';
+import { SwitchWithinOperationalPoint } from 'track-layout/layout-switch-api';
 
 export type OperationalPointSaveRequestBase = {
     rinfIdOverride?: string;
@@ -204,6 +209,10 @@ export function createUseLinkingHook<Id, T extends { id: Id; name: string }, Ite
 export type LinkingDirection = 'linking' | 'unlinking';
 
 const TOAST_MAX_NAMES = 10;
+
+export type OperationalPointSwitchLinkingInfo = SwitchWithinOperationalPoint & {
+    layoutSwitch: LayoutSwitch;
+};
 
 export function formatNamesForToast(names: string[]): string {
     const namesString = names.slice(0, TOAST_MAX_NAMES).join(', ');

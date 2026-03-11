@@ -1023,7 +1023,7 @@
                 "switch-in-wrong-polygon": "Vaihde sijaitsee toisen pisteen alueella: {{operationalPointName}}",
                 "none-for-linking": "Ei linkittämättömiä vaihteita",
                 "none-for-unlinking": "Ei linkitettyjä vaihteita",
-                "switch-not-in-polygon": "Vaihde on linkitetty pisteelle, mutta ei sijaitse pisteen alueella",
+                "switch-not-in-polygon": "Vaihde ei sijaitse toiminnallisen pisteen alueella",
                 "no-area": "Toiminnallisen pisteen alue tulee olla asetettu jotta vaihteita voidaan linkittää",
                 "no-area-but-has-switches-linked": "Toiminnallisen pisteen aluetta ei ole asetettu, mutta sille on linkitetty vaihteita",
                 "no-switches": "Ei vaihteita"
