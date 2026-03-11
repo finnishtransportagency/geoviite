@@ -20,6 +20,7 @@ import org.jgrapht.graph.AsGraphUnion
 import org.jgrapht.graph.DirectedWeightedMultigraph
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.util.*
 
 private val logger: Logger = LoggerFactory.getLogger(RoutingGraph::class.java)
 
@@ -110,10 +111,12 @@ data class SwitchJointVertex(
     val direction: VertexDirection,
 ) : RoutingVertex() {
     override fun reverse(): SwitchJointVertex = copy(direction = direction.reverse())
-}
 
-data class SwitchInternalEdge(val alignment: RoutingSwitchAlignment, val direction: EdgeDirection) : RoutingEdge() {
-    override fun reverse(): SwitchInternalEdge = copy(direction = direction.reverse())
+    private val hash = Objects.hash(switchId.intValue, jointNumber.intValue, direction)
+
+    override fun hashCode(): Int = hash
+
+    override fun equals(other: Any?): Boolean = this === other || (other as? SwitchJointVertex)?.hash == hash
 }
 
 data class TrackBoundaryVertex(
@@ -122,6 +125,12 @@ data class TrackBoundaryVertex(
     val direction: VertexDirection,
 ) : RoutingVertex() {
     override fun reverse(): TrackBoundaryVertex = copy(direction = direction.reverse())
+
+    private val hash = Objects.hash(trackId.intValue, type, direction)
+
+    override fun hashCode(): Int = hash
+
+    override fun equals(other: Any?): Boolean = this === other || (other as? TrackBoundaryVertex)?.hash == hash
 }
 
 data class TrackMidPointVertex(
@@ -130,10 +139,22 @@ data class TrackMidPointVertex(
     val direction: VertexDirection,
 ) : RoutingVertex() {
     override fun reverse(): TrackMidPointVertex = copy(direction = direction.reverse())
+
+    private val hash = Objects.hash(trackId.intValue, m.distance, direction)
+
+    override fun hashCode(): Int = hash
+
+    override fun equals(other: Any?): Boolean = this === other || (other as? TrackMidPointVertex)?.hash == hash
 }
 
 data class TrackEdge(val edgeId: IntId<LayoutEdge>, val direction: EdgeDirection) : RoutingEdge() {
     override fun reverse(): TrackEdge = copy(direction = direction.reverse())
+
+    private val hash = Objects.hash(edgeId.intValue, direction)
+
+    override fun hashCode(): Int = hash
+
+    override fun equals(other: Any?): Boolean = this === other || (other as? TrackEdge)?.hash == hash
 }
 
 data class PartialTrackEdge(
@@ -142,6 +163,32 @@ data class PartialTrackEdge(
     val mRange: Range<LineM<EdgeM>>,
 ) : RoutingEdge() {
     override fun reverse(): PartialTrackEdge = copy(direction = direction.reverse())
+
+    private val hash = Objects.hash(edgeId.intValue, mRange.min.distance, mRange.max.distance, direction)
+
+    override fun hashCode(): Int = hash
+
+    override fun equals(other: Any?): Boolean = this === other || (other as? PartialTrackEdge)?.hash == hash
+}
+
+data class DirectConnectionEdge(val nodeId: IntId<LayoutNode>, val direction: EdgeDirection) : RoutingEdge() {
+    override fun reverse(): DirectConnectionEdge = copy(direction = direction.reverse())
+
+    private val hash = Objects.hash(nodeId.intValue, direction)
+
+    override fun hashCode(): Int = hash
+
+    override fun equals(other: Any?): Boolean = this === other || (other as? DirectConnectionEdge)?.hash == hash
+}
+
+data class SwitchInternalEdge(val alignment: RoutingSwitchAlignment, val direction: EdgeDirection) : RoutingEdge() {
+    override fun reverse(): SwitchInternalEdge = copy(direction = direction.reverse())
+
+    private val hash = Objects.hash(alignment.hashCode(), direction)
+
+    override fun hashCode(): Int = hash
+
+    override fun equals(other: Any?): Boolean = this === other || (other as? SwitchInternalEdge)?.hash == hash
 }
 
 data class PartialSwitchInternalEdge(
@@ -150,18 +197,27 @@ data class PartialSwitchInternalEdge(
     val mRange: Range<LineM<SwitchStructureAlignmentM>>,
 ) : RoutingEdge() {
     override fun reverse(): PartialSwitchInternalEdge = copy(direction = direction.reverse())
-}
 
-data class DirectConnectionEdge(val nodeId: IntId<LayoutNode>, val direction: EdgeDirection) : RoutingEdge() {
-    override fun reverse(): DirectConnectionEdge = copy(direction = direction.reverse())
+    private val hash = Objects.hash(alignment.hashCode(), mRange.min.distance, mRange.max.distance, direction)
+
+    override fun hashCode(): Int = hash
+
+    override fun equals(other: Any?): Boolean = this === other || (other as? PartialSwitchInternalEdge)?.hash == hash
 }
 
 data class RoutingSwitchAlignment(val id: IntId<LayoutSwitch>, val alignment: SwitchStructureAlignment) {
+
     val jointNumbers: List<JointNumber>
         get() = alignment.jointNumbers
 
     val length: Double
         get() = alignment.length()
+
+    private val hash = Objects.hash(id.intValue, alignment.jointNumbers)
+
+    override fun equals(other: Any?): Boolean = this === other || (other as? RoutingSwitchAlignment)?.hash == hash
+
+    override fun hashCode(): Int = hash
 }
 
 data class SwitchEdge(
@@ -366,9 +422,11 @@ data class RoutingGraph(
                                 }
                             }
                         val (start, end) =
-                            if (vertexDirection == OUT) (midPoint to data.vertex) else (data.vertex to midPoint)
-                        graph.addEdge(start, end, edge)
-                        graph.setEdgeWeight(edge, length)
+                            when (vertexDirection) {
+                                OUT -> (midPoint to data.vertex)
+                                IN -> (data.vertex to midPoint)
+                            }
+                        graph.addWeightedEdge(start, end, edge, length)
                     }
             }
 
@@ -475,13 +533,7 @@ fun buildGraph(
     val trackConnections = edges.flatMap(::createTrackConnections)
     (switchConnections.asSequence() + directConnections.asSequence() + trackConnections.asSequence()).forEach {
         (connection, edge) ->
-        try {
-            if (jgraph.addEdge(connection.from, connection.to, edge)) {
-                jgraph.setEdgeWeight(edge, connection.length)
-            }
-        } catch (e: Exception) {
-            logger.error("Error adding edge: edge=$edge connection=$connection error=${e.message}")
-        }
+        jgraph.addWeightedEdge(connection.from, connection.to, edge, connection.length)
     }
     return RoutingGraph(jgraph = jgraph, edgeData = edgeData, switchInternalEdges = switchInternalEdges)
 }
@@ -654,3 +706,20 @@ private fun createIncomingTrackConnectionVertex(nodeConnection: DbNodeConnection
             nodeConnection.trackBoundaryIn?.let { boundary -> TrackBoundaryVertex(boundary.id, boundary.type, IN) }
         }
     }
+
+private fun DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>.addWeightedEdge(
+    from: RoutingVertex,
+    to: RoutingVertex,
+    edge: RoutingEdge,
+    weight: Double,
+) {
+    try {
+        if (addEdge(from, to, edge)) {
+            setEdgeWeight(edge, weight)
+        } else {
+            logger.warn("Did not add duplicate edge: edge=$edge from=$from to=$to")
+        }
+    } catch (e: IllegalArgumentException) {
+        logger.error("Failed to add edge: edge=$edge from=$from to=$to error=${e.message}")
+    }
+}

@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.produceIf
 import java.time.Instant
 import java.util.*
@@ -22,8 +21,8 @@ class StationLinkService(
     private val layoutSwitchDao: LayoutSwitchDao,
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val locationTrackService: LocationTrackService,
-    private val switchLibraryService: SwitchLibraryService,
     private val geocodingService: GeocodingService,
+    private val routingService: RoutingService,
 ) {
     fun getStationLinks(
         branch: LayoutBranch,
@@ -60,12 +59,7 @@ class StationLinkService(
             RouteCalculator(
                 operationalPoints,
                 connectingTracks,
-                routingGraph =
-                    buildGraph(
-                        trackGeoms = tracksWithGeometry.map { it.second },
-                        switches = switches,
-                        structures = switchLibraryService.getSwitchStructuresById(),
-                    ),
+                routingGraph = routingService.getGraph(branch, moment),
                 getGeocodingContext = geocodingService.getLazyGeocodingContextsAtMoment(branch, moment),
             )
         return linkData to routeCalculator
@@ -86,12 +80,7 @@ class StationLinkService(
             RouteCalculator(
                 operationalPoints,
                 connectingTracks,
-                routingGraph =
-                    buildGraph(
-                        trackGeoms = tracksWithGeometry.map { it.second },
-                        switches = switches,
-                        structures = switchLibraryService.getSwitchStructuresById(),
-                    ),
+                routingGraph = routingService.getGraph(context),
                 getGeocodingContext = geocodingService.getLazyGeocodingContexts(context),
             )
         return linkData to routeCalculator
@@ -134,25 +123,31 @@ private fun calculateTrackConnections(
                         p1.first != p2.first && (opFilter == null || opFilter == p1.first || opFilter == p2.first)
                     }
             }
-    return stationConnectionPairs.mapNotNull { (connection1, connection2) ->
-        val (op1Id, op1ClosestPoint) = connection1
-        val (op2Id, op2ClosestPoint) = connection2
-        val trackDistance = abs(op2ClosestPoint.closestPoint.m - op1ClosestPoint.closestPoint.m).distance
-        val s1Link = getPathToStation(op1ClosestPoint, op1Id)
-        val s2Link = getPathToStation(op2ClosestPoint, op2Id)
-        if (s1Link != null && s2Link != null) {
-            val distance = s1Link.second + trackDistance + s2Link.second
-            TrackStationConnection(
-                trackVersion = op1ClosestPoint.track.getVersionOrThrow(),
-                trackNumberVersion = stationLinkData.trackNumberVersions.getValue(op1ClosestPoint.track.trackNumberId),
-                station1Version = stationLinkData.operationalPoints.getValue(op1Id).getVersionOrThrow(),
-                station2Version = stationLinkData.operationalPoints.getValue(op2Id).getVersionOrThrow(),
-                length = distance,
-                startAddress = s1Link.first,
-                endAddress = s2Link.first,
-            )
-        } else null
-    }
+
+    return stationConnectionPairs
+        .parallelStream()
+        .map { (connection1, connection2) ->
+            val (op1Id, op1ClosestPoint) = connection1
+            val (op2Id, op2ClosestPoint) = connection2
+            val trackDistance = abs(op2ClosestPoint.closestPoint.m - op1ClosestPoint.closestPoint.m).distance
+            val s1Link = getPathToStation(op1ClosestPoint, op1Id)
+            val s2Link = getPathToStation(op2ClosestPoint, op2Id)
+            if (s1Link != null && s2Link != null) {
+                val distance = s1Link.second + trackDistance + s2Link.second
+                TrackStationConnection(
+                    trackVersion = op1ClosestPoint.track.getVersionOrThrow(),
+                    trackNumberVersion =
+                        stationLinkData.trackNumberVersions.getValue(op1ClosestPoint.track.trackNumberId),
+                    station1Version = stationLinkData.operationalPoints.getValue(op1Id).getVersionOrThrow(),
+                    station2Version = stationLinkData.operationalPoints.getValue(op2Id).getVersionOrThrow(),
+                    length = distance,
+                    startAddress = s1Link.first,
+                    endAddress = s2Link.first,
+                )
+            } else null
+        }
+        .toList()
+        .filterNotNull()
 }
 
 private fun combineToStationLinks(trackConnections: List<TrackStationConnection>): List<StationLink> =
@@ -186,12 +181,20 @@ private data class RouteCalculator(
         fromTrackPoint: LocationTrackCacheHit,
         stationId: IntId<OperationalPoint>,
     ): Pair<TrackMeter, Double>? =
-        getConnectableStation(stationId)
-            ?.connectingLocations
-            ?.mapNotNull { (address, location) ->
-                routingGraph.findPath(fromTrackPoint, location)?.totalLength?.let { address to it }
-            }
-            ?.minByOrNull { it.second }
+        getConnectableStation(stationId)?.connectingLocations?.let { stationLocations ->
+            stationLocations
+                // If any station point is on the same track, we can just skip the routing
+                .firstOrNull { (_, location) -> location.track.id == fromTrackPoint.track.id }
+                ?.let { (address, location) ->
+                    address to abs(location.closestPoint.m - fromTrackPoint.closestPoint.m).distance
+                }
+                // If not, we need to route all points to find the shortest path
+                ?: stationLocations
+                    .mapNotNull { (address, location) ->
+                        routingGraph.findPath(fromTrackPoint, location)?.totalLength?.let { address to it }
+                    }
+                    .minByOrNull { it.second }
+        }
 
     private fun getConnectableStation(opId: IntId<OperationalPoint>): ConnectableStation? =
         connectableStations

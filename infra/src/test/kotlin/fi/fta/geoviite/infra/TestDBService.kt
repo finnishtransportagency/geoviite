@@ -22,6 +22,10 @@ import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.publication.PublicationCause
+import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.publication.PublicationMessage
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
@@ -136,6 +140,7 @@ class TestDBService(
     override val geometryDao: GeometryDao,
     override val operationalPointDao: OperationalPointDao,
     private val layoutDesignDao: LayoutDesignDao,
+    private val publicationDao: PublicationDao,
 ) : TestDB {
 
     override val jdbc by lazy { jdbcTemplate ?: error("JDBC not initialized") }
@@ -401,7 +406,11 @@ class TestDBService(
                 LayoutSwitch::class ->
                     switchDao.insertExternalId(id as IntId<LayoutSwitch>, branch, oid as Oid<LayoutSwitch>)
                 OperationalPoint::class ->
-                    operationalPointDao.insertExternalId(id as IntId<OperationalPoint>, branch, oid as Oid<OperationalPoint>)
+                    operationalPointDao.insertExternalId(
+                        id as IntId<OperationalPoint>,
+                        branch,
+                        oid as Oid<OperationalPoint>,
+                    )
                 else -> error("Unsupported asset type for Oid generation: ${T::class.simpleName}")
             }
         }
@@ -434,6 +443,15 @@ class TestDBService(
         check(original.isOfficial) { "$original should be official" }
         val targetContext = testContext(targetBranch ?: original.branch, DRAFT)
         return targetContext.copyFrom(officialVersion, mutate = mutate)
+    }
+
+    fun createPublication(branch: LayoutBranch = LayoutBranch.main): IntId<Publication> {
+        return publicationDao.createPublication(
+            branch,
+            PublicationMessage.of("test publication"),
+            PublicationCause.MANUAL,
+            parentId = null,
+        )
     }
 }
 
