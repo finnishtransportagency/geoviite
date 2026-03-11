@@ -143,13 +143,13 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     }
 
     @Transactional
-    fun <T> insertRatkoPushError(
+    fun insertRatkoPushError(
         ratkoPushId: IntId<RatkoPush>,
         ratkoPushErrorType: RatkoPushErrorType,
         operation: RatkoOperation,
         assetType: RatkoAssetType,
-        assetId: IntId<T>,
-    ): IntId<RatkoPushError<T>> {
+        assetId: IntId<*>,
+    ): IntId<RatkoPushError> {
         // language=SQL
         val sql =
             """
@@ -183,7 +183,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             )
 
         return jdbcTemplate
-            .queryOne<IntId<RatkoPushError<T>>>(sql, params, ratkoPushId.toString()) { rs, _ -> rs.getIntId("id") }
+            .queryOne<IntId<RatkoPushError>>(sql, params, ratkoPushId.toString()) { rs, _ -> rs.getIntId("id") }
             .also { errorId -> logger.daoAccess(AccessType.INSERT, RatkoPushError::class, errorId) }
     }
 
@@ -268,7 +268,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             .onEach { (_, pushes) -> logger.daoAccess(AccessType.FETCH, RatkoPush::class, pushes.map { it.id }) }
     }
 
-    fun getCurrentRatkoPushError(): Pair<RatkoPushError<*>, IntId<Publication>>? {
+    fun getCurrentRatkoPushError(): Pair<RatkoPushError, IntId<Publication>>? {
         val sql =
             """
                 select 
@@ -294,26 +294,41 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             .queryOptional(sql, emptyMap<String, Object>()) { rs, _ ->
                 val status = rs.getEnum<RatkoPushStatus>("status")
                 if (status != RatkoPushStatus.SUCCESSFUL) {
-                    val errorId = rs.getIntId<RatkoPushError<*>>("id")
+                    val errorId = rs.getIntId<RatkoPushError>("id")
                     val trackNumberId = rs.getIntIdOrNull<LayoutTrackNumber>("track_number_id")
                     val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
                     val switchId = rs.getIntIdOrNull<LayoutSwitch>("switch_id")
-                    val pushError =
-                        RatkoPushError(
-                            id = errorId,
-                            ratkoPushId = rs.getIntId("ratko_push_id"),
-                            errorType = rs.getEnum("error_type"),
-                            operation = rs.getEnum("operation"),
-                            assetId =
-                                trackNumberId
-                                    ?: locationTrackId
-                                    ?: switchId
-                                    ?: error("Encountered Ratko push error without asset! id: $errorId"),
-                            assetType =
-                                trackNumberId?.let { RatkoAssetType.TRACK_NUMBER }
-                                    ?: locationTrackId?.let { RatkoAssetType.LOCATION_TRACK }
-                                    ?: switchId.let { RatkoAssetType.SWITCH },
-                        )
+                    val ratkoPushId = rs.getIntId<RatkoPush>("ratko_push_id")
+                    val errorType = rs.getEnum<RatkoPushErrorType>("error_type")
+                    val operation = rs.getEnum<RatkoOperation>("operation")
+
+                    val pushError = when {
+                        trackNumberId != null ->
+                            RatkoPushError.TrackNumber(
+                                id = errorId,
+                                ratkoPushId = ratkoPushId,
+                                errorType = errorType,
+                                operation = operation,
+                                assetId = trackNumberId,
+                            )
+                        locationTrackId != null ->
+                            RatkoPushError.LocationTrack(
+                                id = errorId,
+                                ratkoPushId = ratkoPushId,
+                                errorType = errorType,
+                                operation = operation,
+                                assetId = locationTrackId,
+                            )
+                        switchId != null ->
+                            RatkoPushError.Switch(
+                                id = errorId,
+                                ratkoPushId = ratkoPushId,
+                                errorType = errorType,
+                                operation = operation,
+                                assetId = switchId,
+                            )
+                        else -> error("Encountered Ratko push error without asset! id: $errorId")
+                    }
 
                     pushError to rs.getIntId<Publication>("publication_id")
                 } else {
