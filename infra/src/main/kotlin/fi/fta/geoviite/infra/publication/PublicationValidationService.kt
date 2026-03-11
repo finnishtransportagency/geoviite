@@ -455,6 +455,7 @@ constructor(
         val switchIsCancelled = validationContext.switchIsCancelled(id)
         val linkedTracksAndGeometries = validationContext.getSwitchTracksWithGeometries(id)
         val linkedTracks = linkedTracksAndGeometries.map(Pair<LocationTrack, *>::first)
+        val jointConnections = validationContext.getSwitchJointConnections(id, linkedTracksAndGeometries)
         if (switch == null) {
             return validateSwitchLocationTrackLinkReferences(
                 switchExists = false,
@@ -472,6 +473,10 @@ constructor(
                 )
 
             val locationIssues = if (switch.exists) validateSwitchLocation(switch) else emptyList()
+
+            val jointConnectionsDifferIssues =
+                validateSwitchJointConnectionsOnDuplicateTracks(switch, jointConnections, linkedTracks)
+
             val structureIssues =
                 locationIssues.ifEmpty {
                     validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndGeometries)
@@ -490,7 +495,11 @@ constructor(
                         switchDao.get(row.context, row.id)
                     },
                 )
-            return referenceIssues + structureIssues + duplicationIssues + oidDuplicationIssues
+            return referenceIssues +
+                structureIssues +
+                duplicationIssues +
+                oidDuplicationIssues +
+                jointConnectionsDifferIssues
         }
     }
 
@@ -557,8 +566,13 @@ constructor(
         val trackNetworkTopologyIssues =
             validationContext.getPotentiallyAffectedSwitches(id).filter(LayoutSwitch::exists).flatMap { switch ->
                 val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-                val switchTracks = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
-                validateSwitchTopologicalConnectivity(switch, structure, switchTracks, trackAndGeometry?.first)
+                val switchTracksAndGeometries = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
+                validateSwitchTopologicalConnectivity(
+                    switch,
+                    structure,
+                    switchTracksAndGeometries,
+                    trackAndGeometry?.first,
+                )
             }
         return if (trackAndGeometry == null) {
             trackNetworkTopologyIssues
@@ -576,12 +590,22 @@ constructor(
                     trackNumberIsCancelled = validationContext.trackNumberIsCancelled(track.trackNumberId),
                 )
             val switchTrackLinkings: List<SwitchTrackLinking> = validationContext.getSwitchTrackLinks(geometry)
+
             val switchTrackIssues = validateTrackSwitchReferences(track, switchTrackLinkings)
-            val trackNetworkTopologyIssues =
+            val trackNetworkIssues =
                 validationContext.getPotentiallyAffectedSwitches(id).filter(LayoutSwitch::exists).flatMap { switch ->
                     val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-                    val switchTracks = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
-                    validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
+                    val switchTracksAndGeometries = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
+
+                    val switchTracks = switchTracksAndGeometries.map { (track, _) -> track }
+
+                    val jointConnections =
+                        validationContext.getSwitchJointConnections(switch.id, switchTracksAndGeometries)
+                    val jointConnectionsDifferIssues =
+                        validateSwitchJointConnectionsOnDuplicateTracks(switch, jointConnections, switchTracks)
+                    val topologyIssues =
+                        validateSwitchTopologicalConnectivity(switch, structure, switchTracksAndGeometries, track)
+                    jointConnectionsDifferIssues + topologyIssues
                 }
             val switchConnectivityIssues =
                 if (track.exists) {
@@ -640,7 +664,7 @@ constructor(
                 geocodingIssues +
                 switchNameIssues +
                 nameDuplicationIssues +
-                trackNetworkTopologyIssues +
+                trackNetworkIssues +
                 switchConnectivityIssues)
         }
     }
