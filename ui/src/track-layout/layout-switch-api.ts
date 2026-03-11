@@ -48,10 +48,7 @@ const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 const switchValidationCache = asyncCache<string, ValidatedSwitch>();
 const tiledSwitchValidationCache = asyncCache<string, ValidatedSwitch[]>();
 const switchOidsCache = asyncCache<LayoutSwitchId, { [key in LayoutBranch]?: Oid } | undefined>();
-const switchesWithinOperationalPointCache = asyncCache<
-    string,
-    SwitchWithOperationalPointPolygonInclusions[]
->();
+const switchesWithinOperationalPointCache = asyncCache<string, SwitchWithinOperationalPoint[]>();
 
 const cacheKey = (id: LayoutSwitchId, layoutContext: LayoutContext) =>
     `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
@@ -268,20 +265,21 @@ export async function unlinkSwitchesFromOperationalPoint(
 export async function findOperationalPointSwitches(
     context: LayoutContext,
     operationalPointId: OperationalPointId,
-): Promise<SwitchWithOperationalPointPolygonInclusions[]> {
+): Promise<SwitchWithinOperationalPoint[]> {
     const changeTimes = getChangeTimes();
     const changeTime = getMaxTimestamp(changeTimes.layoutSwitch, changeTimes.operationalPoints);
     const key = `${context.publicationState}_${context.branch}_${operationalPointId}`;
     return switchesWithinOperationalPointCache.get(changeTime, key, () =>
-        getNonNull<SwitchWithOperationalPointPolygonInclusions[]>(
+        getNonNull<SwitchWithinOperationalPoint[]>(
             `${layoutUri('switches', context)}/by-operational-point/${operationalPointId}`,
         ),
     );
 }
 
-export type SwitchWithOperationalPointPolygonInclusions = {
+export type SwitchWithinOperationalPoint = {
     switchId: LayoutSwitchId;
-    withinPolygon: OperationalPointId[];
+    isLinked: boolean;
+    allOperationalPoints: OperationalPointId[];
 };
 
 export type SwitchOidPresence = {

@@ -2,7 +2,7 @@ import React from 'react';
 import { LayoutBranch, LayoutContext, TimeStamp } from 'common/common-model';
 import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
 import { ChangeTimes } from 'common/common-slice';
-import { useRateLimitedTwoPartEffect } from 'utils/react-utils';
+import { LoaderStatus, useRateLimitedTwoPartEffect } from 'utils/react-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { filterNotEmpty, indexIntoMap, partitionBy } from 'utils/array-utils';
 import { FieldValidationIssue, FieldValidationIssueType, validate } from 'utils/validation-utils';
@@ -14,6 +14,7 @@ export type OperationalPointSaveRequestBase = {
 
 export type UseLinkingHookResult<Id, T, ItemAssociation> = {
     isInitializing: boolean;
+    fetchStatus: LoaderStatus;
     itemAssociation: ItemAssociation | undefined;
     linkedItems: T[];
     unlinkedItems: T[];
@@ -43,6 +44,9 @@ export function createUseLinkingHook<Id, T extends { id: Id; name: string }, Ite
         ids: Id[],
         operationalPointId: OperationalPointId,
     ) => Promise<Id[]>,
+    startLinking: (operationalPointId: OperationalPointId, linkedIds: Id[]) => void,
+    stopLinking: () => void,
+    isEditing: () => boolean,
 ): (
     layoutContext: LayoutContext,
     operationalPoint: OperationalPoint,
@@ -50,16 +54,19 @@ export function createUseLinkingHook<Id, T extends { id: Id; name: string }, Ite
 ) => UseLinkingHookResult<Id, T, ItemAssociation> {
     return (layoutContext, operationalPoint, changeTimes) => {
         const [isInitializing, setIsInitializing] = React.useState(true);
-        const [isEditing, setIsEditing] = React.useState(false);
         const [editedLinkedIds, setEditedLinkedIds] = React.useState<Set<Id>>(new Set());
+        const inEdit = isEditing();
 
         const [itemAssociation, setItemAssociation] = React.useState<ItemAssociation | undefined>(
             undefined,
         );
         const [displayItems, setDisplayItems] = React.useState<T[]>([]);
 
-        useRateLimitedTwoPartEffect(
-            () => fetchOperationalPointItems(layoutContext, operationalPoint.id),
+        const fetchStatus = useRateLimitedTwoPartEffect(
+            () => {
+                setIsInitializing(true);
+                return fetchOperationalPointItems(layoutContext, operationalPoint.id);
+            },
             ({ itemAssociation, items }) => {
                 setIsInitializing(false);
                 setItemAssociation(itemAssociation);
@@ -84,34 +91,34 @@ export function createUseLinkingHook<Id, T extends { id: Id; name: string }, Ite
             [displayItems, isItemLinked],
         );
 
-        const currentLinkedIds = isEditing ? editedLinkedIds : originalLinkedIds;
+        const currentLinkedIds = inEdit ? editedLinkedIds : originalLinkedIds;
 
         const [linkedItems, unlinkedItems] = partitionBy(displayItems, (item) =>
             currentLinkedIds.has(item.id),
         );
 
         const hasChanges = React.useMemo(() => {
-            if (!isEditing) return false;
+            if (!inEdit) return false;
             if (editedLinkedIds.size !== originalLinkedIds.size) return true;
             for (const id of editedLinkedIds) {
                 if (!originalLinkedIds.has(id)) return true;
             }
             return false;
-        }, [isEditing, editedLinkedIds, originalLinkedIds]);
+        }, [inEdit, editedLinkedIds, originalLinkedIds]);
 
         const startEditing = React.useCallback(() => {
             setEditedLinkedIds(new Set(originalLinkedIds));
-            setIsEditing(true);
+            startLinking(operationalPoint.id, [...originalLinkedIds]);
         }, [originalLinkedIds]);
 
         const cancelEditing = React.useCallback(() => {
-            setIsEditing(false);
+            stopLinking();
             setEditedLinkedIds(new Set());
         }, []);
 
         const setLinks = React.useCallback(
             (ids: Id[], direction: LinkingDirection) => {
-                if (!isEditing) return;
+                if (!inEdit) return;
                 setEditedLinkedIds((prev) => {
                     const next = new Set(prev);
                     ids.forEach((id) => {
@@ -124,11 +131,11 @@ export function createUseLinkingHook<Id, T extends { id: Id; name: string }, Ite
                     return next;
                 });
             },
-            [isEditing],
+            [inEdit],
         );
 
         const saveEdits = React.useCallback(async () => {
-            if (!isEditing) return { linkedNames: [], unlinkedNames: [] };
+            if (!inEdit) return { linkedNames: [], unlinkedNames: [] };
 
             const idsToLink: Id[] = [...editedLinkedIds].filter((id) => !originalLinkedIds.has(id));
             const idsToUnlink: Id[] = [...originalLinkedIds].filter(
@@ -162,7 +169,7 @@ export function createUseLinkingHook<Id, T extends { id: Id; name: string }, Ite
                 await updateChangeTimes();
                 // avoid flashing old state after saving
                 await fetchOperationalPointItems(layoutContext, operationalPoint.id);
-                setIsEditing(false);
+                stopLinking();
                 setEditedLinkedIds(new Set());
             } catch {
                 await updateChangeTimes();
@@ -170,7 +177,7 @@ export function createUseLinkingHook<Id, T extends { id: Id; name: string }, Ite
 
             return { linkedNames, unlinkedNames };
         }, [
-            isEditing,
+            inEdit,
             editedLinkedIds,
             originalLinkedIds,
             displayItems,
@@ -180,10 +187,11 @@ export function createUseLinkingHook<Id, T extends { id: Id; name: string }, Ite
 
         return {
             isInitializing,
+            fetchStatus,
             itemAssociation,
             linkedItems,
             unlinkedItems,
-            isEditing,
+            isEditing: inEdit,
             hasChanges,
             startEditing,
             cancelEditing,
@@ -238,9 +246,8 @@ export function formatLinkingToast(
     return prefix + linkedPart + separator + unlinkedPart;
 }
 
-export const Hide: React.FC<React.PropsWithChildren<{ when: boolean }>> = ({ when, children }) => (
-    <div style={{ display: 'contents', ...(when && { visibility: 'hidden' }) }}>{children}</div>
-);
+export const Hide: React.FC<React.PropsWithChildren<{ when: boolean }>> = ({ when, children }) =>
+    when ? <div /> : <div style={{ display: 'contents' }}>{children}</div>;
 
 const RINF_ID_REGEX = /^[A-Z]{2}[0-9]{1,}$/;
 

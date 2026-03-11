@@ -572,9 +572,9 @@ constructor(
         val switchAElsewhere = switch(opA, Point(30.0, 30.0))
 
         fun s(switchId: IntId<LayoutSwitch>, vararg operationalPointIds: IntId<OperationalPoint>) =
-            SwitchWithOperationalPointPolygonInclusions(switchId, operationalPointIds.toList())
+            SwitchWithOperationalPoint(switchId, operationalPointIds.toList())
 
-        fun sortResults(r: List<SwitchWithOperationalPointPolygonInclusions>) =
+        fun sortResults(r: List<SwitchWithOperationalPoint>) =
             r.map { sp -> sp.copy(withinPolygon = sp.withinPolygon.sortedBy { it.intValue }) }
                 .sortedBy { it.switchId.intValue }
 
@@ -640,8 +640,8 @@ constructor(
 
         assertEquals(
             listOf(
-                SwitchWithOperationalPointPolygonInclusions(inAreaExisting, listOf(operationalPoint)),
-                SwitchWithOperationalPointPolygonInclusions(outOfAreaLinkedExisting, listOf()),
+                SwitchWithOperationalPoint(inAreaExisting, listOf(operationalPoint)),
+                SwitchWithOperationalPoint(outOfAreaLinkedExisting, listOf()),
             ),
             switchService.findSwitchesRelatedToOperationalPoint(mainDraftContext.context, operationalPoint),
         )

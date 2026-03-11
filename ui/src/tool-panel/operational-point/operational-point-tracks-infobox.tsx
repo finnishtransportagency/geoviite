@@ -31,9 +31,18 @@ import { LocationTrackBadge } from 'geoviite-design-lib/alignment/location-track
 import { filterUnique } from 'utils/array-utils';
 import { updateLocationTrackChangeTime } from 'common/change-time-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import InfoboxContent from 'tool-panel/infobox/infobox-content';
+import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { createClassName } from 'vayla-design-lib/utils';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
+import { createDelegates } from 'store/store-utils';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
+import { useTrackLayoutAppSelector } from 'store/hooks';
+import { LinkingType } from 'linking/linking-model';
 
 type OperationalPointTracksInfoboxProps = {
     contentVisible: boolean;
@@ -53,6 +62,36 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
     onSelectLocationTrack,
 }) => {
     const { t } = useTranslation();
+    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
+    const linkingState = useTrackLayoutAppSelector((state) => state.linkingState);
+
+    const useLinkingTracks = createUseLinkingHook<
+        LocationTrackId,
+        LayoutLocationTrack,
+        OperationalPointLocationTracks | undefined
+    >(
+        async (context: LayoutContext, operationalPointId: OperationalPointId) => {
+            const itemAssociation = await findOperationalPointLocationTracks(
+                context,
+                operationalPointId,
+            );
+            const trackIds = [
+                ...(itemAssociation?.assigned ?? []),
+                ...(itemAssociation?.overlappingArea ?? []),
+            ].filter(filterUnique);
+            const items = await getLocationTracks(trackIds, context);
+            return { itemAssociation, items };
+        },
+        (lt) => lt.operationalPointIds,
+        (changeTimes) => changeTimes.layoutLocationTrack,
+        updateLocationTrackChangeTime,
+        linkLocationTracksToOperationalPoint,
+        unlinkLocationTracksFromOperationalPoint,
+        (a, b) =>
+            delegates.startLinkingOperationalPointTracks({ operationalPoint: a, linkedTracks: b }),
+        delegates.stopLinking,
+        () => linkingState?.type === LinkingType.LinkingOperationalPointTracks,
+    );
 
     const {
         isInitializing,
@@ -95,91 +134,93 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
             title={t('tool-panel.operational-point.track-links.infobox-header')}
             contentVisible={contentVisible}
             onContentVisibilityChange={() => onVisibilityChange('tracks')}>
-            {isInitializing ? (
-                <Spinner />
-            ) : (
-                <InfoboxContent>
-                    <OperationalPointTracksDirectionInfobox
-                        tracksInOperationalPointPolygon={tracksInOperationalPointPolygon}
-                        tracks={linkedItems}
-                        linkingDirection={'unlinking'}
-                        isEditing={isEditing}
-                        setLinks={setLinks}
-                        onSelectLocationTrack={onSelectLocationTrack}
-                    />
-                    <OperationalPointTracksDirectionInfobox
-                        tracksInOperationalPointPolygon={tracksInOperationalPointPolygon}
-                        tracks={unlinkedItems}
-                        linkingDirection={'linking'}
-                        isEditing={isEditing}
-                        setLinks={setLinks}
-                        onSelectLocationTrack={onSelectLocationTrack}
-                    />
-                    <div className={styles['operational-point-linking-infobox__edit-buttons']}>
-                        {!isEditing ? (
-                            <Button
-                                variant={ButtonVariant.SECONDARY}
-                                size={ButtonSize.SMALL}
-                                disabled={layoutContext.publicationState === 'OFFICIAL'}
-                                title={
-                                    layoutContext.publicationState === 'OFFICIAL'
-                                        ? t(
-                                              'tool-panel.disabled.activity-disabled-in-official-mode',
-                                          )
-                                        : ''
-                                }
-                                onClick={startEditing}>
-                                {t('tool-panel.operational-point.edit-links')}
-                            </Button>
-                        ) : (
-                            <>
-                                <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    size={ButtonSize.SMALL}
-                                    disabled={isSaving}
-                                    onClick={cancelEditing}>
-                                    {t('tool-panel.operational-point.cancel-editing-links')}
-                                </Button>
-                                <Button
-                                    variant={ButtonVariant.PRIMARY}
-                                    size={ButtonSize.SMALL}
-                                    disabled={!hasChanges || isSaving}
-                                    onClick={handleSave}>
-                                    {t('tool-panel.operational-point.save-links')}
-                                </Button>
-                                {isSaving && <Spinner />}
-                            </>
-                        )}
-                    </div>
-                </InfoboxContent>
-            )}
+            <InfoboxContent>
+                <ProgressIndicatorWrapper
+                    indicator={ProgressIndicatorType.Area}
+                    inProgress={isInitializing}>
+                    {operationalPoint.polygon || linkedItems.length > 0 ? (
+                        <React.Fragment>
+                            {!operationalPoint.polygon && linkedItems.length > 0 && (
+                                <InfoboxContentSpread>
+                                    <MessageBox type={MessageBoxType.ERROR}>
+                                        {t(
+                                            'tool-panel.operational-point.track-links.no-area-but-has-tracks-linked',
+                                        )}
+                                    </MessageBox>
+                                </InfoboxContentSpread>
+                            )}
+                            <OperationalPointTracksDirectionInfobox
+                                tracksInOperationalPointPolygon={tracksInOperationalPointPolygon}
+                                tracks={linkedItems}
+                                linkingDirection={'unlinking'}
+                                isEditing={isEditing}
+                                setLinks={setLinks}
+                                onSelectLocationTrack={onSelectLocationTrack}
+                            />
+                            <OperationalPointTracksDirectionInfobox
+                                tracksInOperationalPointPolygon={tracksInOperationalPointPolygon}
+                                tracks={unlinkedItems}
+                                linkingDirection={'linking'}
+                                isEditing={isEditing}
+                                setLinks={setLinks}
+                                onSelectLocationTrack={onSelectLocationTrack}
+                            />
+                            <div
+                                className={
+                                    styles['operational-point-linking-infobox__edit-buttons']
+                                }>
+                                {!isEditing ? (
+                                    <Button
+                                        variant={ButtonVariant.SECONDARY}
+                                        size={ButtonSize.SMALL}
+                                        disabled={layoutContext.publicationState === 'OFFICIAL'}
+                                        title={
+                                            layoutContext.publicationState === 'OFFICIAL'
+                                                ? t(
+                                                      'tool-panel.disabled.activity-disabled-in-official-mode',
+                                                  )
+                                                : ''
+                                        }
+                                        onClick={startEditing}>
+                                        {t('tool-panel.operational-point.edit-links')}
+                                    </Button>
+                                ) : (
+                                    <>
+                                        <Button
+                                            variant={ButtonVariant.SECONDARY}
+                                            size={ButtonSize.SMALL}
+                                            disabled={isSaving}
+                                            onClick={cancelEditing}>
+                                            {t('tool-panel.operational-point.cancel-editing-links')}
+                                        </Button>
+                                        <Button
+                                            variant={ButtonVariant.PRIMARY}
+                                            size={ButtonSize.SMALL}
+                                            disabled={!hasChanges || isSaving}
+                                            onClick={handleSave}>
+                                            {t('tool-panel.operational-point.save-links')}
+                                        </Button>
+                                        {isSaving && <Spinner />}
+                                    </>
+                                )}
+                            </div>
+                        </React.Fragment>
+                    ) : layoutContext.publicationState === 'DRAFT' ? (
+                        <InfoboxContentSpread>
+                            <MessageBox>
+                                {t('tool-panel.operational-point.track-links.no-area')}
+                            </MessageBox>
+                        </InfoboxContentSpread>
+                    ) : (
+                        <InfoboxText
+                            value={t('tool-panel.operational-point.track-links.no-tracks')}
+                        />
+                    )}
+                </ProgressIndicatorWrapper>
+            </InfoboxContent>
         </Infobox>
     );
 };
-
-const useLinkingTracks = createUseLinkingHook<
-    LocationTrackId,
-    LayoutLocationTrack,
-    OperationalPointLocationTracks | undefined
->(
-    async (context: LayoutContext, operationalPointId: OperationalPointId) => {
-        const itemAssociation = await findOperationalPointLocationTracks(
-            context,
-            operationalPointId,
-        );
-        const trackIds = [
-            ...(itemAssociation?.assigned ?? []),
-            ...(itemAssociation?.overlappingArea ?? []),
-        ].filter(filterUnique);
-        const items = await getLocationTracks(trackIds, context);
-        return { itemAssociation, items };
-    },
-    (lt) => lt.operationalPointIds,
-    (changeTimes) => changeTimes.layoutLocationTrack,
-    updateLocationTrackChangeTime,
-    linkLocationTracksToOperationalPoint,
-    unlinkLocationTracksFromOperationalPoint,
-);
 
 type OperationalPointTracksDirectionInfoboxProps = {
     tracks: LayoutLocationTrack[];
@@ -305,7 +346,7 @@ const OperationalPointTrackRow: React.FC<OperationalPointTrackRowProps> = ({
                 <Button
                     variant={ButtonVariant.GHOST}
                     size={ButtonSize.SMALL}
-                    icon={linkingDirection === 'linking' ? Icons.Add : Icons.Subtract}
+                    icon={linkingDirection === 'linking' ? Icons.Ascending : Icons.Descending}
                     onClick={() => setLinks([trackItem.id], linkingDirection)}
                 />
             </Hide>

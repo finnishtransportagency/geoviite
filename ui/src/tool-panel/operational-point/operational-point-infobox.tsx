@@ -18,7 +18,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader } from 'utils/react-utils';
 import { getOperationalPointChangeTimes } from 'track-layout/layout-operational-point-api';
 import { ChangeTimes } from 'common/common-slice';
 import { formatDateShort } from 'utils/date-utils';
@@ -28,7 +28,6 @@ import { OperationalPointEditDialogContainer } from 'tool-panel/operational-poin
 import { OperationalPointLocationInfobox } from 'tool-panel/operational-point/operational-point-location-infobox';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { OperationalPointSwitchesInfobox } from 'tool-panel/operational-point/operational-point-switches-infobox';
-import { EnvRestricted } from 'environment/env-restricted';
 import { useHasPublicationLog } from 'publication/publication-utils';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
@@ -53,6 +52,7 @@ type OperationalPointInfoboxProps = {
     onStopPlacingArea: () => void;
     onClearArea: () => void;
     startFreshSpecificItemPublicationLogSearch: (item: SearchItemValue<SearchItemType>) => void;
+    operationalPointFetchStatus: LoaderStatus;
 };
 
 export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = ({
@@ -72,6 +72,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     onStopPlacingArea,
     onClearArea,
     startFreshSpecificItemPublicationLogSearch,
+    operationalPointFetchStatus,
 }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -252,28 +253,23 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 changeTimes={changeTimes}
                 onSelectLocationTrack={selectLocationTrack}
             />
-            <EnvRestricted restrictTo={'dev'}>
-                {operationalPoint.polygon && (
-                    <>
-                        <OperationalPointSwitchesInfobox
-                            contentVisible={visibilities.switches}
-                            onVisibilityChange={visibilityChange}
-                            layoutContext={layoutContext}
-                            operationalPoint={operationalPoint}
-                            changeTimes={changeTimes}
-                            onSelectSwitch={selectSwitch}
-                        />
-                        <OperationalPointTracksInfobox
-                            contentVisible={visibilities.tracks}
-                            onVisibilityChange={visibilityChange}
-                            layoutContext={layoutContext}
-                            operationalPoint={operationalPoint}
-                            changeTimes={changeTimes}
-                            onSelectLocationTrack={selectLocationTrack}
-                        />
-                    </>
-                )}
-            </EnvRestricted>
+            <OperationalPointSwitchesInfobox
+                contentVisible={visibilities.switches}
+                onVisibilityChange={visibilityChange}
+                layoutContext={layoutContext}
+                operationalPoint={operationalPoint}
+                changeTimes={changeTimes}
+                onSelectSwitch={selectSwitch}
+                operationalPointFetchStatus={operationalPointFetchStatus}
+            />
+            <OperationalPointTracksInfobox
+                contentVisible={visibilities.tracks}
+                onVisibilityChange={visibilityChange}
+                layoutContext={layoutContext}
+                operationalPoint={operationalPoint}
+                changeTimes={changeTimes}
+                onSelectLocationTrack={selectLocationTrack}
+            />
             <AssetValidationInfoboxContainer
                 contentVisible={visibilities.validation}
                 onContentVisibilityChange={() => visibilityChange('validation')}

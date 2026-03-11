@@ -111,8 +111,7 @@ constructor(
     fun findSwitchesRelatedToOperationalPoint(
         context: LayoutContext,
         operationalPointId: IntId<OperationalPoint>,
-    ): List<SwitchWithOperationalPointPolygonInclusions> =
-        dao.findSwitchesRelatedToOperationalPoint(context, operationalPointId)
+    ): List<SwitchWithinOperationalPoint> = dao.findSwitchesRelatedToOperationalPoint(context, operationalPointId)
 
     @Transactional
     fun clearSwitchInformationFromTracks(branch: LayoutBranch, layoutSwitchId: IntId<LayoutSwitch>) {
@@ -284,6 +283,12 @@ fun switchMatchesBbox(switch: LayoutSwitch, bbox: BoundingBox?, includeSwitchesW
 data class SwitchWithOperationalPointPolygonInclusions(
     val switchId: IntId<LayoutSwitch>,
     val withinPolygon: List<IntId<OperationalPoint>>,
+)
+
+data class SwitchWithinOperationalPoint(
+    val switchId: IntId<LayoutSwitch>,
+    val isLinked: Boolean,
+    val allOperationalPoints: List<IntId<OperationalPoint>>,
 )
 
 fun groupConnectionsByJointNumber(
