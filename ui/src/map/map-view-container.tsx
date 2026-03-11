@@ -13,7 +13,7 @@ import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-
 import { GeometryPlanLayout } from 'track-layout/track-layout-model';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { PublicationCandidate } from 'publication/publication-model';
-import { MapTool, MapToolWithButton } from 'map/tools/tool-model';
+import { MapToolId, MapToolWithButton } from 'map/tools/tool-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { RouteResult } from 'track-layout/layout-routing-api';
 
@@ -89,7 +89,7 @@ type MapViewContainerProps = {
     routeResult?: RouteResult;
     manuallySetPlan?: GeometryPlanLayout;
     publicationCandidates?: PublicationCandidate[];
-    customActiveMapTool?: MapTool;
+    customActiveMapToolId?: MapToolId;
     designPublicationMode?: DesignPublicationMode;
     mapTools: MapToolWithButton[];
 };
@@ -99,7 +99,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     routeResult,
     manuallySetPlan,
     publicationCandidates,
-    customActiveMapTool,
+    customActiveMapToolId,
     designPublicationMode,
     mapTools,
 }) => {
@@ -112,7 +112,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     mapProps.routeResult = routeResult;
     mapProps.manuallySetPlan = manuallySetPlan;
     mapProps.publicationCandidates = publicationCandidates;
-    mapProps.customActiveMapTool = customActiveMapTool;
+    mapProps.customActiveMapToolId = customActiveMapToolId;
     mapProps.designPublicationMode = designPublicationMode;
     mapProps.mapTools = mapTools;
 

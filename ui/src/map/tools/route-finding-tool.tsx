@@ -57,14 +57,14 @@ function createTrackConnector(location: RouteLocation): Feature<LineString> {
     return createConnector(location.clickedCoordinate, trackCoordinate);
 }
 
+const id = 'route-finding';
 export function createRouteFindingTool(
     layoutContext: LayoutContext,
     onRouteFound: (route: RouteResult | undefined) => void,
 ): MapToolWithButton {
     let route: RouteResult | undefined;
     const tool: MapToolWithButton = {
-        id: 'route-finding',
-        housesInteraction: false,
+        id,
         activate: (map: OlMap) => {
             const vectorSource = new VectorSource();
             const vectorLayer = new VectorLayer({
@@ -192,18 +192,21 @@ export function createRouteFindingTool(
             mapViewport.addEventListener('click', handleClick);
 
             // Return cleanup function
-            return () => {
-                mapViewport.removeEventListener('pointermove', handlePointerMove);
-                mapViewport.removeEventListener('click', handleClick);
-                map.removeLayer(vectorLayer);
+            return {
+                deactivate: () => {
+                    mapViewport.removeEventListener('pointermove', handlePointerMove);
+                    mapViewport.removeEventListener('click', handleClick);
+                    map.removeLayer(vectorLayer);
+                },
             };
         },
 
         component: ({ isActive, setActiveTool }) => {
             return (
                 <MapToolButton
+                    id={id}
                     isActive={isActive}
-                    setActive={() => setActiveTool(tool)}
+                    setActive={setActiveTool}
                     icon={Icons.VectorRight}
                 />
             );
