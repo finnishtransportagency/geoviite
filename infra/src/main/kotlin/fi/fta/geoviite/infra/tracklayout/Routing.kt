@@ -422,9 +422,11 @@ data class RoutingGraph(
                                 }
                             }
                         val (start, end) =
-                            if (vertexDirection == OUT) (midPoint to data.vertex) else (data.vertex to midPoint)
-                        graph.addEdge(start, end, edge)
-                        graph.setEdgeWeight(edge, length)
+                            when (vertexDirection) {
+                                OUT -> (midPoint to data.vertex)
+                                IN -> (data.vertex to midPoint)
+                            }
+                        graph.addWeightedEdge(start, end, edge, length)
                     }
             }
 
@@ -531,13 +533,7 @@ fun buildGraph(
     val trackConnections = edges.flatMap(::createTrackConnections)
     (switchConnections.asSequence() + directConnections.asSequence() + trackConnections.asSequence()).forEach {
         (connection, edge) ->
-        try {
-            if (jgraph.addEdge(connection.from, connection.to, edge)) {
-                jgraph.setEdgeWeight(edge, connection.length)
-            }
-        } catch (e: Exception) {
-            logger.error("Error adding edge: edge=$edge connection=$connection error=${e.message}")
-        }
+        jgraph.addWeightedEdge(connection.from, connection.to, edge, connection.length)
     }
     return RoutingGraph(jgraph = jgraph, edgeData = edgeData, switchInternalEdges = switchInternalEdges)
 }
@@ -710,3 +706,20 @@ private fun createIncomingTrackConnectionVertex(nodeConnection: DbNodeConnection
             nodeConnection.trackBoundaryIn?.let { boundary -> TrackBoundaryVertex(boundary.id, boundary.type, IN) }
         }
     }
+
+private fun DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>.addWeightedEdge(
+    from: RoutingVertex,
+    to: RoutingVertex,
+    edge: RoutingEdge,
+    weight: Double,
+) {
+    try {
+        if (addEdge(from, to, edge)) {
+            setEdgeWeight(edge, weight)
+        } else {
+            logger.warn("Did not add duplicate edge: edge=$edge from=$from to=$to")
+        }
+    } catch (e: IllegalArgumentException) {
+        logger.error("Failed to add edge: edge=$edge from=$from to=$to error=${e.message}")
+    }
+}
