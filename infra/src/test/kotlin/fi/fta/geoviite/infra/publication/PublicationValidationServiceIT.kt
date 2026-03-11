@@ -3050,6 +3050,7 @@ constructor(
                     "duplicateTrackName" to "dup",
                     "jointNumbers" to "1, 5, 2",
                 ),
+                inRelationTo = setOf(PublicationLogAsset(switchId, PublicationLogAssetType.SWITCH)),
             )
 
         assertContains(locationTrackValidations.find { it.id == mainTrack.id }!!.errors, expectedError)
