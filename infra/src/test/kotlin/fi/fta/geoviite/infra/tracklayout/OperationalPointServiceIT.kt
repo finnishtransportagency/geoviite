@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -320,44 +319,28 @@ constructor(
     ) = ExternalOperationalPointSaveRequest(rinfType, rinfIdOverride)
 
     @Test
-    fun `should reject duplicate rinf_id_generated values for drafts`() {
-        mainDraftContext.save(operationalPoint(name = "op1", rinfIdGenerated = "FI999999"))
-        assertThrows<DataIntegrityViolationException> {
-            mainDraftContext.save(operationalPoint(name = "op2", rinfIdGenerated = "FI999999"))
+    fun `should reject setting rinf_id_generated once once set`() {
+        val id = mainDraftContext.save(operationalPoint(name = "op1")).id
+        operationalPointDao.setRinfIdGenerated(id, operationalPointDao.generateRinfId())
+        assertThrows<IllegalArgumentException> {
+            operationalPointDao.setRinfIdGenerated(id, operationalPointDao.generateRinfId())
         }
     }
 
     @Test
-    fun `should reject duplicate rinf_id_generated values found in other layout contexts`() {
-        mainOfficialContext.save(operationalPoint(name = "op1", rinfIdGenerated = "FI999999"))
+    fun `should reject duplicate rinf_id_generated values`() {
+        val op1Id = mainOfficialContext.save(operationalPoint(name = "op1")).id
+        val op2Id = mainOfficialContext.save(operationalPoint(name = "op1")).id
+        operationalPointDao.setRinfIdGenerated(op1Id, RinfId("FI999999"))
         assertThrows<DataIntegrityViolationException> {
-            mainDraftContext.save(operationalPoint(name = "op2", rinfIdGenerated = "FI999999"))
+            operationalPointDao.setRinfIdGenerated(op2Id, RinfId("FI999999"))
         }
-
-        val designBranch = testDBService.createDesignBranch()
-        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
-        assertThrows<DataIntegrityViolationException> {
-            designDraftContext.save(operationalPoint(name = "op3", rinfIdGenerated = "FI999999"))
-        }
-    }
-
-    @Test
-    fun `should allow same rinf_id_generated for same operational point in draft and official contexts`() {
-        val draftVersion = mainDraftContext.save(operationalPoint(name = "op1", rinfIdGenerated = "FI888888"))
-        val draft = mainDraftContext.fetch<OperationalPoint>(draftVersion.id)!!
-        mainOfficialContext.save(draft)
-
-        val draftPoint = mainDraftContext.fetch<OperationalPoint>(draftVersion.id)
-        val officialPoint = mainOfficialContext.fetch<OperationalPoint>(draftVersion.id)
-        assertNotNull(draftPoint)
-        assertNotNull(officialPoint)
-        assertEquals(draftPoint.rinfIdGenerated, officialPoint.rinfIdGenerated)
     }
 
     @Test
     fun `should allow multiple operational points with null rinf_id_generated`() {
-        mainDraftContext.save(operationalPoint(name = "op1", rinfIdGenerated = null))
-        mainDraftContext.save(operationalPoint(name = "op2", rinfIdGenerated = null))
+        mainDraftContext.save(operationalPoint(name = "op1"))
+        mainDraftContext.save(operationalPoint(name = "op2"))
         val points = operationalPointService.list(mainDraftContext.context)
         assertEquals(2, points.size)
         assertEquals(listOf(null, null), points.map { it.rinfIdGenerated })

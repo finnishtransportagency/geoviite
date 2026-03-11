@@ -559,13 +559,13 @@ class ValidationContext(
     private fun fetchOperationalPointsByRinfIdGenerated(
         items: List<RinfId>
     ): Map<RinfId, List<IntId<OperationalPoint>>> {
-        val baseVersions = operationalPointDao.findRinfIdGeneratedDuplicates(target.baseContext, items)
-        cacheBaseVersions(baseVersions.values.flatten(), operationalPointVersionCache)
+        val baseVersions = operationalPointDao.findByRinfIdGenerated(target.baseContext, items)
+        cacheBaseVersions(baseVersions.values.toList(), operationalPointVersionCache)
         return mapIdsByField(
             items,
             { op -> op.rinfIdGenerated },
             publicationSet.operationalPoints,
-            baseVersions,
+            baseVersions.mapValues { (_, vs) -> listOf(vs) },
             operationalPointDao,
         )
     }

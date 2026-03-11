@@ -22,9 +22,10 @@ select
   op.change_user,
   op.change_time,
   op.expiry_time,
-  op.rinf_id_generated,
+  opid.rinf_id_generated,
   op.rinf_id_override
   from layout.operational_point_version op
+    join layout.operational_point_id opid on op.id = opid.id
     left join layout.operational_point_external_id ext_id
               on op.origin = 'RATKO' and op.id = ext_id.id and ext_id.layout_context_id = 'main_official'
     left join integrations.ratko_operational_point_version rop

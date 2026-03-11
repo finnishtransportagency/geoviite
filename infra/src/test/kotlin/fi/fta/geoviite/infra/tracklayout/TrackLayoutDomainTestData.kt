@@ -1198,7 +1198,8 @@ fun operationalPoint(
     ratkoVersion: Int? = null,
     rinfIdGenerated: String? = null,
     rinfIdOverride: String? = null,
-    contextData: LayoutContextData<OperationalPoint> = createMainContext(null, draft),
+    id: IntId<OperationalPoint>? = null,
+    contextData: LayoutContextData<OperationalPoint> = createMainContext(id, draft),
 ): OperationalPoint =
     OperationalPoint(
         name = OperationalPointName(name),

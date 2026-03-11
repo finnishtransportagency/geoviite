@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
 import fi.fta.geoviite.infra.publication.PublicationDetails
 import fi.fta.geoviite.infra.publication.PublicationLogService
 import fi.fta.geoviite.infra.ratko.RatkoClient.RatkoStatus
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
@@ -28,9 +27,6 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
-import kotlin.collections.contains
-import kotlin.collections.forEach
-import kotlin.collections.get
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.transaction.annotation.Transactional
@@ -164,10 +160,7 @@ constructor(
         ratkoPointsWithVersions.forEach { (ratkoPoint, ratkoPointVersion) ->
             val id = layoutPointsByOid[ratkoPoint.externalId.cast()]
             if (id != null && layoutPoints.none { layoutPoint -> layoutPoint.id == id }) {
-                val rinfIdGenerated =
-                    if (ratkoPoint.type != OperationalPointRatoType.OLP) operationalPointDao.generateRinfId() else null
-
-                operationalPointDao.insertRatkoPoint(id, ratkoPointVersion, rinfIdGenerated)
+                operationalPointDao.insertRatkoPoint(id, ratkoPointVersion)
             }
         }
     }

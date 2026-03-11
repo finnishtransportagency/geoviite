@@ -22,6 +22,7 @@ data class OperationalPoint(
     val state: OperationalPointState,
     val origin: OperationalPointOrigin,
     val ratkoVersion: Int?,
+    /** Read-only. Must be set at ID creation time if ever. */
     val rinfIdGenerated: RinfId?,
     val rinfIdOverride: RinfId?,
     @JsonIgnore override val contextData: LayoutContextData<OperationalPoint>,
