@@ -21,25 +21,16 @@ import {
     SplitTargetId,
     SplitTargetOperation,
 } from 'tool-panel/location-track/split-store';
-import {
-    calculateBoundingBoxToShowAroundLocation,
-    MAP_POINT_NEAR_BBOX_OFFSET,
-} from 'map/map-utils';
+import { calculateBoundingBoxToShowAroundLocation, MAP_POINT_NEAR_BBOX_OFFSET, } from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
-import {
-    END_SPLIT_POINT_NOT_MATCHING_ERROR,
-    START_SPLIT_POINT_NOT_MATCHING_ERROR,
-} from './split-utils';
+import { END_SPLIT_POINT_NOT_MATCHING_ERROR, START_SPLIT_POINT_NOT_MATCHING_ERROR, } from './split-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { BoundingBox, Point } from 'model/geometry';
 import { SplitDuplicateTrack } from 'track-layout/layout-location-track-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { RemovalConfirmationMenu } from 'tool-panel/location-track/splitting/removal-confirmation-menu';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import {
-    locationTrackNameSpecifiers,
-    locationTrackNamingSchemesFiltered,
-} from 'utils/enum-localization-utils';
+import { locationTrackNameSpecifiers, locationTrackNamingSchemesFiltered, } from 'utils/enum-localization-utils';
 
 type CommonProps = {
     editingDisabled: boolean;
@@ -57,7 +48,6 @@ type SplitProps = CommonProps & {
     split: SplitTargetCandidate | FirstSplitTargetCandidate;
     onRemove?: (splitPoint: SplitPoint) => void;
     updateSplit: (updateSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
-    duplicateTrackId: LocationTrackId | undefined;
     nameIssues: FieldValidationIssue<SplitTargetCandidate>[];
     descriptionIssues: FieldValidationIssue<SplitTargetCandidate>[];
     switchIssues: FieldValidationIssue<SplitTargetCandidate>[];
@@ -127,7 +117,6 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
     split,
     onRemove,
     updateSplit,
-    duplicateTrackId,
     nameIssues,
     descriptionIssues,
     switchIssues,
@@ -552,13 +541,9 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                         hasErrors={descriptionErrorsVisible}
                         label={t('tool-panel.location-track.splitting.description-base')}>
                         <TextField
-                            value={
-                                duplicate
-                                    ? duplicate.descriptionStructure.base
-                                    : split.descriptionBase
-                            }
+                            value={split.descriptionBase}
                             hasError={descriptionErrorsVisible}
-                            disabled={editingDisabled || !!duplicateTrackId}
+                            disabled={editingDisabled}
                             onChange={(e) => {
                                 updateSplit({
                                     ...split,
@@ -597,14 +582,12 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                         className={styles['location-track-infobox__split-item-field-label']}
                         label={t('tool-panel.location-track.splitting.description-suffix')}>
                         <DescriptionSuffixDropdown
-                            suffixMode={
-                                duplicate ? duplicate.descriptionStructure.suffix : split.suffixMode
-                            }
+                            suffixMode={split.suffixMode}
                             onChange={(mode) => {
                                 updateSplit({ ...split, suffixMode: mode });
                             }}
                             onBlur={onBlur}
-                            disabled={editingDisabled || !!duplicateTrackId}
+                            disabled={editingDisabled}
                         />
                     </InfoboxField>
                     {endSwitchMatchingError && (
