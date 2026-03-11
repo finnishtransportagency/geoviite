@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.math.Point
@@ -85,9 +86,14 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 ),
             )
 
+        // Create a publication to generate a reference-point for routing cache
+        testDBService.createPublication()
+
+        // Time after data init
         val moment1 = testDBService.getDbTime()
-        val momentLinks = stationLinkService.getStationLinks(LayoutBranch.main, moment1)
-        momentLinks.also { links ->
+
+        val links = stationLinkService.getStationLinks(mainOfficialContext.context)
+        links.also { links ->
             // Assert correct links are found, ignoring length (due to floating-point comparison)
             assertEquals(
                 listOf(
@@ -112,8 +118,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         }
 
         // Verify that the context-based fetch returns the exact same results as moment-based fetch
-        val contextLinks = stationLinkService.getStationLinks(mainOfficialContext.context)
-        assertEquals(momentLinks, contextLinks)
+        assertEquals(links, stationLinkService.getStationLinks(LayoutBranch.main, moment1))
 
         // Verify that the 0-moment links is still empty
         stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
@@ -121,6 +126,10 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
 
     @Test
     fun `getStationLinks returns correct links for tracks directly connected to operational points`() {
+        val moment0 = testDBService.getDbTime()
+        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
+        stationLinkService.getStationLinks(mainOfficialContext.context).also { links -> assertTrue(links.isEmpty()) }
+
         val tnVersion =
             mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
                 referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
@@ -147,6 +156,12 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 ),
             )
 
+        // Create a publication to generate a reference-point for routing cache
+        testDBService.createPublication()
+
+        // Time after data init
+        val moment1 = testDBService.getDbTime()
+
         val links = stationLinkService.getStationLinks(mainOfficialContext.context)
         links.also { links ->
             // Assert correct links are found, ignoring length (due to floating-point comparison)
@@ -170,14 +185,16 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 LAYOUT_M_DELTA,
             )
         }
+
+        // Verify that the context-based fetch returns the exact same results as moment-based fetch
+        assertEquals(links, stationLinkService.getStationLinks(LayoutBranch.main, moment1))
+
+        // Verify that the 0-moment links is still empty
+        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
     }
 
     @Test
     fun `getStationLinks returns correct links when the track doesn't cover the whole way`() {
-        val moment0 = testDBService.getDbTime()
-        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
-        stationLinkService.getStationLinks(mainOfficialContext.context).also { links -> assertTrue(links.isEmpty()) }
-
         val tnVersion =
             mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
                 referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
@@ -238,9 +255,10 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
             ),
         )
 
-        val moment1 = testDBService.getDbTime()
-        val momentLinks = stationLinkService.getStationLinks(LayoutBranch.main, moment1)
-        momentLinks.also { links ->
+        // Create a publication to generate a reference-point for routing cache
+        testDBService.createPublication()
+
+        stationLinkService.getStationLinks(MainLayoutContext.official).also { links ->
             // Assert correct links are found, ignoring length (due to floating-point comparison)
             assertEquals(
                 listOf(
@@ -255,12 +273,5 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 LAYOUT_M_DELTA,
             )
         }
-
-        // Verify that the context-based fetch returns the exact same results as moment-based fetch
-        val contextLinks = stationLinkService.getStationLinks(mainOfficialContext.context)
-        assertEquals(momentLinks, contextLinks)
-
-        // Verify that the 0-moment links is still empty
-        stationLinkService.getStationLinks(LayoutBranch.main, moment0).also { links -> assertTrue(links.isEmpty()) }
     }
 }

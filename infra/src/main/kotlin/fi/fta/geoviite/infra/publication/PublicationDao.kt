@@ -763,7 +763,7 @@ class PublicationDao(
 
         return jdbcTemplate
             .queryOptional(sql, mapOf("design_id" to layoutBranch.designId?.intValue)) { rs, _ ->
-                rs.getInstant("publication_time")
+                rs.getInstantOrNull("publication_time")
             }
             .also { logger.daoAccess(FETCH, "Publication.publicationTime", layoutBranch) }
     }
