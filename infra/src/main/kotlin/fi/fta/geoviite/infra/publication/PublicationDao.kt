@@ -101,11 +101,11 @@ import fi.fta.geoviite.infra.util.getUicCodeOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -749,6 +749,23 @@ class PublicationDao(
                 )
             }
             .also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
+    }
+
+    fun fetchLatestPublicationTime(layoutBranch: LayoutBranch): Instant? {
+        // language=sql
+        val sql =
+            """
+            select max(publication_time) as publication_time
+            from publication.publication
+            where design_id is not distinct from :design_id
+            """
+                .trimIndent()
+
+        return jdbcTemplate
+            .queryOptional(sql, mapOf("design_id" to layoutBranch.designId?.intValue)) { rs, _ ->
+                rs.getInstant("publication_time")
+            }
+            .also { logger.daoAccess(FETCH, "Publication.publicationTime", layoutBranch) }
     }
 
     fun fetchPublicationTimes(layoutBranch: LayoutBranch): Map<Instant, IntId<Publication>> {

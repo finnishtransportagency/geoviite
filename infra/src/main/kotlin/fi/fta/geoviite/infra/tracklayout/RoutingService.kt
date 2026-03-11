@@ -4,9 +4,13 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import java.time.Instant
 
@@ -14,35 +18,48 @@ import java.time.Instant
 class RoutingService(
     private val locationTrackSpatialCache: LocationTrackSpatialCache,
     private val locationTrackDao: LocationTrackDao,
-    private val locationTrackService: LocationTrackService,
-    private val switchService: LayoutSwitchService,
+    private val trackService: LocationTrackService,
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
+    private val publicationDao: PublicationDao,
 ) {
-    private data class GraphCacheKey(val context: LayoutContext, val changeTimes: List<Instant>)
+    data class GraphCacheKey(val context: LayoutContext, val changeTime: Instant)
 
     private val graphCache: Cache<GraphCacheKey, RoutingGraph> =
-        Caffeine.newBuilder().maximumSize(10).expireAfterAccess(layoutCacheDuration).build()
+        Caffeine.newBuilder().maximumSize(20).expireAfterAccess(layoutCacheDuration).build()
 
     fun getClosestTrackPoint(context: LayoutContext, location: Point, maxDistance: Double): ClosestTrackPoint? =
         locationTrackSpatialCache.get(context).getClosest(location, maxDistance).firstOrNull()?.let { hit ->
             toClosestTrackPoint(location, hit)
         }
 
-    private fun getGraph(context: LayoutContext): RoutingGraph {
-        val cacheKey =
-            GraphCacheKey(
-                context = context,
-                changeTimes = listOf(locationTrackDao.fetchChangeTime(), switchDao.fetchChangeTime()),
-            )
-        return graphCache.get(cacheKey) { key ->
-            buildGraph(
-                trackGeoms =
-                    locationTrackService.listWithGeometries(key.context, includeDeleted = false).map { (_, g) -> g },
-                switches = switchService.list(key.context, includeDeleted = false),
-                structures = switchLibraryService.getSwitchStructuresById(),
-            )
-        }
+    fun getGraph(branch: LayoutBranch, moment: Instant): RoutingGraph = getGraph(GraphCacheKey(branch.official, moment))
+
+    fun getGraph(context: LayoutContext): RoutingGraph {
+        val changeTime =
+            when (context.state) {
+                OFFICIAL -> publicationDao.fetchLatestPublicationTime(context.branch) ?: Instant.EPOCH
+                DRAFT -> maxOf(locationTrackDao.fetchChangeTime(), switchDao.fetchChangeTime())
+            }
+        return getGraph(GraphCacheKey(context, changeTime))
+    }
+
+    private fun getGraph(key: GraphCacheKey): RoutingGraph = graphCache.get(key, ::createGraph)
+
+    private fun createGraph(key: GraphCacheKey): RoutingGraph {
+        val branch = key.context.branch
+        val moment = key.changeTime
+        val tracksAndGeoms =
+            when (key.context.state) {
+                OFFICIAL -> trackService.listOfficialWithGeometryAtMoment(branch, moment, includeDeleted = false)
+                DRAFT -> trackService.listWithGeometries(key.context, includeDeleted = false)
+            }
+        val switches =
+            when (key.context.state) {
+                OFFICIAL -> switchDao.listOfficialAtMoment(branch, moment).filter { it.exists }
+                DRAFT -> switchDao.list(key.context, includeDeleted = false)
+            }
+        return buildGraph(tracksAndGeoms.map { (_, g) -> g }, switches, switchLibraryService.getSwitchStructuresById())
     }
 
     fun getRoute(

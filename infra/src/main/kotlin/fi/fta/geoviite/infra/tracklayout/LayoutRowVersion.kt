@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.parseLayoutContextSqlString
+import java.util.*
 
 private const val ID_SEPARATOR = "__"
 private const val VERSION_SEPARATOR = "_v"
@@ -33,6 +34,12 @@ constructor(val rowId: LayoutRowId<T>, val version: Int) {
     init {
         require(version > 0) { "Version numbers start at 1: version=$version" }
     }
+
+    private val hash = Objects.hash(id.intValue, context.branch, context.state, version)
+
+    override fun equals(other: Any?): Boolean = this === other || (other as? LayoutRowVersion<*>)?.hash == hash
+
+    override fun hashCode(): Int = hash
 
     val id: IntId<T>
         get() = rowId.id
