@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType
 import fi.fta.geoviite.infra.publication.VALIDATION_SWITCH
+import fi.fta.geoviite.infra.publication.validateSwitchJointConnectionsOnDuplicateTracks
 import fi.fta.geoviite.infra.publication.validateSwitchLocationTrackLinkStructure
 import fi.fta.geoviite.infra.publication.validateWithParams
 import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
@@ -18,13 +19,17 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJointConnection
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJointMatch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TopologyRecalculationRequest
+import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
 import fi.fta.geoviite.infra.tracklayout.asDraft
 import fi.fta.geoviite.infra.tracklayout.getTopologicallyLinkableJointLocations
+import fi.fta.geoviite.infra.tracklayout.groupConnectionsByJointNumber
 import fi.fta.geoviite.infra.util.processNonNulls
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
@@ -222,8 +227,38 @@ private fun validateForSplit(
                 LayoutValidationIssue(LayoutValidationIssueType.WARNING, error.localizationKey, error.params)
             }
 
-    return publicationValidationErrorsMapped + originTrackLinkErrors
+    val switchId = originalSwitch.id as IntId
+    val jointConnections =
+        groupConnectionsByJointNumber(
+            changedTracksFromSwitchSuggestion.flatMap { (changedTrack, geometry) ->
+                asSwitchJointConnections(geometry.trackSwitchLinks, switchId, changedTrack)
+            }
+        )
+
+    val jointConnectionsDifferIssues =
+        validateSwitchJointConnectionsOnDuplicateTracks(
+            createdSwitch,
+            jointConnections,
+            changedTracksFromSwitchSuggestion.map { (draftTrack, _) -> draftTrack },
+        )
+
+    return publicationValidationErrorsMapped + originTrackLinkErrors + jointConnectionsDifferIssues
 }
+
+private fun asSwitchJointConnections(
+    links: List<TrackSwitchLink>,
+    switchId: IntId<LayoutSwitch>,
+    changedTrack: LocationTrack,
+): List<LayoutSwitchJointConnection> =
+    links
+        .filter { link -> link.switchId == switchId }
+        .map { link ->
+            LayoutSwitchJointConnection(
+                link.jointNumber,
+                accurateMatches = listOf(LayoutSwitchJointMatch(changedTrack.id as IntId, Point(link.location))),
+                locationAccuracy = null,
+            )
+        }
 
 private fun validateRelinkingRetainsLocationTrackConnections(
     suggestedSwitch: SuggestedSwitch,

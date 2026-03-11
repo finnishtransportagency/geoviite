@@ -2989,6 +2989,74 @@ constructor(
         )
     }
 
+    @Test
+    fun `switch linked to duplicate tracks must have same joint locations on each`() {
+        val trackNumberId = mainDraftContext.save(trackNumber()).id
+        val switchId = mainDraftContext.save(switch(name = "switch")).id
+
+        val mainTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumberId, name = "main"),
+                trackGeometry(
+                    listOf(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
+                            startInnerSwitch = switchLinkYV(switchId, 1),
+                            endInnerSwitch = switchLinkYV(switchId, 5),
+                        ),
+                        edge(
+                            listOf(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+                            startInnerSwitch = switchLinkYV(switchId, 5),
+                            endInnerSwitch = switchLinkYV(switchId, 2),
+                        ),
+                    )
+                ),
+            )
+        val duplicateTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumberId, name = "dup", duplicateOf = mainTrack.id),
+                trackGeometry(
+                    listOf(
+                        edge(
+                            listOf(segment(Point(0.0, 0.1), Point(5.0, 0.1))),
+                            startInnerSwitch = switchLinkYV(switchId, 1),
+                            endInnerSwitch = switchLinkYV(switchId, 5),
+                        ),
+                        edge(
+                            listOf(segment(Point(5.0, 0.1), Point(10.0, 0.1))),
+                            startInnerSwitch = switchLinkYV(switchId, 5),
+                            endInnerSwitch = switchLinkYV(switchId, 2),
+                        ),
+                    )
+                ),
+            )
+
+        val locationTrackValidations =
+            publicationValidationService.validateLocationTracks(
+                LayoutBranch.main,
+                DRAFT,
+                listOf(mainTrack.id, duplicateTrack.id),
+            )
+        val switchValidations =
+            publicationValidationService.validateSwitches(LayoutBranch.main, DRAFT, listOf(switchId))
+
+        val expectedError =
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                "$VALIDATION_SWITCH.duplicate-track-locations-differ",
+                mapOf(
+                    "switchName" to "switch",
+                    "trackName" to "main",
+                    "duplicateTrackName" to "dup",
+                    "jointNumbers" to "1, 5, 2",
+                ),
+            )
+
+        assertContains(locationTrackValidations.find { it.id == mainTrack.id }!!.errors, expectedError)
+        assertContains(locationTrackValidations.find { it.id == duplicateTrack.id }!!.errors, expectedError)
+        assertContains(switchValidations.find { it.id == switchId }!!.errors, expectedError)
+    }
+
     private fun getTopologicalSwitchConnectionTestCases(
         trackNumberGenerator: () -> IntId<LayoutTrackNumber>,
         topologyStartSwitch: Pair<SwitchLink, Point>,
