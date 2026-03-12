@@ -65,7 +65,9 @@ export type LinkingState =
     | LinkingLayoutSwitch
     | LinkingKmPost
     | PlacingOperationalPoint
-    | PlacingOperationalPointArea;
+    | PlacingOperationalPointArea
+    | LinkingOperationalPointSwitches
+    | LinkingOperationalPointTracks;
 
 export type PreliminaryLinkingGeometry = {
     type: LinkingType.UnknownAlignment;
@@ -208,6 +210,18 @@ export type PlacingOperationalPointArea = LinkingBaseType & {
     area?: Polygon;
 };
 
+export type LinkingOperationalPointSwitches = LinkingBaseType & {
+    type: LinkingType.LinkingOperationalPointSwitches;
+    operationalPoint: OperationalPointId;
+    linkedSwitches: LayoutSwitchId[];
+};
+
+export type LinkingOperationalPointTracks = LinkingBaseType & {
+    type: LinkingType.LinkingOperationalPointTracks;
+    operationalPoint: OperationalPointId;
+    linkedTracks: LocationTrackId[];
+};
+
 export type KmPostSimpleFields = {
     kmNumber: KmNumber;
     state?: LayoutState;
@@ -238,6 +252,8 @@ export enum LinkingType {
     LinkingKmPost = 'LinkingKmPost',
     PlacingOperationalPoint = 'PlacingOperationalPoint',
     PlacingOperationalPointArea = 'PlacingOperationalPointArea',
+    LinkingOperationalPointSwitches = 'LinkingOperationalPointSwitches',
+    LinkingOperationalPointTracks = 'LinkingOperationalPointTracks',
     UnknownAlignment = 'UnknownAlignment',
 }
 
