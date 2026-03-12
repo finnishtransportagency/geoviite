@@ -1196,7 +1196,7 @@ fun operationalPoint(
     origin: OperationalPointOrigin = OperationalPointOrigin.GEOVIITE,
     draft: Boolean = true,
     ratkoVersion: Int? = null,
-    rinfIdGenerated: String? = "FI1234",
+    rinfIdGenerated: String? = null,
     rinfIdOverride: String? = null,
     contextData: LayoutContextData<OperationalPoint> = createMainContext(null, draft),
 ): OperationalPoint =
