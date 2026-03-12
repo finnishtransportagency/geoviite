@@ -36,7 +36,7 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitDuplicateTrack
 import fi.fta.geoviite.infra.split.SplittingInitializationParameters
@@ -727,7 +727,7 @@ class LocationTrackService(
             )
             .let(operationalPointDao::fetchMany)
             .filter { op ->
-                op.raideType == OperationalPointRaideType.LPO || op.raideType == OperationalPointRaideType.LP
+                op.ratoType == OperationalPointRatoType.LPO || op.ratoType == OperationalPointRatoType.LP
             }
             .minByOrNull { operatingPoint -> lineLength(requireNotNull(operatingPoint.location), location) }
 

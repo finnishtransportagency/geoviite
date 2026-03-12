@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.util.StringSanitizer
 import fi.fta.geoviite.infra.util.assertLength
 import fi.fta.geoviite.infra.util.assertSanitized
@@ -16,7 +16,7 @@ data class OperationalPoint(
     val abbreviation: OperationalPointAbbreviation?,
     val uicCode: UicCode?,
     val rinfType: OperationalPointRinfType?,
-    val raideType: OperationalPointRaideType?,
+    val ratoType: OperationalPointRatoType?,
     val polygon: Polygon?,
     val location: Point?,
     val state: OperationalPointState,

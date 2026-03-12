@@ -13,7 +13,7 @@ import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostGkLocation
@@ -185,13 +185,13 @@ enum class ExtOperationalPointStateV1(val value: String) {
     }
 }
 
-fun toExtOperationalPointRatoType(raideType: OperationalPointRaideType): ExtOperationalPointRatoTypeV1 {
-    return when (raideType) {
-        OperationalPointRaideType.LP -> ExtOperationalPointRatoTypeV1("LP", "Liikennepaikka")
-        OperationalPointRaideType.LPO -> ExtOperationalPointRatoTypeV1("LPO", "Liikennepaikan osa")
-        OperationalPointRaideType.OLP -> ExtOperationalPointRatoTypeV1("OLP", "Osiinjaettu liikennepaikka")
-        OperationalPointRaideType.SEIS -> ExtOperationalPointRatoTypeV1("SEIS", "Seisake")
-        OperationalPointRaideType.LVH -> ExtOperationalPointRatoTypeV1("LVH", "Linjavaihde")
+fun toExtOperationalPointRatoType(ratoType: OperationalPointRatoType): ExtOperationalPointRatoTypeV1 {
+    return when (ratoType) {
+        OperationalPointRatoType.LP -> ExtOperationalPointRatoTypeV1("LP", "Liikennepaikka")
+        OperationalPointRatoType.LPO -> ExtOperationalPointRatoTypeV1("LPO", "Liikennepaikan osa")
+        OperationalPointRatoType.OLP -> ExtOperationalPointRatoTypeV1("OLP", "Osiinjaettu liikennepaikka")
+        OperationalPointRatoType.SEIS -> ExtOperationalPointRatoTypeV1("SEIS", "Seisake")
+        OperationalPointRatoType.LVH -> ExtOperationalPointRatoTypeV1("LVH", "Linjavaihde")
     }
 }
 

@@ -33,7 +33,7 @@ import fi.fta.geoviite.infra.publication.PublicationResult
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetState
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
@@ -1250,7 +1250,7 @@ constructor(
                 name = "Kannustamo",
                 abbreviation = "KST",
                 uicCode = "123101431",
-                type = OperationalPointRaideType.LPO,
+                type = OperationalPointRatoType.LPO,
                 location = Point(100.0, 100.0),
                 trackNumberOid = "5.5.5.5.5",
             )
@@ -1282,7 +1282,7 @@ constructor(
         assertEquals("Kannustamo", pointFromLayoutTable.name.toString())
         assertEquals("KST", pointFromLayoutTable.abbreviation.toString())
         assertEquals("123101431", pointFromLayoutTable.uicCode.toString())
-        assertEquals(OperationalPointRaideType.LPO, pointFromLayoutTable.raideType)
+        assertEquals(OperationalPointRatoType.LPO, pointFromLayoutTable.ratoType)
         assertEquals(Point(100.0, 100.0), pointFromLayoutTable.location)
     }
 

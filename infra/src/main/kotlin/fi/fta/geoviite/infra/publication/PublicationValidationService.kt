@@ -10,7 +10,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingCacheService
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -703,12 +703,12 @@ constructor(
         val uicCodeIssues =
             if (operationalPoint.uicCode == null)
                 listOf(validationError("$VALIDATION_OPERATIONAL_POINT.uic-code-missing"))
-            else if (operationalPoint.raideType == OperationalPointRaideType.OLP) listOf()
+            else if (operationalPoint.ratoType == OperationalPointRatoType.OLP) listOf()
             else
                 validateOperationalPointUicCodeDuplication(
                     operationalPoint,
                     validationContext.getOperationalPointsByUicCode(operationalPoint.uicCode).filter {
-                        it.raideType != OperationalPointRaideType.OLP
+                        it.ratoType != OperationalPointRatoType.OLP
                     },
                     validationContext.target.validationTargetType,
                 )
@@ -716,18 +716,18 @@ constructor(
         val rinfTypeIssues =
             listOfNotNull(
                 validate(
-                    operationalPoint.rinfType != null || operationalPoint.raideType == OperationalPointRaideType.OLP
+                    operationalPoint.rinfType != null || operationalPoint.ratoType == OperationalPointRatoType.OLP
                 ) {
                     "$VALIDATION_OPERATIONAL_POINT.rinf-type-missing"
                 }
             )
         val polygonOverlapIssues =
-            if (operationalPoint.raideType == OperationalPointRaideType.OLP) listOf()
+            if (operationalPoint.ratoType == OperationalPointRatoType.OLP) listOf()
             else
                 validateOperationalPointPolygonOverlap(
                     operationalPoint,
                     validationContext.getOverlappingOperationalPoints(id).filter {
-                        it.raideType != OperationalPointRaideType.OLP
+                        it.ratoType != OperationalPointRatoType.OLP
                     },
                     validationContext.target.validationTargetType,
                 )
@@ -755,7 +755,7 @@ constructor(
                 validateOperationalPointRinfIdOverrideDuplication(
                     operationalPoint,
                     validationContext.getOperationalPointsByRinfId(operationalPoint.rinfIdOverride).filter {
-                        it.raideType != OperationalPointRaideType.OLP
+                        it.ratoType != OperationalPointRatoType.OLP
                     },
                     validationContext.target.validationTargetType,
                 )

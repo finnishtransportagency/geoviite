@@ -12,7 +12,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.transaction.annotation.Transactional
 
@@ -46,7 +46,7 @@ class OperationalPointService(operatingPointDao: OperationalPointDao, private va
                 abbreviation = request.abbreviation?.toString()?.let(::OperationalPointAbbreviation),
                 uicCode = request.uicCode,
                 rinfType = request.rinfType,
-                raideType = null,
+                ratoType = null,
                 polygon = null,
                 location = null,
                 origin = OperationalPointOrigin.GEOVIITE,
@@ -150,7 +150,7 @@ class OperationalPointService(operatingPointDao: OperationalPointDao, private va
             val officialRatkoVersion = get(branch.official, id)?.ratkoVersion
             if (officialRatkoVersion == null || officialRatkoVersion < draftRatkoVersion) {
                 val rinfIdGenerated =
-                    if (draft.raideType != OperationalPointRaideType.OLP) dao.generateRinfId() else null
+                    if (draft.ratoType != OperationalPointRatoType.OLP) dao.generateRinfId() else null
                 dao.insertRatkoPoint(id, draftRatkoVersion, rinfIdGenerated)
             }
             draftVersion
