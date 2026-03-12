@@ -41,7 +41,12 @@ export const isLayerInProxyLayerCollection = (
     return visibleLayers.some((layer) => keys.includes(layer));
 };
 
-const alwaysOnLayers: MapLayerName[] = ['plan-section-highlight-layer', 'route-highlight-layer'];
+const alwaysOnLayers: MapLayerName[] = [
+    'plan-section-highlight-layer',
+    'route-highlight-layer',
+    'publication-candidate-layer',
+    'deleted-publication-candidate-icon-layer',
+];
 
 type LayerCollection = { [key in MapLayerName]?: MapLayerName[] };
 
@@ -54,6 +59,7 @@ export const layersToShowByProxy: LayerCollection = {
         'duplicate-split-section-highlight-layer',
         'location-track-duplicate-endpoint-address-layer',
         'location-track-split-badge-layer',
+        'location-track-split-alignment-layer',
         'switch-layer',
     ],
     'operational-points-placing-layer': ['operational-points-icon-layer'],
