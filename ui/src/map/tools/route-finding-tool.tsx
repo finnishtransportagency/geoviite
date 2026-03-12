@@ -191,8 +191,11 @@ export function createRouteFindingTool(
             mapViewport.addEventListener('pointermove', handlePointerMove);
             mapViewport.addEventListener('click', handleClick);
 
-            // Return cleanup function
             return {
+                onLayersChanged: () => {
+                    map.removeLayer(vectorLayer);
+                    map.addLayer(vectorLayer);
+                },
                 deactivate: () => {
                     mapViewport.removeEventListener('pointermove', handlePointerMove);
                     mapViewport.removeEventListener('click', handleClick);
