@@ -35,12 +35,11 @@
 
     &__switch-direction-content {
         border: 1px grey solid;
-        padding: 12px 4px;
+        padding: 12px;
         height: 256px;
         overflow-y: auto;
         display: grid;
-        grid-template-columns: 0px auto 1fr;
-        transition: grid-template-columns 0.2s linear;
+        grid-template-columns: auto 0fr 1fr;
         grid-gap: 4px;
         justify-items: start;
         align-items: center;
@@ -48,11 +47,6 @@
 
         &--empty {
             display: block;
-        }
-
-        &--editing {
-            padding: 12px 4px;
-            grid-template-columns: 24px auto 1fr;
         }
     }
 

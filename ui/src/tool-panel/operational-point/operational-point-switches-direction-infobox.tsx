@@ -35,7 +35,7 @@ type OperationalPointSwitchesDirectionInfoboxProps = {
     linkingDirection: LinkingDirection;
     isEditing: boolean;
     linkingAction: (id: LayoutSwitchId) => void;
-    massLinkingAction: (ids: LayoutSwitchId[]) => void;
+    massLinkingAction: () => void;
     showArea: (area: BoundingBox) => void;
     onSelectSwitch: (switchId: LayoutSwitchId) => void;
 };
@@ -72,14 +72,10 @@ export const OperationalPointSwitchesDirectionInfobox: React.FC<
             return issuesComp === 0 ? compareIgnoreCase(a.item.name, b.item.name) : issuesComp;
         });
 
-    const handleSetLinksAll = () => {
-        massLinkingAction(switches.map((s) => s.id));
-    };
     const infoboxContentStyles = createClassName(
         styles['operational-point-linking-infobox__switch-direction-content'],
         validatedSwitches.length === 0 &&
             styles['operational-point-linking-infobox__switch-direction-content--empty'],
-        isEditing && styles['operational-point-linking-infobox__switch-direction-content--editing'],
     );
 
     return (
@@ -118,7 +114,7 @@ export const OperationalPointSwitchesDirectionInfobox: React.FC<
                     <Button
                         variant={ButtonVariant.GHOST}
                         size={ButtonSize.SMALL}
-                        onClick={handleSetLinksAll}>
+                        onClick={massLinkingAction}>
                         {t(
                             `tool-panel.operational-point.switch-links.${linkingDirection === 'linking' ? 'attach' : 'detach'}-all`,
                             { count: switches.length },
@@ -166,14 +162,6 @@ const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
 
     return (
         <>
-            <Hide when={!isEditing}>
-                <Button
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.SMALL}
-                    icon={linkingDirection === 'linking' ? Icons.Ascending : Icons.Descending}
-                    onClick={() => linkingAction(switchItem.id)}
-                />
-            </Hide>
             <div className={styles['operational-point-linking-infobox__switch-cell']}>
                 <SwitchBadge
                     switchItem={switchItem}
@@ -189,6 +177,14 @@ const OperationalPointSwitchRow: React.FC<OperationalPointSwitchRowProps> = ({
                     <span />
                 )}
             </div>
+            <Hide when={!isEditing}>
+                <Button
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.SMALL}
+                    icon={linkingDirection === 'linking' ? Icons.Ascending : Icons.Descending}
+                    onClick={() => linkingAction(switchItem.id)}
+                />
+            </Hide>
             <div>
                 {issues.slice(0, 1).map((issue, i) => (
                     <SwitchRowValidationIssueBadge

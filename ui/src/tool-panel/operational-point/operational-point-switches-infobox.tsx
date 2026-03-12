@@ -15,9 +15,8 @@ import Infobox from 'tool-panel/infobox/infobox';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { ChangeTimes } from 'common/common-slice';
-import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import {
-    formatLinkingToast,
+    linkingSummaryTranslationInfo,
     OperationalPointSwitchLinkingInfo,
 } from 'tool-panel/operational-point/operational-point-utils';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
@@ -47,6 +46,14 @@ type OperationalPointSwitchesInfoboxProps = {
     onSelectSwitch: (switchId: LayoutSwitchId) => void;
     operationalPointFetchStatus: LoaderStatus;
 };
+
+export const doLinkingOperationAndFetchNames = async (
+    layoutContext: LayoutContext,
+    linkingOperationPromise: Promise<LayoutSwitchId[]>,
+) =>
+    await linkingOperationPromise
+        ?.then((linkedIds) => getSwitches(linkedIds, layoutContext))
+        ?.then((switches) => switches.map((sw) => sw.name));
 
 const getSwitchesForOperationalPoint = async (
     context: LayoutContext,
@@ -118,44 +125,58 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
         setIsSaving(true);
         try {
             if (operationalPointSwitchLinkingState) {
-                const newSwitchesToLink = linkedItems.filter(
+                const switchesToLink = linkedItems.filter(
                     (sw) => !originallyLinkedSwitches.includes(sw),
                 );
                 const switchesToUnlink = originallyLinkedSwitches.filter(
                     (sw) => !operationalPointSwitchLinkingState.linkedSwitches.includes(sw),
                 );
 
-                const newlyLinkedIds =
-                    newSwitchesToLink.length > 0
-                        ? await linkSwitchesToOperationalPoint(
-                              layoutContext.branch,
-                              newSwitchesToLink,
-                              operationalPoint.id,
+                const linkedSwitchNames =
+                    switchesToLink.length > 0
+                        ? await doLinkingOperationAndFetchNames(
+                              layoutContext,
+                              linkSwitchesToOperationalPoint(
+                                  layoutContext.branch,
+                                  switchesToLink,
+                                  operationalPoint.id,
+                              ),
                           )
                         : [];
-                const newlyUnlinkedIds =
+                const unlinkedSwitchNames =
                     switchesToUnlink.length > 0
-                        ? await unlinkSwitchesFromOperationalPoint(
-                              layoutContext.branch,
-                              switchesToUnlink,
+                        ? await doLinkingOperationAndFetchNames(
+                              layoutContext,
+                              unlinkSwitchesFromOperationalPoint(
+                                  layoutContext.branch,
+                                  switchesToUnlink,
+                              ),
                           )
                         : [];
 
-                const toastMessage = formatLinkingToast(
-                    newlyLinkedIds,
-                    newlyUnlinkedIds,
-                    t,
-                    'tool-panel.operational-point.switch-links',
-                    operationalPoint.name,
-                );
                 await updateAllChangeTimes();
                 await getSwitchesForOperationalPoint(
                     layoutContext,
                     operationalPointSwitchLinkingState.operationalPoint,
                 );
                 delegates.stopLinking();
-                if (toastMessage) {
-                    Snackbar.success(toastMessage);
+
+                if (switchesToLink.length > 0 || switchesToUnlink.length > 0) {
+                    const bodyInfo = linkingSummaryTranslationInfo(
+                        linkedSwitchNames,
+                        unlinkedSwitchNames,
+                    );
+
+                    Snackbar.success(
+                        t(
+                            `tool-panel.operational-point.switch-links.linking-success-toast-header`,
+                            { operationalPointName: operationalPoint.name },
+                        ),
+                        t(
+                            `tool-panel.operational-point.switch-links.${bodyInfo.translationKey}`,
+                            bodyInfo.params,
+                        ),
+                    );
                 }
             }
         } finally {
@@ -163,7 +184,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
         }
     };
 
-    const linkSwitch = (switchId: LayoutSwitchId) => {
+    const addSwitch = (switchId: LayoutSwitchId) => {
         if (operationalPointSwitchLinkingState) {
             const newLinkedIds = deduplicate([
                 ...operationalPointSwitchLinkingState.linkedSwitches,
@@ -172,14 +193,19 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
             delegates.setOperationalPointLinkedSwitches(newLinkedIds);
         }
     };
-    const unlinkSwitch = (switchId: LayoutSwitchId) => {
+    const removeSwitch = (switchId: LayoutSwitchId) => {
         if (operationalPointSwitchLinkingState) {
             const newLinkedIds = operationalPointSwitchLinkingState.linkedSwitches.filter(
-                (id) => id !== switchId,
+                (id) => switchId !== id,
             );
             delegates.setOperationalPointLinkedSwitches(newLinkedIds);
         }
     };
+    const addAllSwitches = () => delegates.setOperationalPointLinkedSwitches([]);
+    const removeAllSwitches = () =>
+        delegates.setOperationalPointLinkedSwitches(
+            switchLinkings?.map(({ switchId }) => switchId) ?? [],
+        );
 
     return (
         <Infobox
@@ -211,10 +237,8 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 linkingDirection={'unlinking'}
                                 polygonInclusion={switchLinkings ?? []}
                                 isEditing={!!operationalPointSwitchLinkingState}
-                                linkingAction={unlinkSwitch}
-                                massLinkingAction={() =>
-                                    delegates.setOperationalPointLinkedSwitches([])
-                                }
+                                linkingAction={removeSwitch}
+                                massLinkingAction={removeAllSwitches}
                                 showArea={delegates.showArea}
                                 onSelectSwitch={onSelectSwitch}
                             />
@@ -225,10 +249,8 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 linkingDirection={'linking'}
                                 polygonInclusion={switchLinkings ?? []}
                                 isEditing={!!operationalPointSwitchLinkingState}
-                                linkingAction={linkSwitch}
-                                massLinkingAction={(ids) =>
-                                    delegates.setOperationalPointLinkedSwitches(ids)
-                                }
+                                linkingAction={addSwitch}
+                                massLinkingAction={addAllSwitches}
                                 showArea={delegates.showArea}
                                 onSelectSwitch={onSelectSwitch}
                             />
@@ -272,10 +294,10 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                             variant={ButtonVariant.PRIMARY}
                                             size={ButtonSize.SMALL}
                                             disabled={isSaving}
+                                            isProcessing={isSaving}
                                             onClick={handleSave}>
                                             {t('tool-panel.operational-point.save-links')}
                                         </Button>
-                                        {isSaving && <Spinner />}
                                     </>
                                 )}
                             </div>
