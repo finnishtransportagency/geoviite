@@ -114,7 +114,7 @@ export async function getLocationTrack(
 export async function getLocationTrackInfoboxExtras(
     id: LocationTrackId,
     layoutContext: LayoutContext,
-    changeTimes: ChangeTimes,
+    changeTimes: ChangeTimes = getChangeTimes(),
 ): Promise<LocationTrackInfoboxExtras | undefined> {
     const changeTime = getMaxTimestamp(
         changeTimes.layoutLocationTrack,
