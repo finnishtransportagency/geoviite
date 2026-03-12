@@ -2017,7 +2017,7 @@
             "abbreviation": "Lyhenne",
             "uic-code": "UIC-tunnus",
             "rinf-type": "Tyyppi (RINF)",
-            "raide-type": "Tyyppi (RATO)",
+            "rato-type": "Tyyppi (RATO)",
             "rinf-id": "Tunnus (RINF)",
             "polygon": "Alue",
             "linked-switches": "Vaihdelinkitykset",
