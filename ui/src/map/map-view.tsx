@@ -23,9 +23,9 @@ import {
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import {
-    DeactivateToolFn,
-    MapTool,
     MapToolActivateOptions,
+    MapToolHandle,
+    MapToolId,
     MapToolWithButton,
 } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
@@ -145,7 +145,7 @@ export type MapViewProps = {
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     publicationCandidates?: PublicationCandidate[];
-    customActiveMapTool?: MapTool;
+    customActiveMapToolId?: MapToolId;
     designPublicationMode?: DesignPublicationMode;
     mapTools?: MapToolWithButton[];
     layoutContextMode?: LayoutContextMode;
@@ -264,7 +264,7 @@ const MapView: React.FC<MapViewProps> = ({
     onMapLayerChange,
     onSetOperationalPointPolygon,
     publicationCandidates,
-    customActiveMapTool,
+    customActiveMapToolId,
     designPublicationMode,
     mapTools,
     layoutContextMode,
@@ -274,9 +274,10 @@ const MapView: React.FC<MapViewProps> = ({
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
-    const [activeTool, setActiveTool] = React.useState<MapTool | undefined>(
-        customActiveMapTool || (mapTools && first(mapTools)),
+    const [activeToolId, setActiveToolId] = React.useState<MapToolId | undefined>(
+        customActiveMapToolId || (mapTools && first(mapTools)?.id),
     );
+    const activeTool = mapTools?.find((tool) => tool.id === activeToolId);
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
     const inPreviewView = !!designPublicationMode;
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
@@ -808,66 +809,47 @@ const MapView: React.FC<MapViewProps> = ({
         linkingState: linkingState,
     };
 
+    // Point location tool is always active, independent of the selected tool, and doesn't need updates on layersChanged
+    // or linkingStateChanged
     React.useEffect(() => {
         if (!olMap) return;
+        const handle = pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions);
+        return () => handle.deactivate();
+    }, [olMap]);
 
-        const deactivateCallbacks = [
-            pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions),
-        ];
-
-        // Return function to clean up initialized stuff
+    const activeToolHandleRef = React.useRef<MapToolHandle | undefined>(undefined);
+    React.useEffect(() => {
+        if (!olMap || !activeTool) {
+            activeToolHandleRef.current = undefined;
+            return;
+        }
+        const handle = activeTool.activate(olMap, visibleLayers, toolActivateOptions);
+        activeToolHandleRef.current = handle;
         return () => {
-            deactivateCallbacks.forEach((f) => f());
+            handle.deactivate();
+            activeToolHandleRef.current = undefined;
         };
-    }, [olMap, visibleLayers, activeTool]);
+    }, [olMap, activeTool]);
 
     React.useEffect(() => {
-        setActiveTool(customActiveMapTool);
-    }, [customActiveMapTool]);
-
-    const recreateActiveMapTool = (
-        map: OlMap | undefined,
-        layers: MapLayer[],
-        toolActivateOptions: MapToolActivateOptions,
-    ): DeactivateToolFn =>
-        map && activeTool
-            ? activeTool?.activate(map, layers, toolActivateOptions)
-            : () => undefined;
+        activeToolHandleRef.current?.onLayersChanged?.(visibleLayers);
+    }, [visibleLayers]);
 
     React.useEffect(() => {
-        if (activeTool?.housesInteraction) {
-            return recreateActiveMapTool(olMap, visibleLayers, toolActivateOptions);
-        } else {
-            return () => undefined;
-        }
-    }, [olMap, activeTool, linkingState]);
-
-    React.useEffect(() => {
-        if (activeTool && !activeTool.housesInteraction) {
-            return recreateActiveMapTool(olMap, visibleLayers, toolActivateOptions);
-        } else {
-            return () => undefined;
-        }
-    }, [olMap, activeTool, linkingState, visibleLayers]);
-
-    React.useEffect(() => {
-        if (mapTools && activeTool) {
-            const newVersionOfTool = mapTools.find((tool) => tool.id === activeTool.id);
-            setActiveTool(newVersionOfTool);
-        }
-    }, [mapTools]);
+        activeToolHandleRef.current?.onLinkingStateChanged?.(linkingState);
+    }, [linkingState]);
 
     React.useEffect(() => {
         if (linkingState?.type === LinkingType.PlacingOperationalPointArea) {
             const areaTool = mapTools?.find((tool) => tool.id === 'operational-point-area');
             if (areaTool) {
-                setActiveTool(areaTool);
+                setActiveToolId(areaTool?.id);
             }
         } else if (activeTool?.id === 'operational-point-area') {
             // When leaving operational point area mode, revert to default tool
             const selectTool = mapTools?.find((tool) => tool.id === 'select-or-highlight');
             if (selectTool) {
-                setActiveTool(selectTool);
+                setActiveToolId(selectTool?.id);
             }
         }
     }, [linkingState, mapTools, activeTool]);
@@ -875,7 +857,7 @@ const MapView: React.FC<MapViewProps> = ({
     const mapClassNames = createClassName(styles.map);
 
     const cssProperties = {
-        cursor: activeTool?.customCursor ? activeTool.customCursor(toolActivateOptions) : undefined,
+        cursor: activeTool?.customCursor ? activeTool.customCursor(linkingState) : undefined,
     };
     return (
         <div className={mapClassNames} style={cssProperties}>
@@ -889,7 +871,7 @@ const MapView: React.FC<MapViewProps> = ({
                             <ToolComponent
                                 key={tool.id}
                                 isActive={isActive}
-                                setActiveTool={setActiveTool}
+                                setActiveTool={setActiveToolId}
                                 disabled={tool.disabled}
                                 hidden={tool.hidden}
                             />

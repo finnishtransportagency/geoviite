@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { LineString, Polygon as OlPolygon } from 'ol/geom';
-import { MapToolWithButton } from 'map/tools/tool-model';
+import { MapToolHandle, MapToolWithButton } from 'map/tools/tool-model';
 import { Draw } from 'ol/interaction';
 import { createBox } from 'ol/interaction/Draw.js';
 import { altKeyOnly, noModifierKeys, primaryAction } from 'ol/events/condition';
@@ -64,14 +64,15 @@ const subtractCursor = new Style({
     }),
 });
 
+const id = 'area-select';
 export function createAreaSelectTool(
     onSelect: (items: LayerItemSearchResult, mode: SelectMode) => void,
 ): MapToolWithButton {
     return {
-        id: 'area-select',
-        housesInteraction: true,
+        id,
         customCursor: () => 'crosshair',
-        activate: (map: OlMap, layers: MapLayer[]) => {
+        activate: (map: OlMap, initialLayers: MapLayer[]): MapToolHandle => {
+            let layers = initialLayers;
             const tooltipElement = document.createElement('div');
             tooltipElement.className = 'ol-tooltip-measure';
 
@@ -125,16 +126,21 @@ export function createAreaSelectTool(
             map.addInteraction(tooltipDraw);
             map.addOverlay(tooltip);
 
-            // Return function to clean up this tool
-            return () => {
-                map.removeInteraction(tooltipDraw);
-                map.removeOverlay(tooltip);
+            return {
+                deactivate: () => {
+                    map.removeInteraction(tooltipDraw);
+                    map.removeOverlay(tooltip);
+                },
+                onLayersChanged: (newLayers) => {
+                    layers = newLayers;
+                },
             };
         },
         component: ({ isActive, setActiveTool, disabled }) => {
             return (
                 <MapToolButton
-                    setActive={() => setActiveTool(createAreaSelectTool(onSelect))}
+                    id={id}
+                    setActive={setActiveTool}
                     isActive={isActive}
                     icon={Icons.SelectArea}
                     disabled={disabled}
