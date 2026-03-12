@@ -70,7 +70,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
     const [deleteDraftConfirmDialogOpen, setdeleteDraftConfirmDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
 
-    const isOlp = state.existingOperationalPoint?.raideType === 'OLP';
+    const isOlp = state.existingOperationalPoint?.ratoType === 'OLP';
 
     const duplicateRinfIdPoint = allOtherOperationalPoints?.find((operationalPoint) =>
         hasSameRinfId(state.operationalPoint?.rinfIdOverride, operationalPoint),
@@ -200,7 +200,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             value={
                                 state.existingOperationalPoint &&
                                 t(
-                                    `enum.OperationalPointRaideType.${state.existingOperationalPoint.raideType}`,
+                                    `enum.OperationalPointRatoType.${state.existingOperationalPoint.ratoType}`,
                                 )
                             }
                         />

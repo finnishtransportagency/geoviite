@@ -869,10 +869,10 @@ constructor(
                 PropKey("rinf-type"),
             ),
             compareChangeValues(
-                changes.raideType,
+                changes.ratoType,
                 { it },
                 PropKey("raide-type"),
-                enumLocalizationKey = "OperationalPointRaideType",
+                enumLocalizationKey = "OperationalPointRatoType",
             ),
             compareChangeValues(
                 changes.polygon,

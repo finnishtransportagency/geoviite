@@ -15,7 +15,7 @@ import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.BuildTrackTopology
@@ -1357,7 +1357,7 @@ class PublicationValidationTest {
     @Test
     fun `RINF id validation accepts operational points without RINF id if they are OLPs`() {
         val op =
-            operationalPoint(rinfIdGenerated = null, rinfIdOverride = null, raideType = OperationalPointRaideType.OLP)
+            operationalPoint(rinfIdGenerated = null, rinfIdOverride = null, ratoType = OperationalPointRatoType.OLP)
         val errors = validateOperationalPointRinfId(op)
         assertEquals(0, errors.size)
     }
@@ -1365,7 +1365,7 @@ class PublicationValidationTest {
     @Test
     fun `RINF id validation returns error if rinfId is missing entirely`() {
         val op =
-            operationalPoint(rinfIdGenerated = null, rinfIdOverride = null, raideType = OperationalPointRaideType.SEIS)
+            operationalPoint(rinfIdGenerated = null, rinfIdOverride = null, ratoType = OperationalPointRatoType.SEIS)
         assertContainsError(true, validateOperationalPointRinfId(op), "$VALIDATION_OPERATIONAL_POINT.rinf-id-missing")
     }
 

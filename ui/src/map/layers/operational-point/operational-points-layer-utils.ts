@@ -492,5 +492,5 @@ export const getOperationalPointsFromApi = async (layoutContext: LayoutContext) 
 
 export const filterByResolution = (point: OperationalPoint, resolution: number) => {
     if (resolution <= Limits.OPERATIONAL_POINTS_ALL_TYPES_SHOW) return true;
-    else return point.raideType === 'OLP';
+    else return point.ratoType === 'OLP';
 };

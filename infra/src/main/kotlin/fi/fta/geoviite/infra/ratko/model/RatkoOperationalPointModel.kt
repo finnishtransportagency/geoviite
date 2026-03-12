@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.UicCode
 import org.slf4j.Logger
 
-enum class OperationalPointRaideType {
+enum class OperationalPointRatoType {
     LP, // Liikennepaikka
     LPO, // Liikennepaikan osa
     OLP, // Osiin jaettu liikennepaikka
@@ -22,7 +22,7 @@ abstract class AbstractRatkoOperationalPoint(
     open val name: OperationalPointName,
     open val abbreviation: OperationalPointAbbreviation,
     open val uicCode: UicCode,
-    open val type: OperationalPointRaideType,
+    open val type: OperationalPointRatoType,
     open val location: Point,
 )
 
@@ -31,7 +31,7 @@ data class RatkoOperationalPointParse(
     override val name: OperationalPointName,
     override val abbreviation: OperationalPointAbbreviation,
     override val uicCode: UicCode,
-    override val type: OperationalPointRaideType,
+    override val type: OperationalPointRatoType,
     override val location: Point,
     val trackNumberExternalId: Oid<RatkoRouteNumber>,
 ) : AbstractRatkoOperationalPoint(name, abbreviation, uicCode, type, location)
@@ -41,14 +41,14 @@ data class RatkoOperationalPoint(
     override val name: OperationalPointName,
     override val abbreviation: OperationalPointAbbreviation,
     override val uicCode: UicCode,
-    override val type: OperationalPointRaideType,
+    override val type: OperationalPointRatoType,
     override val location: Point,
     val trackNumberId: IntId<LayoutTrackNumber>,
 ) : AbstractRatkoOperationalPoint(name, abbreviation, uicCode, type, location)
 
 fun parseAsset(asset: RatkoOperationalPointAsset, logger: Logger): RatkoOperationalPointParse? {
     val externalId = Oid<RatkoOperationalPoint>(asset.id)
-    val type = asset.getEnumProperty<OperationalPointRaideType>("operational_point_type")
+    val type = asset.getEnumProperty<OperationalPointRatoType>("operational_point_type")
     val soloPoint =
         asset.locations
             ?.get(0)

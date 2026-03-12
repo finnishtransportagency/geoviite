@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.ExternalIdDao
 import fi.fta.geoviite.infra.ratko.IExternalIdDao
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBooleanOrNull
@@ -306,7 +306,7 @@ class OperationalPointDao(
                         "name" to item.name.toString(),
                         "abbreviation" to item.abbreviation?.toString(),
                         "uic_code" to item.uicCode?.toString(),
-                        "type" to item.raideType?.name,
+                        "type" to item.ratoType?.name,
                         "location_x" to item.location?.x,
                         "location_y" to item.location?.y,
                     )
@@ -328,7 +328,7 @@ class OperationalPointDao(
             abbreviation = rs.getUnsafeStringOrNull("abbreviation")?.toString()?.let(::OperationalPointAbbreviation),
             uicCode = rs.getUnsafeStringOrNull("uic_code")?.toString()?.let(::UicCode),
             location = rs.getPointOrNull("location_x", "location_y"),
-            raideType = rs.getEnumOrNull<OperationalPointRaideType>("type"),
+            ratoType = rs.getEnumOrNull<OperationalPointRatoType>("type"),
             state = rs.getEnum("state"),
             rinfType = rs.getEnumOrNull<OperationalPointRinfType>("rinf_type"),
             polygon = rs.getPolygonPointListOrNull("polygon")?.let(::Polygon),

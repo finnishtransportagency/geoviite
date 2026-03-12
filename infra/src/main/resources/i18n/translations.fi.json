@@ -382,7 +382,7 @@
             "ITHR": "ItHR (Itäinen huoltoraide (Helsinki-Ilmala)",
             "LANHR": "LänHR (Läntinen huoltoraide (Helsinki-Ilmala)"
         },
-        "OperationalPointRaideType": {
+        "OperationalPointRatoType": {
             "LP": "Liikennepaikka (LP)",
             "LPO": "Liikennepaikan osa (LPO)",
             "OLP": "Osiinjaettu liikennepaikka (OLP)",

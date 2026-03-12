@@ -470,7 +470,7 @@ export type OperationalPoint = {
     rinfId?: string;
     rinfIdGenerated?: string;
     rinfIdOverride?: string;
-    raideType?: OperationalPointRaideType;
+    ratoType?: OperationalPointRatoType;
     location?: Point;
     polygon?: Polygon;
     state: OperationalPointState;
@@ -567,7 +567,7 @@ export type SwitchJointTrackMeter = {
     location: Point;
 };
 
-export type OperationalPointRaideType =
+export type OperationalPointRatoType =
     | 'LP' // Liikennepaikka
     | 'LPO' // Liikennepaikan osa
     | 'OLP' // Osiin jaettu liikennepaikka
