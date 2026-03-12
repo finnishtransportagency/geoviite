@@ -571,27 +571,27 @@ constructor(
         val switchANoJoints = switch(opA)
         val switchAElsewhere = switch(opA, Point(30.0, 30.0))
 
-        fun s(switchId: IntId<LayoutSwitch>, vararg operationalPointIds: IntId<OperationalPoint>) =
-            SwitchWithOperationalPoint(switchId, operationalPointIds.toList())
+        fun s(switchId: IntId<LayoutSwitch>, isLinked: Boolean, vararg operationalPointIds: IntId<OperationalPoint>) =
+            SwitchWithinOperationalPoint(switchId, isLinked, operationalPointIds.toList())
 
-        fun sortResults(r: List<SwitchWithOperationalPoint>) =
-            r.map { sp -> sp.copy(withinPolygon = sp.withinPolygon.sortedBy { it.intValue }) }
+        fun sortResults(r: List<SwitchWithinOperationalPoint>) =
+            r.map { sp -> sp.copy(allOperationalPoints = sp.allOperationalPoints.sortedBy { it.intValue }) }
                 .sortedBy { it.switchId.intValue }
 
         assertEquals(
             sortResults(
                 listOf(
-                    s(switchOnlyInA, opA),
-                    s(switchInABOverlap, opA, opB),
-                    s(switchInAAndB, opA, opB),
-                    s(switchAOnlyInA, opA),
-                    s(switchAOnlyInB, opB),
-                    s(switchAOnlyInC, opC),
-                    s(switchAInABOverlap, opA, opB),
-                    s(switchAInAAndB, opA, opB),
-                    s(switchANoJoints),
-                    s(switchAElsewhere),
-                    s(switchInAAndC, opA, opC),
+                    s(switchOnlyInA, false, opA),
+                    s(switchInABOverlap, false, opA, opB),
+                    s(switchInAAndB, false, opA, opB),
+                    s(switchAOnlyInA, true, opA),
+                    s(switchAOnlyInB, true, opB),
+                    s(switchAOnlyInC, true, opC),
+                    s(switchAInABOverlap, true, opA, opB),
+                    s(switchAInAAndB, true, opA, opB),
+                    s(switchANoJoints, true),
+                    s(switchAElsewhere, true),
+                    s(switchInAAndC, false, opA, opC),
                 )
             ),
             sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opA)),
@@ -600,19 +600,21 @@ constructor(
         assertEquals(
             sortResults(
                 listOf(
-                    s(switchOnlyInB, opB),
-                    s(switchInABOverlap, opA, opB),
-                    s(switchInAAndB, opA, opB),
-                    s(switchAOnlyInB, opB),
-                    s(switchAInABOverlap, opA, opB),
-                    s(switchAInAAndB, opA, opB),
+                    s(switchOnlyInB, false, opB),
+                    s(switchInABOverlap, false, opA, opB),
+                    s(switchInAAndB, false, opA, opB),
+                    s(switchAOnlyInB, false, opB),
+                    s(switchAInABOverlap, false, opA, opB),
+                    s(switchAInAAndB, false, opA, opB),
                 )
             ),
             sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opB)),
         )
 
         assertEquals(
-            sortResults(listOf(s(switchOnlyInC, opC), s(switchAOnlyInC, opC), s(switchInAAndC, opA, opC))),
+            sortResults(
+                listOf(s(switchOnlyInC, false, opC), s(switchAOnlyInC, false, opC), s(switchInAAndC, false, opA, opC))
+            ),
             sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opC)),
         )
     }
@@ -640,8 +642,8 @@ constructor(
 
         assertEquals(
             listOf(
-                SwitchWithOperationalPoint(inAreaExisting, listOf(operationalPoint)),
-                SwitchWithOperationalPoint(outOfAreaLinkedExisting, listOf()),
+                SwitchWithinOperationalPoint(inAreaExisting, false, listOf(operationalPoint)),
+                SwitchWithinOperationalPoint(outOfAreaLinkedExisting, true, listOf()),
             ),
             switchService.findSwitchesRelatedToOperationalPoint(mainDraftContext.context, operationalPoint),
         )
