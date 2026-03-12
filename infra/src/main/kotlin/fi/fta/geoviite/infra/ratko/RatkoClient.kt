@@ -42,7 +42,6 @@ import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -55,6 +54,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 val defaultBlockTimeout: Duration = defaultResponseTimeout.plusMinutes(1L)
 
@@ -199,8 +199,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
             )
 
-            postSpec(combinePaths(ROUTE_NUMBER_POINTS_PATH, routeNumberOid), chunk)
-                .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE)
+            val url = combinePaths(ROUTE_NUMBER_POINTS_PATH, routeNumberOid)
+            postSpec(url, chunk)
+                .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE, url, chunk)
                 .toBodilessEntity()
                 .block(defaultBlockTimeout)
         }
@@ -233,8 +234,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
             )
 
-            postSpec(combinePaths(LOCATION_TRACK_POINTS_PATH_V1_0, locationTrackOid), chunk)
-                .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE)
+            val url = combinePaths(LOCATION_TRACK_POINTS_PATH_V1_0, locationTrackOid)
+            postSpec(url, chunk)
+                .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE, url, chunk)
                 .toBodilessEntity()
                 .block(defaultBlockTimeout)
         }
@@ -275,6 +277,17 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(mapOf<String, Any>())
             .retrieve()
+            .onStatus(
+                { !it.is2xxSuccessful },
+                { response ->
+                    response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { body ->
+                        logger.error(
+                            "Error during Ratko push! HTTP Status code: ${response.statusCode()}, body: $body, requestUrl: $url, requestParams: $params"
+                        )
+                        Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE))
+                    }
+                },
+            )
             .toBodilessEntity()
             .block(defaultBlockTimeout)
     }
@@ -591,7 +604,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     private inline fun <reified TOut : Any> postWithResponseBody(url: String, content: Any): TOut? =
         postSpec(url, content)
-            .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.CREATE)
+            .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.CREATE, url, content)
             .bodyToMono<TOut>()
             .block(defaultBlockTimeout)
 
@@ -601,14 +614,14 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         errorType: RatkoPushErrorType = RatkoPushErrorType.PROPERTIES,
     ) {
         putSpec(url, content)
-            .defaultErrorHandler(errorType, RatkoOperation.UPDATE)
+            .defaultErrorHandler(errorType, RatkoOperation.UPDATE, url, content)
             .toBodilessEntity()
             .block(defaultBlockTimeout)
     }
 
     private fun patchWithoutResponseBody(url: String, content: Any) {
         patchSpec(url, content)
-            .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE)
+            .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE, url, content)
             .toBodilessEntity()
             .block(defaultBlockTimeout)
     }
@@ -621,7 +634,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                     Mono.empty()
                 else {
                     logger.error(
-                        "Error during Ratko push! HTTP Status code: ${response.statusCode}, body: ${response.responseBodyAsString}"
+                        "Error during Ratko push! HTTP Status code: ${response.statusCode}, body: ${response.responseBodyAsString}, requestUrl: $url"
                     )
                     Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, response))
                 }
@@ -642,12 +655,22 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
     private fun getSpec(url: String) = client.get().uri(url).retrieve()
 
-    private fun WebClient.ResponseSpec.defaultErrorHandler(errorType: RatkoPushErrorType, operation: RatkoOperation) =
+    private fun WebClient.ResponseSpec.defaultErrorHandler(
+        errorType: RatkoPushErrorType,
+        operation: RatkoOperation,
+        requestUrl: String,
+        requestBody: Any?,
+    ) =
         onStatus(
             { !it.is2xxSuccessful },
             { response ->
                 response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { body ->
-                    logger.error("Error during Ratko push! HTTP Status code: ${response.statusCode()}, body: $body")
+                    val requestBodyJson =
+                        requestBody?.let { it as? String ?: ratkoJsonMapper.writeValueAsString(it) }?.take(10_000)
+                            ?: "null"
+                    logger.error(
+                        "Error during Ratko push! httpStatus=${response.statusCode()} responseBody=$body requestUrl=\"$requestUrl\" requestBody=$requestBodyJson"
+                    )
                     Mono.error(RatkoPushException(errorType, operation))
                 }
             },
