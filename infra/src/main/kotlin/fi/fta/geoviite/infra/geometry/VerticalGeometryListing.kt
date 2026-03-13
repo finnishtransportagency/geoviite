@@ -164,7 +164,7 @@ fun toVerticalGeometryListing(
     val headersAndAlignments =
         linkedElements.mapNotNull { l -> l.alignmentId }.distinct().associateWith(getPlanHeaderAndAlignment)
 
-    val listing =
+    val curveAndListingPairs =
         linkedElements
             .filter { it.elementId != null }
             .flatMap { linked ->
@@ -198,30 +198,60 @@ fun toVerticalGeometryListing(
                     } else null
                 } ?: emptyList()
             }
-            .distinctBy { it.first }
-            .map { it.second }
 
+    val listings = curveAndListingPairs.map { it.second }
     val entryLayoutStations =
-        if (geocodingContext == null) null else getEntryLayoutStations(listing, geocodingContext, geometry)
+        if (geocodingContext == null) null else getEntryLayoutStations(listings, geocodingContext, geometry)
 
-    return listing.mapIndexed { entryIndex, entry ->
-        entry.copy(
-            overlapsAnother =
-                listing
-                    .filter { overlapCandidate ->
-                        entry.start.address != null &&
-                            entry.end.address != null &&
-                            overlapCandidate.start.address != null &&
-                            overlapCandidate.end.address != null &&
-                            entry.start.address <= overlapCandidate.end.address &&
-                            entry.end.address >= overlapCandidate.start.address
-                    }
-                    .size > 1,
-            alignmentStartStation = entryLayoutStations?.get(entryIndex)?.get(0)?.distance,
-            alignmentPointStation = entryLayoutStations?.get(entryIndex)?.get(1)?.distance,
-            alignmentEndStation = entryLayoutStations?.get(entryIndex)?.get(2)?.distance,
-        )
+    val withStations =
+        curveAndListingPairs.mapIndexed { index, (curve, entry) ->
+            val start = entryLayoutStations?.get(index)?.get(0)
+            val point = entryLayoutStations?.get(index)?.get(1)
+            val end = entryLayoutStations?.get(index)?.get(2)
+            val enriched =
+                entry.copy(
+                    alignmentStartStation = start?.distance,
+                    alignmentPointStation = point?.distance,
+                    alignmentEndStation = end?.distance,
+                )
+            val isLinkedAtLocation = isLinkedAtLocation(start, point, end, linkedElements, headersAndAlignments, entry)
+            Triple(isLinkedAtLocation, curve, enriched)
+        }
+
+    val deduped = removeDuplicatesPreferringLinkedLocations(withStations)
+
+    return deduped.map { entry -> entry.copy(overlapsAnother = hasOverlap(entry, deduped)) }
+}
+
+private fun isLinkedAtLocation(
+    start: LineM<LocationTrackM>?,
+    point: LineM<LocationTrackM>?,
+    end: LineM<LocationTrackM>?,
+    linkedElements: List<LinkedElement>,
+    headersAndAlignments: Map<IntId<GeometryAlignment>, Pair<GeometryPlanHeader, GeometryAlignment>>,
+    entry: VerticalGeometryListing,
+): Boolean =
+    start != null &&
+        point != null &&
+        end != null &&
+        linkedElements.any { linkedElement ->
+            val alignmentId = linkedElement.alignmentId
+            alignmentId != null &&
+                headersAndAlignments[alignmentId]?.first?.id == entry.planId &&
+                (linkedElement.contains(start) || linkedElement.contains(point) || linkedElement.contains(end))
+        }
+
+private fun removeDuplicatesPreferringLinkedLocations(
+    withStations: List<Triple<Boolean, CurvedProfileSegment, VerticalGeometryListing>>
+): List<VerticalGeometryListing> {
+    val bestBySegment = linkedMapOf<CurvedProfileSegment, Pair<Boolean, VerticalGeometryListing>>()
+    for ((isLinkedAtLocation, segment, entry) in withStations) {
+        val existing = bestBySegment[segment]
+        if (existing == null || (isLinkedAtLocation && !existing.first)) {
+            bestBySegment[segment] = isLinkedAtLocation to entry
+        }
     }
+    return bestBySegment.values.map { (_, entry) -> entry }
 }
 
 private fun getEntryLayoutStations(
@@ -236,6 +266,19 @@ private fun getEntryLayoutStations(
             }
             .map { addressPoint -> addressPoint?.point?.m }
     }
+
+private fun hasOverlap(entry: VerticalGeometryListing, listing: List<VerticalGeometryListing>): Boolean {
+    if (entry.start.address == null || entry.end.address == null) {
+        return false
+    }
+    val entryStart = entry.start.address
+    val entryEnd = entry.end.address
+    return listing.count { candidate ->
+        candidate.start.address?.let { candidateStart ->
+            candidate.end.address?.let { candidateEnd -> entryStart <= candidateEnd && entryEnd >= candidateStart }
+        } ?: false
+    } > 1
+}
 
 private fun toVerticalGeometry(
     planHeader: GeometryPlanHeader,

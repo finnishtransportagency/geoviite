@@ -7,7 +7,11 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LineM
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.SegmentM
+import fi.fta.geoviite.infra.tracklayout.toLocationTrackM
 
 data class LinkedElement(
     private val edgeIndex: Int,
@@ -15,12 +19,16 @@ data class LinkedElement(
     val edge: LayoutEdge,
     val segment: LayoutSegment,
     val elementId: IndexedId<GeometryElement>?,
+    val startM: LineM<LocationTrackM>,
+    val endM: LineM<LocationTrackM>,
 ) {
     val idString: String
         get() = "${edgeIndex}_$segmentIndex"
 
     val alignmentId: IntId<GeometryAlignment>?
         get() = elementId?.parentId?.let(::IntId)
+
+    fun contains(m: LineM<LocationTrackM>) = startM <= m && endM >= m
 }
 
 fun collectLinkedElements(
@@ -29,12 +37,28 @@ fun collectLinkedElements(
     startAddress: TrackMeter?,
     endAddress: TrackMeter?,
 ): List<LinkedElement> =
-    geometry.edges.flatMapIndexed { edgeIndex, edge ->
-        edge.segments
-            .mapIndexed { segmentIndex, segment -> segmentIndex to segment }
-            .filter { (_, s) -> overlapsAddressInterval(s, context, startAddress, endAddress) }
-            .map { (segmentIndex, segment) -> LinkedElement(edgeIndex, segmentIndex, edge, segment, segment.sourceId) }
-    }
+    geometry.edges
+        .flatMapIndexed { edgeIndex, edge ->
+            edge.segments
+                .mapIndexed { segmentIndex, segment -> segmentIndex to segment }
+                .filter { (_, s) -> overlapsAddressInterval(s, context, startAddress, endAddress) }
+                .map { (segmentIndex, segment) -> (edgeIndex to edge) to (segmentIndex to segment) }
+        }
+        .map { (edgeAndIndex, segmentAndIndex) ->
+            val (segmentIndex, segment) = segmentAndIndex
+            val (edgeIndex, edge) = edgeAndIndex
+            fun toLocationTrackM(m: LineM<SegmentM>) =
+                m.toLocationTrackM(geometry.edgeMs[edgeIndex].min, edge.segmentMValues[segmentIndex].min)
+            LinkedElement(
+                edgeIndex,
+                segmentIndex,
+                edge,
+                segment,
+                segment.sourceId,
+                toLocationTrackM(segment.segmentStart.m),
+                toLocationTrackM(segment.segmentEnd.m),
+            )
+        }
 
 private fun overlapsAddressInterval(
     segment: ISegment,
