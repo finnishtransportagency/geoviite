@@ -1,8 +1,8 @@
-import com.diffplug.spotless.kotlin.KtfmtStep
 import com.github.jk1.license.filter.DependencyFilter
 import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.InventoryHtmlReportRenderer
 import com.github.jk1.license.render.ReportRenderer
+import com.ncorti.ktfmt.gradle.TrailingCommaManagementStrategy
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
 import org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED
@@ -21,7 +21,7 @@ plugins {
     id("com.github.jk1.dependency-license-report") version "2.9"
     kotlin("jvm") version "2.2.20"
     kotlin("plugin.spring") version "2.2.20"
-    id("com.diffplug.spotless") version "8.0.0"
+    id("com.ncorti.ktfmt.gradle") version "0.25.0"
 }
 
 group = "fi.fta.geoviite"
@@ -38,16 +38,11 @@ repositories {
     mavenCentral()
 }
 
-configure<com.diffplug.gradle.spotless.SpotlessExtension> {
-    kotlin {
-        ktfmt("0.58").kotlinlangStyle().configure {
-            it.setMaxWidth(120)
-            it.setBlockIndent(4)
-            it.setContinuationIndent(4)
-            it.setRemoveUnusedImports(true)
-            it.setTrailingCommaManagementStrategy(KtfmtStep.TrailingCommaManagementStrategy.COMPLETE)
-        }
-    }
+ktfmt {
+    blockIndent = 4
+    continuationIndent = 4
+    maxWidth = 120
+    trailingCommaManagementStrategy = TrailingCommaManagementStrategy.COMPLETE
 }
 
 configurations { all { exclude("org.springframework.boot", "spring-boot-starter-logging") } }
