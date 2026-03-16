@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.transaction.annotation.Transactional
 
@@ -45,12 +46,14 @@ class OperationalPointService(val operationalPointDao: OperationalPointDao, priv
                 abbreviation = request.abbreviation?.toString()?.let(::OperationalPointAbbreviation),
                 uicCode = request.uicCode,
                 rinfType = request.rinfType,
-                raideType = null,
+                ratoType = null,
                 polygon = null,
                 location = null,
                 origin = OperationalPointOrigin.GEOVIITE,
                 ratkoVersion = null,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
+                rinfIdOverride = request.rinfIdOverride,
+                rinfIdGenerated = dao.generateRinfId(),
             ),
         )
 
@@ -75,6 +78,7 @@ class OperationalPointService(val operationalPointDao: OperationalPointDao, priv
                     abbreviation = request.abbreviation?.toString()?.let(::OperationalPointAbbreviation),
                     uicCode = request.uicCode,
                     rinfType = request.rinfType,
+                    rinfIdOverride = request.rinfIdOverride,
                 ),
         )
 
@@ -93,7 +97,7 @@ class OperationalPointService(val operationalPointDao: OperationalPointDao, priv
                             "Only operational points originating from Ratko can be updated with this method. pointId=$id"
                         )
                 }
-                .copy(rinfType = request.rinfType)),
+                .copy(rinfType = request.rinfType, rinfIdOverride = request.rinfIdOverride)),
         )
 
     @Transactional
@@ -145,7 +149,9 @@ class OperationalPointService(val operationalPointDao: OperationalPointDao, priv
             val draftRatkoVersion = requireNotNull(draft.ratkoVersion)
             val officialRatkoVersion = get(branch.official, id)?.ratkoVersion
             if (officialRatkoVersion == null || officialRatkoVersion < draftRatkoVersion) {
-                dao.insertRatkoPoint(id, draftRatkoVersion)
+                val rinfIdGenerated =
+                    if (draft.ratoType != OperationalPointRatoType.OLP) dao.generateRinfId() else null
+                dao.insertRatkoPoint(id, draftRatkoVersion, rinfIdGenerated)
             }
             draftVersion
         }

@@ -16,7 +16,7 @@ import withUser
 class RatkoOperationalPointsFetchTask @Autowired constructor(private val ratkoService: RatkoService) {
 
     companion object {
-        private val ratkoOperationalPointTaskUserName = UserName.of("RATKO_FETCH")
+        private val ratkoOperationalPointTaskUserName = UserName.Geoviite
     }
 
     @Scheduled(cron = "\${geoviite.ratko.tasks.operational-points-fetch.cron}")

@@ -18,8 +18,8 @@ import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtTrackNumberGeometryServiceV1
@@ -148,6 +148,7 @@ constructor(
         geocodingService
             .getGeocodingContextAtMoment(branch, trackNumberId, moment)
             ?.getReferenceLineAddressesWithResolution(resolution, addressFilter)
+            ?.addresses
 
     private fun getAlignmentAndAddressPoints(
         branch: LayoutBranch,
@@ -161,7 +162,8 @@ constructor(
             ?.let { tn -> tn.id as IntId }
             ?.let { id ->
                 geocodingService.getGeocodingContextAtMoment(branch, id, moment)?.let { ctx ->
-                    ctx.referenceLineGeometry to ctx.getReferenceLineAddressesWithResolution(resolution, addressFilter)
+                    ctx.referenceLineGeometry to
+                        ctx.getReferenceLineAddressesWithResolution(resolution, addressFilter).addresses
                 }
             } ?: (null to null)
 }

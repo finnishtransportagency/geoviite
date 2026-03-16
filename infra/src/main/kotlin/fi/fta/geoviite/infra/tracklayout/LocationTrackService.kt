@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.map.toPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
@@ -35,7 +36,7 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublicationResultVersions
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitDuplicateTrack
 import fi.fta.geoviite.infra.split.SplittingInitializationParameters
@@ -498,7 +499,14 @@ class LocationTrackService(
                     .groupBy { link -> link.switchId }
                     .mapValues { (id, links) ->
                         val location = links.minBy { it.jointRole }.location.toPoint()
-                        LocationTrackInfoboxSwitch(id, location, geocodingContext?.getAddress(location)?.first)
+                        LocationTrackInfoboxSwitch(
+                            id,
+                            location,
+                            geocodingContext
+                                ?.getAddress(location)
+                                ?.takeIf { (_, intersectType) -> intersectType == IntersectType.WITHIN }
+                                ?.first,
+                        )
                     }
                     .values
                     .sortedBy { it.displayAddress }
@@ -719,7 +727,7 @@ class LocationTrackService(
             )
             .let(operationalPointDao::fetchMany)
             .filter { op ->
-                op.raideType == OperationalPointRaideType.LPO || op.raideType == OperationalPointRaideType.LP
+                op.ratoType == OperationalPointRatoType.LPO || op.ratoType == OperationalPointRatoType.LP
             }
             .minByOrNull { operationalPoint -> lineLength(requireNotNull(operationalPoint.location), location) }
 

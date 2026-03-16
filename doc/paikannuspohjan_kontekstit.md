@@ -48,11 +48,11 @@ yksinkertaisesti poistamalla luonnosolio, jolloin voimaan jää sen virallinen v
 uusi luonti, sen peruminen poistaa koko käsitteen, mikä tarkoittaa että myös siihen viittaavat käsitteet täytyy poistaa
 tai muuttaa niin että viittaus poistuu.
 
-Luonnosmuutokset voidaan viedä viralliseen paikannuspohjaan julkaisu-toiminnon (Publication) kautta. Luonnostilassa on
-mahdollista olla tilapäistä / osittaista dataa, koska sitä ollaan vasta luomassa, mutta sellaista ei voi olla
-virallisessa paikannuspohjassa. Tästä johtuen, julkaisuun sisältyy joukko validointeja (julkaisuvalidointi, publication
-validation, kts. [Julkaisu](julkaisu.md)), jonka avulla varmistetaan että julkaistavat tiedot muodostavat eheän
-kokonaisuuden. Tässä varmistetaan myös että virallisesta paikannuspohjasta ei voida viitata pelkästään luonnoksena
+Luonnosmuutokset voidaan viedä viralliseen paikannuspohjaan julkaisu-toiminnon (Publication) kautta. Luonnostilainen paikannuspohja voi
+sisältää rikkinäistä (ei-eheää) dataa, koska kaikkien eheyssääntöjen noudattaminen rataverkon muokkaamisen aikana tekisi
+muokkaamisesta turhan raskasta. Rikkinäistä dataa ei kuitenkaan voi viedä viralliseen paikannuspohjaan, joten muutosten julkaisuun 
+sisältyy joukko validointeja (julkaisuvalidointi, publication validation, kts. [Julkaisu](julkaisu.md)), jonka avulla varmistetaan että 
+julkaistavat tiedot muodostavat eheän kokonaisuuden. Tässä varmistetaan myös että virallisesta paikannuspohjasta ei voida viitata pelkästään luonnoksena
 olevaan käsitteeseen.
 
 ## Suunniteltu paikannuspohja (Design Layout)

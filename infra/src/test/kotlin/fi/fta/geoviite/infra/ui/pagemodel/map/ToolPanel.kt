@@ -94,6 +94,10 @@ class E2EToolPanel(parentView: E2EViewFragment) : E2EViewFragment(parentView, By
         infoBox("geometry-plan-quality-infobox", ::E2EGeometryPlanQualityInfobox)
     }
 
+    val operationalPointGeneralInfo: E2EOperationalPointGeneralInfoBox by lazy {
+        infoBox("operational-point-infobox-basic", ::E2EOperationalPointGeneralInfoBox)
+    }
+
     private fun <T : E2EInfoBox> infoBox(qaId: String, creator: (By) -> T) =
         childComponent(byQaId(qaId), creator).also { it.waitUntilLoaded() }
 }

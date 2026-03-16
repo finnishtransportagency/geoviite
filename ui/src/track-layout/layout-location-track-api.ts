@@ -114,11 +114,14 @@ export async function getLocationTrack(
 export async function getLocationTrackInfoboxExtras(
     id: LocationTrackId,
     layoutContext: LayoutContext,
-    changeTimes: ChangeTimes,
+    changeTimes: ChangeTimes = getChangeTimes(),
 ): Promise<LocationTrackInfoboxExtras | undefined> {
     const changeTime = getMaxTimestamp(
         changeTimes.layoutLocationTrack,
         changeTimes.layoutSwitch,
+        changeTimes.layoutTrackNumber,
+        changeTimes.layoutReferenceLine,
+        changeTimes.layoutKmPost,
         changeTimes.split,
     );
     return locationTrackInfoboxExtrasCache.get(changeTime, cacheKey(id, layoutContext), () =>

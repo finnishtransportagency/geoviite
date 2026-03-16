@@ -19,6 +19,12 @@ import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.localizationParams
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
@@ -98,8 +104,23 @@ constructor(
     @DeleteMapping("/{$LAYOUT_BRANCH}/candidates")
     fun revertPublicationCandidates(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @RequestBody toDelete: PublicationRequestIds,
+        @RequestParam("trackNumbers", required = false) trackNumberIds: List<IntId<LayoutTrackNumber>>?,
+        @RequestParam("referenceLines", required = false) referenceLineIds: List<IntId<ReferenceLine>>?,
+        @RequestParam("locationTracks", required = false) locationTrackIds: List<IntId<LocationTrack>>?,
+        @RequestParam("switches", required = false) switchIds: List<IntId<LayoutSwitch>>?,
+        @RequestParam("kmPosts", required = false) kmPostIds: List<IntId<LayoutKmPost>>?,
+        @RequestParam("operationalPoints", required = false) operationalPointIds: List<IntId<OperationalPoint>>?,
     ): PublicationResultSummary {
+        val toDelete =
+            PublicationRequestIds(
+                trackNumbers = (trackNumberIds ?: emptyList()),
+                referenceLines = (referenceLineIds ?: emptyList()),
+                locationTracks = (locationTrackIds ?: emptyList()),
+                switches = (switchIds ?: emptyList()),
+                kmPosts = (kmPostIds ?: emptyList()),
+                operationalPoints = (operationalPointIds ?: emptyList()),
+            )
+
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.revertPublicationCandidates(branch, toDelete)
         }

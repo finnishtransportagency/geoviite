@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenc
 import fi.fta.geoviite.infra.ui.util.assertZeroBrowserConsoleErrors
 import fi.fta.geoviite.infra.ui.util.assertZeroErrorToasts
 import fi.fta.geoviite.infra.ui.util.byQaId
+import java.time.LocalDate
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -33,7 +34,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import waitUntilExists
 import waitUntilNotExist
-import java.time.LocalDate
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -51,7 +51,7 @@ constructor(
     }
 
     @Test
-    fun `Page navigation test`() {
+    fun `Verify navigation works and views are available based on role`() {
         val trackNumber = trackNumber(HKI_TRACK_NUMBER_1, draft = false)
         val trackNumberId = trackNumberDao.save(trackNumber)
         val (referenceLine, geometry) = westReferenceLine(trackNumberId.id)
@@ -207,16 +207,22 @@ fun assertInfraModelPageTabs(role: E2ERole, infraModelPage: E2EInfraModelPage) {
     when (role) {
         E2ERole.Operator,
         E2ERole.Team -> {
-            assertNotNull(infraModelPage.infraModelNavTabPlan)
-            assertNotNull(infraModelPage.infraModelNavTabWaiting)
-            assertNotNull(infraModelPage.infraModelNavTabRejected)
+            assertNotNull(infraModelPage.infraModelNavTabPlan, "Expected to have infraModelNavTabPlan for $role")
+            assertNotNull(infraModelPage.infraModelNavTabWaiting, "Expected to have infraModelNavTabWaiting for $role")
+            assertNotNull(
+                infraModelPage.infraModelNavTabRejected,
+                "Expected to have infraModelNavTabRejected for $role",
+            )
             infraModelPage.openVelhoWaitingForApprovalList().openRejectedList().goToInfraModelList()
         }
         E2ERole.Authority,
         E2ERole.Browser -> {
-            assertNotNull(infraModelPage.infraModelNavTabPlan)
-            assertNull(infraModelPage.infraModelNavTabWaiting)
-            assertNull(infraModelPage.infraModelNavTabRejected)
+            assertNotNull(infraModelPage.infraModelNavTabPlan, "Expected to have infraModelNavTabPlan for $role")
+            assertNull(infraModelPage.infraModelNavTabWaiting, "Expected NOT to have infraModelNavTabWaiting for $role")
+            assertNull(
+                infraModelPage.infraModelNavTabRejected,
+                "Expected NOT to have infraModelNavTabRejected for $role",
+            )
         }
         E2ERole.Consultant -> {
             // No access
@@ -304,7 +310,7 @@ fun assertElementListingPage(role: E2ERole) {
                 E2ERole.Operator,
                 E2ERole.Team -> {
                     val entireNetworkPage = elementListPage.entireNetworkPage()
-                    assertNotNull(entireNetworkPage.downloadUrl)
+                    assertNotNull(entireNetworkPage.downloadUrl, "Expected downloadUrl to be present for $role")
                 }
 
                 else -> assertNull(elementListPage.entireRailNetworkGeometryRadioButton)
@@ -327,7 +333,11 @@ fun assertVerticalGeometryListPage(role: E2ERole) {
 
             when (role) {
                 E2ERole.Operator,
-                E2ERole.Team -> assertNotNull(verticalGeometryListPage.entireNetworkPage().downloadUrl)
+                E2ERole.Team ->
+                    assertNotNull(
+                        verticalGeometryListPage.entireNetworkPage().downloadUrl,
+                        "Expected downloadUrl to be present for $role",
+                    )
 
                 else -> assertNull(verticalGeometryListPage.entireRailNetworkVerticalGeometryRadioButton)
             }
@@ -349,7 +359,11 @@ fun assertKmLengthsPage(role: E2ERole) {
 
             when (role) {
                 E2ERole.Operator,
-                E2ERole.Team -> assertNotNull(kmLengthsPage.openEntireNetworkTab().downloadUrl)
+                E2ERole.Team ->
+                    assertNotNull(
+                        kmLengthsPage.openEntireNetworkTab().downloadUrl,
+                        "Expected downloadUrl to be present for $role",
+                    )
 
                 else -> assertNull(kmLengthsPage.entireRailNetworkKmLengthsRadioButton)
             }

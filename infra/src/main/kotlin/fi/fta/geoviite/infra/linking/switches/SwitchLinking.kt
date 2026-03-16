@@ -44,13 +44,23 @@ data class JointOnEdge(
     val location: Point,
 )
 
-data class LayoutSwitchSaveRequest(
+data class LayoutSwitchSaveRequestBase(
     val name: SwitchName,
     val switchStructureId: IntId<SwitchStructure>,
     val stateCategory: LayoutStateCategory,
     val ownerId: IntId<SwitchOwner>,
     val trapPoint: Boolean?,
     val draftOid: Oid<LayoutSwitch>?,
+)
+
+data class LayoutSwitchUpdateRequest(
+    val name: SwitchName,
+    val switchStructureId: IntId<SwitchStructure>,
+    val stateCategory: LayoutStateCategory,
+    val ownerId: IntId<SwitchOwner>,
+    val trapPoint: Boolean?,
+    val draftOid: Oid<LayoutSwitch>?,
+    val removeSwitchLinks: Boolean,
 )
 
 data class FittedSwitchJointMatch(

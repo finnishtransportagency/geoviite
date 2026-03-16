@@ -27,6 +27,7 @@ export type MapLayerName =
     | 'missing-profile-highlight-layer'
     | 'missing-linking-highlight-layer'
     | 'plan-section-highlight-layer'
+    | 'route-highlight-layer'
     | 'duplicate-tracks-highlight-layer'
     | 'duplicate-split-section-highlight-layer'
     | 'location-track-selected-alignment-layer'
@@ -58,7 +59,8 @@ export type MapLayerName =
     | 'publication-candidate-layer'
     | 'deleted-publication-candidate-icon-layer'
     | 'debug-geometry-graph-layer'
-    | 'signal-asset-layer';
+    | 'signal-asset-layer'
+    | 'virtual-hide-signal-asset-layer';
 
 export type MapViewportSource = 'Map';
 
@@ -97,13 +99,12 @@ export type ShownItems = {
 
 export type MapLayerMenuItem = {
     name: MapLayerMenuItemName;
-    visible: boolean;
-    qaId?: string;
+    selected: boolean;
     subMenu?: MapLayerMenuItem[];
 };
 
 export type MapLayerMenuItemName =
-    | 'map'
+    | 'background-map'
     | 'orthographic-background-map'
     | 'location-track'
     | 'reference-line'
@@ -152,7 +153,7 @@ export type MapLayerMenuGroups = {
 export type Map = {
     layerMenu: MapLayerMenuGroups;
     layerSettings: MapLayerSettings;
-    visibleLayers: MapLayerName[];
+    forcedVisibleLayers: MapLayerName[];
     viewport: MapViewport;
     shownItems: ShownItems;
     clickLocation?: Point;
@@ -173,7 +174,7 @@ export type AlignmentHighlight = {
 
 export type MapLayerMenuChange = {
     name: MapLayerMenuItemName;
-    visible: boolean;
+    selected: boolean;
 };
 
 export type VerticalAlignmentVisibleExtentChange = {
@@ -188,7 +189,7 @@ export function getLayerSetting(
     layer: MapLayerMenuItemName,
     setting: MapLayerMenuItemName,
 ): boolean {
-    return expectDefined(getSubMenu(menuItems, layer, setting)?.visible);
+    return expectDefined(getSubMenu(menuItems, layer, setting)?.selected);
 }
 
 export function getSubMenu(

@@ -7,7 +7,7 @@ import { createDelegates } from 'store/store-utils';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { OperationalPointInfobox } from 'tool-panel/operational-point/operational-point-infobox';
 import { OperationalPointId } from 'track-layout/track-layout-model';
-import { useLoader } from 'utils/react-utils';
+import { useLoaderWithStatus } from 'utils/react-utils';
 import { getOperationalPoint } from 'track-layout/layout-operational-point-api';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 
@@ -28,7 +28,7 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
-    const operationalPoint = useLoader(
+    const [operationalPoint, operationalPointFetchStatus] = useLoaderWithStatus(
         () =>
             getOperationalPoint(
                 operationalPointId,
@@ -46,25 +46,25 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
     const startPlacingOperationalPoint = () => {
         if (operationalPoint) {
             delegates.startPlacingOperationalPoint(operationalPoint);
-            delegates.showLayers(['operational-points-placing-layer']);
+            delegates.addForcedVisibleLayer(['operational-points-placing-layer']);
         }
     };
 
     const stopPlacingOperationalPoint = () => {
         delegates.stopPlacingOperationalPoint();
-        delegates.hideLayers(['operational-points-placing-layer']);
+        delegates.removeForcedVisibleLayer(['operational-points-placing-layer']);
     };
 
     const startPlacingOperationalPointArea = () => {
         if (operationalPoint) {
             delegates.startPlacingOperationalPointArea(operationalPoint);
-            delegates.showLayers(['operational-points-area-placing-layer']);
+            delegates.addForcedVisibleLayer(['operational-points-area-placing-layer']);
         }
     };
 
     const stopPlacingOperationalPointArea = () => {
         delegates.stopPlacingOperationalPointArea();
-        delegates.hideLayers(['operational-points-area-placing-layer']);
+        delegates.removeForcedVisibleLayer(['operational-points-area-placing-layer']);
     };
 
     const clearOperationalPointArea = () => {
@@ -93,6 +93,7 @@ export const OperationalPointInfoboxContainer: React.FC<OperationalPointInfoboxC
                     }
                     onShowOnMap={showOnMap}
                     onClearArea={clearOperationalPointArea}
+                    operationalPointFetchStatus={operationalPointFetchStatus}
                 />
             )}
         </React.Fragment>

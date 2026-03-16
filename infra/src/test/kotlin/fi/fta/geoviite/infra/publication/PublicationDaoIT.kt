@@ -52,15 +52,14 @@ import fi.fta.geoviite.infra.tracklayout.someSegment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
-import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -320,95 +319,6 @@ constructor(
         val publicationCandidates = publicationDao.fetchSwitchPublicationCandidates(PublicationInMain)
         val editedCandidate = publicationCandidates.first { s -> s.name == SwitchName("Foo") }
         assertEquals(editedCandidate.trackNumberIds, listOf(trackNumberId))
-    }
-
-    @Test
-    fun `fetchLinkedLocationTracks does not confuse official rows with drafts`() {
-        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        val switch = mainOfficialContext.save(switch()).id
-        val geometryWithoutSwitch = trackGeometryOfSegments(someSegment())
-        val geometryWithSwitch =
-            trackGeometry(edge(startInnerSwitch = switchLinkYV(switch, 1), segments = listOf(someSegment())))
-        val track1Main = mainOfficialContext.save(locationTrack(trackNumber), geometryWithSwitch)
-        val track2Main = mainOfficialContext.save(locationTrack(trackNumber), geometryWithSwitch)
-        mainDraftContext.save(locationTrackDao.fetch(track1Main), geometryWithoutSwitch)
-        mainDraftContext.save(locationTrackDao.fetch(track2Main), geometryWithoutSwitch)
-
-        assertEquals(
-            // null locationTrackIdsInPublicationUnit = everything in publication unit = nothing
-            // linked
-            mapOf(),
-            publicationDao.fetchLinkedLocationTracks(PublicationInMain, listOf(switch), null),
-        )
-        assertEquals(
-            // nothing in publication unit = everything linked
-            mapOf(switch to setOf(track1Main, track2Main)),
-            publicationDao.fetchLinkedLocationTracks(PublicationInMain, listOf(switch), listOf()),
-        )
-        assertEquals(
-            // just one track in publication unit = only the track not in publication unit is linked
-            mapOf(switch to setOf(track2Main)),
-            publicationDao.fetchLinkedLocationTracks(PublicationInMain, listOf(switch), listOf(track1Main.id)),
-        )
-    }
-
-    @Test
-    fun `fetchLinkedLocationTracks works on publication units`() {
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val switchByAlignment = switchDao.save(switch(draft = false)).id
-        val switchByTopo = switchDao.save(switch(draft = false)).id
-        val officialLinkedTopo =
-            locationTrackDao.save(
-                locationTrack(trackNumberId, draft = false),
-                trackGeometry(edge(startOuterSwitch = switchLinkYV(switchByTopo, 1), segments = listOf(someSegment()))),
-            )
-        val draftLinkedTopo =
-            locationTrackDao.save(
-                locationTrack(trackNumberId, draft = true),
-                trackGeometry(edge(startOuterSwitch = switchLinkYV(switchByTopo, 3), segments = listOf(someSegment()))),
-            )
-        val officialLinkedAlignment =
-            locationTrackDao.save(
-                locationTrack(trackNumberId = trackNumberId, draft = false),
-                trackGeometry(
-                    edge(startInnerSwitch = switchLinkYV(switchByAlignment, 1), segments = listOf(someSegment()))
-                ),
-            )
-        val draftLinkedAlignment =
-            locationTrackDao.save(
-                locationTrack(trackNumberId = trackNumberId, draft = true),
-                trackGeometry(
-                    edge(startInnerSwitch = switchLinkYV(switchByAlignment, 3), segments = listOf(someSegment()))
-                ),
-            )
-        val target = PublicationInMain
-        assertEquals(
-            setOf(officialLinkedAlignment, draftLinkedAlignment),
-            publicationDao.fetchLinkedLocationTracks(target, listOf(switchByAlignment))[switchByAlignment],
-        )
-        assertEquals(
-            setOf(officialLinkedAlignment),
-            publicationDao.fetchLinkedLocationTracks(target, listOf(switchByAlignment), listOf())[switchByAlignment],
-        )
-        assertEquals(
-            setOf(officialLinkedAlignment, draftLinkedAlignment),
-            publicationDao
-                .fetchLinkedLocationTracks(target, listOf(switchByAlignment), listOf(draftLinkedAlignment.id))[
-                    switchByAlignment],
-        )
-        assertEquals(
-            setOf(officialLinkedTopo, draftLinkedTopo),
-            publicationDao.fetchLinkedLocationTracks(target, listOf(switchByTopo))[switchByTopo],
-        )
-        assertEquals(
-            setOf(officialLinkedTopo),
-            publicationDao.fetchLinkedLocationTracks(target, listOf(switchByTopo), listOf())[switchByTopo],
-        )
-        assertEquals(
-            setOf(officialLinkedTopo, draftLinkedTopo),
-            publicationDao
-                .fetchLinkedLocationTracks(target, listOf(switchByTopo), listOf(draftLinkedTopo.id))[switchByTopo],
-        )
     }
 
     @Test

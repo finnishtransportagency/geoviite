@@ -38,7 +38,7 @@ import {
 } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
-import { LayoutSwitchSaveRequest } from 'linking/linking-model';
+import { LayoutSwitchSaveRequestBase, LayoutSwitchUpdateRequest } from 'linking/linking-model';
 import { filterNotEmpty, first, indexIntoMap } from 'utils/array-utils';
 import { ValidatedSwitch } from 'publication/publication-model';
 import { getMaxTimestamp } from 'utils/date-utils';
@@ -48,10 +48,7 @@ const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 const switchValidationCache = asyncCache<string, ValidatedSwitch>();
 const tiledSwitchValidationCache = asyncCache<string, ValidatedSwitch[]>();
 const switchOidsCache = asyncCache<LayoutSwitchId, { [key in LayoutBranch]?: Oid } | undefined>();
-const switchesWithinOperationalPointCache = asyncCache<
-    string,
-    SwitchWithOperationalPointPolygonInclusions[]
->();
+const switchesWithinOperationalPointCache = asyncCache<string, SwitchWithinOperationalPoint[]>();
 
 const cacheKey = (id: LayoutSwitchId, layoutContext: LayoutContext) =>
     `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
@@ -133,10 +130,10 @@ export async function getSwitchJointConnections(
 }
 
 export async function insertSwitch(
-    newSwitch: LayoutSwitchSaveRequest,
+    newSwitch: LayoutSwitchSaveRequestBase,
     layoutContext: LayoutContext,
 ): Promise<LayoutSwitchId> {
-    const result = await postNonNull<LayoutSwitchSaveRequest, LayoutSwitchId>(
+    const result = await postNonNull<LayoutSwitchSaveRequestBase, LayoutSwitchId>(
         layoutUri('switches', draftLayoutContext(layoutContext)),
         newSwitch,
     );
@@ -146,11 +143,11 @@ export async function insertSwitch(
 
 export async function updateSwitch(
     id: LayoutSwitchId,
-    updatedSwitch: LayoutSwitchSaveRequest,
+    updatedSwitch: LayoutSwitchUpdateRequest,
     layoutContext: LayoutContext,
 ): Promise<LayoutSwitchId> {
-    const result = await putNonNull<LayoutSwitchSaveRequest, LayoutSwitchId>(
-        layoutUri('switches', draftLayoutContext(layoutContext), id),
+    const result = await putNonNull<LayoutSwitchUpdateRequest, LayoutSwitchId>(
+        `${layoutUri('switches', draftLayoutContext(layoutContext), id)}`,
         updatedSwitch,
     );
     // Switch changes can also affect location track names & descriptions
@@ -268,20 +265,21 @@ export async function unlinkSwitchesFromOperationalPoint(
 export async function findOperationalPointSwitches(
     context: LayoutContext,
     operationalPointId: OperationalPointId,
-): Promise<SwitchWithOperationalPointPolygonInclusions[]> {
+): Promise<SwitchWithinOperationalPoint[]> {
     const changeTimes = getChangeTimes();
     const changeTime = getMaxTimestamp(changeTimes.layoutSwitch, changeTimes.operationalPoints);
     const key = `${context.publicationState}_${context.branch}_${operationalPointId}`;
     return switchesWithinOperationalPointCache.get(changeTime, key, () =>
-        getNonNull<SwitchWithOperationalPointPolygonInclusions[]>(
+        getNonNull<SwitchWithinOperationalPoint[]>(
             `${layoutUri('switches', context)}/by-operational-point/${operationalPointId}`,
         ),
     );
 }
 
-export type SwitchWithOperationalPointPolygonInclusions = {
+export type SwitchWithinOperationalPoint = {
     switchId: LayoutSwitchId;
-    withinPolygon: OperationalPointId[];
+    isLinked: boolean;
+    allOperationalPoints: OperationalPointId[];
 };
 
 export type SwitchOidPresence = {

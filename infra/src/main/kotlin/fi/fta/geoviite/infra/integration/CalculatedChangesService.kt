@@ -52,9 +52,9 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType
 import fi.fta.geoviite.infra.util.mapNonNullValues
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.springframework.transaction.annotation.Transactional
 
 data class TrackNumberChange(
     val trackNumberId: IntId<LayoutTrackNumber>,
@@ -348,14 +348,15 @@ class CalculatedChangesService(
         mainPublicationId: IntId<Publication>,
     ): PreparedPublicationRequest {
         val versions =
-            mergeInheritedChangeVersionsWithCompletedMergeVersions(
-                getInheritedChangeVersions(branch, inheritedChanges),
-                completedTrackNumbers = completedTrackNumbers,
-                completedReferenceLines = completedReferenceLines,
-                completedLocationTracks = completedLocationTracks,
-                completedSwitches = completedSwitches,
-                completedKmPosts = completedKmPosts,
-                completedOperationalPoints = completedOperationalPoints,
+            ValidationVersions(
+                InheritanceFromPublicationInMain(branch),
+                trackNumbers = completedTrackNumbers,
+                locationTracks = completedLocationTracks,
+                referenceLines = completedReferenceLines,
+                switches = completedSwitches,
+                kmPosts = completedKmPosts,
+                operationalPoints = completedOperationalPoints,
+                splits = listOf(),
             )
 
         val directChanges =
@@ -401,33 +402,6 @@ class CalculatedChangesService(
         versions: List<PublicationResultVersions<T>>
     ): Map<DesignBranch, List<LayoutRowVersion<T>>> =
         versions.mapNotNull { it.completed }.groupBy({ it.first }, { it.second })
-
-    private fun getInheritedChangeVersions(
-        inheritorBranch: DesignBranch,
-        changes: IndirectChanges,
-    ): ValidationVersions =
-        ValidationVersions(
-            InheritanceFromPublicationInMain(inheritorBranch),
-            trackNumbers =
-                trackNumberDao
-                    .getMany(inheritorBranch.official, changes.trackNumberChanges.map { it.trackNumberId })
-                    .filter { it.branch == inheritorBranch }
-                    .map { requireNotNull(it.version) },
-            referenceLines = listOf(),
-            locationTracks =
-                locationTrackDao
-                    .getMany(inheritorBranch.official, changes.locationTrackChanges.map { it.locationTrackId })
-                    .filter { it.branch == inheritorBranch }
-                    .map { requireNotNull(it.version) },
-            switches =
-                switchDao
-                    .getMany(inheritorBranch.official, changes.switchChanges.map { it.switchId })
-                    .filter { it.branch == inheritorBranch }
-                    .map { requireNotNull(it.version) },
-            kmPosts = listOf(),
-            operationalPoints = listOf(),
-            splits = listOf(),
-        )
 
     private fun processSwitchJointChangesByLocationTrackKmChange(
         switchJointChanges: List<Pair<IntId<LayoutSwitch>, List<SwitchJointDataHolder>>>,
@@ -551,8 +525,10 @@ class CalculatedChangesService(
     ): Pair<TrackNumberChange, List<IntId<LocationTrack>>> {
         val beforeContext = changeContext.getGeocodingContextBefore(trackNumberId)
         val afterContext = changeContext.getGeocodingContextAfter(trackNumberId)
-        val addressChanges =
-            getAddressChanges(beforeContext?.referenceLineAddresses, afterContext?.referenceLineAddresses)
+        val beforeAddresses = beforeContext?.referenceLineAddresses?.addresses
+        val afterAddresses = afterContext?.referenceLineAddresses?.addresses
+
+        val addressChanges = getAddressChanges(beforeAddresses, afterAddresses)
         val trackNumberChange =
             TrackNumberChange(
                 trackNumberId = trackNumberId,
@@ -724,7 +700,7 @@ class CalculatedChangesService(
                 val geocodingCacheKey = changeContext.geocodingKeysAfter[locationTrack.trackNumberId]
                 val addresses =
                     geocodingCacheKey?.let { cacheKey ->
-                        geocodingService.getAddressPoints(cacheKey, locationTrack.getVersionOrThrow())
+                        geocodingService.getAddressPoints(cacheKey, locationTrack.getVersionOrThrow())?.addresses
                     }
 
                 LocationTrackChange(
@@ -954,27 +930,6 @@ private fun filterIndirectChangesByOidPresence(indirectChanges: IndirectChanges,
         operationalPointChanges =
             indirectChanges.operationalPointChanges.filter { opId -> oids.operationalPoints.containsKey(opId) },
     )
-
-private fun mergeInheritedChangeVersionsWithCompletedMergeVersions(
-    inheritedChangeVersions: ValidationVersions,
-    completedTrackNumbers: List<LayoutRowVersion<LayoutTrackNumber>>,
-    completedReferenceLines: List<LayoutRowVersion<ReferenceLine>>,
-    completedLocationTracks: List<LayoutRowVersion<LocationTrack>>,
-    completedSwitches: List<LayoutRowVersion<LayoutSwitch>>,
-    completedKmPosts: List<LayoutRowVersion<LayoutKmPost>>,
-    completedOperationalPoints: List<LayoutRowVersion<OperationalPoint>>,
-): ValidationVersions {
-    return ValidationVersions(
-        inheritedChangeVersions.target,
-        trackNumbers = (completedTrackNumbers + inheritedChangeVersions.trackNumbers).distinctBy { it.id },
-        locationTracks = (completedLocationTracks + inheritedChangeVersions.locationTracks).distinctBy { it.id },
-        referenceLines = completedReferenceLines,
-        switches = (completedSwitches + inheritedChangeVersions.switches).distinctBy { it.id },
-        kmPosts = completedKmPosts,
-        operationalPoints = completedOperationalPoints,
-        splits = listOf(),
-    )
-}
 
 private fun <T : LayoutAsset<T>> getObjectFromValidationVersions(
     versions: List<LayoutRowVersion<T>>,

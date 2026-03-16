@@ -15,11 +15,13 @@ import {
 } from 'track-layout/track-layout-slice';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { getChangeTimes } from 'common/change-time-api';
-import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
-import { getSwitches } from 'track-layout/layout-switch-api';
+import { getSwitches, getSwitchesValidation } from 'track-layout/layout-switch-api';
 import { createPortal } from 'react-dom';
 import { Point } from 'model/geometry';
-import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import {
+    getLocationTrack,
+    getLocationTrackInfoboxExtras,
+} from 'track-layout/layout-location-track-api';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -29,7 +31,7 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { validationIssueIsError } from 'publication/publication-model';
 
-type SwitchRelinkingValidationTaskListProps = {
+type LocationTrackSwitchValidationTaskListProps = {
     layoutContext: LayoutContext;
     locationTrackId: LocationTrackId;
     onShowSwitch: (layoutSwitch: LayoutSwitch, point?: Point) => void;
@@ -70,7 +72,7 @@ export const LocationTrackTaskListContainer: React.FC = () => {
 
     return createPortal(
         locationTrackList?.type === LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION ? (
-            <SwitchRelinkingValidationTaskList
+            <LocationTrackSwitchValidationTaskList
                 layoutContext={layoutContext}
                 locationTrackId={locationTrackList.locationTrackId}
                 onClose={onClose}
@@ -84,13 +86,9 @@ export const LocationTrackTaskListContainer: React.FC = () => {
     );
 };
 
-const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskListProps> = ({
-    layoutContext,
-    locationTrackId,
-    onShowSwitch,
-    onClose,
-    selectedSwitches,
-}) => {
+const LocationTrackSwitchValidationTaskList: React.FC<
+    LocationTrackSwitchValidationTaskListProps
+> = ({ layoutContext, locationTrackId, onShowSwitch, onClose, selectedSwitches }) => {
     const { t } = useTranslation();
     const changeTimes = getChangeTimes();
     const switchStructures = useLoader(() => getSwitchStructures(), []);
@@ -100,23 +98,29 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
         [locationTrackId, getChangeTimes().layoutLocationTrack],
     );
 
-    const [switchesAndErrors, switchesLoadingStatus] = useLoaderWithStatus(async () => {
-        const relinkingResults = await validateLocationTrackSwitchRelinking(
-            layoutContext.branch,
-            locationTrackId,
+    const [taskSwitchesAndErrors, switchesLoadingStatus] = useLoaderWithStatus(async () => {
+        const context = draftLayoutContext(layoutContext);
+        const allSwitchIdsOnTrack =
+            (await getLocationTrackInfoboxExtras(locationTrackId, context))?.switches?.map(
+                (sw) => sw.switchId,
+            ) ?? [];
+        const allSwitchesValidation = await getSwitchesValidation(
+            draftLayoutContext(layoutContext),
+            allSwitchIdsOnTrack,
         );
-        const switchIds = relinkingResults
-            .filter((r) => r.validationIssues.length > 0 || r.successfulSuggestion === undefined)
-            .map((s) => s.id);
-        const switches = await getSwitches(switchIds, draftLayoutContext(layoutContext));
+        const taskSwitchesValidation = allSwitchesValidation.filter((v) => v.errors.length > 0);
+        const switches = await getSwitches(
+            taskSwitchesValidation.map((v) => v.id),
+            draftLayoutContext(layoutContext),
+        );
 
         return {
-            relinkingResults,
+            validation: taskSwitchesValidation,
             switches,
         };
     }, [changeTimes.layoutSwitch, locationTrackId, changeTimes.layoutLocationTrack]);
-    const switches = switchesAndErrors?.switches;
-    const relinkingResults = switchesAndErrors?.relinkingResults;
+    const switches = taskSwitchesAndErrors?.switches;
+    const validation = taskSwitchesAndErrors?.validation;
 
     const onClick = (layoutSwitch: LayoutSwitch) => {
         const presJointNumber = switchStructures?.find(
@@ -167,16 +171,16 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                         <ul className={styles['switch-relinking-validation-task-list__switches']}>
                             {switches.map((lSwitch) => {
                                 const selected = selectedSwitches.some((sId) => sId === lSwitch.id);
-                                const switchRelinkingResult = relinkingResults?.find(
+                                const switchValidation = validation?.find(
                                     (e) => e.id === lSwitch.id,
                                 );
 
                                 const errors =
-                                    switchRelinkingResult?.validationIssues?.filter((e) =>
+                                    switchValidation?.errors?.filter((e) =>
                                         validationIssueIsError(e.type),
                                     ) ?? [];
 
-                                const title = errors
+                                const title = (switchValidation?.errors ?? [])
                                     .map((e) => t(e.localizationKey, e.params))
                                     .join('\n');
 

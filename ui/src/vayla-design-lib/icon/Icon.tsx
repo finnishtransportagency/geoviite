@@ -46,6 +46,7 @@ import barsI from './glyphs/misc/bars-i.svg';
 import barsII from './glyphs/misc/bars-ii.svg';
 import barsIII from './glyphs/misc/bars-iii.svg';
 import signal from './glyphs/ratko/signal.svg';
+import circle from './glyphs/misc/circle.svg';
 import styles from './icon.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
@@ -132,6 +133,7 @@ const iconNameToSvgMap = {
     BarsI: barsI,
     BarsII: barsII,
     BarsIII: barsIII,
+    Circle: circle,
 
     // Ratko
     Signal: signalSvg,
@@ -145,6 +147,7 @@ const iconNameToSvgMapStaticColor = {
 };
 
 export enum IconSize {
+    X_SMALL = 'icon--size-x-small',
     SMALL = 'icon--size-small',
     MEDIUM = 'icon--size-medium',
     MEDIUM_SMALL = 'icon--size-medium-small',

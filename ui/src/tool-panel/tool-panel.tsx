@@ -54,6 +54,7 @@ import { getManyOperationalPoints } from 'track-layout/layout-operational-point-
 import { createClassName } from 'vayla-design-lib/utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
+import { useTranslation } from 'react-i18next';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -147,6 +148,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     selectionHistoryBackEnabled,
     selectionHistoryForwardEnabled,
 }: ToolPanelProps) => {
+    const { t } = useTranslation();
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
 
     const tracksSwitchesKmPostsPlansOperationalPoints = useLoader(() => {
@@ -357,7 +359,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                               type: 'SUGGESTED_SWITCH',
                               id: SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID,
                           },
-                          title: linkingState.suggestedSwitchName,
+                          title: t('tool-panel.switch.linking.title', {
+                              switchName: linkingState.suggestedSwitchName,
+                          }),
                           element:
                               linkingState.type === LinkingType.LinkingGeometrySwitch ? (
                                   <GeometrySwitchInfoboxContainer

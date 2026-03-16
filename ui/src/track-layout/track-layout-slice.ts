@@ -1,5 +1,5 @@
 import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Map, MapLayerName } from 'map/map-model';
+import { Map, MapLayerMenuItemName } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import {
     allSelectableItemTypes,
@@ -37,12 +37,25 @@ import {
     officialMainLayoutContext,
     PublicationState,
 } from 'common/common-model';
-import { GeometryPlanLayout, LocationTrackId, SwitchSplitPoint, } from 'track-layout/track-layout-model';
+import {
+    GeometryPlanLayout,
+    LocationTrackId,
+    SwitchSplitPoint,
+} from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { first, lastIndex, takeLast } from 'utils/array-utils';
 import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
-import { exhaustiveMatchingGuard, expectFieldDefined, ifDefined, NonNullableField, } from 'utils/type-utils';
-import { addSplitToState, splitReducers, SplittingState, } from 'tool-panel/location-track/split-store';
+import {
+    exhaustiveMatchingGuard,
+    expectFieldDefined,
+    ifDefined,
+    NonNullableField,
+} from 'utils/type-utils';
+import {
+    addSplitToState,
+    splitReducers,
+    SplittingState,
+} from 'tool-panel/location-track/split-store';
 import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
 import { PlanSource } from 'geometry/geometry-model';
@@ -114,6 +127,7 @@ export type OperationalPointInfoboxVisibilities = {
     validation: boolean;
     switches: boolean;
     tracks: boolean;
+    stationLinks: boolean;
     log: boolean;
 };
 
@@ -184,6 +198,7 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
         validation: true,
         switches: true,
         tracks: true,
+        stationLinks: true,
         log: true,
     },
     geometryAlignment: {
@@ -303,6 +318,8 @@ export function getSelectableItemTypes(
         case LinkingType.LinkingLayoutSwitch:
         case LinkingType.PlacingOperationalPoint:
         case LinkingType.PlacingOperationalPointArea:
+        case LinkingType.LinkingOperationalPointSwitches:
+        case LinkingType.LinkingOperationalPointTracks:
             return [];
         case LinkingType.LinkingGeometrySwitch:
             return ['switches'];
@@ -441,7 +458,7 @@ const trackLayoutSlice = createSlice({
                     case LinkingType.LinkingGeometryWithAlignment: {
                         updateSelection(
                             state,
-                            filterSelectOptionsByItemTypes(onSelectOptions, ['locationTracks']),
+                            filterSelectOptionsByItemTypes(onSelectOptions, ['clusterPoints']),
                         );
 
                         const onlyLayoutLinkPoint =
@@ -488,6 +505,8 @@ const trackLayoutSlice = createSlice({
                     case LinkingType.LinkingLayoutSwitch:
                     case LinkingType.PlacingOperationalPoint:
                     case LinkingType.PlacingOperationalPointArea:
+                    case LinkingType.LinkingOperationalPointSwitches:
+                    case LinkingType.LinkingOperationalPointTracks:
                         break;
                     default:
                         return exhaustiveMatchingGuard(linkingStateType);
@@ -515,11 +534,11 @@ const trackLayoutSlice = createSlice({
                     (p) => p.id === action.payload?.id,
                 );
 
-                updateMapLayerVisibilities(state.map, isPlanVisible, [
-                    'geometry-alignment-layer',
-                    'geometry-switch-layer',
-                    'geometry-km-post-layer',
-                ]);
+                if (!isPlanVisible) {
+                    enableLayerMenuItem(state.map, 'geometry-alignment');
+                    enableLayerMenuItem(state.map, 'geometry-switch');
+                    enableLayerMenuItem(state.map, 'geometry-km-post');
+                }
 
                 selectionReducers.togglePlanVisibility(state.selection, action);
                 state.selectedToolPanelTab = updateSelectedToolPanelTab(
@@ -533,56 +552,43 @@ const trackLayoutSlice = createSlice({
             state: TrackLayoutState,
             action: PayloadAction<ToggleAlignmentPayload>,
         ) => {
-            const { alignmentId, keepAlignmentVisible } = action.payload;
-            const hideLayer = shouldHideMapLayer(
-                state,
-                'alignments',
-                alignmentId,
-                keepAlignmentVisible,
-            );
-
-            updateMapLayerVisibilities(state.map, hideLayer, ['geometry-alignment-layer']);
-
             selectionReducers.toggleAlignmentVisibility(state.selection, action);
             state.selectedToolPanelTab = updateSelectedToolPanelTab(
                 state.selection,
                 state.linkingState,
                 state.selectedToolPanelTab,
             );
+            if (isPlanItemVisible(state, 'alignments', action.payload.alignmentId)) {
+                enableLayerMenuItem(state.map, 'geometry-alignment');
+            }
         },
         toggleSwitchVisibility: (
             state: TrackLayoutState,
             action: PayloadAction<ToggleSwitchPayload>,
         ) => {
-            const { switchId, keepSwitchesVisible } = action.payload;
-
-            const hideLayer = shouldHideMapLayer(state, 'switches', switchId, keepSwitchesVisible);
-
-            updateMapLayerVisibilities(state.map, hideLayer, ['geometry-switch-layer']);
-
             selectionReducers.toggleSwitchVisibility(state.selection, action);
             state.selectedToolPanelTab = updateSelectedToolPanelTab(
                 state.selection,
                 state.linkingState,
                 state.selectedToolPanelTab,
             );
+            if (isPlanItemVisible(state, 'switches', action.payload.switchId)) {
+                enableLayerMenuItem(state.map, 'geometry-switch');
+            }
         },
         toggleKmPostsVisibility: (
             state: TrackLayoutState,
             action: PayloadAction<ToggleKmPostPayload>,
         ) => {
-            const { kmPostId, keepKmPostsVisible } = action.payload;
-
-            const hideLayer = shouldHideMapLayer(state, 'kmPosts', kmPostId, keepKmPostsVisible);
-
-            updateMapLayerVisibilities(state.map, hideLayer, ['geometry-km-post-layer']);
-
             selectionReducers.toggleKmPostsVisibility(state.selection, action);
             state.selectedToolPanelTab = updateSelectedToolPanelTab(
                 state.selection,
                 state.linkingState,
                 state.selectedToolPanelTab,
             );
+            if (isPlanItemVisible(state, 'kmPosts', action.payload.kmPostId)) {
+                enableLayerMenuItem(state.map, 'geometry-km-post');
+            }
         },
         onPublicationStateChange: (
             state: TrackLayoutState,
@@ -745,20 +751,17 @@ function updateSelection(state: TrackLayoutState, onSelectOptions: OnSelectOptio
 export const trackLayoutReducer = trackLayoutSlice.reducer;
 export const trackLayoutActionCreators = trackLayoutSlice.actions;
 
-const updateMapLayerVisibilities = (state: Map, shouldHide: boolean, layers: MapLayerName[]) => {
-    const mapAction = shouldHide ? mapReducers.hideLayers : mapReducers.showLayers;
-    mapAction(state, { payload: layers, type: shouldHide ? 'hideLayers' : 'showLayers' });
+const enableLayerMenuItem = (state: Map, menuItemName: MapLayerMenuItemName) => {
+    mapReducers.onLayerMenuItemChange(state, {
+        payload: { name: menuItemName, selected: true },
+        type: 'onLayerMenuItemChange',
+    });
 };
 
 type GeometryItemType = Pick<GeometryPlanLayout, 'alignments' | 'kmPosts' | 'switches'>;
 
-const shouldHideMapLayer = <T>(
-    state: TrackLayoutState,
-    key: keyof GeometryItemType,
-    id: T,
-    keepVisible: boolean | undefined,
-) => {
-    return keepVisible || !state.selection.visiblePlans.some((p) => p[key].some((i) => i !== id));
+const isPlanItemVisible = <T>(state: TrackLayoutState, key: keyof GeometryItemType, id: T) => {
+    return state.selection.visiblePlans.some((p) => p[key].some((i) => i === id));
 };
 
 function getLayoutContext(

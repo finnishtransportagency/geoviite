@@ -1,4 +1,8 @@
-import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
+import {
+    OperationalPoint,
+    OperationalPointId,
+    StationLink,
+} from 'track-layout/track-layout-model';
 import { deleteNonNull, getNonNull, getNullable, postNonNull, putNonNull } from 'api/api-fetch';
 import { asyncCache } from 'cache/cache';
 import {
@@ -17,10 +21,11 @@ import {
     TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
 import { getChangeTimes, updateOperationalPointsChangeTime } from 'common/change-time-api';
-import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/internal-operational-point-edit-store';
-import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/external-operational-point-edit-store';
+import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/dialog/internal-operational-point-edit-store';
+import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/dialog/external-operational-point-edit-store';
 import { Point, Polygon } from 'model/geometry';
 import { ValidatedOperationalPoint } from 'publication/publication-model';
+import { getMaxTimestamp } from 'utils/date-utils';
 
 type OriginInUri = 'internal' | 'external';
 type OperationalPointSaveRequest =
@@ -32,6 +37,7 @@ const operationalPointOidsCache = asyncCache<
     OperationalPointId,
     { [key in LayoutBranch]?: Oid } | undefined
 >();
+const stationLinksCache = asyncCache<string, StationLink[]>();
 
 const operationalPointUriByOrigin = (
     origin: OriginInUri,
@@ -77,6 +83,23 @@ export const getOperationalPointChangeTimes = (
     getNonNull<LayoutAssetChangeInfo>(
         `${layoutUri('operational-points', layoutContext)}/${id}/change-info`,
     );
+
+export const getOperationalPointStationLinks = (
+    id: OperationalPointId,
+    layoutContext: LayoutContext,
+    changeTime: TimeStamp = getMaxTimestamp(
+        getChangeTimes().layoutLocationTrack,
+        getChangeTimes().layoutSwitch,
+        getChangeTimes().operationalPoints,
+    ),
+): Promise<StationLink[]> => {
+    const cacheKey = `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
+    return stationLinksCache.get(changeTime, cacheKey, () =>
+        getNonNull<StationLink[]>(
+            `${layoutUri('operational-points', layoutContext)}/${id}/station-links`,
+        ),
+    );
+};
 
 export async function insertOperationalPoint(
     newOperationalPoint: InternalOperationalPointSaveRequest,

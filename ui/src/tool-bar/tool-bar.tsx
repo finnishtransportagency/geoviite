@@ -22,7 +22,6 @@ import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edi
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu, MenuOption, menuOption } from 'vayla-design-lib/menu/menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
@@ -61,7 +60,7 @@ import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
-import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/operational-point-edit-dialog-container';
+import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/dialog/operational-point-edit-dialog-container';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED = 3;
@@ -74,9 +73,6 @@ export type ToolbarParams = {
     showArea: (area: BoundingBox) => void;
     layoutContext: LayoutContext;
     onStopLinking: () => void;
-    onMapLayerChange: (change: MapLayerMenuChange) => void;
-    mapLayerMenuGroups: MapLayerMenuGroups;
-    visibleLayers: MapLayerName[];
     splittingState: SplittingState | undefined;
     linkingState: LinkingState | undefined;
     layoutContextMode: LayoutContextMode;

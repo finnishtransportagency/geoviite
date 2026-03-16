@@ -14,24 +14,26 @@ import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import {
     OperationalPoint,
     operationalPointRinfTypeToTypeCode,
+    LayoutSwitchId,
+    LocationTrackId,
 } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader } from 'utils/react-utils';
 import { getOperationalPointChangeTimes } from 'track-layout/layout-operational-point-api';
 import { ChangeTimes } from 'common/common-slice';
 import { formatDateShort } from 'utils/date-utils';
 import { refreshOperationalPointSelection } from 'track-layout/track-layout-react-utils';
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/operational-point-edit-dialog-container';
+import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/dialog/operational-point-edit-dialog-container';
 import { OperationalPointLocationInfobox } from 'tool-panel/operational-point/operational-point-location-infobox';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { OperationalPointSwitchesInfobox } from 'tool-panel/operational-point/operational-point-switches-infobox';
-import { EnvRestricted } from 'environment/env-restricted';
 import { useHasPublicationLog } from 'publication/publication-utils';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { useAppNavigate } from 'common/navigate';
 import { OperationalPointTracksInfobox } from 'tool-panel/operational-point/operational-point-tracks-infobox';
+import { OperationalPointStationLinksInfobox } from 'tool-panel/operational-point/operational-point-station-links-infobox';
 
 type OperationalPointInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -50,6 +52,7 @@ type OperationalPointInfoboxProps = {
     onStopPlacingArea: () => void;
     onClearArea: () => void;
     startFreshSpecificItemPublicationLogSearch: (item: SearchItemValue<SearchItemType>) => void;
+    operationalPointFetchStatus: LoaderStatus;
 };
 
 export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = ({
@@ -69,6 +72,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     onStopPlacingArea,
     onClearArea,
     startFreshSpecificItemPublicationLogSearch,
+    operationalPointFetchStatus,
 }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -76,6 +80,32 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
     const visibilityChange = (key: keyof OperationalPointInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
+
+    const selectLocationTrack = React.useCallback(
+        (locationTrackId: LocationTrackId) => {
+            onSelect({
+                locationTracks: [locationTrackId],
+                selectedTab: {
+                    id: locationTrackId,
+                    type: 'LOCATION_TRACK',
+                },
+            });
+        },
+        [onSelect],
+    );
+
+    const selectSwitch = React.useCallback(
+        (switchId: LayoutSwitchId) => {
+            onSelect({
+                switches: [switchId],
+                selectedTab: {
+                    id: switchId,
+                    type: 'SWITCH',
+                },
+            });
+        },
+        [onSelect],
+    );
 
     const changeInfo = useLoader(
         () => getOperationalPointChangeTimes(operationalPoint.id, layoutContext),
@@ -132,6 +162,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 }>
                 <InfoboxContent>
                     <InfoboxField
+                        qaId="operational-point-oid"
                         label={t('tool-panel.operational-point.identifier')}
                         value={
                             <OperationalPointOid
@@ -144,11 +175,25 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                             />
                         }
                     />
+                    <React.Fragment>
+                        {operationalPoint.ratoType !== 'OLP' && (
+                            <InfoboxField
+                                qaId="operational-point-rinf-id"
+                                label={t('tool-panel.operational-point.rinf-id')}
+                                value={
+                                    operationalPoint.rinfId ??
+                                    t('tool-panel.operational-point.unset')
+                                }
+                            />
+                        )}
+                    </React.Fragment>
                     <InfoboxField
+                        qaId="operational-point-name"
                         label={t('tool-panel.operational-point.name')}
                         value={operationalPoint.name}
                     />
                     <InfoboxField
+                        qaId="operational-point-abbreviation"
                         label={t('tool-panel.operational-point.abbreviation')}
                         value={operationalPoint.abbreviation}
                     />
@@ -164,7 +209,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                         <InfoboxField
                             label={t('tool-panel.operational-point.type-raide')}
                             value={t(
-                                `enum.OperationalPointRaideType.${operationalPoint.raideType}`,
+                                `enum.OperationalPointRatoType.${operationalPoint.ratoType}`,
                             )}
                         />
                     )}
@@ -200,26 +245,31 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 onStopPlacingArea={onStopPlacingArea}
                 onClearArea={onClearArea}
             />
-            <EnvRestricted restrictTo={'dev'}>
-                {operationalPoint.polygon && (
-                    <>
-                        <OperationalPointSwitchesInfobox
-                            contentVisible={visibilities.switches}
-                            onVisibilityChange={visibilityChange}
-                            layoutContext={layoutContext}
-                            operationalPoint={operationalPoint}
-                            changeTimes={changeTimes}
-                        />
-                        <OperationalPointTracksInfobox
-                            contentVisible={visibilities.tracks}
-                            onVisibilityChange={visibilityChange}
-                            layoutContext={layoutContext}
-                            operationalPoint={operationalPoint}
-                            changeTimes={changeTimes}
-                        />
-                    </>
-                )}
-            </EnvRestricted>
+            <OperationalPointStationLinksInfobox
+                contentVisible={visibilities.stationLinks}
+                onVisibilityChange={visibilityChange}
+                layoutContext={layoutContext}
+                operationalPoint={operationalPoint}
+                changeTimes={changeTimes}
+                onSelectLocationTrack={selectLocationTrack}
+            />
+            <OperationalPointSwitchesInfobox
+                contentVisible={visibilities.switches}
+                onVisibilityChange={visibilityChange}
+                layoutContext={layoutContext}
+                operationalPoint={operationalPoint}
+                changeTimes={changeTimes}
+                onSelectSwitch={selectSwitch}
+                operationalPointFetchStatus={operationalPointFetchStatus}
+            />
+            <OperationalPointTracksInfobox
+                contentVisible={visibilities.tracks}
+                onVisibilityChange={visibilityChange}
+                layoutContext={layoutContext}
+                operationalPoint={operationalPoint}
+                changeTimes={changeTimes}
+                onSelectLocationTrack={selectLocationTrack}
+            />
             <AssetValidationInfoboxContainer
                 contentVisible={visibilities.validation}
                 onContentVisibilityChange={() => visibilityChange('validation')}

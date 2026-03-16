@@ -257,17 +257,6 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                 qa-id="im-form.linked-at-header">
                                 {t('im-form.linked-at-field')}
                             </Th>
-                            <Th
-                                icon={
-                                    props.searchParams.sortBy === GeometrySortBy.LINKED_BY
-                                        ? getSortingIcon()
-                                        : undefined
-                                }
-                                onClick={() => setFilter(GeometrySortBy.LINKED_BY)}
-                                className={'infra-model-list-search-result__linked-by-users'}
-                                qa-id="im-form.linked-by-header">
-                                {t('im-form.linked-by-users-field')}
-                            </Th>
                             <Th />
                             <Th />
                             <Th />
