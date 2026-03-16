@@ -100,7 +100,7 @@ geoviite:
         enabled: true
         cron: "0 * * * * *"
 
-      operating-points-fetch:
+      operational-points-fetch:
         enabled: true
         cron: "0 30 3 * * *"
 

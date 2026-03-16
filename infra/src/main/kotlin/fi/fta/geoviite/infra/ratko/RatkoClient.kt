@@ -29,10 +29,11 @@ import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometry
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetProperty
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetState
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetType
 import fi.fta.geoviite.infra.ratko.model.RatkoBulkTransferResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
-import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
+import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointAssetsResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPlan
 import fi.fta.geoviite.infra.ratko.model.RatkoPlanId
@@ -509,16 +510,16 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     fun fetchOperationalPoints(): List<RatkoOperationalPointParse> {
-        logger.integrationCall("fetchOperatingPoints")
+        logger.integrationCall("fetchOperationalPoints")
         val allPoints = mutableListOf<RatkoOperationalPointParse>()
         var pageNumber = 0
         do {
-            logger.info("fetching operating points for page $pageNumber")
+            logger.info("fetching operational points for page $pageNumber")
             val body =
                 (postWithResponseBody<String>(
                     "$ASSET_PATH/search?fields=summary",
                     mapOf(
-                        "assetType" to "railway_traffic_operating_point",
+                        "assetType" to RatkoAssetType.RAILWAY_TRAFFIC_OPERATIONAL_POINT.value,
                         "pageNumber" to pageNumber++,
                         "size" to 100,
                         "sortOrder" to "ASC",
@@ -526,9 +527,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                     ),
                 ))
             val allAssetsInPage =
-                ratkoJsonMapper.readValue(body, RatkoOperatingPointAssetsResponse::class.java)?.assets ?: listOf()
-            val validOperatingPointsInPage = allAssetsInPage.mapNotNull { parseAsset(it, logger) }
-            allPoints.addAll(validOperatingPointsInPage)
+                ratkoJsonMapper.readValue(body, RatkoOperationalPointAssetsResponse::class.java)?.assets ?: listOf()
+            val validOperationalPointsInPage = allAssetsInPage.mapNotNull { parseAsset(it, logger) }
+            allPoints.addAll(validOperationalPointsInPage)
         } while (allAssetsInPage.size == 100)
         return allPoints
     }

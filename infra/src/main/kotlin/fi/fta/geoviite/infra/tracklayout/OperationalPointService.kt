@@ -17,8 +17,8 @@ import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
-class OperationalPointService(operatingPointDao: OperationalPointDao, private val geoviiteOidDao: GeoviiteOidDao) :
-    LayoutAssetService<OperationalPoint, NoParams, OperationalPointDao>(operatingPointDao) {
+class OperationalPointService(val operationalPointDao: OperationalPointDao, private val geoviiteOidDao: GeoviiteOidDao) :
+    LayoutAssetService<OperationalPoint, NoParams, OperationalPointDao>(operationalPointDao) {
 
     fun list(
         context: LayoutContext,
