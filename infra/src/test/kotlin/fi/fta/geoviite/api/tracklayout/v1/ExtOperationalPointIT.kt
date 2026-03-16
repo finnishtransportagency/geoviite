@@ -542,38 +542,28 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     @Test
     fun `Operational point collection is filtered by name`() {
-        val matchingOpId =
-            mainDraftContext
-                .save(operationalPoint(name = "OP_MATCHING_001", abbreviation = "M1", location = Point(0.0, 0.0)))
-                .id
+        val matchingOpId = mainDraftContext.save(operationalPoint(name = "OP_MATCHING_001")).id
         val matchingOpOid = mainDraftContext.generateOid(matchingOpId)
 
-        val otherOpId =
-            mainDraftContext
-                .save(operationalPoint(name = "OP_OTHER_999", abbreviation = "O1", location = Point(10.0, 10.0)))
-                .id
+        val otherOpId = mainDraftContext.save(operationalPoint(name = "OP_OTHER_999")).id
         mainDraftContext.generateOid(otherOpId)
 
         extTestDataService.publishInMain(operationalPoints = listOf(matchingOpId, otherOpId))
 
         val response = api.operationalPointCollection.get(OPERATIONAL_POINT_NAME to "MATCHING")
 
-        assertEquals(1, response.toiminnalliset_pisteet.size)
-        assertEquals(matchingOpOid.toString(), response.toiminnalliset_pisteet.first().toiminnallinen_piste_oid)
+        assertEquals(
+            listOf(matchingOpOid.toString()),
+            response.toiminnalliset_pisteet.map { it.toiminnallinen_piste_oid },
+        )
     }
 
     @Test
     fun `Operational point change-list is filtered by name`() {
-        val matchingOpId =
-            mainDraftContext
-                .save(operationalPoint(name = "OP_MATCHING_001", abbreviation = "M1", location = Point(0.0, 0.0)))
-                .id
+        val matchingOpId = mainDraftContext.save(operationalPoint(name = "OP_MATCHING_001")).id
         val matchingOpOid = mainDraftContext.generateOid(matchingOpId)
 
-        val otherOpId =
-            mainDraftContext
-                .save(operationalPoint(name = "OP_OTHER_999", abbreviation = "O1", location = Point(10.0, 10.0)))
-                .id
+        val otherOpId = mainDraftContext.save(operationalPoint(name = "OP_OTHER_999")).id
         mainDraftContext.generateOid(otherOpId)
 
         val fromPublication = extTestDataService.publishInMain(operationalPoints = listOf(matchingOpId, otherOpId))
@@ -589,8 +579,10 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 OPERATIONAL_POINT_NAME to "MATCHING",
             )
 
-        assertEquals(1, response.toiminnalliset_pisteet.size)
-        assertEquals(matchingOpOid.toString(), response.toiminnalliset_pisteet.first().toiminnallinen_piste_oid)
+        assertEquals(
+            listOf(matchingOpOid.toString()),
+            response.toiminnalliset_pisteet.map { it.toiminnallinen_piste_oid },
+        )
     }
 
     private fun assertPolygonMatches(expected: Polygon, actual: ExtTestPolygonV1?) {
