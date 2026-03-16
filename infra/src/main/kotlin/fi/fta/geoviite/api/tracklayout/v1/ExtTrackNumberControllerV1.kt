@@ -69,7 +69,7 @@ constructor(
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: ExtSridV1?,
-        @Parameter(description = "Suodatus ratanumeron tunnuksen osalla (kirjainkoko ei merkitse)")
+        @Parameter(description = "Suodatus ratanumeron tunnuksen osalla")
         @RequestParam(TRACK_NUMBER, required = false)
         trackNumberFilter: String?,
     ): ExtTrackNumberCollectionResponseV1 =
@@ -118,12 +118,17 @@ constructor(
         @Parameter(name = COORDINATE_SYSTEM, description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
         coordinateSystem: ExtSridV1?,
-        @Parameter(description = "Suodatus ratanumeron tunnuksen osalla (kirjainkoko ei merkitse)")
+        @Parameter(description = "Suodatus ratanumeron tunnuksen osalla")
         @RequestParam(TRACK_NUMBER, required = false)
         trackNumberFilter: String?,
     ): ResponseEntity<ExtModifiedTrackNumberCollectionResponseV1> =
         extTrackNumberService
-            .getExtTrackNumberCollectionModifications(layoutVersionFrom, layoutVersionTo, coordinateSystem, trackNumberFilter)
+            .getExtTrackNumberCollectionModifications(
+                layoutVersionFrom,
+                layoutVersionTo,
+                coordinateSystem,
+                trackNumberFilter,
+            )
             .let(::toResponse)
 
     @GetMapping("/ratanumerot/{${TRACK_NUMBER_OID}}")
