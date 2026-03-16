@@ -71,9 +71,6 @@ class ExtLocationTrackControllerV1(
         @Parameter(description = "Suodatus sijaintiraidetunnuksen osalla")
         @RequestParam(LOCATION_TRACK_NAME, required = false)
         locationTrackNameFilter: String?,
-        @Parameter(description = "Suodatus ratanumeron tunnuksen osalla")
-        @RequestParam(TRACK_NUMBER, required = false)
-        trackNumberFilter: String?,
         @Parameter(description = "Suodatus ratanumeron OID-tunnuksella")
         @RequestParam(TRACK_NUMBER_OID, required = false)
         trackNumberOidFilter: String?,
@@ -82,7 +79,6 @@ class ExtLocationTrackControllerV1(
             layoutVersion,
             extCoordinateSystem,
             locationTrackNameFilter,
-            trackNumberFilter,
             trackNumberOidFilter,
         )
 
@@ -132,9 +128,6 @@ class ExtLocationTrackControllerV1(
         @Parameter(description = "Suodatus sijaintiraidetunnuksen osalla")
         @RequestParam(LOCATION_TRACK_NAME, required = false)
         locationTrackNameFilter: String?,
-        @Parameter(description = "Suodatus ratanumeron tunnuksen osalla")
-        @RequestParam(TRACK_NUMBER, required = false)
-        trackNumberFilter: String?,
         @Parameter(description = "Suodatus ratanumeron OID-tunnuksella")
         @RequestParam(TRACK_NUMBER_OID, required = false)
         trackNumberOidFilter: String?,
@@ -145,7 +138,6 @@ class ExtLocationTrackControllerV1(
                 layoutVersionTo,
                 extCoordinateSystem,
                 locationTrackNameFilter,
-                trackNumberFilter,
                 trackNumberOidFilter,
             )
             .let(::toResponse)

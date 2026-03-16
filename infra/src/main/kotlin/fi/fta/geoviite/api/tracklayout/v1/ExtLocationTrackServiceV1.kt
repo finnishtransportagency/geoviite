@@ -21,10 +21,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtLocationTrackServiceV1
@@ -43,11 +43,15 @@ constructor(
         layoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
         locationTrackNameFilter: String? = null,
-        trackNumberFilter: String? = null,
         trackNumberOidFilter: String? = null,
     ): ExtLocationTrackCollectionResponseV1 {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
-        return createLocationTrackCollectionResponse(publication, coordinateSystem(extCoordinateSystem), locationTrackNameFilter, trackNumberFilter, trackNumberOidFilter)
+        return createLocationTrackCollectionResponse(
+            publication,
+            coordinateSystem(extCoordinateSystem),
+            locationTrackNameFilter,
+            trackNumberOidFilter,
+        )
     }
 
     fun getExtLocationTrackCollectionModifications(
@@ -55,13 +59,17 @@ constructor(
         layoutVersionTo: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
         locationTrackNameFilter: String? = null,
-        trackNumberFilter: String? = null,
         trackNumberOidFilter: String? = null,
     ): ExtModifiedLocationTrackCollectionResponseV1? =
         publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value).let { publications
             ->
             if (publications.areDifferent()) {
-                createLocationTrackCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem), locationTrackNameFilter, trackNumberFilter, trackNumberOidFilter)
+                createLocationTrackCollectionModificationResponse(
+                    publications,
+                    coordinateSystem(extCoordinateSystem),
+                    locationTrackNameFilter,
+                    trackNumberOidFilter,
+                )
             } else {
                 publicationsAreTheSame(layoutVersionFrom.value)
             }
@@ -138,7 +146,6 @@ constructor(
         publication: Publication,
         coordinateSystem: Srid,
         locationTrackNameFilter: String?,
-        trackNumberFilter: String?,
         trackNumberOidFilter: String?,
     ): ExtLocationTrackCollectionResponseV1 {
         val branch = publication.layoutBranch.branch
@@ -155,7 +162,6 @@ constructor(
         publications: PublicationComparison,
         coordinateSystem: Srid,
         locationTrackNameFilter: String?,
-        trackNumberFilter: String?,
         trackNumberOidFilter: String?,
     ): ExtModifiedLocationTrackCollectionResponseV1? {
         val branch = publications.to.layoutBranch.branch

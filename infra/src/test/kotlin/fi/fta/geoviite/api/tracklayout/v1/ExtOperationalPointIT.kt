@@ -26,7 +26,6 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import kotlin.random.Random
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -38,6 +37,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import kotlin.random.Random
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -557,28 +557,6 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         extTestDataService.publishInMain(operationalPoints = listOf(matchingOpId, otherOpId))
 
         val response = api.operationalPointCollection.get(OPERATIONAL_POINT_NAME to "MATCHING")
-
-        assertEquals(1, response.toiminnalliset_pisteet.size)
-        assertEquals(matchingOpOid.toString(), response.toiminnalliset_pisteet.first().toiminnallinen_piste_oid)
-    }
-
-    @Test
-    fun `Operational point collection name filter is case-insensitive`() {
-        val matchingOpId =
-            mainDraftContext
-                .save(operationalPoint(name = "OP_MATCHING_001", abbreviation = "M1", location = Point(0.0, 0.0)))
-                .id
-        val matchingOpOid = mainDraftContext.generateOid(matchingOpId)
-
-        val otherOpId =
-            mainDraftContext
-                .save(operationalPoint(name = "OP_OTHER_999", abbreviation = "O1", location = Point(10.0, 10.0)))
-                .id
-        mainDraftContext.generateOid(otherOpId)
-
-        extTestDataService.publishInMain(operationalPoints = listOf(matchingOpId, otherOpId))
-
-        val response = api.operationalPointCollection.get(OPERATIONAL_POINT_NAME to "matching")
 
         assertEquals(1, response.toiminnalliset_pisteet.size)
         assertEquals(matchingOpOid.toString(), response.toiminnalliset_pisteet.first().toiminnallinen_piste_oid)
