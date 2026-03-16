@@ -531,7 +531,10 @@ constructor(
     }
 
     private fun setupValidOperationalPoint(): Oid<OperationalPoint> {
-        val opId = mainDraftContext.save(operationalPoint(name = "Test Point", abbreviation = "TP", location = Point(0.5, 0.5))).id
+        val opId =
+            mainDraftContext
+                .save(operationalPoint(name = "Test Point", abbreviation = "TP", location = Point(0.5, 0.5)))
+                .id
         val oid = mainDraftContext.generateOid(opId)
 
         extTestDataService.publishInMain(operationalPoints = listOf(opId))
@@ -543,7 +546,13 @@ constructor(
         val ops =
             listOf(1, 2, 3).map { idx ->
                 mainDraftContext
-                    .save(operationalPoint(name = "Test Point $idx", abbreviation = "TP$idx", location = Point(idx * 1.0, idx * 1.0)))
+                    .save(
+                        operationalPoint(
+                            name = "Test Point $idx",
+                            abbreviation = "TP$idx",
+                            location = Point(idx * 1.0, idx * 1.0),
+                        )
+                    )
                     .id
                     .also { opId -> mainDraftContext.generateOid(opId) }
             }

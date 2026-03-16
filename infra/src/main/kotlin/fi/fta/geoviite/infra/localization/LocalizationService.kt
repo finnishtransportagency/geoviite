@@ -3,9 +3,9 @@ package fi.fta.geoviite.infra.localization
 import com.fasterxml.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.util.FileName
-import org.springframework.beans.factory.annotation.Value
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import org.springframework.beans.factory.annotation.Value
 
 private val LOCALIZATION_PARAMS_PLACEHOLDER_REGEX = Regex("\\{\\{[a-zA-Z0-9_\\s\\-]*\\}\\}")
 

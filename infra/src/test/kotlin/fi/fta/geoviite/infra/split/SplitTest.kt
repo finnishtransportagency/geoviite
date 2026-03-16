@@ -226,10 +226,7 @@ class SplitTest {
                     startInnerSwitch = switchLinkYV(switchA, 1),
                     endOuterSwitch = switchLinkYV(switchB, 1),
                 ),
-                edge(
-                    listOf(linearSegment(20..30)),
-                    startInnerSwitch = switchLinkKV(switchB, 1),
-                ),
+                edge(listOf(linearSegment(20..30)), startInnerSwitch = switchLinkKV(switchB, 1)),
             )
 
         val duplicateTrack = locationTrack(trackNumberId = IntId(456), draft = false)
@@ -244,10 +241,7 @@ class SplitTest {
                     startInnerSwitch = switchLinkYV(switchA, 1),
                     endOuterSwitch = switchLinkYV(switchB, 1),
                 ),
-                edge(
-                    listOf(segment(Point(20.0, 0.0), Point(25.0, 5.0))),
-                    startInnerSwitch = switchLinkKV(switchB, 1),
-                ),
+                edge(listOf(segment(Point(20.0, 0.0), Point(25.0, 5.0))), startInnerSwitch = switchLinkKV(switchB, 1)),
             )
 
         val targets =
@@ -298,19 +292,13 @@ class SplitTest {
                     startOuterSwitch = switchLinkYV(switchA, 1),
                     endOuterSwitch = switchLinkYV(switchB, 1),
                 ),
-                edge(
-                    listOf(linearSegment(20..30)),
-                    startInnerSwitch = switchLinkKV(switchB, 1),
-                ),
+                edge(listOf(linearSegment(20..30)), startInnerSwitch = switchLinkKV(switchB, 1)),
             )
 
         val duplicateTrack = locationTrack(trackNumberId = IntId(456), draft = false)
         val duplicateGeometry =
             trackGeometry(
-                edge(
-                    listOf(segment(Point(0.0, 5.0), Point(10.0, 0.0))),
-                    endInnerSwitch = switchLinkKV(switchA, 1),
-                ),
+                edge(listOf(segment(Point(0.0, 5.0), Point(10.0, 0.0))), endInnerSwitch = switchLinkKV(switchA, 1)),
                 edge(
                     // create a slightly different geometry for overlapping part to verify that geometry is replaced
                     listOf(
@@ -368,19 +356,13 @@ class SplitTest {
                     startOuterSwitch = switchLinkYV(switchA, 1),
                     endOuterSwitch = switchLinkYV(switchB, 1),
                 ),
-                edge(
-                    listOf(linearSegment(20..30)),
-                    startInnerSwitch = switchLinkKV(switchB, 1),
-                ),
+                edge(listOf(linearSegment(20..30)), startInnerSwitch = switchLinkKV(switchB, 1)),
             )
 
         val duplicateTrack = locationTrack(trackNumberId = IntId(456), draft = false)
         val duplicateGeometry =
             trackGeometry(
-                edge(
-                    listOf(segment(Point(0.0, 5.0), Point(10.0, 0.0))),
-                    endInnerSwitch = switchLinkKV(switchA, 1),
-                ),
+                edge(listOf(segment(Point(0.0, 5.0), Point(10.0, 0.0))), endInnerSwitch = switchLinkKV(switchA, 1)),
                 edge(
                     // create a slightly different geometry for overlapping part to verify that geometry is replaced
                     listOf(
@@ -390,10 +372,7 @@ class SplitTest {
                     startOuterSwitch = switchLinkYV(switchA, 1),
                     endOuterSwitch = switchLinkYV(switchB, 1),
                 ),
-                edge(
-                    listOf(segment(Point(20.0, 0.0), Point(30.0, 5.0))),
-                    startInnerSwitch = switchLinkKV(switchB, 1),
-                ),
+                edge(listOf(segment(Point(20.0, 0.0), Point(30.0, 5.0))), startInnerSwitch = switchLinkKV(switchB, 1)),
             )
 
         val targets =
@@ -459,10 +438,7 @@ class SplitTest {
                     startInnerSwitch = switchLinkYV(switchA, 1),
                     endOuterSwitch = switchLinkYV(switchB, 1),
                 ),
-                edge(
-                    listOf(segment(Point(20.0, 0.0), Point(25.0, 5.0))),
-                    startInnerSwitch = switchLinkKV(switchB, 1),
-                ),
+                edge(listOf(segment(Point(20.0, 0.0), Point(25.0, 5.0))), startInnerSwitch = switchLinkKV(switchB, 1)),
             )
 
         val targets =
@@ -524,10 +500,7 @@ class SplitTest {
         val duplicateTrack = locationTrack(id = IntId(2), trackNumberId = IntId(456), draft = false)
         val duplicateGeometry =
             trackGeometry(
-                edge(
-                    listOf(segment(Point(0.0, 5.0), Point(10.0, 0.0))),
-                    endInnerSwitch = switchLinkKV(switchA, 1),
-                ),
+                edge(listOf(segment(Point(0.0, 5.0), Point(10.0, 0.0))), endInnerSwitch = switchLinkKV(switchA, 1)),
                 edge(
                     // create a slightly different geometry for overlapping part to verify that geometry is
                     // replaced
@@ -628,9 +601,7 @@ class SplitTest {
                     .copy(segments = listOf(Point(0.0, 0.0) to Point(10.0, 0.0), Point(10.0, 0.0) to Point(11.0, 0.0))),
                 EdgeTestData(replacementEdge),
                 EdgeTestData(origEdge3)
-                    .copy(
-                        segments = listOf(Point(19.0, 0.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))
-                    ),
+                    .copy(segments = listOf(Point(19.0, 0.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))),
             ),
             result.map { edge -> EdgeTestData(edge) },
         )
@@ -663,9 +634,7 @@ class SplitTest {
                     .copy(segments = listOf(Point(0.0, 0.0) to Point(10.0, 0.0), Point(10.0, 0.0) to Point(11.0, 1.0))),
                 EdgeTestData(replacementEdge),
                 EdgeTestData(origEdge3)
-                    .copy(
-                        segments = listOf(Point(19.0, 1.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))
-                    ),
+                    .copy(segments = listOf(Point(19.0, 1.0) to Point(20.0, 0.0), Point(20.0, 0.0) to Point(30.0, 0.0))),
             ),
             result.map { edge -> EdgeTestData(edge) },
         )
@@ -698,9 +667,7 @@ class SplitTest {
                     .copy(segments = listOf(Point(0.0, 0.0) to Point(8.0, 0.0), Point(8.0, 0.0) to Point(9.0, 1.0))),
                 EdgeTestData(replacementEdge),
                 EdgeTestData(origEdge3)
-                    .copy(
-                        segments = listOf(Point(21.0, 1.0) to Point(22.0, 0.0), Point(22.0, 0.0) to Point(30.0, 0.0))
-                    ),
+                    .copy(segments = listOf(Point(21.0, 1.0) to Point(22.0, 0.0), Point(22.0, 0.0) to Point(30.0, 0.0))),
             ),
             result.map { edge -> EdgeTestData(edge) },
         )

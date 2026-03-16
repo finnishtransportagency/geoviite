@@ -25,48 +25,43 @@ tarkasta seuraavat asetukset:
 
 Kotlin-puolella on käytössä autoformatterina ktfmt-työkalu (https://facebook.github.io/ktfmt/)
 
-### Konfigurointi
+### Käyttöönotto IDEA:ssa ja konfigurointi
 
-Koska formatointi ajetaan gradle-taskina, sen konfiguraatio löytyy `build.gradle.kts` -tiedostosta. Samasta paikasta
-voidaan myös päivittää ktfmt:n versio.
+Ktfmt:n IDEA-plugarin käyttöönotto tapahtuu asentamalla virallinen
+IDEA-plugari (https://plugins.jetbrains.com/plugin/14912-ktfmt) Plugari korvaa IDEA:n sisäisen Reformat code
+-toiminnon, joten sitä voi _pääosin_ (ks. gotchat alempana) käyttää kuin IDEA:n omaa formatteria tai fronttipuolella
+Prettieriä.
 
-### Konfigurointi ja työkalun ajo komentoriviltä
+Ktfmt on vakiona pois päältä, joten se pitää enabloida erikseen asetuksista käyttöönoton jälkeen (ks. allaoleva kuva.)
+Asetusten pitäisi tulla automaattisesti env-repossa sijaitsevasta asetustiedostosta, mutta mikäli näin ei käy, niin ne
+voi asettaa käsin kuvan mukaiseksi.
 
-Ktfmt ajetaan geoviitteessä Gradle-taskina gradlen spotless-pluginin kautta. Task näkyy gradle-taskeissa idean valikossa
-tai sitä voidaan ajaa komentoriviltä gradlella.
+Plugarin käyttämät tyylisäännöt tallentuvat env-repossa sijaitsevaan `.idea/ktfmt.xml`-tiedostoon.
 
-Jos formatoinnin haluaa ajaa kaikille tiedostoille kerralla, tämän voi tehdä komentoriviltä helposti:
+![](images/ktfmt_paalle.png)
 
-```
-./gradlew spotlessApply
-```
+#### Ktfmt:n käyttö IDEA:sta ja reformat on save
 
-Vaihtoehtoisesti, jos halutaan käsitellä vain jotkut tiedostot, tällä muodolla voi valita niitä joustavasti:
+IDEA kannattaa asettaa reformatoimaan koodi tallennuksen yhteydessä. Varmista tällöin että IDEA formattaa koko
+tiedoston, eikä vain muuttuneita rivejä (ks. gotchat alempana.)
 
-```
-./gradlew spotlessApply -PspotlessFiles=my/file/pattern.java,more/generic/.*-pattern.java
-```
+![](images/ktfmt_format_on_save.png)
 
-### IntelliJ Idea
+### Ajo Gradlen kautta
 
-Geoviitteessä käytetään myös Idea-plugaria "Spotless Applier", joka voidaan asentaa idean marketplacesta:
-https://plugins.jetbrains.com/plugin/22455-spotless-applier. Sen avulla Spotless/ktfmt saadaan ajettua aina tallennuksen
-yhteydessä. Pluginin asetukset pitäisi tulla projektin asetusten mukana env-reposta, mutta tuo ei välttämättä toimi aina
-oikein. Varmista siis seuraavat asetukset:
+Ktfmt:n Gradle-plugin luo `ktfmtFormat`, `ktfmtFormatMain` ja `ktfmtFormatTest`-taskit, joiden kautta voi ajaa Ktfmt:n
+koko koodipesälle / varsinaiselle koodille / testeille valitun taskin mukaan. Lisäksi on olemassa `ktfmtCheck`-taski,
+joka tarkistaa onko koodi Ktfmt:n sääntöjen mukaista. Myös tästä taskista on `ktfmtCheckMain` ja `ktfmtCheckTest`
+-versiot.
 
-- Spotlessin oma config
-  ![](images/spotless_main_config.png)
+#### Konfigurointi
 
-- Tools -> Actions on Save -> formatoinnin asetukset:
-    - Poista kotlin-tiedostot Idean default fromatterilta ettei se mene ristiriitaan ktfmt:n kanssa
-      ![](images/spotless_ei_default_formatointia.png)
-    - Valitse "Run spotless" ja aseta se formatoimaan kotlin-tiedostot
-      ![](images/spotless_on_save_kotlin.png)
+Gradle-pluginin käyttämät tyylisäännöt määritellään `ktfmt`-blockissa `build.gradle.kts`-tiedostossa.
 
-Pluginin toimintaa voi kokeilla tekemällä jonkun formatointivirheen haluttuun .kt tiedostoon. Sen pitäisi korjaantua
-automaattisesti tallennuksen yhteydessä. Jos samaa Idea-pluginin ajaman komennon muotoa haluaa testata komentoriviltä,
-sen voi tehdä näin:
+### Gotchas
 
-```
-./gradlew spotlessApply -PspotlessIdeHook="/<absoluuttinen-polku-koodiin>/src/main/kotlin/fi/fta/geoviite/infra/InfraApplication.kt"
-```
+1. Gradlen ja IDEA:n Ktfmt-plugarit myös päivittyvät erillään, joten päivitettäessä toinen myös toinen tulee päivittää.
+2. Vaikuttaisi siltä, että ainakin kirjoitushetkellä IDEA:n Reformat Code käyttää Ktfmt:tä ainoastaan mikäli mitään
+   koodiblokkia ei ole valittuna. Jos koodia on valittuna, valitulle koodille ajetaan vain IDEA:n oma formatter, joka
+   tuottaa erinäköistä jälkeä Ktfmt:hen verrattuna. Tämän vuoksi Reformat on save kannattaa pitää päällä, sillä se
+   viimeistään tuo koodin Ktfmt:n mukaiseen muotoon.

@@ -18,8 +18,8 @@ import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import org.springframework.beans.factory.annotation.Autowired
 import java.time.Instant
+import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class ExtTrackNumberGeometryServiceV1

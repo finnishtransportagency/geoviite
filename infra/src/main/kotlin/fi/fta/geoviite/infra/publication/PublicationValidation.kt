@@ -472,7 +472,8 @@ fun validateLocationTrackEndSwitchNamingScheme(
     }
 
     val nameHasSwitchNames =
-        track.nameStructure is LocationTrackNameChord || track.nameStructure is LocationTrackNameBetweenOperationalPoints
+        track.nameStructure is LocationTrackNameChord ||
+            track.nameStructure is LocationTrackNameBetweenOperationalPoints
     val descriptionHasSwitchNames = track.descriptionStructure.suffix != LocationTrackDescriptionSuffix.NONE
 
     return if (nameHasSwitchNames || descriptionHasSwitchNames) {

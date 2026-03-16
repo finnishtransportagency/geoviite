@@ -68,8 +68,4 @@ data class RatkoSplitTargetTrack(
     val splitTarget: SplitTarget,
 )
 
-data class RatkoSplit(
-    val publication: PublicationDetails,
-    val split: Split,
-    val ratkoSourceTrack: RatkoLocationTrack,
-)
+data class RatkoSplit(val publication: PublicationDetails, val split: Split, val ratkoSourceTrack: RatkoLocationTrack)

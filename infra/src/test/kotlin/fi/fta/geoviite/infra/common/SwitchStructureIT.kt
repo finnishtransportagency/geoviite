@@ -13,12 +13,12 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureLine
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.switchLibrary.data.RR54_2x1_9
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300A_1_9_O
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest

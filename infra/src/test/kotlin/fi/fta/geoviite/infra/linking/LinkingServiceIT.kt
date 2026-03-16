@@ -65,6 +65,7 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -74,7 +75,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -159,9 +159,12 @@ constructor(
                 alignmentId = locationTrackId,
                 mRange =
                     Range(
-                        officialGeometry.segmentMValues[0].min,
-                        officialGeometry.segmentsWithM[1].let { (s, m) -> s.segmentPoints[4].m.segmentToAlignmentM(m.min) },
-                    ).map { it.distance },
+                            officialGeometry.segmentMValues[0].min,
+                            officialGeometry.segmentsWithM[1].let { (s, m) ->
+                                s.segmentPoints[4].m.segmentToAlignmentM(m.min)
+                            },
+                        )
+                        .map { it.distance },
             )
 
         linkingService.saveLocationTrackLinking(
@@ -341,9 +344,10 @@ constructor(
                 alignmentId = locationTrackResponse.id,
                 mRange =
                     Range(
-                        officialAlignment.segments[0].segmentPoints.first().m,
-                        officialAlignment.segments[0].segmentPoints[4].m,
-                    ).map { it.distance },
+                            officialAlignment.segments[0].segmentPoints.first().m,
+                            officialAlignment.segments[0].segmentPoints[4].m,
+                        )
+                        .map { it.distance },
             )
 
         val split =

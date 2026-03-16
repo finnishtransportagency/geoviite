@@ -43,15 +43,15 @@ constructor(
     fun clearSplits() {
         val sql =
             """
-        truncate publication.split cascade;
-        truncate publication.split_version cascade;
-        truncate publication.split_relinked_switch cascade;
-        truncate publication.split_relinked_switch_version cascade;
-        truncate publication.split_target_location_track cascade;
-        truncate publication.split_target_location_track_version cascade;
-        truncate publication.split_updated_duplicate cascade;
-        truncate publication.split_updated_duplicate_version cascade;
-    """
+            truncate publication.split cascade;
+            truncate publication.split_version cascade;
+            truncate publication.split_relinked_switch cascade;
+            truncate publication.split_relinked_switch_version cascade;
+            truncate publication.split_target_location_track cascade;
+            truncate publication.split_target_location_track_version cascade;
+            truncate publication.split_updated_duplicate cascade;
+            truncate publication.split_updated_duplicate_version cascade;
+            """
                 .trimIndent()
         jdbc.execute(sql) { it.execute() }
     }

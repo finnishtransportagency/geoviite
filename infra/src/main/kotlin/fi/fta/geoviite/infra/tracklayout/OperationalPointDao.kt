@@ -26,12 +26,12 @@ import fi.fta.geoviite.infra.util.getPolygonPointListOrNull
 import fi.fta.geoviite.infra.util.getUnsafeStringOrNull
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.time.Instant
 
 const val OPERATIONAL_POINT_CACHE_SIZE = 2000L
 

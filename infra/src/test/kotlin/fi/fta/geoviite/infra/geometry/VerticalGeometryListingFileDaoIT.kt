@@ -33,10 +33,10 @@ constructor(private val verticalGeometryListingFileDao: VerticalGeometryListingF
                 name = FileName("vertical geometry test file name 1"),
                 content =
                     """
-                vert_geom_header1, vert_geom_header2, vert_geom_header3
-                vert_geom_col1_val1, vert_geom_col2_val1, vert_geom_col3_val1
-                vert_geom_col1_val2, vert_geom_col2_val2, vert_geom_col3_val2
-            """
+                    vert_geom_header1, vert_geom_header2, vert_geom_header3
+                    vert_geom_col1_val1, vert_geom_col2_val1, vert_geom_col3_val1
+                    vert_geom_col1_val2, vert_geom_col2_val2, vert_geom_col3_val2
+                    """
                         .trimIndent(),
             )
         verticalGeometryListingFileDao.upsertVerticalGeometryListingFile(originalFile)
@@ -49,10 +49,10 @@ constructor(private val verticalGeometryListingFileDao: VerticalGeometryListingF
                 name = FileName("vertical geometry test file name 2"),
                 content =
                     """
-                vert_geom_header1, vert_geom_header2, vert_geom_header3
-                vert_geom_col1_val1_new, vert_geom_col2_val1_new, vert_geom_col3_val1_new
-                vert_geom_col1_val2_new, vert_geom_col2_val2_new, vert_geom_col3_val2_new
-            """
+                    vert_geom_header1, vert_geom_header2, vert_geom_header3
+                    vert_geom_col1_val1_new, vert_geom_col2_val1_new, vert_geom_col3_val1_new
+                    vert_geom_col1_val2_new, vert_geom_col2_val2_new, vert_geom_col3_val2_new
+                    """
                         .trimIndent(),
             )
         verticalGeometryListingFileDao.upsertVerticalGeometryListingFile(updatedFile)

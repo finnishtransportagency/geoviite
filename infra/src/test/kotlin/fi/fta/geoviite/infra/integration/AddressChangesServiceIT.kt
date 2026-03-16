@@ -48,16 +48,16 @@ import fi.fta.geoviite.infra.tracklayout.splitSegment
 import fi.fta.geoviite.infra.tracklayout.toAlignmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import kotlin.math.ceil
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -663,7 +663,9 @@ constructor(
             )
         val referenceLinePoints = (0..15).map { i -> refPoint + i.toDouble() }
         val referenceLineGeometryVersion =
-            layoutAlignmentDao.insert(referenceLineGeometry(splitSegment(segment(*referenceLinePoints.toTypedArray()), 4)))
+            layoutAlignmentDao.insert(
+                referenceLineGeometry(splitSegment(segment(*referenceLinePoints.toTypedArray()), 4))
+            )
         val referenceLineGeometry = layoutAlignmentDao.fetch(referenceLineGeometryVersion)
         val referenceLine =
             referenceLineDao.fetch(

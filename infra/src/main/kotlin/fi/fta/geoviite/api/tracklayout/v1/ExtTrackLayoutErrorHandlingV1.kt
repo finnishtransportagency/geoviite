@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.error.GeoviiteErrorResponse
 import fi.fta.geoviite.infra.error.HasLocalizedMessage
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
+import java.time.Instant
 import org.springframework.core.convert.ConversionFailedException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -18,7 +19,6 @@ import org.springframework.web.HttpRequestMethodNotSupportedException
 import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.servlet.NoHandlerFoundException
-import java.time.Instant
 
 internal const val ERROR_KEY_BASE = "ext-api.track-layout.v1.error"
 

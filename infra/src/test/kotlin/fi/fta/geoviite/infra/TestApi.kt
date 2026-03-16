@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.error.ApiErrorResponse
+import kotlin.test.assertTrue
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON
@@ -12,7 +13,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.result.isEqualTo
-import kotlin.test.assertTrue
 
 class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
 

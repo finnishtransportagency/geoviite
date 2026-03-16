@@ -5,15 +5,15 @@ import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.setUser
+import java.time.Instant
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import withUser
-import java.time.Instant
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 const val TEST_ROLE_CODE = "it_tst"
 

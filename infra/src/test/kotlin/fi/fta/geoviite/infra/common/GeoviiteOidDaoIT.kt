@@ -20,8 +20,8 @@ class GeoviiteOidDaoIT @Autowired constructor(val geoviiteOidDao: GeoviiteOidDao
             jdbc.execute("""insert into common.oid_type values('abc')""") { it.execute() }
             jdbc.execute(
                 """
-                    insert into common.oid_sequence(type, service_oid, group_number, number, state)
-                    values ('abc', '1.2.246.578.13', 123, 456, 'ACTIVE')
+                insert into common.oid_sequence(type, service_oid, group_number, number, state)
+                values ('abc', '1.2.246.578.13', 123, 456, 'ACTIVE')
                 """
                     .trimIndent()
             ) {
@@ -51,8 +51,8 @@ class GeoviiteOidDaoIT @Autowired constructor(val geoviiteOidDao: GeoviiteOidDao
             jdbc.execute("""insert into common.oid_type values('abc')""") { it.execute() }
             jdbc.execute(
                 """
-                    insert into common.oid_sequence(type, service_oid, group_number, number, state)
-                    values ('abc', '1.2.246.578.13', 123, 456, 'ACTIVE')
+                insert into common.oid_sequence(type, service_oid, group_number, number, state)
+                values ('abc', '1.2.246.578.13', 123, 456, 'ACTIVE')
                 """
                     .trimIndent()
             ) {
@@ -61,8 +61,8 @@ class GeoviiteOidDaoIT @Autowired constructor(val geoviiteOidDao: GeoviiteOidDao
             jdbc.execute("update common.oid_sequence set state = 'DEPRECATED' where type = 'abc'") { it.execute() }
             jdbc.execute(
                 """
-                    insert into common.oid_sequence(type, service_oid, group_number, number, state)
-                    values ('abc', '1.2.246.578.13', 789, 456, 'ACTIVE')
+                insert into common.oid_sequence(type, service_oid, group_number, number, state)
+                values ('abc', '1.2.246.578.13', 789, 456, 'ACTIVE')
                 """
                     .trimIndent()
             ) {

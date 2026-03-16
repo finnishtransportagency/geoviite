@@ -7,8 +7,8 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextInput
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.dateFormat
-import org.openqa.selenium.By
 import java.time.LocalDate
+import org.openqa.selenium.By
 
 class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     enum class State {

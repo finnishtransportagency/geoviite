@@ -37,7 +37,7 @@ class VerticalGeometryListingFileDao @Autowired constructor(jdbcTemplateParam: N
               content = :content,
               change_time = now(),
               change_user = current_setting('geoviite.edit_user')
-        """
+            """
                 .trimIndent()
         val params = mapOf("name" to file.name, "content" to file.content)
         jdbcTemplate.setUser()
@@ -52,7 +52,7 @@ class VerticalGeometryListingFileDao @Autowired constructor(jdbcTemplateParam: N
             select name, content
             from layout.vertical_geometry_listing_file
             where id = 1
-        """
+            """
                 .trimIndent()
         return jdbcTemplate
             .query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -67,7 +67,7 @@ class VerticalGeometryListingFileDao @Autowired constructor(jdbcTemplateParam: N
             """
             select max(change_time) change_time 
             from layout.vertical_geometry_listing_file
-        """
+            """
                 .trimIndent()
 
         return jdbcTemplate

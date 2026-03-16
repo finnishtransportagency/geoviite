@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.verticalEdge
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -37,7 +38,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -215,12 +215,8 @@ constructor(
         sourceEdges.forEachIndexed { i, sourceEdge -> assertMatches(sourceEdge, geometry.edges[i]) }
     }
 
-    private fun assertTransferTargetTrack(
-        request: SplitRequestTarget,
-        response: SplitTarget,
-    ) {
-        val (track, _) =
-            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
+    private fun assertTransferTargetTrack(request: SplitRequestTarget, response: SplitTarget) {
+        val (track, _) = locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, response.locationTrackId)
         assertEquals(request.descriptionBase, track.descriptionStructure.base)
         assertEquals(request.descriptionSuffix, track.descriptionStructure.suffix)
         assertNull(track.duplicateOf)
@@ -243,29 +239,33 @@ constructor(
 
         val duplicateIds =
             listOf(
-                mainOfficialContext.save(
-                    locationTrack(
-                        name = "duplicate between second and third switch",
-                        descriptionStructure = LocationTrackDescriptionStructure(
-                            LocationTrackDescriptionBase("original description"),LocationTrackDescriptionSuffix.NONE
-                        ) ,
-                        trackNumberId = trackNumberId,
-                        duplicateOf = sourceTrack.id,
+                    mainOfficialContext.save(
+                        locationTrack(
+                            name = "duplicate between second and third switch",
+                            descriptionStructure =
+                                LocationTrackDescriptionStructure(
+                                    LocationTrackDescriptionBase("original description"),
+                                    LocationTrackDescriptionSuffix.NONE,
+                                ),
+                            trackNumberId = trackNumberId,
+                            duplicateOf = sourceTrack.id,
+                        ),
+                        trackGeometryOfSegments(segment(switchStartPoints[1], switchStartPoints[2])),
                     ),
-                    trackGeometryOfSegments(segment(switchStartPoints[1], switchStartPoints[2])),
-                ),
                     mainOfficialContext.save(
                         locationTrack(
                             name = "duplicate between third and fourth switch",
-                            descriptionStructure = LocationTrackDescriptionStructure(
-                                LocationTrackDescriptionBase("original description 2"),LocationTrackDescriptionSuffix.NONE
-                            ) ,
+                            descriptionStructure =
+                                LocationTrackDescriptionStructure(
+                                    LocationTrackDescriptionBase("original description 2"),
+                                    LocationTrackDescriptionSuffix.NONE,
+                                ),
                             trackNumberId = trackNumberId,
                             duplicateOf = sourceTrack.id,
                         ),
                         trackGeometryOfSegments(segment(switchStartPoints[2], switchStartPoints[3])),
-                ),
-            )
+                    ),
+                )
                 .map { daoResponse -> daoResponse.id }
 
         val splitRequest =
@@ -279,7 +279,7 @@ constructor(
                         descriptionBase = "new description",
                         descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
                         duplicateTrackId = duplicateIds[0],
-                        operation = SplitTargetDuplicateOperation.OVERWRITE
+                        operation = SplitTargetDuplicateOperation.OVERWRITE,
                     ),
                     targetRequest(
                         switchesAndSegments.switchIds[2],
@@ -287,7 +287,7 @@ constructor(
                         descriptionBase = "new description 2",
                         descriptionSuffix = LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH,
                         duplicateTrackId = duplicateIds[1],
-                        operation = SplitTargetDuplicateOperation.TRANSFER
+                        operation = SplitTargetDuplicateOperation.TRANSFER,
                     ),
                     targetRequest(switchesAndSegments.switchIds[3], "track end"),
                 ),
@@ -439,7 +439,10 @@ constructor(
 
     private fun insertSplitWithTwoTracks(): IntId<Split> {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(
+            referenceLine(trackNumberId),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
 
         val sourceTrack =
             mainOfficialContext.save(

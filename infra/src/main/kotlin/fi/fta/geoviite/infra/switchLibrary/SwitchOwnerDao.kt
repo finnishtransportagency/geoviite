@@ -23,7 +23,7 @@ class SwitchOwnerDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 id,
                 name
             from common.switch_owner
-        """
+            """
                 .trimIndent()
         val switchOwners =
             jdbcTemplate.query(sql) { rs, _ ->

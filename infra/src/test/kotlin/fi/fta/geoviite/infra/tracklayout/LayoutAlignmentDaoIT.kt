@@ -555,10 +555,10 @@ constructor(
     private fun assertDbGeometriesHaveCorrectMValues() {
         val sql =
             """
-               select id, postgis.st_astext(geometry) as geom, postgis.st_length(geometry) as length
-               from layout.segment_geometry
-               where postgis.st_m(postgis.st_startpoint(geometry)) <> 0.0
-                 or abs(postgis.st_m(postgis.st_endpoint(geometry)) - postgis.st_length(geometry))/postgis.st_length(geometry) > 0.01;
+            select id, postgis.st_astext(geometry) as geom, postgis.st_length(geometry) as length
+            from layout.segment_geometry
+            where postgis.st_m(postgis.st_startpoint(geometry)) <> 0.0
+              or abs(postgis.st_m(postgis.st_endpoint(geometry)) - postgis.st_length(geometry))/postgis.st_length(geometry) > 0.01;
             """
                 .trimIndent()
         val geometriesWithInvalidMValues =

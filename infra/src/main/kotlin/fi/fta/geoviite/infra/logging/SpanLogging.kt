@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.logging
 
-import org.apache.logging.log4j.ThreadContext
 import java.util.UUID
+import org.apache.logging.log4j.ThreadContext
 
 const val SPAN_IDS_KEY = "spanIds"
 const val SPAN_ID_SEPARATOR = "-"

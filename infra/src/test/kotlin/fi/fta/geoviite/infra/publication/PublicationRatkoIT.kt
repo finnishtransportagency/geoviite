@@ -49,6 +49,9 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.queryOne
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -56,9 +59,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -86,14 +86,14 @@ constructor(
     fun cleanup() {
         val sql =
             """
-                truncate publication.publication,
-                         integrations.lock,
-                         layout.track_number_id,
-                         layout.location_track_id,
-                         layout.switch_id,
-                         integrations.ratko_operational_point,
-                         integrations.ratko_operational_point_version
-                  cascade;
+            truncate publication.publication,
+                     integrations.lock,
+                     layout.track_number_id,
+                     layout.location_track_id,
+                     layout.switch_id,
+                     integrations.ratko_operational_point,
+                     integrations.ratko_operational_point_version
+              cascade;
             """
                 .trimIndent()
         jdbc.execute(sql) { it.execute() }
@@ -121,7 +121,10 @@ constructor(
         val mainTrackNumberOid = "1.2.3.4.5"
         trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid(mainTrackNumberOid))
 
-        mainOfficialContext.save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
         // split track with two km posts, so that moving the latter one even further doesn't affect
         // the first track km at all
         mainOfficialContext.save(kmPost(trackNumber, KmNumber(1), kmPostGkLocation(3.0, 0.0)))
@@ -198,10 +201,10 @@ constructor(
         val publishedSwitches =
             jdbc.query(
                 """
-                    select id, design_id, draft, version
-                    from layout.switch_version sv
-                      join publication.switch ps using (id, layout_context_id, version)
-                    where ps.publication_id = :publication_id
+                select id, design_id, draft, version
+                from layout.switch_version sv
+                  join publication.switch ps using (id, layout_context_id, version)
+                where ps.publication_id = :publication_id
                 """
                     .trimIndent(),
                 mapOf("publication_id" to designPublicationId.intValue),
@@ -225,10 +228,10 @@ constructor(
         val publishedLocationTracks =
             jdbc.query(
                 """
-                    select id, design_id, draft, version
-                    from layout.location_track_version ltv
-                      join publication.location_track plt using (id, layout_context_id, version)
-                    where plt.publication_id = :publication_id
+                select id, design_id, draft, version
+                from layout.location_track_version ltv
+                  join publication.location_track plt using (id, layout_context_id, version)
+                where plt.publication_id = :publication_id
                 """
                     .trimIndent(),
                 mapOf("publication_id" to designPublicationId.intValue),
@@ -241,7 +244,10 @@ constructor(
     @Test
     fun `switch draft oid existence is checked upon publication`() {
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        mainOfficialContext.save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.save(
+            referenceLine(trackNumber),
+            referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
         val switch =
             mainDraftContext
                 .save(

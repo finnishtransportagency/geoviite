@@ -42,7 +42,10 @@ const val ALIGNMENT_LINKING_SNAP = 0.001
 fun cutLocationTrackGeometry(geometry: LocationTrackGeometry, mRange: Range<LineM<LocationTrackM>>) =
     TmpLocationTrackGeometry.of(slice(geometry, mRange, ALIGNMENT_LINKING_SNAP), geometry.trackId)
 
-fun cutReferenceLineGeometry(geometry: ReferenceLineGeometry, mRange: Range<LineM<ReferenceLineM>>): ReferenceLineGeometry =
+fun cutReferenceLineGeometry(
+    geometry: ReferenceLineGeometry,
+    mRange: Range<LineM<ReferenceLineM>>,
+): ReferenceLineGeometry =
     tryCreateLinkedReferenceLineGeometry(geometry, slice(geometry, mRange, ALIGNMENT_LINKING_SNAP))
 
 fun replaceLocationTrackGeometry(
@@ -73,7 +76,8 @@ fun linkLayoutGeometrySection(
     layoutMRange: Range<LineM<ReferenceLineM>>,
     geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<LineM<PlanLayoutAlignmentM>>,
-): ReferenceLineGeometry = splice(referenceLineGeometry, layoutMRange, createAlignmentGeometry(geometryAlignment, geometryMRange))
+): ReferenceLineGeometry =
+    splice(referenceLineGeometry, layoutMRange, createAlignmentGeometry(geometryAlignment, geometryMRange))
 
 private fun createAlignmentGeometry(
     geometryAlignment: PlanLayoutAlignment,
@@ -122,7 +126,10 @@ private fun tryCreateLinkedTrackGeometry(creator: () -> TmpLocationTrackGeometry
         )
     }
 
-private fun tryCreateLinkedReferenceLineGeometry(original: ReferenceLineGeometry, newSegments: List<LayoutSegment>): ReferenceLineGeometry =
+private fun tryCreateLinkedReferenceLineGeometry(
+    original: ReferenceLineGeometry,
+    newSegments: List<LayoutSegment>,
+): ReferenceLineGeometry =
     try {
         original.withSegments(newSegments.also(::validateSegments))
     } catch (e: IllegalArgumentException) {

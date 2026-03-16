@@ -58,8 +58,9 @@ private fun getLocationTrackDuplicatesBySplitPoints(
     val duplicateTrackSplitPoints = collectSplitPoints(duplicateGeometry)
     val statuses =
         getDuplicateMatches(mainTrackSplitPoints, duplicateTrackSplitPoints, mainTrackId, duplicateTrack.duplicateOf)
-            .filter { (_, duplicateStatus) -> 
-                // Keep geometric duplicates (with overlap) and manual duplicates (duplicateOfId set, even with no overlap)
+            .filter { (_, duplicateStatus) ->
+                // Keep geometric duplicates (with overlap) and manual duplicates (duplicateOfId set, even with no
+                // overlap)
                 (duplicateStatus.overlappingLength ?: 0.0) > 0 || duplicateStatus.duplicateOfId == mainTrackId
             }
     return statuses.map { (jointIndex, status) ->

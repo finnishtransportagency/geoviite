@@ -14,13 +14,13 @@ import fi.fta.geoviite.infra.tracklayout.EdgeDirection.UP
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.IN
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.OUT
 import fi.fta.geoviite.infra.util.produceIf
+import java.util.*
 import org.jgrapht.Graph
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath
 import org.jgrapht.graph.AsGraphUnion
 import org.jgrapht.graph.DirectedWeightedMultigraph
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.util.*
 
 private val logger: Logger = LoggerFactory.getLogger(RoutingGraph::class.java)
 

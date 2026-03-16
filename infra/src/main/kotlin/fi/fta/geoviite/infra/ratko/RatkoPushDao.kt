@@ -37,9 +37,9 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     fun startPushing(layoutPublicationIds: List<IntId<Publication>>): IntId<RatkoPush> {
         val sql =
             """
-                insert into integrations.ratko_push(start_time, status)
-                values (now(), 'IN_PROGRESS')
-                returning id
+            insert into integrations.ratko_push(start_time, status)
+            values (now(), 'IN_PROGRESS')
+            returning id
             """
                 .trimIndent()
 
@@ -55,16 +55,16 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     fun finishStuckPushes() {
         val sql =
             """
-                update integrations.ratko_push
-                set 
-                    end_time = now(),
-                    status = case
-                        when status = 'IN_PROGRESS' then 'FAILED'
-                        when status = 'IN_PROGRESS_M_VALUES' then 'SUCCESSFUL'
-                        else status
-                    end
-                where end_time is null
-                returning id
+            update integrations.ratko_push
+            set 
+                end_time = now(),
+                status = case
+                    when status = 'IN_PROGRESS' then 'FAILED'
+                    when status = 'IN_PROGRESS_M_VALUES' then 'SUCCESSFUL'
+                    else status
+                end
+            where end_time is null
+            returning id
             """
                 .trimIndent()
 
@@ -78,11 +78,11 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     fun updatePushStatus(pushId: IntId<RatkoPush>, status: RatkoPushStatus) {
         val sql =
             """
-                update integrations.ratko_push
-                set 
-                  end_time = case when :status = 'IN_PROGRESS_M_VALUES' then null else now() end,
-                  status = :status::integrations.ratko_push_status
-                where id = :push_id
+            update integrations.ratko_push
+            set 
+              end_time = case when :status = 'IN_PROGRESS_M_VALUES' then null else now() end,
+              status = :status::integrations.ratko_push_status
+            where id = :push_id
             """
                 .trimIndent()
 
@@ -96,14 +96,14 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     fun fetchPreviousPush(): RatkoPush {
         val sql =
             """
-                select
-                  id,
-                  start_time,
-                  end_time,
-                  status
-                from integrations.ratko_push
-                order by end_time desc
-                limit 1
+            select
+              id,
+              start_time,
+              end_time,
+              status
+            from integrations.ratko_push
+            order by end_time desc
+            limit 1
             """
                 .trimIndent()
 
@@ -125,10 +125,10 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
 
         val sql =
             """
-                insert into integrations.ratko_push_content
-                  values (:publication_id, :ratko_push_id)
-                on conflict (publication_id) 
-                  do update set ratko_push_id = :ratko_push_id
+            insert into integrations.ratko_push_content
+              values (:publication_id, :ratko_push_id)
+            on conflict (publication_id) 
+              do update set ratko_push_id = :ratko_push_id
             """
                 .trimIndent()
 
@@ -153,23 +153,23 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         // language=SQL
         val sql =
             """
-                insert into integrations.ratko_push_error(
-                  ratko_push_id,
-                  track_number_id,
-                  location_track_id,
-                  switch_id,
-                  error_type,
-                  operation
-                )
-                values(
-                  :ratko_push_id, 
-                  :track_number_id, 
-                  :location_track_id, 
-                  :switch_id,
-                  :error_type::integrations.ratko_push_error_type, 
-                  :operation::integrations.ratko_push_error_operation
-                )
-                returning id
+            insert into integrations.ratko_push_error(
+              ratko_push_id,
+              track_number_id,
+              location_track_id,
+              switch_id,
+              error_type,
+              operation
+            )
+            values(
+              :ratko_push_id, 
+              :track_number_id, 
+              :location_track_id, 
+              :switch_id,
+              :error_type::integrations.ratko_push_error_type, 
+              :operation::integrations.ratko_push_error_operation
+            )
+            returning id
             """
                 .trimIndent()
         val params =
@@ -191,12 +191,12 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         // language=SQL
         val sql =
             """
-                select 
-                  coalesce(max(publication.publication_time), '2000-01-01 00:00:00'::timestamptz) as latest_publication_time
-                from integrations.ratko_push
-                inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
-                inner join publication.publication on publication.id = ratko_push_content.publication_id
-                where ratko_push.status = 'SUCCESSFUL' and publication.design_id is not distinct from :design_id
+            select 
+              coalesce(max(publication.publication_time), '2000-01-01 00:00:00'::timestamptz) as latest_publication_time
+            from integrations.ratko_push
+            inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
+            inner join publication.publication on publication.id = ratko_push_content.publication_id
+            where ratko_push.status = 'SUCCESSFUL' and publication.design_id is not distinct from :design_id
             """
                 .trimIndent()
 
@@ -211,8 +211,8 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         // language=SQL
         val sql =
             """
-                select coalesce(max(publication.publication_time), now()) as latest_publication_time
-                from publication.publication
+            select coalesce(max(publication.publication_time), now()) as latest_publication_time
+            from publication.publication
             """
                 .trimIndent()
         return jdbcTemplate
@@ -223,14 +223,14 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     fun getRatkoPushChangeTime(): Instant {
         val sql =
             """
-                select coalesce(
-                    greatest(
-                        max(ratko_push.end_time), 
-                        max(ratko_push.start_time)
-                    ), 
-                    now()
-                ) as latest_ratko_push_time
-                from integrations.ratko_push
+            select coalesce(
+                greatest(
+                    max(ratko_push.end_time), 
+                    max(ratko_push.start_time)
+                ), 
+                now()
+            ) as latest_ratko_push_time
+            from integrations.ratko_push
             """
                 .trimIndent()
         return jdbcTemplate
@@ -241,16 +241,16 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     fun getRatkoStatuses(publicationIds: Set<IntId<Publication>>): Map<IntId<Publication>, List<RatkoPush>> {
         val sql =
             """
-                select
-                  ratko_push_content.publication_id,
-                  ratko_push.id,
-                  ratko_push.start_time,
-                  ratko_push.end_time,
-                  ratko_push.status
-                from integrations.ratko_push
-                inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
-                inner join publication.publication on publication.id = ratko_push_content.publication_id
-                where publication.id = any(array[:publication_ids]::int[])
+            select
+              ratko_push_content.publication_id,
+              ratko_push.id,
+              ratko_push.start_time,
+              ratko_push.end_time,
+              ratko_push.status
+            from integrations.ratko_push
+            inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
+            inner join publication.publication on publication.id = ratko_push_content.publication_id
+            where publication.id = any(array[:publication_ids]::int[])
             """
                 .trimIndent()
 
@@ -271,22 +271,22 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     fun getCurrentRatkoPushError(): Pair<RatkoPushError<*>, IntId<Publication>>? {
         val sql =
             """
-                select 
-                  ratko_push_content.publication_id,
-                  ratko_push.status,
-                  ratko_push_error.id,
-                  ratko_push_error.error_type,
-                  ratko_push_error.operation,
-                  ratko_push_error.track_number_id,
-                  ratko_push_error.location_track_id,
-                  ratko_push_error.switch_id,
-                  ratko_push_error.ratko_push_id
-                from integrations.ratko_push
-                  inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
-                  left join integrations.ratko_push_error on ratko_push_error.ratko_push_id = ratko_push.id
-                where status <> 'IN_PROGRESS' and status <> 'IN_PROGRESS_M_VALUES'
-                order by start_time desc
-                limit 1
+            select 
+              ratko_push_content.publication_id,
+              ratko_push.status,
+              ratko_push_error.id,
+              ratko_push_error.error_type,
+              ratko_push_error.operation,
+              ratko_push_error.track_number_id,
+              ratko_push_error.location_track_id,
+              ratko_push_error.switch_id,
+              ratko_push_error.ratko_push_id
+            from integrations.ratko_push
+              inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
+              left join integrations.ratko_push_error on ratko_push_error.ratko_push_id = ratko_push.id
+            where status <> 'IN_PROGRESS' and status <> 'IN_PROGRESS_M_VALUES'
+            order by start_time desc
+            limit 1
             """
                 .trimIndent()
 

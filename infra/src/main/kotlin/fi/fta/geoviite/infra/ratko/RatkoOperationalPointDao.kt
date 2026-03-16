@@ -15,12 +15,12 @@ import fi.fta.geoviite.infra.util.getOid
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.time.Instant
 
 fun toRatkoOperationalPoint(rs: ResultSet): RatkoOperationalPoint {
     return RatkoOperationalPoint(
@@ -122,17 +122,17 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     fun listWithVersions(): List<Pair<RatkoOperationalPoint, Int>> {
         val sql =
             """
-                select
-                  external_id,
-                  name,
-                  abbreviation,
-                  uic_code,
-                  type,
-                  postgis.st_x(location) as x,
-                  postgis.st_y(location) as y,
-                  track_number_id,
-                  version
-                  from integrations.ratko_operational_point
+            select
+              external_id,
+              name,
+              abbreviation,
+              uic_code,
+              type,
+              postgis.st_x(location) as x,
+              postgis.st_y(location) as y,
+              track_number_id,
+              version
+              from integrations.ratko_operational_point
             """
                 .trimIndent()
 
@@ -143,18 +143,18 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     fun fetch(oid: Oid<RatkoOperationalPoint>, version: Int): RatkoOperationalPoint {
         val sql =
             """
-                select
-                  external_id,
-                  name,
-                  abbreviation,
-                  uic_code,
-                  type,
-                  postgis.st_x(location) as x,
-                  postgis.st_y(location) as y,
-                  track_number_id,
-                  version
-                  from integrations.ratko_operational_point_version
-                  where external_id = :oid and version = :version 
+            select
+              external_id,
+              name,
+              abbreviation,
+              uic_code,
+              type,
+              postgis.st_x(location) as x,
+              postgis.st_y(location) as y,
+              track_number_id,
+              version
+              from integrations.ratko_operational_point_version
+              where external_id = :oid and version = :version 
             """
                 .trimIndent()
         return jdbcTemplate.queryOne(sql, mapOf("oid" to oid.toString(), "version" to version)) { rs, _ ->

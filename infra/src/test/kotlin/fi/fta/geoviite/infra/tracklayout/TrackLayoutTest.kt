@@ -9,12 +9,12 @@ import fi.fta.geoviite.infra.common.SwitchNameParts
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
+import java.util.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.util.*
 
 private const val SEED = 123321L
 
@@ -40,7 +40,7 @@ class TrackLayoutTest {
         assertEquals(original.segmentPoints[2].m.distance, startSlice.length, 0.0001)
         assertEquals(
             Range(originalSegmentStart, originalSegmentStart + original.segmentPoints[2].m.distance),
-            startSliceM
+            startSliceM,
         )
 
         val (endSlice, endSliceM) = original.slice(originalSegmentStart, 8, 9)!!
@@ -53,7 +53,7 @@ class TrackLayoutTest {
         assertEquals(
             original.segmentPoints[9].m.distance - original.segmentPoints[8].m.distance,
             endSlice.length,
-            0.0001
+            0.0001,
         )
         assertEquals(
             Range(
@@ -73,7 +73,7 @@ class TrackLayoutTest {
         assertEquals(
             original.segmentPoints[8].m.distance - original.segmentPoints[1].m.distance,
             midSlice.length,
-            0.0001
+            0.0001,
         )
         assertEquals(
             Range(

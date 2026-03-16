@@ -22,11 +22,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
-private data class ElementFetchData(
-    val alignmentIndex: Int,
-    val elementIndex: Int,
-    val element: SwitchStructureElement,
-)
+private data class ElementFetchData(val alignmentIndex: Int, val elementIndex: Int, val element: SwitchStructureElement)
 
 @Transactional(readOnly = true)
 @Component
@@ -43,7 +39,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 type,
                 presentation_joint_number
             from common.switch_structure
-        """
+            """
                 .trimIndent()
         val switchStructures =
             jdbcTemplate.query(sql) { rs, _ ->
@@ -74,7 +70,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             from common.switch_structure_version
             where id = :id
               and version = :version
-        """
+            """
                 .trimIndent()
         val params = mapOf("id" to version.id.intValue, "version" to version.version)
         val switchStructure =
@@ -105,7 +101,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             from common.switch_structure_version_joint
             where switch_structure_id = :switch_structure_id
               and switch_structure_version = :switch_structure_version
-        """
+            """
                 .trimIndent()
 
         val params =
@@ -138,7 +134,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             from common.switch_structure_version_element
             where switch_structure_id = :switch_structure_id
               and switch_structure_version = :switch_structure_version
-        """
+            """
                 .trimIndent()
 
         val params =
@@ -186,7 +182,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             where switch_structure_id = :switch_structure_id
               and switch_structure_version = :switch_structure_version
             order by alignment_index
-        """
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -221,7 +217,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             on conflict (type) do update
               set presentation_joint_number = excluded.presentation_joint_number
             returning id, version
-        """
+            """
                 .trimIndent()
 
         val params =
@@ -249,7 +245,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             insert into common.inframodel_switch_type_name_alias (alias, type)
             values (:alias, :type)
             on conflict (alias) do update set type = excluded.type
-        """
+            """
                 .trimIndent()
         jdbcTemplate.setUser()
         val params = mapOf("alias" to alias, "type" to type)
@@ -291,7 +287,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                     :srid
                   )
                 )
-        """
+            """
                 .trimIndent()
 
         val params =
@@ -331,7 +327,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                   :alignment_index,
                   string_to_array(:joint_numbers, ',')::int[]
                 )
-        """
+            """
                 .trimIndent()
 
         val params =
@@ -388,7 +384,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                   ),
                   :curve_radius
                 )
-        """
+            """
                 .trimIndent()
 
         val params =

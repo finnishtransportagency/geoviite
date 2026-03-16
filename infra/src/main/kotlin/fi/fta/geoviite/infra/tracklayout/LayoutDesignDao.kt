@@ -37,7 +37,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
             select id, name, estimated_completion, design_state
             from layout.design
             where id = :id
-        """
+            """
                 .trimIndent()
         return jdbcTemplate.queryOne(sql, mapOf("id" to id.intValue), mapper = { rs, _ -> getLayoutDesign(rs) })
     }
@@ -48,7 +48,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
             select id, name, estimated_completion, design_state
             from layout.design_version
             where id = :id and version = :version
-        """
+            """
                 .trimIndent()
         return jdbcTemplate.queryOne(
             sql,
@@ -65,7 +65,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
             where design_state = 'ACTIVE'::layout.design_state 
               or :include_completed is true and design_state = 'COMPLETED'::layout.design_state
               or :include_deleted is true and design_state = 'DELETED'::layout.design_state
-        """
+            """
                 .trimIndent()
         return jdbcTemplate.query(
             sql,
@@ -81,7 +81,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         val sql =
             """
             insert into integrations.ratko_design values (:design_id, :ratko_id)
-        """
+            """
                 .trimIndent()
         val updated =
             jdbcTemplate.update(sql, mapOf("design_id" to toDbId(id).intValue, "ratko_id" to ratkoId.intValue))
@@ -116,7 +116,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
                 design_state = :design_state::layout.design_state
             where id = :id
             returning id, version
-        """
+            """
                 .trimIndent()
         val response =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion<LayoutDesign>("id", "version") }
@@ -133,7 +133,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
             insert into layout.design (name, estimated_completion, design_state)
             values (:name, :estimated_completion, :design_state::layout.design_state)
             returning id, version
-        """
+            """
                 .trimIndent()
         val response =
             jdbcTemplate.queryForObject(
@@ -160,7 +160,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         val sql =
             """
             select exists(select * from publication.publication where design_id = :design_id) as has_publication
-        """
+            """
                 .trimIndent()
 
         return jdbcTemplate.queryOne(sql, mapOf("design_id" to designId.intValue)) { rs, _ ->

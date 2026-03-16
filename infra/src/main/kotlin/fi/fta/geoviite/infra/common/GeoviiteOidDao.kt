@@ -20,7 +20,7 @@ class GeoviiteOidDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
     fun <T> reserveOid(type: OidType): Oid<T> {
         val sql =
             """
-                select common.generate_oid(:type) as oid
+            select common.generate_oid(:type) as oid
             """
                 .trimIndent()
         return jdbcTemplate.queryOne(sql, mapOf("type" to type.name)) { rs, _ -> rs.getOid("oid") }

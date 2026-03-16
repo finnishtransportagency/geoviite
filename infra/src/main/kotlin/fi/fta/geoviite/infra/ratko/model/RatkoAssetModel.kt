@@ -130,7 +130,9 @@ enum class RatkoAssetState(@get:JsonValue val value: String, val category: Layou
 enum class RatkoAssetType(@get:JsonValue val value: String) {
     TURNOUT("turnout"),
     METADATA("metadata_location_accuracy"),
-    RAILWAY_TRAFFIC_OPERATIONAL_POINT("railway_traffic_operating_point"), // Ratko uses "operating_point" instead of "operational_point"
+    RAILWAY_TRAFFIC_OPERATIONAL_POINT(
+        "railway_traffic_operating_point"
+    ), // Ratko uses "operating_point" instead of "operational_point"
 }
 
 data class RatkoOperationalPointAssetsResponse(val assets: List<RatkoOperationalPointAsset>)

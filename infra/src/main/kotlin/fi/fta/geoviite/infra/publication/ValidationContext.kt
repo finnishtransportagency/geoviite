@@ -120,11 +120,15 @@ class ValidationContext(
     private val trackNameCache = NameCache(::fetchLocationTracksByName)
     private val trackNumberNumberCache = NameCache(::fetchTrackNumbersByNumber)
 
-    private val operationalPointNameCache = NameCache<OperationalPointName, OperationalPoint>(::fetchOperationalPointsByName)
-    private val operationalPointAbbreviationCache = NameCache<OperationalPointAbbreviation, OperationalPoint>(::fetchOperationalPointsByAbbreviation)
+    private val operationalPointNameCache =
+        NameCache<OperationalPointName, OperationalPoint>(::fetchOperationalPointsByName)
+    private val operationalPointAbbreviationCache =
+        NameCache<OperationalPointAbbreviation, OperationalPoint>(::fetchOperationalPointsByAbbreviation)
     private val operationalPointUicCodeCache = NameCache<UicCode, OperationalPoint>(::fetchOperationalPointsByUicCode)
-    private val operationalPointRinfIdOverrideCache = NameCache<RinfId, OperationalPoint>(::fetchOperationalPointsByRinfIdOverride)
-    private val operationalPointRinfIdGeneratedCache = NameCache<RinfId, OperationalPoint>(::fetchOperationalPointsByRinfIdGenerated)
+    private val operationalPointRinfIdOverrideCache =
+        NameCache<RinfId, OperationalPoint>(::fetchOperationalPointsByRinfIdOverride)
+    private val operationalPointRinfIdGeneratedCache =
+        NameCache<RinfId, OperationalPoint>(::fetchOperationalPointsByRinfIdGenerated)
 
     private val allUnfinishedSplits: List<Split> by lazy { splitService.findUnfinishedSplits(target.candidateBranch) }
 
@@ -268,7 +272,7 @@ class ValidationContext(
 
     fun getSwitchJointConnections(
         switchId: IntId<LayoutSwitch>,
-        tracks: List<Pair<LocationTrack, LocationTrackGeometry>>
+        tracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
     ): List<LayoutSwitchJointConnection> {
         return tracks
             .flatMap { (track, geometry) ->
@@ -278,7 +282,8 @@ class ValidationContext(
                         LayoutSwitchJointConnection(
                             link.jointNumber,
                             accurateMatches = listOf(LayoutSwitchJointMatch(track.id as IntId, Point(link.location))),
-                            locationAccuracy = null)
+                            locationAccuracy = null,
+                        )
                     }
             }
             .let { groupConnectionsByJointNumber(it) }
@@ -734,12 +739,7 @@ class ValidationContext(
         )
 
     fun getOperationalPointLivenessType(id: IntId<OperationalPoint>): AssetLivenessType =
-        getAssetLivenessType(
-            ::getOperationalPoint,
-            ::operationalPointIsCancelled,
-            OperationalPoint::exists,
-            id,
-        )
+        getAssetLivenessType(::getOperationalPoint, ::operationalPointIsCancelled, OperationalPoint::exists, id)
 
     fun getOperationalPointLiveness(id: IntId<OperationalPoint>): AssetLiveness<OperationalPoint> =
         getAssetLiveness(

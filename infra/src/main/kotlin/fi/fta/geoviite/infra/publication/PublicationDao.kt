@@ -101,11 +101,11 @@ import fi.fta.geoviite.infra.util.getUicCodeOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -1538,9 +1538,7 @@ class PublicationDao(
                         uicCode = rs.getChange("uic_code", rs::getUicCodeOrNull),
                         rinfType = rs.getNullableRinfTypeChange("rinf_type", "rinf_type_code"),
                         ratoType =
-                            rs.getNullableChange("type") { field ->
-                                rs.getEnumOrNull<OperationalPointRatoType>(field)
-                            },
+                            rs.getNullableChange("type") { field -> rs.getEnumOrNull<OperationalPointRatoType>(field) },
                         rinfIdGenerated = rs.getNullableChange("rinf_id_generated", rs::getRinfIdOrNull),
                         rinfIdOverride = rs.getNullableChange("rinf_id_override", rs::getRinfIdOrNull),
                         polygon =

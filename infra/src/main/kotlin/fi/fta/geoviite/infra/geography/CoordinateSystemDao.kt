@@ -22,11 +22,11 @@ class CoordinateSystemDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoB
     fun fetchApplicationCoordinateSystems(): List<CoordinateSystem> {
         val sql =
             """
-                select 
-                  srid,
-                  name,
-                  array_to_string(aliases, ',') as aliases_str
-                from common.coordinate_system
+            select 
+              srid,
+              name,
+              array_to_string(aliases, ',') as aliases_str
+            from common.coordinate_system
             """
                 .trimIndent()
         val systems =
@@ -45,14 +45,14 @@ class CoordinateSystemDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoB
     fun fetchCoordinateSystem(srid: Srid): CoordinateSystem {
         val sql =
             """
-                select 
-                  ref.srid,
-                  cs.name as cs_name,
-                  split_part(ref.srtext, '"', 2) as sr_name,
-                  coalesce(array_to_string(cs.aliases, ','), '') as aliases_str
-                from postgis.spatial_ref_sys ref 
-                  left join common.coordinate_system cs on cs.srid = ref.srid
-                where ref.srid = :srid 
+            select 
+              ref.srid,
+              cs.name as cs_name,
+              split_part(ref.srtext, '"', 2) as sr_name,
+              coalesce(array_to_string(cs.aliases, ','), '') as aliases_str
+            from postgis.spatial_ref_sys ref 
+              left join common.coordinate_system cs on cs.srid = ref.srid
+            where ref.srid = :srid 
             """
                 .trimIndent()
         val system =

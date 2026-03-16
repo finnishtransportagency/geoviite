@@ -76,7 +76,7 @@ class AuthorizationDao(
             select code from common.role 
             where (:role_code::varchar is null or code = :role_code) 
               and (:user_group::varchar is null or user_group = :user_group)
-        """
+            """
                 .trimIndent()
         val params = mapOf("role_code" to roleCode, "user_group" to userGroup)
         val role =
@@ -95,7 +95,7 @@ class AuthorizationDao(
             from common.role_privilege rp
               left join common.privilege on privilege.code = rp.privilege_code
             where rp.role_code = :role_code
-        """
+            """
                 .trimIndent()
         val params = mapOf("role_code" to code)
         val privileges = jdbcTemplate.query(sql, params) { rs, _ -> Privilege(code = rs.getCode("code")) }

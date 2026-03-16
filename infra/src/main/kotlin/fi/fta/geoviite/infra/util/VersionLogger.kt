@@ -15,10 +15,10 @@ class VersionLogger(val jdbcTemplate: NamedParameterJdbcTemplate?) {
     fun logVersion() {
         val sql =
             """
-           select 
-             version() as postgres_version,
-             postgis.postgis_full_version() as postgis_version;
-       """
+            select 
+              version() as postgres_version,
+              postgis.postgis_full_version() as postgis_version;
+            """
                 .trimIndent()
         jdbcTemplate?.let { jdbc ->
             jdbc.queryForObject(sql, mapOf<String, Any>()) { rs, _ ->

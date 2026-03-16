@@ -35,7 +35,7 @@ class TransactionConfigurationIT @Autowired constructor(val transactionTestServi
                     id int generated always as identity,
                     value varchar not null
                 );
-            """
+                """
                     .trimIndent()
             jdbc.update(sql, mapOf<String, Any>())
         }

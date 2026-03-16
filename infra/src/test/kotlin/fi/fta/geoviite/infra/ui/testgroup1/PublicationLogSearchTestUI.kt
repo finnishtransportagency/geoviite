@@ -156,7 +156,7 @@ class TestPublicationUpdaterDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) 
             update publication.publication
             set publication_time = :new_publication_time
             where id = :publication_id
-        """
+            """
                 .trimIndent()
 
         val params = MapSqlParameterSource()
