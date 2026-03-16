@@ -274,9 +274,9 @@ fun validateOperationalPointPolygonOverlap(
         validationTargetType,
         operationalPoint,
         overlapsWith,
-    ) { contextDuplicates ->
-        listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
-    }
+        WARNING) { contextDuplicates ->
+            listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
+        }
 
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,
