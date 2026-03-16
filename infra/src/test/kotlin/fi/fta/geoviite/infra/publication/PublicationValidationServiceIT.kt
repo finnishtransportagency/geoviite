@@ -2859,11 +2859,10 @@ constructor(
         assertEquals(
             listOf<LayoutValidationIssue>(
                 LayoutValidationIssue(
-                    LayoutValidationIssueType.FATAL,
+                    LayoutValidationIssueType.WARNING,
                     "validation.layout.operational-point.overlapping-polygon-official",
                     mapOf("duplicateNames" to "b"),
-                )
-            ),
+                )),
             publicationValidationService.validateOperationalPoints(LayoutBranch.main, OFFICIAL, listOf(a))[0].errors,
         )
     }
