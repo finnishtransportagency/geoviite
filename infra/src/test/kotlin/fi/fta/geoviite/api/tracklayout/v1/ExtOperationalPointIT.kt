@@ -542,48 +542,50 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     @Test
     fun `Operational point collection is filtered by name`() {
-        val matchingOpId = mainDraftContext.save(operationalPoint(name = "OP_MATCHING_001")).id
+        val matchingOpId = mainDraftContext.save(operationalPoint(name = "OP MATCHING 001")).id
         val matchingOpOid = mainDraftContext.generateOid(matchingOpId)
 
-        val otherOpId = mainDraftContext.save(operationalPoint(name = "OP_OTHER_999")).id
+        val otherOpId = mainDraftContext.save(operationalPoint(name = "OP OTHER 999")).id
         mainDraftContext.generateOid(otherOpId)
 
         extTestDataService.publishInMain(operationalPoints = listOf(matchingOpId, otherOpId))
 
-        val response = api.operationalPointCollection.get(OPERATIONAL_POINT_NAME to "MATCHING")
-
-        assertEquals(
-            listOf(matchingOpOid.toString()),
-            response.toiminnalliset_pisteet.map { it.toiminnallinen_piste_oid },
-        )
+        api.operationalPointCollection.get(OPERATIONAL_POINT_NAME to "OP MATCHING 001").also { response ->
+            assertEquals(listOf(matchingOpOid), getOids(response.toiminnalliset_pisteet))
+        }
+        // Case-insensitive partial match
+        api.operationalPointCollection.get(OPERATIONAL_POINT_NAME to "aTcHin").also { response ->
+            assertEquals(listOf(matchingOpOid), getOids(response.toiminnalliset_pisteet))
+        }
     }
 
     @Test
     fun `Operational point change-list is filtered by name`() {
-        val matchingOpId = mainDraftContext.save(operationalPoint(name = "OP_MATCHING_001")).id
+        val matchingOpId = mainDraftContext.save(operationalPoint(name = "OP MATCHING 001")).id
         val matchingOpOid = mainDraftContext.generateOid(matchingOpId)
 
-        val otherOpId = mainDraftContext.save(operationalPoint(name = "OP_OTHER_999")).id
+        val otherOpId = mainDraftContext.save(operationalPoint(name = "OP OTHER 999")).id
         mainDraftContext.generateOid(otherOpId)
 
-        val fromPublication = extTestDataService.publishInMain(operationalPoints = listOf(matchingOpId, otherOpId))
+        val fromPublication = extTestDataService.publishInMain(operationalPoints = listOf(matchingOpId, otherOpId)).uuid
 
         initUser()
         mainDraftContext.mutate(matchingOpId) { op -> op.copy(name = OperationalPointName("${op.name}-EDIT")) }
         mainDraftContext.mutate(otherOpId) { op -> op.copy(name = OperationalPointName("${op.name}-EDIT")) }
         extTestDataService.publishInMain(operationalPoints = listOf(matchingOpId, otherOpId))
 
-        val response =
-            api.operationalPointCollection.getModified(
-                TRACK_LAYOUT_VERSION_FROM to fromPublication.uuid.toString(),
-                OPERATIONAL_POINT_NAME to "MATCHING",
-            )
-
-        assertEquals(
-            listOf(matchingOpOid.toString()),
-            response.toiminnalliset_pisteet.map { it.toiminnallinen_piste_oid },
-        )
+        api.operationalPointCollection
+            .getModifiedSince(fromPublication, OPERATIONAL_POINT_NAME to "OP MATCHING 001")
+            .also { response -> assertEquals(listOf(matchingOpOid), getOids(response.toiminnalliset_pisteet)) }
+        // Case-insensitive partial match
+        api.operationalPointCollection.getModifiedSince(fromPublication, OPERATIONAL_POINT_NAME to "aTcHin").also {
+            response ->
+            assertEquals(listOf(matchingOpOid), getOids(response.toiminnalliset_pisteet))
+        }
     }
+
+    private fun getOids(ops: List<ExtTestOperationalPointV1>): List<Oid<OperationalPoint>> =
+        ops.map { Oid(it.toiminnallinen_piste_oid) }
 
     private fun assertPolygonMatches(expected: Polygon, actual: ExtTestPolygonV1?) {
         assertNotNull(actual)
