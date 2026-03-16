@@ -39,19 +39,29 @@ constructor(
     fun getExtOperationalPointCollection(
         layoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
+        operationalPointNameFilter: String? = null,
     ): ExtOperationalPointCollectionResponseV1 {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
-        return createOperationalPointCollectionResponse(publication, coordinateSystem(extCoordinateSystem))
+        return createOperationalPointCollectionResponse(
+            publication,
+            coordinateSystem(extCoordinateSystem),
+            operationalPointNameFilter,
+        )
     }
 
     fun getExtOperationalPointCollectionModifications(
         layoutVersionFrom: ExtLayoutVersionV1,
         layoutVersionTo: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
+        operationalPointNameFilter: String? = null,
     ): ExtModifiedOperationalPointCollectionResponseV1? {
         val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         return if (publications.areDifferent()) {
-            createOperationalPointCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem))
+            createOperationalPointCollectionModificationResponse(
+                publications,
+                coordinateSystem(extCoordinateSystem),
+                operationalPointNameFilter,
+            )
         } else {
             publicationsAreTheSame(layoutVersionFrom.value)
         }
@@ -138,6 +148,7 @@ constructor(
     private fun createOperationalPointCollectionResponse(
         publication: Publication,
         coordinateSystem: Srid,
+        operationalPointNameFilter: String?,
     ): ExtOperationalPointCollectionResponseV1 {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
@@ -152,6 +163,7 @@ constructor(
     private fun createOperationalPointCollectionModificationResponse(
         publications: PublicationComparison,
         coordinateSystem: Srid,
+        operationalPointNameFilter: String?,
     ): ExtModifiedOperationalPointCollectionResponseV1? {
         val branch = publications.to.layoutBranch.branch
         val startMoment = publications.from.publicationTime

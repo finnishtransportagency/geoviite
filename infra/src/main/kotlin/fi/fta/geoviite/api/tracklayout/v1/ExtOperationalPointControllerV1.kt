@@ -64,8 +64,15 @@ class ExtOperationalPointControllerV1(private val extOperationalPointService: Ex
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
         extCoordinateSystem: ExtSridV1?,
+        @Parameter(description = "Suodatus toiminnallisen pisteen nimen osalla")
+        @RequestParam(OPERATIONAL_POINT_NAME, required = false)
+        operationalPointNameFilter: String?,
     ): ExtOperationalPointCollectionResponseV1 =
-        extOperationalPointService.getExtOperationalPointCollection(layoutVersion, extCoordinateSystem)
+        extOperationalPointService.getExtOperationalPointCollection(
+            layoutVersion,
+            extCoordinateSystem,
+            operationalPointNameFilter,
+        )
 
     @GetMapping("/toiminnalliset-pisteet/muutokset")
     @Tag(name = EXT_OPERATIONAL_POINTS_TAG_V1)
@@ -110,9 +117,17 @@ class ExtOperationalPointControllerV1(private val extOperationalPointService: Ex
         @Parameter(name = COORDINATE_SYSTEM, description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
         extCoordinateSystem: ExtSridV1?,
+        @Parameter(description = "Suodatus toiminnallisen pisteen nimen osalla")
+        @RequestParam(OPERATIONAL_POINT_NAME, required = false)
+        operationalPointNameFilter: String?,
     ): ResponseEntity<ExtModifiedOperationalPointCollectionResponseV1> =
         extOperationalPointService
-            .getExtOperationalPointCollectionModifications(layoutVersionFrom, layoutVersionTo, extCoordinateSystem)
+            .getExtOperationalPointCollectionModifications(
+                layoutVersionFrom,
+                layoutVersionTo,
+                extCoordinateSystem,
+                operationalPointNameFilter,
+            )
             .let(::toResponse)
 
     @GetMapping("/toiminnalliset-pisteet/{$OPERATIONAL_POINT_OID_PARAM}")
