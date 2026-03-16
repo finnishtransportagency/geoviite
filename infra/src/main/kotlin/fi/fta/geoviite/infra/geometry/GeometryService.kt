@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
+import LazyMap
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IndexedId
@@ -422,7 +423,7 @@ constructor(
             endAddress,
             geocodingContext,
             coordinateTransformationService::getLayoutTransformation,
-            ::getHeaderAndAlignment,
+            LazyMap(::getHeaderAndAlignment)::get,
         )
     }
 
