@@ -3,6 +3,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.api.frameconverter.v1.LOCATION_TRACK_OID_PARAM
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -73,7 +74,7 @@ class ExtLocationTrackControllerV1(
         locationTrackNameFilter: String?,
         @Parameter(description = "Suodatus ratanumeron OID-tunnuksella")
         @RequestParam(TRACK_NUMBER_OID, required = false)
-        trackNumberOidFilter: String?,
+        trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>?,
     ): ExtLocationTrackCollectionResponseV1 =
         extLocationTrackService.getExtLocationTrackCollection(
             layoutVersion,
@@ -130,7 +131,7 @@ class ExtLocationTrackControllerV1(
         locationTrackNameFilter: String?,
         @Parameter(description = "Suodatus ratanumeron OID-tunnuksella")
         @RequestParam(TRACK_NUMBER_OID, required = false)
-        trackNumberOidFilter: String?,
+        trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>?,
     ): ResponseEntity<ExtModifiedLocationTrackCollectionResponseV1> =
         extLocationTrackService
             .getExtLocationTrackCollectionModifications(
