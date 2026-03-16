@@ -176,7 +176,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                         }
                     />
                     <React.Fragment>
-                        {operationalPoint.raideType !== 'OLP' && (
+                        {operationalPoint.ratoType !== 'OLP' && (
                             <InfoboxField
                                 qaId="operational-point-rinf-id"
                                 label={t('tool-panel.operational-point.rinf-id')}
@@ -209,7 +209,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                         <InfoboxField
                             label={t('tool-panel.operational-point.type-raide')}
                             value={t(
-                                `enum.OperationalPointRaideType.${operationalPoint.raideType}`,
+                                `enum.OperationalPointRatoType.${operationalPoint.ratoType}`,
                             )}
                         />
                     )}

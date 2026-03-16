@@ -38,7 +38,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitTargetOperation
@@ -767,7 +767,7 @@ data class OperationalPointChanges(
     val abbreviation: Change<OperationalPointAbbreviation?>,
     val uicCode: Change<UicCode>,
     val rinfType: Change<OperationalPointRinfTypeWithCode?>,
-    val raideType: Change<OperationalPointRaideType?>,
+    val ratoType: Change<OperationalPointRatoType?>,
     val rinfIdGenerated: Change<RinfId?>,
     val rinfIdOverride: Change<RinfId?>,
     val polygon: Change<Polygon?>,

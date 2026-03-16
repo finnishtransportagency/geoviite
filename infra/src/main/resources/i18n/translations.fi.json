@@ -382,7 +382,7 @@
             "ITHR": "ItHR (Itäinen huoltoraide (Helsinki-Ilmala)",
             "LANHR": "LänHR (Läntinen huoltoraide (Helsinki-Ilmala)"
         },
-        "OperationalPointRaideType": {
+        "OperationalPointRatoType": {
             "LP": "Liikennepaikka (LP)",
             "LPO": "Liikennepaikan osa (LPO)",
             "OLP": "Osiinjaettu liikennepaikka (OLP)",
@@ -2021,7 +2021,7 @@
             "abbreviation": "Lyhenne",
             "uic-code": "UIC-tunnus",
             "rinf-type": "Tyyppi (RINF)",
-            "raide-type": "Tyyppi (RATO)",
+            "rato-type": "Tyyppi (RATO)",
             "rinf-id": "Tunnus (RINF)",
             "polygon": "Alue",
             "linked-switches": "Vaihdelinkitykset",

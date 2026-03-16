@@ -12,7 +12,7 @@ import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
@@ -263,8 +263,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         }
 
         // Test all RATO type variations
-        OperationalPointRaideType.entries.forEach { ratoType ->
-            val opId = mainDraftContext.save(operationalPoint(rinfType = null).copy(raideType = ratoType)).id
+        OperationalPointRatoType.entries.forEach { ratoType ->
+            val opId = mainDraftContext.save(operationalPoint(rinfType = null).copy(ratoType = ratoType)).id
             val oid = mainDraftContext.generateOid(opId)
             testOperationalPoints.add(oid to mainDraftContext.fetch(opId)!!)
         }
@@ -731,20 +731,20 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             assertEquals(expectedCode, actual.tyyppi_rinf!!.koodi)
             assertEquals(expectedDescription, actual.tyyppi_rinf.selite_en)
         }
-        operationalPoint.raideType?.let { raideType ->
+        operationalPoint.ratoType?.let { ratoType ->
             assertNotNull(actual.tyyppi_rato)
             val (expectedCode, expectedDescription) =
-                when (raideType) {
-                    OperationalPointRaideType.LP -> "LP" to "Liikennepaikka"
-                    OperationalPointRaideType.LPO -> "LPO" to "Liikennepaikan osa"
-                    OperationalPointRaideType.OLP -> "OLP" to "Osiinjaettu liikennepaikka"
-                    OperationalPointRaideType.SEIS -> "SEIS" to "Seisake"
-                    OperationalPointRaideType.LVH -> "LVH" to "Linjavaihde"
+                when (ratoType) {
+                    OperationalPointRatoType.LP -> "LP" to "Liikennepaikka"
+                    OperationalPointRatoType.LPO -> "LPO" to "Liikennepaikan osa"
+                    OperationalPointRatoType.OLP -> "OLP" to "Osiinjaettu liikennepaikka"
+                    OperationalPointRatoType.SEIS -> "SEIS" to "Seisake"
+                    OperationalPointRatoType.LVH -> "LVH" to "Linjavaihde"
                 }
             assertEquals(expectedCode, actual.tyyppi_rato!!.koodi)
             assertEquals(expectedDescription, actual.tyyppi_rato.selite)
         }
-        if (operationalPoint.raideType == null) assertNull(actual.tyyppi_rato)
+        if (operationalPoint.ratoType == null) assertNull(actual.tyyppi_rato)
         if (operationalPoint.rinfType == null) assertNull(actual.tyyppi_rinf)
     }
 }

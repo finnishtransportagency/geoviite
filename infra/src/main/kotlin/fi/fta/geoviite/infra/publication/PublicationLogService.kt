@@ -52,15 +52,12 @@ import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.mapValues
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
@@ -869,10 +866,10 @@ constructor(
                 PropKey("rinf-type"),
             ),
             compareChangeValues(
-                changes.raideType,
+                changes.ratoType,
                 { it },
-                PropKey("raide-type"),
-                enumLocalizationKey = "OperationalPointRaideType",
+                PropKey("rato-type"),
+                enumLocalizationKey = "OperationalPointRatoType",
             ),
             compareChangeValues(
                 changes.polygon,

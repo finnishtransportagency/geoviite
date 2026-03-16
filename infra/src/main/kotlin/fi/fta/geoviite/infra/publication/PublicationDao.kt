@@ -29,7 +29,7 @@ import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
@@ -1537,9 +1537,9 @@ class PublicationDao(
                         abbreviation = rs.getNullableChange("abbreviation", rs::getOperationalPointAbbreviationOrNull),
                         uicCode = rs.getChange("uic_code", rs::getUicCodeOrNull),
                         rinfType = rs.getNullableRinfTypeChange("rinf_type", "rinf_type_code"),
-                        raideType =
+                        ratoType =
                             rs.getNullableChange("type") { field ->
-                                rs.getEnumOrNull<OperationalPointRaideType>(field)
+                                rs.getEnumOrNull<OperationalPointRatoType>(field)
                             },
                         rinfIdGenerated = rs.getNullableChange("rinf_id_generated", rs::getRinfIdOrNull),
                         rinfIdOverride = rs.getNullableChange("rinf_id_override", rs::getRinfIdOrNull),
