@@ -23,6 +23,10 @@ import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import java.util.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -31,10 +35,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 private const val API_COORDINATES: FrameConverterUrl = "/rata-vkm/v1/koordinaatit"
 
@@ -565,10 +565,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        extTestDataService.insertGeocodableTrack(
-            trackNumberId = trackNumber.id as IntId,
-            segments = segments,
-        )
+        extTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId, segments = segments)
 
         val params = mapOf("ratanumero" to trackNumberName, "ratakilometri" to "0", "ratametri" to "400")
 
@@ -670,10 +667,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        extTestDataService.insertGeocodableTrack(
-            trackNumberId = trackNumber.id as IntId,
-            segments = segments,
-        )
+        extTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId, segments = segments)
 
         val request =
             TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 400)
@@ -709,10 +703,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        extTestDataService.insertGeocodableTrack(
-            trackNumberId = trackNumber.id as IntId,
-            segments = segments,
-        )
+        extTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId, segments = segments)
 
         val request =
             TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 400)
@@ -747,10 +738,7 @@ constructor(
 
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
 
-        extTestDataService.insertGeocodableTrack(
-            trackNumberId = trackNumber.id as IntId,
-            segments = segments,
-        )
+        extTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId, segments = segments)
 
         val request =
             TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 400)
@@ -1288,10 +1276,7 @@ constructor(
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
-        extTestDataService.insertGeocodableTrack(
-            trackNumberId = trackNumber.id as IntId,
-            segments = segments,
-        )
+        extTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId, segments = segments)
 
         val decimalSearchTests = listOf(0.0, 0.123, 0.400, 0.999)
 

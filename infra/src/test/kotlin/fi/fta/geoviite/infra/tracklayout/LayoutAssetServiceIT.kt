@@ -9,13 +9,13 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -121,7 +121,8 @@ constructor(
             )
         val mainDraftReferenceLine =
             mainDraftContext.save(
-                asMainDraft(mainOfficialContext.fetch(referenceLineId)!!).copy(startAddress = TrackMeter("0000+0123.000"))
+                asMainDraft(mainOfficialContext.fetch(referenceLineId)!!)
+                    .copy(startAddress = TrackMeter("0000+0123.000"))
             )
         val mainDraftLocationTrack =
             mainDraftContext.save(

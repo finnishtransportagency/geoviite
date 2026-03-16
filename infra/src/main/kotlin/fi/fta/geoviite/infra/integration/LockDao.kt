@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.integration
 
 import fi.fta.geoviite.infra.util.DaoBase
+import java.time.Duration
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
-import java.time.Duration
 
 enum class DatabaseLock {
     PUBLICATION,
@@ -48,7 +48,7 @@ class LockDao @Autowired constructor(jdbcTemplateParam: NamedParameterJdbcTempla
             set locked_until = excluded.locked_until,
                 locked_at = excluded.locked_at
             where lock.locked_until < now();
-        """
+            """
                 .trimIndent()
         val params = mapOf("lock_name" to lockName.name, "lock_duration" to duration.seconds)
 
@@ -62,7 +62,7 @@ class LockDao @Autowired constructor(jdbcTemplateParam: NamedParameterJdbcTempla
             update integrations.lock 
             set locked_until = now()
             where name = :lock_name
-        """
+            """
                 .trimIndent()
 
         jdbcTemplate.update(sql, mapOf("lock_name" to lockName.name))

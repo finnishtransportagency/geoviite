@@ -21,8 +21,6 @@ class RatkoPushTask @Autowired constructor(private val ratkoService: RatkoServic
 
     @Scheduled(cron = "\${geoviite.ratko.tasks.push.cron}")
     fun scheduledRatkoPush() {
-        withUser(ratkoPushTaskUserName) {
-            ratkoService.pushChangesToRatko(LayoutBranch.main)
-        }
+        withUser(ratkoPushTaskUserName) { ratkoService.pushChangesToRatko(LayoutBranch.main) }
     }
 }

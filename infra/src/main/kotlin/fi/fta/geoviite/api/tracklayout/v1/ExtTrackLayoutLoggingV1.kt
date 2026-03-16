@@ -24,9 +24,7 @@ inline fun <reified T : LayoutAsset<T>> layoutAssetVersionsAreTheSame(
     return null
 }
 
-inline fun <reified T> layoutAssetCollectionWasUnmodified(
-    publications: PublicationComparison,
-): Nothing? {
+inline fun <reified T> layoutAssetCollectionWasUnmodified(publications: PublicationComparison): Nothing? {
     logger.info(
         "The ${T::class.simpleName} collection was unmodified, fromPublication: ${publications.from.id} -> toPublication: ${publications.to.id}"
     )

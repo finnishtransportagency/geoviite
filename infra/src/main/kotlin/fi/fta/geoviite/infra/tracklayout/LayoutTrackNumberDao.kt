@@ -63,11 +63,11 @@ class LayoutTrackNumberDao(
     ): List<LayoutRowVersion<LayoutTrackNumber>> {
         val sql =
             """
-                select id, design_id, draft, version
-                from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                where (:number::varchar is null or :number = number)
-                  and (:include_deleted = true or state != 'DELETED')
-                order by number
+            select id, design_id, draft, version
+            from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
+            where (:number::varchar is null or :number = number)
+              and (:include_deleted = true or state != 'DELETED')
+            order by number
             """
                 .trimIndent()
         val params =
@@ -88,27 +88,27 @@ class LayoutTrackNumberDao(
         if (versions.isEmpty()) return emptyMap()
         val sql =
             """
-                select
-                  tn.id,
-                  tn.version,
-                  tn.design_id,
-                  tn.draft,
-                  tn.design_asset_state,
-                  tn.number,
-                  tn.description,
-                  tn.state,
-                  -- Track number reference line identity never changes, so any instance whatsoever is fine
-                  (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
-                  tn.origin_design_id
-                from layout.track_number_version tn
-                  inner join lateral
-                    (
-                      select
-                        unnest(:ids) id,
-                        unnest(:layout_context_ids) layout_context_id,
-                        unnest(:versions) version
-                    ) args on args.id = tn.id and args.layout_context_id = tn.layout_context_id and args.version = tn.version
-                  where tn.deleted = false
+            select
+              tn.id,
+              tn.version,
+              tn.design_id,
+              tn.draft,
+              tn.design_asset_state,
+              tn.number,
+              tn.description,
+              tn.state,
+              -- Track number reference line identity never changes, so any instance whatsoever is fine
+              (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
+              tn.origin_design_id
+            from layout.track_number_version tn
+              inner join lateral
+                (
+                  select
+                    unnest(:ids) id,
+                    unnest(:layout_context_ids) layout_context_id,
+                    unnest(:versions) version
+                ) args on args.id = tn.id and args.layout_context_id = tn.layout_context_id and args.version = tn.version
+              where tn.deleted = false
             """
                 .trimIndent()
         val params =
@@ -126,20 +126,20 @@ class LayoutTrackNumberDao(
     override fun preloadCache(): Int {
         val sql =
             """
-                select
-                  tn.id,
-                  tn.version,
-                  tn.design_id,
-                  tn.draft,
-                  tn.number, 
-                  tn.description,
-                  tn.state,
-                  tn.design_asset_state,
-                  -- Track number reference line identity never changes, so any instance whatsoever is fine
-                  (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
-                  tn.origin_design_id
-                from layout.track_number tn
-                order by tn.id
+            select
+              tn.id,
+              tn.version,
+              tn.design_id,
+              tn.draft,
+              tn.number, 
+              tn.description,
+              tn.state,
+              tn.design_asset_state,
+              -- Track number reference line identity never changes, so any instance whatsoever is fine
+              (select id from layout.reference_line_version rl where rl.track_number_id = tn.id limit 1) reference_line_id,
+              tn.origin_design_id
+            from layout.track_number tn
+            order by tn.id
             """
                 .trimIndent()
 
@@ -178,32 +178,32 @@ class LayoutTrackNumberDao(
         // language=sql
         val sql =
             """
-                insert into layout.track_number(layout_context_id,
-                                                id,
-                                                number,
-                                                description,
-                                                state,
-                                                draft,
-                                                design_asset_state,
-                                                design_id,
-                                                origin_design_id)
-                  values
-                    (:layout_context_id,
-                     :id,
-                     :number,
-                     :description,
-                     :state::layout.state,
-                     :draft,
-                     :design_asset_state::layout.design_asset_state,
-                     :design_id,
-                     :origin_design_id)
-                  on conflict (id, layout_context_id) do update
-                    set number = excluded.number,
-                        description = excluded.description,
-                        state = excluded.state,
-                        design_asset_state = excluded.design_asset_state,
-                        origin_design_id = excluded.origin_design_id
-                  returning id, design_id, draft, version;
+            insert into layout.track_number(layout_context_id,
+                                            id,
+                                            number,
+                                            description,
+                                            state,
+                                            draft,
+                                            design_asset_state,
+                                            design_id,
+                                            origin_design_id)
+              values
+                (:layout_context_id,
+                 :id,
+                 :number,
+                 :description,
+                 :state::layout.state,
+                 :draft,
+                 :design_asset_state::layout.design_asset_state,
+                 :design_id,
+                 :origin_design_id)
+              on conflict (id, layout_context_id) do update
+                set number = excluded.number,
+                    description = excluded.description,
+                    state = excluded.state,
+                    design_asset_state = excluded.design_asset_state,
+                    origin_design_id = excluded.origin_design_id
+              returning id, design_id, draft, version;
             """
                 .trimIndent()
         val params =

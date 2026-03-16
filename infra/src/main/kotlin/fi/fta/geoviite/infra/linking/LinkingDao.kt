@@ -98,7 +98,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               where geometry_alignment.plan_id in (:plan_ids)
               group by plan_id, element.alignment_id, element.element_index
               order by plan_id, element.alignment_id, element.element_index;
-        """
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -136,16 +136,16 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
     ): Map<IntId<GeometryPlan>, List<GeometryKmPostLinkStatus>> {
         val sql =
             """
-           select
-              plan_id,
-              geometry_km_post.id,
-              array_agg(km_post.id) as km_post_id_list
-              from geometry.km_post geometry_km_post
-              left join layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                as km_post on geometry_km_post.id = km_post.geometry_km_post_id
-              where plan_id in (:plan_ids)
-              group by geometry_km_post.id
-        """
+            select
+               plan_id,
+               geometry_km_post.id,
+               array_agg(km_post.id) as km_post_id_list
+               from geometry.km_post geometry_km_post
+               left join layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                 as km_post on geometry_km_post.id = km_post.geometry_km_post_id
+               where plan_id in (:plan_ids)
+               group by geometry_km_post.id
+            """
                 .trimIndent()
         val params =
             mapOf(
@@ -213,7 +213,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               from geometry.switch
                 left join linked_switch on switch.id = linked_switch.id
               where switch.plan_id in (:plan_ids);
-        """
+            """
                 .trimIndent()
 
         val params =

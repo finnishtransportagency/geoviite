@@ -38,12 +38,12 @@ import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getUnsafeString
 import fi.fta.geoviite.infra.util.getUnsafeStringOrNull
 import fi.fta.geoviite.infra.util.setUser
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 data class PVDocumentCounts(val suggested: Int, val rejected: Int)
 
@@ -66,50 +66,50 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             metadata.description?.let { desc -> clipToLength(PVApiDocumentMetadata::class, "description", 500, desc) }
         val sql =
             """
-                insert into projektivelho.document(
-                    oid,
-                    status,
-                    filename,
-                    description,
-                    document_version,
-                    document_change_time,
-                    document_type_code,
-                    material_state_code,
-                    material_category_code,
-                    material_group_code,
-                    assignment_oid,
-                    project_oid,
-                    project_group_oid
-                ) values (
-                    :oid,
-                    :status::projektivelho.document_status,
-                    :filename,
-                    :description,
-                    :document_version,
-                    :document_change_time,
-                    :document_type,
-                    :material_state,
-                    :material_category,
-                    :material_group,
-                    :assignment_oid,
-                    :project_oid,
-                    :project_group_oid
-                ) 
-                on conflict (oid) do 
-                  update set
-                    status = :status::projektivelho.document_status,
-                    filename = :filename,
-                    description = :description,
-                    document_version = :document_version,
-                    document_change_time = :document_change_time,
-                    document_type_code = :document_type,
-                    material_state_code = :material_state,
-                    material_category_code = :material_category,
-                    material_group_code = :material_group,
-                    assignment_oid = :assignment_oid,
-                    project_oid = :project_oid,
-                    project_group_oid = :project_group_oid
-                  where projektivelho.document.document_version <> :document_version
+            insert into projektivelho.document(
+                oid,
+                status,
+                filename,
+                description,
+                document_version,
+                document_change_time,
+                document_type_code,
+                material_state_code,
+                material_category_code,
+                material_group_code,
+                assignment_oid,
+                project_oid,
+                project_group_oid
+            ) values (
+                :oid,
+                :status::projektivelho.document_status,
+                :filename,
+                :description,
+                :document_version,
+                :document_change_time,
+                :document_type,
+                :material_state,
+                :material_category,
+                :material_group,
+                :assignment_oid,
+                :project_oid,
+                :project_group_oid
+            ) 
+            on conflict (oid) do 
+              update set
+                status = :status::projektivelho.document_status,
+                filename = :filename,
+                description = :description,
+                document_version = :document_version,
+                document_change_time = :document_change_time,
+                document_type_code = :document_type,
+                material_state_code = :material_state,
+                material_category_code = :material_category,
+                material_group_code = :material_group,
+                assignment_oid = :assignment_oid,
+                project_oid = :project_oid,
+                project_group_oid = :project_group_oid
+              where projektivelho.document.document_version <> :document_version
             """
                 .trimIndent()
         val params =
@@ -146,17 +146,17 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         val name = clipToLength(PVApiProject::class, "name", PVProjectName.length.last, project.properties.name)
         val sql =
             """
-                insert into projektivelho.project (oid, name, state_code, created_at, modified)
-                values (:oid, :name, :state_code, :created_at, :modified)
-                on conflict (oid) do update 
-                  set name = :name, 
-                      state_code = :state_code,
-                      created_at = :created_at,
-                      modified = :modified
-                  where projektivelho.project.name <> :name
-                     or projektivelho.project.state_code <> :state_code
-                     or projektivelho.project.created_at <> :created_at
-                     or projektivelho.project.modified <> :modified;
+            insert into projektivelho.project (oid, name, state_code, created_at, modified)
+            values (:oid, :name, :state_code, :created_at, :modified)
+            on conflict (oid) do update 
+              set name = :name, 
+                  state_code = :state_code,
+                  created_at = :created_at,
+                  modified = :modified
+              where projektivelho.project.name <> :name
+                 or projektivelho.project.state_code <> :state_code
+                 or projektivelho.project.created_at <> :created_at
+                 or projektivelho.project.modified <> :modified;
             """
                 .trimIndent()
         val params =
@@ -178,17 +178,17 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             clipToLength(PVApiProjectGroup::class, "name", PVProjectName.length.last, projectGroup.properties.name)
         val sql =
             """
-                insert into projektivelho.project_group (oid, name, state_code, created_at, modified)
-                values (:oid, :name, :state_code, :created_at, :modified)
-                on conflict (oid) do update 
-                  set name = :name,
-                      state_code = :state_code,
-                      created_at = :created_at,
-                      modified = :modified
-                  where projektivelho.project_group.name <> :name
-                     or projektivelho.project_group.state_code <> :state_code
-                     or projektivelho.project_group.created_at <> :created_at
-                     or projektivelho.project_group.modified <> :modified
+            insert into projektivelho.project_group (oid, name, state_code, created_at, modified)
+            values (:oid, :name, :state_code, :created_at, :modified)
+            on conflict (oid) do update 
+              set name = :name,
+                  state_code = :state_code,
+                  created_at = :created_at,
+                  modified = :modified
+              where projektivelho.project_group.name <> :name
+                 or projektivelho.project_group.state_code <> :state_code
+                 or projektivelho.project_group.created_at <> :created_at
+                 or projektivelho.project_group.modified <> :modified
             """
                 .trimIndent()
         val params =
@@ -209,17 +209,17 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         val name = clipToLength(PVApiAssignment::class, "name", PVProjectName.length.last, assignment.properties.name)
         val sql =
             """
-                insert into projektivelho.assignment (oid, name, state_code, created_at, modified)
-                values (:oid, :name, :state_code, :created_at, :modified)
-                on conflict (oid) do update 
-                  set name = :name,
-                      state_code = :state_code,
-                      created_at = :created_at,
-                      modified = :modified
-                  where projektivelho.assignment.name <> :name
-                     or projektivelho.assignment.state_code <> :state_code
-                     or projektivelho.assignment.created_at <> :created_at
-                     or projektivelho.assignment.modified <> :modified
+            insert into projektivelho.assignment (oid, name, state_code, created_at, modified)
+            values (:oid, :name, :state_code, :created_at, :modified)
+            on conflict (oid) do update 
+              set name = :name,
+                  state_code = :state_code,
+                  created_at = :created_at,
+                  modified = :modified
+              where projektivelho.assignment.name <> :name
+                 or projektivelho.assignment.state_code <> :state_code
+                 or projektivelho.assignment.created_at <> :created_at
+                 or projektivelho.assignment.modified <> :modified
             """
                 .trimIndent()
         val params =
@@ -239,13 +239,13 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun insertDocumentContent(content: String, documentId: IntId<PVDocument>) {
         val sql =
             """
-                insert into projektivelho.document_content(
-                    content,
-                    document_id
-                ) values (
-                    xmlparse(document :content),
-                    :document_id
-                )
+            insert into projektivelho.document_content(
+                content,
+                document_id
+            ) values (
+                xmlparse(document :content),
+                :document_id
+            )
             """
                 .trimIndent()
         jdbcTemplate.setUser()
@@ -258,15 +258,15 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun insertFetchInfo(searchToken: PVId, validUntil: Instant): IntId<PVSearch> {
         val sql =
             """
-                insert into projektivelho.search(
-                    status,
-                    token,
-                    valid_until
-                ) values (
-                    :status::projektivelho.search_status,
-                    :token,
-                    :valid_until
-                ) returning id
+            insert into projektivelho.search(
+                status,
+                token,
+                valid_until
+            ) values (
+                :status::projektivelho.search_status,
+                :token,
+                :valid_until
+            ) returning id
             """
                 .trimIndent()
         jdbcTemplate.setUser()
@@ -282,10 +282,10 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun updateFetchState(id: IntId<PVSearch>, status: PVFetchStatus): IntId<PVSearch> {
         val sql =
             """
-                update projektivelho.search 
-                set status = :status::projektivelho.search_status
-                where id = :id
-                returning id
+            update projektivelho.search 
+            set status = :status::projektivelho.search_status
+            where id = :id
+            returning id
             """
                 .trimIndent()
         jdbcTemplate.setUser()
@@ -300,10 +300,10 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun fetchLatestDocument(): Pair<Oid<PVDocument>, Instant>? {
         val sql =
             """
-                select document_change_time, oid 
-                from projektivelho.document 
-                order by document_change_time desc, oid desc 
-                limit 1
+            select document_change_time, oid 
+            from projektivelho.document 
+            order by document_change_time desc, oid desc 
+            limit 1
             """
                 .trimIndent()
         return jdbcTemplate
@@ -317,12 +317,12 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun fetchLatestActiveSearch(): PVSearch? {
         val sql =
             """
-                select id, token, status, valid_until 
-                from projektivelho.search 
-                where status not in ('ERROR', 'FINISHED')
-                  and valid_until >= now()
-                order by valid_until desc 
-                limit 1
+            select id, token, status, valid_until 
+            from projektivelho.search 
+            where status not in ('ERROR', 'FINISHED')
+              and valid_until >= now()
+            order by valid_until desc 
+            limit 1
             """
                 .trimIndent()
         return jdbcTemplate
@@ -343,10 +343,10 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         if (ids.isEmpty()) return emptyList()
         val sql =
             """
-                update projektivelho.document
-                set status = :status::projektivelho.document_status
-                where id in (:ids)
-                returning id
+            update projektivelho.document
+            set status = :status::projektivelho.document_status
+            where id in (:ids)
+            returning id
             """
                 .trimIndent()
         val params = mapOf("ids" to ids.map { it.intValue }, "status" to status.name)
@@ -360,9 +360,9 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun insertRejection(documentRowVersion: RowVersion<PVDocument>, reason: String): IntId<PVDocumentRejection> {
         val sql =
             """
-                insert into projektivelho.document_rejection(document_id, document_version, reason)
-                values (:id, :version, :reason)
-                returning id
+            insert into projektivelho.document_rejection(document_id, document_version, reason)
+            values (:id, :version, :reason)
+            returning id
             """
                 .trimIndent()
         val params =
@@ -379,9 +379,9 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         logger.daoAccess(FETCH, PVDocumentRejection::class)
         val sql =
             """
-                select id, document_id, document_version, reason 
-                from projektivelho.document_rejection
-                where document_id = :document_id and document_version = :document_version
+            select id, document_id, document_version, reason 
+            from projektivelho.document_rejection
+            where document_id = :document_id and document_version = :document_version
             """
                 .trimIndent()
         val params =
@@ -404,40 +404,40 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun getDocumentHeaders(status: PVDocumentStatus? = null, id: IntId<PVDocument>? = null): List<PVDocumentHeader> {
         val sql =
             """
-                select 
-                  document.id,
-                  document.oid,
-                  document.filename,
-                  document.version,
-                  document.description,
-                  document.change_time, 
-                  document.status,
-                  document.project_oid,
-                  project.name as project_name,
-                  project_state.name as project_state,
-                  document.project_group_oid,
-                  project_group.name as project_group_name,
-                  project_group_state.name as project_group_state,
-                  document.assignment_oid,
-                  assignment.name as assignment_name,
-                  assignment_state.name as assignment_state,
-                  document_type.name as document_type,
-                  material_state.name as material_state,
-                  material_group.name as material_group,
-                  material_category.name as material_category
-                from projektivelho.document
-                  left join projektivelho.project on project.oid = document.project_oid
-                  left join projektivelho.project_state on project.state_code = project_state.code
-                  left join projektivelho.project_group on project_group.oid = document.project_group_oid
-                  left join projektivelho.project_state project_group_state on project_group.state_code = project_group_state.code
-                  left join projektivelho.assignment on assignment.oid = document.assignment_oid
-                  left join projektivelho.project_state assignment_state on assignment.state_code = assignment_state.code
-                  left join projektivelho.document_type on document_type.code = document.document_type_code
-                  left join projektivelho.material_state on material_state.code = document.material_state_code
-                  left join projektivelho.material_group on material_group.code = document.material_group_code
-                  left join projektivelho.material_category on material_category.code = document.material_category_code
-                where (:status::projektivelho.document_status is null or status = :status::projektivelho.document_status)
-                  and (:id::int is null or id = :id)
+            select 
+              document.id,
+              document.oid,
+              document.filename,
+              document.version,
+              document.description,
+              document.change_time, 
+              document.status,
+              document.project_oid,
+              project.name as project_name,
+              project_state.name as project_state,
+              document.project_group_oid,
+              project_group.name as project_group_name,
+              project_group_state.name as project_group_state,
+              document.assignment_oid,
+              assignment.name as assignment_name,
+              assignment_state.name as assignment_state,
+              document_type.name as document_type,
+              material_state.name as material_state,
+              material_group.name as material_group,
+              material_category.name as material_category
+            from projektivelho.document
+              left join projektivelho.project on project.oid = document.project_oid
+              left join projektivelho.project_state on project.state_code = project_state.code
+              left join projektivelho.project_group on project_group.oid = document.project_group_oid
+              left join projektivelho.project_state project_group_state on project_group.state_code = project_group_state.code
+              left join projektivelho.assignment on assignment.oid = document.assignment_oid
+              left join projektivelho.project_state assignment_state on assignment.state_code = assignment_state.code
+              left join projektivelho.document_type on document_type.code = document.document_type_code
+              left join projektivelho.material_state on material_state.code = document.material_state_code
+              left join projektivelho.material_group on material_group.code = document.material_group_code
+              left join projektivelho.material_category on material_category.code = document.material_category_code
+            where (:status::projektivelho.document_status is null or status = :status::projektivelho.document_status)
+              and (:id::int is null or id = :id)
             """
                 .trimIndent()
         val params = mapOf("id" to id?.intValue, "status" to status?.name)
@@ -489,10 +489,10 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun getDocumentCounts(): PVDocumentCounts {
         val sql =
             """
-                select 
-                  count(*) filter (where status = 'SUGGESTED') as suggested_count, 
-                  count(*) filter (where status = 'REJECTED') as rejected_count
-                from projektivelho.document
+            select 
+              count(*) filter (where status = 'SUGGESTED') as suggested_count, 
+              count(*) filter (where status = 'REJECTED') as rejected_count
+            from projektivelho.document
             """
                 .trimIndent()
         return jdbcTemplate
@@ -508,12 +508,12 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         logger.daoAccess(FETCH, InfraModelFile::class, id)
         val sql =
             """
-                select 
-                  document.filename,
-                  xmlserialize(document document_content.content as varchar) as file_content
-                from projektivelho.document
-                  inner join projektivelho.document_content on document.id = document_content.document_id
-                where document.id = :id
+            select 
+              document.filename,
+              xmlserialize(document document_content.content as varchar) as file_content
+            from projektivelho.document
+              inner join projektivelho.document_content on document.id = document_content.document_id
+            where document.id = :id
             """
                 .trimIndent()
         val params = mapOf("id" to id.intValue)

@@ -42,10 +42,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 
-data class GeometryPlanLayoutResult(
-    val layout: GeometryPlanLayout?,
-    val error: TransformationError?,
-)
+data class GeometryPlanLayoutResult(val layout: GeometryPlanLayout?, val error: TransformationError?)
 
 @GeoviiteController("/geometry")
 class GeometryController

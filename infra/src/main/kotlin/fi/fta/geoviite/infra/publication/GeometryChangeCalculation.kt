@@ -9,10 +9,7 @@ import fi.fta.geoviite.infra.tracklayout.segmentToAlignmentM
 import kotlin.math.max
 import kotlin.math.min
 
-data class GeometryChangeRanges<M : AlignmentM<M>>(
-    val added: List<Range<LineM<M>>>,
-    val removed: List<Range<LineM<M>>>,
-)
+data class GeometryChangeRanges<M : AlignmentM<M>>(val added: List<Range<LineM<M>>>, val removed: List<Range<LineM<M>>>)
 
 fun <M : AlignmentM<M>> getChangedGeometryRanges(
     newSegments: List<Pair<LayoutSegment, Range<LineM<M>>>>,

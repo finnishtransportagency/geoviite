@@ -100,8 +100,8 @@ class LayoutKmPostService(
 
     fun getSingleKmPostLength(layoutContext: LayoutContext, id: IntId<LayoutKmPost>): Double? {
         return dao.get(layoutContext, id)?.getAsIntegral()?.let { kmPost ->
-            referenceLineService.getByTrackNumberWithGeometry(layoutContext, kmPost.trackNumberId)?.let {
-                (_, geometry) ->
+            referenceLineService.getByTrackNumberWithGeometry(layoutContext, kmPost.trackNumberId)?.let { (_, geometry)
+                ->
                 val kmPostM = geometry.getClosestPointM(kmPost.location)?.first
                 val kmEndM = getKmEndM(layoutContext, kmPost.trackNumberId, kmPost.kmNumber, geometry)
                 if (kmPostM == null || kmEndM == null) null else (kmEndM - kmPostM).distance

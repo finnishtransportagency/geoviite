@@ -62,10 +62,12 @@ class JsonFormattingTest @Autowired constructor(val mapper: ObjectMapper, mockMv
         assertEquals(
             TestData("argument value 1", "argument value 2"),
             mapper.readValue<TestData>(
-                """{
-                "value1":"argument value 1",
-                "value2":"argument value 2"
-            }"""
+                """
+                {
+                                "value1":"argument value 1",
+                                "value2":"argument value 2"
+                            }
+                """
                     .trimIndent()
             ),
         )
@@ -77,11 +79,13 @@ class JsonFormattingTest @Autowired constructor(val mapper: ObjectMapper, mockMv
         assertEquals(
             TestData("argument value 1", "argument value 2"),
             mapper.readValue<TestData>(
-                """{
-               "value1":"argument value 1", 
-               "value2":"argument value 2", 
-               "extraValue":"something useless"
-            }"""
+                """
+                {
+                               "value1":"argument value 1", 
+                               "value2":"argument value 2", 
+                               "extraValue":"something useless"
+                            }
+                """
                     .trimIndent()
             ),
         )

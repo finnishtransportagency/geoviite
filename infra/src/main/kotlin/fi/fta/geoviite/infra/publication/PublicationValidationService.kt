@@ -569,7 +569,11 @@ constructor(
                     validateSwitchJointConnectionsOnDuplicateTracks(switch, jointConnections, switchTracks)
                 val topologicalConnectivityIssues =
                     validateSwitchTopologicalConnectivity(
-                        switch, structure, switchTracksAndGeometries, trackAndGeometry?.first)
+                        switch,
+                        structure,
+                        switchTracksAndGeometries,
+                        trackAndGeometry?.first,
+                    )
 
                 jointConnectionsDifferIssues + topologicalConnectivityIssues
             }

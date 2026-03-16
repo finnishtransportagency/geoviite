@@ -17,8 +17,10 @@ import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
-class OperationalPointService(val operationalPointDao: OperationalPointDao, private val geoviiteOidDao: GeoviiteOidDao) :
-    LayoutAssetService<OperationalPoint, NoParams, OperationalPointDao>(operationalPointDao) {
+class OperationalPointService(
+    val operationalPointDao: OperationalPointDao,
+    private val geoviiteOidDao: GeoviiteOidDao,
+) : LayoutAssetService<OperationalPoint, NoParams, OperationalPointDao>(operationalPointDao) {
 
     fun list(
         context: LayoutContext,
@@ -149,8 +151,7 @@ class OperationalPointService(val operationalPointDao: OperationalPointDao, priv
             val draftRatkoVersion = requireNotNull(draft.ratkoVersion)
             val officialRatkoVersion = get(branch.official, id)?.ratkoVersion
             if (officialRatkoVersion == null || officialRatkoVersion < draftRatkoVersion) {
-                val rinfIdGenerated =
-                    if (draft.ratoType != OperationalPointRatoType.OLP) dao.generateRinfId() else null
+                val rinfIdGenerated = if (draft.ratoType != OperationalPointRatoType.OLP) dao.generateRinfId() else null
                 dao.insertRatkoPoint(id, draftRatkoVersion, rinfIdGenerated)
             }
             draftVersion

@@ -41,7 +41,7 @@ class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBas
               tn.polygon_transformed,
               postgis.st_polygonfromtext(:bounding_polygon, :srid)
             )  
-        """
+            """
                 .trimIndent()
         val params = mapOf("bounding_polygon" to boundingPolygon.toWkt(), "srid" to LAYOUT_SRID.code)
 
@@ -67,7 +67,7 @@ class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBas
             """
             select postgis.st_astext(postgis.st_extent(polygon_transformed)) bounds
             from common.n60_n2000_triangulation_network
-        """
+            """
                 .trimIndent()
         return jdbcTemplate.queryOne(sql, mapOf<String, Any>()) { rs, _ ->
             boundingBoxAroundPoints(parse2DPolygon(rs.getString("bounds")))

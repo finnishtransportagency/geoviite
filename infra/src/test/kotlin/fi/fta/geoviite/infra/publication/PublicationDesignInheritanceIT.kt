@@ -49,14 +49,14 @@ constructor(
     fun cleanup() {
         val sql =
             """
-                truncate publication.publication,
-                         integrations.lock,
-                         layout.track_number_id,
-                         layout.location_track_id,
-                         layout.switch_id,
-                         integrations.ratko_operational_point,
-                         integrations.ratko_operational_point_version
-                  cascade;
+            truncate publication.publication,
+                     integrations.lock,
+                     layout.track_number_id,
+                     layout.location_track_id,
+                     layout.switch_id,
+                     integrations.ratko_operational_point,
+                     integrations.ratko_operational_point_version
+              cascade;
             """
                 .trimIndent()
         jdbc.execute(sql) { it.execute() }

@@ -29,7 +29,7 @@ class LinkingDaoIT @Autowired constructor(private val linkingDao: LinkingDao) : 
               postgis.st_x(coord_etrs) tm35_x,
               postgis.st_y(coord_etrs) tm35_y
             from common.kkj_etrs_triangle_corner_point
-        """
+            """
                 .trimIndent()
         val points =
             jdbc.query(sql, mapOf<String, Any>()) { rs, _ ->

@@ -4,11 +4,11 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geography.parse2DLineString
 import fi.fta.geoviite.infra.geography.parse2DPoint
 import fi.fta.geoviite.infra.math.Point
+import java.io.File
+import kotlin.reflect.KClass
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
 import org.apache.commons.csv.CSVRecord
-import java.io.File
-import kotlin.reflect.KClass
 
 data class CsvFile<T : Enum<T>>(val filePath: String, private val type: KClass<T>) {
 

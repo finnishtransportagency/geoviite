@@ -15,10 +15,10 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.math.hypot
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 private const val JOINT_LOCATION_DELTA = 0.01
 

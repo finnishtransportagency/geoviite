@@ -18,39 +18,39 @@ enum class TriangulationDirection(val direction: String, val source: Srid, val t
 // language=SQL
 val KKJ_TO_TM35FIN_SQL =
     """
-  select
-    postgis.st_x(t1.coord_kkj) as x1,
-    postgis.st_y(t1.coord_kkj) as y1,
-    postgis.st_x(t2.coord_kkj) as x2,
-    postgis.st_y(t2.coord_kkj) as y2,
-    postgis.st_x(t3.coord_kkj) as x3,
-    postgis.st_y(t3.coord_kkj) as y3,
-    a1, a2, delta_e, delta_n, b1, b2 
-  from common.kkj_etrs_triangulation_network
-    inner join common.kkj_etrs_triangle_corner_point t1 on kkj_etrs_triangulation_network.coord1_id = t1.id
-    inner join common.kkj_etrs_triangle_corner_point t2 on kkj_etrs_triangulation_network.coord2_id = t2.id
-    inner join common.kkj_etrs_triangle_corner_point t3 on kkj_etrs_triangulation_network.coord3_id = t3.id
-  where kkj_etrs_triangulation_network.direction = 'KKJ_TO_TM35FIN'
-"""
+    select
+      postgis.st_x(t1.coord_kkj) as x1,
+      postgis.st_y(t1.coord_kkj) as y1,
+      postgis.st_x(t2.coord_kkj) as x2,
+      postgis.st_y(t2.coord_kkj) as y2,
+      postgis.st_x(t3.coord_kkj) as x3,
+      postgis.st_y(t3.coord_kkj) as y3,
+      a1, a2, delta_e, delta_n, b1, b2 
+    from common.kkj_etrs_triangulation_network
+      inner join common.kkj_etrs_triangle_corner_point t1 on kkj_etrs_triangulation_network.coord1_id = t1.id
+      inner join common.kkj_etrs_triangle_corner_point t2 on kkj_etrs_triangulation_network.coord2_id = t2.id
+      inner join common.kkj_etrs_triangle_corner_point t3 on kkj_etrs_triangulation_network.coord3_id = t3.id
+    where kkj_etrs_triangulation_network.direction = 'KKJ_TO_TM35FIN'
+    """
         .trimIndent()
 
 // language=SQL
 val TM35FIN_TO_KKJ_SQL =
     """
-  select
-    postgis.st_x(t1.coord_etrs) as x1,
-    postgis.st_y(t1.coord_etrs) as y1,
-    postgis.st_x(t2.coord_etrs) as x2,
-    postgis.st_y(t2.coord_etrs) as y2,
-    postgis.st_x(t3.coord_etrs) as x3,
-    postgis.st_y(t3.coord_etrs) as y3,
-    a1, a2, delta_e, delta_n, b1, b2
-  from common.kkj_etrs_triangulation_network
-    inner join common.kkj_etrs_triangle_corner_point t1 on kkj_etrs_triangulation_network.coord1_id = t1.id
-    inner join common.kkj_etrs_triangle_corner_point t2 on kkj_etrs_triangulation_network.coord2_id = t2.id
-    inner join common.kkj_etrs_triangle_corner_point t3 on kkj_etrs_triangulation_network.coord3_id = t3.id
-  where kkj_etrs_triangulation_network.direction = 'TM35FIN_TO_KKJ'
-"""
+    select
+      postgis.st_x(t1.coord_etrs) as x1,
+      postgis.st_y(t1.coord_etrs) as y1,
+      postgis.st_x(t2.coord_etrs) as x2,
+      postgis.st_y(t2.coord_etrs) as y2,
+      postgis.st_x(t3.coord_etrs) as x3,
+      postgis.st_y(t3.coord_etrs) as y3,
+      a1, a2, delta_e, delta_n, b1, b2
+    from common.kkj_etrs_triangulation_network
+      inner join common.kkj_etrs_triangle_corner_point t1 on kkj_etrs_triangulation_network.coord1_id = t1.id
+      inner join common.kkj_etrs_triangle_corner_point t2 on kkj_etrs_triangulation_network.coord2_id = t2.id
+      inner join common.kkj_etrs_triangle_corner_point t3 on kkj_etrs_triangulation_network.coord3_id = t3.id
+    where kkj_etrs_triangulation_network.direction = 'TM35FIN_TO_KKJ'
+    """
         .trimIndent()
 
 @Component

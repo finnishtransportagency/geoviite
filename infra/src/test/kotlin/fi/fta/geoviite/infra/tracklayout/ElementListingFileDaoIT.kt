@@ -32,10 +32,10 @@ class ElementListingFileDaoIT @Autowired constructor(private val elementListingF
                 name = FileName("test file name 1"),
                 content =
                     """
-                col1, col2, col3
-                abc, def, ghi
-                123, 456, 789
-            """
+                    col1, col2, col3
+                    abc, def, ghi
+                    123, 456, 789
+                    """
                         .trimIndent(),
             )
         elementListingFileDao.upsertElementListingFile(originalFile)
@@ -48,10 +48,10 @@ class ElementListingFileDaoIT @Autowired constructor(private val elementListingF
                 name = FileName("new test file name 2"),
                 content =
                     """
-                col1, col2, col3
-                abc2, def2, ghi2
-                something, else, here 
-            """
+                    col1, col2, col3
+                    abc2, def2, ghi2
+                    something, else, here 
+                    """
                         .trimIndent(),
             )
         elementListingFileDao.upsertElementListingFile(updatedFile)

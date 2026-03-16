@@ -78,7 +78,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
               null
             )
             returning id
-        """
+            """
                 .trimIndent()
 
         jdbcTemplate.setUser()
@@ -106,7 +106,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             """
             insert into publication.split_relinked_switch(split_id, switch_id)
             values (:splitId, :switchId)
-        """
+            """
                 .trimIndent()
 
         val params =
@@ -120,7 +120,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             """
             insert into publication.split_updated_duplicate(split_id, duplicate_location_track_id)
             values (:splitId, :duplicateLocationTrackId)
-        """
+            """
                 .trimIndent()
 
         val params =
@@ -158,7 +158,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 :edgeEnd,
                 :operation::publication.split_target_operaton
             )
-        """
+            """
                 .trimIndent()
 
         val params =
@@ -180,31 +180,31 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     fun get(splitId: IntId<Split>): Split? {
         val sql =
             """
-          select
-              split.id,
-              split.version,
-              split.bulk_transfer_state,
-              split.bulk_transfer_id,
-              split.publication_id,
-              publication.publication_time,
-              source_track.id as source_location_track_id,
-              split.source_location_track_id,
-              source_track.design_id as source_location_track_design_id,
-              source_track.draft as source_location_track_draft,
-              split.source_location_track_version,
-              (select coalesce(array_agg(split_relinked_switch.switch_id), '{}')
-               from publication.split_relinked_switch where split.id = split_relinked_switch.split_id) as switch_ids,
-              (select coalesce(array_agg(split_updated_duplicate.duplicate_location_track_id), '{}')
-               from publication.split_updated_duplicate
-               where split.id = split_updated_duplicate.split_id) as updated_duplicate_ids
-          from publication.split 
-              inner join layout.location_track_version source_track 
-                  on split.source_location_track_id = source_track.id
-                   and split.layout_context_id = source_track.layout_context_id
-                   and split.source_location_track_version = source_track.version
-              left join publication.publication on split.publication_id = publication.id
-          where split.id = :id
-        """
+            select
+                split.id,
+                split.version,
+                split.bulk_transfer_state,
+                split.bulk_transfer_id,
+                split.publication_id,
+                publication.publication_time,
+                source_track.id as source_location_track_id,
+                split.source_location_track_id,
+                source_track.design_id as source_location_track_design_id,
+                source_track.draft as source_location_track_draft,
+                split.source_location_track_version,
+                (select coalesce(array_agg(split_relinked_switch.switch_id), '{}')
+                 from publication.split_relinked_switch where split.id = split_relinked_switch.split_id) as switch_ids,
+                (select coalesce(array_agg(split_updated_duplicate.duplicate_location_track_id), '{}')
+                 from publication.split_updated_duplicate
+                 where split.id = split_updated_duplicate.split_id) as updated_duplicate_ids
+            from publication.split 
+                inner join layout.location_track_version source_track 
+                    on split.source_location_track_id = source_track.id
+                     and split.layout_context_id = source_track.layout_context_id
+                     and split.source_location_track_version = source_track.version
+                left join publication.publication on split.publication_id = publication.id
+            where split.id = :id
+            """
                 .trimIndent()
 
         return getOptional(
@@ -219,18 +219,18 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     fun getSplitHeader(splitId: IntId<Split>): SplitHeader {
         val sql =
             """
-          select
-              split.id,
-              split.bulk_transfer_state,
-              split.publication_id,
-              ltv.id as source_location_track_id
-          from publication.split 
-              inner join layout.location_track_version ltv 
-                  on split.source_location_track_id = ltv.id
-                   and split.layout_context_id = ltv.layout_context_id
-                   and split.source_location_track_version = ltv.version
-          where split.id = :id
-        """
+            select
+                split.id,
+                split.bulk_transfer_state,
+                split.publication_id,
+                ltv.id as source_location_track_id
+            from publication.split 
+                inner join layout.location_track_version ltv 
+                    on split.source_location_track_id = ltv.id
+                     and split.layout_context_id = ltv.layout_context_id
+                     and split.source_location_track_version = ltv.version
+            where split.id = :id
+            """
                 .trimIndent()
 
         return getOne(
@@ -268,7 +268,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 source_location_track_version = coalesce(:source_track_version, source_location_track_version)
             where id = :split_id
             returning id, version
-        """
+            """
                 .trimIndent()
 
         val params =
@@ -290,14 +290,14 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     private fun getSplitTargets(splitId: IntId<Split>): List<SplitTarget> {
         val sql =
             """
-          select
-              location_track_id,
-              source_start_edge_index,
-              source_end_edge_index,
-              operation
-          from publication.split_target_location_track
-          where split_id = :id
-        """
+            select
+                location_track_id,
+                source_start_edge_index,
+                source_end_edge_index,
+                operation
+            from publication.split_target_location_track
+            where split_id = :id
+            """
                 .trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
@@ -312,32 +312,32 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     fun fetchUnfinishedSplits(branch: LayoutBranch): List<Split> {
         val sql =
             """
-          select
-              split.id,
-              split.version,
-              split.bulk_transfer_state,
-              split.bulk_transfer_id,
-              split.publication_id,
-              publication.publication_time,
-              array_agg(split_relinked_switch.switch_id) as switch_ids,
-              array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids,
-              ltv.id as source_location_track_id,
-              split.source_location_track_id,
-              ltv.design_id as source_location_track_design_id,
-              ltv.draft as source_location_track_draft,
-              split.source_location_track_version
-          from publication.split 
-              left join publication.publication on split.publication_id = publication.id
-              left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
-              left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
-              inner join layout.location_track_version ltv 
-                  on split.source_location_track_id = ltv.id
-                   and split.layout_context_id = ltv.layout_context_id
-                   and split.source_location_track_version = ltv.version
-          where split.bulk_transfer_state != 'DONE'
-            and (ltv.design_id is null or ltv.design_id = :design_id)
-          group by split.id, ltv.id, ltv.design_id, ltv.draft, ltv.version, publication.publication_time
-        """
+            select
+                split.id,
+                split.version,
+                split.bulk_transfer_state,
+                split.bulk_transfer_id,
+                split.publication_id,
+                publication.publication_time,
+                array_agg(split_relinked_switch.switch_id) as switch_ids,
+                array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids,
+                ltv.id as source_location_track_id,
+                split.source_location_track_id,
+                ltv.design_id as source_location_track_design_id,
+                ltv.draft as source_location_track_draft,
+                split.source_location_track_version
+            from publication.split 
+                left join publication.publication on split.publication_id = publication.id
+                left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
+                left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
+                inner join layout.location_track_version ltv 
+                    on split.source_location_track_id = ltv.id
+                     and split.layout_context_id = ltv.layout_context_id
+                     and split.source_location_track_version = ltv.version
+            where split.bulk_transfer_state != 'DONE'
+              and (ltv.design_id is null or ltv.design_id = :design_id)
+            group by split.id, ltv.id, ltv.design_id, ltv.draft, ltv.version, publication.publication_time
+            """
                 .trimIndent()
 
         return jdbcTemplate
@@ -351,7 +351,8 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     fun fetchChangeTime() = fetchLatestChangeTime(DbTable.PUBLICATION_SPLIT)
 
     fun fetchSplitIdsByPublication(publicationIds: Set<IntId<Publication>>): Map<IntId<Publication>, IntId<Split>> {
-        val sql = "select publication_id, id from publication.split where publication_id = any(array[:publication_ids]::int[])"
+        val sql =
+            "select publication_id, id from publication.split where publication_id = any(array[:publication_ids]::int[])"
         val params = mapOf("publication_ids" to publicationIds.map { it.intValue })
 
         return jdbcTemplate

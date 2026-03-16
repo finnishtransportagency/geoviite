@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -35,7 +36,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -838,7 +838,9 @@ constructor(
     fun `LocationTrack polygon is simplified to reduce point count`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(2000.0, 0.0))))
+                .createLayoutTrackNumberAndReferenceLine(
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(2000.0, 0.0)))
+                )
                 .id
         val trackSegment = segment(Point(0.0, 0.0), Point(1000.0, 0.0))
         assertTrue(trackSegment.segmentPoints.size > 900)
@@ -852,7 +854,9 @@ constructor(
     fun `LocationTrack polygon is resolved correctly without cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
+                .createLayoutTrackNumberAndReferenceLine(
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+                )
                 .id
         val (track, _) =
             mainOfficialContext.save(
@@ -896,7 +900,9 @@ constructor(
     fun `LocationTrack polygon is resolved correctly with cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
+                .createLayoutTrackNumberAndReferenceLine(
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0)))
+                )
                 .id
         val (track, _) =
             mainOfficialContext.save(
@@ -952,7 +958,9 @@ constructor(
     fun `overlapping plan search cropping works correctly in different edge cases`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(2000.0, 0.0), Point(5000.0, 0.0))))
+                .createLayoutTrackNumberAndReferenceLine(
+                    referenceLineGeometry(segment(Point(2000.0, 0.0), Point(5000.0, 0.0)))
+                )
                 .id
         val (track, _) =
             mainOfficialContext.save(

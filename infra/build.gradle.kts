@@ -60,9 +60,7 @@ dependencies {
     }
 
     // Actual deps
-    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.791") {
-        exclude("commons-logging", "commons-logging")
-    }
+    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.791") { exclude("commons-logging", "commons-logging") }
     implementation("org.bouncycastle:bcpkix-jdk18on:1.81")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -121,10 +119,11 @@ dependencies {
 
 licenseReport {
     renderers = arrayOf<ReportRenderer>(InventoryHtmlReportRenderer("report.html", "Backend"))
-    filters = arrayOf<DependencyFilter>(
-        LicenseBundleNormalizer()
-        // ExcludeTransitiveDependenciesFilter(),
-    )
+    filters =
+        arrayOf<DependencyFilter>(
+            LicenseBundleNormalizer()
+            // ExcludeTransitiveDependenciesFilter(),
+        )
     allowedLicensesFile = File("$projectDir/allowed-licenses.json")
 }
 

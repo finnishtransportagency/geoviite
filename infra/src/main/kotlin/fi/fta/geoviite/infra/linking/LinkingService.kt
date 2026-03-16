@@ -175,7 +175,8 @@ constructor(
         val (referenceLine, geometry) = referenceLineService.getWithGeometryOrThrow(branch.draft, referenceLineId)
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
-        val newGeometry = replaceReferenceLineGeometry(geometry, geometryAlignment, geometryInterval.mRange.map(::LineM))
+        val newGeometry =
+            replaceReferenceLineGeometry(geometry, geometryAlignment, geometryInterval.mRange.map(::LineM))
 
         return referenceLineService.saveDraft(branch, referenceLine, newGeometry).id
     }
