@@ -48,19 +48,21 @@ constructor(
     fun getExtSwitchCollection(
         layoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
+        switchNameFilter: String? = null,
     ): ExtSwitchCollectionResponseV1 {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
-        return createSwitchCollectionResponse(publication, coordinateSystem(extCoordinateSystem))
+        return createSwitchCollectionResponse(publication, coordinateSystem(extCoordinateSystem), switchNameFilter)
     }
 
     fun getExtSwitchCollectionModifications(
         layoutVersionFrom: ExtLayoutVersionV1,
         layoutVersionTo: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
+        switchNameFilter: String? = null,
     ): ExtModifiedSwitchCollectionResponseV1? {
         val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         return if (publications.areDifferent()) {
-            createSwitchCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem))
+            createSwitchCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem), switchNameFilter)
         } else {
             publicationsAreTheSame(layoutVersionFrom.value)
         }
@@ -133,6 +135,7 @@ constructor(
     private fun createSwitchCollectionResponse(
         publication: Publication,
         coordinateSystem: Srid,
+        switchNameFilter: String?,
     ): ExtSwitchCollectionResponseV1 {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
@@ -147,6 +150,7 @@ constructor(
     private fun createSwitchCollectionModificationResponse(
         publications: PublicationComparison,
         coordinateSystem: Srid,
+        switchNameFilter: String?,
     ): ExtModifiedSwitchCollectionResponseV1? {
         val branch = publications.to.layoutBranch.branch
         val startMoment = publications.from.publicationTime

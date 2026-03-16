@@ -41,19 +41,21 @@ constructor(
     fun getExtTrackNumberCollection(
         layoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
+        trackNumberFilter: String? = null,
     ): ExtTrackNumberCollectionResponseV1 {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
-        return createTrackNumberCollectionResponse(publication, coordinateSystem(extCoordinateSystem))
+        return createTrackNumberCollectionResponse(publication, coordinateSystem(extCoordinateSystem), trackNumberFilter)
     }
 
     fun getExtTrackNumberCollectionModifications(
         layoutVersionFrom: ExtLayoutVersionV1,
         layoutVersionTo: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
+        trackNumberFilter: String? = null,
     ): ExtModifiedTrackNumberCollectionResponseV1? {
         val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         return if (publications.areDifferent()) {
-            createTrackNumberCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem))
+            createTrackNumberCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem), trackNumberFilter)
         } else {
             publicationsAreTheSame(layoutVersionFrom.value)
         }
@@ -129,6 +131,7 @@ constructor(
     private fun createTrackNumberCollectionResponse(
         publication: Publication,
         coordinateSystem: Srid,
+        trackNumberFilter: String?,
     ): ExtTrackNumberCollectionResponseV1 {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
@@ -143,6 +146,7 @@ constructor(
     private fun createTrackNumberCollectionModificationResponse(
         publications: PublicationComparison,
         coordinateSystem: Srid,
+        trackNumberFilter: String?,
     ): ExtModifiedTrackNumberCollectionResponseV1? {
         val branch = publications.to.layoutBranch.branch
         val startMoment = publications.from.publicationTime

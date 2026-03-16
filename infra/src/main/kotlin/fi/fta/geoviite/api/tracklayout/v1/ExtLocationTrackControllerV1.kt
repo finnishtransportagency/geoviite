@@ -68,8 +68,17 @@ class ExtLocationTrackControllerV1(
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
         extCoordinateSystem: ExtSridV1?,
+        @Parameter(description = "Suodatus sijaintiraidetunnuksen osalla (kirjainkoko ei merkitse)")
+        @RequestParam(LOCATION_TRACK_NAME, required = false)
+        locationTrackNameFilter: String?,
+        @Parameter(description = "Suodatus ratanumeron tunnuksen osalla (kirjainkoko ei merkitse)")
+        @RequestParam(TRACK_NUMBER, required = false)
+        trackNumberFilter: String?,
+        @Parameter(description = "Suodatus ratanumeron OID-tunnuksella (tarkka haku)")
+        @RequestParam(TRACK_NUMBER_OID, required = false)
+        trackNumberOidFilter: String?,
     ): ExtLocationTrackCollectionResponseV1 =
-        extLocationTrackService.getExtLocationTrackCollection(layoutVersion, extCoordinateSystem)
+        extLocationTrackService.getExtLocationTrackCollection(layoutVersion, extCoordinateSystem, locationTrackNameFilter, trackNumberFilter, trackNumberOidFilter)
 
     @GetMapping("/sijaintiraiteet/muutokset")
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
@@ -114,9 +123,18 @@ class ExtLocationTrackControllerV1(
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
         extCoordinateSystem: ExtSridV1?,
+        @Parameter(description = "Suodatus sijaintiraidetunnuksen osalla (kirjainkoko ei merkitse)")
+        @RequestParam(LOCATION_TRACK_NAME, required = false)
+        locationTrackNameFilter: String?,
+        @Parameter(description = "Suodatus ratanumeron tunnuksen osalla (kirjainkoko ei merkitse)")
+        @RequestParam(TRACK_NUMBER, required = false)
+        trackNumberFilter: String?,
+        @Parameter(description = "Suodatus ratanumeron OID-tunnuksella (tarkka haku)")
+        @RequestParam(TRACK_NUMBER_OID, required = false)
+        trackNumberOidFilter: String?,
     ): ResponseEntity<ExtModifiedLocationTrackCollectionResponseV1> =
         extLocationTrackService
-            .getExtLocationTrackCollectionModifications(layoutVersionFrom, layoutVersionTo, extCoordinateSystem)
+            .getExtLocationTrackCollectionModifications(layoutVersionFrom, layoutVersionTo, extCoordinateSystem, locationTrackNameFilter, trackNumberFilter, trackNumberOidFilter)
             .let(::toResponse)
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")

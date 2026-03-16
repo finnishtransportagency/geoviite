@@ -42,20 +42,26 @@ constructor(
     fun getExtLocationTrackCollection(
         layoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
+        locationTrackNameFilter: String? = null,
+        trackNumberFilter: String? = null,
+        trackNumberOidFilter: String? = null,
     ): ExtLocationTrackCollectionResponseV1 {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
-        return createLocationTrackCollectionResponse(publication, coordinateSystem(extCoordinateSystem))
+        return createLocationTrackCollectionResponse(publication, coordinateSystem(extCoordinateSystem), locationTrackNameFilter, trackNumberFilter, trackNumberOidFilter)
     }
 
     fun getExtLocationTrackCollectionModifications(
         layoutVersionFrom: ExtLayoutVersionV1,
         layoutVersionTo: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
+        locationTrackNameFilter: String? = null,
+        trackNumberFilter: String? = null,
+        trackNumberOidFilter: String? = null,
     ): ExtModifiedLocationTrackCollectionResponseV1? =
         publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value).let { publications
             ->
             if (publications.areDifferent()) {
-                createLocationTrackCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem))
+                createLocationTrackCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem), locationTrackNameFilter, trackNumberFilter, trackNumberOidFilter)
             } else {
                 publicationsAreTheSame(layoutVersionFrom.value)
             }
@@ -131,6 +137,9 @@ constructor(
     private fun createLocationTrackCollectionResponse(
         publication: Publication,
         coordinateSystem: Srid,
+        locationTrackNameFilter: String?,
+        trackNumberFilter: String?,
+        trackNumberOidFilter: String?,
     ): ExtLocationTrackCollectionResponseV1 {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
@@ -145,6 +154,9 @@ constructor(
     private fun createLocationTrackCollectionModificationResponse(
         publications: PublicationComparison,
         coordinateSystem: Srid,
+        locationTrackNameFilter: String?,
+        trackNumberFilter: String?,
+        trackNumberOidFilter: String?,
     ): ExtModifiedLocationTrackCollectionResponseV1? {
         val branch = publications.to.layoutBranch.branch
         val startMoment = publications.from.publicationTime

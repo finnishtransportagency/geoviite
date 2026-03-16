@@ -531,6 +531,65 @@ constructor(
         api.switch.assertNoModificationSince(switchOid, updateVersion)
     }
 
+    @Test
+    fun `Switch collection is filtered by switch name`() {
+        val matchingSwitch =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                listOf(switchJoint(1, Point(0.0, 0.0)) to switchJoint(2, Point(10.0, 0.0))),
+            )
+        val otherSwitch =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                listOf(switchJoint(1, Point(0.0, 20.0)) to switchJoint(2, Point(10.0, 20.0))),
+            )
+
+        mainDraftContext.mutate(matchingSwitch.switch.id) { s -> s.copy(name = SwitchName("VAIHDE_SUODATUS_001")) }
+        mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(name = SwitchName("VAIHDE_MUU_999")) }
+
+        extTestDataService.publishInMain(listOf(matchingSwitch, otherSwitch))
+
+        val matchingOid = matchingSwitch.switch.oid
+
+        val response = api.switchCollection.get(SWITCH_NAME to "SUODATUS")
+
+        assertEquals(1, response.vaihteet.size)
+        assertEquals(matchingOid.toString(), response.vaihteet.first().vaihde_oid)
+    }
+
+    @Test
+    fun `Switch change-list is filtered by switch name`() {
+        val matchingSwitch =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                listOf(switchJoint(1, Point(0.0, 0.0)) to switchJoint(2, Point(10.0, 0.0))),
+            )
+        val otherSwitch =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                listOf(switchJoint(1, Point(0.0, 20.0)) to switchJoint(2, Point(10.0, 20.0))),
+            )
+
+        mainDraftContext.mutate(matchingSwitch.switch.id) { s -> s.copy(name = SwitchName("VAIHDE_SUODATUS_001")) }
+        mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(name = SwitchName("VAIHDE_MUU_999")) }
+
+        val fromPublication = extTestDataService.publishInMain(listOf(matchingSwitch, otherSwitch))
+        val matchingOid = matchingSwitch.switch.oid
+
+        mainDraftContext.mutate(matchingSwitch.switch.id) { s -> s.copy(stateCategory = LayoutStateCategory.NOT_EXISTING) }
+        mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(stateCategory = LayoutStateCategory.NOT_EXISTING) }
+        extTestDataService.publishInMain(switches = listOf(matchingSwitch.switch.id, otherSwitch.switch.id))
+
+        val response =
+            api.switchCollection.getModified(
+                TRACK_LAYOUT_VERSION_FROM to fromPublication.uuid.toString(),
+                SWITCH_NAME to "SUODATUS",
+            )
+
+        assertEquals(1, response.vaihteet.size)
+        assertEquals(matchingOid.toString(), response.vaihteet.first().vaihde_oid)
+    }
+
     private fun assertChangesSince(
         baseVersion: Uuid<Publication>,
         currentVersion: Uuid<Publication>,

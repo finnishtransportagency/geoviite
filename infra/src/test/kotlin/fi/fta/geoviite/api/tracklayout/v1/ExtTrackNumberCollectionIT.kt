@@ -387,4 +387,76 @@ constructor(
 
     private fun getExtTrackNumberInCollection(oid: Oid<LayoutTrackNumber>): ExtTestTrackNumberV1? =
         api.trackNumberCollection.get().ratanumerot.find { it.ratanumero_oid == oid.toString() }
+
+    @Test
+    fun `Track number collection is filtered by track number name`() {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+
+        val (matchingId, matchingRefId, matchingOid) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                trackNumberName = "001",
+                segments = listOf(segment),
+            )
+        val (otherId, otherRefId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                trackNumberName = "999",
+                segments = listOf(segment),
+            )
+
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(matchingId, otherId),
+            referenceLines = listOf(matchingRefId, otherRefId),
+        )
+
+        val response = api.trackNumberCollection.get(TRACK_NUMBER to "00")
+
+        assertEquals(1, response.ratanumerot.size)
+        assertEquals(matchingOid.toString(), response.ratanumerot.first().ratanumero_oid)
+    }
+
+    @Test
+    fun `Track number change-list is filtered by track number name`() {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+
+        val (matchingId, matchingRefId, matchingOid) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                trackNumberName = "001",
+                segments = listOf(segment),
+            )
+        val (otherId, otherRefId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                trackNumberName = "999",
+                segments = listOf(segment),
+            )
+
+        val fromPublication =
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(matchingId, otherId),
+                referenceLines = listOf(matchingRefId, otherRefId),
+            )
+
+        layoutTrackNumberService
+            .get(MainLayoutContext.official, matchingId)
+            .let(::requireNotNull)
+            .also { tn -> mainDraftContext.saveTrackNumber(tn.copy(description = TrackNumberDescription("changed"))) }
+        layoutTrackNumberService
+            .get(MainLayoutContext.official, otherId)
+            .let(::requireNotNull)
+            .also { tn -> mainDraftContext.saveTrackNumber(tn.copy(description = TrackNumberDescription("changed"))) }
+
+        extTestDataService.publishInMain(trackNumbers = listOf(matchingId, otherId))
+
+        val response =
+            api.trackNumberCollection.getModified(
+                TRACK_LAYOUT_VERSION_FROM to fromPublication.uuid.toString(),
+                TRACK_NUMBER to "00",
+            )
+
+        assertEquals(1, response.ratanumerot.size)
+        assertEquals(matchingOid.toString(), response.ratanumerot.first().ratanumero_oid)
+    }
 }
