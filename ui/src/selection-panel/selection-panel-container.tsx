@@ -8,10 +8,13 @@ import {
     useLocationTracks,
     useOperationalPoints,
     useReferenceLines,
-    useSwitches,
 } from 'track-layout/track-layout-react-utils';
 import { planDownloadAssetIdFromToolPanelAsset } from 'map/plan-download/plan-download-store';
 import { boundingBoxContains } from 'model/geometry';
+import { useSwitchAreaSummary } from 'selection-panel/switch-panel/use-switch-area-summary';
+import * as Limits from 'map/layers/utils/layer-visibility-limits';
+
+const SWITCHES_MAX_DISPLAY = 30;
 
 type SelectionPanelContainerProps = {
     setSwitchToOfficialDialogOpen: (open: boolean) => void;
@@ -38,11 +41,6 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
         state.layoutContext,
         changeTimes.layoutReferenceLine,
     );
-    const switches = useSwitches(
-        state.map.shownItems.switches,
-        state.layoutContext,
-        changeTimes.layoutSwitch,
-    );
     const kmPosts = useKmPosts(
         state.map.shownItems.kmPosts,
         state.layoutContext,
@@ -62,6 +60,15 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
                     : false,
             ),
         [allOperationalPoints, state.map.viewport],
+    );
+
+    const maxShownSwitches =
+        state.map.viewport.resolution <= Limits.SWITCH_SHOW ? SWITCHES_MAX_DISPLAY : 0;
+
+    const switchAreaSummary = useSwitchAreaSummary(
+        state.map.viewport.area,
+        maxShownSwitches,
+        state.layoutContext,
     );
 
     const togglePlanDownload = () => {
@@ -91,7 +98,8 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
             kmPosts={kmPosts}
             referenceLines={referenceLines}
             locationTracks={locationTracks}
-            switches={switches}
+            switchCount={switchAreaSummary?.switchCount ?? 0}
+            switches={switchAreaSummary?.switches ?? []}
             operationalPoints={operationalPoints}
             viewport={state.map.viewport}
             selectableItemTypes={selectableItemTypes}

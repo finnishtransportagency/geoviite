@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import styles from './selection-panel.scss';
 import {
     LayoutKmPost,
@@ -39,7 +40,7 @@ import {
     TogglePlanWithSubItemsOpenPayload,
     ToggleSwitchPayload,
 } from 'selection/selection-store';
-import { LayoutContext } from 'common/common-model';
+import { LayoutBranch, LayoutContext } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { LocationTracksPanel } from 'selection-panel/location-track-panel/location-tracks-panel';
 import ReferenceLinesPanel from 'selection-panel/reference-line-panel/reference-lines-panel';
@@ -49,10 +50,15 @@ import { Eye } from 'geoviite-design-lib/eye/eye';
 import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { VIEW_GEOMETRY } from 'user/user-model';
+import { EDIT_LAYOUT, VIEW_GEOMETRY } from 'user/user-model';
 import { objectEntries } from 'utils/array-utils';
 import { GeometryPlanGrouping } from 'track-layout/track-layout-slice';
 import { PlanSource } from 'geometry/geometry-model';
+import { FixSwitchNamesDialog } from 'selection-panel/switch-panel/fix-switch-names-dialog';
+import { previewSwitchNameFixes, SwitchNameFixPreview } from 'track-layout/layout-switch-api';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { Menu, menuOption } from 'vayla-design-lib/menu/menu';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -63,6 +69,7 @@ type SelectionPanelProps = {
     kmPosts: LayoutKmPost[];
     referenceLines: LayoutReferenceLine[];
     locationTracks: LayoutLocationTrack[];
+    switchCount: number;
     switches: LayoutSwitch[];
     operationalPoints: OperationalPoint[];
     viewport: MapViewport;
@@ -96,6 +103,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     kmPosts,
     referenceLines,
     locationTracks,
+    switchCount,
     switches,
     operationalPoints,
     viewport,
@@ -121,6 +129,42 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
 }: SelectionPanelProps) => {
     const { t } = useTranslation();
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
+    const [fixNamesDialogOpen, setFixNamesDialogOpen] = React.useState(false);
+    const [fixNamesPreviews, setFixNamesPreviews] = React.useState<SwitchNameFixPreview[]>([]);
+    const [switchMenuOpen, setSwitchMenuOpen] = React.useState(false);
+    const switchMenuRef = React.useRef<HTMLButtonElement>(null);
+
+    const fixSwitchNamesDisabled = switchCount === 0;
+    const showSwitchContextMenu = layoutContext.publicationState === 'DRAFT';
+
+    const switchMenuOptions = [
+        menuOption(
+            () => {
+                setSwitchMenuOpen(false);
+                handleOpenFixNamesDialog();
+            },
+            t('fix-switch-names.menu-item', { count: switchCount }),
+            'fix-switch-names',
+            fixSwitchNamesDisabled,
+        ),
+    ];
+
+    const handleOpenFixNamesDialog = async () => {
+        if (!viewport.area) {
+            return;
+        }
+        const previews = await previewSwitchNameFixes(viewport.area, layoutContext);
+        if (previews.length > 0) {
+            setFixNamesPreviews(previews);
+            setFixNamesDialogOpen(true);
+        } else {
+            Snackbar.success(t('fix-switch-names.no-fixes-needed'));
+        }
+    };
+
+    const handleCloseFixNamesDialog = () => {
+        setFixNamesDialogOpen(false);
+    };
 
     const diagramLayerSettings = mapLayerSettings['track-number-diagram-layer'];
     const diagramLayerMenuItem = mapLayoutMenu.find((i) => i.name === 'track-number-diagram');
@@ -335,13 +379,43 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             </section>
             <section>
                 <h3 className={styles['selection-panel__title']}>
-                    {t('selection-panel.switches-title')} ({switches.length})
+                    <span className={styles['selection-panel__title-text']}>
+                        {t('selection-panel.switches-title')} ({switchCount})
+                    </span>
+                    {showSwitchContextMenu && (
+                        <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                            <Button
+                                ref={switchMenuRef}
+                                variant={ButtonVariant.GHOST}
+                                size={ButtonSize.SMALL}
+                                icon={Icons.More}
+                                onClick={() => setSwitchMenuOpen(!switchMenuOpen)}
+                            />
+                            {switchMenuOpen && (
+                                <Menu
+                                    anchorElementRef={
+                                        switchMenuRef as React.MutableRefObject<HTMLElement | null>
+                                    }
+                                    items={switchMenuOptions}
+                                    onClickOutside={() => setSwitchMenuOpen(false)}
+                                    onClose={() => setSwitchMenuOpen(false)}
+                                />
+                            )}
+                        </PrivilegeRequired>
+                    )}
                 </h3>
                 <div className={styles['selection-panel__content']}>
                     <SwitchPanel
                         switches={switches}
+                        switchCount={switchCount}
                         selectedSwitches={selectedItems.switches}
                         onToggleSwitchSelection={onToggleSwitchSelection}
+                    />
+                    <FixSwitchNamesDialog
+                        isOpen={fixNamesDialogOpen}
+                        onClose={handleCloseFixNamesDialog}
+                        previews={fixNamesPreviews}
+                        layoutBranch={layoutContext.branch as LayoutBranch}
                     />
                 </div>
             </section>

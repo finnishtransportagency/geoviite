@@ -136,3 +136,13 @@ export const DialogContentSpread: React.FC<DialogContentSpreadProps> = ({
 }: DialogContentSpreadProps) => {
     return <div className={styles['dialog__content--spread']}>{props.children}</div>;
 };
+
+type DialogContentPaddingProps = {
+    children: React.ReactNode;
+};
+
+export const DialogContentPadding: React.FC<DialogContentPaddingProps> = ({
+    ...props
+}: DialogContentPaddingProps) => {
+    return <div className={styles['dialog__content-padding']}>{props.children}</div>;
+};

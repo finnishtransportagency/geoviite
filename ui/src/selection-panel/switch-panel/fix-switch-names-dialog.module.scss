@@ -1,0 +1,41 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.fix-switch-names-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.fix-switch-names-dialog__message {
+    margin: 0;
+}
+
+.fix-switch-names-dialog__list-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.fix-switch-names-dialog__list {
+    display: grid;
+    grid-template-columns: max-content max-content max-content;
+    grid-column-gap: 16px;
+    grid-row-gap: 8px;
+    padding-bottom: 16px;
+}
+
+.fix-switch-names-dialog__item:last-child {
+    border-bottom: none;
+}
+
+.fix-switch-names-dialog__arrow {
+    display: flex;
+    align-items: center;
+    fill: vayla-design.$color-black-default;
+}
+
+.fix-switch-names-dialog__space-char {
+    color: #aaa;
+    text-decoration: underline;
+    letter-spacing: 0.3em;
+    padding: 0 1px;
+}
