@@ -18,10 +18,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtOperationalPointServiceV1
@@ -39,13 +39,13 @@ constructor(
     fun getExtOperationalPointCollection(
         layoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
-        operationalPointNameFilter: String? = null,
+        opNameFilter: String? = null,
     ): ExtOperationalPointCollectionResponseV1 {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
         return createOperationalPointCollectionResponse(
             publication,
             coordinateSystem(extCoordinateSystem),
-            operationalPointNameFilter,
+            opNameFilter,
         )
     }
 
@@ -53,14 +53,14 @@ constructor(
         layoutVersionFrom: ExtLayoutVersionV1,
         layoutVersionTo: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
-        operationalPointNameFilter: String? = null,
+        opNameFilter: String? = null,
     ): ExtModifiedOperationalPointCollectionResponseV1? {
         val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         return if (publications.areDifferent()) {
             createOperationalPointCollectionModificationResponse(
                 publications,
                 coordinateSystem(extCoordinateSystem),
-                operationalPointNameFilter,
+                opNameFilter,
             )
         } else {
             publicationsAreTheSame(layoutVersionFrom.value)
@@ -148,11 +148,14 @@ constructor(
     private fun createOperationalPointCollectionResponse(
         publication: Publication,
         coordinateSystem: Srid,
-        operationalPointNameFilter: String?,
+        nameFilter: String?,
     ): ExtOperationalPointCollectionResponseV1 {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
-        val operationalPoints = operationalPointDao.listOfficialAtMoment(branch, moment).filter { it.exists }
+        val operationalPoints =
+            operationalPointDao.listOfficialAtMoment(branch, moment).filter { op ->
+                op.exists && (nameFilter == null || op.name.contains(nameFilter, ignoreCase = true))
+            }
         return ExtOperationalPointCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),
@@ -163,7 +166,7 @@ constructor(
     private fun createOperationalPointCollectionModificationResponse(
         publications: PublicationComparison,
         coordinateSystem: Srid,
-        operationalPointNameFilter: String?,
+        nameFilter: String?,
     ): ExtModifiedOperationalPointCollectionResponseV1? {
         val branch = publications.to.layoutBranch.branch
         val startMoment = publications.from.publicationTime
@@ -172,6 +175,8 @@ constructor(
             .fetchPublishedOperationalPointsBetween(startMoment, endMoment)
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(operationalPointDao::fetchMany)
+            ?.let { ops -> nameFilter?.let { ops.filter { op -> op.name.contains(it, ignoreCase = true) } } ?: ops }
+            ?.takeIf { it.isNotEmpty() }
             ?.let { modifiedOperationalPoints ->
                 ExtModifiedOperationalPointCollectionResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),
