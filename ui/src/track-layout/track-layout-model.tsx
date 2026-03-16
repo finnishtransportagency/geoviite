@@ -5,7 +5,7 @@ import {
     GeometryPlanLayoutId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { BoundingBox, GeometryPoint, Polygon, Point } from 'model/geometry';
+import { BoundingBox, GeometryPoint, Point, Polygon } from 'model/geometry';
 import {
     CoordinateSystem,
     DataType,
@@ -467,11 +467,22 @@ export type OperationalPoint = {
     abbreviation?: string;
     uicCode: UICCode;
     rinfType?: OperationalPointRinfType;
-    raideType?: OperationalPointRaideType;
+    rinfId?: string;
+    rinfIdGenerated?: string;
+    rinfIdOverride?: string;
+    ratoType?: OperationalPointRatoType;
     location?: Point;
     polygon?: Polygon;
     state: OperationalPointState;
 } & LayoutAssetFields;
+
+export type StationLink = {
+    trackNumberId: LayoutTrackNumberId;
+    startOperationalPointId: OperationalPointId;
+    endOperationalPointId: OperationalPointId;
+    locationTrackIds: LocationTrackId[];
+    length: number;
+};
 
 export type PlanArea = {
     id: GeometryPlanId;
@@ -533,6 +544,10 @@ export function getSwitchPresentationJoint(
     return layoutSwitch.joints.find((joint) => joint.number === presentationJointNumber);
 }
 
+export function getSwitchLocation(layoutSwitch: LayoutSwitch): Point | undefined {
+    return layoutSwitch.joints.find((joint) => joint.role === 'MAIN')?.location;
+}
+
 export type LayoutSwitchJointMatch = {
     locationTrackId: LocationTrackId;
     location: Point;
@@ -552,7 +567,7 @@ export type SwitchJointTrackMeter = {
     location: Point;
 };
 
-export type OperationalPointRaideType =
+export type OperationalPointRatoType =
     | 'LP' // Liikennepaikka
     | 'LPO' // Liikennepaikan osa
     | 'OLP' // Osiin jaettu liikennepaikka

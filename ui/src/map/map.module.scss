@@ -342,4 +342,8 @@
     fill: vayla-design.$color-blue-dark;
     width: 18px;
     height: 18px;
+
+    &--disabled {
+        fill: vayla-design.$color-black-lighter;
+    }
 }

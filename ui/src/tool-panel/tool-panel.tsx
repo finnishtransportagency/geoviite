@@ -52,6 +52,9 @@ import { LayoutSwitchLinkingInfoboxContainer } from 'tool-panel/switch/layout-sw
 import { OperationalPointInfoboxContainer } from './operational-point/operational-point-infobox-container';
 import { getManyOperationalPoints } from 'track-layout/layout-operational-point-api';
 import { createClassName } from 'vayla-design-lib/utils';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { useTranslation } from 'react-i18next';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -75,6 +78,10 @@ type ToolPanelProps = {
     onInfoboxVisibilityChange: (visibilities: InfoboxVisibilities) => void;
     verticalGeometryDiagramVisible: boolean;
     onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
+    onSelectionHistoryBack: () => void;
+    onSelectionHistoryForward: () => void;
+    selectionHistoryBackEnabled: boolean;
+    selectionHistoryForwardEnabled: boolean;
 };
 
 export type ToolPanelAssetType = (typeof TOOL_PANEL_ASSET_ORDER)[number];
@@ -136,7 +143,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     onInfoboxVisibilityChange,
     verticalGeometryDiagramVisible,
     onHoverOverPlanSection,
+    onSelectionHistoryBack,
+    onSelectionHistoryForward,
+    selectionHistoryBackEnabled,
+    selectionHistoryForwardEnabled,
 }: ToolPanelProps) => {
+    const { t } = useTranslation();
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
 
     const tracksSwitchesKmPostsPlansOperationalPoints = useLoader(() => {
@@ -347,7 +359,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                               type: 'SUGGESTED_SWITCH',
                               id: SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID,
                           },
-                          title: linkingState.suggestedSwitchName,
+                          title: t('tool-panel.switch.linking.title', {
+                              switchName: linkingState.suggestedSwitchName,
+                          }),
                           element:
                               linkingState.type === LinkingType.LinkingGeometrySwitch ? (
                                   <GeometrySwitchInfoboxContainer
@@ -577,29 +591,41 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     const { activeTab, isLocked } = getActiveTab();
     return (
         <div className="tool-panel">
-            {tabs.length > 1 && (
-                <div className="tool-panel__tab-bar" qa-id="tool-panel-tabs">
-                    {tabs.map((t, tabIndex) => {
-                        const active = activeTab ? t.asset === activeTab.asset : tabIndex === 0;
-                        const disabled = isLocked && !isSameAsset(t.asset, lockedAsset);
-                        const className = createClassName(
-                            'tool-panel__tab-header',
-                            disabled && 'tool-panel__tab-header--disabled',
-                        );
-                        return (
-                            <TabHeader
-                                className={className}
-                                size={TabHeaderSize.Small}
-                                key={t.asset.type + '_' + t.asset.id}
-                                selected={active}
-                                disabled={disabled}
-                                onClick={() => changeTab(t.asset)}>
-                                {t.title}
-                            </TabHeader>
-                        );
-                    })}
+            <div className="tool-panel__tab-bar" qa-id="tool-panel-tabs">
+                <div className="tool-panel__tab-bar-buttons">
+                    <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SMALL}
+                        onClick={() => onSelectionHistoryBack()}
+                        icon={Icons.Previous}
+                        disabled={!selectionHistoryBackEnabled}></Button>
+                    <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SMALL}
+                        onClick={() => onSelectionHistoryForward()}
+                        icon={Icons.Next}
+                        disabled={!selectionHistoryForwardEnabled}></Button>
                 </div>
-            )}
+                {tabs.map((t, tabIndex) => {
+                    const active = activeTab ? t.asset === activeTab.asset : tabIndex === 0;
+                    const disabled = isLocked && !isSameAsset(t.asset, lockedAsset);
+                    const className = createClassName(
+                        'tool-panel__tab-header',
+                        disabled && 'tool-panel__tab-header--disabled',
+                    );
+                    return (
+                        <TabHeader
+                            className={className}
+                            size={TabHeaderSize.Small}
+                            key={t.asset.type + '_' + t.asset.id}
+                            selected={active}
+                            disabled={disabled}
+                            onClick={() => changeTab(t.asset)}>
+                            {t.title}
+                        </TabHeader>
+                    );
+                })}
+            </div>
             {activeTab?.element}
             <LocationTrackTaskListContainer />
         </div>

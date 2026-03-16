@@ -9,8 +9,8 @@ käsitteistön kannalta oleellista osaa niiden tietosisällöstä.
 ## Käsitteiden 3 esitystapaa
 
 | Käsite          | Geometria                                                                                                                                                                                                                            | Paikannuspohja                                                                                                                                                                                                                      | Osoitepisteet                                                                                                                                                                                                                                                                                                              |
-| --------------- |--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Yleiskuva       | Tarkat suunnitteluohjelmissa tuotetut matemaattisesti kuvatut geometriat. Toisistaan riippumattomia, eri koordinaatistoissa ja eri ajoilta olevia lähtötietoja, jotka eivät aina yhdisty saumattomasti.                              | Koko rataverkko, tuotuna yhtenäiseen koordinaatistoon helposti kartalla esitettävässä muodossa.                                                                                                                                   | RATKO:n esitysmuoto. Koostuu tasametripisteistä jotka on valittu projisoimalla pituusmittauslinjalta, ja johon on siten sisällytetty rataosoitejärjestelmä. Tasametrien lisäksi sisältää myös epätasametripisteinä tärkeät raiteella olevat kohdat, kuten alku- ja loppupisteen sekä mahdolliset vaihteiden jatkospisteet. |
+|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Yleiskuva       | Tarkat suunnitteluohjelmissa tuotetut matemaattisesti kuvatut geometriat. Toisistaan riippumattomia, eri koordinaatistoissa ja eri ajoilta olevia lähtötietoja, jotka eivät aina yhdisty saumattomasti.                              | Koko rataverkko, tuotuna yhtenäiseen koordinaatistoon helposti kartalla esitettävässä muodossa.                                                                                                                                     | RATKO:n esitysmuoto. Koostuu tasametripisteistä jotka on valittu projisoimalla pituusmittauslinjalta, ja johon on siten sisällytetty rataosoitejärjestelmä. Tasametrien lisäksi sisältää myös epätasametripisteinä tärkeät raiteella olevat kohdat, kuten alku- ja loppupisteen sekä mahdolliset vaihteiden jatkospisteet. |
 | Vaakageometria  | Keskilinja koostuu elementeistä Kukin elementti kuvattu reunapisteinä sekä matemaattisen funktion parametreina: suora, kaari, spiraali (siirtymäkaari)                                                                               | Keskilinja koostuu segmenteistä, joista kukin on polyline (pisteviiva) joka on laskettu matemaattisista geometrioista halutulla resoluutiolla.                                                                                      | Keskilinja koostuu tasametripisteistä jotka on valittu projisoimalla pituusmittauslinjalta.                                                                                                                                                                                                                                |
 | Pystygeometria  | Koostuu kaarista joiden X on pituutta rataa pitkin ja Y korkeus ko. kohdassa. Kaarten väliin oletetaan suoraa.                                                                                                                       | Kullekin vaakageometrian pisteelle (pisteviivan käännöskohdat) annettu desimaaliarvo: korkeus metreinä                                                                                                                              | Ei mukana                                                                                                                                                                                                                                                                                                                  |
 | Kallistuskulmat | Koostuu pistemäisistä kallistusarvoista (ja suunnista) per pituusyksikkö rataa pitkin. Pisteiden välissä kulman oletetaan kasvavan/pienenevän lineaarisesti.                                                                         | Kullekin vaakageometrian pisteelle (pisteviivan käännöskohdat) annettu desimaaliarvo: <0 vasemmalle, >0 oikealle                                                                                                                    | Ei mukana                                                                                                                                                                                                                                                                                                                  |
@@ -87,7 +87,7 @@ tarkempi arvo metrin desimaaleina, esim. 0123+1234.123.
 
 Geoviite pystyy laskemaan osoitteet halutulla tarkkuudella ja tietomallissa niitä pyritään käsittelemään
 desimaalilukuina (Java BigDecimal), jotka säilyttävän tiedon tarkkuudesta (desimaalien määrä) vaikka itse desimaalit
-eivät olisi merkitseviä. Eli esim. 0123+1234.100 kertoo että se on 3 desimaalin tarkkuudella laskettu, eli millin 
+eivät olisi merkitseviä. Eli esim. 0123+1234.100 kertoo että se on 3 desimaalin tarkkuudella laskettu, eli millin
 tarkkuudella tasan .100 eikä jotain joka voisi pyöristyä arvoon 0.1.
 
 Laskenta edellyttää että tunnetaan käytettävä ratanumero ja että sen pituusmittauslinja kattaa ko. sijainnin. Osoitteen
@@ -100,7 +100,8 @@ Ratatieto saapuu järjestelmään pääasiassa tarkkoina 3D geometrioina, jotka 
 kuvastavat tiettyä rataverkon osaa tietyn suunnitelman tai toteuman hetkellä, osat ovat päällekkäisiä tai niiden välistä
 voi puuttua pätkiä. Lisäksi ne voivat olla määritelty eri koordinaatistoissa, joiden muunnos ei ole häviötöntä. Niistä
 ei siis voi yksiselitteisesti koostaa koko rataverkkoa. Geometrioiden tietomalli noudattaa läheisesti lähdeaineiston
-(LandXML) käsitteistöä.
+(LandXML) käsitteistöä. Tiedoston käsittelystä ja validoinnista voi lukea tarkemmin
+dokumentista [Inframodel Validointi](inframodel_validoint.md)
 
 ### Suunnitelman rakenne
 
@@ -294,7 +295,7 @@ geometryId on sama kuin toisella segmentillä, ne voidaan tietää identtisiksi 
 
 ### Ratanumeron tietomalli
 
-Ratanumero koostuu tavallisten ominaisuustietojen lisäksi siihen liittyvästä pituusmittauslinjan geometriasta ja 
+Ratanumero koostuu tavallisten ominaisuustietojen lisäksi siihen liittyvästä pituusmittauslinjan geometriasta ja
 tasakilometripisteistä. Noiden käsitteiden yhdistelmästä muodostuu paikannuspohjaan ja ratanumeron rataosoitteiston
 viitekehys, eli Geoviitteen termistössä geokoodauskonteksti. Sen avulla voidaan laskea (geokoodata) ratanumeroon
 liittyvälle sijainnille rataosoite (rata, km, metrit). Vastaavasti ratanumerolle sidotulle rataosoitteelle voidaan
@@ -316,7 +317,7 @@ classDiagram
     LayoutTrackNumber <-- "n" LayoutKmPost
     LayoutAlignment *-- "n" LayoutSegment
     LayoutSegment --> "0..1" GeometryElement
-    
+
     class LayoutTrackNumber {
         externalId: Oid
         number: String
@@ -429,7 +430,7 @@ classDiagram
 
 #### Vaihteiden tietomalli
 
-Vaihteen keskeisimpiä ominaisuustietoja on sen tyyppi. Vaihdetyyppi kuvataan vaihderakenteina (SwitchStructure), 
+Vaihteen keskeisimpiä ominaisuustietoja on sen tyyppi. Vaihdetyyppi kuvataan vaihderakenteina (SwitchStructure),
 joista kukin kuvaa tietyn mallisen vaihteen tärkeine mittoineen RATO-ohjeistuksen mukaisesti. Tyyppejä on rajallinen
 määrä (kuvattu RATO:ssa) ja ne voidaan tunnistaa uniikilla tyyppikoodillaan, esim. "YV60-300-1:9-O". Kukin rakenne kuvaa
 sen muodon tarkasti geometrioina ja vaihdepisteinä. Tuon tiedon avulla Geoviite osaa sovittaa vaihteen oikealle kohdalle

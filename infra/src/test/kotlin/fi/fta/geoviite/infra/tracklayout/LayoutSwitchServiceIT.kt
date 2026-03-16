@@ -11,7 +11,8 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.MetaDataName
-import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchSaveRequestBase
+import fi.fta.geoviite.infra.linking.switches.LayoutSwitchUpdateRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
@@ -444,7 +445,7 @@ constructor(
     @Test
     fun switchIdIsReturnedWhenAddingNewSwitch() {
         val switch =
-            LayoutSwitchSaveRequest(
+            LayoutSwitchSaveRequestBase(
                 SwitchName("XYZ-987"),
                 IntId(5),
                 LayoutStateCategory.EXISTING,
@@ -570,27 +571,27 @@ constructor(
         val switchANoJoints = switch(opA)
         val switchAElsewhere = switch(opA, Point(30.0, 30.0))
 
-        fun s(switchId: IntId<LayoutSwitch>, vararg operationalPointIds: IntId<OperationalPoint>) =
-            SwitchWithOperationalPointPolygonInclusions(switchId, operationalPointIds.toList())
+        fun s(switchId: IntId<LayoutSwitch>, isLinked: Boolean, vararg operationalPointIds: IntId<OperationalPoint>) =
+            SwitchWithinOperationalPoint(switchId, isLinked, operationalPointIds.toList())
 
-        fun sortResults(r: List<SwitchWithOperationalPointPolygonInclusions>) =
-            r.map { sp -> sp.copy(withinPolygon = sp.withinPolygon.sortedBy { it.intValue }) }
+        fun sortResults(r: List<SwitchWithinOperationalPoint>) =
+            r.map { sp -> sp.copy(allOperationalPoints = sp.allOperationalPoints.sortedBy { it.intValue }) }
                 .sortedBy { it.switchId.intValue }
 
         assertEquals(
             sortResults(
                 listOf(
-                    s(switchOnlyInA, opA),
-                    s(switchInABOverlap, opA, opB),
-                    s(switchInAAndB, opA, opB),
-                    s(switchAOnlyInA, opA),
-                    s(switchAOnlyInB, opB),
-                    s(switchAOnlyInC, opC),
-                    s(switchAInABOverlap, opA, opB),
-                    s(switchAInAAndB, opA, opB),
-                    s(switchANoJoints),
-                    s(switchAElsewhere),
-                    s(switchInAAndC, opA, opC),
+                    s(switchOnlyInA, false, opA),
+                    s(switchInABOverlap, false, opA, opB),
+                    s(switchInAAndB, false, opA, opB),
+                    s(switchAOnlyInA, true, opA),
+                    s(switchAOnlyInB, true, opB),
+                    s(switchAOnlyInC, true, opC),
+                    s(switchAInABOverlap, true, opA, opB),
+                    s(switchAInAAndB, true, opA, opB),
+                    s(switchANoJoints, true),
+                    s(switchAElsewhere, true),
+                    s(switchInAAndC, false, opA, opC),
                 )
             ),
             sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opA)),
@@ -599,19 +600,21 @@ constructor(
         assertEquals(
             sortResults(
                 listOf(
-                    s(switchOnlyInB, opB),
-                    s(switchInABOverlap, opA, opB),
-                    s(switchInAAndB, opA, opB),
-                    s(switchAOnlyInB, opB),
-                    s(switchAInABOverlap, opA, opB),
-                    s(switchAInAAndB, opA, opB),
+                    s(switchOnlyInB, false, opB),
+                    s(switchInABOverlap, false, opA, opB),
+                    s(switchInAAndB, false, opA, opB),
+                    s(switchAOnlyInB, false, opB),
+                    s(switchAInABOverlap, false, opA, opB),
+                    s(switchAInAAndB, false, opA, opB),
                 )
             ),
             sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opB)),
         )
 
         assertEquals(
-            sortResults(listOf(s(switchOnlyInC, opC), s(switchAOnlyInC, opC), s(switchInAAndC, opA, opC))),
+            sortResults(
+                listOf(s(switchOnlyInC, false, opC), s(switchAOnlyInC, false, opC), s(switchInAAndC, false, opA, opC))
+            ),
             sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opC)),
         )
     }
@@ -639,10 +642,110 @@ constructor(
 
         assertEquals(
             listOf(
-                SwitchWithOperationalPointPolygonInclusions(inAreaExisting, listOf(operationalPoint)),
-                SwitchWithOperationalPointPolygonInclusions(outOfAreaLinkedExisting, listOf()),
+                SwitchWithinOperationalPoint(inAreaExisting, false, listOf(operationalPoint)),
+                SwitchWithinOperationalPoint(outOfAreaLinkedExisting, true, listOf()),
             ),
             switchService.findSwitchesRelatedToOperationalPoint(mainDraftContext.context, operationalPoint),
+        )
+    }
+
+    @Test
+    fun `deleteSwitchLinks removes switch references from location tracks when set to true`() {
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val switch =
+            switchService.getOrThrow(
+                MainLayoutContext.draft,
+                switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id,
+            )
+        val switchId = switch.id as IntId
+
+        val (track, _) =
+            insertDraft(
+                locationTrack(tnId, draft = true),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switchId, 1)),
+                        endNode = PlaceHolderNodeConnection,
+                        segments = listOf(someSegment()),
+                    )
+                ),
+            )
+
+        val (_, geometryBeforeDelete) =
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, track.id as IntId)
+        val startNodeBefore = geometryBeforeDelete.edges.first().startNode
+        assertTrue(startNodeBefore.node.containsSwitch(switchId), "Track should have switch link before deletion")
+
+        switchService.updateSwitch(
+            LayoutBranch.main,
+            switchId,
+            LayoutSwitchUpdateRequest(
+                name = switch.name,
+                switchStructureId = switch.switchStructureId,
+                stateCategory = LayoutStateCategory.NOT_EXISTING,
+                ownerId = switch.ownerId,
+                trapPoint = switch.trapPoint,
+                draftOid = switch.draftOid,
+                removeSwitchLinks = true,
+            ),
+        )
+
+        val (_, geometryAfterDelete) =
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, track.id as IntId)
+        val startNodeAfter = geometryAfterDelete.edges.first().startNode
+        assertFalse(
+            startNodeAfter.node.containsSwitch(switchId),
+            "Switch reference should be removed from location track",
+        )
+    }
+
+    @Test
+    fun `deleteSwitchLinks keeps switch references when set to false`() {
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val switch =
+            switchService.getOrThrow(
+                MainLayoutContext.draft,
+                switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id,
+            )
+        val switchId = switch.id as IntId
+
+        val (track, _) =
+            insertDraft(
+                locationTrack(tnId, draft = true),
+                trackGeometry(
+                    TmpLayoutEdge(
+                        startNode = NodeConnection.switch(inner = null, outer = switchLinkYV(switchId, 1)),
+                        endNode = PlaceHolderNodeConnection,
+                        segments = listOf(someSegment()),
+                    )
+                ),
+            )
+
+        val (_, geometryBeforeUpdate) =
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, track.id as IntId)
+        val startNodeBefore = geometryBeforeUpdate.edges.first().startNode
+        assertTrue(startNodeBefore.node.containsSwitch(switchId), "Track should have switch link before update")
+
+        switchService.updateSwitch(
+            LayoutBranch.main,
+            switchId,
+            LayoutSwitchUpdateRequest(
+                name = switch.name,
+                switchStructureId = switch.switchStructureId,
+                stateCategory = LayoutStateCategory.NOT_EXISTING,
+                ownerId = switch.ownerId,
+                trapPoint = switch.trapPoint,
+                draftOid = switch.draftOid,
+                removeSwitchLinks = false,
+            ),
+        )
+
+        val (_, geometryAfterUpdate) =
+            locationTrackService.getWithGeometryOrThrow(MainLayoutContext.draft, track.id as IntId)
+        val startNodeAfter = geometryAfterUpdate.edges.first().startNode
+        assertTrue(
+            startNodeAfter.node.containsSwitch(switchId),
+            "Switch reference should be kept in location track when deleteSwitchLinks is false",
         )
     }
 

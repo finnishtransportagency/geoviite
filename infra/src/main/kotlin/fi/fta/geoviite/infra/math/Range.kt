@@ -25,6 +25,11 @@ data class Range<T : Comparable<T>>(val min: T, val max: T) {
     }
 
     fun <R : Comparable<R>> map(f: (value: T) -> R): Range<R> = Range(f(min), f(max))
+
+    fun split(value: T): Pair<Range<T>, Range<T>> {
+        require(contains(value)) { "Split value must be within the range: value=$value range=[$min, $max]" }
+        return Range(min, value) to Range(value, max)
+    }
 }
 
 fun Range<Double>.length(): Double = max - min

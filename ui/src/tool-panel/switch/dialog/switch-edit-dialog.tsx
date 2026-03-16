@@ -17,12 +17,13 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
-import { LayoutSwitchSaveRequest } from 'linking/linking-model';
+import { LayoutSwitchSaveRequestBase, LayoutSwitchUpdateRequest } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import {
     draftLayoutContext,
     LayoutContext,
     officialLayoutContext,
+    Oid,
     SwitchOwner,
     SwitchOwnerId,
     SwitchStructure,
@@ -35,13 +36,16 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import {
     getSwitch,
     getSwitchesByName,
+    getSwitchJointConnections,
+    getSwitchOids,
     insertSwitch,
     updateSwitch,
 } from 'track-layout/layout-switch-api';
 import styles from './switch-edit-dialog.scss';
-import { useLoader } from 'utils/react-utils';
+import { useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { getSaveDisabledReasons, useSwitch } from 'track-layout/track-layout-react-utils';
 import SwitchRevertConfirmationDialog from './switch-revert-confirmation-dialog';
+import SwitchDeleteConfirmationDialog from './switch-delete-confirmation-dialog';
 import { first } from 'utils/array-utils';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import {
@@ -50,6 +54,7 @@ import {
 } from 'tool-panel/switch/dialog/switch-draft-oid-field';
 import { TFunction } from 'i18next';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
+import { getLocationTracksForJointConnections } from 'linking/linking-utils';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -106,9 +111,9 @@ export const SwitchEditDialog = ({
     const { t } = useTranslation();
     const [showStructureChangeConfirmationDialog, setShowStructureChangeConfirmationDialog] =
         React.useState(false);
+    const [showDeleteDraftConfirmDialog, setShowDeleteDraftConfirmDialog] = React.useState(false);
     const [showDeleteOfficialConfirmDialog, setShowDeleteOfficialConfirmDialog] =
         React.useState(false);
-    const [showDeleteDraftConfirmDialog, setShowDeleteDraftConfirmDialog] = React.useState(false);
     const [switchStateCategory, setSwitchStateCategory] =
         React.useState<LayoutStateCategory>('EXISTING');
     const [switchDraftOidExistsInRatko, setSwitchDraftOidExistsInRatko] = React.useState(false);
@@ -125,6 +130,7 @@ export const SwitchEditDialog = ({
     const [switchOwnerId, setSwitchOwnerId] = React.useState<SwitchOwnerId>();
     const [existingSwitch, setExistingSwitch] = React.useState<LayoutSwitch>();
     const [editingOid, setEditingOid] = React.useState(false);
+    const [publishedMainOid, setPublishedMainOid] = React.useState<Oid>();
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const isExistingSwitch = !!switchId;
 
@@ -151,17 +157,32 @@ export const SwitchEditDialog = ({
         }
     }, [switchName, existingSwitch?.id]);
 
+    const [tracks, loaderStatus] = useLoaderWithStatus(
+        () =>
+            switchId
+                ? getSwitchJointConnections(layoutContext, switchId).then((jointConnections) =>
+                      getLocationTracksForJointConnections(layoutContext, jointConnections),
+                  )
+                : Promise.resolve([]),
+        [layoutContext.branch, layoutContext.publicationState, switchId],
+    );
+    const linkedTracks = tracks ?? [];
+
     React.useEffect(() => {
         if (isExistingSwitch) {
-            getSwitch(switchId, draftLayoutContext(layoutContext)).then((s) => {
-                if (s) {
-                    setExistingSwitch(s);
-                    setSwitchStateCategory(s.stateCategory);
-                    setSwitchName(s.name);
-                    setSwitchStructureId(s.switchStructureId);
-                    setTrapPoint(booleanToTrapPoint(s.trapPoint));
-                    if (s.draftOid) {
-                        setSwitchDraftOid(s.draftOid);
+            Promise.all([
+                getSwitch(switchId, draftLayoutContext(layoutContext)),
+                getSwitchOids(switchId, changeTime).then((oids) => oids['MAIN']),
+            ]).then(([loadedSwitch, loadedPublishedMainOid]) => {
+                setPublishedMainOid(loadedPublishedMainOid);
+                if (loadedSwitch) {
+                    setExistingSwitch(loadedSwitch);
+                    setSwitchStateCategory(loadedSwitch.stateCategory);
+                    setSwitchName(loadedSwitch.name);
+                    setSwitchStructureId(loadedSwitch.switchStructureId);
+                    setTrapPoint(booleanToTrapPoint(loadedSwitch.trapPoint));
+                    if (loadedSwitch.draftOid && !loadedPublishedMainOid) {
+                        setSwitchDraftOid(loadedSwitch.draftOid);
                         setEditingOid(true);
                     }
                     firstInputRef.current?.focus();
@@ -232,27 +253,66 @@ export const SwitchEditDialog = ({
             setShowDeleteOfficialConfirmDialog(true);
         } else if (switchStructureChanged) {
             setShowStructureChangeConfirmationDialog(true);
+        } else if (isExistingSwitch) {
+            updateExistingSwitch(false);
         } else {
-            save();
+            createNewSwitch();
         }
     }
 
-    function save() {
+    function createSwitchSaveRequestBase(
+        name: string,
+        structureId: SwitchStructureId,
+        ownerId: SwitchOwnerId,
+        stateCategory: LayoutStateCategory,
+        draftOid: string | undefined,
+    ): LayoutSwitchSaveRequestBase {
+        return {
+            name: name.trim(),
+            switchStructureId: structureId,
+            stateCategory: stateCategory,
+            ownerId: ownerId,
+            trapPoint: trapPointToBoolean(trapPoint),
+            draftOid: draftOid,
+        };
+    }
+
+    function createNewSwitch() {
         if (switchName && switchStateCategory && switchStructureId && switchOwnerId) {
-            const newSwitch: LayoutSwitchSaveRequest = {
-                name: switchName.trim(),
-                switchStructureId: switchStructureId,
-                stateCategory: switchStateCategory,
-                ownerId: switchOwnerId,
-                trapPoint: trapPointToBoolean(trapPoint),
-                draftOid: editingOid ? switchDraftOid : undefined,
-            };
-            if (existingSwitch) saveUpdatedSwitch(existingSwitch, newSwitch);
-            else saveNewSwitch(newSwitch);
+            const switchSaveRequest = createSwitchSaveRequestBase(
+                switchName,
+                switchStructureId,
+                switchOwnerId,
+                switchStateCategory,
+                editingOid ? switchDraftOid : undefined,
+            );
+
+            saveNewSwitch(switchSaveRequest);
         }
     }
 
-    function saveNewSwitch(newSwitch: LayoutSwitchSaveRequest) {
+    function updateExistingSwitch(removeSwitchLinks: boolean) {
+        if (
+            switchName &&
+            switchStructureId &&
+            switchOwnerId &&
+            switchStateCategory &&
+            existingSwitch
+        ) {
+            const switchSaveRequest = createSwitchSaveRequestBase(
+                switchName,
+                switchStructureId,
+                switchOwnerId,
+                switchStateCategory,
+                editingOid ? switchDraftOid : undefined,
+            );
+            const saveRequestWithLinkRemoveInfo = { ...switchSaveRequest, removeSwitchLinks };
+
+            saveUpdatedSwitch(existingSwitch, saveRequestWithLinkRemoveInfo);
+        }
+    }
+
+    function saveNewSwitch(newSwitch: LayoutSwitchSaveRequestBase) {
         setIsSaving(true);
         insertSwitch(newSwitch, layoutContext)
             .then(
@@ -268,7 +328,7 @@ export const SwitchEditDialog = ({
 
     function saveUpdatedSwitch(
         existingSwitch: LayoutSwitch,
-        updatedSwitch: LayoutSwitchSaveRequest,
+        updatedSwitch: LayoutSwitchUpdateRequest,
     ) {
         setIsSaving(true);
         updateSwitch(existingSwitch.id, updatedSwitch, layoutContext)
@@ -291,11 +351,11 @@ export const SwitchEditDialog = ({
         ...validateSwitchOwnerId(switchOwnerId),
     ];
 
-    function hasErrors(prop: keyof LayoutSwitchSaveRequest) {
+    function hasErrors(prop: keyof LayoutSwitchSaveRequestBase) {
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
-    function getVisibleErrorsByProp(prop: keyof LayoutSwitchSaveRequest) {
+    function getVisibleErrorsByProp(prop: keyof LayoutSwitchSaveRequestBase) {
         if (visitedFields.includes(prop)) {
             return validationIssues
                 .filter((error) => error.field === prop)
@@ -359,10 +419,8 @@ export const SwitchEditDialog = ({
                         <Heading size={HeadingSize.SUB}>
                             {t('switch-dialog.basic-info-heading')}
                         </Heading>
-                        {layoutContext.branch === 'MAIN' && (
+                        {layoutContext.branch === 'MAIN' && !publishedMainOid && (
                             <SwitchDraftOidField
-                                switchId={existingSwitch?.id}
-                                changeTime={changeTime}
                                 draftOid={switchDraftOid}
                                 setDraftOid={setSwitchDraftOid}
                                 setDraftOidExistsInRatko={setSwitchDraftOidExistsInRatko}
@@ -491,7 +549,14 @@ export const SwitchEditDialog = ({
                                 disabled={isSaving}>
                                 {t('button.cancel')}
                             </Button>
-                            <Button disabled={isSaving} isProcessing={isSaving} onClick={save}>
+                            <Button
+                                disabled={isSaving}
+                                isProcessing={isSaving}
+                                onClick={() =>
+                                    isExistingSwitch
+                                        ? updateExistingSwitch(false)
+                                        : createNewSwitch()
+                                }>
                                 {t('button.save')}
                             </Button>
                         </div>
@@ -505,35 +570,14 @@ export const SwitchEditDialog = ({
                     <p>{t('switch-dialog.confirm-switch-save')}</p>
                 </Dialog>
             )}
-            {showDeleteOfficialConfirmDialog && (
-                <Dialog
-                    title={t('switch-dialog.confirmation-delete-title')}
-                    variant={DialogVariant.DARK}
-                    allowClose={false}
-                    footerContent={
-                        <div className={dialogStyles['dialog__footer-content--centered']}>
-                            <Button
-                                onClick={() => setShowDeleteOfficialConfirmDialog(false)}
-                                variant={ButtonVariant.SECONDARY}
-                                disabled={isSaving}>
-                                {t('button.cancel')}
-                            </Button>
-                            <Button
-                                disabled={isSaving}
-                                isProcessing={isSaving}
-                                variant={ButtonVariant.PRIMARY_WARNING}
-                                onClick={save}>
-                                {t('button.delete')}
-                            </Button>
-                        </div>
-                    }>
-                    <p>{t('switch-dialog.deleted-state-warning')}</p>
-                    <div>
-                        <div className={'dialog__text'}>
-                            {t('switch-dialog.confirm-switch-delete')}
-                        </div>
-                    </div>
-                </Dialog>
+            {showDeleteOfficialConfirmDialog && switchId && (
+                <SwitchDeleteConfirmationDialog
+                    linkedLocationTracks={linkedTracks}
+                    linkedTracksLoaderStatus={loaderStatus}
+                    onConfirm={(deleteSwitchLinking) => updateExistingSwitch(deleteSwitchLinking)}
+                    onClose={() => setShowDeleteOfficialConfirmDialog(false)}
+                    isSaving={isSaving}
+                />
             )}
             {showDeleteDraftConfirmDialog && switchId && (
                 <SwitchRevertConfirmationDialog
@@ -550,8 +594,8 @@ export const SwitchEditDialog = ({
     );
 };
 
-function validateSwitchName(name: string): FieldValidationIssue<LayoutSwitchSaveRequest>[] {
-    const errors: FieldValidationIssue<LayoutSwitchSaveRequest>[] = [];
+function validateSwitchName(name: string): FieldValidationIssue<LayoutSwitchSaveRequestBase>[] {
+    const errors: FieldValidationIssue<LayoutSwitchSaveRequestBase>[] = [];
     if (!name) {
         errors.push({
             field: 'name',
@@ -578,7 +622,7 @@ function validateSwitchName(name: string): FieldValidationIssue<LayoutSwitchSave
 
 function validateSwitchStateCategory(
     stateCategory?: LayoutStateCategory,
-): FieldValidationIssue<LayoutSwitchSaveRequest>[] {
+): FieldValidationIssue<LayoutSwitchSaveRequestBase>[] {
     if (!stateCategory)
         return [
             {
@@ -592,7 +636,7 @@ function validateSwitchStateCategory(
 
 function validateSwitchStructureId(
     structureId?: SwitchStructureId,
-): FieldValidationIssue<LayoutSwitchSaveRequest>[] {
+): FieldValidationIssue<LayoutSwitchSaveRequestBase>[] {
     if (!structureId)
         return [
             {
@@ -606,7 +650,7 @@ function validateSwitchStructureId(
 
 function validateSwitchOwnerId(
     ownerId?: SwitchStructureId,
-): FieldValidationIssue<LayoutSwitchSaveRequest>[] {
+): FieldValidationIssue<LayoutSwitchSaveRequestBase>[] {
     if (!ownerId)
         return [
             {

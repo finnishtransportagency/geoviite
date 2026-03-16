@@ -4,9 +4,9 @@ import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import {
-    ReferenceLineBadge,
-    ReferenceLineBadgeStatus,
-} from 'geoviite-design-lib/alignment/reference-line-badge';
+    TrackNumberBadge,
+    TrackNumberBadgeStatus,
+} from 'geoviite-design-lib/alignment/track-number-badge';
 import {
     LocationTrackBadge,
     LocationTrackBadgeStatus,
@@ -213,12 +213,12 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
                     })
                 }
                 ref={ref.ref}>
-                <ReferenceLineBadge
+                <TrackNumberBadge
                     trackNumber={trackNumber}
                     status={
                         isSelected
-                            ? ReferenceLineBadgeStatus.SELECTED
-                            : ReferenceLineBadgeStatus.DEFAULT
+                            ? TrackNumberBadgeStatus.SELECTED
+                            : TrackNumberBadgeStatus.DEFAULT
                     }
                 />
                 {linkingInProgress && linkingState.layoutAlignment.id === line.id && (

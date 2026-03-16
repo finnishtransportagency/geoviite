@@ -35,7 +35,7 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const onLinkingStart = React.useCallback((suggestedSwitch: SuggestedSwitch) => {
-        delegates.showLayers(['switch-linking-layer']);
+        delegates.addForcedVisibleLayer(['switch-linking-layer']);
         delegates.startGeometrySwitchLinking({
             suggestedSwitch,
             geometrySwitch,
@@ -44,7 +44,7 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
     }, []);
 
     const onStopLinking = React.useCallback(() => {
-        delegates.hideLayers(['switch-linking-layer']);
+        delegates.removeForcedVisibleLayer(['switch-linking-layer']);
         delegates.stopLinking();
     }, []);
 

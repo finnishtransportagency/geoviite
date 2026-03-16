@@ -42,9 +42,11 @@
     }
 
     &--invalid {
-        border-color: vayla-design.$color-red-dark;
-        border-width: 3px;
-        padding: 1px 3px;
+        border-color: vayla-design.$color-red-default;
+        color: vayla-design.$color-red-dark;
+        fill: vayla-design.$color-red-dark;
+        border-width: 2px;
+        padding: 2px 5px;
     }
 
     &--clickable {

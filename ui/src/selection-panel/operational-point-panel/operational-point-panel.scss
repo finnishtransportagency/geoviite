@@ -1,0 +1,20 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.operational-point-panel {
+    &__subtitle {
+        color: vayla-design.$color-black-lighter;
+        font-size: 14px;
+    }
+
+    &__operational-points {
+        display: inline;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+
+        li {
+            display: inline-block;
+            margin: 0 6px 3px 0;
+        }
+    }
+}

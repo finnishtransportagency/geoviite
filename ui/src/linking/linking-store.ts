@@ -24,6 +24,7 @@ import {
     LocationTrackId,
     MapAlignmentType,
     OperationalPoint,
+    OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { GeometryKmPostId, GeometryPlanId, GeometrySwitch } from 'geometry/geometry-model';
@@ -77,33 +78,13 @@ export const linkingReducers = {
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
-        if (
-            state.linkingState?.type === LinkingType.LinkingAlignment ||
-            state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment
-        ) {
-            state.linkingState.layoutAlignmentInterval = createUpdatedInterval(
-                state.linkingState.layoutAlignmentInterval,
-                linkPoint,
-                true,
-            );
-            state.linkingState = validateLinkingState(state.linkingState);
-        }
+        setLayoutLinkPointToState(state, linkPoint);
     },
     setGeometryLinkPoint: function (
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
-        if (
-            state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
-            state.linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
-        ) {
-            state.linkingState.geometryAlignmentInterval = createUpdatedInterval(
-                state.linkingState.geometryAlignmentInterval,
-                linkPoint,
-                true,
-            );
-            state.linkingState = validateLinkingState(state.linkingState);
-        }
+        setGeometryLinkPointToState(state, linkPoint);
     },
     setLayoutClusterLinkPoint: function (
         state: TrackLayoutState,
@@ -295,6 +276,56 @@ export const linkingReducers = {
             state.linkingState.area = payload;
         }
     },
+    startLinkingOperationalPointSwitches: (
+        state: TrackLayoutState,
+        {
+            payload,
+        }: PayloadAction<{
+            operationalPoint: OperationalPointId;
+            linkedSwitches: LayoutSwitchId[];
+        }>,
+    ): void => {
+        state.linkingState = {
+            type: LinkingType.LinkingOperationalPointSwitches,
+            state: 'setup',
+            operationalPoint: payload.operationalPoint,
+            linkedSwitches: payload.linkedSwitches,
+            issues: [],
+        };
+    },
+    setOperationalPointLinkedSwitches: (
+        state: TrackLayoutState,
+        { payload: linkedSwitches }: PayloadAction<LayoutSwitchId[]>,
+    ): void => {
+        if (state.linkingState?.type === LinkingType.LinkingOperationalPointSwitches) {
+            state.linkingState.linkedSwitches = linkedSwitches;
+        }
+    },
+    startLinkingOperationalPointTracks: (
+        state: TrackLayoutState,
+        {
+            payload,
+        }: PayloadAction<{
+            operationalPoint: OperationalPointId;
+            linkedTracks: LocationTrackId[];
+        }>,
+    ): void => {
+        state.linkingState = {
+            type: LinkingType.LinkingOperationalPointTracks,
+            state: 'setup',
+            operationalPoint: payload.operationalPoint,
+            linkedTracks: payload.linkedTracks,
+            issues: [],
+        };
+    },
+    setOperationalPointLinkedTracks: (
+        state: TrackLayoutState,
+        { payload: linkedTracks }: PayloadAction<LocationTrackId[]>,
+    ): void => {
+        if (state.linkingState?.type === LinkingType.LinkingOperationalPointTracks) {
+            state.linkingState.linkedTracks = linkedTracks;
+        }
+    },
     selectOnlyLayoutSwitchForGeometrySwitchLinking: (
         state: TrackLayoutState,
         {
@@ -338,6 +369,34 @@ export const linkingReducers = {
         };
     },
 };
+
+export function setLayoutLinkPointToState(state: TrackLayoutState, linkPoint: LinkPoint) {
+    if (
+        state.linkingState?.type === LinkingType.LinkingAlignment ||
+        state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment
+    ) {
+        state.linkingState.layoutAlignmentInterval = createUpdatedInterval(
+            state.linkingState.layoutAlignmentInterval,
+            linkPoint,
+            true,
+        );
+        state.linkingState = validateLinkingState(state.linkingState);
+    }
+}
+
+export function setGeometryLinkPointToState(state: TrackLayoutState, linkPoint: LinkPoint) {
+    if (
+        state.linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
+        state.linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment
+    ) {
+        state.linkingState.geometryAlignmentInterval = createUpdatedInterval(
+            state.linkingState.geometryAlignmentInterval,
+            linkPoint,
+            true,
+        );
+        state.linkingState = validateLinkingState(state.linkingState);
+    }
+}
 
 function goToDraftContext(state: TrackLayoutState): void {
     const newLayoutContext = draftLayoutContext(state.layoutContext);
@@ -408,6 +467,8 @@ function validateLinkingState(state: LinkingState): LinkingState {
         case LinkingType.LinkingLayoutSwitch:
         case LinkingType.PlacingOperationalPoint:
         case LinkingType.PlacingOperationalPointArea:
+        case LinkingType.LinkingOperationalPointSwitches:
+        case LinkingType.LinkingOperationalPointTracks:
             return state;
         default:
             return exhaustiveMatchingGuard(state);

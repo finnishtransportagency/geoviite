@@ -382,7 +382,7 @@
             "ITHR": "ItHR (Itäinen huoltoraide (Helsinki-Ilmala)",
             "LANHR": "LänHR (Läntinen huoltoraide (Helsinki-Ilmala)"
         },
-        "OperationalPointRaideType": {
+        "OperationalPointRatoType": {
             "LP": "Liikennepaikka (LP)",
             "LPO": "Liikennepaikan osa (LPO)",
             "OLP": "Osiinjaettu liikennepaikka (OLP)",
@@ -434,7 +434,12 @@
         },
         "licenses": "Lisenssitiedot",
         "vertical-geometry-diagram-demo": "Korkeuskaavio-demo",
-        "more": "Lisää"
+        "more": "Lisää",
+        "ratko-errors": {
+            "push-error": "Viimeisimmän julkaisun vienti Ratkoon epäonnistui",
+            "ratko-not-configured": "Ratko-integraatio ei ole käytössä tässä ympäristössä",
+            "ratko-unreachable": "Ratkoon ei saada yhteyttä"
+        }
     },
     "app-bar-debug": {
         "expired-token": "Debug: Vanhentunut tokeni"
@@ -608,8 +613,7 @@
             "cannot-shorten-deleted-track-number": "Poistettua ratanumeroa ei voi lyhentää",
             "no-geometry": "Ratanumerolla ei ole geometriaa",
             "cant-edit-while-linking": "Ratanumeron tietoja ei voi muokata linkitystilassa",
-            "location-tracks-title": "Sijaintiraiteet",
-            "location-tracks-count": "{{count}} sijaintiraidetta",
+            "location-tracks-title": "Sijaintiraiteet ({{count}})",
             "location-tracks-filter-by-area": "Vain kartalle osuvat raiteet",
             "no-location-tracks": "Ei sijaintiraiteita",
             "revert-dialog": {
@@ -667,6 +671,9 @@
             }
         },
         "switch": {
+            "linking": {
+                "title": "Linkitys: {{switchName}}"
+            },
             "layout": {
                 "km-m": "Sijainti (km + m)",
                 "general-heading": "Vaihteen perustiedot",
@@ -873,7 +880,9 @@
             },
             "switch-links": {
                 "heading": "Raiteen vaihteet",
+                "no-switches": "Raiteella ei ole vaihteita",
                 "show-more": "Näytä kaikki {{count}} kpl",
+                "no-location": "Ei sijaintia",
                 "not-existing": "Poistettu",
                 "detach": "Irrota"
             },
@@ -975,6 +984,7 @@
             "name": "Nimi",
             "abbreviation": "Lyhenne",
             "state": "Tila",
+            "rinf-id": "Tunnus (RINF)",
             "type-raide": "Tyyppi (RATO)",
             "type-rinf": "Tyyppi (RINF)",
             "uic-code": "UIC-koodi",
@@ -993,6 +1003,9 @@
             "unset": "Ei asetettu",
             "unpublished": "Julkaisematon",
             "clear-area-button": "Tyhjennä",
+            "edit-links": "Muokkaa linkityksiä",
+            "save-links": "Tallenna muutokset",
+            "cancel-editing-links": "Peruuta",
             "switch-links": {
                 "infobox-header": "Vaihteet",
                 "attached-header": "Toiminnalliseen pisteeseen linkitetyt vaihteet ({{count}} kpl)",
@@ -1001,13 +1014,18 @@
                 "attach-all": "Linkitä pisteeseen kaikki vaihteet ({{count}} kpl)",
                 "show-all": "Näytä kaikki ({{count}} kpl)...",
                 "hide-extra": "Piilota...",
-                "single-linking-success-toast": "Vaihde {{name}} linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "single-unlinking-success-toast": "Vaihteen {{name}} linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu",
-                "multiple-linking-success-toast": "{{count}} vaihdetta linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "multiple-unlinking-success-toast": "Linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu {{count}} vaihteelta",
+                "linking-success-toast-header": "Toiminnallisen pisteen {{operationalPointName}} linkitysmuutokset tallennettu",
+                "linked": "Linkitetty: {{linkedNames}}",
+                "unlinked": "Linkitys purettu: {{unlinkedNames}}",
+                "linked-and-unlinked": "Linkitetty: {{linkedNames}}. Linkitys purettu: {{unlinkedNames}}",
                 "switch-linked-to-wrong-point": "Vaihde on linkitetty toiseen toiminnalliseen pisteeseen {{operationalPointName}}",
                 "switch-in-wrong-polygon": "Vaihde sijaitsee toisen pisteen alueella: {{operationalPointName}}",
-                "switch-not-in-polygon": "Vaihde on linkitetty pisteelle, mutta ei sijaitse pisteen alueella"
+                "none-for-linking": "Ei linkittämättömiä vaihteita",
+                "none-for-unlinking": "Ei linkitettyjä vaihteita",
+                "switch-not-in-polygon": "Vaihde ei sijaitse toiminnallisen pisteen alueella",
+                "no-area": "Toiminnallisen pisteen alue tulee olla asetettu jotta vaihteita voidaan linkittää",
+                "no-area-but-has-switches-linked": "Toiminnallisen pisteen aluetta ei ole asetettu, mutta sille on linkitetty vaihteita",
+                "no-switches": "Ei vaihteita"
             },
             "track-links": {
                 "infobox-header": "Raiteet",
@@ -1017,11 +1035,21 @@
                 "attach-all": "Linkitä pisteeseen kaikki raiteet ({{count}} kpl)",
                 "show-all": "Näytä kaikki ({{count}} kpl)...",
                 "hide-extra": "Piilota...",
-                "single-linking-success-toast": "Raide {{name}} linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "single-unlinking-success-toast": "Raiteen {{name}} linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu",
-                "multiple-linking-success-toast": "{{count}} raidetta linkitetty toiminnalliseen pisteeseen {{operationalPointName}}",
-                "multiple-unlinking-success-toast": "Linkitys toiminnalliseen pisteeseen {{operationalPointName}} poistettu {{count}} raiteelta",
-                "track-not-in-polygon": "Raide on linkitetty pisteelle, mutta sillä ei ole geometriaa pisteen alueella"
+                "linking-success-toast-header": "Toiminnallisen pisteen {{operationalPointName}} linkitysmuutokset tallennettu",
+                "linked": "Linkitetty: {{linkedNames}}",
+                "unlinked": "Linkitys purettu: {{unlinkedNames}}",
+                "linked-and-unlinked": "Linkitetty: {{linkedNames}}. Linkitys purettu: {{unlinkedNames}}",
+                "none-for-linking": "Ei linkittämättömiä raiteita",
+                "none-for-unlinking": "Ei linkitettyjä raiteita",
+                "track-not-in-polygon": "Raide on linkitetty pisteelle, mutta sillä ei ole geometriaa pisteen alueella",
+                "no-area": "Toiminnallisen pisteen alue tulee olla asetettu jotta raiteita voidaan linkittää",
+                "no-area-but-has-tracks-linked": "Toiminnallisen pisteen aluetta ei ole asetettu, mutta sille on linkitetty raiteita",
+                "no-tracks": "Ei raiteita"
+            },
+            "station-links": {
+                "infobox-header": "Yhteydet muille liikennepaikoille",
+                "count": "{{count}} liikennepaikkaväliä",
+                "no-links": "Ei liikennepaikkavälejä"
             }
         },
         "disabled": {
@@ -1333,6 +1361,8 @@
         "vertical-coordinate-system-field": "Korkeusjärjestelmä",
         "save-changes": "Tallenna muutokset",
         "information-missing": "Ei tiedossa",
+        "not-linked": "Ei linkitetty",
+        "linking-details": "{{linkedAt}}\n\nLinkittäneet käyttäjät:\n{{linkedByUsers}}",
         "plan-source": "Suunnitelman lähde",
         "missing-source": "Suunnitelman lähde puuttuu",
         "toolbar": {
@@ -1489,7 +1519,7 @@
         "layout-title": "Paikannuspohja",
         "geometry-title": "Geometriat",
         "debug-title": "Debug-työkalut",
-        "map": "Taustakartta",
+        "background-map": "Taustakartta",
         "orthographic-background-map": "Ilmakuva",
         "location-track": "Sijaintiraiteet",
         "reference-line": "Pituusmittauslinjat",
@@ -1658,6 +1688,7 @@
         "cancellation-success": "Julkaistu muutos peruttu",
         "cancellation-success-details": "Peruminen täytyy julkaista erikseen",
         "revert-success": "Luonnosmuutokset hylätty",
+        "revert-failure": "Luonnosmuutosten hylkääminen epäonnistui",
         "track-numbers": "Ratanumeroita",
         "km-posts": "Tasakilometripisteitä",
         "reference-lines": "Pituusmittauslinjoja",
@@ -1673,93 +1704,92 @@
         "layout": {
             "track-number": {
                 "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
-                "not-draft": "Virhe julkaisun sisällössä: julkaistava ratanumero ei ole luonnos",
-                "reference-line": {
+                "reference-to-reference-line": {
                     "not-published": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa",
-                    "cancelled": "Ratanumeron pituusmittauslinja on peruttu suunnitelmasta",
-                    "cancelled-from-track-number": "Ratanumeron luomisen peruminen suunnitelmasta vaatii myös pituusmittauslinjan luomisen perumisen"
+                    "cancelled": "Pituusmittauslinjan luomisen peruminen vaatii myös ratanumeron itsensä perumisen"
                 },
-                "location-track": {
-                    "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen raiteita: {{locationTracks}}"
+                "reference-from-reference-line": {
+                    "cancelled": "Pituusmittauslinjan luominen pitää perua suunnitelmasta samalla kuin ratanumeron luominen."
                 },
-                "km-post": {
-                    "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia tasakilometripisteitä: {{kmPosts}}"
+                "reference-from-location-track": {
+                    "cancelled": "Suunnitelmassa on olemassa raiteita tällä ratanumerolla: {{referrers}}. Raiteet pitää siirtää eri ratanumerolle, tai niiden luominen perua, jotta tämän ratanumeron luomisen voi perua.",
+                    "deleted": "Paikannuspohjassa on olemassaolevia raiteita tällä ratanumerolla: {{referrers}}. Raiteet pitää poistaa tai siirtää eri ratanumerolle, jotta tämän ratanumeron voi poistaa."
+                },
+                "reference-from-km-post": {
+                    "cancelled": "Suunnitelmassa on olemassa tasakilometripisteitä tällä ratanumerolla: {{referrers}}. Pisteiden luominen pitää perua, jotta tämän ratanumeron luomisen voi perua.",
+                    "deleted": "Paikannuspohjassa on olemassaolevia tasakilometripisteitä tällä ratanumerolla: {{referrers}}. Pisteet pitää poistaa, jotta tämän ratanumeron voi poistaa."
                 },
                 "duplicate-name-official": "Ratanumeron numero {{trackNumber}} on jo käytössä",
                 "duplicate-name-draft": "Muutosjoukossa on monta ratanumeroa nimellä {{trackNumber}}",
                 "duplicate-name-draft-in-main": "Ratanumeron numero {{trackNumber}} on jo käytössä luonnostilassa"
             },
             "km-post": {
+                "reference-to-track-number": {
+                    "not-published": "Tasakilometripisteen ratanumero {{target}} ei ole mukana julkaisussa",
+                    "cancelled": "Tasakilometripisteen ratanumeron {{target}} luomisen peruminen vaatii myös tasakilometripisteen itsensä perumisen",
+                    "deleted": "Tasakilometripisteen ratanumeron {{target}} poistaminen vaatii myös tasakilometripisteen itsensä poistamisen"
+                },
                 "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
-                "not-draft": "Virhe julkaisun sisällössä: julkaistava tasakilometripiste ei ole luonnos",
-                "no-location": "Tasakilometripisteelle ei ole linkitetty sijaintia.",
-                "track-number": {
-                    "null": "Tasakilometripisteeltä puuttuu ratanumero tai se ei ole mukana julkaisussa",
-                    "not-official": "Tasakilometripiste viittaa ratanumeron {{trackNumber}} luonnosriviin",
-                    "not-published": "Tasakilometripiste viittaa julkaisemattomaan ratanumeroon {{trackNumber}}",
-                    "cancelled": "Tasakilometripiste viittaa suunnitelmasta peruttuun ratanumeroon {{trackNumber}}",
-                    "state": {
-                        "DELETED": "Tasakilometripiste viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Poistettu\""
-                    }
-                },
-                "reference-line": {
-                    "null": "Tasakilometripisteen pituusmittauslinja ei ole mukana julkaisussa"
-                },
                 "duplicate-name-official": "Ratanumerolla {{trackNumber}} on jo kilometri tunnuksella {{kmNumber}}",
                 "duplicate-name-draft": "Muutosjoukossa on monta tasakilometripistettä tunnuksella {{kmNumber}} ratanumerolla {{trackNumber}}",
                 "duplicate-name-draft-in-main": "Ratanumerolla {{trackNumber}} on jo luotu luonnostilassa kilometri tunnuksella {{kmNumber}}."
             },
             "reference-line": {
+                "reference-to-track-number": {
+                    "not-published": "Pituusmittauslinjan ratanumeroo {{target}} ei ole mukana julkaisussa",
+                    "cancelled": "Pituusmittauslinja viittaa suunnitelmasta peruttuun ratanumeroon {{target}}"
+                },
+                "reference-from-track-number": {
+                    "cancelled": "Jotta pituusmittauslinjan luomisen suunnitelmasta voi perua, pitää perua myös ratanumeron luominen: {{referrers}}."
+                },
                 "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "no-addresses": "Pituusmittauslinjalta ei voida laskea osoitteita raiteelle {{locationTrack}}",
-                "not-draft": "Virhe julkaisun sisällössä: julkaistava pituusmittauslinja ei ole luonnos",
-                "track-number": {
-                    "not-official": "Pituusmittauslinja viittaa ratanumeron {{trackNumber}} luonnosriviin",
-                    "not-published": "Pituusmittauslinja viittaa julkaisemattomaan ratanumeroon {{trackNumber}}",
-                    "cancelled": "Pituusmittauslinja viittaa suunnitelmasta peruttuun ratanumeroon {{trackNumber}}"
-                },
+                "end-before-start": "Raiteen {{locationTrack}} loppupisteen osoite on ennen alkupisteen osoitetta",
                 "empty-segments": "Pituusmittauslinjalla ei ole geometriaa",
                 "points": {
                     "not-continuous": "Pituusmittauslinjan pisteet eivät ole jatkuvia (kulma on liian suuri pisteiden välillä)"
                 }
             },
             "location-track": {
+                "reference-to-track-number": {
+                    "not-published": "Raide viittaa ratanumeroon {{target}}, joka ei ole mukana julkaisussa",
+                    "cancelled": "Raide viittaa suunnitelmasta peruttuun ratanumeroon {{target}}",
+                    "deleted": "Raide on poistetulla ratanumerolla {{target}}"
+                },
+                "reference-to-operational-point": {
+                    "not-published": "Raide viittaa toiminnalliseen pisteeseen {{target}}, joka ei ole mukana julkaisussa",
+                    "cancelled": "Raide viittaa suunnitelmasta peruttuun toiminnalliseen pisteeseen {{target}}",
+                    "deleted": "Raide viittaa poistettuun toiminnalliseen pisteeseen {{target}}"
+                },
+                "reference-to-switch": {
+                    "not-published": "Raide viittaa vaihteeseen {{target}}, joka ei ole mukana julkaisussa",
+                    "cancelled": "Raide viittaa suunnitelmasta peruttuun vaihteeseen {{target}}",
+                    "deleted": "Raide viittaa poistettuun vaihteeseen {{target}}"
+                },
+                "reference-to-location-track-duplicate-of": {
+                    "not-published": "Raiteen duplikaattiustieto viittaa raiteeseen {{target}}, joka ei ole mukana julkaisussa",
+                    "cancelled": "Raiteen duplikaattiustieto viittaa suunnitelmasta peruttuun  raiteeseen {{target}}",
+                    "deleted": "Raiteen duplikaattiustieto viittaa poistettuun raiteeseen {{target}}"
+                },
+                "reference-from-location-track-duplicate-of": {
+                    "cancelled": "Suunnitelmassa on olemassa muita raiteita, jotka on merkitty tämän raiteen duplikaatiksi: {{referrers}}. Duplikaattiussuhde pitää purkaa tai näiden raiteiden luominen perua.",
+                    "deleted": "Paikannuspohjassa on olemassaolevia raiteita, jotka on merkitty tämän raiteen duplikaatiksi: {{referrers}}. Duplikaattiussuhde pitää purkaa tai nämä raiteet myös poistaa paikannuspohjasta."
+                },
                 "no-context": "Raiteelle ei voida laskea tasametripisteitä koska siitä puuttuu tietoja",
                 "no-addresses": "Raiteelle ei voida laskea osoitteita ratanumerolta {{trackNumber}}",
+                "end-before-start": "Raiteen loppupisteen osoite on ennen alkupisteen osoitetta",
                 "duplicate-of": {
-                    "state": {
-                        "DELETED": "Raiteen duplikaatti {{duplicateTrack}} on poistettu. Duplikaattitietoa ei enää tarvita."
-                    },
-                    "not-official": "Raide viittaa duplikaattiraiteen {{duplicateTrack}} luonnosriviin",
-                    "not-published": "Raide viittaa julkaisemattomaan duplikaattiraiteeseen {{duplicateTrack}}",
-                    "cancelled": "Raide viittaa suunnitelmasta peruttuun duplikaattiraiteeseen {{duplicateTrack}}",
                     "publishing-duplicate-of-duplicated": "Raide on merkitty duplikaatiksi raiteelle {{duplicateTrack}}, joka itse on myös duplikaatti",
                     "publishing-duplicate-while-duplicated": "Raide on merkitty duplikaatiksi, mutta raide {{otherDuplicates}} on tämän raiteen duplikaatti",
                     "publishing-duplicate-while-duplicated-multiple": "Raide on merkitty duplikaatiksi, mutta raiteet {{otherDuplicates}} ovat tämän raiteen duplikaatteja"
                 },
-                "deleted-duplicated-by-existing": "Poistettavaan raiteeseen viittaa edelleen duplikaattiraiteita: {{duplicates}}",
                 "empty-segments": "Raiteella ei ole geometriaa",
                 "too-short": "Raiteen pituus on vain {{length}}m. Alle {{minLength}}m pitkille raiteille ei voida laskea reititystietoja.",
                 "edge-switch-partial": "Vaihteen {{switch}} linkitys raiteella on puutteellinen",
                 "points": {
                     "not-continuous": "Raiteen pisteet eivät ole jatkuvia (kulma on liian suuri pisteiden välillä)"
                 },
-                "not-draft": "Virhe julkaisun sisällössä: julkaistava raide ei ole luonnos",
-                "track-number": {
-                    "not-official": "Raide viittaa ratanumeron {{trackNumber}} luonnosriviin",
-                    "not-published": "Raide viittaa ratanumeroon {{trackNumber}}, joka ei ole mukana julkaisussa",
-                    "cancelled": "Raide viittaa suunnitelmasta peruttuun ratanumeroon {{trackNumber}}",
-                    "state": {
-                        "DELETED": "Raide viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Poistettu\""
-                    }
-                },
                 "switch": {
-                    "not-official": "Raide viittaa vaihteen {{switch}} luonnosriviin",
-                    "not-published": "Raide viittaa julkaisemattomaan luonnosvaihteeseen {{switch}}",
-                    "cancelled": "Raide viittaa suunnitelmasta peruttuun vaihteeseen {{switch}}",
-                    "state-category": {
-                        "NOT_EXISTING": "Raide viittaa vaihteeseen {{switch}}, joka on tilakategoriassa \"Poistunut kohde\""
-                    },
                     "alignment-not-continuous": "Raide on kytketty vaihteelle {{switch}} useammasta kuin yhdestä kohdasta",
                     "joint-location-mismatch": "Raiteen ja vaihteen {{switch}} vaihdepisteiden sijainnit eivät vastaa toisiaan",
                     "wrong-joint-sequence": "Raiteen vaihdepisteet ({{switchJoints}}) vaihteella {{switch}} ({{switchType}}) eivät vastaa vaihderakenteen linjoja",
@@ -1791,11 +1821,18 @@
                 }
             },
             "switch": {
-                "not-draft": "Virhe julkaisun sisällössä: julkaistava vaihde ei ole luonnos",
+                "reference-from-location-track": {
+                    "cancelled": "Vaihde on linkitetty suunnitelmassa raiteille: {{referrers}}. Linkitys pitää purkaa tai näiden raiteiden luominen perua, jotta vaihteen luomisen voi perua",
+                    "deleted": "Poistettavaan vaihteeseen viittaa edelleen raiteita: {{referrers}}"
+                },
+                "reference-to-operational-point": {
+                    "not-published": "Vaihde viittaa toiminnalliseen pisteeseen {{target}}, joka ei ole mukana julkaisussa",
+                    "cancelled": "Vaihde viittaa suunnitelmasta peruttuun toiminnalliseen pisteeseen {{target}}",
+                    "deleted": "Vaihde viittaa poistettuun toiminnalliseen pisteeseen {{target}}"
+                },
                 "no-location": "Vaihdetta ei ole linkitetty paikannuspohjaan",
+                "duplicate-track-locations-differ": "Vaihteella {{switchName}} linjaraiteen ja duplikaattiraiteen pistesijainnit poikkeavat toisistaan, {{trackName}}, {{duplicateTrackName}}, pisteet {{jointNumbers}} ",
                 "location-track": {
-                    "reference-deleted": "Poistettavaan vaihteeseen viittaa edelleen raiteita: {{locationTracks}}",
-                    "not-published": "Vaihteeseen liittyvä raide ei ole mukana julkaisussa: {{locationTrack}}",
                     "not-continuous": "Sama raide ({{locationTracks}}) on kytketty vaihteeseen eri kohdista",
                     "joint-location-mismatch": "Vaihteen ja raiteen vaihdepisteiden sijainnit eivät kohtaa: {{locationTracks}}",
                     "wrong-joint-sequence": "Kaikki vaihteeseen kytketyt raiteet ({{locationTracks}}) eivät vastaa vaihderakenteen linjoja",
@@ -1818,6 +1855,14 @@
                 }
             },
             "operational-point": {
+                "reference-from-location-track": {
+                    "cancelled": "Toiminnalliseen pisteeseen viittaa suunnitelmassa raiteita: {{referrers}}. Linkitys pitää purkaa tai näiden raiteiden luominen perua, jotta toiminnallisen pisteen luomisen voi perua",
+                    "deleted": "Poistettavaan toiminnalliseen pisteeseen viittaa edelleen raiteita: {{referrers}}"
+                },
+                "reference-from-switch": {
+                    "cancelled": "Toiminnalliseen pisteeseen viittaa suunnitelmassa vaihtita: {{referrers}}. Linkitys pitää purkaa tai näiden raiteiden luominen perua, jotta toiminnallisen pisteen luomisen voi perua",
+                    "deleted": "Poistettavaan toiminnalliseen pisteeseen viittaa edelleen vaihteita: {{referrers}}"
+                },
                 "duplicate-name-official": "Pisteen nimi {{name}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä",
                 "duplicate-name-draft": "Muutosjoukossa on monta toiminnallista pistettä nimellä {{name}}",
                 "duplicate-name-draft-in-main": "Pisteen nimi {{name}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä luonnostilassa",
@@ -1827,12 +1872,16 @@
                 "duplicate-uic-code-official": "Pisteen UIC-tunnus {{uicCode}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä: {{duplicateNames}}",
                 "duplicate-uic-code-draft": "Muutosjoukossa on monta toiminnallista pistettä UIC-tunnuksella {{uicCode}}: {{duplicateNames}}",
                 "duplicate-uic-code-draft-in-main": "Pisteen UIC-tunnus {{uicCode}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä luonnostilassa: {{duplicateNames}}",
+                "duplicate-rinf-id-official": "Pisteen RINF-tunnus {{rinfIdOverride}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä: {{duplicateNames}}",
+                "duplicate-rinf-id-draft": "Muutosjoukossa on monta toiminnallista pistettä RINF-tunnuksella {{rinfIdOverride}}: {{duplicateNames}}",
+                "duplicate-rinf-id-draft-in-main": "Pisteen RINF-tunnus {{rinfIdOverride}} on jo käytössä jollain toisella paikannuspohjan toiminnallisella pisteellä luonnostilassa: {{duplicateNames}}",
                 "uic-code-missing": "UIC-tunnus puuttuu",
                 "location-missing": "Pistemäinen sijainti puuttuu",
                 "overlapping-polygon-official": "Toiminnallisen pisteen alue on päällekkäin toisen toiminnallisen pisteen alueen kanssa: {{duplicateNames}}",
                 "overlapping-polygon-draft": "Muutosjoukossa on päällekkäisiä toiminnallisten pisteiden alueita: {{duplicateNames}}",
                 "overlapping-polygon-draft-in-main": "Toiminnallisen pisteen alue on päällekkäin paikannuspohjan luonnoksen kanssa: {{duplicateNames}}",
-                "rinf-code-missing": "RINF-tyyppi puuttuu",
+                "rinf-type-missing": "RINF-tyyppi puuttuu",
+                "rinf-id-missing": "RINF-tunnus puuttuu",
                 "polygon-missing": "Alue puuttuu",
                 "location-outside-polygon": "Pistemäinen sijainti on toiminnallisen pisteen alueen ulkopuolella",
                 "polygon-is-not-simple": "Alueen muoto ei ole yksinkertainen polygoni"
@@ -1852,8 +1901,8 @@
                 "km-post-outside-line-after": "Ratanumeron {{trackNumber}} tasakilometripiste {{kmNumber}} sijaitsee pituusmittauslinjan lopun jälkeen",
                 "duplicate-km-posts": "Linjalla {{trackNumber}} on useita tasakilometripisteitä numerolla {{kmNumber}}",
                 "km-post-smaller-than-track-number-start": "Tasakilometripiste ({{kmNumber}}) on pienempi kuin ratanumeron {{trackNumber}} aloitusarvo",
-                "km-posts-wrong-order": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) ovat väärässä järjestyksessä",
-                "km-posts-far-from-line": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) sijaitsevat kaukana pituusmittauslinjasta"
+                "km-posts-wrong-order": "Ratanumeron {{trackNumber}} kilometrit ({{kmNumbers}}) ovat väärässä järjestyksessä",
+                "km-post-too-far-from-reference-line": "Ratanumeron {{trackNumber}} tasakilometripiste {{kmNumber}} sijaitsee liian kaukana pituusmittauslinjalta"
             },
             "split": {
                 "source-not-deleted": "Jaettava raide {{sourceName}} ei ole Poistettu-tilassa",
@@ -1928,7 +1977,9 @@
             "operational-point-link-added-singular": "Lisätty liitos toiminnalliseen pisteeseen {{value}}",
             "operational-point-link-removed-singular": "Lisätty liitos toiminnalliseen pisteeseen {{value}}",
             "operational-point-link-added-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}",
-            "operational-point-link-removed-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}"
+            "operational-point-link-removed-plural": "Lisätty liitos toiminnallisiin pisteisiin {{value}}",
+            "rinf-id-is-override": "Arvo on asetettu käsin",
+            "rinf-id-is-generated": "Arvo on asetettu automaattisesti"
         },
         "prop": {
             "location-track": "Sijaintiraidetunnus",
@@ -1970,10 +2021,11 @@
             "abbreviation": "Lyhenne",
             "uic-code": "UIC-tunnus",
             "rinf-type": "Tyyppi (RINF)",
-            "raide-type": "Tyyppi (RATO)",
+            "rato-type": "Tyyppi (RATO)",
+            "rinf-id": "Tunnus (RINF)",
             "polygon": "Alue",
             "linked-switches": "Vaihdelinkitykset",
-            "linked-operational-points": "Toiminnallisen pisteen asetus"
+            "linked-operational-point": "Toiminnallisen pisteen asetus"
         }
     },
     "publication-log": {
@@ -2075,6 +2127,7 @@
         "location-tracks-title": "Sijaintiraiteet",
         "geometry-alignments-title": "Raiteet",
         "switches-title": "Vaihteet",
+        "operational-points-title": "Toiminnalliset pisteet",
         "km-posts-title": "Tasakilometripisteet",
         "reference-lines-title": "Pituusmittauslinjat",
         "no-alignments": "Ei raiteita",
@@ -2220,6 +2273,9 @@
         "structure-change-unlink": "Vaihdetyyppiä muutettaessa vaihteeseen liittyvät sijaintiraidelinkitykset puretaan. Linkitykset eivät palaudu automaattisesti, vaikka vaihteen tyyppi palautettaisiin alkuperäiseksi.",
         "confirm-switch-save": "Haluatko varmasti tallentaa muutokset?",
         "confirm-switch-delete": "Haluatko poistaa vaihteen paikannuspohjasta?",
+        "switch-links-list": "Vaihde on kiinni seuraavilla raiteilla:",
+        "switch-links-options": "Vaihde on irrotettava raiteilta, raiteet on poistettava tai vaihteen tilalle on linkitettävä toinen vaihde, jotta vaihteen poisto voidaan julkaista.",
+        "delete-switch-links": "Irrota vaihde raiteilta",
         "name-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla tunnuksella",
         "oid-in-use": "Huomaa, että paikannuspohjassa on toinen vaihde samalla OID:lla",
         "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä",
@@ -2322,12 +2378,19 @@
             "invalid-name": "Virheellinen nimi",
             "invalid-abbreviation": "Virheellinen lyhenne",
             "invalid-uic-code": "Virheellinen UIC-koodi",
+            "invalid-rinf-id": "Virheellinen tunnus",
+            "rinf-id-too-long": "Tunnuksen maksimipituus on 12 merkkiä",
+            "rinf-id-must-start-with-eu": "Käsin syötetyn tunnuksen tulee alkaa etuliitteellä \"EU\"",
             "mandatory-field": "Pakollinen kenttä",
             "name-in-use": "Paikannuspohjassa on toinen toiminnallinen piste samalla nimellä",
             "name-in-use-deleted": "Paikannuspohjassa on poistettu toiminnallinen piste samalla nimellä",
             "abbreviation-in-use": "Lyhenne on jo käytössä",
-            "uic-code-in-use": "UIC-koodi on jo käytössä"
-        }
+            "uic-code-in-use": "UIC-koodi on jo käytössä",
+            "rinf-id-in-use": "Tunnus on jo käytössä"
+        },
+        "rinf-id": "Tunnus (RINF)",
+        "set-rinf-id-manually": "Aseta käsin",
+        "rinf-id-will-be-generated": "Asetetaan automaattisesti"
     },
     "licenses-page": {
         "title": "Lisenssitiedot",

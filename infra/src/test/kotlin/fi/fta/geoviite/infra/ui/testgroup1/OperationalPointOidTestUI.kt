@@ -1,0 +1,87 @@
+package fi.fta.geoviite.infra.ui.testgroup1
+
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Polygon
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
+import fi.fta.geoviite.infra.tracklayout.OperationalPointService
+import fi.fta.geoviite.infra.tracklayout.operationalPoint
+import fi.fta.geoviite.infra.ui.SeleniumTest
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNull
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
+
+@ActiveProfiles("dev", "test", "e2e")
+@SpringBootTest
+class OperationalPointOidTestUI
+@Autowired
+constructor(
+    private val operationalPointService: OperationalPointService,
+    private val operationalPointDao: OperationalPointDao,
+    private val trackNumberDao: LayoutTrackNumberDao,
+) : SeleniumTest() {
+
+    @BeforeEach
+    fun setup() {
+        testDBService.clearAllTables()
+        startGeoviite()
+    }
+
+    @Test
+    fun `operational point OID is displayed after publication`() {
+        val centerPoint = Point(385782.89, 6672277.83)
+        val operationalPointVersion =
+            mainDraftContext.save(
+                operationalPoint(
+                    name = "Test Point",
+                    location = centerPoint,
+                    polygon =
+                        Polygon(
+                            Point(centerPoint.x - 10, centerPoint.y - 10),
+                            Point(centerPoint.x + 10, centerPoint.y - 10),
+                            Point(centerPoint.x + 10, centerPoint.y + 10),
+                            Point(centerPoint.x - 10, centerPoint.y + 10),
+                            Point(centerPoint.x - 10, centerPoint.y - 10),
+                        ),
+                    draft = true,
+                )
+            )
+        val operationalPointId = operationalPointVersion.id
+
+        val trackLayoutDraftPage = goToMap().switchToDraftMode()
+        trackLayoutDraftPage.selectionPanel.selectOperationalPoint("Test Point")
+        val oidBeforePublicationUI = trackLayoutDraftPage.toolPanel.operationalPointGeneralInfo.oid
+        assertEquals(
+            "Julkaisematon",
+            oidBeforePublicationUI,
+            "Operational point should not have an OID before publication (UI)",
+        )
+
+        val oidBeforePublication = operationalPointDao.fetchExternalId(LayoutBranch.main, operationalPointId)
+        assertNull(oidBeforePublication, "Operational point should not have an OID before publication (backend)")
+
+        val previewPage = trackLayoutDraftPage.goToPreview()
+        previewPage.waitForAllTableValidationsToComplete()
+        previewPage.stageChange("Toiminnallinen piste Test Point")
+        previewPage.publish()
+
+        val trackLayoutOfficialPage = goToMap().switchToOfficialMode()
+        val oidAfterPublicationUI = trackLayoutOfficialPage.toolPanel.operationalPointGeneralInfo.oid
+        assertNotEquals(oidAfterPublicationUI, "", "Operational point OID should not be empty (UI)")
+
+        val oidAfterPublication = operationalPointDao.fetchExternalId(LayoutBranch.main, operationalPointId)
+        assertNotNull(oidAfterPublication?.oid, "Operational point OID should exist in backend")
+        assertEquals(
+            oidAfterPublicationUI,
+            oidAfterPublication?.oid.toString(),
+            "UI OID ($oidAfterPublicationUI) should match backend OID (${oidAfterPublication?.oid})",
+        )
+    }
+}

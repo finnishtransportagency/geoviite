@@ -65,6 +65,7 @@ const val LOCATION = "sijainti"
 const val TRACKS = "raiteet"
 const val SWITCHES = "vaihteet"
 const val AREA = "alue"
+const val AREA_WKT = "alue_wkt"
 const val CODE = "koodi"
 const val TYPE_DESCRIPTION = "selite"
 const val RINF_TYPE_DESCRIPTION = "selite_en"
@@ -133,3 +134,8 @@ const val EXT_OPENAPI_OPERATIONAL_POINT_OID_DESCRIPTION = "Toiminnallisen pistee
 
 const val EXT_OPENAPI_OPERATIONAL_POINT_OR_TRACK_LAYOUT_VERSION_NOT_FOUND =
     "Toiminnallista pistettä ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa."
+
+const val STATION_LINK_COLLECTION = "liikennepaikkavalit"
+const val STATION_LINK_LENGTH = "pituus"
+const val STATION_LINK_START = "alku"
+const val STATION_LINK_END = "loppu"

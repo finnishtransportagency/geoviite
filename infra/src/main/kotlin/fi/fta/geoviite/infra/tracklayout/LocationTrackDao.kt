@@ -543,49 +543,182 @@ class LocationTrackDao(
         return locationTrackOwners
     }
 
-    fun fetchVersionsForPublication(
+    fun fetchVersionsByReferents(
         target: LayoutContextTransition,
-        trackNumberIds: List<IntId<LayoutTrackNumber>>,
-        trackIdsToPublish: List<IntId<LocationTrack>>,
-    ): Map<IntId<LayoutTrackNumber>, List<LayoutRowVersion<LocationTrack>>> {
-        if (trackNumberIds.isEmpty()) return emptyMap()
+        publicationSet: List<IntId<LocationTrack>>,
+        trackNumberIds: List<IntId<LayoutTrackNumber>> = listOf(),
+        operationalPointIds: List<IntId<OperationalPoint>> = listOf(),
+        duplicateOfLocationTrackIds: List<IntId<LocationTrack>> = listOf(),
+        switchIds: List<IntId<LayoutSwitch>> = listOf(),
+    ): LocationTrackVersionsForValidation {
+        if (
+            switchIds.isNotEmpty() &&
+                trackNumberIds.isEmpty() &&
+                operationalPointIds.isEmpty() &&
+                duplicateOfLocationTrackIds.isEmpty()
+        ) {
+            // call down to optimized query version in this very common case
+            return fetchVersionsBySwitchIds(target, publicationSet, switchIds)
+        }
 
+        // language=sql
         val sql =
             """
-                select track_number_id, id, design_id, draft, version
-                from (
-                select state, track_number_id, id, design_id, draft, version
-                  from layout.location_track_in_layout_context(:base_state::layout.publication_state, :base_design_id) official
-                  where (id in (:track_ids_to_publish)) is distinct from true
-                union all
-                select state, track_number_id, id, design_id, draft, version
-                  from layout.location_track_in_layout_context(:candidate_state::layout.publication_state, :candidate_design_id) draft
-                  where id in (:track_ids_to_publish)
-                ) track
-                where track_number_id in (:track_number_ids)
-                  and track.state != 'DELETED'
-                order by track.track_number_id, track.id
-            """
+            with tracks as not materialized (
+              select *
+                from layout.location_track_in_layout_context(:base_state::layout.publication_state, :base_design_id) base
+                where not (id = any (:track_ids_to_publish))
+              union all
+              select *
+                from layout.location_track_in_layout_context(:candidate_state::layout.publication_state,
+                                                             :candidate_design_id) candidate
+                where id = any (:track_ids_to_publish)
+            ),
+              tracks_with_referent_ids as not materialized (
+                select
+                  id,
+                  design_id,
+                  draft,
+                  version,
+                  track_number_id,
+                  duplicate_of_location_track_id,
+                  coalesce((
+                    select array_agg(operational_point_id)
+                      from layout.location_track_version_operational_point lvv
+                      where lvv.location_track_id = track.id
+                        and lvv.location_track_layout_context_id = track.layout_context_id
+                        and lvv.location_track_version = track.version
+                        and lvv.operational_point_id = any (:operational_point_ids)
+                  ), array[]::int[]) as operational_point_ids,
+                  coalesce((
+                    select array_agg(switch_id)
+                      from layout.location_track_version_switch_view lvv
+                      where lvv.location_track_id = track.id
+                        and lvv.location_track_layout_context_id = track.layout_context_id
+                        and lvv.location_track_version = track.version
+                        and lvv.switch_id = any (:switch_ids)
+                  ), array[]::int[]) as switch_ids
+                  from tracks track
+              )
+            select *
+              from tracks_with_referent_ids
+              where array_length(switch_ids, 1) > 0
+                 or array_length(operational_point_ids, 1) > 0
+                 or track_number_id = any (:track_number_ids)
+                 or duplicate_of_location_track_id = any (:duplicate_of_location_track_ids);
+                                    """
                 .trimIndent()
+
         val params =
             mapOf(
-                "track_number_ids" to trackNumberIds.map { id -> id.intValue },
-                // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is
-                // distinct from true" checks
-                // explicitly for false or null, since "foo in (null)" in SQL is null
-                "track_ids_to_publish" to (trackIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) }),
+                "track_ids_to_publish" to publicationSet.map { id -> id.intValue }.toTypedArray(),
+                "track_number_ids" to trackNumberIds.map { id -> id.intValue }.toTypedArray(),
+                "operational_point_ids" to operationalPointIds.map { id -> id.intValue }.toTypedArray(),
+                "duplicate_of_location_track_ids" to
+                    duplicateOfLocationTrackIds.map { id -> id.intValue }.toTypedArray(),
+                "switch_ids" to switchIds.map { id -> id.intValue }.toTypedArray(),
             ) + target.sqlParameters()
-        val versions =
+
+        data class Row(
+            val version: LayoutRowVersion<LocationTrack>,
+            val trackNumberId: IntId<LayoutTrackNumber>?,
+            val operationalPointIds: Set<IntId<OperationalPoint>>,
+            val duplicateOfLocationTrackId: IntId<LocationTrack>?,
+            val switchIds: Set<IntId<LayoutSwitch>>,
+        )
+
+        val rows =
             jdbcTemplate.query(sql, params) { rs, _ ->
-                val trackNumberId = rs.getIntId<LayoutTrackNumber>("track_number_id")
-                val daoResponse = rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version")
-                trackNumberId to daoResponse
+                Row(
+                    version = rs.getLayoutRowVersion("id", "design_id", "draft", "version"),
+                    trackNumberId = rs.getIntIdOrNull("track_number_id"),
+                    operationalPointIds = rs.getIntIdArray<OperationalPoint>("operational_point_ids").toSet(),
+                    duplicateOfLocationTrackId = rs.getIntIdOrNull("duplicate_of_location_track_id"),
+                    switchIds = rs.getIntIdArray<LayoutSwitch>("switch_ids").toSet(),
+                )
             }
-        return trackNumberIds
-            .associateWith { trackNumberId ->
-                versions.filter { (tnId, _) -> tnId == trackNumberId }.map { (_, trackVersions) -> trackVersions }
+
+        val byTrackNumber =
+            trackNumberIds.associateWith { trackNumberId ->
+                rows.filter { it.trackNumberId == trackNumberId }.map { it.version }
             }
-            .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchVersionsForPublication", trackIdsToPublish) }
+        val byOperationalPoint =
+            operationalPointIds.associateWith { operationalPointId ->
+                rows.filter { it.operationalPointIds.contains(operationalPointId) }.map { it.version }
+            }
+        val byDuplicateOfLocationTrack =
+            duplicateOfLocationTrackIds.associateWith { duplicateOfLocationTrackId ->
+                rows.filter { it.duplicateOfLocationTrackId == duplicateOfLocationTrackId }.map { it.version }
+            }
+        val bySwitch =
+            switchIds.associateWith { switchId -> rows.filter { it.switchIds.contains(switchId) }.map { it.version } }
+
+        return LocationTrackVersionsForValidation(
+                byTrackNumber = byTrackNumber,
+                byOperationalPoint = byOperationalPoint,
+                byDuplicateOfLocationTrack = byDuplicateOfLocationTrack,
+                bySwitch = bySwitch,
+            )
+            .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchVersionsForValidation", publicationSet) }
+    }
+
+    private fun fetchVersionsBySwitchIds(
+        target: LayoutContextTransition,
+        publicationSet: List<IntId<LocationTrack>>,
+        switchIds: List<IntId<LayoutSwitch>>,
+    ): LocationTrackVersionsForValidation {
+        // language=sql
+        val sql =
+            """
+            with tracks as not materialized (
+              select *
+                from layout.location_track_in_layout_context(:base_state::layout.publication_state, :base_design_id) base
+                where not (id = any (:track_ids_to_publish))
+              union all
+              select *
+                from layout.location_track_in_layout_context(:candidate_state::layout.publication_state,
+                                                             :candidate_design_id) candidate
+                where id = any (:track_ids_to_publish)
+            )
+            select
+              track.id,
+              track.design_id,
+              track.draft,
+              track.version,
+              lvv.switch_id
+              from tracks track
+                inner join layout.location_track_version_switch_view lvv
+                  on lvv.location_track_id = track.id
+                    and lvv.location_track_layout_context_id = track.layout_context_id
+                    and lvv.location_track_version = track.version
+              where lvv.switch_id = any (:switch_ids);
+            """
+                .trimIndent()
+
+        val params =
+            mapOf(
+                "track_ids_to_publish" to publicationSet.map { id -> id.intValue }.toTypedArray(),
+                "switch_ids" to switchIds.map { id -> id.intValue }.toTypedArray(),
+            ) + target.sqlParameters()
+
+        val rows =
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version") to
+                    rs.getIntId<LayoutSwitch>("switch_id")
+            }
+
+        val bySwitch =
+            switchIds.associateWith { switchId ->
+                rows.filter { (_, rowSwitchId) -> rowSwitchId == switchId }.map { (version) -> version }.distinct()
+            }
+
+        return LocationTrackVersionsForValidation(
+                byTrackNumber = mapOf(),
+                byOperationalPoint = mapOf(),
+                byDuplicateOfLocationTrack = mapOf(),
+                bySwitch = bySwitch,
+            )
+            .also { logger.daoAccess(AccessType.VERSION_FETCH, "fetchVersionsForValidation", publicationSet) }
     }
 
     @Transactional
@@ -805,3 +938,10 @@ class LocationTrackDao(
         }
     }
 }
+
+data class LocationTrackVersionsForValidation(
+    val byTrackNumber: Map<IntId<LayoutTrackNumber>, List<LayoutRowVersion<LocationTrack>>>,
+    val byOperationalPoint: Map<IntId<OperationalPoint>, List<LayoutRowVersion<LocationTrack>>>,
+    val byDuplicateOfLocationTrack: Map<IntId<LocationTrack>, List<LayoutRowVersion<LocationTrack>>>,
+    val bySwitch: Map<IntId<LayoutSwitch>, List<LayoutRowVersion<LocationTrack>>>,
+)

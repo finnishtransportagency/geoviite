@@ -7,6 +7,8 @@ import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.util.StringSanitizer
 import org.springframework.security.core.GrantedAuthority
 
+const val GEOVIITE: String = "Geoviite"
+
 data class User(val details: UserDetails, val role: Role, val availableRoles: List<Role>)
 
 data class UserDetails(
@@ -29,6 +31,8 @@ data class UserName private constructor(private val value: String) : Comparable<
         val sanitizer = StringSanitizer(UserName::class, ALLOWED_CHARACTERS, allowedLength)
 
         @JvmStatic @JsonCreator fun of(name: String) = UserName(sanitizer.sanitize(name))
+
+        val Geoviite = of(GEOVIITE)
     }
 
     init {

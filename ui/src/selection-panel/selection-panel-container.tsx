@@ -6,10 +6,12 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 import {
     useKmPosts,
     useLocationTracks,
+    useOperationalPoints,
     useReferenceLines,
     useSwitches,
 } from 'track-layout/track-layout-react-utils';
 import { planDownloadAssetIdFromToolPanelAsset } from 'map/plan-download/plan-download-store';
+import { boundingBoxContains } from 'model/geometry';
 
 type SelectionPanelContainerProps = {
     setSwitchToOfficialDialogOpen: (open: boolean) => void;
@@ -47,6 +49,21 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
         changeTimes.layoutKmPost,
     );
 
+    const allOperationalPoints = useOperationalPoints(
+        state.layoutContext,
+        changeTimes.operationalPoints,
+    );
+
+    const operationalPoints = React.useMemo(
+        () =>
+            allOperationalPoints.filter((op) =>
+                op.location && state.map.viewport.area
+                    ? boundingBoxContains(state.map.viewport.area, op.location)
+                    : false,
+            ),
+        [allOperationalPoints, state.map.viewport],
+    );
+
     const togglePlanDownload = () => {
         if (state.planDownloadState) {
             delegates.onClosePlanDownloadPopup();
@@ -75,6 +92,7 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
             referenceLines={referenceLines}
             locationTracks={locationTracks}
             switches={switches}
+            operationalPoints={operationalPoints}
             viewport={state.map.viewport}
             selectableItemTypes={selectableItemTypes}
             togglePlanOpen={delegates.togglePlanOpen}

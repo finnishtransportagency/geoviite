@@ -1,11 +1,17 @@
 import OlMap from 'ol/Map';
-import { MapTool, MapToolActivateOptions } from './tool-model';
+import { MapTool, MapToolActivateOptions, MapToolHandle } from './tool-model';
 import { getDefaultHitArea, searchItemsFromLayers } from 'map/tools/tool-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 
 export const selectTool: MapTool = {
     id: 'select',
-    activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => {
+    activate: (
+        map: OlMap,
+        initialLayers: MapLayer[],
+        options: MapToolActivateOptions,
+    ): MapToolHandle => {
+        let layers = initialLayers;
+
         const clickEvent = map.on('click', ({ coordinate }) => {
             const hitArea = getDefaultHitArea(map, coordinate);
             const items = searchItemsFromLayers(hitArea, layers, { limit: 1 });
@@ -21,12 +27,17 @@ export const selectTool: MapTool = {
                 trackNumbers: items.trackNumbers ?? [],
                 geometryPlans: items.geometryPlans ?? [],
                 operationalPoints: items.operationalPoints ?? [],
+                operationalPointClusters: items.operationalPointClusters ?? [],
             });
         });
 
-        // Return function to clean up this tool
-        return () => {
-            map.un('click', clickEvent.listener);
+        return {
+            deactivate: () => {
+                map.un('click', clickEvent.listener);
+            },
+            onLayersChanged: (newLayers) => {
+                layers = newLayers;
+            },
         };
     },
 };

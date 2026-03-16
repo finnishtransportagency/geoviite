@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
+import LazyMap
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IndexedId
@@ -422,7 +423,7 @@ constructor(
             endAddress,
             geocodingContext,
             coordinateTransformationService::getLayoutTransformation,
-            ::getHeaderAndAlignment,
+            LazyMap(::getHeaderAndAlignment)::get,
         )
     }
 
@@ -534,9 +535,6 @@ constructor(
                 Comparator { a, b ->
                     nullsLastComparator(linkingSummaries[a.id]?.linkedAt, linkingSummaries[b.id]?.linkedAt)
                 }
-
-            GeometryPlanSortField.LINKED_BY ->
-                stringComparator { h -> linkingSummaries[h.id]?.linkedByUsers?.joinToString(",") }
         }
     }
 
@@ -779,7 +777,6 @@ enum class GeometryPlanSortField {
     UPLOADED_AT,
     FILE_NAME,
     LINKED_AT,
-    LINKED_BY,
 }
 
 private data class SegmentSource(

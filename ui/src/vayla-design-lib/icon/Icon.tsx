@@ -30,6 +30,8 @@ import chevronSvg from './glyphs/navigation/chevron.svg';
 import eyeSvg from './glyphs/status/eye.svg';
 import tickSvg from './glyphs/navigation/tick.svg';
 import moreSvg from './glyphs/navigation/more.svg';
+import previousSvg from './glyphs/navigation/previous.svg';
+import nextSvg from './glyphs/navigation/next.svg';
 import lockSvg from './glyphs/status/lock.svg';
 import vectorRight from './glyphs/navigation/vector-right.svg';
 import redoSvg from './glyphs/action/redo.svg';
@@ -44,6 +46,7 @@ import barsI from './glyphs/misc/bars-i.svg';
 import barsII from './glyphs/misc/bars-ii.svg';
 import barsIII from './glyphs/misc/bars-iii.svg';
 import signal from './glyphs/ratko/signal.svg';
+import circle from './glyphs/misc/circle.svg';
 import styles from './icon.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
@@ -90,6 +93,8 @@ const iconNameToSvgMap = {
     FullScreen: fullScreen,
     ExitFullScreen: exitFullScreen,
     ExternalLink: externalLink,
+    Previous: previousSvg,
+    Next: nextSvg,
 
     // Status
     Info: infoSvg,
@@ -128,6 +133,7 @@ const iconNameToSvgMap = {
     BarsI: barsI,
     BarsII: barsII,
     BarsIII: barsIII,
+    Circle: circle,
 
     // Ratko
     Signal: signalSvg,
@@ -141,6 +147,7 @@ const iconNameToSvgMapStaticColor = {
 };
 
 export enum IconSize {
+    X_SMALL = 'icon--size-x-small',
     SMALL = 'icon--size-small',
     MEDIUM = 'icon--size-medium',
     MEDIUM_SMALL = 'icon--size-medium-small',

@@ -171,8 +171,16 @@
     top: 0;
     background: vayla-design.$color-white-default;
     position: sticky;
+    display: flex;
     z-index: 1;
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+}
+
+.tool-panel__tab-bar-buttons {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding-left: 2px;
 }
 
 .tool-panel__tab-header {

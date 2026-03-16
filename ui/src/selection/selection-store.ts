@@ -13,7 +13,7 @@ import {
 } from 'selection/selection-model';
 import { GeometryPlanLayout } from 'track-layout/track-layout-model';
 import { deduplicate, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
-import { ValueOf } from 'utils/type-utils';
+import { isArray, ValueOf } from 'utils/type-utils';
 import {
     GeometryAlignmentId,
     GeometryKmPostId,
@@ -25,6 +25,7 @@ import { PublicationId, PublicationSearch } from 'publication/publication-model'
 import { defaultPublicationSearch } from 'publication/publication-utils';
 import { TimeStamp } from 'common/common-model';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
+import { objectEquals } from 'utils/object-utils';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
@@ -40,11 +41,11 @@ export function createEmptyItemCollections(): ItemCollections {
         clusterPoints: [],
         geometryPlans: [],
         operationalPoints: [],
+        operationalPointClusters: [],
     };
 }
 
 export const initialSelectionState: Selection = {
-    selectionModes: ['alignment', 'switch', 'segment', 'trackNumber'],
     selectedItems: createEmptyItemCollections(),
     highlightedItems: createEmptyItemCollections(),
     openPlans: [],
@@ -52,6 +53,22 @@ export const initialSelectionState: Selection = {
     publicationId: undefined,
     publicationSearch: undefined,
 };
+
+export function isEmptyItemCollections(itemCollections: ItemCollections) {
+    let k: keyof ItemCollections;
+    for (k in itemCollections) {
+        const v = itemCollections[k];
+        if (isArray(v) && v.length > 0) return false;
+    }
+    return true;
+}
+
+export function itemCollectionsMatch(
+    itemCollectionsA: ItemCollections,
+    itemCollectionsB: ItemCollections,
+) {
+    return objectEquals(itemCollectionsA, itemCollectionsB);
+}
 
 function getNewIdCollection<TId extends string>(
     ids: TId[],
@@ -139,7 +156,7 @@ function getNewItemCollectionUsingCustomId<TEntity, TId>(
     }
 }
 
-function updateItemCollectionsByOptions(
+export function updateItemCollectionsByOptions(
     itemCollections: ItemCollections,
     options: OnSelectOptions,
 ) {
@@ -205,6 +222,11 @@ function updateItemCollectionsByOptions(
         options['operationalPoints'],
         flags,
     );
+    itemCollections['operationalPointClusters'] = getNewItemCollection(
+        itemCollections['operationalPointClusters'],
+        options['operationalPointClusters'],
+        flags,
+    );
 }
 
 function updateItemCollectionsByUnselecting(
@@ -254,6 +276,10 @@ function updateItemCollectionsByUnselecting(
     itemCollections['operationalPoints'] = filterIdCollection(
         itemCollections['operationalPoints'],
         unselectItemCollections['operationalPoints'],
+    );
+    itemCollections['operationalPointClusters'] = filterItemCollection(
+        itemCollections['operationalPointClusters'],
+        unselectItemCollections['operationalPointClusters'],
     );
 }
 

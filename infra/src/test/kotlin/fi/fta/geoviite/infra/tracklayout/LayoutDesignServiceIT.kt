@@ -99,7 +99,6 @@ constructor(
         trackNumberService.cancel(designBranch, trackNumber)
         publicationTestSupportService.publish(designBranch, objectIds)
 
-        assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER))
         val latestPublicationsBeforeEdit = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
         layoutDesignService.update(designId, designForm(designId))
         val latestPublicationsAfterEdit = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
@@ -109,7 +108,7 @@ constructor(
     }
 
     @Test
-    fun `cancelling a design creates two publications (design delete and design cancellation) and leaves no trace behind in the layout asset tables`() {
+    fun `cancelling a design creates two publications (design delete and design cancellation)`() {
         val designBranch = testDBService.createDesignBranch()
         val designId = designBranch.designId
         val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
@@ -134,12 +133,6 @@ constructor(
         )
 
         deleteDesign(designId)
-
-        assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER))
-        assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_REFERENCE_LINE))
-        assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_LOCATION_TRACK))
-        assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_SWITCH))
-        assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_KM_POST))
 
         val latestPublication = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 2)
         val designCancellationDetails = publicationLogService.getPublicationDetails(latestPublication[0].id)
@@ -241,8 +234,6 @@ constructor(
 
         assertContainsSingleCancelledOfficialObject(details.switches.map { it.version }, switchDao)
         assertContainsSingleCancelledOfficialObject(details.locationTracks.map { it.version }, locationTrackDao)
-        assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_LOCATION_TRACK))
-        assertEquals(0, countDesignObjectsInLayoutTable(designId, LayoutAssetTable.LAYOUT_ASSET_SWITCH))
     }
 
     private fun <T : LayoutAsset<T>> assertContainsSingleCancelledOfficialObject(

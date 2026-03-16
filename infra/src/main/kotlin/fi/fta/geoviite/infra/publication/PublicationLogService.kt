@@ -52,15 +52,12 @@ import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.mapValues
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
@@ -844,11 +841,22 @@ constructor(
             compareChangeValues(changes.gkLocationConfirmed, { it }, PropKey("gk-location-confirmed")),
         )
 
-    fun diffOperationalPoint(translation: Translation, changes: OperationalPointChanges): List<PublicationChange<*>> =
-        listOfNotNull(
+    fun diffOperationalPoint(translation: Translation, changes: OperationalPointChanges): List<PublicationChange<*>> {
+        val oldRinfId = changes.rinfIdOverride.old ?: changes.rinfIdGenerated.old
+        val newRinfId = changes.rinfIdOverride.new ?: changes.rinfIdGenerated.new
+
+        return listOfNotNull(
             compareChangeValues(changes.name, { it }, PropKey("operational-point")),
             compareChangeValues(changes.abbreviation, { it }, PropKey("abbreviation")),
             compareChangeValues(changes.uicCode, { it }, PropKey("uic-code")),
+            compareChange(
+                predicate = { oldRinfId != newRinfId },
+                oldValue = oldRinfId,
+                newValue = newRinfId,
+                valueTransform = { it.toString() },
+                propKey = PropKey("rinf-id"),
+                remark = getOperationalPointRinfIdChangedRemarkOrNull(translation, changes.rinfIdOverride),
+            ),
             compareChangeValues(
                 changes.rinfType,
                 { rinfType ->
@@ -858,10 +866,10 @@ constructor(
                 PropKey("rinf-type"),
             ),
             compareChangeValues(
-                changes.raideType,
+                changes.ratoType,
                 { it },
-                PropKey("raide-type"),
-                enumLocalizationKey = "OperationalPointRaideType",
+                PropKey("rato-type"),
+                enumLocalizationKey = "OperationalPointRatoType",
             ),
             compareChangeValues(
                 changes.polygon,
@@ -878,6 +886,7 @@ constructor(
             ),
             compareChangeValues(changes.state, { it }, PropKey("state"), enumLocalizationKey = "OperationalPointState"),
         )
+    }
 
     private fun projectPointToReferenceLineAtTime(
         timestamp: Instant,

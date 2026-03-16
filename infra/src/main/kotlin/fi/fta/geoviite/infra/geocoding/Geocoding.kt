@@ -108,6 +108,19 @@ data class AddressPoint<M : AnyM<M>>(val point: AlignmentPoint<M>, val address: 
         }
 }
 
+sealed class AddressPointsResult<M : AlignmentM<M>> {
+    open val addresses: AlignmentAddresses<M>? = null
+
+    data class AddressPointsSuccess<M : AlignmentM<M>>(override val addresses: AlignmentAddresses<M>) :
+        AddressPointsResult<M>()
+
+    // currently a grab-bag, as this may fail at least due to an endpoint being too far from the reference line, or due
+    // to the first track km ending up too long
+    class InvalidEndpoint<M : AlignmentM<M>> : AddressPointsResult<M>()
+
+    class EndBeforeStart<M : AlignmentM<M>>() : AddressPointsResult<M>()
+}
+
 data class AlignmentAddresses<M : AnyM<M>>(
     val startPoint: AddressPoint<M>,
     val endPoint: AddressPoint<M>,
@@ -168,7 +181,6 @@ data class GeocodingKm<M : GeocodingAlignmentM<M>>(
     val kmNumber: KmNumber,
     val startMeters: BigDecimal,
     val referenceLineM: Range<LineM<M>>,
-    val kmPostOffset: Double,
     val endInclusive: Boolean,
 ) {
     val length = referenceLineM.max.distance - referenceLineM.min.distance
@@ -251,6 +263,7 @@ enum class KmValidationIssue {
     INTERSECTS_AFTER_REFERENCE_LINE,
     DUPLICATE_KM,
     INCORRECT_ORDER,
+    IS_TOO_FAR_FROM_REFERENCE_LINE,
 }
 
 enum class Resolution(val meters: BigDecimal) {
@@ -434,7 +447,6 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
                     prev.km,
                     prev.meter,
                     Range(prev.referenceLineM, next?.referenceLineM ?: referenceLineGeometry.length),
-                    prev.kmPostOffset,
                     index == kmReferencePoints.lastIndex,
                 )
             }
@@ -478,11 +490,10 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
             validKmPosts.forEach { post ->
                 val location =
                     requireNotNull(post.layoutLocation) { "A validated KM Post must have a location: ${post.toLog()}" }
-                val closestPoint =
-                    requireNotNull(referenceLineGeometry.getClosestPointM(location)) {
-                        "Could not resolve closest point on reference line for km post: ${post.toLog()}"
-                    }
+                val closestPoint = referenceLineGeometry.getClosestPointM(location)
                 when {
+                    closestPoint == null ->
+                        errors.add(post.kmNumber to KmValidationIssue.IS_TOO_FAR_FROM_REFERENCE_LINE)
                     closestPoint.second == BEFORE ->
                         errors.add(post.kmNumber to KmValidationIssue.INTERSECTS_BEFORE_REFERENCE_LINE)
                     closestPoint.second == AFTER ->
@@ -556,7 +567,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
     fun getReferenceLineAddressesWithResolution(
         resolution: Resolution,
         addressFilter: AddressFilter? = null,
-    ): AlignmentAddresses<M>? {
+    ): AddressPointsResult<M> {
         return getAddressPoints(referenceLineGeometry, resolution, addressFilter)
     }
 
@@ -618,10 +629,16 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
         alignment: IAlignment<TargetM>,
         resolution: Resolution = Resolution.ONE_METER,
         addressFilter: AddressFilter? = null,
-    ): AlignmentAddresses<TargetM>? {
-        return getStartAndEnd(alignment, addressFilter)?.let { (startPoint, endPoint) ->
-            val pointRange = Range(startPoint.first.address, endPoint.first.address)
-            val midPoints = getMidPoints(alignment, pointRange, resolution)
+    ): AddressPointsResult<TargetM> {
+        val startAndEnd =
+            getStartAndEnd(alignment, addressFilter) ?: return AddressPointsResult.InvalidEndpoint<TargetM>()
+        val (startPoint, endPoint) = startAndEnd
+        if (startPoint.first.address > endPoint.first.address) {
+            return AddressPointsResult.EndBeforeStart<TargetM>()
+        }
+        val pointRange = Range(startPoint.first.address, endPoint.first.address)
+        val midPoints = getMidPoints(alignment, pointRange, resolution)
+        return AddressPointsResult.AddressPointsSuccess(
             AlignmentAddresses(
                 startPoint = startPoint.first,
                 endPoint = endPoint.first,
@@ -630,7 +647,7 @@ data class GeocodingContext<M : GeocodingAlignmentM<M>>(
                 midPoints = midPoints.addressPoints.filterNotNull(),
                 alignmentWalkFinished = midPoints.alignmentWalkFinished,
             )
-        }
+        )
     }
 
     fun <TargetM : AlignmentM<TargetM>> getTrackLocation(

@@ -38,7 +38,6 @@ import {
 import {
     getLocationTrack,
     getLocationTrackChangeTimes,
-    getLocationTrackIdsByTrackNumber,
     getLocationTrackInfoboxExtras,
     getLocationTracks,
     getLocationTracksByName,
@@ -66,7 +65,10 @@ import { validateLocationTrackName } from 'tool-panel/location-track/dialog/loca
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { getLayoutDesignByBranch, LayoutDesign } from 'track-layout/layout-design-api';
-import { getOperationalPoint } from 'track-layout/layout-operational-point-api';
+import {
+    getAllOperationalPoints,
+    getOperationalPoint,
+} from 'track-layout/layout-operational-point-api';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -126,19 +128,6 @@ export function useLocationTracks(
         useLoader(
             () => (ids.length > 0 ? getLocationTracks(ids, layoutContext, changeTime) : undefined),
             [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
-        ) || EMPTY_ARRAY
-    );
-}
-
-export function useLocationTrackIdsByTrackNumber(
-    trackNumberId: LayoutTrackNumberId,
-    layoutContext: LayoutContext,
-    changeTime?: TimeStamp,
-): LocationTrackId[] {
-    return (
-        useLoader(
-            () => getLocationTrackIdsByTrackNumber(trackNumberId, layoutContext, changeTime),
-            [trackNumberId, layoutContext.branch, layoutContext.publicationState, changeTime],
         ) || EMPTY_ARRAY
     );
 }
@@ -294,6 +283,18 @@ export function useOperationalPoint(
     return useOptionalLoader(
         () => (id ? getOperationalPoint(id, layoutContext, changeTime) : undefined),
         [id, layoutContext.publicationState, layoutContext.branch, changeTime],
+    );
+}
+
+export function useOperationalPoints(
+    layoutContext: LayoutContext,
+    changeTime?: TimeStamp,
+): OperationalPoint[] {
+    return (
+        useLoader(
+            () => getAllOperationalPoints(layoutContext, changeTime),
+            [layoutContext.branch, layoutContext.publicationState, changeTime],
+        ) || EMPTY_ARRAY
     );
 }
 

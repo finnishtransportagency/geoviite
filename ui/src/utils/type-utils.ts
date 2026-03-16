@@ -17,6 +17,8 @@ type EnsureAllKeys<TAllKeys, TGivenKeys> =
         ? TGivenKeys
         : `Key '${GetStringKeyTypes<Exclude<TAllKeys, TGivenKeys>>}' is missing!`;
 
+export type NonNullableField<T, K extends keyof T> = T & Required<{ [P in K]: NonNullable<T[P]> }>;
+
 /**
  * This function provides type checking to make sure that the given
  * "keys" array contains all possible values for the given key type.
@@ -54,6 +56,17 @@ export const isNil = <T>(object: T | undefined | null): object is undefined | nu
 export const expectDefined = <T>(thing: T): NonNullable<T> => {
     if (!isNil(thing)) {
         return thing!;
+    } else {
+        throw Error('Encountered an unexpected nil!');
+    }
+};
+
+export const expectFieldDefined = <T, K extends keyof T>(
+    thing: T,
+    key: K,
+): NonNullableField<T, K> => {
+    if (!isNil(thing[key])) {
+        return thing! as NonNullableField<T, K>;
     } else {
         throw Error('Encountered an unexpected nil!');
     }

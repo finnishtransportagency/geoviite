@@ -400,3 +400,7 @@ export function mapLazy<T>(list: T[], transform: (element: T, index: number) => 
     });
     return changed ? newList : list;
 }
+
+export function takeLast<T>(list: T[], count: number): T[] {
+    return list.slice(-count);
+}

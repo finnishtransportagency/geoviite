@@ -12,7 +12,8 @@ tausta-ajolla, jonka tilaa tarkastellaan käyttölittymässä julkaisutasolla.
 
 Tämä on yksinkertaistettu malli julkaisun käsitteistöstä. Todellisuudessa mukana on vielä kohtuullinen
 määrä valmiiksi laskettua dataa julkaisuhistorian esittämistä varten. Käsitteellisesti mallin voi kuitenkin mieltää
-koostuvan julkaisusta johon sisältyy tarkat versiokiinnitykset sen muuttamille käsitteille. Varsinainen datasisältö, joka julkaisussa muuttui, voidaan hakea paikannuspohjan
+koostuvan julkaisusta johon sisältyy tarkat versiokiinnitykset sen muuttamille käsitteille. Varsinainen datasisältö,
+joka julkaisussa muuttui, voidaan hakea paikannuspohjan
 versiotauluista kiinnitetyillä versioilla tai julkaisun aikaleimalla.
 
 ```mermaid
@@ -61,15 +62,45 @@ yhteydessä.
 Julkaisuvalidoinnissa varmistetaan että julkaistavat luonnosmuutokset vie virallisen paikannuspohjan ehjään tilaan.
 Tässä keskeisiä kohtia varmistaa on mm:
 
-- Käsitteiden eheys
-    - Kaikilla käsitteillä on kaikki vaaditut kentät määritelty ja valideja (luonnosten välitilat eivät enää käy)
-- Viite-eheys
-    - Olemassaolevat käsitteet eivät viittaa poistettuihin käsitteisiin
-    - Virallisesta paikannuspohjasta ei voi viitata "vain luonnos" -olioihin
-- Rataverkon eheys
-    - Vaihteen linjoihin on kytkettynä riittävät raiteet
-    - Vaihteet ja raiteet ovat samaa mieltä liityntäpisteiden koordinaateista
-- Osoitteiston eheys (yhteensopivuus pituusmittauslinjaan)
-    - Kaikille raiteille on mahdollista laskea osoitteet koko matkalta
-    - Osoitteet ovat jatkuvia, kaikki raiteen metrit voidaan laskea ja metrit eivät ole liian pitkiä/lyhyitä
-    - Tuotetut osoitteet ovat valideja (eli ylipitkiä kilometreja)
+- Käsitteiden eheys: vaaditut kentät, sallitut arvoalueet, jne
+- Viite-eheys yli paikannuspohjan kontekstien (kts. [Paikannuspohjan kontekstit](paikannuspohjan_kontekstit.md)) ja tilojen
+- Geometrioiden eheys
+- Rataverkon topologinen eheys (raide-vaihde linkit, kts. [Rataverkko graafi](rataverkko_graafi.md))
+- Rataosoitteiston (kts. [Geokoodaus](geokoodaus.md)) eheys eli raiteen yhteensopivuus pituusmittauslinjaan
+
+Tarkemmin validointisäännöt on kuvattu dokumentissa [Paikannuspohjan validointi](paikannuspohjan_validointi.md).
+
+## Julkaisut suunnitelmissa
+
+Suunnitelmiin liittyy erityyppisiä julkaisuja:
+
+### Suunnitelman normaali julkaisu
+
+Kun design-draft -muutoksia julkaistaan design-official -tilaan:
+
+- Suoritetaan normaali julkaisuvalidointi
+- Luonnoskontekstin muutokset siirretään viralliseen suunnitelmaan
+- Julkaisu tallennetaan publication-tauluun linkitettynä suunnitelmaan
+
+### Tyhjä julkaisu suunnitelman muutoksesta
+
+Kun suunnitelman metatietoja (nimi, valmistumispäivä) muutetaan ja suunnitelma on jo julkaistu:
+
+- Tehdään tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_CHANGE)
+- Ei sisällä paikannuspohjan muutoksia
+
+### Tyhjä julkaisu suunnitelman poistosta
+
+Kun suunnitelma poistetaan, tehdään kaksi julkaisua:
+
+- Tyhjä julkaisu (PublicationCause.LAYOUT_DESIGN_DELETE)
+- Peruutusjulkaisu kaikille suunnitelman kohteille (PublicationCause.LAYOUT_DESIGN_CANCELLATION), joka sisältää
+  peruutetut kohteet CANCELLED-tilassa
+
+### Laskennalliset muutokset suunnitelmissa
+
+Kun virallinen paikannuspohja muuttuu tavalla joka vaikuttaa suunnitelmiin:
+
+- Tehdään kuhunkin suunnitelmaan, jonka sisältöön muutos vaikuttaa, laskennallinen julkaisu
+  (PublicationCause.CALCULATED_CHANGE)
+- Julkaisu sisältää kaikki suunnitelman kohteet, joihin virallisen paikannuspohjan julkaisu vaikuttaa

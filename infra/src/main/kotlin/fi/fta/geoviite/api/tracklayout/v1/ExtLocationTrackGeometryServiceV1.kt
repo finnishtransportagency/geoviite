@@ -19,8 +19,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
-import org.springframework.beans.factory.annotation.Autowired
 import java.time.Instant
+import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class ExtLocationTrackGeometryServiceV1
@@ -154,13 +154,15 @@ constructor(
                 geocodingDao.getLayoutGeocodingContextCacheKey(branch, track.trackNumberId, moment)
                     ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
 
-            geocodingService.getAddressPoints(geocodingContextCacheKey, track.getVersionOrThrow(), resolution)
+            geocodingService
+                .getAddressPoints(geocodingContextCacheKey, track.getVersionOrThrow(), resolution)
+                ?.addresses
         } else {
             // When filter is assigned, compute the desired interval on the fly
             val geometry = alignmentDao.fetch(requireNotNull(track.version))
             val context =
                 geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
                     ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
-            context.getAddressPoints(geometry, resolution, addressFilter)
+            context.getAddressPoints(geometry, resolution, addressFilter).addresses
         }
 }

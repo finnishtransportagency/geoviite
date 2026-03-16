@@ -3,6 +3,7 @@ import { TimeStamp } from 'common/common-model';
 import { toDate } from 'utils/date-utils';
 import { User } from 'user/user-model';
 import { PURGE } from 'redux-persist';
+import { RatkoStatus } from 'ratko/ratko-api';
 
 export type ChangeTimes = {
     layoutTrackNumber: TimeStamp;
@@ -53,6 +54,7 @@ export type CommonState = {
     changeTimes: ChangeTimes;
     user: User | undefined;
     jwtTokenExpired: boolean;
+    ratkoStatus: RatkoStatus | undefined;
 };
 
 export const initialCommonState: CommonState = {
@@ -61,6 +63,7 @@ export const initialCommonState: CommonState = {
     changeTimes: initialChangeTimes,
     user: undefined,
     jwtTokenExpired: false,
+    ratkoStatus: undefined,
 };
 
 const updateChangeTime = (changeTimes: ChangeTimes, key: keyof ChangeTimes, time: TimeStamp) => {
@@ -170,6 +173,12 @@ const commonSlice = createSlice({
         },
         setUser: (state: CommonState, { payload: user }: PayloadAction<User>): void => {
             state.user = user;
+        },
+        setRatkoStatus: (
+            state: CommonState,
+            { payload: ratkoStatus }: PayloadAction<RatkoStatus | undefined>,
+        ) => {
+            state.ratkoStatus = ratkoStatus;
         },
     },
 });

@@ -1,5 +1,5 @@
 import OlMap from 'ol/Map';
-import { MapTool, MapToolActivateOptions } from './tool-model';
+import { MapTool, MapToolActivateOptions, MapToolHandle } from './tool-model';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { debounce } from 'ts-debounce';
 import { getDefaultHitArea, searchItemsFromLayers } from 'map/tools/tool-utils';
@@ -7,7 +7,13 @@ import { getDefaultHitArea, searchItemsFromLayers } from 'map/tools/tool-utils';
 let currentItemsCompare = '';
 export const highlightTool: MapTool = {
     id: 'highlight',
-    activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => {
+    activate: (
+        map: OlMap,
+        initialLayers: MapLayer[],
+        options: MapToolActivateOptions,
+    ): MapToolHandle => {
+        let layers = initialLayers;
+
         const debouncedMoveHandlerHighlight = debounce(
             ({ coordinate }) => {
                 const hitArea = getDefaultHitArea(map, coordinate);
@@ -25,9 +31,13 @@ export const highlightTool: MapTool = {
         );
         const pointerMoveEvent = map.on('pointermove', debouncedMoveHandlerHighlight);
 
-        // Return function to clean up this tool
-        return () => {
-            map.un('pointermove', pointerMoveEvent.listener);
+        return {
+            deactivate: () => {
+                map.un('pointermove', pointerMoveEvent.listener);
+            },
+            onLayersChanged: (newLayers) => {
+                layers = newLayers;
+            },
         };
     },
 };

@@ -7,7 +7,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown, DropdownOption, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/operational-point-delete-draft-confirm-dialog';
+import { OperationalPointDeleteDraftConfirmDialog } from 'tool-panel/operational-point/dialog/operational-point-delete-draft-confirm-dialog';
 import {
     OperationalPoint,
     OperationalPointId,
@@ -22,7 +22,7 @@ import {
     ExternalOperationalPointSaveRequest,
     initialExternalOperationalPointEditState,
     reducer,
-} from 'tool-panel/operational-point/external-operational-point-edit-store';
+} from 'tool-panel/operational-point/dialog/external-operational-point-edit-store';
 import { UnknownAction } from 'redux';
 import {
     getVisibleErrorsByProp as getVisibleErrorsByPropGeneric,
@@ -34,17 +34,24 @@ import {
     deleteDraftOperationalPoint,
     updateExternalOperationalPoint,
 } from 'track-layout/layout-operational-point-api';
+import { OperationalPointRinfIdField } from './operational-point-rinf-id-field';
+import {
+    hasSameRinfId,
+    withConditionalRinfIdOverride,
+} from 'tool-panel/operational-point/operational-point-utils';
+import { filterNotEmpty } from 'utils/array-utils';
 
 type ExternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint;
     layoutContext: LayoutContext;
+    allOtherOperationalPoints: OperationalPoint[];
     onSave: (id: OperationalPointId) => void;
     onClose: () => void;
 };
 
 export const ExternalOperationalPointEditDialog: React.FC<
     ExternalOperationalPointEditDialogProps
-> = ({ operationalPoint, layoutContext, onClose, onSave }) => {
+> = ({ operationalPoint, layoutContext, allOtherOperationalPoints, onClose, onSave }) => {
     const { t } = useTranslation();
 
     const [state, dispatcher] = React.useReducer<
@@ -56,33 +63,51 @@ export const ExternalOperationalPointEditDialog: React.FC<
     React.useEffect(() => {
         if (operationalPoint) stateActions.onOperationalPointLoaded(operationalPoint);
     }, [operationalPoint]);
+    React.useEffect(() => {
+        stateActions.setEditingRinfId(!!operationalPoint.rinfIdOverride);
+    }, [operationalPoint.rinfIdOverride]);
 
     const [deleteDraftConfirmDialogOpen, setdeleteDraftConfirmDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
+
+    const isOlp = state.existingOperationalPoint?.ratoType === 'OLP';
+
+    const duplicateRinfIdPoint = allOtherOperationalPoints?.find((operationalPoint) =>
+        hasSameRinfId(state.operationalPoint?.rinfIdOverride, operationalPoint),
+    );
 
     const rinfTypeOptions: DropdownOption<OperationalPointRinfType>[] = rinfTypes.map((value) =>
         dropdownOption(value.value, value.name, `rinf-type-option-${value}`),
     );
 
     const getVisibleErrorsByProp = (prop: keyof ExternalOperationalPointSaveRequest) =>
-        getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop).map(
-            (err) => t(`operational-point-dialog.validation.${err}`),
-        );
+        getVisibleErrorsByPropGeneric(state.committedFields, state.validationIssues, prop);
+    const rinfIdErrors = [
+        ...getVisibleErrorsByProp('rinfIdOverride'),
+        duplicateRinfIdPoint ? 'rinf-id-in-use' : undefined,
+    ].filter(filterNotEmpty);
 
-    const updateRinfType = (value: OperationalPointRinfType | undefined) =>
-        value &&
+    const updateProp = <K extends keyof ExternalOperationalPointSaveRequest>(
+        key: K,
+        value: ExternalOperationalPointSaveRequest[K],
+    ) =>
         stateActions.onUpdateProp({
-            key: 'rinfType',
-            value: value,
+            key,
+            value,
             editingExistingValue: !!state.operationalPoint,
         });
 
     const saveUpdatedOperationalPoint = (
         id: OperationalPointId,
         updatedOperationalPoint: ExternalOperationalPointSaveRequest,
+        allowRinfIdOverride: boolean,
     ) => {
         setIsSaving(true);
-        updateExternalOperationalPoint(id, updatedOperationalPoint, layoutContext)
+        const saveRequest = withConditionalRinfIdOverride(
+            updatedOperationalPoint,
+            allowRinfIdOverride,
+        );
+        updateExternalOperationalPoint(id, saveRequest, layoutContext)
             .then(
                 () => {
                     onSave(id);
@@ -98,6 +123,13 @@ export const ExternalOperationalPointEditDialog: React.FC<
         deleteDraftOperationalPoint(layoutContext, operationalPoint.id);
         setdeleteDraftConfirmDialogOpen(false);
         onClose();
+    };
+    const onUpdateRinfId = (rinfId: string) => {
+        stateActions.onUpdateProp({
+            key: 'rinfIdOverride',
+            value: rinfId,
+            editingExistingValue: !!state.existingOperationalPoint?.rinfIdOverride,
+        });
     };
 
     return (
@@ -125,6 +157,7 @@ export const ExternalOperationalPointEditDialog: React.FC<
                                     saveUpdatedOperationalPoint(
                                         operationalPoint.id,
                                         state.operationalPoint,
+                                        state.editingRinfId,
                                     )
                                 }>
                                 {t('button.save')}
@@ -137,6 +170,23 @@ export const ExternalOperationalPointEditDialog: React.FC<
                         <Heading size={HeadingSize.SUB}>
                             {t('operational-point-dialog.basic-info')}
                         </Heading>
+                        <React.Fragment>
+                            {!isOlp && (
+                                <OperationalPointRinfIdField
+                                    rinfIdOverride={state.operationalPoint?.rinfIdOverride ?? ''}
+                                    rinfIdGenerated={
+                                        state.existingOperationalPoint?.rinfIdGenerated ?? ''
+                                    }
+                                    onUpdateRinfId={onUpdateRinfId}
+                                    onCommitField={stateActions.onCommitField}
+                                    editingRinfId={state.editingRinfId}
+                                    onEditingRinfIdChange={(editing) =>
+                                        stateActions.setEditingRinfId(editing)
+                                    }
+                                    errors={rinfIdErrors}
+                                />
+                            )}
+                        </React.Fragment>
                         <FieldLayout
                             label={t('operational-point-dialog.name')}
                             value={state.existingOperationalPoint?.name}
@@ -150,12 +200,12 @@ export const ExternalOperationalPointEditDialog: React.FC<
                             value={
                                 state.existingOperationalPoint &&
                                 t(
-                                    `enum.OperationalPointRaideType.${state.existingOperationalPoint.raideType}`,
+                                    `enum.OperationalPointRatoType.${state.existingOperationalPoint.ratoType}`,
                                 )
                             }
                         />
                         <FieldLayout
-                            label={`${t('operational-point-dialog.type-rinf')} *`}
+                            label={`${t('operational-point-dialog.type-rinf')}${isOlp ? '' : ' *'}`}
                             value={
                                 <Dropdown
                                     options={rinfTypeOptions}
@@ -164,17 +214,20 @@ export const ExternalOperationalPointEditDialog: React.FC<
                                             (o) => o.value === state.operationalPoint.rinfType,
                                         )?.value
                                     }
-                                    onChange={updateRinfType}
+                                    onChange={(value) => updateProp('rinfType', value)}
                                     onBlur={() => stateActions.onCommitField('rinfType')}
                                     hasError={hasErrors(
                                         state.committedFields,
                                         state.validationIssues,
                                         'rinfType',
                                     )}
+                                    canUnselect={isOlp}
                                     wide
                                 />
                             }
-                            errors={getVisibleErrorsByProp('rinfType')}
+                            errors={getVisibleErrorsByProp('rinfType').map((err) =>
+                                t(`operational-point-dialog.validation.${err}`),
+                            )}
                         />
                         <FieldLayout
                             label={t('operational-point-dialog.state')}
