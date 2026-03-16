@@ -19,10 +19,10 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtTrackNumberServiceV1
@@ -44,7 +44,11 @@ constructor(
         trackNumberFilter: String? = null,
     ): ExtTrackNumberCollectionResponseV1 {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
-        return createTrackNumberCollectionResponse(publication, coordinateSystem(extCoordinateSystem), trackNumberFilter)
+        return createTrackNumberCollectionResponse(
+            publication,
+            coordinateSystem(extCoordinateSystem),
+            trackNumberFilter,
+        )
     }
 
     fun getExtTrackNumberCollectionModifications(
@@ -55,7 +59,11 @@ constructor(
     ): ExtModifiedTrackNumberCollectionResponseV1? {
         val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         return if (publications.areDifferent()) {
-            createTrackNumberCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem), trackNumberFilter)
+            createTrackNumberCollectionModificationResponse(
+                publications,
+                coordinateSystem(extCoordinateSystem),
+                trackNumberFilter,
+            )
         } else {
             publicationsAreTheSame(layoutVersionFrom.value)
         }
@@ -131,11 +139,14 @@ constructor(
     private fun createTrackNumberCollectionResponse(
         publication: Publication,
         coordinateSystem: Srid,
-        trackNumberFilter: String?,
+        tnFilter: String?,
     ): ExtTrackNumberCollectionResponseV1 {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
-        val trackNumbers = trackNumberDao.listOfficialAtMoment(branch, moment).filter { it.exists }
+        val trackNumbers =
+            trackNumberDao.listOfficialAtMoment(branch, moment).filter { tn ->
+                tn.exists && (tnFilter == null || tn.number.contains(tnFilter, ignoreCase = true))
+            }
         return ExtTrackNumberCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication.uuid),
             coordinateSystem = ExtSridV1(coordinateSystem),
@@ -146,7 +157,7 @@ constructor(
     private fun createTrackNumberCollectionModificationResponse(
         publications: PublicationComparison,
         coordinateSystem: Srid,
-        trackNumberFilter: String?,
+        tnFilter: String?,
     ): ExtModifiedTrackNumberCollectionResponseV1? {
         val branch = publications.to.layoutBranch.branch
         val startMoment = publications.from.publicationTime
@@ -155,6 +166,10 @@ constructor(
             .fetchPublishedTrackNumbersBetween(startMoment, endMoment)
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(trackNumberDao::fetchMany)
+            ?.let { trackNumbers ->
+                tnFilter?.let { trackNumbers.filter { tn -> tn.number.contains(it, ignoreCase = true) } }
+                    ?: trackNumbers
+            }
             ?.let { trackNumbers ->
                 ExtModifiedTrackNumberCollectionResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),
