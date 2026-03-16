@@ -2349,25 +2349,22 @@ constructor(
             listOf(
                 listOf(
                     LayoutValidationIssue(
-                        LayoutValidationIssueType.FATAL,
+                        LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-draft",
                         mapOf("duplicateNames" to "b"),
-                    )
-                ),
+                    )),
                 listOf(
                     LayoutValidationIssue(
-                        LayoutValidationIssueType.FATAL,
+                        LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-draft",
                         mapOf("duplicateNames" to "a, c"),
-                    )
-                ),
+                    )),
                 listOf(
                     LayoutValidationIssue(
-                        LayoutValidationIssueType.FATAL,
+                        LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-draft",
                         mapOf("duplicateNames" to "b"),
-                    )
-                ),
+                    )),
             ),
             validation.validatedAsPublicationUnit.operationalPoints
                 .sortedBy { it.name.toString() }
@@ -2428,11 +2425,10 @@ constructor(
         assertEquals(
             listOf(
                 LayoutValidationIssue(
-                    LayoutValidationIssueType.FATAL,
+                    LayoutValidationIssueType.WARNING,
                     "validation.layout.operational-point.overlapping-polygon-official",
                     mapOf("duplicateNames" to "a"),
-                )
-            ),
+                )),
             validatedOnlyFirst.validatedAsPublicationUnit.operationalPoints[0].issues,
         )
 
@@ -2448,24 +2444,24 @@ constructor(
             listOf(
                 listOf(
                     LayoutValidationIssue(
-                        LayoutValidationIssueType.FATAL,
+                        LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-draft",
                         mapOf("duplicateNames" to "c"),
                     ),
                     LayoutValidationIssue(
-                        LayoutValidationIssueType.FATAL,
+                        LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-official",
                         mapOf("duplicateNames" to "a"),
                     ),
                 ),
                 listOf(
                     LayoutValidationIssue(
-                        LayoutValidationIssueType.FATAL,
+                        LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-draft",
                         mapOf("duplicateNames" to "b"),
                     ),
                     LayoutValidationIssue(
-                        LayoutValidationIssueType.FATAL,
+                        LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-official",
                         mapOf("duplicateNames" to "a"),
                     ),
@@ -2486,11 +2482,10 @@ constructor(
             listOf(
                 listOf(
                     LayoutValidationIssue(
-                        LayoutValidationIssueType.FATAL,
+                        LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-official",
                         mapOf("duplicateNames" to "a"),
-                    )
-                ),
+                    )),
                 // polygon with no overlaps is fine
                 listOf(),
             ),
