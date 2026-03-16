@@ -25,10 +25,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtSwitchServiceV1
@@ -62,7 +62,11 @@ constructor(
     ): ExtModifiedSwitchCollectionResponseV1? {
         val publications = publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value)
         return if (publications.areDifferent()) {
-            createSwitchCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem), switchNameFilter)
+            createSwitchCollectionModificationResponse(
+                publications,
+                coordinateSystem(extCoordinateSystem),
+                switchNameFilter,
+            )
         } else {
             publicationsAreTheSame(layoutVersionFrom.value)
         }
@@ -135,11 +139,14 @@ constructor(
     private fun createSwitchCollectionResponse(
         publication: Publication,
         coordinateSystem: Srid,
-        switchNameFilter: String?,
+        nameFilter: String?,
     ): ExtSwitchCollectionResponseV1 {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
-        val switches = switchDao.listOfficialAtMoment(branch, moment).filter { it.exists }
+        val switches =
+            switchDao.listOfficialAtMoment(branch, moment).filter {
+                it.exists && (nameFilter == null || it.name.contains(nameFilter, ignoreCase = true))
+            }
         return ExtSwitchCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),
@@ -150,7 +157,7 @@ constructor(
     private fun createSwitchCollectionModificationResponse(
         publications: PublicationComparison,
         coordinateSystem: Srid,
-        switchNameFilter: String?,
+        nameFilter: String?,
     ): ExtModifiedSwitchCollectionResponseV1? {
         val branch = publications.to.layoutBranch.branch
         val startMoment = publications.from.publicationTime
@@ -159,6 +166,9 @@ constructor(
             .fetchPublishedSwitchesBetween(startMoment, endMoment)
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(switchDao::fetchMany)
+            ?.let { switches ->
+                nameFilter?.let { switches.filter { s -> s.name.contains(it, ignoreCase = true) } } ?: switches
+            }
             ?.let { modifiedSwitches ->
                 ExtModifiedSwitchCollectionResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),

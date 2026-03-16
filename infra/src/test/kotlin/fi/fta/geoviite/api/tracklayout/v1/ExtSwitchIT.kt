@@ -30,7 +30,6 @@ import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
-import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -40,6 +39,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import kotlin.test.assertNotEquals
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -544,17 +544,20 @@ constructor(
                 listOf(switchJoint(1, Point(0.0, 20.0)) to switchJoint(2, Point(10.0, 20.0))),
             )
 
-        mainDraftContext.mutate(matchingSwitch.switch.id) { s -> s.copy(name = SwitchName("VAIHDE_SUODATUS_001")) }
-        mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(name = SwitchName("VAIHDE_MUU_999")) }
+        mainDraftContext.mutate(matchingSwitch.switch.id) { s -> s.copy(name = SwitchName("VMATCH")) }
+        mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(name = SwitchName("VOTHER")) }
 
         extTestDataService.publishInMain(listOf(matchingSwitch, otherSwitch))
 
         val matchingOid = matchingSwitch.switch.oid
 
-        val response = api.switchCollection.get(SWITCH_NAME to "SUODATUS")
-
-        assertEquals(1, response.vaihteet.size)
-        assertEquals(matchingOid.toString(), response.vaihteet.first().vaihde_oid)
+        api.switchCollection.get(SWITCH_NAME to "VMATCH").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.vaihteet.map { it.vaihde_oid })
+        }
+        // Partial case-insensitive match
+        api.switchCollection.get(SWITCH_NAME to "matc").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.vaihteet.map { it.vaihde_oid })
+        }
     }
 
     @Test
@@ -570,24 +573,25 @@ constructor(
                 listOf(switchJoint(1, Point(0.0, 20.0)) to switchJoint(2, Point(10.0, 20.0))),
             )
 
-        mainDraftContext.mutate(matchingSwitch.switch.id) { s -> s.copy(name = SwitchName("VAIHDE_SUODATUS_001")) }
-        mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(name = SwitchName("VAIHDE_MUU_999")) }
+        mainDraftContext.mutate(matchingSwitch.switch.id) { s -> s.copy(name = SwitchName("VMATCH")) }
+        mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(name = SwitchName("VOTHER")) }
 
-        val fromPublication = extTestDataService.publishInMain(listOf(matchingSwitch, otherSwitch))
+        val fromPublication = extTestDataService.publishInMain(listOf(matchingSwitch, otherSwitch)).uuid
         val matchingOid = matchingSwitch.switch.oid
 
-        mainDraftContext.mutate(matchingSwitch.switch.id) { s -> s.copy(stateCategory = LayoutStateCategory.NOT_EXISTING) }
+        mainDraftContext.mutate(matchingSwitch.switch.id) { s ->
+            s.copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+        }
         mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(stateCategory = LayoutStateCategory.NOT_EXISTING) }
         extTestDataService.publishInMain(switches = listOf(matchingSwitch.switch.id, otherSwitch.switch.id))
 
-        val response =
-            api.switchCollection.getModified(
-                TRACK_LAYOUT_VERSION_FROM to fromPublication.uuid.toString(),
-                SWITCH_NAME to "SUODATUS",
-            )
-
-        assertEquals(1, response.vaihteet.size)
-        assertEquals(matchingOid.toString(), response.vaihteet.first().vaihde_oid)
+        api.switchCollection.getModifiedSince(fromPublication, SWITCH_NAME to "VMATCH").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.vaihteet.map { it.vaihde_oid })
+        }
+        // Partial case-insensitive match
+        api.switchCollection.getModifiedSince(fromPublication, SWITCH_NAME to "matc").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.vaihteet.map { it.vaihde_oid })
+        }
     }
 
     private fun assertChangesSince(
