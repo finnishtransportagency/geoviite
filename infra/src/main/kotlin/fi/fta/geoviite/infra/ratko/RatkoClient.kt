@@ -54,7 +54,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -641,11 +640,8 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         onStatus(
             { !it.is2xxSuccessful },
             { response ->
-                val status = response.statusCode()
-                val targetMightNotExist = (operation == FETCH_EXISTING || operation == DELETE)
-                when (status) {
-                    NOT_FOUND if targetMightNotExist -> Mono.empty()
-                    BAD_REQUEST if errorType == GEOMETRY && targetMightNotExist -> Mono.empty()
+                when (val status = response.statusCode()) {
+                    NOT_FOUND if (operation == FETCH_EXISTING || operation == DELETE) -> Mono.empty()
                     else ->
                         response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { responseBody ->
                             val request = getBodyJsonForLog(requestBody).take(MAX_JSON_LOG_LENGTH)
