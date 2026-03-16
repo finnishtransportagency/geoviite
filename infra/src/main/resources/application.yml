@@ -100,7 +100,7 @@ geoviite:
         enabled: true
         cron: "0 * * * * *"
 
-      operating-points-fetch:
+      operational-points-fetch:
         enabled: true
         cron: "0 30 3 * * *"
 
@@ -129,6 +129,8 @@ geoviite:
     url-path-prefixes: [ ]
 
 server:
+  max-http-request-header-size: 100KB
+
   compression:
     enabled: true
     mime-types: application/json,text/plain,text/csv
@@ -139,3 +141,4 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+

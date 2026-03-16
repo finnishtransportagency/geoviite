@@ -467,11 +467,22 @@ export type OperationalPoint = {
     abbreviation?: string;
     uicCode: UICCode;
     rinfType?: OperationalPointRinfType;
-    raideType?: OperationalPointRaideType;
+    rinfId?: string;
+    rinfIdGenerated?: string;
+    rinfIdOverride?: string;
+    ratoType?: OperationalPointRatoType;
     location?: Point;
     polygon?: Polygon;
     state: OperationalPointState;
 } & LayoutAssetFields;
+
+export type StationLink = {
+    trackNumberId: LayoutTrackNumberId;
+    startOperationalPointId: OperationalPointId;
+    endOperationalPointId: OperationalPointId;
+    locationTrackIds: LocationTrackId[];
+    length: number;
+};
 
 export type PlanArea = {
     id: GeometryPlanId;
@@ -556,7 +567,7 @@ export type SwitchJointTrackMeter = {
     location: Point;
 };
 
-export type OperationalPointRaideType =
+export type OperationalPointRatoType =
     | 'LP' // Liikennepaikka
     | 'LPO' // Liikennepaikan osa
     | 'OLP' // Osiin jaettu liikennepaikka

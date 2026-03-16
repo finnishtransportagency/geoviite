@@ -23,6 +23,7 @@ import {
     draftLayoutContext,
     LayoutContext,
     officialLayoutContext,
+    Oid,
     SwitchOwner,
     SwitchOwnerId,
     SwitchStructure,
@@ -36,6 +37,7 @@ import {
     getSwitch,
     getSwitchesByName,
     getSwitchJointConnections,
+    getSwitchOids,
     insertSwitch,
     updateSwitch,
 } from 'track-layout/layout-switch-api';
@@ -128,6 +130,7 @@ export const SwitchEditDialog = ({
     const [switchOwnerId, setSwitchOwnerId] = React.useState<SwitchOwnerId>();
     const [existingSwitch, setExistingSwitch] = React.useState<LayoutSwitch>();
     const [editingOid, setEditingOid] = React.useState(false);
+    const [publishedMainOid, setPublishedMainOid] = React.useState<Oid>();
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const isExistingSwitch = !!switchId;
 
@@ -167,15 +170,19 @@ export const SwitchEditDialog = ({
 
     React.useEffect(() => {
         if (isExistingSwitch) {
-            getSwitch(switchId, draftLayoutContext(layoutContext)).then((s) => {
-                if (s) {
-                    setExistingSwitch(s);
-                    setSwitchStateCategory(s.stateCategory);
-                    setSwitchName(s.name);
-                    setSwitchStructureId(s.switchStructureId);
-                    setTrapPoint(booleanToTrapPoint(s.trapPoint));
-                    if (s.draftOid) {
-                        setSwitchDraftOid(s.draftOid);
+            Promise.all([
+                getSwitch(switchId, draftLayoutContext(layoutContext)),
+                getSwitchOids(switchId, changeTime).then((oids) => oids['MAIN']),
+            ]).then(([loadedSwitch, loadedPublishedMainOid]) => {
+                setPublishedMainOid(loadedPublishedMainOid);
+                if (loadedSwitch) {
+                    setExistingSwitch(loadedSwitch);
+                    setSwitchStateCategory(loadedSwitch.stateCategory);
+                    setSwitchName(loadedSwitch.name);
+                    setSwitchStructureId(loadedSwitch.switchStructureId);
+                    setTrapPoint(booleanToTrapPoint(loadedSwitch.trapPoint));
+                    if (loadedSwitch.draftOid && !loadedPublishedMainOid) {
+                        setSwitchDraftOid(loadedSwitch.draftOid);
                         setEditingOid(true);
                     }
                     firstInputRef.current?.focus();
@@ -412,10 +419,8 @@ export const SwitchEditDialog = ({
                         <Heading size={HeadingSize.SUB}>
                             {t('switch-dialog.basic-info-heading')}
                         </Heading>
-                        {layoutContext.branch === 'MAIN' && (
+                        {layoutContext.branch === 'MAIN' && !publishedMainOid && (
                             <SwitchDraftOidField
-                                switchId={existingSwitch?.id}
-                                changeTime={changeTime}
                                 draftOid={switchDraftOid}
                                 setDraftOid={setSwitchDraftOid}
                                 setDraftOidExistsInRatko={setSwitchDraftOidExistsInRatko}

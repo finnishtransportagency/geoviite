@@ -1,12 +1,16 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.TrackMeter
 
 data class StationLink(
-    val trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
-    val startOperationalPointVersion: LayoutRowVersion<OperationalPoint>,
-    val endOperationalPointVersion: LayoutRowVersion<OperationalPoint>,
-    val locationTrackVersions: List<LayoutRowVersion<LocationTrack>>,
+    @JsonIgnore val trackNumberVersion: LayoutRowVersion<LayoutTrackNumber>,
+    @JsonIgnore val startOperationalPointVersion: LayoutRowVersion<OperationalPoint>,
+    @JsonIgnore val endOperationalPointVersion: LayoutRowVersion<OperationalPoint>,
+    @JsonIgnore val locationTrackVersions: List<LayoutRowVersion<LocationTrack>>,
+    val startAddress: TrackMeter,
+    val endAddress: TrackMeter,
     val length: Double,
 ) {
     val trackNumberId: IntId<LayoutTrackNumber>

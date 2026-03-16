@@ -6,21 +6,24 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.util.StringSanitizer
 import fi.fta.geoviite.infra.util.assertLength
+import fi.fta.geoviite.infra.util.assertSanitized
 
 data class OperationalPoint(
     val name: OperationalPointName,
     val abbreviation: OperationalPointAbbreviation?,
     val uicCode: UicCode?,
     val rinfType: OperationalPointRinfType?,
-    val raideType: OperationalPointRaideType?,
+    val ratoType: OperationalPointRatoType?,
     val polygon: Polygon?,
     val location: Point?,
     val state: OperationalPointState,
     val origin: OperationalPointOrigin,
     val ratkoVersion: Int?,
+    val rinfIdGenerated: RinfId?,
+    val rinfIdOverride: RinfId?,
     @JsonIgnore override val contextData: LayoutContextData<OperationalPoint>,
 ) : LayoutAsset<OperationalPoint>(contextData) {
     override fun toLog(): String =
@@ -30,10 +33,13 @@ data class OperationalPoint(
         copy(contextData = contextData)
 
     @JsonIgnore val exists = !state.isRemoved()
+
+    val rinfId: RinfId? = rinfIdOverride ?: rinfIdGenerated
 }
 
 const val maxOperationalPointNameLength = 150
 const val maxOperationalPointAbbreviationLength = 50
+const val maxOperationalPointRinfIdLength = 12
 
 // operational point name and abbreviation fields only have the same restrictions as the database has for them,
 // as Ratko is the master of their actual content
@@ -63,6 +69,23 @@ data class OperationalPointAbbreviation @JsonCreator(mode = DELEGATING) construc
         val allowedLength = 1..maxOperationalPointAbbreviationLength
 
         fun isSanitized(value: String) = value.length in allowedLength
+    }
+
+    @JsonValue override fun toString(): String = value
+}
+
+// Finnish and EU RINF IDs are in the format of FI/EU + UIC code padded to 5 digits (i.e. "FI00123" or "EU00234").
+// Swedish RINF IDs are in the format of SE + abbreviation (i.e. "SEHp"). We need to support both
+private val RINF_ID_SANITY_REGEX = Regex("^[A-Z]{2}[a-zA-Z0-9]{1,10}\$")
+
+// Overrides always start with "EU" and are in the format of EU + potential padding with zeros + UIC code (e.g.
+// "EU00123").
+val RINF_ID_OVERRIDE_REGEX = Regex("^EU[0-9]{1,10}\$")
+
+data class RinfId @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
+    init {
+        assertLength(RinfId::class, value, 1..maxOperationalPointRinfIdLength)
+        assertSanitized(RinfId::class, value, RINF_ID_SANITY_REGEX)
     }
 
     @JsonValue override fun toString(): String = value
@@ -141,9 +164,10 @@ data class InternalOperationalPointSaveRequest(
     val rinfType: OperationalPointRinfType,
     val state: OperationalPointState,
     val uicCode: UicCode,
+    val rinfIdOverride: RinfId?,
 )
 
-data class ExternalOperationalPointSaveRequest(val rinfType: OperationalPointRinfType?)
+data class ExternalOperationalPointSaveRequest(val rinfType: OperationalPointRinfType?, val rinfIdOverride: RinfId?)
 
 enum class OperationalPointRinfType {
     STATION,

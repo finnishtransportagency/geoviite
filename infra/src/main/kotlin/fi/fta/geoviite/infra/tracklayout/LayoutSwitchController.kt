@@ -189,7 +189,7 @@ class LayoutSwitchController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("operationalPointId") operationalPointId: IntId<OperationalPoint>,
-    ): List<SwitchWithOperationalPointPolygonInclusions> =
+    ): List<SwitchWithinOperationalPoint> =
         switchService.findSwitchesRelatedToOperationalPoint(
             LayoutContext.of(branch, publicationState),
             operationalPointId,

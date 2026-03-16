@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.tracklayout.AlignmentM
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.BuildTrackTopology
@@ -50,6 +51,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.offsetGeometry
+import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.rawPoints
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
@@ -107,32 +109,14 @@ class PublicationValidationTest {
     }
 
     @Test
-    fun `Km-post validation catches un-published track number or reference line`() {
+    fun `Km-post validation catches un-published track number`() {
         val trackNumberId = IntId<LayoutTrackNumber>(1)
-        val referenceLine = referenceLine(trackNumberId = IntId(1), id = IntId(1), draft = false)
         val kmPost = kmPost(trackNumberId, KmNumber(1), draft = true)
         val trackNumber = trackNumber(id = IntId(2), draft = false)
         assertKmPostReferenceError(
             true,
             kmPost,
             null,
-            referenceLine,
-            trackNumber.number,
-            "$VALIDATION_KM_POST.reference-to-track-number.not-published",
-        )
-        assertKmPostReferenceError(
-            true,
-            kmPost,
-            trackNumber,
-            null,
-            trackNumber.number,
-            "$VALIDATION_KM_POST.reference-to-reference-line.not-published",
-        )
-        assertKmPostReferenceError(
-            false,
-            kmPost,
-            trackNumber,
-            referenceLine,
             trackNumber.number,
             "$VALIDATION_KM_POST.reference-to-track-number.not-published",
         )
@@ -140,9 +124,8 @@ class PublicationValidationTest {
             false,
             kmPost,
             trackNumber,
-            referenceLine,
             trackNumber.number,
-            "$VALIDATION_KM_POST.reference-to-reference-line.not-published",
+            "$VALIDATION_KM_POST.reference-to-track-number.not-published",
         )
     }
 
@@ -723,7 +706,8 @@ class PublicationValidationTest {
 
     @Test
     fun `Track that ends in ownership boundary accepts exactly one terminus switch`() {
-        val switchId = switch(id = IntId(0)).id as IntId
+        val startSwitchId = IntId<LayoutSwitch>(0)
+        val endSwitchId = IntId<LayoutSwitch>(1)
         val trackWithoutSwitches =
             locationTrack(
                 IntId(0),
@@ -733,9 +717,9 @@ class PublicationValidationTest {
                         suffix = LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY,
                     ),
             )
-        val trackWithStartSwitch = trackWithoutSwitches.copy(startSwitchId = switchId)
-        val trackWithEndSwitch = trackWithoutSwitches.copy(endSwitchId = switchId)
-        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = switchId, endSwitchId = switchId)
+        val trackWithStartSwitch = trackWithoutSwitches.copy(startSwitchId = startSwitchId)
+        val trackWithEndSwitch = trackWithoutSwitches.copy(endSwitchId = endSwitchId)
+        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = startSwitchId, endSwitchId = endSwitchId)
 
         assertContainsError(
             true,
@@ -753,7 +737,8 @@ class PublicationValidationTest {
 
     @Test
     fun `Track that ends in buffer accepts exactly one terminus switch`() {
-        val switchId = switch(id = IntId(0)).id as IntId
+        val startSwitchId = IntId<LayoutSwitch>(0)
+        val endSwitchId = IntId<LayoutSwitch>(1)
         val trackWithoutSwitches =
             locationTrack(
                 IntId(0),
@@ -763,9 +748,9 @@ class PublicationValidationTest {
                         suffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
                     ),
             )
-        val trackWithStartSwitch = trackWithoutSwitches.copy(startSwitchId = switchId)
-        val trackWithEndSwitch = trackWithoutSwitches.copy(endSwitchId = switchId)
-        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = switchId, endSwitchId = switchId)
+        val trackWithStartSwitch = trackWithoutSwitches.copy(startSwitchId = startSwitchId)
+        val trackWithEndSwitch = trackWithoutSwitches.copy(endSwitchId = endSwitchId)
+        val trackWithBothSwitches = trackWithoutSwitches.copy(startSwitchId = startSwitchId, endSwitchId = endSwitchId)
 
         assertContainsError(
             true,
@@ -779,6 +764,31 @@ class PublicationValidationTest {
             validateDescriptionMandatedSwitchLinks(trackWithBothSwitches),
             "$VALIDATION_LOCATION_TRACK.switch.too-many-switches",
         )
+    }
+
+    @Test
+    fun `track that's internal to switch can have a single-ended description`() {
+        val switchId = IntId<LayoutSwitch>(0)
+        val track = locationTrack(IntId(0), startSwitch = switchId, endSwitch = switchId)
+
+        val bufferTrack =
+            track.copy(
+                descriptionStructure =
+                    LocationTrackDescriptionStructure(
+                        base = LocationTrackDescriptionBase("desc"),
+                        suffix = LocationTrackDescriptionSuffix.SWITCH_TO_BUFFER,
+                    )
+            )
+        val ownershipBoundaryTrack =
+            track.copy(
+                descriptionStructure =
+                    LocationTrackDescriptionStructure(
+                        base = LocationTrackDescriptionBase("desc"),
+                        suffix = LocationTrackDescriptionSuffix.SWITCH_TO_OWNERSHIP_BOUNDARY,
+                    )
+            )
+        assertEquals(0, validateDescriptionMandatedSwitchLinks(bufferTrack).size)
+        assertEquals(0, validateDescriptionMandatedSwitchLinks(ownershipBoundaryTrack).size)
     }
 
     @Test
@@ -1330,6 +1340,50 @@ class PublicationValidationTest {
         )
     }
 
+    @Test
+    fun `RINF id validation returns no errors for valid override`() {
+        val op = operationalPoint(rinfIdOverride = "EU12345", rinfIdGenerated = "FI1234")
+        val errors = validateOperationalPointRinfId(op)
+        assertEquals(0, errors.size)
+    }
+
+    @Test
+    fun `RINF id validation accepts null as override`() {
+        val op = operationalPoint(rinfIdOverride = null, rinfIdGenerated = "FI1234")
+        val errors = validateOperationalPointRinfId(op)
+        assertEquals(0, errors.size)
+    }
+
+    @Test
+    fun `RINF id validation accepts operational points without RINF id if they are OLPs`() {
+        val op =
+            operationalPoint(rinfIdGenerated = null, rinfIdOverride = null, ratoType = OperationalPointRatoType.OLP)
+        val errors = validateOperationalPointRinfId(op)
+        assertEquals(0, errors.size)
+    }
+
+    @Test
+    fun `RINF id validation returns error if rinfId is missing entirely`() {
+        val op =
+            operationalPoint(rinfIdGenerated = null, rinfIdOverride = null, ratoType = OperationalPointRatoType.SEIS)
+        assertContainsError(true, validateOperationalPointRinfId(op), "$VALIDATION_OPERATIONAL_POINT.rinf-id-missing")
+    }
+
+    @Test
+    fun `RINF id validation returns error for invalid overrides`() {
+        // Valid override format: "EU" followed by 1-10 digits, e.g. "EU0123"
+        assertContainsError(
+            true,
+            validateOperationalPointRinfId(operationalPoint(rinfIdOverride = "FI12345")),
+            "$VALIDATION_OPERATIONAL_POINT.rinf-id-override-invalid-format",
+        )
+        assertContainsError(
+            true,
+            validateOperationalPointRinfId(operationalPoint(rinfIdOverride = "EUabc")),
+            "$VALIDATION_OPERATIONAL_POINT.rinf-id-override-invalid-format",
+        )
+    }
+
     private fun assertContainsConnectivityWarning(warnings: Collection<LayoutValidationIssue>, translationKey: String) {
         assertContains(
             warnings,
@@ -1407,10 +1461,7 @@ class PublicationValidationTest {
         assertContainsError(
             hasError,
             validateReferencesToTrackNumber(
-                AssetLiveness(
-                    trackNumber.number.toString(),
-                    if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
-                ),
+                if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
                 referenceLine,
                 kmPosts,
                 locationTracks,
@@ -1422,7 +1473,6 @@ class PublicationValidationTest {
         hasError: Boolean,
         kmPost: LayoutKmPost,
         trackNumber: LayoutTrackNumber?,
-        referenceLine: ReferenceLine?,
         trackNumberNumber: TrackNumber,
         error: String,
     ) =
@@ -1434,11 +1484,6 @@ class PublicationValidationTest {
                     trackNumberNumber.toString(),
                     if (trackNumber == null) AssetLivenessType.DRAFT_NOT_PUBLISHED
                     else if (trackNumber.exists) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
-                ),
-                AssetLiveness(
-                    trackNumberNumber.toString(),
-                    if (referenceLine == null) AssetLivenessType.DRAFT_NOT_PUBLISHED
-                    else if (trackNumber?.exists ?: false) AssetLivenessType.EXISTS else AssetLivenessType.DELETED,
                 ),
             ),
             error,

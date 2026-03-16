@@ -35,6 +35,8 @@ import { purgePersistentState } from 'index';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { VIEW_GEOMETRY } from 'user/user-model';
 import { createClassName } from 'vayla-design-lib/utils';
+import { getRatkoStatus } from 'ratko/ratko-api';
+import { useLoaderWithTimer } from 'utils/react-utils';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -114,6 +116,9 @@ export const MainContainer: React.FC = () => {
     const versionFromBackend = useEnvironmentInfo()?.releaseVersion;
     const delegates = React.useMemo(() => createDelegates(commonActionCreators), []);
 
+    useLoaderWithTimer(delegates.setRatkoStatus, getRatkoStatus, [], 30000);
+    const ratkoConnectionStatus = commonAppData.ratkoStatus?.connectionStatus;
+
     React.useEffect(() => {
         getOwnUser().then((user) => {
             delegates.setUser(user);
@@ -122,7 +127,17 @@ export const MainContainer: React.FC = () => {
                 mapDelegates.addForcedVisibleLayer(['virtual-hide-geometry-layer']);
             }
         });
+
+        delegates.setRatkoStatus(undefined);
     }, []);
+
+    React.useEffect(() => {
+        if (ratkoConnectionStatus === 'ONLINE' || ratkoConnectionStatus === 'ONLINE_ERROR') {
+            mapDelegates.removeForcedVisibleLayer(['virtual-hide-signal-asset-layer']);
+        } else {
+            mapDelegates.addForcedVisibleLayer(['virtual-hide-signal-asset-layer']);
+        }
+    }, [ratkoConnectionStatus]);
 
     React.useEffect(() => {
         if (typeof versionFromBackend === 'string') {

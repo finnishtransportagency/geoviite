@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.RinfId
 import kotlin.math.abs
 
 fun publicationChangeRemark(translation: Translation, key: String, value: String? = null) =
@@ -94,6 +95,16 @@ fun getOperationalPointAreaRemarkOrNull(translation: Translation, oldArea: Polyg
         null
     }
 }
+
+fun getOperationalPointRinfIdChangedRemarkOrNull(
+    translation: Translation,
+    rinfIdOverrideChange: Change<RinfId?>,
+): String? =
+    if (rinfIdOverrideChange.new != null) {
+        publicationChangeRemark(translation, "rinf-id-is-override")
+    } else {
+        publicationChangeRemark(translation, "rinf-id-is-generated")
+    }
 
 fun getSwitchLinksChangedRemark(
     translation: Translation,

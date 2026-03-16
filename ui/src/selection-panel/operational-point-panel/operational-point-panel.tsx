@@ -2,8 +2,11 @@ import * as React from 'react';
 import styles from './operational-point-panel.scss';
 import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
 import { useTranslation } from 'react-i18next';
-import { createClassName } from 'vayla-design-lib/utils';
 import { compareNamed } from 'common/common-model';
+import {
+    OperationalPointBadge,
+    OperationalPointBadgeStatus,
+} from 'geoviite-design-lib/operational-point/operational-point-badge';
 
 type OperationalPointPanelProps = {
     operationalPoints: OperationalPoint[];
@@ -12,6 +15,16 @@ type OperationalPointPanelProps = {
     max?: number;
     disabled: boolean;
 };
+
+function getStatus(selected: boolean, disabled: boolean): OperationalPointBadgeStatus {
+    if (disabled) {
+        return OperationalPointBadgeStatus.DISABLED;
+    } else if (selected) {
+        return OperationalPointBadgeStatus.SELECTED;
+    } else {
+        return OperationalPointBadgeStatus.DEFAULT;
+    }
+}
 
 export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
     operationalPoints,
@@ -38,26 +51,17 @@ export const OperationalPointPanel: React.FC<OperationalPointPanelProps> = ({
     return (
         <ol className={styles['operational-point-panel__operational-points']}>
             {visibleOperationalPoints.map((op) => {
-                const isSelected = selectedOperationalPoints?.some(
-                    (selectedOp) => selectedOp === op.id,
-                );
-                const containerClassName = createClassName(
-                    styles['operational-point-panel__item-container'],
-                    disabled && styles['operational-point-panel__item-container--disabled'],
-                    !disabled &&
-                        isSelected &&
-                        styles['operational-point-panel__item-container--selected'],
-                );
+                const isSelected =
+                    selectedOperationalPoints?.some((selectedOp) => selectedOp === op.id) ?? false;
+                const status = getStatus(isSelected, disabled);
 
                 return (
-                    <li key={op.id} className={containerClassName}>
-                        <span
+                    <li key={op.id}>
+                        <OperationalPointBadge
+                            operationalPoint={op}
+                            status={status}
                             onClick={() => onToggleOperationalPointSelection(op)}
-                            className={styles['operational-point-panel__item']}>
-                            <span className={styles['operational-point-panel__name']}>
-                                {op.name}
-                            </span>
-                        </span>
+                        />
                     </li>
                 );
             })}

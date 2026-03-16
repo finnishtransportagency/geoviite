@@ -4,7 +4,6 @@ import { LayoutContext, TimeStamp } from 'common/common-model';
 import React from 'react';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
-import { createEmptyItemCollections } from 'selection/selection-store';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { LoaderStatus } from 'utils/react-utils';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
@@ -24,11 +23,13 @@ export type TrackNumberLinkProps = {
 
 function createSelectAction() {
     const delegates = createDelegates(TrackLayoutActions);
-    return (trackNumberId: LayoutTrackNumberId) =>
-        delegates.onSelect({
-            ...createEmptyItemCollections(),
-            trackNumbers: [trackNumberId],
+    return (trackNumberId: LayoutTrackNumberId) => {
+        delegates.onSelect({ trackNumbers: [trackNumberId] });
+        delegates.setToolPanelTab({
+            id: trackNumberId,
+            type: 'TRACK_NUMBER',
         });
+    };
 }
 
 export const TrackNumberLinkContainer: React.FC<TrackNumberLinkContainerProps> = ({

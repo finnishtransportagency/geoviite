@@ -22,7 +22,12 @@ import {
 } from 'map/map-model';
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
-import { MapTool, MapToolActivateOptions, MapToolWithButton } from './tools/tool-model';
+import {
+    MapToolActivateOptions,
+    MapToolHandle,
+    MapToolId,
+    MapToolWithButton,
+} from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { LineString, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
@@ -38,8 +43,6 @@ import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
 import { GeometryPlanLayout, LAYOUT_SRID, LayoutGraphLevel } from 'track-layout/track-layout-model';
 import { LayoutContext, LayoutContextMode, LayoutDesignId } from 'common/common-model';
-import Overlay from 'ol/Overlay';
-import { useTranslation } from 'react-i18next';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
 import { createDebug1mPointsLayer } from './layers/debug/debug-1m-points-layer';
 import { createClassName } from 'vayla-design-lib/utils';
@@ -50,7 +53,7 @@ import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
 import { createAlignmentLinkingLayer } from 'map/layers/alignment/alignment-linking-layer';
 import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
-import { GeoviiteMapLayer, pointToCoords } from 'map/layers/utils/layer-utils';
+import { GeoviiteMapLayer } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
 import { createSwitchLayer } from 'map/layers/switch/switch-layer';
 import {
@@ -77,10 +80,12 @@ import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/track-number-end-point-addresses-layer';
 import { Point, Polygon, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
+import { createRouteHighlightLayer } from 'map/layers/highlight/route-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { RouteResult } from 'track-layout/layout-routing-api';
 import { createLocationTrackSplitLocationLayer } from 'map/layers/alignment/location-track-split-location-layer';
 import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/duplicate-split-section-highlight-layer';
 import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/location-track-duplicate-endpoint-indicator-layer';
@@ -105,6 +110,8 @@ import { createOperationalPointsPlacingLayer } from 'map/layers/operational-poin
 import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
 import { createOperationalPointBadgeLayer } from 'map/layers/operational-point/operational-points-badge-layer';
 import { createSignalAssetLayer } from 'map/layers/ratko/signal-asset-layer';
+import { AlignmentLinkingClusterOverlay } from 'map/overlays/alignment-linking-cluster-overlay';
+import { OperationalPointClusterOverlay } from 'map/overlays/operational-point-cluster-overlay';
 
 declare global {
     interface Window {
@@ -134,17 +141,16 @@ export type MapViewProps = {
     onClosePlanDownloadPopup: () => void;
     onSetOperationalPointPolygon: (polygon: Polygon) => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
+    routeResult?: RouteResult | undefined;
     manuallySetPlan?: GeometryPlanLayout;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     publicationCandidates?: PublicationCandidate[];
-    customActiveMapTool?: MapTool;
+    customActiveMapToolId?: MapToolId;
     designPublicationMode?: DesignPublicationMode;
     mapTools?: MapToolWithButton[];
     layoutContextMode?: LayoutContextMode;
     selectedDesignId?: LayoutDesignId;
 };
-
-export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
 
 const defaultScaleLine: ScaleLine = new ScaleLine({
     units: 'metric',
@@ -245,6 +251,7 @@ const MapView: React.FC<MapViewProps> = ({
     onSelect,
     onViewportUpdate,
     hoveredOverPlanSection,
+    routeResult,
     manuallySetPlan,
     onSetLayoutClusterLinkPoint,
     onSetGeometryClusterLinkPoint,
@@ -257,20 +264,20 @@ const MapView: React.FC<MapViewProps> = ({
     onMapLayerChange,
     onSetOperationalPointPolygon,
     publicationCandidates,
-    customActiveMapTool,
+    customActiveMapToolId,
     designPublicationMode,
     mapTools,
     layoutContextMode,
     selectedDesignId,
 }: MapViewProps) => {
-    const { t } = useTranslation();
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
-    const [activeTool, setActiveTool] = React.useState<MapTool | undefined>(
-        customActiveMapTool || (mapTools && first(mapTools)),
+    const [activeToolId, setActiveToolId] = React.useState<MapToolId | undefined>(
+        customActiveMapToolId || (mapTools && first(mapTools)?.id),
     );
+    const activeTool = mapTools?.find((tool) => tool.id === activeToolId);
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
     const inPreviewView = !!designPublicationMode;
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
@@ -280,32 +287,6 @@ const MapView: React.FC<MapViewProps> = ({
     );
     const { isLoading, onLayerLoading } = useIsLoadingMapLayers(visibleLayerNames);
     const mapLayers = [...visibleLayerNames].sort().join();
-
-    const handleClusterPointClick = (clickType: ClickType) => {
-        const clusterPoint = first(selection.selectedItems.clusterPoints);
-        if (clusterPoint) {
-            switch (clickType) {
-                case 'all':
-                    onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
-                    onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
-                    break;
-                case 'geometryPoint':
-                    onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
-                    onRemoveLayoutLinkPoint(clusterPoint.layoutPoint);
-                    break;
-                case 'layoutPoint':
-                    onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
-                    onRemoveGeometryLinkPoint(clusterPoint.geometryPoint);
-                    break;
-                case 'remove':
-                    onRemoveLayoutLinkPoint(clusterPoint.layoutPoint);
-                    onRemoveGeometryLinkPoint(clusterPoint.geometryPoint);
-                    break;
-                default:
-                    return exhaustiveMatchingGuard(clickType);
-            }
-        }
-    };
 
     useResizeObserver({
         ref: olMapContainer,
@@ -351,19 +332,6 @@ const MapView: React.FC<MapViewProps> = ({
             olMap.un('moveend', listenerInfo.listener);
         };
     }, [olMap]);
-
-    const firstClusterPoint = first(selection.selectedItems.clusterPoints);
-    React.useEffect(() => {
-        if (!olMap || !firstClusterPoint) return;
-        const pos = pointToCoords(firstClusterPoint);
-        const popupElement = document.getElementById('clusteroverlay') || undefined;
-        const popup = new Overlay({
-            position: pos,
-            offset: [7, 0],
-            element: popupElement,
-        });
-        olMap.addOverlay(popup);
-    }, [olMap, firstClusterPoint]);
 
     // Update the view"port" of the map
     React.useEffect(() => {
@@ -563,6 +531,16 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                             hoveredOverPlanSection,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
+                    case 'route-highlight-layer':
+                        return createRouteHighlightLayer(
+                            mapTiles,
+                            existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
+                            layoutContext,
+                            changeTimes,
+                            resolution,
+                            routeResult,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'km-post-layer':
@@ -779,14 +757,15 @@ const MapView: React.FC<MapViewProps> = ({
                             resolution,
                             getLayoutGraphLevel(map.layerMenu),
                         );
-                    case 'virtual-km-post-linking-layer': // Virtual map layers
-                    case 'virtual-hide-geometry-layer':
-                        return undefined;
                     case 'signal-asset-layer':
                         return createSignalAssetLayer(
                             existingOlLayer as TileLayer<TileSource>,
                             (loading) => onLayerLoading(layerName, loading),
                         );
+                    case 'virtual-km-post-linking-layer': // Virtual map layers
+                    case 'virtual-hide-geometry-layer':
+                    case 'virtual-hide-signal-asset-layer':
+                        return undefined;
                     default:
                         return exhaustiveMatchingGuard(layerName);
                 }
@@ -818,6 +797,7 @@ const MapView: React.FC<MapViewProps> = ({
         manuallySetPlan,
         map.layerMenu,
         publicationCandidates,
+        routeResult,
     ]);
 
     const toolActivateOptions: MapToolActivateOptions = {
@@ -829,49 +809,47 @@ const MapView: React.FC<MapViewProps> = ({
         linkingState: linkingState,
     };
 
+    // Point location tool is always active, independent of the selected tool, and doesn't need updates on layersChanged
+    // or linkingStateChanged
     React.useEffect(() => {
         if (!olMap) return;
+        const handle = pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions);
+        return () => handle.deactivate();
+    }, [olMap]);
 
-        const deactivateCallbacks = [
-            pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions),
-        ];
-
-        // Return function to clean up initialized stuff
+    const activeToolHandleRef = React.useRef<MapToolHandle | undefined>(undefined);
+    React.useEffect(() => {
+        if (!olMap || !activeTool) {
+            activeToolHandleRef.current = undefined;
+            return;
+        }
+        const handle = activeTool.activate(olMap, visibleLayers, toolActivateOptions);
+        activeToolHandleRef.current = handle;
         return () => {
-            deactivateCallbacks.forEach((f) => f());
+            handle.deactivate();
+            activeToolHandleRef.current = undefined;
         };
-    }, [olMap, visibleLayers, activeTool]);
+    }, [olMap, activeTool]);
 
     React.useEffect(() => {
-        setActiveTool(customActiveMapTool);
-    }, [customActiveMapTool]);
+        activeToolHandleRef.current?.onLayersChanged?.(visibleLayers);
+    }, [visibleLayers]);
 
     React.useEffect(() => {
-        if (activeTool && olMap) {
-            return activeTool.activate(olMap, visibleLayers, toolActivateOptions);
-        } else {
-            return () => undefined;
-        }
-    }, [olMap, activeTool, visibleLayers]);
-
-    React.useEffect(() => {
-        if (mapTools && activeTool) {
-            const newVersionOfTool = mapTools.find((tool) => tool.id === activeTool.id);
-            setActiveTool(newVersionOfTool);
-        }
-    }, [mapTools]);
+        activeToolHandleRef.current?.onLinkingStateChanged?.(linkingState);
+    }, [linkingState]);
 
     React.useEffect(() => {
         if (linkingState?.type === LinkingType.PlacingOperationalPointArea) {
             const areaTool = mapTools?.find((tool) => tool.id === 'operational-point-area');
             if (areaTool) {
-                setActiveTool(areaTool);
+                setActiveToolId(areaTool?.id);
             }
         } else if (activeTool?.id === 'operational-point-area') {
             // When leaving operational point area mode, revert to default tool
             const selectTool = mapTools?.find((tool) => tool.id === 'select-or-highlight');
             if (selectTool) {
-                setActiveTool(selectTool);
+                setActiveToolId(selectTool?.id);
             }
         }
     }, [linkingState, mapTools, activeTool]);
@@ -879,7 +857,7 @@ const MapView: React.FC<MapViewProps> = ({
     const mapClassNames = createClassName(styles.map);
 
     const cssProperties = {
-        cursor: activeTool?.customCursor ? activeTool.customCursor(toolActivateOptions) : undefined,
+        cursor: activeTool?.customCursor ? activeTool.customCursor(linkingState) : undefined,
     };
     return (
         <div className={mapClassNames} style={cssProperties}>
@@ -893,7 +871,7 @@ const MapView: React.FC<MapViewProps> = ({
                             <ToolComponent
                                 key={tool.id}
                                 isActive={isActive}
-                                setActiveTool={setActiveTool}
+                                setActiveTool={setActiveToolId}
                                 disabled={tool.disabled}
                                 hidden={tool.hidden}
                             />
@@ -906,32 +884,19 @@ const MapView: React.FC<MapViewProps> = ({
                 qa-resolution={olMap?.getView()?.getResolution()}
                 className={styles['map__ol-map']}
             />
-            <div id="clusteroverlay">
-                {first(selection.selectedItems.clusterPoints) && (
-                    <div className={styles['map__popup-menu']}>
-                        <div
-                            className={styles['map__popup-item']}
-                            onClick={() => handleClusterPointClick('geometryPoint')}>
-                            {t('map-view.cluster-overlay-choose-geometry')}
-                        </div>
-                        <div
-                            className={styles['map__popup-item']}
-                            onClick={() => handleClusterPointClick('layoutPoint')}>
-                            {t('map-view.cluster-overlay-choose-layout')}
-                        </div>
-                        <div
-                            className={styles['map__popup-item']}
-                            onClick={() => handleClusterPointClick('all')}>
-                            {t('map-view.cluster-overlay-choose-both')}
-                        </div>
-                        <div
-                            className={styles['map__popup-item']}
-                            onClick={() => handleClusterPointClick('remove')}>
-                            {t('map-view.cluster-overlay-remove-both')}
-                        </div>
-                    </div>
-                )}
-            </div>
+            <AlignmentLinkingClusterOverlay
+                olMap={olMap}
+                clusterPoint={first(selection.selectedItems.clusterPoints)}
+                onSetLayoutClusterLinkPoint={onSetLayoutClusterLinkPoint}
+                onSetGeometryClusterLinkPoint={onSetGeometryClusterLinkPoint}
+                onRemoveLayoutLinkPoint={onRemoveLayoutLinkPoint}
+                onRemoveGeometryLinkPoint={onRemoveGeometryLinkPoint}
+            />
+            <OperationalPointClusterOverlay
+                olMap={olMap}
+                cluster={first(selection.selectedItems.operationalPointClusters)}
+                onSelect={onSelect}
+            />
             <div id={'maplayermenubutton'} className={'map__layer-menu'}>
                 <MapLayerMenu
                     onMenuChange={onMapLayerChange}

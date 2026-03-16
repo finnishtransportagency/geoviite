@@ -9,17 +9,17 @@ import withUser
 
 @Component
 @ConditionalOnProperty(
-    name = ["geoviite.ratko.enabled", "geoviite.ratko.tasks.operating-points-fetch.enabled"],
+    name = ["geoviite.ratko.enabled", "geoviite.ratko.tasks.operational-points-fetch.enabled"],
     havingValue = "true",
     matchIfMissing = false,
 )
 class RatkoOperationalPointsFetchTask @Autowired constructor(private val ratkoService: RatkoService) {
 
     companion object {
-        private val ratkoOperationalPointTaskUserName = UserName.of("RATKO_FETCH")
+        private val ratkoOperationalPointTaskUserName = UserName.Geoviite
     }
 
-    @Scheduled(cron = "\${geoviite.ratko.tasks.operating-points-fetch.cron}")
+    @Scheduled(cron = "\${geoviite.ratko.tasks.operational-points-fetch.cron}")
     fun scheduledRatkoOperationalPointsFetch() {
         withUser(ratkoOperationalPointTaskUserName, ratkoService::updateOperationalPointsFromRatko)
     }

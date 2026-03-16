@@ -27,6 +27,7 @@ export type MapLayerName =
     | 'missing-profile-highlight-layer'
     | 'missing-linking-highlight-layer'
     | 'plan-section-highlight-layer'
+    | 'route-highlight-layer'
     | 'duplicate-tracks-highlight-layer'
     | 'duplicate-split-section-highlight-layer'
     | 'location-track-selected-alignment-layer'
@@ -58,7 +59,8 @@ export type MapLayerName =
     | 'publication-candidate-layer'
     | 'deleted-publication-candidate-icon-layer'
     | 'debug-geometry-graph-layer'
-    | 'signal-asset-layer';
+    | 'signal-asset-layer'
+    | 'virtual-hide-signal-asset-layer';
 
 export type MapViewportSource = 'Map';
 

@@ -73,7 +73,6 @@ constructor(
         previewPage.publish()
 
         val trackLayoutOfficialPage = goToMap().switchToOfficialMode()
-        trackLayoutOfficialPage.selectionPanel.selectOperationalPoint("Test Point")
         val oidAfterPublicationUI = trackLayoutOfficialPage.toolPanel.operationalPointGeneralInfo.oid
         assertNotEquals(oidAfterPublicationUI, "", "Operational point OID should not be empty (UI)")
 

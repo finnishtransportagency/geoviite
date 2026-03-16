@@ -122,7 +122,9 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
                                 key={subSetting.name}
                                 qaId={`layer-menu-item-${subSetting.name}`}
                                 label={t(`map-layer-menu.${subSetting.name}`)}
-                                visible={(enabledByProxy || subSetting.selected) && !disabledByProxy}
+                                visible={
+                                    (enabledByProxy || subSetting.selected) && !disabledByProxy
+                                }
                                 disabled={enabledByProxy || disabledByProxy || !setting.selected}
                                 indented={true}
                                 onChange={() =>
@@ -140,7 +142,7 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({
     );
 };
 
-export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
+const MapLayerMenuM: React.FC<MapLayerMenuProps> = ({
     mapLayerMenuGroups,
     onMenuChange,
     visibleLayers,
@@ -199,3 +201,5 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
         </React.Fragment>
     );
 };
+
+export const MapLayerMenu = React.memo(MapLayerMenuM);

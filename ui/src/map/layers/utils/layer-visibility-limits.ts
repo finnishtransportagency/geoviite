@@ -15,6 +15,7 @@ const mapLayerOrder: MapLayerName[] = [
     'track-number-diagram-layer',
     'publication-candidate-layer',
     'plan-section-highlight-layer',
+    'route-highlight-layer',
     'missing-profile-highlight-layer',
     'missing-linking-highlight-layer',
     'duplicate-tracks-highlight-layer',

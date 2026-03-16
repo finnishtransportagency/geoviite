@@ -1,12 +1,12 @@
 import OlMap from 'ol/Map';
-import { MapTool, MapToolActivateOptions } from './tool-model';
+import { MapTool, MapToolActivateOptions, MapToolHandle } from './tool-model';
 import { debounce } from 'ts-debounce';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { expectCoordinate } from 'utils/type-utils';
 
 export const pointLocationTool: MapTool = {
     id: 'point-location',
-    activate: (map: OlMap, _: MapLayer[], options: MapToolActivateOptions) => {
+    activate: (map: OlMap, _: MapLayer[], options: MapToolActivateOptions): MapToolHandle => {
         const debouncedMoveHandlerPointLocation = debounce(
             ({ coordinate }) => {
                 options.onHoverLocation({
@@ -29,9 +29,11 @@ export const pointLocationTool: MapTool = {
         const pointerMoveEvent = map.on('pointermove', debouncedMoveHandlerPointLocation);
 
         // Return function to clean up this tool
-        return () => {
-            map.un('click', clickEvent.listener);
-            map.un('pointermove', pointerMoveEvent.listener);
+        return {
+            deactivate: () => {
+                map.un('click', clickEvent.listener);
+                map.un('pointermove', pointerMoveEvent.listener);
+            },
         };
     },
 };

@@ -7,15 +7,22 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.UicCode
-import fi.fta.geoviite.infra.util.*
-import java.sql.ResultSet
-import java.time.Instant
+import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.DbTable
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getOid
+import fi.fta.geoviite.infra.util.getPoint
+import fi.fta.geoviite.infra.util.queryOne
+import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.time.Instant
 
-fun toRatkoOperatingPoint(rs: ResultSet): RatkoOperationalPoint {
+fun toRatkoOperationalPoint(rs: ResultSet): RatkoOperationalPoint {
     return RatkoOperationalPoint(
         externalId = rs.getOid("external_id"),
         name = OperationalPointName(rs.getString("name")),
@@ -32,7 +39,7 @@ fun toRatkoOperatingPoint(rs: ResultSet): RatkoOperationalPoint {
 class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Transactional
     fun updateOperationalPoints(newPoints: List<RatkoOperationalPointParse>) {
-        logger.info("Writing ${newPoints.size} operating points")
+        logger.info("Writing ${newPoints.size} operational points")
         jdbcTemplate.setUser()
 
         deleteRemovedPoints(newPoints)
@@ -129,7 +136,7 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             """
                 .trimIndent()
 
-        return jdbcTemplate.query(sql) { rs, _ -> toRatkoOperatingPoint(rs) to rs.getInt("version") }
+        return jdbcTemplate.query(sql) { rs, _ -> toRatkoOperationalPoint(rs) to rs.getInt("version") }
     }
 
     @Transactional(readOnly = true)
@@ -151,7 +158,7 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             """
                 .trimIndent()
         return jdbcTemplate.queryOne(sql, mapOf("oid" to oid.toString(), "version" to version)) { rs, _ ->
-            toRatkoOperatingPoint(rs)
+            toRatkoOperationalPoint(rs)
         }
     }
 }

@@ -31,11 +31,12 @@ import org.springframework.web.bind.annotation.RequestParam
 @GeoviiteController("/track-layout")
 class OperationalPointController(
     private val operationalPointService: OperationalPointService,
+    private val stationLinkService: StationLinkService,
     private val publicationValidationService: PublicationValidationService,
 ) {
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}")
-    fun getSingleOperatingPoint(
+    fun getSingleOperationalPoint(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<OperationalPoint>,
@@ -46,7 +47,7 @@ class OperationalPointController(
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}")
-    fun getOperatingPointsByIds(
+    fun getOperationalPointsByIds(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids", required = false) ids: List<IntId<OperationalPoint>>?,
@@ -57,7 +58,7 @@ class OperationalPointController(
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/by-location")
-    fun getOperatingPointsByLocation(
+    fun getOperationalPointsByLocation(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
@@ -68,7 +69,7 @@ class OperationalPointController(
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/by-polygon")
-    fun getOperatingPointsByPolygon(
+    fun getOperationalPointsByPolygon(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
@@ -79,7 +80,7 @@ class OperationalPointController(
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PutMapping("/operational-points/internal/{$LAYOUT_BRANCH}/draft/{id}")
-    fun updateInternalOperatingPoint(
+    fun updateInternalOperationalPoint(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable("id") id: IntId<OperationalPoint>,
         @RequestBody request: InternalOperationalPointSaveRequest,
@@ -89,7 +90,7 @@ class OperationalPointController(
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PutMapping("/operational-points/internal/{$LAYOUT_BRANCH}/draft/{id}/location")
-    fun updateOperatingPointLocation(
+    fun updateOperationalPointLocation(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable("id") id: IntId<OperationalPoint>,
         @RequestBody request: Point,
@@ -99,7 +100,7 @@ class OperationalPointController(
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PutMapping("/operational-points/{$LAYOUT_BRANCH}/draft/{id}/area")
-    fun updateOperatingPointPolygon(
+    fun updateOperationalPointPolygon(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable("id") id: IntId<OperationalPoint>,
         @RequestBody request: Polygon,
@@ -109,7 +110,7 @@ class OperationalPointController(
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/operational-points/internal/{$LAYOUT_BRANCH}/draft")
-    fun insertOperatingPoint(
+    fun insertOperationalPoint(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @RequestBody request: InternalOperationalPointSaveRequest,
     ): IntId<OperationalPoint> {
@@ -118,7 +119,7 @@ class OperationalPointController(
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PutMapping("/operational-points/external/{$LAYOUT_BRANCH}/draft/{id}")
-    fun updateExternalOperatingPoint(
+    fun updateExternalOperationalPoint(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable("id") id: IntId<OperationalPoint>,
         @RequestBody request: ExternalOperationalPointSaveRequest,
@@ -164,6 +165,17 @@ class OperationalPointController(
             .validateOperationalPoints(layoutBranch, publicationState, listOf(id))
             .firstOrNull()
             .let(::toResponse)
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/operational-points/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/station-links")
+    fun getOperationalPointStationLinks(
+        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("id") id: IntId<OperationalPoint>,
+    ): List<StationLink> {
+        val context = LayoutContext.of(layoutBranch, publicationState)
+        return stationLinkService.getStationLinks(context, id)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

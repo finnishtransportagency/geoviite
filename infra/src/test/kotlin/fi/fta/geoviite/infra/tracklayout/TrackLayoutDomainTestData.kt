@@ -47,7 +47,7 @@ import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.publication.PublishedVersions
-import fi.fta.geoviite.infra.ratko.model.OperationalPointRaideType
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -1188,6 +1188,7 @@ fun operationalPoint(
     abbreviation: String = name,
     rinfType: OperationalPointRinfType? = OperationalPointRinfType.STATION,
     state: OperationalPointState = OperationalPointState.IN_USE,
+    ratoType: OperationalPointRatoType? = null,
     uicCode: String? = "1234",
     location: Point = Point(10.0, 10.0),
     polygon: Polygon? =
@@ -1195,6 +1196,8 @@ fun operationalPoint(
     origin: OperationalPointOrigin = OperationalPointOrigin.GEOVIITE,
     draft: Boolean = true,
     ratkoVersion: Int? = null,
+    rinfIdGenerated: String? = "FI1234",
+    rinfIdOverride: String? = null,
     contextData: LayoutContextData<OperationalPoint> = createMainContext(null, draft),
 ): OperationalPoint =
     OperationalPoint(
@@ -1204,11 +1207,13 @@ fun operationalPoint(
         state = state,
         uicCode = uicCode?.let(::UicCode),
         location = location,
-        raideType = null,
+        ratoType = ratoType,
         polygon = polygon,
         origin = origin,
         ratkoVersion = ratkoVersion,
         contextData = contextData,
+        rinfIdGenerated = rinfIdGenerated?.let(::RinfId),
+        rinfIdOverride = rinfIdOverride?.let(::RinfId),
     )
 
 fun moveOperationalPointBy(point: OperationalPoint, x: Double, y: Double) =
@@ -1221,7 +1226,7 @@ fun ratkoOperationalPoint(
     trackNumberOid: String = "1.1.1.1.1",
     location: Point = Point(10.0, 10.0),
     uicCode: String = "1234",
-    type: OperationalPointRaideType = OperationalPointRaideType.LP,
+    type: OperationalPointRatoType = OperationalPointRatoType.LP,
 ) =
     RatkoOperationalPointParse(
         Oid(oid),

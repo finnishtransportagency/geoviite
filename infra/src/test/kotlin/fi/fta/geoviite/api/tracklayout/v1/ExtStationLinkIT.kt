@@ -49,7 +49,6 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     @Test
     fun `Station links API returns correct object versions`() {
-
         val baseVersion = extTestDataService.publishInMain().uuid
         val baseResponse =
             api.stationLinkCollection.get().also { response ->
@@ -70,7 +69,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         // Create connecting track
         val (track1Id, track1Oid) =
-            createConnectionTrack(mainDraftContext, tnId, switch1Id, switch2Id, Point(55.0, 0.0), Point(145.0, 0.0))
+            createConnectionTrack(mainDraftContext, tnId, switch1Id, switch2Id, Point(45.0, 5.0), Point(155.0, 5.0))
 
         val version1 =
             extTestDataService
@@ -92,7 +91,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                     op1Oid to op1,
                     op2Oid to op2,
                     listOf(track1Oid),
-                    calculateDistance(LAYOUT_SRID, Point(50.0, 0.0), Point(150.0, 0.0)),
+                    calculateDistance(LAYOUT_SRID, Point(50.0, 5.0), Point(150.0, 5.0)),
                 )
                 // Verify that versioned fetch returns the same data
                 assertEquals(response, api.stationLinkCollection.getAtVersion(version1))
@@ -100,9 +99,9 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         initUser() // Re-initUser after the API calls (thread context reset)
 
-        // Add another track connecting the same points with a longer track
+        // Add another track connecting the same points with a longer (diagonal) track
         val (track2Id, track2Oid) =
-            createConnectionTrack(mainDraftContext, tnId, switch1Id, switch2Id, Point(54.0, 1.0), Point(146.0, 1.0))
+            createConnectionTrack(mainDraftContext, tnId, switch1Id, switch2Id, Point(45.0, 0.0), Point(155.0, 10.0))
 
         val updatedVersion = extTestDataService.publishInMain(locationTracks = listOf(track2Id)).uuid
 
@@ -117,7 +116,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 op1Oid to op1,
                 op2Oid to op2,
                 listOf(track1Oid, track2Oid),
-                calculateDistance(LAYOUT_SRID, Point(50.0, 0.0), Point(150.0, 0.0)),
+                calculateDistance(LAYOUT_SRID, Point(50.0, 5.0), Point(150.0, 5.0)),
             )
             // Verify that versioned fetch returns the same data
             assertEquals(response, api.stationLinkCollection.getAtVersion(updatedVersion))
@@ -186,7 +185,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val switch2Id = mainOfficialContext.save(switch(operationalPointId = op2Id)).id
 
         val (trackId, trackOid) =
-            createConnectionTrack(mainOfficialContext, tnId, switch1Id, switch2Id, Point(55.0, 0.0), Point(145.0, 0.0))
+            createConnectionTrack(mainOfficialContext, tnId, switch1Id, switch2Id, Point(45.0, 1.0), Point(155.0, 1.0))
 
         val baseVersion = extTestDataService.publishInMain().uuid
 
@@ -199,7 +198,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 op1Oid to op1,
                 op2Oid to op2,
                 listOf(trackOid),
-                calculateDistance(LAYOUT_SRID, Point(50.0, 0.0), Point(150.0, 0.0)),
+                calculateDistance(LAYOUT_SRID, Point(50.0, 1.0), Point(150.0, 1.0)),
             )
         }
 
@@ -238,11 +237,11 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val switch2Id = mainOfficialContext.save(switch(operationalPointId = op2Id)).id
 
         val (_, tn1Track1Oid) =
-            createConnectionTrack(mainOfficialContext, tn1Id, switch1Id, switch2Id, Point(55.0, 0.0), Point(145.0, 0.0))
+            createConnectionTrack(mainOfficialContext, tn1Id, switch1Id, switch2Id, Point(45.0, 0.0), Point(155.0, 0.0))
         val (_, tn1Track2Oid) =
-            createConnectionTrack(mainOfficialContext, tn1Id, switch1Id, switch2Id, Point(55.0, 0.0), Point(145.0, 0.0))
+            createConnectionTrack(mainOfficialContext, tn1Id, switch1Id, switch2Id, Point(45.0, 0.0), Point(155.0, 0.0))
         val (_, tn2TrackOid) =
-            createConnectionTrack(mainOfficialContext, tn2Id, switch1Id, switch2Id, Point(55.0, 0.0), Point(145.0, 0.0))
+            createConnectionTrack(mainOfficialContext, tn2Id, switch1Id, switch2Id, Point(45.0, 0.0), Point(155.0, 0.0))
 
         val layoutVersion = extTestDataService.publishInMain().uuid
 

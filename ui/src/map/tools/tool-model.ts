@@ -13,13 +13,14 @@ import { Polygon } from 'model/geometry';
 
 export type DeactivateToolFn = () => void;
 
-type MapToolId =
+export type MapToolId =
     | 'select'
     | 'highlight'
     | 'select-or-highlight'
     | 'measure'
     | 'point-location'
     | 'area-select'
+    | 'route-finding'
     | 'operational-point-area';
 
 export type MapToolActivateOptions = {
@@ -31,16 +32,23 @@ export type MapToolActivateOptions = {
     linkingState: LinkingState | undefined;
 };
 
+// Returned by activate() so map-view can push updates without re-activating the tool.
+export type MapToolHandle = {
+    deactivate: DeactivateToolFn;
+    onLayersChanged?: (layers: MapLayer[]) => void;
+    onLinkingStateChanged?: (linkingState: LinkingState | undefined) => void;
+};
+
 export type MapToolProps = {
     isActive: boolean;
-    setActiveTool: (tool: MapTool) => void;
+    setActiveTool: (id: MapToolId) => void;
     disabled?: boolean;
     hidden?: boolean;
 };
 
 export type MapTool = {
-    activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => DeactivateToolFn;
-    customCursor?: (options: MapToolActivateOptions) => CssType.Property.Cursor | undefined;
+    activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => MapToolHandle;
+    customCursor?: (linkingState: LinkingState | undefined) => CssType.Property.Cursor | undefined;
     component?: React.ComponentType<MapToolProps>;
     id: MapToolId;
 };

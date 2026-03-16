@@ -175,7 +175,7 @@ constructor(
 
         val validation =
             publicationValidationService.validateKmPosts(LayoutBranch.main, OFFICIAL, listOf(kmPostId)).first()
-        assertEquals(validation.errors.size, 1)
+        assertEquals(validation.errors.size, 0)
     }
 
     @Test
@@ -801,11 +801,11 @@ constructor(
             mapOf("alignments" to alignments, "switch" to switchName),
         )
 
-    private fun switchNotPublishedError(switchName: String, locationTrackName: String) =
+    private fun switchNotPublishedError(switchName: String) =
         LayoutValidationIssue(
             LayoutValidationIssueType.ERROR,
             "validation.layout.location-track.reference-to-switch.not-published",
-            mapOf("target" to switchName, "referrers" to locationTrackName),
+            mapOf("target" to switchName),
         )
 
     private fun switchFrontJointNotConnectedError(switchName: String) =
@@ -859,20 +859,14 @@ constructor(
     private val topoTestDataContextOnLocationTrackValidationError =
         listOf(validationError("validation.layout.location-track.no-context"))
     private val topoTestDataStartSwitchNotPublishedError =
-        switchNotPublishedError(
-            switchName = "Topological switch connection test start switch",
-            locationTrackName = "track linked at start",
-        )
+        switchNotPublishedError(switchName = "Topological switch connection test start switch")
     private val topoTestDataStartSwitchJointsNotConnectedError =
         switchAlignmentNotConnectedTrackValidationError(
             "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
             "Topological switch connection test start switch",
         )
     private val topoTestDataEndSwitchNotPublishedError =
-        switchNotPublishedError(
-            "Topological switch connection test end switch",
-            locationTrackName = "track linked at end",
-        )
+        switchNotPublishedError("Topological switch connection test end switch")
     private val topoTestDataEndSwitchJointsNotConnectedError =
         switchAlignmentNotConnectedTrackValidationError(
             "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
@@ -897,14 +891,8 @@ constructor(
                 topoTestDataContextOnLocationTrackValidationError + noStart,
                 topoTestDataContextOnLocationTrackValidationError + noEnd,
                 topoTestDataContextOnLocationTrackValidationError +
-                    switchNotPublishedError(
-                        switchName = "Topological switch connection test start switch",
-                        locationTrackName = "track linked at start and end",
-                    ) +
-                    switchNotPublishedError(
-                        switchName = "Topological switch connection test end switch",
-                        locationTrackName = "track linked at start and end",
-                    ),
+                    switchNotPublishedError(switchName = "Topological switch connection test start switch") +
+                    switchNotPublishedError(switchName = "Topological switch connection test end switch"),
             )
         val actual =
             topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
@@ -1984,10 +1972,7 @@ constructor(
                     localizationKey =
                         LocalizationKey.of("validation.layout.track-number.reference-from-km-post.cancelled"),
                     type = LayoutValidationIssueType.ERROR,
-                    params =
-                        LocalizationParams(
-                            mapOf("referrers" to "0001", "target" to trackNumberNumber.number.toString())
-                        ),
+                    params = LocalizationParams(mapOf("referrers" to "0001")),
                 )
             ),
             validateTrackNumber.validatedAsPublicationUnit.trackNumbers[0].issues,
@@ -1999,10 +1984,7 @@ constructor(
                     localizationKey =
                         LocalizationKey.of("validation.layout.track-number.reference-from-km-post.cancelled"),
                     type = LayoutValidationIssueType.ERROR,
-                    params =
-                        LocalizationParams(
-                            mapOf("referrers" to "0001", "target" to trackNumberNumber.number.toString())
-                        ),
+                    params = LocalizationParams(mapOf("referrers" to "0001")),
                 )
             ),
             validateBoth.validatedAsPublicationUnit.trackNumbers[0].issues,
@@ -2012,8 +1994,7 @@ constructor(
             LayoutValidationIssue(
                 localizationKey = LocalizationKey.of("validation.layout.km-post.reference-to-track-number.cancelled"),
                 type = LayoutValidationIssueType.ERROR,
-                params =
-                    LocalizationParams(mapOf("referrers" to "0001", "target" to trackNumberNumber.number.toString())),
+                params = LocalizationParams(mapOf("target" to trackNumberNumber.number.toString())),
             ),
         )
     }
@@ -2060,10 +2041,7 @@ constructor(
                     localizationKey =
                         LocalizationKey.of("validation.layout.track-number.reference-from-km-post.cancelled"),
                     type = LayoutValidationIssueType.ERROR,
-                    params =
-                        LocalizationParams(
-                            mapOf("referrers" to "0001", "target" to trackNumberNumber.number.toString())
-                        ),
+                    params = LocalizationParams(mapOf("referrers" to "0001")),
                 )
             ),
             validateTrackNumber.validatedAsPublicationUnit.trackNumbers[0].issues,
@@ -2074,8 +2052,7 @@ constructor(
             LayoutValidationIssue(
                 localizationKey = LocalizationKey.of("validation.layout.km-post.reference-to-track-number.cancelled"),
                 type = LayoutValidationIssueType.ERROR,
-                params =
-                    LocalizationParams(mapOf("target" to trackNumberNumber.number.toString(), "referrers" to "0001")),
+                params = LocalizationParams(mapOf("target" to trackNumberNumber.number.toString())),
             ),
         )
     }
@@ -2096,8 +2073,7 @@ constructor(
                 .save(
                     switch(
                         name = switchName,
-                        joints =
-                            listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)),
                     )
                 )
                 .id
@@ -2139,7 +2115,7 @@ constructor(
                     localizationKey =
                         LocalizationKey.of("validation.layout.switch.reference-from-location-track.cancelled"),
                     type = LayoutValidationIssueType.ERROR,
-                    params = LocalizationParams(mapOf("referrers" to locationTrackName, "target" to switchName)),
+                    params = LocalizationParams(mapOf("referrers" to locationTrackName)),
                 )
             ),
             validateSwitch.validatedAsPublicationUnit.switches[0].issues,
@@ -2149,7 +2125,7 @@ constructor(
             LayoutValidationIssue(
                 localizationKey = LocalizationKey.of("validation.layout.location-track.reference-to-switch.cancelled"),
                 type = LayoutValidationIssueType.ERROR,
-                params = LocalizationParams(mapOf("target" to switchName, "referrers" to locationTrackName)),
+                params = LocalizationParams(mapOf("target" to switchName)),
             ),
         )
     }
@@ -2787,12 +2763,80 @@ constructor(
             listOf(
                 LayoutValidationIssue(
                     LayoutValidationIssueType.ERROR,
-                    "validation.layout.operational-point.rinf-code-missing",
+                    "validation.layout.operational-point.rinf-type-missing",
                 )
             ),
             publicationValidationService
                 .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(rinfless))[0]
                 .errors,
+        )
+    }
+
+    @Test
+    fun `operational point must have unique rinf id`() {
+        val op1 = operationalPoint(name = "OP1", uicCode = "1234", rinfIdOverride = "EU012")
+        val op1Id = mainDraftContext.save(op1).id
+
+        val op2 =
+            operationalPoint(
+                name = "OP2",
+                uicCode = "1235",
+                rinfIdGenerated = "EU012",
+                location = Point(op1.location?.let { Point(it.x + 100, it.y + 100) } ?: Point(100.0, 100.0)),
+                polygon = Polygon(op1.polygon?.points?.map { Point(it.x + 100, it.y + 100) } ?: listOf()),
+            )
+        val op2Id = mainDraftContext.save(op2).id
+
+        val issues =
+            publicationValidationService
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(op1Id, op2Id))[0]
+                .errors
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.FATAL,
+                    "validation.layout.operational-point.duplicate-rinf-id-draft",
+                    mapOf("rinfIdOverride" to "EU012"),
+                )
+            ),
+            issues,
+        )
+    }
+
+    @Test
+    fun `operational point rinf id override must be in right format`() {
+        val validOp = operationalPoint(name = "OP1", uicCode = "1234", rinfIdOverride = "EU012")
+        val validOpId = mainDraftContext.save(validOp).id
+
+        val brokenOp =
+            operationalPoint(
+                name = "OP2",
+                uicCode = "1235",
+                rinfIdGenerated = "FI01",
+                rinfIdOverride = "FI2222",
+                location = Point(validOp.location?.let { Point(it.x + 100, it.y + 100) } ?: Point(100.0, 100.0)),
+                polygon = Polygon(validOp.polygon?.points?.map { Point(it.x + 100, it.y + 100) } ?: listOf()),
+            )
+        val brokenOpId = mainDraftContext.save(brokenOp).id
+
+        val validValidationErrors =
+            publicationValidationService
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(validOpId))[0]
+                .errors
+        val brokenValidationErrors =
+            publicationValidationService
+                .validateOperationalPoints(LayoutBranch.main, PublicationState.DRAFT, listOf(brokenOpId))[0]
+                .errors
+
+        assertEquals(emptyList<LayoutValidationIssue>(), validValidationErrors)
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.ERROR,
+                    "validation.layout.operational-point.rinf-id-override-invalid-format",
+                )
+            ),
+            brokenValidationErrors,
         )
     }
 
@@ -2889,7 +2933,7 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.ERROR,
                 "validation.layout.switch.reference-to-operational-point.deleted",
-                mapOf("target" to "deleted", "referrers" to "b"),
+                mapOf("target" to "deleted"),
             ),
         )
         listOf(existingReferencingExisting, deletedReferencingExisting, deletedReferencingDeleted).forEach { okReferrer
@@ -2909,7 +2953,7 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.ERROR,
                 "validation.layout.location-track.reference-to-operational-point.deleted",
-                mapOf("target" to "deleted", "referrers" to "track"),
+                mapOf("target" to "deleted"),
             ),
         )
         assertContains(
@@ -2919,7 +2963,7 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.ERROR,
                 "validation.layout.operational-point.reference-from-switch.deleted",
-                mapOf("target" to "deleted", "referrers" to "b"),
+                mapOf("referrers" to "b"),
             ),
         )
         assertContains(
@@ -2929,7 +2973,7 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.ERROR,
                 "validation.layout.operational-point.reference-from-location-track.deleted",
-                mapOf("target" to "deleted", "referrers" to "track"),
+                mapOf("referrers" to "track"),
             ),
         )
         assertFalse(
@@ -2943,6 +2987,75 @@ constructor(
                             "validation.layout.operational-point.reference-from-switch.deleted"
                 }
         )
+    }
+
+    @Test
+    fun `switch linked to duplicate tracks must have same joint locations on each`() {
+        val trackNumberId = mainDraftContext.save(trackNumber()).id
+        val switchId = mainDraftContext.save(switch(name = "switch")).id
+
+        val mainTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumberId, name = "main"),
+                trackGeometry(
+                    listOf(
+                        edge(
+                            listOf(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
+                            startInnerSwitch = switchLinkYV(switchId, 1),
+                            endInnerSwitch = switchLinkYV(switchId, 5),
+                        ),
+                        edge(
+                            listOf(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+                            startInnerSwitch = switchLinkYV(switchId, 5),
+                            endInnerSwitch = switchLinkYV(switchId, 2),
+                        ),
+                    )
+                ),
+            )
+        val duplicateTrack =
+            mainDraftContext.save(
+                locationTrack(trackNumberId, name = "dup", duplicateOf = mainTrack.id),
+                trackGeometry(
+                    listOf(
+                        edge(
+                            listOf(segment(Point(0.0, 0.1), Point(5.0, 0.1))),
+                            startInnerSwitch = switchLinkYV(switchId, 1),
+                            endInnerSwitch = switchLinkYV(switchId, 5),
+                        ),
+                        edge(
+                            listOf(segment(Point(5.0, 0.1), Point(10.0, 0.1))),
+                            startInnerSwitch = switchLinkYV(switchId, 5),
+                            endInnerSwitch = switchLinkYV(switchId, 2),
+                        ),
+                    )
+                ),
+            )
+
+        val locationTrackValidations =
+            publicationValidationService.validateLocationTracks(
+                LayoutBranch.main,
+                DRAFT,
+                listOf(mainTrack.id, duplicateTrack.id),
+            )
+        val switchValidations =
+            publicationValidationService.validateSwitches(LayoutBranch.main, DRAFT, listOf(switchId))
+
+        val expectedError =
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                "$VALIDATION_SWITCH.duplicate-track-locations-differ",
+                mapOf(
+                    "switchName" to "switch",
+                    "trackName" to "main",
+                    "duplicateTrackName" to "dup",
+                    "jointNumbers" to "1, 5, 2",
+                ),
+                inRelationTo = setOf(PublicationLogAsset(switchId, PublicationLogAssetType.SWITCH)),
+            )
+
+        assertContains(locationTrackValidations.find { it.id == mainTrack.id }!!.errors, expectedError)
+        assertContains(locationTrackValidations.find { it.id == duplicateTrack.id }!!.errors, expectedError)
+        assertContains(switchValidations.find { it.id == switchId }!!.errors, expectedError)
     }
 
     private fun getTopologicalSwitchConnectionTestCases(
