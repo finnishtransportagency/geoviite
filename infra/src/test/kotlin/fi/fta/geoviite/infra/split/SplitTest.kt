@@ -54,6 +54,52 @@ class SplitTest {
     }
 
     @Test
+    fun `location track split applies description from request for TRANSFER duplicate`() {
+        val track = locationTrack(trackNumberId = IntId(123), draft = false)
+        val switchA = IntId<LayoutSwitch>(1)
+        val switchB = IntId<LayoutSwitch>(2)
+        val sourceGeometry =
+            trackGeometry(
+                edge(listOf(linearSegment(0..10)), endOuterSwitch = switchLinkYV(switchA, 1)),
+                edge(
+                    listOf(linearSegment(10..20)),
+                    startInnerSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+                edge(listOf(linearSegment(20..30)), startInnerSwitch = switchLinkKV(switchB, 1)),
+            )
+        val dupTrack = locationTrack(trackNumberId = IntId(456), draft = false)
+        val dupGeometry =
+            trackGeometry(
+                edge(
+                    listOf(linearSegment(10..20)),
+                    startInnerSwitch = switchLinkYV(switchA, 1),
+                    endOuterSwitch = switchLinkYV(switchB, 1),
+                ),
+                edge(listOf(linearSegment(20..25)), startInnerSwitch = switchLinkKV(switchB, 1)),
+            )
+        val targets =
+            listOf(
+                targetParams(null, null, "split1"),
+                targetParams(
+                    switchA,
+                    JointNumber(1),
+                    name = "split2",
+                    descriptionBase = "custom transfer description",
+                    descriptionSuffixType = SWITCH_TO_BUFFER,
+                    duplicate = dupTrack to dupGeometry,
+                    operation = SplitTargetDuplicateOperation.TRANSFER,
+                ),
+                targetParams(switchB, JointNumber(1), "split3"),
+            )
+        val resultTracks = splitLocationTrack(track, sourceGeometry, targets)
+        assertEquals(targets.size, resultTracks.size)
+        val transferResult = resultTracks[1].locationTrack
+        assertEquals(targets[1].request.descriptionBase, transferResult.descriptionStructure.base)
+        assertEquals(targets[1].request.descriptionSuffix, transferResult.descriptionStructure.suffix)
+    }
+
+    @Test
     fun `location track split works when overriding existing duplicate`() {
         val track = locationTrack(trackNumberId = IntId(123), draft = false)
         val switchId = IntId<LayoutSwitch>(1)
