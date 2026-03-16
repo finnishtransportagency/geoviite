@@ -75,6 +75,8 @@ private const val BULK_TRANSFER_PATH = "/api/split/bulk-transfer"
 private const val PLAN_PATH = "/api/plan/v1.0/plans"
 private const val MAP_ASSET_PATH = "/api/map/v1.0/assets"
 
+private const val MAX_JSON_LOG_LENGTH = 10_000
+
 // Use Geoviite OID-space for fake OIDs but make fake OIDs clearly distinct from real OIDs
 const val FAKE_OID_PREFIX = "1.2.246.578.13.0.0.0.0.0.0.0.0.0"
 const val TRACK_NUMBER_FAKE_OID_CONTEXT = 10001
@@ -277,17 +279,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(mapOf<String, Any>())
             .retrieve()
-            .onStatus(
-                { !it.is2xxSuccessful },
-                { response ->
-                    response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { body ->
-                        logger.error(
-                            "Error during Ratko push! HTTP Status code: ${response.statusCode()}, body: $body, requestUrl: $url, requestParams: $params"
-                        )
-                        Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE))
-                    }
-                },
-            )
+            .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE, "$url?$params", null)
             .toBodilessEntity()
             .block(defaultBlockTimeout)
     }
@@ -634,7 +626,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                     Mono.empty()
                 else {
                     logger.error(
-                        "Error during Ratko push! HTTP Status code: ${response.statusCode}, body: ${response.responseBodyAsString}, requestUrl: $url"
+                        "Error during Ratko push! HTTP Status code: ${response.statusCode}, body: ${response.responseBodyAsString.take(MAX_JSON_LOG_LENGTH)}, requestUrl: $url"
                     )
                     Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, response))
                 }
@@ -666,10 +658,14 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             { response ->
                 response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { body ->
                     val requestBodyJson =
-                        requestBody?.let { it as? String ?: ratkoJsonMapper.writeValueAsString(it) }?.take(10_000)
-                            ?: "null"
+                        runCatching {
+                                requestBody
+                                    ?.let { it as? String ?: ratkoJsonMapper.writeValueAsString(it) }
+                                    ?.take(MAX_JSON_LOG_LENGTH) ?: "null"
+                            }
+                            .getOrDefault("[JSON Serialization failed!]")
                     logger.error(
-                        "Error during Ratko push! httpStatus=${response.statusCode()} responseBody=$body requestUrl=\"$requestUrl\" requestBody=$requestBodyJson"
+                        "Error during Ratko push! httpStatus=${response.statusCode()} responseBody=${body.take(MAX_JSON_LOG_LENGTH)} requestUrl=\"$requestUrl\" requestBody=$requestBodyJson"
                     )
                     Mono.error(RatkoPushException(errorType, operation))
                 }
@@ -683,7 +679,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 { response ->
                     response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { body ->
                         logger.error(
-                            "Error proxying signal asset fetch! HTTP Status code: ${response.statusCode()}, body: $body"
+                            "Error proxying signal asset fetch! HTTP Status code: ${response.statusCode()}, body: ${body.take(MAX_JSON_LOG_LENGTH)}"
                         )
                         Mono.empty()
                     }
