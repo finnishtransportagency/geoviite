@@ -25,10 +25,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.util.produceIf
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.time.Instant
 
 @GeoviiteService
 class ExtSwitchServiceV1
@@ -166,9 +166,8 @@ constructor(
             .fetchPublishedSwitchesBetween(startMoment, endMoment)
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(switchDao::fetchMany)
-            ?.let { switches ->
-                nameFilter?.let { switches.filter { s -> s.name.contains(it, ignoreCase = true) } } ?: switches
-            }
+            ?.let { all -> nameFilter?.let { all.filter { s -> s.name.contains(it, ignoreCase = true) } } ?: all }
+            ?.takeIf { it.isNotEmpty() }
             ?.let { modifiedSwitches ->
                 ExtModifiedSwitchCollectionResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),

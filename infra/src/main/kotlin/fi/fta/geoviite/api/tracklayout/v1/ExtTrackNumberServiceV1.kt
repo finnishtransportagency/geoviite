@@ -166,10 +166,8 @@ constructor(
             .fetchPublishedTrackNumbersBetween(startMoment, endMoment)
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(trackNumberDao::fetchMany)
-            ?.let { trackNumbers ->
-                tnFilter?.let { trackNumbers.filter { tn -> tn.number.contains(it, ignoreCase = true) } }
-                    ?: trackNumbers
-            }
+            ?.let { all -> tnFilter?.let { all.filter { tn -> tn.number.contains(it, ignoreCase = true) } } ?: all }
+            ?.takeIf { it.isNotEmpty() }
             ?.let { trackNumbers ->
                 ExtModifiedTrackNumberCollectionResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),

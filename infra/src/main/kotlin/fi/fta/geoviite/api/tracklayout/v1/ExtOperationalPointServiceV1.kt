@@ -175,7 +175,7 @@ constructor(
             .fetchPublishedOperationalPointsBetween(startMoment, endMoment)
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(operationalPointDao::fetchMany)
-            ?.let { ops -> nameFilter?.let { ops.filter { op -> op.name.contains(it, ignoreCase = true) } } ?: ops }
+            ?.let { all -> nameFilter?.let { all.filter { op -> op.name.contains(it, ignoreCase = true) } } ?: all }
             ?.takeIf { it.isNotEmpty() }
             ?.let { modifiedOperationalPoints ->
                 ExtModifiedOperationalPointCollectionResponseV1(

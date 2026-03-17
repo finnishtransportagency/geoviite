@@ -176,6 +176,7 @@ constructor(
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(locationTrackService::getManyWithGeometries)
             ?.let { all -> nameFilter?.let { all.filter { (t, _) -> t.name.contains(it, ignoreCase = true) } } ?: all }
+            ?.takeIf { it.isNotEmpty() }
             ?.let { tracksAndGeoms ->
                 ExtModifiedLocationTrackCollectionResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),
