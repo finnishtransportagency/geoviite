@@ -30,7 +30,6 @@ import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
-import kotlin.test.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -40,6 +39,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import kotlin.test.assertNotEquals
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -529,6 +529,69 @@ constructor(
             assertEquals(emptyList<String>(), response.vaihde.raidelinkit.map { it.sijaintiraide_oid })
         }
         api.switch.assertNoModificationSince(switchOid, updateVersion)
+    }
+
+    @Test
+    fun `Switch collection is filtered by switch name`() {
+        val matchingSwitch =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                listOf(switchJoint(1, Point(0.0, 0.0)) to switchJoint(2, Point(10.0, 0.0))),
+            )
+        val otherSwitch =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                listOf(switchJoint(1, Point(0.0, 20.0)) to switchJoint(2, Point(10.0, 20.0))),
+            )
+
+        mainDraftContext.mutate(matchingSwitch.switch.id) { s -> s.copy(name = SwitchName("VMATCH")) }
+        mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(name = SwitchName("VOTHER")) }
+
+        extTestDataService.publishInMain(listOf(matchingSwitch, otherSwitch))
+
+        val matchingOid = matchingSwitch.switch.oid
+
+        api.switchCollection.get(SWITCH_NAME to "VMATCH").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.vaihteet.map { it.vaihde_oid })
+        }
+        // Partial case-insensitive match
+        api.switchCollection.get(SWITCH_NAME to "matc").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.vaihteet.map { it.vaihde_oid })
+        }
+    }
+
+    @Test
+    fun `Switch change-list is filtered by switch name`() {
+        val matchingSwitch =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                listOf(switchJoint(1, Point(0.0, 0.0)) to switchJoint(2, Point(10.0, 0.0))),
+            )
+        val otherSwitch =
+            extTestDataService.insertSwitchAndTracks(
+                mainDraftContext,
+                listOf(switchJoint(1, Point(0.0, 20.0)) to switchJoint(2, Point(10.0, 20.0))),
+            )
+
+        mainDraftContext.mutate(matchingSwitch.switch.id) { s -> s.copy(name = SwitchName("VMATCH")) }
+        mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(name = SwitchName("VOTHER")) }
+
+        val fromPublication = extTestDataService.publishInMain(listOf(matchingSwitch, otherSwitch)).uuid
+        val matchingOid = matchingSwitch.switch.oid
+
+        mainDraftContext.mutate(matchingSwitch.switch.id) { s ->
+            s.copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+        }
+        mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(stateCategory = LayoutStateCategory.NOT_EXISTING) }
+        extTestDataService.publishInMain(switches = listOf(matchingSwitch.switch.id, otherSwitch.switch.id))
+
+        api.switchCollection.getModifiedSince(fromPublication, SWITCH_NAME to "VMATCH").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.vaihteet.map { it.vaihde_oid })
+        }
+        // Partial case-insensitive match
+        api.switchCollection.getModifiedSince(fromPublication, SWITCH_NAME to "matc").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.vaihteet.map { it.vaihde_oid })
+        }
     }
 
     private fun assertChangesSince(

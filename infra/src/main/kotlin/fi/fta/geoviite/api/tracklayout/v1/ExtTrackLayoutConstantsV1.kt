@@ -128,6 +128,7 @@ const val EXT_OPENAPI_TRACK_LAYOUT_VERSION_NOT_FOUND = "Annettua rataverkon vers
 const val EXT_OPENAPI_ONE_OR_MORE_TRACK_LAYOUT_VERSION_NOT_FOUND =
     "Yhtä tai useampaa rataverkon versiota ei ole olemassa."
 
+const val OPERATIONAL_POINT_NAME = "toiminnallisen_pisteen_nimi"
 const val OPERATIONAL_POINT_OID_PARAM = "toiminnallinen_piste_oid"
 
 const val EXT_OPENAPI_OPERATIONAL_POINT_OID_DESCRIPTION = "Toiminnallisen pisteen OID-tunnus."

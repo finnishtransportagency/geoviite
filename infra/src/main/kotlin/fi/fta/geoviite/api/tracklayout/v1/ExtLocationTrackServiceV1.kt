@@ -21,10 +21,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Instant
 
 @GeoviiteService
 class ExtLocationTrackServiceV1
@@ -42,20 +42,34 @@ constructor(
     fun getExtLocationTrackCollection(
         layoutVersion: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
+        trackNameFilter: String? = null,
+        trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>? = null,
     ): ExtLocationTrackCollectionResponseV1 {
         val publication = publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, layoutVersion?.value)
-        return createLocationTrackCollectionResponse(publication, coordinateSystem(extCoordinateSystem))
+        return createLocationTrackCollectionResponse(
+            publication,
+            coordinateSystem(extCoordinateSystem),
+            trackNameFilter,
+            trackNumberOidFilter,
+        )
     }
 
     fun getExtLocationTrackCollectionModifications(
         layoutVersionFrom: ExtLayoutVersionV1,
         layoutVersionTo: ExtLayoutVersionV1?,
         extCoordinateSystem: ExtSridV1?,
+        trackNameFilter: String? = null,
+        trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>? = null,
     ): ExtModifiedLocationTrackCollectionResponseV1? =
         publicationService.getPublicationsToCompare(layoutVersionFrom.value, layoutVersionTo?.value).let { publications
             ->
             if (publications.areDifferent()) {
-                createLocationTrackCollectionModificationResponse(publications, coordinateSystem(extCoordinateSystem))
+                createLocationTrackCollectionModificationResponse(
+                    publications,
+                    coordinateSystem(extCoordinateSystem),
+                    trackNameFilter,
+                    trackNumberOidFilter,
+                )
             } else {
                 publicationsAreTheSame(layoutVersionFrom.value)
             }
@@ -131,20 +145,28 @@ constructor(
     private fun createLocationTrackCollectionResponse(
         publication: Publication,
         coordinateSystem: Srid,
+        nameFilter: String?,
+        trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>?,
     ): ExtLocationTrackCollectionResponseV1 {
         val branch = publication.layoutBranch.branch
         val moment = publication.publicationTime
-        val tracksAndGeoms = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, false)
+        val tracksAndGeoms =
+            locationTrackService.listOfficialWithGeometryAtMoment(branch, moment, false).let { all ->
+                nameFilter?.let { all.filter { (t, _) -> t.name.contains(it, ignoreCase = true) } } ?: all
+            }
         return ExtLocationTrackCollectionResponseV1(
             layoutVersion = ExtLayoutVersionV1(publication),
             coordinateSystem = ExtSridV1(coordinateSystem),
-            locationTrackCollection = createExtLocationTracks(branch, moment, coordinateSystem, tracksAndGeoms),
+            locationTrackCollection =
+                createExtLocationTracks(branch, moment, coordinateSystem, tracksAndGeoms, trackNumberOidFilter),
         )
     }
 
     private fun createLocationTrackCollectionModificationResponse(
         publications: PublicationComparison,
         coordinateSystem: Srid,
+        nameFilter: String?,
+        trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>?,
     ): ExtModifiedLocationTrackCollectionResponseV1? {
         val branch = publications.to.layoutBranch.branch
         val startMoment = publications.from.publicationTime
@@ -153,13 +175,17 @@ constructor(
             .fetchPublishedLocationTracksBetween(startMoment, endMoment)
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(locationTrackService::getManyWithGeometries)
+            ?.let { all -> nameFilter?.let { all.filter { (t, _) -> t.name.contains(it, ignoreCase = true) } } ?: all }
             ?.let { tracksAndGeoms ->
+                createExtLocationTracks(branch, endMoment, coordinateSystem, tracksAndGeoms, trackNumberOidFilter)
+            }
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { extTracks ->
                 ExtModifiedLocationTrackCollectionResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),
                     layoutVersionTo = ExtLayoutVersionV1(publications.to),
                     coordinateSystem = ExtSridV1(coordinateSystem),
-                    locationTrackCollection =
-                        createExtLocationTracks(branch, endMoment, coordinateSystem, tracksAndGeoms),
+                    locationTrackCollection = extTracks,
                 )
             } ?: layoutAssetCollectionWasUnmodified<LocationTrack>(publications)
     }
@@ -169,8 +195,10 @@ constructor(
         moment: Instant,
         coordinateSystem: Srid,
         tracksAndGeoms: List<Pair<LocationTrack, LocationTrackGeometry>>,
+        trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>?,
     ): List<ExtLocationTrackV1> {
         return getLocationTrackData(branch, moment, tracksAndGeoms)
+            .let { data -> trackNumberOidFilter?.let { data.filter { d -> d.trackNumberOid == it.value } } ?: data }
             .parallelStream()
             .map { data -> createExtLocationTrack(data, coordinateSystem) }
             .toList()

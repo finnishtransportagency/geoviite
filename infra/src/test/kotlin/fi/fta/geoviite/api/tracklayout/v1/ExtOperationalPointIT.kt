@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -25,7 +26,6 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
-import kotlin.random.Random
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -37,6 +37,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import kotlin.random.Random
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -538,6 +539,53 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         assertEquals(1, afterTrivialChangeOp.toiminnallinen_piste.vaihteet.size)
         assertEquals(1, afterTrivialChangeOp.toiminnallinen_piste.raiteet.size)
     }
+
+    @Test
+    fun `Operational point collection is filtered by name`() {
+        val matchingOpId = mainDraftContext.save(operationalPoint(name = "OP MATCHING 001")).id
+        val matchingOpOid = mainDraftContext.generateOid(matchingOpId)
+
+        val otherOpId = mainDraftContext.save(operationalPoint(name = "OP OTHER 999")).id
+        mainDraftContext.generateOid(otherOpId)
+
+        extTestDataService.publishInMain(operationalPoints = listOf(matchingOpId, otherOpId))
+
+        api.operationalPointCollection.get(OPERATIONAL_POINT_NAME to "OP MATCHING 001").also { response ->
+            assertEquals(listOf(matchingOpOid), getOids(response.toiminnalliset_pisteet))
+        }
+        // Case-insensitive partial match
+        api.operationalPointCollection.get(OPERATIONAL_POINT_NAME to "aTcHin").also { response ->
+            assertEquals(listOf(matchingOpOid), getOids(response.toiminnalliset_pisteet))
+        }
+    }
+
+    @Test
+    fun `Operational point change-list is filtered by name`() {
+        val matchingOpId = mainDraftContext.save(operationalPoint(name = "OP MATCHING 001")).id
+        val matchingOpOid = mainDraftContext.generateOid(matchingOpId)
+
+        val otherOpId = mainDraftContext.save(operationalPoint(name = "OP OTHER 999")).id
+        mainDraftContext.generateOid(otherOpId)
+
+        val fromPublication = extTestDataService.publishInMain(operationalPoints = listOf(matchingOpId, otherOpId)).uuid
+
+        initUser()
+        mainDraftContext.mutate(matchingOpId) { op -> op.copy(name = OperationalPointName("${op.name}-EDIT")) }
+        mainDraftContext.mutate(otherOpId) { op -> op.copy(name = OperationalPointName("${op.name}-EDIT")) }
+        extTestDataService.publishInMain(operationalPoints = listOf(matchingOpId, otherOpId))
+
+        api.operationalPointCollection
+            .getModifiedSince(fromPublication, OPERATIONAL_POINT_NAME to "OP MATCHING 001")
+            .also { response -> assertEquals(listOf(matchingOpOid), getOids(response.toiminnalliset_pisteet)) }
+        // Case-insensitive partial match
+        api.operationalPointCollection.getModifiedSince(fromPublication, OPERATIONAL_POINT_NAME to "aTcHin").also {
+            response ->
+            assertEquals(listOf(matchingOpOid), getOids(response.toiminnalliset_pisteet))
+        }
+    }
+
+    private fun getOids(ops: List<ExtTestOperationalPointV1>): List<Oid<OperationalPoint>> =
+        ops.map { Oid(it.toiminnallinen_piste_oid) }
 
     private fun assertPolygonMatches(expected: Polygon, actual: ExtTestPolygonV1?) {
         assertNotNull(actual)

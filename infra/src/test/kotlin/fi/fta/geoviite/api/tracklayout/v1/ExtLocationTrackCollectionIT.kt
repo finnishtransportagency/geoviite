@@ -45,6 +45,7 @@ constructor(
     private val locationTrackService: LocationTrackService,
     private val extTestDataService: ExtApiTestDataServiceV1,
 ) : DBTestBase() {
+
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -580,5 +581,101 @@ constructor(
             modifiedDescription,
             response.sijaintiraiteet.find { track -> track.sijaintiraide_oid == trackOid.toString() }?.kuvaus,
         )
+    }
+
+    @Test
+    fun `Location track collection is filtered by track number OID & track name`() {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+
+        val (matchingTnId, matchingRlId, matchingTnOid) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (otherTnId, otherRlId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+
+        val matchingTrackId =
+            mainDraftContext
+                .saveLocationTrack(locationTrackAndGeometry(matchingTnId, segment, name = "MATCHING TRACK"))
+                .id
+        val matchingOid = testDBService.generateOid(matchingTrackId, LayoutBranch.main)
+        val otherTrackId =
+            mainDraftContext.saveLocationTrack(locationTrackAndGeometry(otherTnId, segment, name = "OTHER TRACK")).id
+        testDBService.generateOid(otherTrackId, LayoutBranch.main)
+
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(matchingTnId, otherTnId),
+            referenceLines = listOf(matchingRlId, otherRlId),
+            locationTracks = listOf(matchingTrackId, otherTrackId),
+        )
+
+        // TrackNumber OID match (exact)
+        api.locationTrackCollection.get(TRACK_NUMBER_OID to matchingTnOid.toString()).also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.sijaintiraiteet.map { it.sijaintiraide_oid })
+        }
+        // Exact name match
+        api.locationTrackCollection.get(LOCATION_TRACK_NAME to "MATCHING TRACK").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.sijaintiraiteet.map { it.sijaintiraide_oid })
+        }
+        // Case-insensitive partial match on name
+        api.locationTrackCollection.get(LOCATION_TRACK_NAME to "atching").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.sijaintiraiteet.map { it.sijaintiraide_oid })
+        }
+    }
+
+    @Test
+    fun `Location track change-list is filtered by track number OID & track name`() {
+        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
+
+        val (matchingTnId, matchingRlId, matchingTnOid) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (otherTnId, otherRlId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+
+        val matchingTrackVersion =
+            mainDraftContext.saveLocationTrack(locationTrackAndGeometry(matchingTnId, segment, name = "MATCHING TRACK"))
+        val matchingTrackId = matchingTrackVersion.id
+        val matchingOid =
+            someOid<LocationTrack>().also { oid ->
+                locationTrackService.insertExternalId(LayoutBranch.main, matchingTrackId, oid)
+            }
+        val otherTrackVersion =
+            mainDraftContext.saveLocationTrack(locationTrackAndGeometry(otherTnId, segment, name = "OTHER TRACK"))
+        val otherTrackId = otherTrackVersion.id
+        someOid<LocationTrack>().also { oid ->
+            locationTrackService.insertExternalId(LayoutBranch.main, otherTrackId, oid)
+        }
+
+        val fromPublication =
+            extTestDataService
+                .publishInMain(
+                    trackNumbers = listOf(matchingTnId, otherTnId),
+                    referenceLines = listOf(matchingRlId, otherRlId),
+                    locationTracks = listOf(matchingTrackId, otherTrackId),
+                )
+                .uuid
+
+        locationTrackService.getWithGeometry(matchingTrackVersion).let { (track, geometry) ->
+            mainDraftContext.save(track.copy(description = FreeText("changed matching")), geometry)
+        }
+        locationTrackService.getWithGeometry(otherTrackVersion).let { (track, geometry) ->
+            mainDraftContext.save(track.copy(description = FreeText("changed other")), geometry)
+        }
+        extTestDataService.publishInMain(locationTracks = listOf(matchingTrackId, otherTrackId))
+
+        // TrackNumber OID match (exact)
+        api.locationTrackCollection
+            .getModifiedSince(fromPublication, TRACK_NUMBER_OID to matchingTnOid.toString())
+            .also { response ->
+                assertEquals(listOf(matchingOid.toString()), response.sijaintiraiteet.map { it.sijaintiraide_oid })
+            }
+        // Exact name match
+        api.locationTrackCollection.getModifiedSince(fromPublication, LOCATION_TRACK_NAME to "MATCHING TRACK").also {
+            response ->
+            assertEquals(listOf(matchingOid.toString()), response.sijaintiraiteet.map { it.sijaintiraide_oid })
+        }
+        // Case-insensitive partial match on name
+        api.locationTrackCollection.getModifiedSince(fromPublication, LOCATION_TRACK_NAME to "atching").also { response
+            ->
+            assertEquals(listOf(matchingOid.toString()), response.sijaintiraiteet.map { it.sijaintiraide_oid })
+        }
     }
 }

@@ -66,7 +66,11 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
         extCoordinateSystem: ExtSridV1?,
-    ): ExtSwitchCollectionResponseV1 = extSwitchService.getExtSwitchCollection(layoutVersion, extCoordinateSystem)
+        @Parameter(description = "Suodatus vaihdetunnuksen osalla")
+        @RequestParam(SWITCH_NAME, required = false)
+        switchNameFilter: String?,
+    ): ExtSwitchCollectionResponseV1 =
+        extSwitchService.getExtSwitchCollection(layoutVersion, extCoordinateSystem, switchNameFilter)
 
     @GetMapping("/vaihteet/muutokset")
     @Tag(name = EXT_SWITCH_TAG_V1)
@@ -110,9 +114,17 @@ class ExtSwitchControllerV1(private val extSwitchService: ExtSwitchServiceV1) {
         @Parameter(name = COORDINATE_SYSTEM, description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
         extCoordinateSystem: ExtSridV1?,
+        @Parameter(description = "Suodatus vaihdetunnuksen osalla")
+        @RequestParam(SWITCH_NAME, required = false)
+        switchNameFilter: String?,
     ): ResponseEntity<ExtModifiedSwitchCollectionResponseV1> =
         extSwitchService
-            .getExtSwitchCollectionModifications(layoutVersionFrom, layoutVersionTo, extCoordinateSystem)
+            .getExtSwitchCollectionModifications(
+                layoutVersionFrom,
+                layoutVersionTo,
+                extCoordinateSystem,
+                switchNameFilter,
+            )
             .let(::toResponse)
 
     @GetMapping("/vaihteet/{$SWITCH_OID_PARAM}")

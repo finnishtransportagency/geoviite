@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.someSegment
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -387,4 +388,72 @@ constructor(
 
     private fun getExtTrackNumberInCollection(oid: Oid<LayoutTrackNumber>): ExtTestTrackNumberV1? =
         api.trackNumberCollection.get().ratanumerot.find { it.ratanumero_oid == oid.toString() }
+
+    @Test
+    fun `Track number collection is filtered by track number name`() {
+        val (matchingId, matchingRefId, matchingOid) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                trackNumberName = "001 MATCHING",
+                segments = listOf(someSegment()),
+            )
+        val (otherId, otherRefId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                trackNumberName = "999 OTHER",
+                segments = listOf(someSegment()),
+            )
+
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(matchingId, otherId),
+            referenceLines = listOf(matchingRefId, otherRefId),
+        )
+
+        api.trackNumberCollection.get(TRACK_NUMBER to "001 MATCHING").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.ratanumerot.map { it.ratanumero_oid })
+        }
+        api.trackNumberCollection.get(TRACK_NUMBER to "atchin").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.ratanumerot.map { it.ratanumero_oid })
+        }
+    }
+
+    @Test
+    fun `Track number change-list is filtered by track number name`() {
+        val (matchingId, matchingRefId, matchingOid) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                trackNumberName = "001 MATCHING",
+                segments = listOf(someSegment()),
+            )
+        val (otherId, otherRefId, _) =
+            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
+                mainDraftContext,
+                trackNumberName = "999 OTHER",
+                segments = listOf(someSegment()),
+            )
+
+        val fromPublication =
+            extTestDataService
+                .publishInMain(
+                    trackNumbers = listOf(matchingId, otherId),
+                    referenceLines = listOf(matchingRefId, otherRefId),
+                )
+                .uuid
+
+        layoutTrackNumberService.get(MainLayoutContext.official, matchingId).let(::requireNotNull).also { tn ->
+            mainDraftContext.saveTrackNumber(tn.copy(description = TrackNumberDescription("changed")))
+        }
+        layoutTrackNumberService.get(MainLayoutContext.official, otherId).let(::requireNotNull).also { tn ->
+            mainDraftContext.saveTrackNumber(tn.copy(description = TrackNumberDescription("changed")))
+        }
+
+        extTestDataService.publishInMain(trackNumbers = listOf(matchingId, otherId))
+
+        api.trackNumberCollection.getModifiedSince(fromPublication, TRACK_NUMBER to "001 MATCHING").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.ratanumerot.map { it.ratanumero_oid })
+        }
+        api.trackNumberCollection.getModifiedSince(fromPublication, TRACK_NUMBER to "atch").also { response ->
+            assertEquals(listOf(matchingOid.toString()), response.ratanumerot.map { it.ratanumero_oid })
+        }
+    }
 }

@@ -3,6 +3,7 @@ package fi.fta.geoviite.api.tracklayout.v1
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.api.frameconverter.v1.LOCATION_TRACK_OID_PARAM
 import fi.fta.geoviite.infra.authorization.AUTH_API_GEOMETRY
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.toResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -68,8 +69,19 @@ class ExtLocationTrackControllerV1(
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
         extCoordinateSystem: ExtSridV1?,
+        @Parameter(description = "Suodatus sijaintiraidetunnuksen osalla")
+        @RequestParam(LOCATION_TRACK_NAME, required = false)
+        locationTrackNameFilter: String?,
+        @Parameter(description = "Suodatus ratanumeron OID-tunnuksella")
+        @RequestParam(TRACK_NUMBER_OID, required = false)
+        trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>?,
     ): ExtLocationTrackCollectionResponseV1 =
-        extLocationTrackService.getExtLocationTrackCollection(layoutVersion, extCoordinateSystem)
+        extLocationTrackService.getExtLocationTrackCollection(
+            layoutVersion,
+            extCoordinateSystem,
+            locationTrackNameFilter,
+            trackNumberOidFilter,
+        )
 
     @GetMapping("/sijaintiraiteet/muutokset")
     @Tag(name = EXT_LOCATION_TRACKS_TAG_V1)
@@ -114,9 +126,21 @@ class ExtLocationTrackControllerV1(
         @Parameter(description = EXT_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM, required = false)
         extCoordinateSystem: ExtSridV1?,
+        @Parameter(description = "Suodatus sijaintiraidetunnuksen osalla")
+        @RequestParam(LOCATION_TRACK_NAME, required = false)
+        locationTrackNameFilter: String?,
+        @Parameter(description = "Suodatus ratanumeron OID-tunnuksella")
+        @RequestParam(TRACK_NUMBER_OID, required = false)
+        trackNumberOidFilter: ExtOidV1<LayoutTrackNumber>?,
     ): ResponseEntity<ExtModifiedLocationTrackCollectionResponseV1> =
         extLocationTrackService
-            .getExtLocationTrackCollectionModifications(layoutVersionFrom, layoutVersionTo, extCoordinateSystem)
+            .getExtLocationTrackCollectionModifications(
+                layoutVersionFrom,
+                layoutVersionTo,
+                extCoordinateSystem,
+                locationTrackNameFilter,
+                trackNumberOidFilter,
+            )
             .let(::toResponse)
 
     @GetMapping("/sijaintiraiteet/{$LOCATION_TRACK_OID_PARAM}")
