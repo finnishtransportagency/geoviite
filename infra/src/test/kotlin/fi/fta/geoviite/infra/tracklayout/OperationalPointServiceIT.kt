@@ -319,7 +319,7 @@ constructor(
     ) = ExternalOperationalPointSaveRequest(rinfType, rinfIdOverride)
 
     @Test
-    fun `should reject setting rinf_id_generated once once set`() {
+    fun `should reject setting rinf_id_generated once set`() {
         val id = mainDraftContext.save(operationalPoint(name = "op1")).id
         operationalPointDao.setRinfIdGenerated(id, operationalPointDao.generateRinfId())
         assertThrows<IllegalArgumentException> {
