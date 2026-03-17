@@ -1,3 +1,12 @@
+# Actuator endpoints: Currently only using health
+management:
+  endpoints:
+    access:
+      default: none
+  endpoint:
+    health:
+      access: read_only
+
 spring:
   task:
     scheduling:
@@ -141,4 +150,3 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
-
