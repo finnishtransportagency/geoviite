@@ -176,20 +176,16 @@ constructor(
             .takeIf { versions -> versions.isNotEmpty() }
             ?.let(locationTrackService::getManyWithGeometries)
             ?.let { all -> nameFilter?.let { all.filter { (t, _) -> t.name.contains(it, ignoreCase = true) } } ?: all }
-            ?.takeIf { it.isNotEmpty() }
             ?.let { tracksAndGeoms ->
+                createExtLocationTracks(branch, endMoment, coordinateSystem, tracksAndGeoms, trackNumberOidFilter)
+            }
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { extTracks ->
                 ExtModifiedLocationTrackCollectionResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),
                     layoutVersionTo = ExtLayoutVersionV1(publications.to),
                     coordinateSystem = ExtSridV1(coordinateSystem),
-                    locationTrackCollection =
-                        createExtLocationTracks(
-                            branch,
-                            endMoment,
-                            coordinateSystem,
-                            tracksAndGeoms,
-                            trackNumberOidFilter,
-                        ),
+                    locationTrackCollection = extTracks,
                 )
             } ?: layoutAssetCollectionWasUnmodified<LocationTrack>(publications)
     }
