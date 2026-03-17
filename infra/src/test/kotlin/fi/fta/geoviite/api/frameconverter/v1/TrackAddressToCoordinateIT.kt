@@ -1392,8 +1392,8 @@ constructor(
         api.fetchFeatureCollectionBatch(API_COORDINATES, request, mapOf(COORDINATE_SYSTEM_PARAM to "EPSG:4326")).also {
             wgs84Response ->
             assertNull(wgs84Response.features[0].properties?.get("virheet"))
-            assertEquals(trackStartWgs84.x, wgs84Response.features[0].properties?.get("x") as Double, 0.001)
-            assertEquals(trackStartWgs84.y, wgs84Response.features[0].properties?.get("y") as Double, 0.001)
+            assertEquals(trackStartWgs84.x, wgs84Response.features[0].properties?.get("x") as Double, 0.0000001)
+            assertEquals(trackStartWgs84.y, wgs84Response.features[0].properties?.get("y") as Double, 0.0000001)
         }
     }
 }
