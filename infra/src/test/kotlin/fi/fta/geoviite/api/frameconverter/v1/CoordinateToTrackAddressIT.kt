@@ -12,8 +12,11 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geography.WGS_84_SRID
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointDistanceToLine
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
@@ -32,10 +35,6 @@ import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
-import java.math.BigDecimal
-import java.util.*
-import kotlin.math.hypot
-import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -45,6 +44,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
+import java.util.*
+import kotlin.math.hypot
+import kotlin.test.assertEquals
 
 private const val API_TRACK_ADDRESSES: FrameConverterUrl = "/rata-vkm/v1/rataosoitteet"
 
@@ -843,6 +846,23 @@ constructor(
 
         assertEquals(1, featureCollection.features.size)
         assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `Coordinate system argument is respected`() {
+        // Helsinki Railway Station area: TM35FIN (385782.89, 6672277.83) ↔ WGS84 (24.9414003, 60.1713788)
+        val trackStart = Point(385782.89, 6672277.83)
+        insertGeocodableTrack(segments = listOf(segment(trackStart, trackStart + Point(100.0, 100.0))))
+
+        // With EPSG:4326: x/y in the request body are WGS84, and the response x/y are also WGS84
+        val trackStartWgs84 = transformNonKKJCoordinate(LAYOUT_SRID, WGS_84_SRID, trackStart)
+        val request = TestCoordinateToTrackAddressRequest(x = trackStartWgs84.x, y = trackStartWgs84.y)
+        val wgs84Response =
+            api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request, mapOf(COORDINATE_SYSTEM_PARAM to "EPSG:4326"))
+
+        assertNull(wgs84Response.features[0].properties?.get("virheet"))
+        assertEquals(trackStartWgs84.x, wgs84Response.features[0].properties?.get("x") as Double, 0.0000001)
+        assertEquals(trackStartWgs84.y, wgs84Response.features[0].properties?.get("y") as Double, 0.0000001)
     }
 
     private fun insertGeocodableTrack(

@@ -10,7 +10,10 @@ import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geography.WGS_84_SRID
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -23,10 +26,6 @@ import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,6 +34,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.util.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 private const val API_COORDINATES: FrameConverterUrl = "/rata-vkm/v1/koordinaatit"
 
@@ -1359,5 +1362,38 @@ constructor(
 
         assertEquals(1, featureCollection.features.size)
         assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+    }
+
+    @Test
+    fun `Coordinate system argument is respected`() {
+        val layoutContext = mainOfficialContext
+        val trackNumberName = testDBService.getUnusedTrackNumber().value
+
+        val trackNumber =
+            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
+            }
+
+        // Helsinki Railway Station area: TM35FIN (385782.89, 6672277.83) ↔ WGS84 (24.9414003, 60.1713788)
+        val trackStart = Point(385782.89, 6672277.83)
+        val segments = listOf(segment(trackStart, trackStart + Point(100.0, 100.0)))
+        extTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId, segments = segments)
+
+        val trackStartWgs84 = transformNonKKJCoordinate(LAYOUT_SRID, WGS_84_SRID, trackStart)
+        val request =
+            TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 0)
+
+        api.fetchFeatureCollectionBatch(API_COORDINATES, request).also { defaultResponse ->
+            assertNull(defaultResponse.features[0].properties?.get("virheet"))
+            assertEquals(trackStart.x, defaultResponse.features[0].properties?.get("x") as Double, 0.001)
+            assertEquals(trackStart.y, defaultResponse.features[0].properties?.get("y") as Double, 0.001)
+        }
+
+        api.fetchFeatureCollectionBatch(API_COORDINATES, request, mapOf(COORDINATE_SYSTEM_PARAM to "EPSG:4326")).also {
+            wgs84Response ->
+            assertNull(wgs84Response.features[0].properties?.get("virheet"))
+            assertEquals(trackStartWgs84.x, wgs84Response.features[0].properties?.get("x") as Double, 0.0000001)
+            assertEquals(trackStartWgs84.y, wgs84Response.features[0].properties?.get("y") as Double, 0.0000001)
+        }
     }
 }
