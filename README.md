@@ -39,8 +39,6 @@ For reporting vulnerabilities or security defects, see [SECURITY.md](./SECURITY.
         ```
     - After installing the JDK, make sure Idea uses it in: File -> Project Structure -> (Left bar) Platform Settings ->
       SDKs
-    - The project should already be set to use JDK 11 by default, but if there's a hickup, leave module settings to "
-      project default" and set the project default to 11
 - Docker
 - Bash
 - 7zip
