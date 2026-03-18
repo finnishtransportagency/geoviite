@@ -10,10 +10,7 @@ import { VerticalGeometryDiagramContainer } from 'vertical-geometry/vertical-geo
 import { ToolBarContainer } from 'tool-bar/tool-bar-container';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_GEOMETRY } from 'user/user-model';
-import {
-    ProgressIndicatorType,
-    ProgressIndicatorWrapper,
-} from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { ProgressIndicatorType, ProgressIndicatorWrapper, } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { createRouteFindingTool } from 'map/tools/route-finding-tool';
@@ -64,7 +61,6 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
         RouteLocation | undefined
     >(undefined);
 
-    console.log('routeLocations', routeLocations);
     const routeResult = useLoader(async () => {
         if (routeLocations && routeLocations.start && routeLocations.end) {
             return await getRoute(
