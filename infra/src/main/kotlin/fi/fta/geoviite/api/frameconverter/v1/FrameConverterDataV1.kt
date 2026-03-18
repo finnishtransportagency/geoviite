@@ -84,8 +84,11 @@ data class FrameConverterQueryParamsV1(
     )
 }
 
-data class FrameConverterCoordinateV1(@JsonIgnore val srid: Srid, override val x: Double, override val y: Double) :
-    IPoint
+data class FrameConverterCoordinateV1(
+    @JsonIgnore val srid: Srid,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_X) override val x: Double,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_Y) override val y: Double,
+) : IPoint
 
 /**
  * Maps Finnish track type names to internally used type. There is additional mapping to the even more specific domain
@@ -123,8 +126,12 @@ data class GeoJsonFeatureErrorResponseV1(
 
 @Schema(name = "Virheen tiedot")
 data class GeoJsonFeatureErrorResponsePropertiesV1(
-    @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
-    @JsonProperty("virheet") val errors: List<String> = emptyList(),
+    @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER)
+    @JsonProperty("tunniste")
+    val identifier: FrameConverterIdentifierV1? = null,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_ERRORS)
+    @JsonProperty("virheet")
+    val errors: List<String> = emptyList(),
 ) : GeoJsonProperties
 
 /** Marker class for multiple request types. */
@@ -151,13 +158,13 @@ data class CoordinateToTrackAddressRequestV1(
     @Schema(description = FRAME_CONVERTER_OPENAPI_SEARCH_RADIUS, defaultValue = "100")
     @JsonProperty(SEARCH_RADIUS_PARAM)
     val searchRadius: Double? = DEFAULT_SEARCH_RADIUS,
-    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_OID)
+    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_OID, type = "string", format = "oid")
     @JsonProperty(TRACK_NUMBER_OID_PARAM)
     val trackNumberOid: FrameConverterStringV1? = null,
     @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER)
     @JsonProperty(TRACK_NUMBER_NAME_PARAM)
     val trackNumberName: FrameConverterStringV1? = null,
-    @Schema(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK_OID)
+    @Schema(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK_OID, type = "string", format = "oid")
     @JsonProperty(LOCATION_TRACK_OID_PARAM)
     val locationTrackOid: FrameConverterStringV1? = null,
     @Schema(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK)
@@ -225,7 +232,9 @@ data class CoordinateToTrackAddressResponseV1(
  */
 @Schema(name = "Vastauksen tiedot: Koordinaatista rataosoitteeseen")
 data class CoordinateToTrackAddressResponsePropertiesV1(
-    @JsonProperty(IDENTIFIER_PARAM) val identifier: FrameConverterIdentifierV1? = null,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER)
+    @JsonProperty(IDENTIFIER_PARAM)
+    val identifier: FrameConverterIdentifierV1? = null,
     @JsonUnwrapped val featureMatchSimple: FeatureMatchBasicV1? = null,
     @JsonUnwrapped val featureMatchDetails: FeatureMatchDetailsV1? = null,
 ) : GeoJsonProperties
@@ -240,21 +249,37 @@ data class CoordinateToTrackAddressResponsePropertiesV1(
 @Schema(name = "Perustiedot")
 data class FeatureMatchBasicV1(
     @JsonUnwrapped val coordinate: FrameConverterCoordinateV1,
-    @JsonProperty("valimatka") val distanceFromRequestPoint: Double,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_DISTANCE)
+    @JsonProperty("valimatka")
+    val distanceFromRequestPoint: Double,
 )
 
 /** Returned within properties when [FrameConverterQueryParamsV1.featureDetails] is true */
 @Schema(name = "Lisätiedot")
 data class FeatureMatchDetailsV1(
-    @JsonProperty("ratanumero") val trackNumber: TrackNumber,
-    @JsonProperty("ratanumero_oid") val trackNumberOid: String,
-    @JsonProperty("sijaintiraide") val locationTrackName: AlignmentName,
-    @JsonProperty("sijaintiraide_kuvaus") val locationTrackDescription: FreeText,
-    @JsonProperty("sijaintiraide_tyyppi") val translatedLocationTrackType: String,
-    @JsonProperty("sijaintiraide_oid") val locationTrackOid: String,
-    @JsonProperty("ratakilometri") val kmNumber: Int,
-    @JsonProperty("ratametri") val trackMeter: Int,
-    @JsonProperty("ratametri_desimaalit") val trackMeterDecimals: Int,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER)
+    @JsonProperty("ratanumero")
+    val trackNumber: TrackNumber,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_OID)
+    @JsonProperty("ratanumero_oid")
+    val trackNumberOid: String,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK)
+    @JsonProperty("sijaintiraide")
+    val locationTrackName: AlignmentName,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_DESCRIPTION)
+    @JsonProperty("sijaintiraide_kuvaus")
+    val locationTrackDescription: FreeText,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK_TYPE)
+    @JsonProperty("sijaintiraide_tyyppi")
+    val translatedLocationTrackType: String,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK_OID)
+    @JsonProperty("sijaintiraide_oid")
+    val locationTrackOid: String,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_KILOMETER) @JsonProperty("ratakilometri") val kmNumber: Int,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_METER) @JsonProperty("ratametri") val trackMeter: Int,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_METER_DECIMALS)
+    @JsonProperty("ratametri_desimaalit")
+    val trackMeterDecimals: Int,
 )
 
 /**
@@ -272,10 +297,10 @@ data class TrackAddressToCoordinateRequestV1(
     @Schema(description = FRAME_CONVERTER_OPENAPI_REQUEST_IDENTIFIER)
     @JsonProperty(IDENTIFIER_PARAM)
     val identifier: FrameConverterIdentifierV1? = null,
-    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_EXACTLY_ONE)
+    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_OID_EXACTLY_ONE, type = "string", format = "oid")
     @JsonProperty(TRACK_NUMBER_OID_PARAM)
     val trackNumberOid: FrameConverterStringV1? = null,
-    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_OID_EXACTLY_ONE)
+    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_EXACTLY_ONE)
     @JsonProperty(TRACK_NUMBER_NAME_PARAM)
     val trackNumberName: FrameConverterStringV1? = null,
     @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_KILOMETER, required = true)
@@ -284,7 +309,7 @@ data class TrackAddressToCoordinateRequestV1(
     @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_METER, required = true)
     @JsonProperty(TRACK_METER_PARAM)
     val trackMeter: BigDecimal? = null,
-    @Schema(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK)
+    @Schema(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK_OID, type = "string", format = "oid")
     @JsonProperty(LOCATION_TRACK_OID_PARAM)
     val locationTrackOid: FrameConverterStringV1? = null,
     @Schema(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK)
@@ -347,7 +372,9 @@ interface CoordinateToTrackAddressSingleResponseV1 : GeoJsonFeature
  */
 @Schema(name = "Vastauksen tiedot: Rataosoitteesta koordinaatteihin")
 data class TrackAddressToCoordinateResponsePropertiesV1(
-    @JsonProperty(IDENTIFIER_PARAM) val identifier: FrameConverterIdentifierV1? = null,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER)
+    @JsonProperty(IDENTIFIER_PARAM)
+    val identifier: FrameConverterIdentifierV1? = null,
     @JsonUnwrapped val featureMatchBasic: FeatureMatchBasicV1? = null,
     @JsonUnwrapped val featureMatchDetails: FeatureMatchDetailsV1? = null,
 ) : GeoJsonProperties

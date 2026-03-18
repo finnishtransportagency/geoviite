@@ -26,17 +26,17 @@ interface GeoJsonFeature {
     val properties: GeoJsonProperties?
 }
 
-@Schema(hidden = true, subTypes = [GeoJsonGeometryPoint::class]) sealed class GeoJsonGeometry
+@Schema(hidden = true) interface GeoJsonGeometry
 
 enum class GeoJsonGeometryType {
     Point
 }
 
-@Schema(hidden = true, name = "Pistesijainti")
+@Schema(hidden = true, name = "Pistesijainti (GeoJSON Point)")
 data class GeoJsonGeometryPoint(
     @Schema(type = "string", allowableValues = ["Point"]) val type: GeoJsonGeometryType = GeoJsonGeometryType.Point,
     val coordinates: List<Double>,
-) : GeoJsonGeometry() {
+) : GeoJsonGeometry {
 
     companion object {
         fun empty() = GeoJsonGeometryPoint(coordinates = listOf())

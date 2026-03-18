@@ -98,3 +98,18 @@ const val FRAME_CONVERTER_OPENAPI_TRACK_ADDRESS_TO_COORDINATE_BATCH_DESCRIPTION 
 
 const val FRAME_CONVERTER_OPENAPI_REQUEST_IDENTIFIER =
     "Asettaa pyynnölle tunnisteen. Palautetaan GeoJSON-tuloksen properties-kentässä kaikille saman pyynnön tunnisteeseen liittyville muunnoksille."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER =
+    "Pyynnössä annettu tunniste."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_DISTANCE =
+    "Etäisyys annetusta koordinaatista lähimpään raiteeseen metreinä."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_DESCRIPTION =
+    "Sijaintiraiteen kuvaus."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_METER_DECIMALS =
+    "Rataosoitteen ratametrin desimaaliosuus."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_ERRORS =
+    "Lista virheistä, jotka estivät muunnoksen suorittamisen."
