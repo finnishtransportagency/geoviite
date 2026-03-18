@@ -190,6 +190,7 @@ fun validateOperationalPointNameDuplication(
         validationTargetType,
         operationalPoint,
         duplicates.filter { it.state != OperationalPointState.DELETED },
+        FATAL,
     ) {
         listOf("name" to operationalPoint.name)
     }
@@ -205,6 +206,7 @@ fun validateOperationalPointAbbreviationDuplication(
         validationTargetType,
         operationalPoint,
         duplicates.filter { it.state != OperationalPointState.DELETED },
+        FATAL,
     ) { contextDuplicates ->
         listOf(
             "abbreviation" to operationalPoint.abbreviation.toString(),
@@ -223,6 +225,7 @@ fun validateOperationalPointUicCodeDuplication(
         validationTargetType,
         operationalPoint,
         duplicates.filter { it.state != OperationalPointState.DELETED },
+        FATAL,
     ) { contextDuplicates ->
         listOf(
             "uicCode" to operationalPoint.uicCode.toString(),
@@ -241,6 +244,7 @@ fun validateOperationalPointRinfIdOverrideDuplication(
         validationTargetType,
         operationalPoint,
         duplicates.filter { it.state != OperationalPointState.DELETED },
+        FATAL,
     ) {
         listOf("rinfIdOverride" to operationalPoint.rinfIdOverride)
     }
@@ -266,9 +270,9 @@ fun validateOperationalPointPolygonOverlap(
         validationTargetType,
         operationalPoint,
         overlapsWith,
-    ) { contextDuplicates ->
-        listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
-    }
+        WARNING) { contextDuplicates ->
+            listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
+        }
 
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,
@@ -354,7 +358,7 @@ private fun <T : LayoutAsset<T>> validateNameDuplication(
     duplicates: List<T>,
     makeParams: (duplicates: List<T>) -> List<Pair<String, Any?>>,
 ): List<LayoutValidationIssue> =
-    validateDuplication("duplicate-name", messagePrefix, validationTargetType, asset, duplicates, makeParams)
+    validateDuplication("duplicate-name", messagePrefix, validationTargetType, asset, duplicates, FATAL, makeParams)
 
 private fun <T : LayoutAsset<T>> validateDuplication(
     duplicateFieldMessageName: String,
@@ -362,6 +366,7 @@ private fun <T : LayoutAsset<T>> validateDuplication(
     validationTargetType: ValidationTargetType,
     asset: T,
     duplicates: List<T>,
+    validationIssueType: LayoutValidationIssueType,
     makeParams: (duplicates: List<T>) -> List<Pair<String, Any?>>,
 ): List<LayoutValidationIssue> {
     val draftDuplicates = duplicates.filter { d -> d.id != asset.id && d.isDraft }
@@ -369,11 +374,11 @@ private fun <T : LayoutAsset<T>> validateDuplication(
     val isMergingToMain = validationTargetType == ValidationTargetType.MERGING_TO_MAIN
     fun toParams(ds: List<T>) = LocalizationParams(makeParams(ds).associate { (k, v) -> k to (v?.toString() ?: "") })
     return listOfNotNull(
-        validateWithParams(draftDuplicates.isEmpty(), FATAL) {
+        validateWithParams(draftDuplicates.isEmpty(), validationIssueType) {
             (if (isMergingToMain) "$messagePrefix.$duplicateFieldMessageName-draft-in-main"
             else "$messagePrefix.$duplicateFieldMessageName-draft") to toParams(draftDuplicates)
         },
-        validateWithParams(officialDuplicates.isEmpty(), FATAL) {
+        validateWithParams(officialDuplicates.isEmpty(), validationIssueType) {
             "$messagePrefix.$duplicateFieldMessageName-official" to toParams(officialDuplicates)
         },
     )
