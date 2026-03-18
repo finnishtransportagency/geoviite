@@ -2,37 +2,39 @@ package fi.fta.geoviite.api.frameconverter.geojson
 
 import io.swagger.v3.oas.annotations.media.Schema
 
-@Schema(
-    name = "Vastaus: Muunnoksen tulosjoukko (GeoJSON FeatureCollection)",
-    description = "GeoJSON FeatureCollection muunnostuloksineen.",
-)
-data class GeoJsonFeatureCollection(
-    val type: GeoJsonType = GeoJsonType.FeatureCollection,
-    val features: List<GeoJsonFeature> = emptyList(),
-)
+@Schema(hidden = true, name = "GeoJSON FeatureCollection")
+interface GeoJsonFeatureCollection {
+    @get:Schema(type = "string", allowableValues = ["FeatureCollection"])
+    val type: GeoJsonType
+        get() = GeoJsonType.FeatureCollection
+
+    val features: List<GeoJsonFeature>
+}
 
 enum class GeoJsonType {
     FeatureCollection,
     Feature,
 }
 
-@Schema(name = "GeoJSON Feature", description = "GeoJSON Feature (yksittäinen muunnostulos)")
-abstract class GeoJsonFeature {
-    val type: GeoJsonType = GeoJsonType.Feature
+@Schema(hidden = true, name = "GeoJSON Feature")
+interface GeoJsonFeature {
+    @get:Schema(type = "string", allowableValues = ["Feature"])
+    val type: GeoJsonType
+        get() = GeoJsonType.Feature
 
-    abstract val geometry: GeoJsonGeometry?
-    abstract val properties: GeoJsonProperties?
+    val geometry: GeoJsonGeometry?
+    val properties: GeoJsonProperties?
 }
 
-abstract class GeoJsonGeometry
+@Schema(hidden = true, subTypes = [GeoJsonGeometryPoint::class]) sealed class GeoJsonGeometry
 
 enum class GeoJsonGeometryType {
     Point
 }
 
-@Schema(name = "Pistesijainti")
+@Schema(hidden = true, name = "Pistesijainti")
 data class GeoJsonGeometryPoint(
-    val type: GeoJsonGeometryType = GeoJsonGeometryType.Point,
+    @Schema(type = "string", allowableValues = ["Point"]) val type: GeoJsonGeometryType = GeoJsonGeometryType.Point,
     val coordinates: List<Double>,
 ) : GeoJsonGeometry() {
 
@@ -41,4 +43,4 @@ data class GeoJsonGeometryPoint(
     }
 }
 
-abstract class GeoJsonProperties
+@Schema(hidden = true) interface GeoJsonProperties

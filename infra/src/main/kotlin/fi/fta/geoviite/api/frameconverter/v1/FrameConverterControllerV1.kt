@@ -2,7 +2,6 @@ package fi.fta.geoviite.api.frameconverter.v1
 
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
-import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeatureCollection
 import fi.fta.geoviite.api.tracklayout.v1.ExtSridV1
 import fi.fta.geoviite.infra.aspects.DisableDefaultGeoviiteLogging
 import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
@@ -20,6 +19,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
+import java.math.BigDecimal
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -28,7 +28,6 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
-import java.math.BigDecimal
 
 const val EXT_FRAME_CONVERTER_BASE_PATH = "/rata-vkm"
 
@@ -104,7 +103,7 @@ constructor(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_DETAILS)
         @RequestParam(FEATURE_DETAILS_PARAM, required = false)
         featureDetails: Boolean?,
-    ): GeoJsonFeatureCollection {
+    ): TrackAddressToCoordinateCollectionResponseV1 {
         val request =
             TrackAddressToCoordinateRequestV1(
                 trackNumberName = trackNumberName,
@@ -118,8 +117,11 @@ constructor(
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
 
-        return GeoJsonFeatureCollection(
-            features = processTrackAddressToCoordinateRequests(listOf(request), queryParams).flatten()
+        return TrackAddressToCoordinateCollectionResponseV1(
+            features =
+                processTrackAddressToCoordinateRequests(listOf(request), queryParams).flatten().map {
+                    it as TrackAddressToCoordinateSingleResponseV1
+                }
         )
     }
 
@@ -170,15 +172,18 @@ constructor(
         )
         @org.springframework.web.bind.annotation.RequestBody
         requests: List<TrackAddressToCoordinateRequestV1>,
-    ): GeoJsonFeatureCollection {
+    ): TrackAddressToCoordinateCollectionResponseV1 {
         assertRequestSize(requests)
         logRequestAmount("trackAddressToCoordinateRequestBatch", requests)
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
-        val features = processTrackAddressToCoordinateRequests(requests, queryParams).flatten()
+        val features =
+            processTrackAddressToCoordinateRequests(requests, queryParams).flatten().map {
+                it as TrackAddressToCoordinateSingleResponseV1
+            }
 
         logFeatureAmount("trackAddressToCoordinateRequestBatch", features)
-        return GeoJsonFeatureCollection(features = features)
+        return TrackAddressToCoordinateCollectionResponseV1(features = features)
     }
 
     @GetMapping("/rataosoitteet", "/rataosoitteet/")
@@ -242,7 +247,7 @@ constructor(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_DETAILS)
         @RequestParam(FEATURE_DETAILS_PARAM, required = false)
         featureDetails: Boolean?,
-    ): GeoJsonFeatureCollection {
+    ): CoordinateToTrackAddressCollectionResponseV1 {
         val request =
             CoordinateToTrackAddressRequestV1(
                 x = xCoordinate,
@@ -257,8 +262,11 @@ constructor(
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
 
-        return GeoJsonFeatureCollection(
-            features = processCoordinateToTrackAddressRequests(listOf(request), queryParams).flatten()
+        return CoordinateToTrackAddressCollectionResponseV1(
+            features =
+                processCoordinateToTrackAddressRequests(listOf(request), queryParams).flatten().map {
+                    it as CoordinateToTrackAddressSingleResponseV1
+                }
         )
     }
 
@@ -309,16 +317,19 @@ constructor(
         )
         @org.springframework.web.bind.annotation.RequestBody
         requests: List<CoordinateToTrackAddressRequestV1>,
-    ): GeoJsonFeatureCollection {
+    ): CoordinateToTrackAddressCollectionResponseV1 {
         assertRequestSize(requests)
         logRequestAmount("coordinateToTrackAddressRequestBatch", requests)
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
-        val features = processCoordinateToTrackAddressRequests(requests, queryParams).flatten()
+        val features =
+            processCoordinateToTrackAddressRequests(requests, queryParams).flatten().map {
+                it as CoordinateToTrackAddressSingleResponseV1
+            }
 
         logFeatureAmount("coordinateToTrackAddressRequestBatch", features)
 
-        return GeoJsonFeatureCollection(features = features)
+        return CoordinateToTrackAddressCollectionResponseV1(features = features)
     }
 
     private fun processCoordinateToTrackAddressRequests(

@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped
 import com.fasterxml.jackson.annotation.JsonValue
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
-import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometry
+import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeatureCollection
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometryPoint
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonProperties
 import fi.fta.geoviite.api.tracklayout.v1.ExtSridV1
@@ -112,9 +112,9 @@ enum class FrameConverterLocationTrackTypeV1(@JsonValue val value: String) {
 /** General response type for a request that had an error during validation or processing. */
 @Schema(name = "Virhetulos")
 data class GeoJsonFeatureErrorResponseV1(
-    override val geometry: GeoJsonGeometry = GeoJsonGeometryPoint.empty(),
+    @Schema(description = "Tyhjä geometria") override val geometry: GeoJsonGeometryPoint = GeoJsonGeometryPoint.empty(),
     override val properties: GeoJsonFeatureErrorResponsePropertiesV1,
-) : GeoJsonFeature() {
+) : TrackAddressToCoordinateSingleResponseV1, CoordinateToTrackAddressSingleResponseV1 {
     constructor(
         identifier: FrameConverterIdentifierV1?,
         errorMessages: List<String>,
@@ -125,7 +125,7 @@ data class GeoJsonFeatureErrorResponseV1(
 data class GeoJsonFeatureErrorResponsePropertiesV1(
     @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
     @JsonProperty("virheet") val errors: List<String> = emptyList(),
-) : GeoJsonProperties()
+) : GeoJsonProperties
 
 /** Marker class for multiple request types. */
 sealed class FrameConverterRequestV1
@@ -216,7 +216,7 @@ data class ValidCoordinateToTrackAddressRequestV1(
 data class CoordinateToTrackAddressResponseV1(
     override val geometry: GeoJsonGeometryPoint,
     override val properties: CoordinateToTrackAddressResponsePropertiesV1,
-) : GeoJsonFeature()
+) : CoordinateToTrackAddressSingleResponseV1
 
 /**
  * @property identifier User provided optional request identifier.
@@ -228,7 +228,7 @@ data class CoordinateToTrackAddressResponsePropertiesV1(
     @JsonProperty(IDENTIFIER_PARAM) val identifier: FrameConverterIdentifierV1? = null,
     @JsonUnwrapped val featureMatchSimple: FeatureMatchBasicV1? = null,
     @JsonUnwrapped val featureMatchDetails: FeatureMatchDetailsV1? = null,
-) : GeoJsonProperties()
+) : GeoJsonProperties
 
 /**
  * @property FrameConverterCoordinateV1.x The x coordinate on the alignment of the matched location track ETRS-TM35FIN
@@ -316,7 +316,29 @@ data class ValidTrackAddressToCoordinateRequestV1(
 data class TrackAddressToCoordinateResponseV1(
     override val geometry: GeoJsonGeometryPoint,
     override val properties: TrackAddressToCoordinateResponsePropertiesV1,
-) : GeoJsonFeature()
+) : TrackAddressToCoordinateSingleResponseV1
+
+@Schema(name = "Vastaus: Erämuunnos rataosoitteesta koordinaatteihin")
+data class TrackAddressToCoordinateCollectionResponseV1(
+    override val features: List<TrackAddressToCoordinateSingleResponseV1>
+) : GeoJsonFeatureCollection
+
+@Schema(name = "Vastaus: Erämuunnos koordinaateista rataosoitteisiin")
+data class CoordinateToTrackAddressCollectionResponseV1(
+    override val features: List<CoordinateToTrackAddressSingleResponseV1>
+) : GeoJsonFeatureCollection
+
+@Schema(
+    name = "Vastauksen osa: Erämuunnos rataosoitteesta koordinaatteihin",
+    subTypes = [TrackAddressToCoordinateResponseV1::class, GeoJsonFeatureErrorResponseV1::class],
+)
+interface TrackAddressToCoordinateSingleResponseV1 : GeoJsonFeature
+
+@Schema(
+    name = "Vastauksen osa: Erämuunnos koordinaateista rataosoitteisiin",
+    subTypes = [CoordinateToTrackAddressResponseV1::class, GeoJsonFeatureErrorResponseV1::class],
+)
+interface CoordinateToTrackAddressSingleResponseV1 : GeoJsonFeature
 
 /**
  * @property identifier User provided optional request identifier.
@@ -328,4 +350,4 @@ data class TrackAddressToCoordinateResponsePropertiesV1(
     @JsonProperty(IDENTIFIER_PARAM) val identifier: FrameConverterIdentifierV1? = null,
     @JsonUnwrapped val featureMatchBasic: FeatureMatchBasicV1? = null,
     @JsonUnwrapped val featureMatchDetails: FeatureMatchDetailsV1? = null,
-) : GeoJsonProperties()
+) : GeoJsonProperties
