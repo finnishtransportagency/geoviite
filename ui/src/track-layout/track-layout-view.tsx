@@ -73,7 +73,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
             );
         }
         return undefined;
-    }, [routeLocations, changeTimes.layoutLocationTrack, changeTimes.layoutSwitch]);
+    }, [layoutContext, routeLocations, changeTimes.layoutLocationTrack, changeTimes.layoutSwitch]);
 
     const routeFindingTool = React.useMemo(
         () =>

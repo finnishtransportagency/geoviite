@@ -42,6 +42,7 @@ import exitFullScreen from './glyphs/navigation/exit-fullscreen.svg';
 import externalLink from './glyphs/navigation/external-link.svg';
 import menuSvg from './glyphs/navigation/menu.svg';
 import positionPinSvg from './glyphs/misc/position-pin.svg';
+import pinSolidSvg from './glyphs/misc/pin-solid.svg';
 import barsI from './glyphs/misc/bars-i.svg';
 import barsII from './glyphs/misc/bars-ii.svg';
 import barsIII from './glyphs/misc/bars-iii.svg';
@@ -130,6 +131,7 @@ const iconNameToSvgMap = {
     Layers: layersSvg,
     Switch: switchSvg,
     PositionPin: positionPinSvg,
+    PinSolid: pinSolidSvg,
     BarsI: barsI,
     BarsII: barsII,
     BarsIII: barsIII,
