@@ -84,11 +84,14 @@ export function createRouteFindingTool(
                         closestTrackPoint: closestTrackPoint,
                     };
                     if (!routeLocations.start) {
+                        // First click sets start
                         replaceStart(newRouteLocation);
                     } else {
+                        // Following clicks set end
                         replaceEnd(newRouteLocation);
                     }
                 } else {
+                    // Clicking "off" track clears route markings
                     onRouteLocationsChange({
                         start: undefined,
                         end: undefined,
