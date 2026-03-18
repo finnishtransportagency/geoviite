@@ -69,6 +69,7 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
         state.map.viewport.area,
         maxShownSwitches,
         state.layoutContext,
+        changeTimes.layoutSwitch,
     );
 
     const togglePlanDownload = () => {
