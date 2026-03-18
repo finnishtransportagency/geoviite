@@ -20,10 +20,6 @@ import { RouteLocation } from 'track-layout/track-layout-slice';
 
 const emptyFn = () => void 0;
 
-// export function useLayoutDelegates() {
-//     return React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
-// }
-
 const getTrackLayoutProps = (): MapViewProps => {
     const store = useTrackLayoutAppSelector((s) => s);
     const changeTimes = useCommonDataAppSelector((s) => s.changeTimes);

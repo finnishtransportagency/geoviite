@@ -94,6 +94,7 @@ export function drawRoundedRect(
 const iconImageCache = cache<string, HTMLImageElement>();
 
 export function createSvgIconImage(iconSvg: string, color?: string): HTMLImageElement {
+    // Replacing magic color code #004D99 isn't rigid, better approach can be implemented
     const refinedSvg = color ? iconSvg.replaceAll(/#004D99/g, color) : iconSvg;
     return iconImageCache.getOrCreate(refinedSvg, () => {
         const iconImage: HTMLImageElement = new Image();

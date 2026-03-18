@@ -22,12 +22,7 @@ import {
 } from 'map/map-model';
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
-import {
-    MapToolActivateOptions,
-    MapToolHandle,
-    MapToolId,
-    MapToolWithButton,
-} from './tools/tool-model';
+import { MapToolActivateOptions, MapToolHandle, MapToolId, MapToolWithButton, } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { LineString, Point as OlPoint, Polygon as OlPolygon } from 'ol/geom';
@@ -56,18 +51,12 @@ import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
 import { GeoviiteMapLayer } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
 import { createSwitchLayer } from 'map/layers/switch/switch-layer';
-import {
-    createBackgroundMapLayer,
-    createOrthographicMapLayer,
-} from 'map/layers/background-map-layer';
+import { createBackgroundMapLayer, createOrthographicMapLayer, } from 'map/layers/background-map-layer';
 import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { filterNotEmpty, first, objectEntries } from 'utils/array-utils';
-import {
-    mapLayerZIndexes,
-    REFERENCE_LINE_AUTO_HIDE_MAX_RESOLUTION,
-} from 'map/layers/utils/layer-visibility-limits';
+import { mapLayerZIndexes, REFERENCE_LINE_AUTO_HIDE_MAX_RESOLUTION, } from 'map/layers/utils/layer-visibility-limits';
 import { createLocationTrackAlignmentLayer } from 'map/layers/alignment/location-track-alignment-layer';
 import { createReferenceLineAlignmentLayer } from 'map/layers/alignment/reference-line-alignment-layer';
 import { createLocationTrackBackgroundLayer } from 'map/layers/alignment/location-track-background-layer';
@@ -87,9 +76,15 @@ import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { RouteResult } from 'track-layout/layout-routing-api';
 import { createLocationTrackSplitLocationLayer } from 'map/layers/alignment/location-track-split-location-layer';
-import { createDuplicateSplitSectionHighlightLayer } from 'map/layers/highlight/duplicate-split-section-highlight-layer';
-import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/location-track-duplicate-endpoint-indicator-layer';
-import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/location-track-selected-alignment-layer';
+import {
+    createDuplicateSplitSectionHighlightLayer
+} from 'map/layers/highlight/duplicate-split-section-highlight-layer';
+import {
+    createDuplicateTrackEndpointAddressLayer
+} from 'map/layers/alignment/location-track-duplicate-endpoint-indicator-layer';
+import {
+    createLocationTrackSelectedAlignmentLayer
+} from 'map/layers/alignment/location-track-selected-alignment-layer';
 import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
 import { createOperationalPointIconLayer } from 'map/layers/operational-point/operational-points-icon-layer';
@@ -99,13 +94,17 @@ import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { createPublicationCandidateLayer } from 'map/layers/preview/publication-candidate-layer';
 import { PublicationCandidate } from 'publication/publication-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
-import { createDeletedPublicationCandidateIconLayer } from 'map/layers/preview/deleted-publication-candidate-icon-layer';
+import {
+    createDeletedPublicationCandidateIconLayer
+} from 'map/layers/preview/deleted-publication-candidate-icon-layer';
 import { useResizeObserver } from 'utils/use-resize-observer';
 import { createDebugGeometryGraphLayer } from 'map/layers/debug/debug-geometry-graph-layer';
 import { PlanDownloadState } from 'map/plan-download/plan-download-store';
 import { PlanDownloadPopup } from 'map/plan-download/plan-download-popup';
 import { createDebugProjectionLinesLayer } from 'map/layers/debug/debug-projection-lines-layer';
-import { createOperationalPointsAreaPlacingLayer } from 'map/layers/operational-point/operational-points-area-placing-layer';
+import {
+    createOperationalPointsAreaPlacingLayer
+} from 'map/layers/operational-point/operational-points-area-placing-layer';
 import { createOperationalPointsPlacingLayer } from 'map/layers/operational-point/operational-points-placing-layer';
 import { createOperationalPointAreaLayer } from 'map/layers/operational-point/operational-points-area-layer';
 import { createOperationalPointBadgeLayer } from 'map/layers/operational-point/operational-points-badge-layer';
@@ -154,9 +153,6 @@ export type MapViewProps = {
     selectedDesignId?: LayoutDesignId;
     routeLocations?: RouteLocations;
     hoveredRouteLocation?: RouteLocation;
-    // onRouteLocationsChange?: (routeLocations: RouteLocations | undefined) => void;
-    // onHoveredRouteLocationChange?: (routeLocation: RouteLocation | undefined) => void;
-    // route?: RouteResult;
 };
 
 const defaultScaleLine: ScaleLine = new ScaleLine({

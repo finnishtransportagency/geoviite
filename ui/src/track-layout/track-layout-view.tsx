@@ -21,15 +21,14 @@ import { operationalPointAreaTool } from 'map/tools/operational-point-area-tool'
 import { RouteLocation } from 'track-layout/track-layout-slice';
 import { useLoader } from 'utils/react-utils';
 import { getRoute } from 'track-layout/layout-routing-api';
-
-// const MAX_TRACK_SEEK_DISTANCE = 1000.0;
+import { getChangeTimes } from 'common/change-time-api';
 
 export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
     enabled: boolean;
 };
 
-const empty = {
+const emptyRouteLocations = {
     start: undefined,
     end: undefined,
 };
@@ -53,25 +52,28 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
 
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
-    //    const [routeResult, setRouteResult] = React.useState<RouteResult | undefined>();
     const [switchToOfficialDialogOpen, setSwitchToOfficialDialogOpen] = React.useState(false);
 
-    const routeLocations = useTrackLayoutAppSelector((s) => s.routeLocations || empty);
+    const routeLocations = useTrackLayoutAppSelector(
+        (s) => s.routeLocations || emptyRouteLocations,
+    );
     const [hoveredRouteLocation, setHoveredRouteLocation] = React.useState<
         RouteLocation | undefined
     >(undefined);
 
+    const changeTimes = getChangeTimes();
     const routeResult = useLoader(async () => {
         if (routeLocations && routeLocations.start && routeLocations.end) {
             return await getRoute(
                 layoutContext,
                 routeLocations.start.closestTrackPoint.trackLocation,
                 routeLocations.end.closestTrackPoint.trackLocation,
+                // As exact track locations as used as coordinates for now, max distance can be a small value.
                 1,
             );
         }
         return undefined;
-    }, [routeLocations]); //[routeLocations, hoveredRouteLocation]);
+    }, [routeLocations, changeTimes.layoutLocationTrack, changeTimes.layoutSwitch]);
 
     const routeFindingTool = React.useMemo(
         () =>

@@ -25,6 +25,20 @@ export function createRouteFindingTool(
     const tool: MapToolWithButton = {
         id,
         activate: (map: OlMap) => {
+            function replaceStart(routeLocation: RouteLocation) {
+                onRouteLocationsChange({
+                    ...routeLocations,
+                    start: routeLocation,
+                });
+            }
+
+            function replaceEnd(routeLocation: RouteLocation) {
+                onRouteLocationsChange({
+                    ...routeLocations,
+                    end: routeLocation,
+                });
+            }
+
             function getSeekDistance(): number | undefined {
                 const resolution = map.getView().getResolution();
                 if (!resolution) return undefined;
@@ -54,21 +68,7 @@ export function createRouteFindingTool(
                 debouncedUpdateHover(coordinate);
             };
 
-            function replaceStart(routeLocation: RouteLocation) {
-                onRouteLocationsChange({
-                    ...routeLocations,
-                    start: routeLocation,
-                });
-            }
-            function replaceEnd(routeLocation: RouteLocation) {
-                onRouteLocationsChange({
-                    ...routeLocations,
-                    end: routeLocation,
-                });
-            }
-
             const handleClick = async ({ coordinate }: MapBrowserEvent) => {
-                console.log('route click');
                 const seekDistance = getSeekDistance();
                 if (!seekDistance) return;
 
