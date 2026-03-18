@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getPointOrNull
 import fi.fta.geoviite.infra.util.getPolygonPointListOrNull
+import fi.fta.geoviite.infra.util.getRinfIdOrNull
 import fi.fta.geoviite.infra.util.getUnsafeStringOrNull
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
@@ -53,6 +54,31 @@ class OperationalPointDao(
         "layout.operational_point_external_id_version",
     ),
     IExternallyIdentifiedLayoutAssetDao<OperationalPoint> {
+
+    fun setRinfIdGenerated(id: IntId<OperationalPoint>, rinfIdGenerated: RinfId) {
+        val sql =
+            """
+            update ${table.idTable}
+            set rinf_id_generated = :rinf_id
+            where id = :id
+              and rinf_id_generated is null
+        """
+                .trimIndent()
+        jdbcTemplate.execute(sql, mapOf("id" to id.intValue, "rinf_id" to rinfIdGenerated.toString())) { ps ->
+            ps.execute()
+            require(ps.updateCount == 1) {
+                "could not set rinf_id_generated for id $id: Either it was already set, or the id doesn't exist"
+            }
+        }
+    }
+
+    fun getRinfIdGenerated(id: IntId<OperationalPoint>) =
+        jdbcTemplate.queryOptional(
+            "select rinf_id_generated from ${table.idTable} where id = :id",
+            mapOf("id" to id.intValue),
+        ) { rs, _ ->
+            rs.getRinfIdOrNull("rinf_id_generated")
+        }
 
     override fun fetchManyInternal(
         versions: Collection<LayoutRowVersion<OperationalPoint>>
@@ -158,11 +184,7 @@ class OperationalPointDao(
     @Transactional fun save(item: OperationalPoint): LayoutRowVersion<OperationalPoint> = save(item, NoParams.instance)
 
     @Transactional
-    fun insertRatkoPoint(
-        id: IntId<OperationalPoint>,
-        ratkoPointVersion: Int,
-        rinfId: RinfId?,
-    ): LayoutRowVersion<OperationalPoint> {
+    fun insertRatkoPoint(id: IntId<OperationalPoint>, ratkoPointVersion: Int): LayoutRowVersion<OperationalPoint> {
         val sql =
             """
             insert into
@@ -173,8 +195,7 @@ class OperationalPointDao(
                 layout_context_id,
                 state,
                 origin,
-                ratko_operational_point_version,
-                rinf_id_generated
+                ratko_operational_point_version
             )
             values (
               :id,
@@ -183,8 +204,7 @@ class OperationalPointDao(
               'main_draft',
               'IN_USE',
               'RATKO',
-              :ratko_operational_point_version,
-              :rinf_id_generated
+              :ratko_operational_point_version
             )
             returning id, design_id, draft, version
             """
@@ -194,11 +214,7 @@ class OperationalPointDao(
         val response: LayoutRowVersion<OperationalPoint> =
             jdbcTemplate.queryForObject(
                 sql,
-                mapOf(
-                    "id" to id.intValue,
-                    "ratko_operational_point_version" to ratkoPointVersion,
-                    "rinf_id_generated" to rinfId?.toString(),
-                ),
+                mapOf("id" to id.intValue, "ratko_operational_point_version" to ratkoPointVersion),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save operational point")
@@ -230,8 +246,7 @@ class OperationalPointDao(
                 polygon,
                 origin,
                 ratko_operational_point_version,
-                rinf_id_override,
-                rinf_id_generated
+                rinf_id_override
             )
             values (
               :id,
@@ -250,8 +265,7 @@ class OperationalPointDao(
               postgis.st_polygonfromtext(:polygon_wkt, :srid),
               :origin::layout.operational_point_origin,
               :ratko_operational_point_version,
-              :rinf_id_override,
-              :rinf_id_generated
+              :rinf_id_override
             )
             on conflict (id, layout_context_id) do update set
               design_asset_state = excluded.design_asset_state,
@@ -265,8 +279,7 @@ class OperationalPointDao(
               rinf_type = excluded.rinf_type,
               polygon = excluded.polygon,
               ratko_operational_point_version = excluded.ratko_operational_point_version,
-              rinf_id_override = excluded.rinf_id_override,
-              rinf_id_generated = operational_point.rinf_id_generated
+              rinf_id_override = excluded.rinf_id_override
             returning id, design_id, draft, version
             """
                 .trimIndent()
@@ -287,7 +300,6 @@ class OperationalPointDao(
                 "rinf_type" to item.rinfType?.name,
                 "ratko_operational_point_version" to item.ratkoVersion,
                 "rinf_id_override" to item.rinfIdOverride?.toString(),
-                "rinf_id_generated" to item.rinfIdGenerated?.toString(),
             )
         val originParams =
             when (item.origin) {
@@ -377,13 +389,32 @@ class OperationalPointDao(
     ): Map<RinfId, List<LayoutRowVersion<OperationalPoint>>> =
         findFieldDuplicates(context, items, "rinf_id_override") { rs -> rs.getString("rinf_id_override").let(::RinfId) }
 
-    fun findRinfIdGeneratedDuplicates(
+    fun findByRinfIdGenerated(
         context: LayoutContext,
         items: List<RinfId>,
-    ): Map<RinfId, List<LayoutRowVersion<OperationalPoint>>> =
-        findFieldDuplicates(context, items, "rinf_id_generated") { rs ->
-            rs.getString("rinf_id_generated").let(::RinfId)
-        }
+    ): Map<RinfId, LayoutRowVersion<OperationalPoint>> {
+        val sql =
+            """
+            select op.id, op.design_id, op.draft, op.version, opid.rinf_id_generated
+            from layout.operational_point_in_layout_context(:publication_state::layout.publication_state, :design_id) op
+              join layout.operational_point_id opid using(id)
+            where opid.rinf_id_generated = any(:rinf_ids)
+            """
+                .trimIndent()
+        return jdbcTemplate
+            .query(
+                sql,
+                mapOf(
+                    "publication_state" to context.state.name,
+                    "design_id" to context.branch.designId,
+                    "rinf_ids" to items.map { it.toString() }.toTypedArray(),
+                ),
+            ) { rs, _ ->
+                RinfId(rs.getString("rinf_id_generated")) to
+                    rs.getLayoutRowVersion<OperationalPoint>("id", "design_id", "draft", "version")
+            }
+            .associate { it }
+    }
 
     /**
      * baseContext, candidateContext, and publicationCandidateIds define a publication set. If publicationCandidateIds

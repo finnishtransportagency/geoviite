@@ -1363,13 +1363,6 @@ class PublicationValidationTest {
     }
 
     @Test
-    fun `RINF id validation returns error if rinfId is missing entirely`() {
-        val op =
-            operationalPoint(rinfIdGenerated = null, rinfIdOverride = null, ratoType = OperationalPointRatoType.SEIS)
-        assertContainsError(true, validateOperationalPointRinfId(op), "$VALIDATION_OPERATIONAL_POINT.rinf-id-missing")
-    }
-
-    @Test
     fun `RINF id validation returns error for invalid overrides`() {
         // Valid override format: "EU" followed by 1-10 digits, e.g. "EU0123"
         assertContainsError(

@@ -42,9 +42,11 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameStructure
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.RinfId
 import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
@@ -110,6 +112,7 @@ constructor(
     val splitDao: SplitDao,
     val publicationTestSupportService: PublicationTestSupportService,
     val ratkoTestService: RatkoTestService,
+    val operationalPointDao: OperationalPointDao,
 ) : DBTestBase() {
     @BeforeEach
     fun cleanup() {
@@ -2777,15 +2780,18 @@ constructor(
         val op1 = operationalPoint(name = "OP1", uicCode = "1234", rinfIdOverride = "EU012")
         val op1Id = mainDraftContext.save(op1).id
 
-        val op2 =
+        val op2Id = operationalPointDao.createId()
+        operationalPointDao.setRinfIdGenerated(op2Id, RinfId("EU012"))
+
+        mainDraftContext.save(
             operationalPoint(
+                id = op2Id,
                 name = "OP2",
                 uicCode = "1235",
-                rinfIdGenerated = "EU012",
                 location = Point(op1.location?.let { Point(it.x + 100, it.y + 100) } ?: Point(100.0, 100.0)),
                 polygon = Polygon(op1.polygon?.points?.map { Point(it.x + 100, it.y + 100) } ?: listOf()),
             )
-        val op2Id = mainDraftContext.save(op2).id
+        )
 
         val issues =
             publicationValidationService
@@ -2812,7 +2818,6 @@ constructor(
             operationalPoint(
                 name = "OP2",
                 uicCode = "1235",
-                rinfIdGenerated = "FI01",
                 rinfIdOverride = "FI2222",
                 location = Point(validOp.location?.let { Point(it.x + 100, it.y + 100) } ?: Point(100.0, 100.0)),
                 polygon = Polygon(validOp.polygon?.points?.map { Point(it.x + 100, it.y + 100) } ?: listOf()),

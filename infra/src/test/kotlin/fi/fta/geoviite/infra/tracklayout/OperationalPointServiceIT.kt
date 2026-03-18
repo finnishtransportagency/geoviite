@@ -16,6 +16,7 @@ import org.junit.jupiter.api.assertNotNull
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
@@ -316,4 +317,32 @@ constructor(
         rinfType: OperationalPointRinfType = OperationalPointRinfType.SMALL_STATION,
         rinfIdOverride: RinfId? = null,
     ) = ExternalOperationalPointSaveRequest(rinfType, rinfIdOverride)
+
+    @Test
+    fun `should reject setting rinf_id_generated once set`() {
+        val id = mainDraftContext.save(operationalPoint(name = "op1")).id
+        operationalPointDao.setRinfIdGenerated(id, operationalPointDao.generateRinfId())
+        assertThrows<IllegalArgumentException> {
+            operationalPointDao.setRinfIdGenerated(id, operationalPointDao.generateRinfId())
+        }
+    }
+
+    @Test
+    fun `should reject duplicate rinf_id_generated values`() {
+        val op1Id = mainOfficialContext.save(operationalPoint(name = "op1")).id
+        val op2Id = mainOfficialContext.save(operationalPoint(name = "op1")).id
+        operationalPointDao.setRinfIdGenerated(op1Id, RinfId("FI999999"))
+        assertThrows<DataIntegrityViolationException> {
+            operationalPointDao.setRinfIdGenerated(op2Id, RinfId("FI999999"))
+        }
+    }
+
+    @Test
+    fun `should allow multiple operational points with null rinf_id_generated`() {
+        mainDraftContext.save(operationalPoint(name = "op1"))
+        mainDraftContext.save(operationalPoint(name = "op2"))
+        val points = operationalPointService.list(mainDraftContext.context)
+        assertEquals(2, points.size)
+        assertEquals(listOf(null, null), points.map { it.rinfIdGenerated })
+    }
 }

@@ -55,7 +55,7 @@ class OperationalPointService(
                 ratkoVersion = null,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
                 rinfIdOverride = request.rinfIdOverride,
-                rinfIdGenerated = dao.generateRinfId(),
+                rinfIdGenerated = null,
             ),
         )
 
@@ -126,6 +126,9 @@ class OperationalPointService(
         branch: LayoutBranch,
         version: LayoutRowVersion<OperationalPoint>,
     ): PublicationResultVersions<OperationalPoint> {
+        if (dao.getRinfIdGenerated(version.id) == null && dao.fetch(version).ratoType != OperationalPointRatoType.OLP) {
+            dao.setRinfIdGenerated(version.id, dao.generateRinfId())
+        }
         val publishedVersion = publishInternal(branch, version)
         val presentId = dao.fetchExternalId(branch, version.id)
         if (presentId == null) {
@@ -151,8 +154,7 @@ class OperationalPointService(
             val draftRatkoVersion = requireNotNull(draft.ratkoVersion)
             val officialRatkoVersion = get(branch.official, id)?.ratkoVersion
             if (officialRatkoVersion == null || officialRatkoVersion < draftRatkoVersion) {
-                val rinfIdGenerated = if (draft.ratoType != OperationalPointRatoType.OLP) dao.generateRinfId() else null
-                dao.insertRatkoPoint(id, draftRatkoVersion, rinfIdGenerated)
+                dao.insertRatkoPoint(id, draftRatkoVersion)
             }
             draftVersion
         }
