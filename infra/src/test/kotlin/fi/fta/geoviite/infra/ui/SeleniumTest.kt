@@ -4,16 +4,24 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ERole
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
+import fi.fta.geoviite.infra.ui.util.SHOW_BROWSER
 import fi.fta.geoviite.infra.ui.util.browser
 import fi.fta.geoviite.infra.ui.util.openBrowser
 import fi.fta.geoviite.infra.ui.util.openRemoteBrowser
-import java.util.*
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.test.context.ActiveProfiles
+import java.util.*
+
+/**
+ * To run UI test with visible browser:
+ *
+ * @see SHOW_BROWSER
+ */
+
 
 const val UI_TEST_USER = "UI_TEST_USER"
 

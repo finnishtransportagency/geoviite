@@ -1,4 +1,4 @@
-import { LayoutContext } from 'common/common-model';
+import { LayoutContext, TimeStamp } from 'common/common-model';
 import { BoundingBox } from 'model/geometry';
 import { getSwitchesAreaSummary, SwitchAreaSummary } from 'track-layout/layout-switch-api';
 import { debounceAsync } from 'utils/async-utils';
@@ -12,6 +12,7 @@ export function useSwitchAreaSummary(
     area: BoundingBox | undefined,
     maxSwitches: number,
     layoutContext: LayoutContext,
+    switchChangeTime: TimeStamp,
 ): SwitchAreaSummary | undefined {
     return useLoader(() => {
         return area
@@ -22,5 +23,5 @@ export function useSwitchAreaSummary(
                   false, // includeSwitchesWithNoJoints
               )
             : Promise.resolve(undefined);
-    }, [area, maxSwitches, layoutContext]);
+    }, [area, maxSwitches, layoutContext, switchChangeTime]);
 }
