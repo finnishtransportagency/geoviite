@@ -776,6 +776,31 @@ class LayoutSwitchDao(
         insertExternalIdInExistingTransaction(branch, id, oid)
     }
 
+    fun getSwitchesLinkedToOperationalPoint(
+        context: LayoutContext,
+        operationalPointId: IntId<OperationalPoint>,
+    ): List<IntId<LayoutSwitch>> {
+        val sql =
+            """
+            select s.id
+              from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) s
+              where s.operational_point_id = :operational_point_id
+            """
+                .trimIndent()
+        return jdbcTemplate
+            .query(
+                sql,
+                mapOf(
+                    "publication_state" to context.state.name,
+                    "design_id" to context.branch.designId?.intValue,
+                    "operational_point_id" to operationalPointId.intValue,
+                ),
+            ) { rs, _ ->
+                rs.getIntId<LayoutSwitch>("id")
+            }
+            .also { logger.daoAccess(FETCH, "getSwitchesLinkedToOperationalPoint", operationalPointId) }
+    }
+
     fun fetchVersionsForPublicationByOperationalPoints(
         target: LayoutContextTransition,
         operationalPointIds: List<IntId<OperationalPoint>>,

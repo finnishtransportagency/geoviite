@@ -20,6 +20,9 @@ import org.springframework.transaction.annotation.Transactional
 class OperationalPointService(
     val operationalPointDao: OperationalPointDao,
     private val geoviiteOidDao: GeoviiteOidDao,
+    private val locationTrackService: LocationTrackService,
+    private val switchService: LayoutSwitchService,
+    private val switchDao: LayoutSwitchDao,
 ) : LayoutAssetService<OperationalPoint, NoParams, OperationalPointDao>(operationalPointDao) {
 
     fun list(
@@ -140,6 +143,11 @@ class OperationalPointService(
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<OperationalPoint>): LayoutRowVersion<OperationalPoint> {
+        // If removal also breaks references, clear them out first
+        if (dao.fetchVersion(branch.official, id) == null) {
+            clearOperationalPointReferences(branch, id)
+        }
+
         val draftVersion = dao.fetchVersion(branch.draft, id)
         val draft = draftVersion?.let(dao::fetch)
         return if (draft?.origin != OperationalPointOrigin.RATKO || branch != LayoutBranch.main) {
@@ -155,6 +163,18 @@ class OperationalPointService(
                 dao.insertRatkoPoint(id, draftRatkoVersion, rinfIdGenerated)
             }
             draftVersion
+        }
+    }
+
+    private fun clearOperationalPointReferences(branch: LayoutBranch, id: IntId<OperationalPoint>) {
+        val linkedTracks = locationTrackService.getOperationalPointTracks(branch.draft, id).assigned
+        if (linkedTracks.isNotEmpty()) {
+            locationTrackService.unlinkFromOperationalPoint(branch, linkedTracks, id)
+        }
+
+        switchDao.getSwitchesLinkedToOperationalPoint(branch.draft, id).forEach { switchId ->
+            val switch = switchService.getOrThrow(branch.draft, switchId)
+            switchService.saveDraft(branch, switch.copy(operationalPointId = null))
         }
     }
 
