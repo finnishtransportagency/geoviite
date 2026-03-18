@@ -10,28 +10,36 @@ import { VerticalGeometryDiagramContainer } from 'vertical-geometry/vertical-geo
 import { ToolBarContainer } from 'tool-bar/tool-bar-container';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_GEOMETRY } from 'user/user-model';
-import {
-    ProgressIndicatorType,
-    ProgressIndicatorWrapper,
-} from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { ProgressIndicatorType, ProgressIndicatorWrapper, } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { createRouteFindingTool } from 'map/tools/route-finding-tool';
 import { ConfirmMoveToMainOfficialDialogContainer } from 'map/plan-download/confirm-move-to-main-official-dialog';
-import { useTrackLayoutAppSelector } from 'store/hooks';
-import { RouteResult } from 'track-layout/layout-routing-api';
+import { useLayoutDelegates, useTrackLayoutAppSelector } from 'store/hooks';
 import { LinkingType } from 'linking/linking-model';
 import { operationalPointAreaTool } from 'map/tools/operational-point-area-tool';
+import { RouteLocation } from 'track-layout/track-layout-slice';
+import { useLoader } from 'utils/react-utils';
+import { getRoute } from 'track-layout/layout-routing-api';
+
+// const MAX_TRACK_SEEK_DISTANCE = 1000.0;
 
 export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
     enabled: boolean;
 };
 
+const empty = {
+    start: undefined,
+    end: undefined,
+};
+
 export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     showVerticalGeometryDiagram,
     enabled,
 }) => {
+    const layoutDelegates = useLayoutDelegates();
+
     const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
 
     const className = createClassName(
@@ -45,12 +53,37 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
 
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
-    const [routeResult, setRouteResult] = React.useState<RouteResult | undefined>();
+    //    const [routeResult, setRouteResult] = React.useState<RouteResult | undefined>();
     const [switchToOfficialDialogOpen, setSwitchToOfficialDialogOpen] = React.useState(false);
 
+    const routeLocations = useTrackLayoutAppSelector((s) => s.routeLocations || empty);
+    const [hoveredRouteLocation, setHoveredRouteLocation] = React.useState<
+        RouteLocation | undefined
+    >(undefined);
+
+    console.log('routeLocations', routeLocations);
+    const routeResult = useLoader(async () => {
+        if (routeLocations && routeLocations.start && routeLocations.end) {
+            return await getRoute(
+                layoutContext,
+                routeLocations.start.closestTrackPoint.trackLocation,
+                routeLocations.end.closestTrackPoint.trackLocation,
+                1,
+                //Math.max(routeLocations.start.seekDistance, routeLocations.end.seekDistance),
+            );
+        }
+        return undefined;
+    }, [routeLocations]); //[routeLocations, hoveredRouteLocation]);
+
     const routeFindingTool = React.useMemo(
-        () => createRouteFindingTool(layoutContext, setRouteResult),
-        [layoutContext],
+        () =>
+            createRouteFindingTool(
+                layoutContext,
+                routeLocations,
+                setHoveredRouteLocation,
+                layoutDelegates.setRouteLocations,
+            ),
+        [layoutContext, routeLocations],
     );
 
     const mapTools = React.useMemo(() => {
@@ -66,7 +99,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
             hidden: !isPlacingOperationalPointArea,
         };
         return [...selectableTools, operationalPointTool];
-    }, [isPlacingOperationalPointArea]);
+    }, [isPlacingOperationalPointArea, routeLocations]);
 
     return (
         <div className={className} qa-id="track-layout-content">
@@ -99,6 +132,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                                     routeResult={routeResult}
                                     mapTools={mapTools}
                                     customActiveMapToolId={selectOrHighlightComboTool?.id}
+                                    hoveredRouteLocation={hoveredRouteLocation}
                                 />
                             </MapContext.Provider>
                         </div>

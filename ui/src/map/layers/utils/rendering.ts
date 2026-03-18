@@ -1,6 +1,7 @@
 import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
 import { RenderFunction } from 'ol/style/Style';
+import { cache } from 'cache/cache';
 
 export type ContextInitializer = (ctx: CanvasRenderingContext2D, state: State) => void;
 export type PointRenderFunction<T> = (
@@ -88,4 +89,22 @@ export function drawRoundedRect(
 
     ctx.fill();
     ctx.stroke();
+}
+
+const iconImageCache = cache<string, HTMLImageElement>();
+
+export function createSvgIconImage(iconSvg: string, color?: string): HTMLImageElement {
+    const refinedSvg = color ? iconSvg.replaceAll(/#004D99/g, color) : iconSvg;
+    return iconImageCache.getOrCreate(refinedSvg, () => {
+        const iconImage: HTMLImageElement = new Image();
+        iconImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(refinedSvg)}`;
+        return iconImage;
+    });
+}
+
+export function createIconBitmap(size: number, iconSvg: string, color?: string): ImageBitmap {
+    const iconImage = createSvgIconImage(iconSvg, color);
+    const canvas = new OffscreenCanvas(size, size);
+    canvas.getContext('2d')?.drawImage(iconImage, 0, 0, size, size);
+    return canvas.transferToImageBitmap();
 }

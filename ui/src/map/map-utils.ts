@@ -83,3 +83,11 @@ export function calculateBoundingBoxToShowAroundLocation(
         },
     };
 }
+
+export function pixelsToMeters(resolution: number, pixelCount: number): number {
+    return pixelCount * resolution;
+}
+
+export function metersToPixels(resolution: number, meters: number): number {
+    return meters / resolution;
+}

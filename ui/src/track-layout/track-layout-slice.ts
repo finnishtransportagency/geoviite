@@ -37,25 +37,12 @@ import {
     officialMainLayoutContext,
     PublicationState,
 } from 'common/common-model';
-import {
-    GeometryPlanLayout,
-    LocationTrackId,
-    SwitchSplitPoint,
-} from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LocationTrackId, SwitchSplitPoint, } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { first, lastIndex, takeLast } from 'utils/array-utils';
 import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
-import {
-    exhaustiveMatchingGuard,
-    expectFieldDefined,
-    ifDefined,
-    NonNullableField,
-} from 'utils/type-utils';
-import {
-    addSplitToState,
-    splitReducers,
-    SplittingState,
-} from 'tool-panel/location-track/split-store';
+import { exhaustiveMatchingGuard, expectFieldDefined, ifDefined, NonNullableField, } from 'utils/type-utils';
+import { addSplitToState, splitReducers, SplittingState, } from 'tool-panel/location-track/split-store';
 import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
 import { PlanSource } from 'geometry/geometry-model';
@@ -68,6 +55,8 @@ import {
     PlanDownloadState,
 } from 'map/plan-download/plan-download-store';
 import { objectEquals } from 'utils/object-utils';
+import { Coordinate } from 'ol/coordinate';
+import { ClosestTrackPoint } from 'track-layout/layout-routing-api';
 
 export const SELECTION_HISTORY_MAX_SIZE = 100;
 export const SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID = 'SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID';
@@ -253,6 +242,16 @@ type SelectionHistoryStep = {
     selectedToolPanelTab: ToolPanelAsset | undefined;
 };
 
+export type RouteLocation = {
+    selectedCoordinate: Coordinate;
+    closestTrackPoint: ClosestTrackPoint;
+};
+
+export type RouteLocations = {
+    start: RouteLocation | undefined;
+    end: RouteLocation | undefined;
+};
+
 export type TrackLayoutState = {
     layoutContext: LayoutContext;
     layoutContextMode: LayoutContextMode;
@@ -272,6 +271,7 @@ export type TrackLayoutState = {
     planDownloadState?: PlanDownloadState;
     selectionHistory: SelectionHistoryStep[];
     selectionHistoryIndex: number;
+    routeLocations: RouteLocations | undefined;
 };
 
 export const initialTrackLayoutState: TrackLayoutState = {
@@ -297,6 +297,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
     planDownloadState: undefined,
     selectionHistory: [],
     selectionHistoryIndex: 0,
+    routeLocations: undefined,
 };
 
 export function getSelectableItemTypes(
@@ -693,6 +694,12 @@ const trackLayoutSlice = createSlice({
         },
         onClosePlanDownloadPopup: (state: TrackLayoutState): void => {
             state.planDownloadState = undefined;
+        },
+        setRouteLocations: (
+            state: TrackLayoutState,
+            { payload: routeLocations }: PayloadAction<RouteLocations | undefined>,
+        ): void => {
+            state.routeLocations = routeLocations;
         },
     },
 });

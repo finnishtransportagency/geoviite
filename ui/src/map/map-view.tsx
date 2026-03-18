@@ -112,6 +112,7 @@ import { createOperationalPointBadgeLayer } from 'map/layers/operational-point/o
 import { createSignalAssetLayer } from 'map/layers/ratko/signal-asset-layer';
 import { AlignmentLinkingClusterOverlay } from 'map/overlays/alignment-linking-cluster-overlay';
 import { OperationalPointClusterOverlay } from 'map/overlays/operational-point-cluster-overlay';
+import { RouteLocation, RouteLocations } from 'track-layout/track-layout-slice';
 
 declare global {
     interface Window {
@@ -150,6 +151,11 @@ export type MapViewProps = {
     mapTools?: MapToolWithButton[];
     layoutContextMode?: LayoutContextMode;
     selectedDesignId?: LayoutDesignId;
+    routeLocations?: RouteLocations;
+    hoveredRouteLocation?: RouteLocation;
+    // onRouteLocationsChange?: (routeLocations: RouteLocations | undefined) => void;
+    // onHoveredRouteLocationChange?: (routeLocation: RouteLocation | undefined) => void;
+    // route?: RouteResult;
 };
 
 const defaultScaleLine: ScaleLine = new ScaleLine({
@@ -252,6 +258,8 @@ const MapView: React.FC<MapViewProps> = ({
     onViewportUpdate,
     hoveredOverPlanSection,
     routeResult,
+    routeLocations,
+    hoveredRouteLocation,
     manuallySetPlan,
     onSetLayoutClusterLinkPoint,
     onSetGeometryClusterLinkPoint,
@@ -278,6 +286,7 @@ const MapView: React.FC<MapViewProps> = ({
         customActiveMapToolId || (mapTools && first(mapTools)?.id),
     );
     const activeTool = mapTools?.find((tool) => tool.id === activeToolId);
+    //    const routeToolData = React.useState<RouteToolData>()
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
     const inPreviewView = !!designPublicationMode;
     const isSelectingDesign = layoutContextMode === 'DESIGN' && !selectedDesignId;
@@ -540,6 +549,8 @@ const MapView: React.FC<MapViewProps> = ({
                             layoutContext,
                             changeTimes,
                             resolution,
+                            hoveredRouteLocation,
+                            routeLocations,
                             routeResult,
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -798,6 +809,8 @@ const MapView: React.FC<MapViewProps> = ({
         map.layerMenu,
         publicationCandidates,
         routeResult,
+        routeLocations,
+        hoveredRouteLocation,
     ]);
 
     const toolActivateOptions: MapToolActivateOptions = {
