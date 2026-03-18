@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterLocationTrackTypeV1
 import fi.fta.geoviite.api.frameconverter.v1.FrameConverterStringV1
-import fi.fta.geoviite.api.openapi.YamlPlaceholderTransformer
 import fi.fta.geoviite.api.tracklayout.v1.ExtLayoutVersionV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtMaybeTrackKmOrTrackMeterV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtResolutionV1
@@ -31,8 +30,6 @@ import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.environmentInfo.EnvironmentInfo
-import fi.fta.geoviite.infra.environmentInfo.GEOVIITE_SUPPORT_EMAIL
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.CompanyName
 import fi.fta.geoviite.infra.geometry.GeometrySwitchTypeName
@@ -78,9 +75,6 @@ constructor(
     @Value("\${geoviite.static-url:}") val staticUrl: String,
     @Value("\${geoviite.static-resources:}") val staticResourcesPath: String,
     @Value("\${geoviite.ext-api.enabled:false}") val extApiEnabled: Boolean,
-    @Value("\${geoviite.ext-api.static-url:}") val extApiStaticUrl: String,
-    @Value("\${geoviite.ext-api.static-resources:}") val extApiStaticResourcesPath: String,
-    private val environmentInfo: EnvironmentInfo,
 ) : WebMvcConfigurer {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -93,18 +87,6 @@ constructor(
                 .setCacheControl(CacheControl.noCache().mustRevalidate())
                 .resourceChain(true)
                 .addResolver(PathResourceResolver())
-        }
-
-        if (extApiEnabled && extApiStaticUrl.isNotEmpty() && extApiStaticResourcesPath.isNotEmpty()) {
-            logger.info("Static file serving enabled, url=$extApiStaticUrl, resources=$extApiStaticResourcesPath")
-
-            val replacements = mapOf(GEOVIITE_SUPPORT_EMAIL to environmentInfo.geoviiteSupportEmailAddress)
-
-            registry
-                .addResourceHandler(extApiStaticUrl)
-                .addResourceLocations(extApiStaticResourcesPath)
-                .resourceChain(true)
-                .addTransformer(YamlPlaceholderTransformer(replacements))
         }
     }
 

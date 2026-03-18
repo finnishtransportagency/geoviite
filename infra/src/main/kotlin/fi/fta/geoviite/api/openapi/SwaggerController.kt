@@ -20,8 +20,8 @@ const val OPENAPI_GEOVIITE_NO_PREFIX_PATH = "/geoviite/v3/api-docs/geoviite-user
 const val OPENAPI_GEOVIITE_DEV_PATH = "/geoviite/dev/v3/api-docs/geoviite-dev"
 const val OPENAPI_GEOVIITE_DEV_NO_PREFIX_PATH = "/geoviite/dev/v3/api-docs/geoviite-user-api"
 
-const val OPENAPI_RATAVKM_PATH = "/rata-vkm/static/openapi-rata-vkm-v1.yml"
-const val OPENAPI_RATAVKM_DEV_PATH = "/rata-vkm/dev/static/openapi-rata-vkm-v1.yml"
+const val OPENAPI_RATAVKM_PATH = "/geoviite/v3/api-docs/rata-vkm"
+const val OPENAPI_RATAVKM_DEV_PATH = "/geoviite/dev/v3/api-docs/rata-vkm-dev"
 
 val allowedResourcePrefixes = listOf("/", "/geoviite", "/rata-vkm")
 
