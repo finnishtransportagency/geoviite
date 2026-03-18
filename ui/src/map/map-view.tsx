@@ -113,6 +113,7 @@ import { createSignalAssetLayer } from 'map/layers/ratko/signal-asset-layer';
 import { AlignmentLinkingClusterOverlay } from 'map/overlays/alignment-linking-cluster-overlay';
 import { OperationalPointClusterOverlay } from 'map/overlays/operational-point-cluster-overlay';
 import { RouteLocation, RouteLocations } from 'track-layout/track-layout-slice';
+import { createRouteMarkerLayer } from 'map/layers/highlight/route-marker-layer';
 
 declare global {
     interface Window {
@@ -548,10 +549,14 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
                             layoutContext,
                             changeTimes,
-                            resolution,
+                            routeResult,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
+                    case 'route-marker-layer':
+                        return createRouteMarkerLayer(
+                            existingOlLayer as GeoviiteMapLayer<LineString | OlPoint>,
                             hoveredRouteLocation,
                             routeLocations,
-                            routeResult,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'km-post-layer':

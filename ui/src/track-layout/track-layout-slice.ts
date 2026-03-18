@@ -37,12 +37,25 @@ import {
     officialMainLayoutContext,
     PublicationState,
 } from 'common/common-model';
-import { GeometryPlanLayout, LocationTrackId, SwitchSplitPoint, } from 'track-layout/track-layout-model';
+import {
+    GeometryPlanLayout,
+    LocationTrackId,
+    SwitchSplitPoint,
+} from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { first, lastIndex, takeLast } from 'utils/array-utils';
 import { ToolPanelAsset, ToolPanelAssetType } from 'tool-panel/tool-panel';
-import { exhaustiveMatchingGuard, expectFieldDefined, ifDefined, NonNullableField, } from 'utils/type-utils';
-import { addSplitToState, splitReducers, SplittingState, } from 'tool-panel/location-track/split-store';
+import {
+    exhaustiveMatchingGuard,
+    expectFieldDefined,
+    ifDefined,
+    NonNullableField,
+} from 'utils/type-utils';
+import {
+    addSplitToState,
+    splitReducers,
+    SplittingState,
+} from 'tool-panel/location-track/split-store';
 import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
 import { PlanSource } from 'geometry/geometry-model';

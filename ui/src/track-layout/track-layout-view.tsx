@@ -10,7 +10,10 @@ import { VerticalGeometryDiagramContainer } from 'vertical-geometry/vertical-geo
 import { ToolBarContainer } from 'tool-bar/tool-bar-container';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_GEOMETRY } from 'user/user-model';
-import { ProgressIndicatorType, ProgressIndicatorWrapper, } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { selectOrHighlightComboTool } from 'map/tools/select-or-highlight-combo-tool';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { createRouteFindingTool } from 'map/tools/route-finding-tool';
@@ -69,7 +72,6 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                 routeLocations.start.closestTrackPoint.trackLocation,
                 routeLocations.end.closestTrackPoint.trackLocation,
                 1,
-                //Math.max(routeLocations.start.seekDistance, routeLocations.end.seekDistance),
             );
         }
         return undefined;
