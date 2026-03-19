@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Hidden
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
 import org.springframework.core.env.Environment
 import org.springframework.security.access.prepost.PreAuthorize
@@ -25,17 +26,9 @@ const val OPENAPI_RATAVKM_DEV_PATH = "/geoviite/dev/v3/api-docs/rata-vkm-dev"
 
 val allowedResourcePrefixes = listOf("/", "/geoviite", "/rata-vkm")
 
-val allowedApiDefinitionPaths =
-    listOf(
-        OPENAPI_GEOVIITE_PATH,
-        OPENAPI_GEOVIITE_NO_PREFIX_PATH,
-        OPENAPI_GEOVIITE_DEV_PATH,
-        OPENAPI_RATAVKM_PATH,
-        OPENAPI_RATAVKM_DEV_PATH,
-    )
-
 @GeoviiteExtApiController([])
 @Hidden // These controller paths are hidden from the dynamically generated OpenApi definitions.
+@ConditionalOnProperty(name = ["springdoc.swagger-ui.enabled"], havingValue = "true")
 class SwaggerController @Autowired constructor(env: Environment) {
 
     private val openApiGeoviiteNoPrefixPath: String by lazy {
@@ -47,111 +40,138 @@ class SwaggerController @Autowired constructor(env: Environment) {
     }
 
     @PreAuthorize(AUTH_API_GEOMETRY)
-    @GetMapping(
-        "/geoviite",
-        "/geoviite/",
-        "/geoviite/swagger-ui",
-        "/geoviite/swagger-ui/",
-        "/geoviite/swagger-ui/index.html",
-        params = ["!url"],
-    )
+    @GetMapping("/geoviite", "/geoviite/", "/geoviite/swagger-ui", "/geoviite/swagger-ui/")
     fun sendGeoviiteSwaggerIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/geoviite/swagger-ui/index.html?url=$OPENAPI_GEOVIITE_PATH&validatorUrl=none")
+        sendRedirect(response, "/geoviite/swagger-ui/index.html")
     }
 
     @PreAuthorize(AUTH_API_GEOMETRY)
-    @GetMapping("", "/", "/swagger-ui", "/swagger-ui/", params = ["!url"])
+    @GetMapping("", "/", "/swagger-ui", "/swagger-ui/")
     fun sendGeoviiteSwaggerNoPrefixIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/swagger-ui/index.html?url=$openApiGeoviiteNoPrefixPath&validatorUrl=none")
+        sendRedirect(response, "/swagger-ui/index.html")
     }
 
     @Profile("ext-api-dev-swagger")
     @PreAuthorize(AUTH_API_GEOMETRY)
-    @GetMapping(
-        "/geoviite/dev",
-        "/geoviite/dev/",
-        "/geoviite/dev/swagger-ui",
-        "/geoviite/dev/swagger-ui/",
-        "/geoviite/dev/swagger-ui/index.html",
-        params = ["!url"],
-    )
+    @GetMapping("/geoviite/dev", "/geoviite/dev/", "/geoviite/dev/swagger-ui", "/geoviite/dev/swagger-ui/")
     fun sendGeoviiteDevSwaggerIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/geoviite/dev/swagger-ui/index.html?url=$OPENAPI_GEOVIITE_DEV_PATH&validatorUrl=none")
+        sendRedirect(response, "/geoviite/dev/swagger-ui/index.html")
     }
 
     @PreAuthorize(AUTH_API_FRAME_CONVERTER)
-    @GetMapping(
-        "/rata-vkm",
-        "/rata-vkm/",
-        "/rata-vkm/swagger-ui",
-        "/rata-vkm/swagger-ui/",
-        "/rata-vkm/swagger-ui/index.html",
-        params = ["!url"],
-    )
+    @GetMapping("/rata-vkm", "/rata-vkm/", "/rata-vkm/swagger-ui", "/rata-vkm/swagger-ui/")
     fun sendRataVkmSwaggerIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/rata-vkm/swagger-ui/index.html?url=$OPENAPI_RATAVKM_PATH&validatorUrl=none")
+        sendRedirect(response, "/rata-vkm/swagger-ui/index.html")
     }
 
     @Profile("ext-api-dev-swagger")
     @PreAuthorize(AUTH_API_FRAME_CONVERTER)
-    @GetMapping(
-        "/rata-vkm/dev",
-        "/rata-vkm/dev/",
-        "/rata-vkm/dev/swagger-ui",
-        "/rata-vkm/dev/swagger-ui/",
-        "/rata-vkm/dev/swagger-ui/index.html",
-        params = ["!url"],
-    )
+    @GetMapping("/rata-vkm/dev", "/rata-vkm/dev/", "/rata-vkm/dev/swagger-ui", "/rata-vkm/dev/swagger-ui/")
     fun sendRataVkmDevSwaggerIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/rata-vkm/dev/swagger-ui/index.html?url=$OPENAPI_RATAVKM_DEV_PATH&validatorUrl=none")
+        sendRedirect(response, "/rata-vkm/dev/swagger-ui/index.html")
     }
 
-    // Resource redirects (eg. swagger-ui javascript and css files)
+    // Serve a per-prefix swagger-initializer.js with the correct API docs URL baked in.
+    // This replaces the previous approach of passing ?url= query params to swagger-ui, which required
+    // queryConfigEnabled and prevented layout customization. Now the URL is determined server-side.
+    @PreAuthorize(AUTH_API_SWAGGER)
+    @GetMapping("/swagger-ui/swagger-initializer.js")
+    fun serveNoPrefixSwaggerInitializer(response: HttpServletResponse) {
+        serveSwaggerInitializer(response, openApiGeoviiteNoPrefixPath)
+    }
+
+    @PreAuthorize(AUTH_API_SWAGGER)
+    @GetMapping("/geoviite/swagger-ui/swagger-initializer.js")
+    fun serveGeoviiteSwaggerInitializer(response: HttpServletResponse) {
+        serveSwaggerInitializer(response, OPENAPI_GEOVIITE_PATH)
+    }
+
+    @Profile("ext-api-dev-swagger")
+    @PreAuthorize(AUTH_API_SWAGGER)
+    @GetMapping("/geoviite/dev/swagger-ui/swagger-initializer.js")
+    fun serveGeoviiteDevSwaggerInitializer(response: HttpServletResponse) {
+        serveSwaggerInitializer(response, OPENAPI_GEOVIITE_DEV_PATH)
+    }
+
+    @PreAuthorize(AUTH_API_SWAGGER)
+    @GetMapping("/rata-vkm/swagger-ui/swagger-initializer.js")
+    fun serveRataVkmSwaggerInitializer(response: HttpServletResponse) {
+        serveSwaggerInitializer(response, OPENAPI_RATAVKM_PATH)
+    }
+
+    @Profile("ext-api-dev-swagger")
+    @PreAuthorize(AUTH_API_SWAGGER)
+    @GetMapping("/rata-vkm/dev/swagger-ui/swagger-initializer.js")
+    fun serveRataVkmDevSwaggerInitializer(response: HttpServletResponse) {
+        serveSwaggerInitializer(response, OPENAPI_RATAVKM_DEV_PATH)
+    }
+
+    // Resource forwarding: serve swagger-ui static files (JS bundles, CSS) from springdoc's webjar.
     @PreAuthorize(AUTH_API_SWAGGER)
     @GetMapping("/{prefix}/swagger-ui/{path}")
-    fun internallyRedirectGeoviiteSwaggerResources(
+    fun forwardSwaggerResources(
         request: HttpServletRequest,
         response: HttpServletResponse,
         @PathVariable prefix: String,
         @PathVariable path: String,
     ) {
-        swaggerResourceRequest("/$prefix", request, response)
+        forwardSwaggerResource("/$prefix", request, response)
     }
 
     @Profile("ext-api-dev-swagger")
     @PreAuthorize(AUTH_API_SWAGGER)
     @GetMapping("/{prefix}/dev/swagger-ui/{path}")
-    fun internallyRedirectGeoviiteDevSwaggerResources(
+    fun forwardDevSwaggerResources(
         request: HttpServletRequest,
         response: HttpServletResponse,
         @PathVariable prefix: String,
         @PathVariable path: String,
     ) {
-        swaggerResourceRequest("/$prefix/dev", request, response)
+        forwardSwaggerResource("/$prefix/dev", request, response)
     }
 }
 
-private fun swaggerResourceRequest(
+// To hide the schemas section, add this: defaultModelsExpandDepth: -1
+private fun serveSwaggerInitializer(response: HttpServletResponse, apiDocsUrl: String) {
+    response.contentType = "application/javascript;charset=UTF-8"
+    response.writer.write(
+        """
+        |window.onload = function() {
+        |  window.ui = SwaggerUIBundle({
+        |    url: "$apiDocsUrl",
+        |    dom_id: '#swagger-ui',
+        |    deepLinking: true,
+        |    presets: [SwaggerUIBundle.presets.apis],
+        |    plugins: [SwaggerUIBundle.plugins.DownloadUrl],
+        |    layout: "BaseLayout",
+        |    validatorUrl: "none",
+        |    syntaxHighlight: { activated: false },
+        |  });
+        |};
+        """
+            .trimMargin()
+    )
+}
+
+private fun forwardSwaggerResource(
     prefixWithLeadingSlash: String,
     request: HttpServletRequest,
     response: HttpServletResponse,
 ) {
-    val resourcePrefixOk = allowedResourcePrefixes.contains(prefixWithLeadingSlash)
-    val apiDefinitionPathOk = request.getParameter("url")?.let(allowedApiDefinitionPaths::contains) ?: true
-
-    if (resourcePrefixOk && apiDefinitionPathOk) {
-        val dispatcherUri =
-            if (prefixWithLeadingSlash == "/") prefixWithLeadingSlash
-            else request.requestURI.removePrefix(prefixWithLeadingSlash)
-
-        request.getRequestDispatcher(dispatcherUri).forward(request, response)
-    } else {
+    if (!allowedResourcePrefixes.contains(prefixWithLeadingSlash)) {
         response.status = HttpServletResponse.SC_NOT_FOUND
+        return
     }
+
+    val dispatcherUri =
+        if (prefixWithLeadingSlash == "/") prefixWithLeadingSlash
+        else request.requestURI.removePrefix(prefixWithLeadingSlash)
+
+    request.getRequestDispatcher(dispatcherUri).forward(request, response)
 }
 
 // Although HttpServletResponse has the .sendRedirect-method, it also uses the request URL within the Location header.
-// This causes issues in environments were the URL of the request is an internal URL instead of the one that the
+// This causes issues in environments where the URL of the request is an internal URL instead of the one that the
 // user has for example in their browser (the redirects are sent to the inaccessible internal URL).
 private fun sendRedirect(response: HttpServletResponse, redirectPath: String) {
     response.status = HttpServletResponse.SC_FOUND
