@@ -16,10 +16,7 @@ import io.swagger.v3.oas.annotations.media.ArraySchema
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.parameters.RequestBody
-import io.swagger.v3.oas.annotations.responses.ApiResponse
-import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
-import java.math.BigDecimal
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -28,6 +25,7 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
+import java.math.BigDecimal
 
 const val EXT_FRAME_CONVERTER_BASE_PATH = "/rata-vkm"
 
@@ -47,28 +45,12 @@ constructor(
         summary = FRAME_CONVERTER_OPENAPI_TRACK_ADDRESS_TO_COORDINATE_SINGLE_SUMMARY,
         description = FRAME_CONVERTER_OPENAPI_TRACK_ADDRESS_TO_COORDINATE_SINGLE_DESCRIPTION,
     )
-    @ApiResponses(
-        value =
-            [
-                ApiResponse(responseCode = "200", description = "OK"),
-                ApiResponse(
-                    responseCode = "400",
-                    description = FRAME_CONVERTER_OPENAPI_INVALID_ARGUMENTS,
-                    content = [Content(schema = Schema(hidden = true))],
-                ),
-                ApiResponse(
-                    responseCode = "500",
-                    description = FRAME_CONVERTER_OPENAPI_SERVER_ERROR,
-                    content = [Content(schema = Schema(hidden = true))],
-                ),
-            ]
-    )
     fun trackAddressToCoordinateRequestSingle(
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_EXACTLY_ONE)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_EXACTLY_ONE)
         @RequestParam(TRACK_NUMBER_NAME_PARAM, required = false)
         trackNumberName: FrameConverterStringV1?,
         @Parameter(
-            description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_OID_EXACTLY_ONE,
+            description = FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_OID_EXACTLY_ONE,
             schema = Schema(type = "string", format = "oid"),
         )
         @RequestParam(TRACK_NUMBER_OID_PARAM, required = false)
@@ -79,28 +61,28 @@ constructor(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_TRACK_METER, required = true)
         @RequestParam(TRACK_METER_PARAM)
         trackMeter: BigDecimal?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK)
         @RequestParam(LOCATION_TRACK_NAME_PARAM, required = false)
         locationTrackName: FrameConverterStringV1?,
         @Parameter(
-            description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK_OID,
+            description = FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_OID,
             schema = Schema(type = "string", format = "oid"),
         )
         @RequestParam(LOCATION_TRACK_OID_PARAM, required = false)
         locationTrackOid: FrameConverterStringV1?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK_TYPE)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_TYPE)
         @RequestParam(LOCATION_TRACK_TYPE_PARAM, required = false)
         locationTrackType: FrameConverterLocationTrackTypeV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
         coordinateSystem: ExtSridV1?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_GEOMETRY)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY)
         @RequestParam(FEATURE_GEOMETRY_PARAM, required = false)
         featureGeometry: Boolean?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_BASIC)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_BASIC)
         @RequestParam(FEATURE_BASIC_PARAM, required = false)
         featureBasic: Boolean?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_DETAILS)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_DETAILS)
         @RequestParam(FEATURE_DETAILS_PARAM, required = false)
         featureDetails: Boolean?,
     ): TrackAddressToCoordinateCollectionResponseV1 {
@@ -132,33 +114,17 @@ constructor(
         summary = FRAME_CONVERTER_OPENAPI_TRACK_ADDRESS_TO_COORDINATE_BATCH_SUMMARY,
         description = FRAME_CONVERTER_OPENAPI_TRACK_ADDRESS_TO_COORDINATE_BATCH_DESCRIPTION,
     )
-    @ApiResponses(
-        value =
-            [
-                ApiResponse(responseCode = "200", description = "OK"),
-                ApiResponse(
-                    responseCode = "400",
-                    description = FRAME_CONVERTER_OPENAPI_INVALID_ARGUMENTS,
-                    content = [Content(schema = Schema(hidden = true))],
-                ),
-                ApiResponse(
-                    responseCode = "500",
-                    description = FRAME_CONVERTER_OPENAPI_SERVER_ERROR,
-                    content = [Content(schema = Schema(hidden = true))],
-                ),
-            ]
-    )
     fun trackAddressToCoordinateRequestBatch(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
         coordinateSystem: ExtSridV1?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_GEOMETRY)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY)
         @RequestParam(FEATURE_GEOMETRY_PARAM, required = false)
         featureGeometry: Boolean?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_BASIC)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_BASIC)
         @RequestParam(FEATURE_BASIC_PARAM, required = false)
         featureBasic: Boolean?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_DETAILS)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_DETAILS)
         @RequestParam(FEATURE_DETAILS_PARAM, required = false)
         featureDetails: Boolean?,
         @RequestBody(
@@ -192,59 +158,43 @@ constructor(
         summary = FRAME_CONVERTER_OPENAPI_COORDINATE_TO_TRACK_ADDRESS_SINGLE_SUMMARY,
         description = FRAME_CONVERTER_OPENAPI_COORDINATE_TO_TRACK_ADDRESS_SINGLE_DESCRIPTION,
     )
-    @ApiResponses(
-        value =
-            [
-                ApiResponse(responseCode = "200", description = "OK"),
-                ApiResponse(
-                    responseCode = "400",
-                    description = FRAME_CONVERTER_OPENAPI_INVALID_ARGUMENTS,
-                    content = [Content(schema = Schema(hidden = true))],
-                ),
-                ApiResponse(
-                    responseCode = "500",
-                    description = FRAME_CONVERTER_OPENAPI_SERVER_ERROR,
-                    content = [Content(schema = Schema(hidden = true))],
-                ),
-            ]
-    )
     fun coordinateToTrackAddressRequestSingle(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_X, required = true) @RequestParam("x") xCoordinate: Double?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_Y, required = true) @RequestParam("y") yCoordinate: Double?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_SEARCH_RADIUS)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_SEARCH_RADIUS)
         @RequestParam(SEARCH_RADIUS_PARAM, required = false)
         searchRadius: Double?,
         @Parameter(
-            description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_OID,
+            description = FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_OID,
             schema = Schema(type = "string", format = "oid"),
         )
         @RequestParam(TRACK_NUMBER_OID_PARAM, required = false)
         trackNumberOid: FrameConverterStringV1?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_TRACK_NUMBER)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER)
         @RequestParam(TRACK_NUMBER_NAME_PARAM, required = false)
         trackNumberName: FrameConverterStringV1?,
         @Parameter(
-            description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK_OID,
+            description = FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_OID,
             schema = Schema(type = "string", format = "oid"),
         )
         @RequestParam(LOCATION_TRACK_OID_PARAM, required = false)
         locationTrackOid: FrameConverterStringV1?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK)
         @RequestParam(LOCATION_TRACK_NAME_PARAM, required = false)
         locationTrackName: FrameConverterStringV1?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_LOCATION_TRACK_TYPE)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_TYPE)
         @RequestParam(LOCATION_TRACK_TYPE_PARAM, required = false)
         locationTrackType: FrameConverterLocationTrackTypeV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
         coordinateSystem: ExtSridV1?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_GEOMETRY)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY)
         @RequestParam(FEATURE_GEOMETRY_PARAM, required = false)
         featureGeometry: Boolean?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_BASIC)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_BASIC)
         @RequestParam(FEATURE_BASIC_PARAM, required = false)
         featureBasic: Boolean?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_DETAILS)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_DETAILS)
         @RequestParam(FEATURE_DETAILS_PARAM, required = false)
         featureDetails: Boolean?,
     ): CoordinateToTrackAddressCollectionResponseV1 {
@@ -277,33 +227,17 @@ constructor(
         summary = FRAME_CONVERTER_OPENAPI_COORDINATE_TO_TRACK_ADDRESS_BATCH_SUMMARY,
         description = FRAME_CONVERTER_OPENAPI_COORDINATE_TO_TRACK_ADDRESS_BATCH_DESCRIPTION,
     )
-    @ApiResponses(
-        value =
-            [
-                ApiResponse(responseCode = "200", description = "OK"),
-                ApiResponse(
-                    responseCode = "400",
-                    description = FRAME_CONVERTER_OPENAPI_INVALID_ARGUMENTS,
-                    content = [Content(schema = Schema(hidden = true))],
-                ),
-                ApiResponse(
-                    responseCode = "500",
-                    description = FRAME_CONVERTER_OPENAPI_SERVER_ERROR,
-                    content = [Content(schema = Schema(hidden = true))],
-                ),
-            ]
-    )
     fun coordinateToTrackAddressRequestBatch(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
         coordinateSystem: ExtSridV1?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_GEOMETRY)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY)
         @RequestParam(FEATURE_GEOMETRY_PARAM, required = false)
         featureGeometry: Boolean?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_BASIC)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_BASIC)
         @RequestParam(FEATURE_BASIC_PARAM, required = false)
         featureBasic: Boolean?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_FEATURE_DETAILS)
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_DETAILS)
         @RequestParam(FEATURE_DETAILS_PARAM, required = false)
         featureDetails: Boolean?,
         @RequestBody(

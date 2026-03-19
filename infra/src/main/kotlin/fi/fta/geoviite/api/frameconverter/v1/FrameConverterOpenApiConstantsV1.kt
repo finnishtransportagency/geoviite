@@ -19,47 +19,86 @@ const val FRAME_CONVERTER_OPENAPI_X =
 const val FRAME_CONVERTER_OPENAPI_Y =
     "Koordinaatti Y annetussa koordinaatistossa."
 
-const val FRAME_CONVERTER_OPENAPI_SEARCH_RADIUS =
-    "Hakusäde metreissä annetusta koordinaattisijainnista."
-
-const val FRAME_CONVERTER_OPENAPI_TRACK_NUMBER =
-    "Rajaa haun ratanumeron nimen perusteella."
-
-const val FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_OID =
-    "Rajaa haun ratanumeron OID-tunnuksen perusteella."
-
-const val FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_EXACTLY_ONE =
-    "Rajaa haun ratanumeron nimen perusteella. " +
-        "*Huom*: Hakua tulee rajata yhdellä kentistä \"ratanumero\", \"ratanumero_oid\"."
-
-const val FRAME_CONVERTER_OPENAPI_TRACK_NUMBER_OID_EXACTLY_ONE =
-    "Rajaa haun ratanumeron OID-tunnuksen perusteella. " +
-        "*Huom*: Hakua tulee rajata yhdellä kentistä \"ratanumero\", \"ratanumero_oid\"."
-
-const val FRAME_CONVERTER_OPENAPI_LOCATION_TRACK =
-    "Rajaa haun sijaintiraiteen tunnuksen perusteella."
-
-const val FRAME_CONVERTER_OPENAPI_LOCATION_TRACK_OID =
-    "Rajaa haun sijaintiraiteen OID-tunnuksen perusteella."
-
-const val FRAME_CONVERTER_OPENAPI_LOCATION_TRACK_TYPE =
-    "Rajaa haun sijaintiraidetyypin perusteella. Sallitut arvot: \"pääraide\", \"sivuraide\", \"turvaraide\", \"kujaraide\"."
-
 const val FRAME_CONVERTER_OPENAPI_TRACK_KILOMETER =
     "Rataosoitteen ratakilometri."
 
 const val FRAME_CONVERTER_OPENAPI_TRACK_METER =
     "Rataosoitteen ratametri."
 
-const val FRAME_CONVERTER_OPENAPI_FEATURE_GEOMETRY =
+// Request-specific field descriptions
+
+const val FRAME_CONVERTER_OPENAPI_REQUEST_IDENTIFIER =
+    "Asettaa pyynnölle tunnisteen. Palautetaan GeoJSON-tuloksen properties-kentässä kaikille saman pyynnön tunnisteeseen liittyville muunnoksille."
+
+const val FRAME_CONVERTER_OPENAPI_REQUEST_SEARCH_RADIUS =
+    "Hakusäde metreissä annetusta koordinaattisijainnista."
+
+const val FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER =
+    "Rajaa haun ratanumeron nimen perusteella."
+
+const val FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_OID =
+    "Rajaa haun ratanumeron OID-tunnuksen perusteella."
+
+const val FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_EXACTLY_ONE =
+    "Rajaa haun ratanumeron nimen perusteella. " +
+        "*Huom*: Hakua tulee rajata yhdellä kentistä \"ratanumero\", \"ratanumero_oid\"."
+
+const val FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_OID_EXACTLY_ONE =
+    "Rajaa haun ratanumeron OID-tunnuksen perusteella. " +
+        "*Huom*: Hakua tulee rajata yhdellä kentistä \"ratanumero\", \"ratanumero_oid\"."
+
+const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK =
+    "Rajaa haun sijaintiraiteen tunnuksen perusteella."
+
+const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_OID =
+    "Rajaa haun sijaintiraiteen OID-tunnuksen perusteella."
+
+const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_TYPE =
+    "Rajaa haun sijaintiraidetyypin perusteella. Sallitut arvot: \"pääraide\", \"sivuraide\", \"turvaraide\", \"kujaraide\"."
+
+const val FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY =
     "GeoJSON-tulos sisältää geometry-kentässä hakutuloksen geometriatiedot."
 
-const val FRAME_CONVERTER_OPENAPI_FEATURE_BASIC =
+const val FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_BASIC =
     "GeoJSON-tulos sisältää properties-kentässä x- ja y-koordinaatit sekä valimatka-kentän."
 
-const val FRAME_CONVERTER_OPENAPI_FEATURE_DETAILS =
+const val FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_DETAILS =
     "GeoJSON-tulos sisältää properties-kentässä kentät: ratanumero, ratanumero_oid, sijaintiraide, " +
         "sijaintiraide_oid, sijaintiraide_kuvaus, sijaintiraide_tyyppi, ratakilometri, ratametri, ratametri_desimaalit."
+
+// Response-specific field descriptions
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER =
+    "Pyynnössä annettu tunniste."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_DISTANCE =
+    "Etäisyys annetusta koordinaatista lähimpään raiteeseen metreinä."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_NUMBER =
+    "Ratanumeron nimi."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_NUMBER_OID =
+    "Ratanumeron OID-tunniste."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK =
+    "Sijaintiraiteen tunniste."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_OID =
+    "Sijaintiraiteen OID-tunniste."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_DESCRIPTION =
+    "Sijaintiraiteen kuvaus."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_TYPE =
+    "Sijaintiraiteen tyyppi."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_METER_DECIMALS =
+    "Rataosoitteen ratametrin desimaaliosuus."
+
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_ERRORS =
+    "Lista virheistä, jotka estivät muunnoksen suorittamisen."
+
+// Operation summaries and descriptions
 
 const val FRAME_CONVERTER_OPENAPI_COORDINATE_TO_TRACK_ADDRESS_SINGLE_SUMMARY =
     "Yksittäismuunnos koordinaatista rataosoitteeseen"
@@ -95,21 +134,3 @@ const val FRAME_CONVERTER_OPENAPI_TRACK_ADDRESS_TO_COORDINATE_BATCH_DESCRIPTION 
         "Usean muunnospynnön suorittaminen kerralla on tehokkaampaa kuin pyyntöjen suorittaminen erikseen. " +
         "Erämuunnos hyväksyy korkeintaan 1000 muunnospyyntöä kerrallaan. Erämuunnoksessa yleiset syötteet " +
         "annetaan URL-kyselyparametreina ja muunnospyyntökohtaiset syötteet HTTP-pyynnön sisältönä, JSON-muotoisena taulukkona."
-
-const val FRAME_CONVERTER_OPENAPI_REQUEST_IDENTIFIER =
-    "Asettaa pyynnölle tunnisteen. Palautetaan GeoJSON-tuloksen properties-kentässä kaikille saman pyynnön tunnisteeseen liittyville muunnoksille."
-
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER =
-    "Pyynnössä annettu tunniste."
-
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_DISTANCE =
-    "Etäisyys annetusta koordinaatista lähimpään raiteeseen metreinä."
-
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_DESCRIPTION =
-    "Sijaintiraiteen kuvaus."
-
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_METER_DECIMALS =
-    "Rataosoitteen ratametrin desimaaliosuus."
-
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_ERRORS =
-    "Lista virheistä, jotka estivät muunnoksen suorittamisen."
