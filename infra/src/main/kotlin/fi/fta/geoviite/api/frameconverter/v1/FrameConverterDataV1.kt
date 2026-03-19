@@ -125,7 +125,7 @@ data class GeoJsonFeatureErrorResponseV1(
     ) : this(properties = GeoJsonFeatureErrorResponsePropertiesV1(identifier = identifier, errors = errorMessages))
 }
 
-@Schema(name = "Virheen tiedot")
+@Schema(name = "Virhetuloksen ominaisuustiedot")
 data class GeoJsonFeatureErrorResponsePropertiesV1(
     @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER)
     @JsonProperty("tunniste")
@@ -452,7 +452,7 @@ interface CoordinateToTrackAddressSingleResponseV1 : GeoJsonFeature
  * @property featureMatchBasic Fields included in the output when [FrameConverterQueryParamsV1.featureBasic] is true
  * @property featureMatchDetails Fields included in the output when [FrameConverterQueryParamsV1.featureDetails] is true
  */
-@Schema(name = "Vastauksen tiedot: Rataosoitteesta koordinaatteihin")
+@Schema(name = "Rataosoitteesta koordinaattiin - Muunnostuloksen ominaisuustiedot")
 data class TrackAddressToCoordinateResponsePropertiesV1(
     @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER)
     @JsonProperty(IDENTIFIER_PARAM)
