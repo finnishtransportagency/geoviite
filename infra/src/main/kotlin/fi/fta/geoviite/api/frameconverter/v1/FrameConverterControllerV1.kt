@@ -46,6 +46,9 @@ constructor(
         description = FRAME_CONVERTER_OPENAPI_TRACK_ADDRESS_TO_COORDINATE_SINGLE_DESCRIPTION,
     )
     fun trackAddressToCoordinateRequestSingle(
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:4326")
+        coordinateSystem: ExtSridV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_EXACTLY_ONE)
         @RequestParam(TRACK_NUMBER_NAME_PARAM, required = false)
         trackNumberName: FrameConverterStringV1?,
@@ -82,17 +85,14 @@ constructor(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_TYPE)
         @RequestParam(LOCATION_TRACK_TYPE_PARAM, required = false)
         locationTrackType: FrameConverterLocationTrackTypeV1?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
-        coordinateSystem: ExtSridV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY)
-        @RequestParam(FEATURE_GEOMETRY_PARAM, required = false)
+        @RequestParam(FEATURE_GEOMETRY_PARAM, required = false, defaultValue = "false")
         featureGeometry: Boolean?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_BASIC)
-        @RequestParam(FEATURE_BASIC_PARAM, required = false)
+        @RequestParam(FEATURE_BASIC_PARAM, required = false, defaultValue = "true")
         featureBasic: Boolean?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_DETAILS)
-        @RequestParam(FEATURE_DETAILS_PARAM, required = false)
+        @RequestParam(FEATURE_DETAILS_PARAM, required = false, defaultValue = "true")
         featureDetails: Boolean?,
     ): TrackAddressToCoordinateCollectionResponseV1 {
         val request =
@@ -125,16 +125,16 @@ constructor(
     )
     fun trackAddressToCoordinateRequestBatch(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:4326")
         coordinateSystem: ExtSridV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY)
-        @RequestParam(FEATURE_GEOMETRY_PARAM, required = false)
+        @RequestParam(FEATURE_GEOMETRY_PARAM, required = false, defaultValue = "false")
         featureGeometry: Boolean?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_BASIC)
-        @RequestParam(FEATURE_BASIC_PARAM, required = false)
+        @RequestParam(FEATURE_BASIC_PARAM, required = false, defaultValue = "true")
         featureBasic: Boolean?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_DETAILS)
-        @RequestParam(FEATURE_DETAILS_PARAM, required = false)
+        @RequestParam(FEATURE_DETAILS_PARAM, required = false, defaultValue = "true")
         featureDetails: Boolean?,
         @RequestBody(
             required = true,
@@ -168,6 +168,9 @@ constructor(
         description = FRAME_CONVERTER_OPENAPI_COORDINATE_TO_TRACK_ADDRESS_SINGLE_DESCRIPTION,
     )
     fun coordinateToTrackAddressRequestSingle(
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:4326")
+        coordinateSystem: ExtSridV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_X, required = true) @RequestParam("x") xCoordinate: Double?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_Y, required = true) @RequestParam("y") yCoordinate: Double?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_SEARCH_RADIUS)
@@ -194,17 +197,14 @@ constructor(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_TYPE)
         @RequestParam(LOCATION_TRACK_TYPE_PARAM, required = false)
         locationTrackType: FrameConverterLocationTrackTypeV1?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
-        coordinateSystem: ExtSridV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY)
-        @RequestParam(FEATURE_GEOMETRY_PARAM, required = false)
+        @RequestParam(FEATURE_GEOMETRY_PARAM, required = false, defaultValue = "false")
         featureGeometry: Boolean?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_BASIC)
-        @RequestParam(FEATURE_BASIC_PARAM, required = false)
+        @RequestParam(FEATURE_BASIC_PARAM, required = false, defaultValue = "true")
         featureBasic: Boolean?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_DETAILS)
-        @RequestParam(FEATURE_DETAILS_PARAM, required = false)
+        @RequestParam(FEATURE_DETAILS_PARAM, required = false, defaultValue = "true")
         featureDetails: Boolean?,
     ): CoordinateToTrackAddressCollectionResponseV1 {
         val request =
@@ -238,16 +238,16 @@ constructor(
     )
     fun coordinateToTrackAddressRequestBatch(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false)
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:4326")
         coordinateSystem: ExtSridV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY)
-        @RequestParam(FEATURE_GEOMETRY_PARAM, required = false)
+        @RequestParam(FEATURE_GEOMETRY_PARAM, required = false, defaultValue = "false")
         featureGeometry: Boolean?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_BASIC)
-        @RequestParam(FEATURE_BASIC_PARAM, required = false)
+        @RequestParam(FEATURE_BASIC_PARAM, required = false, defaultValue = "true")
         featureBasic: Boolean?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_DETAILS)
-        @RequestParam(FEATURE_DETAILS_PARAM, required = false)
+        @RequestParam(FEATURE_DETAILS_PARAM, required = false, defaultValue = "true")
         featureDetails: Boolean?,
         @RequestBody(
             required = true,

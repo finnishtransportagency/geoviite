@@ -9,7 +9,7 @@ const val FRAME_CONVERTER_OPENAPI_SERVER_ERROR =
     "Palvelussa tapahtui sisäinen virhe. Ota tarvittaessa yhteyttä ylläpitoon."
 
 const val FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM =
-    "Koordinaatisto, jossa syöte- ja tuloskoordinaatit käsitellään (oletus EPSG:3067, eli ETRS-TM35FIN). " +
+    "Koordinaatisto, jossa syöte- ja tuloskoordinaatit käsitellään (oletus EPSG:3067, eli ETRS-TM35FIN). <br />" +
         "Sallitut arvot ovat EPSG-tunnuksia, esim. EPSG:4326."
 
 const val FRAME_CONVERTER_OPENAPI_X = "Koordinaatti X annetussa koordinaatistossa."
@@ -59,8 +59,7 @@ const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK = "Rajaa haun sijaintir
 
 const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_OID = "Rajaa haun sijaintiraiteen OID-tunnuksen perusteella."
 
-const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_TYPE =
-    "Rajaa haun sijaintiraidetyypin perusteella. Sallitut arvot: \"pääraide\", \"sivuraide\", \"turvaraide\", \"kujaraide\"."
+const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_TYPE = "Rajaa haun sijaintiraidetyypin perusteella."
 
 const val FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY =
     "GeoJSON-tulos sisältää geometry-kentässä hakutuloksen geometriatiedot."

@@ -86,7 +86,8 @@ data class FrameConverterQueryParamsV1(
 
 data class FrameConverterCoordinateV1(
     @JsonIgnore val srid: Srid,
-    @Schema(description = FRAME_CONVERTER_OPENAPI_X, example = FRAME_CONVERTER_OPENAPI_EXAMPLE_X) override val x: Double,
+    @Schema(description = FRAME_CONVERTER_OPENAPI_X, example = FRAME_CONVERTER_OPENAPI_EXAMPLE_X)
+    override val x: Double,
     @Schema(description = FRAME_CONVERTER_OPENAPI_Y, example = FRAME_CONVERTER_OPENAPI_EXAMPLE_Y) override val y: Double,
 ) : IPoint
 
@@ -292,10 +293,16 @@ data class FeatureMatchDetailsV1(
     )
     @JsonProperty("sijaintiraide")
     val locationTrackName: AlignmentName,
-    @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_DESCRIPTION, example = FRAME_CONVERTER_OPENAPI_EXAMPLE_LOCATION_TRACK_DESCRIPTION)
+    @Schema(
+        description = FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_DESCRIPTION,
+        example = FRAME_CONVERTER_OPENAPI_EXAMPLE_LOCATION_TRACK_DESCRIPTION,
+    )
     @JsonProperty("sijaintiraide_kuvaus")
     val locationTrackDescription: FreeText,
-    @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_TYPE, example = FRAME_CONVERTER_OPENAPI_EXAMPLE_LOCATION_TRACK_TYPE)
+    @Schema(
+        description = FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_TYPE,
+        example = FRAME_CONVERTER_OPENAPI_EXAMPLE_LOCATION_TRACK_TYPE,
+    )
     @JsonProperty("sijaintiraide_tyyppi")
     val translatedLocationTrackType: String,
     @Schema(
@@ -305,7 +312,12 @@ data class FeatureMatchDetailsV1(
     )
     @JsonProperty("sijaintiraide_oid")
     val locationTrackOid: String,
-    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_KILOMETER, example = FRAME_CONVERTER_OPENAPI_EXAMPLE_TRACK_KILOMETER) @JsonProperty("ratakilometri") val kmNumber: Int,
+    @Schema(
+        description = FRAME_CONVERTER_OPENAPI_TRACK_KILOMETER,
+        example = FRAME_CONVERTER_OPENAPI_EXAMPLE_TRACK_KILOMETER,
+    )
+    @JsonProperty("ratakilometri")
+    val kmNumber: Int,
     @Schema(
         description = FRAME_CONVERTER_OPENAPI_TRACK_METER,
         minimum = FRAME_CONVERTER_OPENAPI_TRACK_METER_MIN,
@@ -315,7 +327,10 @@ data class FeatureMatchDetailsV1(
     )
     @JsonProperty("ratametri")
     val trackMeter: Int,
-    @Schema(description = FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_METER_DECIMALS, example = FRAME_CONVERTER_OPENAPI_EXAMPLE_TRACK_METER_DECIMALS)
+    @Schema(
+        description = FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_METER_DECIMALS,
+        example = FRAME_CONVERTER_OPENAPI_EXAMPLE_TRACK_METER_DECIMALS,
+    )
     @JsonProperty("ratametri_desimaalit")
     val trackMeterDecimals: Int,
 )
@@ -349,7 +364,11 @@ data class TrackAddressToCoordinateRequestV1(
     )
     @JsonProperty(TRACK_NUMBER_NAME_PARAM)
     val trackNumberName: FrameConverterStringV1? = null,
-    @Schema(description = FRAME_CONVERTER_OPENAPI_TRACK_KILOMETER, required = true, example = FRAME_CONVERTER_OPENAPI_EXAMPLE_TRACK_KILOMETER)
+    @Schema(
+        description = FRAME_CONVERTER_OPENAPI_TRACK_KILOMETER,
+        required = true,
+        example = FRAME_CONVERTER_OPENAPI_EXAMPLE_TRACK_KILOMETER,
+    )
     @JsonProperty(TRACK_KILOMETER_PARAM)
     val trackKilometer: Int? = null,
     @Schema(
@@ -398,18 +417,18 @@ data class ValidTrackAddressToCoordinateRequestV1(
  * Track meter to coordinate response is only created for a valid, successfully processed request. For invalid requests
  * containing errors, see [GeoJsonFeatureErrorResponseV1].
  */
-@Schema(name = "Vastaus: Rataosoitteesta koordinaatteihin")
+@Schema(name = "Rataosoitteesta koordinaattiin - Muunnostulos")
 data class TrackAddressToCoordinateResponseV1(
     override val geometry: GeoJsonGeometryPoint,
     override val properties: TrackAddressToCoordinateResponsePropertiesV1,
 ) : TrackAddressToCoordinateSingleResponseV1
 
-@Schema(name = "Vastaus: Erämuunnos rataosoitteesta koordinaatteihin")
+@Schema(name = "Vastaus: Rataosoitteesta koordinaatteihin")
 data class TrackAddressToCoordinateCollectionResponseV1(
     override val features: List<TrackAddressToCoordinateSingleResponseV1>
 ) : GeoJsonFeatureCollection
 
-@Schema(name = "Vastaus: Erämuunnos koordinaateista rataosoitteisiin")
+@Schema(name = "Vastaus: Koordinaateista rataosoitteisiin")
 data class CoordinateToTrackAddressCollectionResponseV1(
     override val features: List<CoordinateToTrackAddressSingleResponseV1>
 ) : GeoJsonFeatureCollection
