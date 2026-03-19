@@ -58,7 +58,16 @@ constructor(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_TRACK_KILOMETER, required = true)
         @RequestParam(TRACK_KILOMETER_PARAM)
         trackKilometer: Int?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_TRACK_METER, required = true)
+        @Parameter(
+            description = FRAME_CONVERTER_OPENAPI_TRACK_METER,
+            required = true,
+            schema =
+                Schema(
+                    minimum = FRAME_CONVERTER_OPENAPI_TRACK_METER_MIN,
+                    maximum = FRAME_CONVERTER_OPENAPI_TRACK_METER_MAX,
+                    exclusiveMaximum = true,
+                ),
+        )
         @RequestParam(TRACK_METER_PARAM)
         trackMeter: BigDecimal?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK)

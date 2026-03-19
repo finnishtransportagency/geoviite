@@ -26,13 +26,13 @@ interface GeoJsonFeature {
     val properties: GeoJsonProperties?
 }
 
-@Schema(hidden = true) interface GeoJsonGeometry
+@Schema(hidden = true, name = "GeoJSON Geometry") interface GeoJsonGeometry
 
 enum class GeoJsonGeometryType {
     Point
 }
 
-@Schema(hidden = true, name = "Pistesijainti (GeoJSON Point)")
+@Schema(hidden = true, name = "GeoJSON Point")
 data class GeoJsonGeometryPoint(
     @Schema(type = "string", allowableValues = ["Point"]) val type: GeoJsonGeometryType = GeoJsonGeometryType.Point,
     val coordinates: List<Double>,
@@ -43,4 +43,4 @@ data class GeoJsonGeometryPoint(
     }
 }
 
-@Schema(hidden = true) interface GeoJsonProperties
+@Schema(hidden = true, name = "GeoJSON Properties") interface GeoJsonProperties
