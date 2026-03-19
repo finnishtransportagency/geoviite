@@ -35,7 +35,7 @@ enum class GeoJsonGeometryType {
 @Schema(hidden = true, name = "GeoJSON Point")
 data class GeoJsonGeometryPoint(
     @Schema(type = "string", allowableValues = ["Point"]) val type: GeoJsonGeometryType = GeoJsonGeometryType.Point,
-    val coordinates: List<Double>,
+    @Schema(example = "[259348.205, 6804094.515]") val coordinates: List<Double>,
 ) : GeoJsonGeometry {
 
     companion object {

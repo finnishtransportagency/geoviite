@@ -3,8 +3,7 @@ package fi.fta.geoviite.api.frameconverter.v1
 const val FRAME_CONVERTER_TAG_COORDINATE_TO_TRACK_ADDRESS = "Koordinaatista rataosoitteeseen"
 const val FRAME_CONVERTER_TAG_TRACK_ADDRESS_TO_COORDINATE = "Rataosoitteesta koordinaatteihin"
 
-const val FRAME_CONVERTER_OPENAPI_INVALID_ARGUMENTS =
-    "Yhden tai useamman syötteen muoto tai arvo oli virheellinen."
+const val FRAME_CONVERTER_OPENAPI_INVALID_ARGUMENTS = "Yhden tai useamman syötteen muoto tai arvo oli virheellinen."
 
 const val FRAME_CONVERTER_OPENAPI_SERVER_ERROR =
     "Palvelussa tapahtui sisäinen virhe. Ota tarvittaessa yhteyttä ylläpitoon."
@@ -13,17 +12,13 @@ const val FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM =
     "Koordinaatisto, jossa syöte- ja tuloskoordinaatit käsitellään (oletus EPSG:3067, eli ETRS-TM35FIN). " +
         "Sallitut arvot ovat EPSG-tunnuksia, esim. EPSG:4326."
 
-const val FRAME_CONVERTER_OPENAPI_X =
-    "Koordinaatti X annetussa koordinaatistossa."
+const val FRAME_CONVERTER_OPENAPI_X = "Koordinaatti X annetussa koordinaatistossa."
 
-const val FRAME_CONVERTER_OPENAPI_Y =
-    "Koordinaatti Y annetussa koordinaatistossa."
+const val FRAME_CONVERTER_OPENAPI_Y = "Koordinaatti Y annetussa koordinaatistossa."
 
-const val FRAME_CONVERTER_OPENAPI_TRACK_KILOMETER =
-    "Rataosoitteen ratakilometri."
+const val FRAME_CONVERTER_OPENAPI_TRACK_KILOMETER = "Rataosoitteen ratakilometri."
 
-const val FRAME_CONVERTER_OPENAPI_TRACK_METER =
-    "Rataosoitteen ratametri."
+const val FRAME_CONVERTER_OPENAPI_TRACK_METER = "Rataosoitteen ratametri."
 
 const val FRAME_CONVERTER_OPENAPI_TRACK_METER_MIN = "0"
 const val FRAME_CONVERTER_OPENAPI_TRACK_METER_MAX = "10000"
@@ -32,34 +27,37 @@ const val FRAME_CONVERTER_OPENAPI_EXAMPLE_TRACK_NUMBER_NAME = "002"
 const val FRAME_CONVERTER_OPENAPI_EXAMPLE_TRACK_NUMBER_OID = "1.2.246.578.3.10001.188908"
 const val FRAME_CONVERTER_OPENAPI_EXAMPLE_LOCATION_TRACK_NAME = "002"
 const val FRAME_CONVERTER_OPENAPI_EXAMPLE_LOCATION_TRACK_OID = "1.2.246.578.3.10002.194079"
+const val FRAME_CONVERTER_OPENAPI_EXAMPLE_LOCATION_TRACK_DESCRIPTION = "Lielahti-Kokemäki-Pori-Mäntyluoto"
+const val FRAME_CONVERTER_OPENAPI_EXAMPLE_LOCATION_TRACK_TYPE = "pääraide"
+const val FRAME_CONVERTER_OPENAPI_EXAMPLE_TRACK_KILOMETER = "270"
+const val FRAME_CONVERTER_OPENAPI_EXAMPLE_TRACK_METER = "300"
+const val FRAME_CONVERTER_OPENAPI_EXAMPLE_TRACK_METER_DECIMALS = "0"
+const val FRAME_CONVERTER_OPENAPI_EXAMPLE_DISTANCE = "0.0"
+const val FRAME_CONVERTER_OPENAPI_EXAMPLE_X = "259348.205"
+const val FRAME_CONVERTER_OPENAPI_EXAMPLE_Y = "6804094.515"
 
 // Request-specific field descriptions
 
 const val FRAME_CONVERTER_OPENAPI_REQUEST_IDENTIFIER =
     "Asettaa pyynnölle tunnisteen. Palautetaan GeoJSON-tuloksen properties-kentässä kaikille saman pyynnön tunnisteeseen liittyville muunnoksille."
 
-const val FRAME_CONVERTER_OPENAPI_REQUEST_SEARCH_RADIUS =
-    "Hakusäde metreissä annetusta koordinaattisijainnista."
+const val FRAME_CONVERTER_OPENAPI_REQUEST_SEARCH_RADIUS = "Hakusäde metreissä annetusta koordinaattisijainnista."
 
-const val FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER =
-    "Rajaa haun ratanumeron nimen perusteella."
+const val FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER = "Rajaa haun ratanumeron nimen perusteella."
 
-const val FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_OID =
-    "Rajaa haun ratanumeron OID-tunnuksen perusteella."
+const val FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_OID = "Rajaa haun ratanumeron OID-tunnuksen perusteella."
 
 const val FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_EXACTLY_ONE =
-    "Rajaa haun ratanumeron nimen perusteella. " +
+    "Rajaa haun ratanumeron nimen perusteella. <br />" +
         "*Huom*: Hakua tulee rajata yhdellä kentistä \"ratanumero\", \"ratanumero_oid\"."
 
 const val FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_OID_EXACTLY_ONE =
-    "Rajaa haun ratanumeron OID-tunnuksen perusteella. " +
+    "Rajaa haun ratanumeron OID-tunnuksen perusteella. <br />" +
         "*Huom*: Hakua tulee rajata yhdellä kentistä \"ratanumero\", \"ratanumero_oid\"."
 
-const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK =
-    "Rajaa haun sijaintiraiteen tunnuksen perusteella."
+const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK = "Rajaa haun sijaintiraiteen tunnuksen perusteella."
 
-const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_OID =
-    "Rajaa haun sijaintiraiteen OID-tunnuksen perusteella."
+const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_OID = "Rajaa haun sijaintiraiteen OID-tunnuksen perusteella."
 
 const val FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK_TYPE =
     "Rajaa haun sijaintiraidetyypin perusteella. Sallitut arvot: \"pääraide\", \"sivuraide\", \"turvaraide\", \"kujaraide\"."
@@ -76,35 +74,25 @@ const val FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_DETAILS =
 
 // Response-specific field descriptions
 
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER =
-    "Pyynnössä annettu tunniste."
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_IDENTIFIER = "Pyynnössä annettu tunniste."
 
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_DISTANCE =
-    "Etäisyys annetusta koordinaatista lähimpään raiteeseen metreinä."
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_DISTANCE = "Etäisyys annetusta koordinaatista lähimpään raiteeseen metreinä."
 
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_NUMBER =
-    "Ratanumeron nimi."
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_NUMBER = "Ratanumeron nimi."
 
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_NUMBER_OID =
-    "Ratanumeron OID-tunniste."
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_NUMBER_OID = "Ratanumeron OID-tunniste."
 
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK =
-    "Sijaintiraiteen tunniste."
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK = "Sijaintiraiteen tunniste."
 
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_OID =
-    "Sijaintiraiteen OID-tunniste."
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_OID = "Sijaintiraiteen OID-tunniste."
 
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_DESCRIPTION =
-    "Sijaintiraiteen kuvaus."
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_DESCRIPTION = "Sijaintiraiteen kuvaus."
 
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_TYPE =
-    "Sijaintiraiteen tyyppi."
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_LOCATION_TRACK_TYPE = "Sijaintiraiteen tyyppi."
 
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_METER_DECIMALS =
-    "Rataosoitteen ratametrin desimaaliosuus."
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_TRACK_METER_DECIMALS = "Rataosoitteen ratametrin desimaaliosuus."
 
-const val FRAME_CONVERTER_OPENAPI_RESPONSE_ERRORS =
-    "Lista virheistä, jotka estivät muunnoksen suorittamisen."
+const val FRAME_CONVERTER_OPENAPI_RESPONSE_ERRORS = "Lista virheistä, jotka estivät muunnoksen suorittamisen."
 
 // Operation summaries and descriptions
 
