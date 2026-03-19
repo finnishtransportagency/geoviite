@@ -28,6 +28,7 @@ export type MapLayerName =
     | 'missing-linking-highlight-layer'
     | 'plan-section-highlight-layer'
     | 'route-highlight-layer'
+    | 'route-marker-layer'
     | 'duplicate-tracks-highlight-layer'
     | 'duplicate-split-section-highlight-layer'
     | 'location-track-selected-alignment-layer'

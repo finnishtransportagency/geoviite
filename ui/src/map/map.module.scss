@@ -173,6 +173,11 @@
     assetClusterBadgeBackground: vayla-design.$color-red-default;
 }
 
+:export {
+    routeColor: vayla-design.$color-green-default;
+    routeHoverColor: rgba(vayla-design.$color-green-default, 0.5);
+}
+
 .map {
     position: relative;
     color: vayla-design.$color-black-default;

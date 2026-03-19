@@ -1,10 +1,12 @@
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, AppState } from './store';
 import { InfraModelState } from 'infra-model/infra-model-slice';
-import { TrackLayoutState } from 'track-layout/track-layout-slice';
+import { trackLayoutActionCreators, TrackLayoutState } from 'track-layout/track-layout-slice';
 import { DataProductsState } from 'data-products/data-products-slice';
 import { CommonState } from 'common/common-slice';
 import { PrivilegeCode, userHasPrivilege } from 'user/user-model';
+import * as React from 'react';
+import { createDelegates } from 'store/store-utils';
 
 export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<AppState> = useSelector;
@@ -32,4 +34,8 @@ export function useUserHasPrivilege(code: PrivilegeCode): boolean {
             code,
         ),
     );
+}
+
+export function useLayoutDelegates() {
+    return React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 }

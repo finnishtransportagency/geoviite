@@ -44,6 +44,7 @@ export const isLayerInProxyLayerCollection = (
 const alwaysOnLayers: MapLayerName[] = [
     'plan-section-highlight-layer',
     'route-highlight-layer',
+    'route-marker-layer',
     'publication-candidate-layer',
     'deleted-publication-candidate-icon-layer',
 ];

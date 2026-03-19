@@ -2,12 +2,12 @@ import * as React from 'react';
 import {
     useCommonDataAppSelector,
     useInfraModelAppSelector,
+    useLayoutDelegates,
     useTrackLayoutAppSelector,
 } from 'store/hooks';
 import MapView, { MapViewProps } from './map-view';
 import { MapContext } from './map-store';
 import { createDelegates } from 'store/store-utils';
-import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { infraModelActionCreators } from 'infra-model/infra-model-slice';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { GeometryPlanLayout } from 'track-layout/track-layout-model';
@@ -16,13 +16,14 @@ import { PublicationCandidate } from 'publication/publication-model';
 import { MapToolId, MapToolWithButton } from 'map/tools/tool-model';
 import { DesignPublicationMode } from 'preview/preview-tool-bar';
 import { RouteResult } from 'track-layout/layout-routing-api';
+import { RouteLocation } from 'track-layout/track-layout-slice';
 
 const emptyFn = () => void 0;
 
 const getTrackLayoutProps = (): MapViewProps => {
     const store = useTrackLayoutAppSelector((s) => s);
     const changeTimes = useCommonDataAppSelector((s) => s.changeTimes);
-    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
+    const delegates = useLayoutDelegates();
 
     return {
         changeTimes: changeTimes,
@@ -48,6 +49,7 @@ const getTrackLayoutProps = (): MapViewProps => {
         onClosePlanDownloadPopup: delegates.onClosePlanDownloadPopup,
         selectedDesignId: store.designId,
         layoutContextMode: store.layoutContextMode,
+        routeLocations: store.routeLocations,
     };
 };
 
@@ -92,6 +94,7 @@ type MapViewContainerProps = {
     customActiveMapToolId?: MapToolId;
     designPublicationMode?: DesignPublicationMode;
     mapTools: MapToolWithButton[];
+    hoveredRouteLocation?: RouteLocation;
 };
 export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     layoutContext,
@@ -102,6 +105,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     customActiveMapToolId,
     designPublicationMode,
     mapTools,
+    hoveredRouteLocation,
 }) => {
     const mapContext = React.useContext(MapContext);
 
@@ -115,6 +119,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
     mapProps.customActiveMapToolId = customActiveMapToolId;
     mapProps.designPublicationMode = designPublicationMode;
     mapProps.mapTools = mapTools;
+    mapProps.hoveredRouteLocation = hoveredRouteLocation;
 
     return <MapView {...mapProps} />;
 };
