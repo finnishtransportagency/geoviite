@@ -1374,10 +1374,9 @@ constructor(
                 layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
             }
 
-        // Helsinki Railway Station area: TM35FIN (385782.89, 6672277.83) < - > WGS84 (24.9414003, 60.1713788)
+        // Helsinki Railway Station area: TM35FIN (385782.89, 6672277.83) ↔ WGS84 (24.9414003, 60.1713788)
         val trackStart = Point(385782.89, 6672277.83)
         val segments = listOf(segment(trackStart, trackStart + Point(100.0, 100.0)))
-
         extTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId, segments = segments)
 
         val trackStartWgs84 = transformNonKKJCoordinate(LAYOUT_SRID, WGS_84_SRID, trackStart)
