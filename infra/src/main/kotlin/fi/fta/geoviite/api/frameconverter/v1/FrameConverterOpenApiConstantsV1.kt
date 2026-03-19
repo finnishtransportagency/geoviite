@@ -3,11 +3,6 @@ package fi.fta.geoviite.api.frameconverter.v1
 const val FRAME_CONVERTER_TAG_COORDINATE_TO_TRACK_ADDRESS = "Koordinaatista rataosoitteeseen"
 const val FRAME_CONVERTER_TAG_TRACK_ADDRESS_TO_COORDINATE = "Rataosoitteesta koordinaatteihin"
 
-const val FRAME_CONVERTER_OPENAPI_INVALID_ARGUMENTS = "Yhden tai useamman syötteen muoto tai arvo oli virheellinen."
-
-const val FRAME_CONVERTER_OPENAPI_SERVER_ERROR =
-    "Palvelussa tapahtui sisäinen virhe. Ota tarvittaessa yhteyttä ylläpitoon."
-
 const val FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM =
     "Koordinaatisto, jossa syöte- ja tuloskoordinaatit käsitellään (oletus EPSG:3067, eli ETRS-TM35FIN). <br />" +
         "Sallitut arvot ovat EPSG-tunnuksia, esim. EPSG:4326."

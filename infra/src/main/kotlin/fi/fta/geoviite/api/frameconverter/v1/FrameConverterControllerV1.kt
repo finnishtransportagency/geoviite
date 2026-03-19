@@ -47,7 +47,7 @@ constructor(
     )
     fun trackAddressToCoordinateRequestSingle(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:4326")
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:3067")
         coordinateSystem: ExtSridV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_TRACK_NUMBER_EXACTLY_ONE)
         @RequestParam(TRACK_NUMBER_NAME_PARAM, required = false)
@@ -125,7 +125,7 @@ constructor(
     )
     fun trackAddressToCoordinateRequestBatch(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:4326")
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:3067")
         coordinateSystem: ExtSridV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY)
         @RequestParam(FEATURE_GEOMETRY_PARAM, required = false, defaultValue = "false")
@@ -169,7 +169,7 @@ constructor(
     )
     fun coordinateToTrackAddressRequestSingle(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:4326")
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:3067")
         coordinateSystem: ExtSridV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_X, required = true) @RequestParam("x") xCoordinate: Double?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_Y, required = true) @RequestParam("y") yCoordinate: Double?,
@@ -238,7 +238,7 @@ constructor(
     )
     fun coordinateToTrackAddressRequestBatch(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
-        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:4326")
+        @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:3067")
         coordinateSystem: ExtSridV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_FEATURE_GEOMETRY)
         @RequestParam(FEATURE_GEOMETRY_PARAM, required = false, defaultValue = "false")
