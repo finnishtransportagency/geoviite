@@ -1,7 +1,6 @@
 import { TimeStamp } from 'common/common-model';
 import { maxOf, minOf } from 'utils/array-utils';
 import { format, getYear, parseISO, startOfToday } from 'date-fns';
-import { ChangeTimes } from 'common/common-slice';
 
 export const currentDay = startOfToday();
 
@@ -77,14 +76,6 @@ export const getMaxTimestamp = (time1: TimeStamp, ...others: TimeStamp[]) =>
 
 export const getMaxTimestampFromArray = (timestamps: TimeStamp[]) =>
     maxOf(timestamps, compareTimestamps) as TimeStamp;
-
-export const geocodingChangeTime = (changeTimes: ChangeTimes) =>
-    getMaxTimestamp(
-        changeTimes.layoutLocationTrack,
-        changeTimes.layoutTrackNumber,
-        changeTimes.layoutReferenceLine,
-        changeTimes.layoutKmPost,
-    );
 
 export function createYearRange(fromYear: number, toYear: number): number[] {
     const years = [];

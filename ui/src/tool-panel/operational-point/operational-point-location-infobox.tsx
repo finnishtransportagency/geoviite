@@ -31,7 +31,7 @@ import { useLoader } from 'utils/react-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getAddress } from 'common/geocoding-api';
 import { ChangeTimes } from 'common/common-slice';
-import { geocodingChangeTime } from 'utils/date-utils';
+import { geocodingChangeTime } from 'common/change-time-api';
 
 type OperationalPointLocationInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -120,6 +120,7 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
             findOperationalPointLocationTracks(layoutContext, operationalPoint.id).then(
                 (ts) => ts?.assigned ?? [],
             ),
+        // safe to ignore changeTimes.operationalPoints changes: We're only looking at location track info
         [operationalPoint.id, layoutContext, changeTimes.layoutLocationTrack],
     );
 

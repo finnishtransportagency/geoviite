@@ -4,6 +4,7 @@ import { API_URI, getNonNull, getNullable } from 'api/api-fetch';
 import { createDelegates } from 'store/store-utils';
 import { TimeStamp } from 'common/common-model';
 import { ChangeTimes, commonActionCreators } from 'common/common-slice';
+import { getMaxTimestamp } from 'utils/date-utils';
 
 const CHANGES_API = `${API_URI}/change-times`;
 
@@ -140,3 +141,11 @@ function updateChangeTime(
         },
     );
 }
+
+export const geocodingChangeTime = (changeTimes: ChangeTimes) =>
+    getMaxTimestamp(
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutTrackNumber,
+        changeTimes.layoutReferenceLine,
+        changeTimes.layoutKmPost,
+    );
