@@ -244,6 +244,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 onStartPlacingArea={onStartPlacingArea}
                 onStopPlacingArea={onStopPlacingArea}
                 onClearArea={onClearArea}
+                changeTimes={changeTimes}
             />
             <OperationalPointStationLinksInfobox
                 contentVisible={visibilities.stationLinks}

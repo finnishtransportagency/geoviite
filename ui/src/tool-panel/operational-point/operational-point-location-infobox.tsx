@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
-import { formatToTM35FINString } from 'utils/geography-utils';
+import { formatToTM35FINString, formatTrackMeter } from 'utils/geography-utils';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LinkingType } from 'linking/linking-model';
@@ -23,6 +23,15 @@ import { EDIT_LAYOUT } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { isValidPolygon } from 'model/geometry';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
+import {
+    findOperationalPointLocationTracks,
+    getLocationTracks,
+} from 'track-layout/layout-location-track-api';
+import { useLoader } from 'utils/react-utils';
+import { getTrackNumbers } from 'track-layout/layout-track-number-api';
+import { getAddress } from 'common/geocoding-api';
+import { ChangeTimes } from 'common/common-slice';
+import { geocodingChangeTime } from 'utils/date-utils';
 
 type OperationalPointLocationInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -36,6 +45,7 @@ type OperationalPointLocationInfoboxProps = {
     onStartPlacingArea: () => void;
     onStopPlacingArea: () => void;
     onClearArea: () => void;
+    changeTimes: ChangeTimes;
 };
 
 export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationInfoboxProps> = ({
@@ -50,6 +60,7 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
     onStartPlacingArea,
     onStopPlacingArea,
     onClearArea,
+    changeTimes,
 }) => {
     const { t } = useTranslation();
 
@@ -104,6 +115,37 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
         }
     };
 
+    const linkedLocationTrackIds = useLoader(
+        () =>
+            findOperationalPointLocationTracks(layoutContext, operationalPoint.id).then(
+                (ts) => ts?.assigned ?? [],
+            ),
+        [operationalPoint.id, layoutContext, changeTimes.layoutLocationTrack],
+    );
+
+    const trackAddresses = useLoader(async () => {
+        const location = operationalPoint.location;
+        if (location === undefined || linkedLocationTrackIds === undefined) {
+            return undefined;
+        }
+        const tracks = await getLocationTracks(linkedLocationTrackIds, layoutContext);
+        const distinctTrackNumberIds = new Set(tracks.map((track) => track.trackNumberId));
+        const trackNumbers = (await getTrackNumbers(layoutContext)).filter((tn) =>
+            distinctTrackNumberIds.has(tn.id),
+        );
+        return Promise.all(
+            trackNumbers.map(async (tn) => {
+                const address = await getAddress(tn.id, location, layoutContext);
+                return [tn.number, address] as const;
+            }),
+        );
+    }, [
+        operationalPoint.id,
+        operationalPoint.location,
+        linkedLocationTrackIds,
+        geocodingChangeTime(changeTimes),
+    ]);
+
     return (
         <Infobox
             contentVisible={visibilities.location}
@@ -119,6 +161,22 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
                             : '-'
                     }
                 />
+                {linkedLocationTrackIds?.length === 0 && (
+                    <InfoboxField label={t('tool-panel.operational-point.no-linked-tracks-label')}>
+                        {t('tool-panel.operational-point.no-linked-tracks-text')}
+                    </InfoboxField>
+                )}
+                {trackAddresses?.map(([trackNumber, address]) => (
+                    <InfoboxField
+                        key={trackNumber}
+                        label={t('tool-panel.operational-point.address', {
+                            trackNumber,
+                        })}>
+                        {address
+                            ? formatTrackMeter(address)
+                            : t('tool-panel.operational-point.address-unknown')}
+                    </InfoboxField>
+                ))}
                 <InfoboxButtons>
                     <Button
                         variant={ButtonVariant.SECONDARY}
