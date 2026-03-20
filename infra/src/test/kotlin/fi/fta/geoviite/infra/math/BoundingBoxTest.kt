@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.math
 
 import kotlin.math.sqrt
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class BoundingBoxTest {
@@ -134,7 +136,8 @@ class BoundingBoxTest {
         // axial distance
         assertEquals(
             1.0,
-            BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0)).minimumDistance(BoundingBox(Point(2.0, 0.0), Point(3.0, 1.0))),
+            BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0))
+                .minimumDistance(BoundingBox(Point(2.0, 0.0), Point(3.0, 1.0))),
         )
         assertEquals(
             1.0,
@@ -153,17 +156,41 @@ class BoundingBoxTest {
         // intersection
         assertEquals(
             0.0,
-            BoundingBox(Point(0.0, 0.0), Point(3.0, 3.0)).minimumDistance(BoundingBox(Point(1.0, 1.0), Point(5.0, 2.0))),
+            BoundingBox(Point(0.0, 0.0), Point(3.0, 3.0))
+                .minimumDistance(BoundingBox(Point(1.0, 1.0), Point(5.0, 2.0))),
         )
 
         // touch axially or diagonally
         assertEquals(
             0.0,
-            BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0)).minimumDistance(BoundingBox(Point(1.0, 0.0), Point(2.0, 1.0))),
+            BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0))
+                .minimumDistance(BoundingBox(Point(1.0, 0.0), Point(2.0, 1.0))),
         )
         assertEquals(
             0.0,
-            BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0)).minimumDistance(BoundingBox(Point(1.0, 1.0), Point(2.0, 2.0))),
+            BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0))
+                .minimumDistance(BoundingBox(Point(1.0, 1.0), Point(2.0, 2.0))),
         )
+    }
+
+    @Test
+    fun minimumDistanceByPoint() {
+        // inside
+        assertEquals(
+            0.0,
+            BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0)).minimumDistance(Point(0.5, 0.5)),
+        )
+
+        // horizontal axial distance
+        assertEquals(0.4, BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0)).minimumDistance(Point(1.4, 0.5)), 0.001)
+        assertEquals(0.4, BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0)).minimumDistance(Point(-0.4, 0.5)), 0.001)
+
+        // vertical axial distance
+        assertEquals(0.4, BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0)).minimumDistance(Point(0.5, 1.4)), 0.001)
+        assertEquals(0.4, BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0)).minimumDistance(Point(0.5, -0.4)), 0.001)
+
+        // diagonal distance
+        assertEquals(5.0, BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0)).minimumDistance(Point(4.0, 5.0)), 0.001)
+        assertEquals(5.0, BoundingBox(Point(0.0, 0.0), Point(1.0, 1.0)).minimumDistance(Point(-4.0, -3.0)), 0.001)
     }
 }

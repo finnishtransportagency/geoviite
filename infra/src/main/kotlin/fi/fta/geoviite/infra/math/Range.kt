@@ -62,8 +62,18 @@ fun minimumDistance(range1: Range<Double>, range2: Range<Double>): Double {
     val (min2, max2) = range2
 
     return if (max2 < min1) {
-        max2 - min1
+        min1 - max2
     } else if (min2 > max1) {
         min2 - max1
+    } else 0.0
+}
+
+fun minimumDistance(range: Range<Double>, value: Double): Double {
+    val (min, max) = range
+
+    return if (value < min) {
+        min - value
+    } else if (value > max) {
+        value - max
     } else 0.0
 }

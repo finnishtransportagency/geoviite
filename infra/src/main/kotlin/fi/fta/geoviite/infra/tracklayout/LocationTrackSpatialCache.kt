@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
 import org.springframework.beans.factory.annotation.Autowired
@@ -106,47 +105,32 @@ data class ContextCache(
     val size: Int
         get() = items.size
 
-    fun getClosest(location: IPoint, thresholdMeters: Double = 100.0): List<LocationTrackCacheHit> =
+    fun getClosestTrack(location: IPoint, thresholdMeters: Double = 100.0): LocationTrackCacheHit? =
         network
             .search(Geometries.point(location.x, location.y), thresholdMeters)
-            .let { entries ->
-                var currentMin: Double = Double.MAX_VALUE
-                var hit: LocationTrackCacheHit? = null
-                entries.forEach { entry ->
-                    val segment = entry.value()
-                    val geometry = getGeometry(segment.locationTrackVersion)
-                    val bbox = geometry.boundingBox!!
-                    val insideBbox = bbox.contains(location)
-                    val bboxDistance =
-                        if (!insideBbox)
-                            listOf(
-                                    lineLength(location, Point(bbox.min.x, bbox.min.y)),
-                                    lineLength(location, Point(bbox.min.x, bbox.max.y)),
-                                    lineLength(location, Point(bbox.max.x, bbox.min.y)),
-                                    lineLength(location, Point(bbox.max.x, bbox.max.y)),
-                                )
-                                .min()
-                        else 0.0
-                    if (insideBbox || bboxDistance < currentMin) {
-                        val (layoutSegment, segmentM) = geometry.getSegmentWithM(segment.segmentIndex)
-                        val closestPointM = layoutSegment.getClosestPointM(segmentM.min, location).first
-                        val closestPoint = layoutSegment.seekPointAtM(segmentM.min, closestPointM).point
-                        val distance = lineLength(location, closestPoint)
-                        if (distance < currentMin && distance < thresholdMeters) {
-                            currentMin = distance
-                            hit =
-                                LocationTrackCacheHit(
-                                    getTrack(segment.locationTrackVersion), geometry, closestPoint, distance)
-                        }
-                    }
-                }
-                listOf(hit)
-            }
-            .filterNotNull()
-            .sortedWith(cacheHitComparator)
-            .distinctBy { it.track.id }
+            .fold(Double.MAX_VALUE to null) {
+                (currentMinDistance, currentHit): Pair<Double, LocationTrackCacheHit?>,
+                entry ->
+                val segment = entry.value()
+                val geometry = getGeometry(segment.locationTrackVersion)
+                val bbox = geometry.boundingBox!!
+                val bboxMinDistance = bbox.minimumDistance(location)
 
-    fun getClosest2(location: IPoint, thresholdMeters: Double = 100.0): List<LocationTrackCacheHit> =
+                // bbox must be closer than current minimum distance
+                if (bboxMinDistance < currentMinDistance) {
+                    val hit = createHit(segment, location, thresholdMeters)
+                    if (hit != null && hit.distance < currentMinDistance && hit.distance < thresholdMeters) {
+                        hit.distance to hit
+                    } else {
+                        currentMinDistance to currentHit
+                    }
+                } else {
+                    currentMinDistance to currentHit
+                }
+            }
+            .let { (_, hit) -> hit }
+    
+    fun getClosestTracks(location: IPoint, thresholdMeters: Double = 100.0): List<LocationTrackCacheHit> =
         network
             .search(Geometries.point(location.x, location.y), thresholdMeters)
             .mapNotNull { entry -> createHit(entry.value(), location, thresholdMeters) }

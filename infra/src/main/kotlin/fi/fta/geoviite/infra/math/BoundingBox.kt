@@ -63,6 +63,10 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
         return hypot(minimumDistance(x, other.x), minimumDistance(y, other.y))
     }
 
+    fun minimumDistance(point: IPoint): Double {
+        return hypot(minimumDistance(x, point.x), minimumDistance(y, point.y))
+    }
+
     fun intersects(polygonPoints: List<Point>): Boolean {
         return when (polygonPoints.size) {
             0 -> false
