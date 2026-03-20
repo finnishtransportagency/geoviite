@@ -707,10 +707,12 @@ class LocationTrackDao(
                     rs.getIntId<LayoutSwitch>("switch_id")
             }
 
-        val bySwitch =
-            switchIds.associateWith { switchId ->
-                rows.filter { (_, rowSwitchId) -> rowSwitchId == switchId }.map { (version) -> version }.distinct()
+        val rowsBySwitchId =
+            rows.groupBy({ (_, switchId) -> switchId }, { (version, _) -> version }).mapValues { (_, versions) ->
+                versions.distinct()
             }
+
+        val bySwitch = switchIds.associateWith { switchId -> rowsBySwitchId[switchId] ?: emptyList() }
 
         return LocationTrackVersionsForValidation(
                 byTrackNumber = mapOf(),
