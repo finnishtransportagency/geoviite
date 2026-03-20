@@ -129,11 +129,25 @@ class OperationalPointDao(
         TODO("Not yet implemented")
     }
 
-    override fun fetchVersions(
-        layoutContext: LayoutContext,
-        includeDeleted: Boolean,
-    ): List<LayoutRowVersion<OperationalPoint>> =
-        fetchVersions(layoutContext, includeDeleted, ids = null, locationBbox = null, polygonBbox = null)
+    override fun fetchVersionsInternal(layoutContext: LayoutContext): List<CachedLayoutVersion<OperationalPoint>> {
+        val sql =
+            """
+            select id, design_id, draft, version, (state = 'DELETED') as deleted
+            from layout.operational_point_in_layout_context(:publication_state::layout.publication_state, :design_id)
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            CachedLayoutVersion(
+                rs.getLayoutRowVersion<OperationalPoint>("id", "design_id", "draft", "version"),
+                deleted = rs.getBoolean("deleted"),
+            )
+        }
+    }
 
     fun fetchVersions(
         layoutContext: LayoutContext,
@@ -219,6 +233,7 @@ class OperationalPointDao(
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save operational point")
         logger.daoAccess(INSERT, OperationalPoint::class, response)
+        clearVersionCache()
         return response
     }
 
@@ -329,6 +344,7 @@ class OperationalPointDao(
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save operational point")
         logger.daoAccess(INSERT, OperationalPoint::class, response)
+        clearVersionCache()
         return response
     }
 

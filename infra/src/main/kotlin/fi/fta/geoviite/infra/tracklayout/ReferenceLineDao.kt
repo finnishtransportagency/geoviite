@@ -189,6 +189,7 @@ class ReferenceLineDao(
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: error("Failed to save Location Track")
         logger.daoAccess(AccessType.INSERT, ReferenceLine::class, version)
+        clearVersionCache()
         return version
     }
 
@@ -218,27 +219,26 @@ class ReferenceLineDao(
         }
     }
 
-    override fun fetchVersions(
-        layoutContext: LayoutContext,
-        includeDeleted: Boolean,
-    ): List<LayoutRowVersion<ReferenceLine>> {
+    override fun fetchVersionsInternal(layoutContext: LayoutContext): List<CachedLayoutVersion<ReferenceLine>> {
         val sql =
             """
-            select rl.id, rl.design_id, rl.draft, rl.version
+            select rl.id, rl.design_id, rl.draft, rl.version,
+                   (tn.id is null or tn.state = 'DELETED') as deleted
             from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
               left join layout.track_number_in_layout_context(:publication_state::layout.publication_state,
                                                               :design_id) tn on rl.track_number_id = tn.id
-            where (:include_deleted = true or tn.state != 'DELETED')
             """
                 .trimIndent()
         val params =
             mapOf(
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
-                "include_deleted" to includeDeleted,
             )
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+            CachedLayoutVersion(
+                rs.getLayoutRowVersion<ReferenceLine>("id", "design_id", "draft", "version"),
+                deleted = rs.getBoolean("deleted"),
+            )
         }
     }
 

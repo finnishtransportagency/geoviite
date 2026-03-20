@@ -42,8 +42,26 @@ class LayoutKmPostDao(
 
     override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutKmPost>) = NoParams.instance
 
-    override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
-        fetchVersions(layoutContext, includeDeleted, null, null)
+    override fun fetchVersionsInternal(layoutContext: LayoutContext): List<CachedLayoutVersion<LayoutKmPost>> {
+        val sql =
+            """
+            select id, design_id, draft, version, (state = 'DELETED') as deleted
+            from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
+            order by track_number_id, km_number
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            CachedLayoutVersion(
+                rs.getLayoutRowVersion<LayoutKmPost>("id", "design_id", "draft", "version"),
+                deleted = rs.getBoolean("deleted"),
+            )
+        }
+    }
 
     @Transactional(readOnly = true)
     fun list(
@@ -337,6 +355,7 @@ class LayoutKmPostDao(
                 LayoutRowVersion(id, item.layoutContext, rs.getInt("version"))
             } ?: throw IllegalStateException("Failed to save new km-post")
         logger.daoAccess(AccessType.INSERT, LayoutKmPost::class, response)
+        clearVersionCache()
         return response
     }
 

@@ -69,25 +69,23 @@ class LayoutSwitchDao(
 
     override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutSwitch>) = NoParams.instance
 
-    override fun fetchVersions(
-        layoutContext: LayoutContext,
-        includeDeleted: Boolean,
-    ): List<LayoutRowVersion<LayoutSwitch>> {
+    override fun fetchVersionsInternal(layoutContext: LayoutContext): List<CachedLayoutVersion<LayoutSwitch>> {
         val sql =
             """
-            select id, design_id, draft, version
+            select id, design_id, draft, version, (state_category = 'NOT_EXISTING') as deleted
             from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
-            where (:include_deleted = true or state_category != 'NOT_EXISTING')
             """
                 .trimIndent()
         val params =
             mapOf(
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
-                "include_deleted" to includeDeleted,
             )
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getLayoutRowVersion("id", "design_id", "draft", "version")
+            CachedLayoutVersion(
+                rs.getLayoutRowVersion<LayoutSwitch>("id", "design_id", "draft", "version"),
+                deleted = rs.getBoolean("deleted"),
+            )
         }
     }
 
@@ -259,6 +257,7 @@ class LayoutSwitchDao(
             } ?: throw IllegalStateException("Failed to save switch")
         if (item.joints.isNotEmpty()) upsertJoints(response, item.joints)
         logger.daoAccess(INSERT, LayoutSwitch::class, response)
+        clearVersionCache()
         return response
     }
 
