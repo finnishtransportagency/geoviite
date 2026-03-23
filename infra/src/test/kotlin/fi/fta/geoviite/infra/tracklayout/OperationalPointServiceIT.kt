@@ -27,19 +27,18 @@ constructor(
     private val operationalPointService: OperationalPointService,
     private val operationalPointDao: OperationalPointDao,
     private val ratkoTestService: RatkoTestService,
+    private val locationTrackService: LocationTrackService,
+    private val switchService: LayoutSwitchService,
 ) : DBTestBase() {
 
     @BeforeEach
     fun cleanup() {
+        testDBService.clearLayoutTables()
         testDBService.deleteFromTables(
             "layout",
             "operational_point_id",
             "operational_point_external_id",
-            "operational_point_version",
-            "operational_point",
             "track_number_id",
-            "track_number_external_id",
-            "track_number",
         )
         testDBService.deleteFromTables("integrations", "ratko_operational_point", "ratko_operational_point_version")
     }
@@ -294,6 +293,42 @@ constructor(
         assertEquals(null, mainDraftContext.fetch(point)?.rinfType)
         assertEquals(1, mainOfficialContext.fetch(point)?.ratkoVersion)
         assertEquals(2, mainDraftContext.fetch(point)?.ratkoVersion)
+    }
+
+    @Test
+    fun `deleteDraft clears references from location tracks and switches when operational point is draft-only`() {
+        val opId = mainDraftContext.save(operationalPoint()).id
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+
+        val locationTrack = mainDraftContext.save(locationTrack(trackNumberId, operationalPointIds = setOf(opId))).id
+        val switch = mainDraftContext.save(switch(operationalPointId = opId)).id
+
+        operationalPointService.deleteDraft(LayoutBranch.main, opId)
+
+        val trackAfter = locationTrackService.getOrThrow(mainDraftContext.context, locationTrack)
+        assertEquals(emptySet<Nothing>(), trackAfter.operationalPointIds)
+        val switchAfter = switchService.getOrThrow(mainDraftContext.context, switch)
+        assertNull(switchAfter.operationalPointId)
+    }
+
+    @Test
+    fun `deleteDraft does not clear references when operational point also has an official version`() {
+        val officialOp = mainOfficialContext.save(operationalPoint())
+        mainDraftContext.copyFrom(officialOp)
+        val opId = officialOp.id
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+
+        val locationTrackVersion =
+            mainDraftContext.save(locationTrack(trackNumberId, operationalPointIds = setOf(opId)))
+        val switchVersion = mainDraftContext.save(switch(operationalPointId = opId))
+
+        operationalPointService.deleteDraft(LayoutBranch.main, opId)
+
+        // After deletion: references remain because the official OP still exists
+        val trackAfter = locationTrackService.getOrThrow(mainDraftContext.context, locationTrackVersion.id)
+        assertEquals(setOf(opId), trackAfter.operationalPointIds)
+        val switchAfter = switchService.getOrThrow(mainDraftContext.context, switchVersion.id)
+        assertEquals(opId, switchAfter.operationalPointId)
     }
 
     private fun internalPointSaveRequest(

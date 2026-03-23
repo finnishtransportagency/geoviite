@@ -1,0 +1,3 @@
+alter table layout.location_track_version_operational_point
+  drop constraint location_track_version_operational_po_operational_point_id_fkey,
+  drop constraint location_track_version_operational_point_location_track_id_fkey;
