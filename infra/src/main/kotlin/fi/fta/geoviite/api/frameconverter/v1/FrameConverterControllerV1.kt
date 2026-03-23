@@ -35,7 +35,7 @@ class FrameConverterControllerV1
 @Autowired
 constructor(
     private val frameConverterServiceV1: FrameConverterServiceV1,
-    @Value("\${geoviite.ext-api.max-batch-requests:0}") private val maxBatchRequests: Int,
+    @param:Value("\${geoviite.ext-api.max-batch-requests:0}") private val maxBatchRequests: Int,
 ) {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -59,7 +59,9 @@ constructor(
         @RequestParam(TRACK_NUMBER_OID_PARAM, required = false)
         trackNumberOid: FrameConverterStringV1?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_TRACK_KILOMETER, required = true)
-        @RequestParam(TRACK_KILOMETER_PARAM)
+        // Note: the above required is just for swagger: it's required for a successful request, but the controller
+        // needs to accept missing args for the call to end up in the custom error handling
+        @RequestParam(TRACK_KILOMETER_PARAM, required = false)
         trackKilometer: Int?,
         @Parameter(
             description = FRAME_CONVERTER_OPENAPI_TRACK_METER,
@@ -71,7 +73,9 @@ constructor(
                     exclusiveMaximum = true,
                 ),
         )
-        @RequestParam(TRACK_METER_PARAM)
+        // Note: the above required is just for swagger: it's required for a successful request, but the controller
+        // needs to accept missing args for the call to end up in the custom error handling
+        @RequestParam(TRACK_METER_PARAM, required = false)
         trackMeter: BigDecimal?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_LOCATION_TRACK)
         @RequestParam(LOCATION_TRACK_NAME_PARAM, required = false)
@@ -171,8 +175,16 @@ constructor(
         @Parameter(description = FRAME_CONVERTER_OPENAPI_COORDINATE_SYSTEM)
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false, defaultValue = "EPSG:3067")
         coordinateSystem: ExtSridV1?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_X, required = true) @RequestParam("x") xCoordinate: Double?,
-        @Parameter(description = FRAME_CONVERTER_OPENAPI_Y, required = true) @RequestParam("y") yCoordinate: Double?,
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_X, required = true)
+        // Note: the above required is just for swagger: it's required for a successful request, but the controller
+        // needs to accept missing args for the call to end up in the custom error handling
+        @RequestParam("x", required = false)
+        xCoordinate: Double?,
+        @Parameter(description = FRAME_CONVERTER_OPENAPI_Y, required = true)
+        // Note: the above required is just for swagger: it's required for a successful request, but the controller
+        // needs to accept missing args for the call to end up in the custom error handling
+        @RequestParam("y", required = false)
+        yCoordinate: Double?,
         @Parameter(description = FRAME_CONVERTER_OPENAPI_REQUEST_SEARCH_RADIUS)
         @RequestParam(SEARCH_RADIUS_PARAM, required = false)
         searchRadius: Double?,
