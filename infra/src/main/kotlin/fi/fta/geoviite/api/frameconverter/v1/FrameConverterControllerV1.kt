@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.logging.apiResult
-import fi.fta.geoviite.infra.util.Either
 import fi.fta.geoviite.infra.util.processRights
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -113,10 +112,7 @@ constructor(
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
 
         return TrackAddressToCoordinateCollectionResponseV1(
-            features =
-                processTrackAddressToCoordinateRequests(listOf(request), queryParams).flatten().map {
-                    it as TrackAddressToCoordinateSingleResponseV1
-                }
+            features = processTrackAddressToCoordinateRequests(listOf(request), queryParams).flatten()
         )
     }
 
@@ -156,10 +152,7 @@ constructor(
         logRequestAmount("trackAddressToCoordinateRequestBatch", requests)
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
-        val features =
-            processTrackAddressToCoordinateRequests(requests, queryParams).flatten().map {
-                it as TrackAddressToCoordinateSingleResponseV1
-            }
+        val features = processTrackAddressToCoordinateRequests(requests, queryParams).flatten()
 
         logFeatureAmount("trackAddressToCoordinateRequestBatch", features)
         return TrackAddressToCoordinateCollectionResponseV1(features = features)
@@ -234,10 +227,7 @@ constructor(
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
 
         return CoordinateToTrackAddressCollectionResponseV1(
-            features =
-                processCoordinateToTrackAddressRequests(listOf(request), queryParams).flatten().map {
-                    it as CoordinateToTrackAddressSingleResponseV1
-                }
+            features = processCoordinateToTrackAddressRequests(listOf(request), queryParams).flatten()
         )
     }
 
@@ -277,10 +267,7 @@ constructor(
         logRequestAmount("coordinateToTrackAddressRequestBatch", requests)
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
-        val features =
-            processCoordinateToTrackAddressRequests(requests, queryParams).flatten().map {
-                it as CoordinateToTrackAddressSingleResponseV1
-            }
+        val features = processCoordinateToTrackAddressRequests(requests, queryParams).flatten()
 
         logFeatureAmount("coordinateToTrackAddressRequestBatch", features)
 
@@ -290,29 +277,29 @@ constructor(
     private fun processCoordinateToTrackAddressRequests(
         requests: List<FrameConverterRequestV1>,
         params: FrameConverterQueryParamsV1,
-    ): List<List<GeoJsonFeature>> =
-        processRequests(
-            assertRequestType(requests),
-            params,
-            frameConverterServiceV1::validateCoordinateToTrackAddressRequest,
-            frameConverterServiceV1::coordinatesToTrackAddresses,
+    ): List<List<CoordinateToTrackAddressResponseV1>> =
+        processRights(
+            assertRequestType<CoordinateToTrackAddressRequestV1>(requests),
+            { request -> frameConverterServiceV1.validateCoordinateToTrackAddressRequest(request, params) },
+            { validRequests ->
+                frameConverterServiceV1.coordinatesToTrackAddresses(LayoutBranch.main, validRequests, params)
+            },
         )
 
     private fun processTrackAddressToCoordinateRequests(
         requests: List<FrameConverterRequestV1>,
         params: FrameConverterQueryParamsV1,
-    ): List<List<GeoJsonFeature>> {
-        return processRequests(
+    ): List<List<TrackAddressToCoordinateResponseV1>> =
+        processRights(
             frameConverterServiceV1.validateTrackAddressToCoordinateRequests(
                 LayoutBranch.main,
                 assertRequestType(requests),
-                params,
             ),
-            params,
-            { validated, _ -> validated },
-            frameConverterServiceV1::trackAddressesToCoordinates,
+            { it },
+            { validRequests ->
+                frameConverterServiceV1.trackAddressesToCoordinates(LayoutBranch.main, validRequests, params)
+            },
         )
-    }
 
     private inline fun <reified Request : FrameConverterRequestV1> assertRequestType(requests: List<*>): List<Request> {
         if (requests.any { it !is Request }) {
@@ -333,18 +320,6 @@ constructor(
             )
         }
     }
-
-    private fun <Request, ValidRequest> processRequests(
-        requests: List<Request>,
-        params: FrameConverterQueryParamsV1,
-        validate: (Request, FrameConverterQueryParamsV1) -> Either<List<GeoJsonFeatureErrorResponseV1>, ValidRequest>,
-        process: (LayoutBranch, List<ValidRequest>, FrameConverterQueryParamsV1) -> List<List<GeoJsonFeature>>,
-    ): List<List<GeoJsonFeature>> =
-        processRights(
-            requests,
-            { request -> validate(request, params) },
-            { validRequests -> process(LayoutBranch.main, validRequests, params) },
-        )
 
     private fun logRequestAmount(method: String, requests: List<FrameConverterRequestV1>) {
         logger.apiCall(method, listOf("requestAmount" to requests.size))

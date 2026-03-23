@@ -117,7 +117,7 @@ enum class FrameConverterLocationTrackTypeV1(@JsonValue val value: String) {
 /** General response type for a request that had an error during validation or processing. */
 @Schema(name = "Virhetulos")
 data class GeoJsonFeatureErrorResponseV1(override val properties: GeoJsonFeatureErrorResponsePropertiesV1) :
-    TrackAddressToCoordinateSingleResponseV1, CoordinateToTrackAddressSingleResponseV1 {
+    TrackAddressToCoordinateResponseV1, CoordinateToTrackAddressResponseV1 {
     @get:Schema(description = "Tyhjä geometria")
     override val geometry: GeoJsonGeometryPoint = GeoJsonGeometryPoint.empty()
 
@@ -241,10 +241,10 @@ data class ValidCoordinateToTrackAddressRequestV1(
  * containing errors, see [GeoJsonFeatureErrorResponseV1].
  */
 @Schema(name = "Koordinaatista rataosoitteeseen - Muunnostulos")
-data class CoordinateToTrackAddressResponseV1(
+data class CoordinateToTrackAddressSuccessResponseV1(
     override val geometry: GeoJsonGeometryPoint,
     override val properties: CoordinateToTrackAddressResponsePropertiesV1,
-) : CoordinateToTrackAddressSingleResponseV1
+) : CoordinateToTrackAddressResponseV1
 
 /**
  * @property identifier User provided optional request identifier.
@@ -425,34 +425,34 @@ data class ValidTrackAddressToCoordinateRequestV1(
  * containing errors, see [GeoJsonFeatureErrorResponseV1].
  */
 @Schema(name = "Rataosoitteesta koordinaattiin - Muunnostulos")
-data class TrackAddressToCoordinateResponseV1(
+data class TrackAddressToCoordinateSuccessResponseV1(
     override val geometry: GeoJsonGeometryPoint,
     override val properties: TrackAddressToCoordinateResponsePropertiesV1,
-) : TrackAddressToCoordinateSingleResponseV1
+) : TrackAddressToCoordinateResponseV1
 
 @Schema(name = "Vastaus: Rataosoitteesta koordinaatteihin")
 data class TrackAddressToCoordinateCollectionResponseV1(
-    override val features: List<TrackAddressToCoordinateSingleResponseV1>
+    override val features: List<TrackAddressToCoordinateResponseV1>
 ) : GeoJsonFeatureCollection
 
 @Schema(name = "Vastaus: Koordinaateista rataosoitteisiin")
 data class CoordinateToTrackAddressCollectionResponseV1(
-    override val features: List<CoordinateToTrackAddressSingleResponseV1>
+    override val features: List<CoordinateToTrackAddressResponseV1>
 ) : GeoJsonFeatureCollection
 
 @Schema(
     hidden = true,
     name = "(Pyynnön vastaus tai virhe: rataosoitteesta koordinaatteihin)",
-    subTypes = [TrackAddressToCoordinateResponseV1::class, GeoJsonFeatureErrorResponseV1::class],
+    subTypes = [TrackAddressToCoordinateSuccessResponseV1::class, GeoJsonFeatureErrorResponseV1::class],
 )
-interface TrackAddressToCoordinateSingleResponseV1 : GeoJsonFeature
+interface TrackAddressToCoordinateResponseV1 : GeoJsonFeature
 
 @Schema(
     hidden = true,
     name = "(Pyynnön vastaus tai virhe: koordinaateista rataosoitteisiin)",
-    subTypes = [CoordinateToTrackAddressResponseV1::class, GeoJsonFeatureErrorResponseV1::class],
+    subTypes = [CoordinateToTrackAddressSuccessResponseV1::class, GeoJsonFeatureErrorResponseV1::class],
 )
-interface CoordinateToTrackAddressSingleResponseV1 : GeoJsonFeature
+interface CoordinateToTrackAddressResponseV1 : GeoJsonFeature
 
 /**
  * @property identifier User provided optional request identifier.

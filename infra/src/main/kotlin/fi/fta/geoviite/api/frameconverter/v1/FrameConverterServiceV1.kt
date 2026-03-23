@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
-import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometryPoint
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.AlignmentName
@@ -39,9 +38,9 @@ import fi.fta.geoviite.infra.util.Right
 import fi.fta.geoviite.infra.util.all
 import fi.fta.geoviite.infra.util.processRights
 import fi.fta.geoviite.infra.util.produceIf
+import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
 import java.math.RoundingMode
-import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
 class FrameConverterServiceV1
@@ -62,7 +61,7 @@ constructor(
         branch: LayoutBranch,
         requests: List<ValidCoordinateToTrackAddressRequestV1>,
         params: FrameConverterQueryParamsV1,
-    ): List<List<GeoJsonFeature>> =
+    ): List<List<CoordinateToTrackAddressResponseV1>> =
         processRights(
             requests,
             { request -> getSearchPointInLayoutCoordinates(request).mapRight { point -> request to point } },
@@ -73,7 +72,7 @@ constructor(
         branch: LayoutBranch,
         requestsWithPoints: List<Pair<ValidCoordinateToTrackAddressRequestV1, IPoint>>,
         params: FrameConverterQueryParamsV1,
-    ): List<List<GeoJsonFeature>> {
+    ): List<List<CoordinateToTrackAddressResponseV1>> {
         val spatialCache = locationTrackSpatialCache.get(branch.official)
         val nearbyTracks =
             requestsWithPoints.map { (request, point) -> spatialCache.getClosest(point, request.searchRadius) }
@@ -145,7 +144,7 @@ constructor(
         locationTrackOid: Oid<LocationTrack>?,
         params: FrameConverterQueryParamsV1,
         trackNumberInfo: Map<IntId<LayoutTrackNumber>, TrackNumberDetails>,
-    ): List<GeoJsonFeature> {
+    ): List<CoordinateToTrackAddressResponseV1> {
         val (trackNumberDetails, geocodedAddress) =
             trackNumberInfo.getValue(closestTrack.track.trackNumberId).let { details ->
                 details to details.geocodingContext?.getAddressAndM(closestTrack.closestPoint)
@@ -176,7 +175,7 @@ constructor(
         branch: LayoutBranch,
         requests: List<ValidTrackAddressToCoordinateRequestV1>,
         params: FrameConverterQueryParamsV1,
-    ): List<List<GeoJsonFeature>> {
+    ): List<List<TrackAddressToCoordinateResponseV1>> {
         return requests
             .groupBy { it.trackNumber.id as IntId }
             .let { requestsByTnId ->
@@ -219,7 +218,7 @@ constructor(
         locationTrackOids: Map<IntId<LocationTrack>, Oid<LocationTrack>>?,
         requests: List<ValidTrackAddressToCoordinateRequestV1>,
         params: FrameConverterQueryParamsV1,
-    ): List<List<GeoJsonFeature>> {
+    ): List<List<TrackAddressToCoordinateResponseV1>> {
         val geocodingContext =
             trackNumberDetails.geocodingContext
                 ?: return requests.map { request ->
@@ -241,7 +240,8 @@ constructor(
                 }
                 .toList()
 
-        val resultsByRequest = List<MutableList<GeoJsonFeature>>(requests.size) { mutableListOf() }
+        val resultsByRequest =
+            List<MutableList<TrackAddressToCoordinateSuccessResponseV1>>(requests.size) { mutableListOf() }
         resultsAndIndicesByTrack.forEach { trackResults ->
             trackResults.forEach { (index, result) -> resultsByRequest[index].add(result) }
         }
@@ -258,7 +258,7 @@ constructor(
         params: FrameConverterQueryParamsV1,
         locationTrackOids: Map<IntId<LocationTrack>, Oid<LocationTrack>>?,
         trackNumberDetails: TrackNumberDetails,
-    ): List<Pair<Int, TrackAddressToCoordinateResponseV1>> {
+    ): List<Pair<Int, TrackAddressToCoordinateSuccessResponseV1>> {
         val locationTrackOidLookup =
             requests
                 .mapNotNull { request -> request.locationTrackOid }
@@ -370,7 +370,6 @@ constructor(
     fun validateTrackAddressToCoordinateRequests(
         branch: LayoutBranch,
         requests: List<TrackAddressToCoordinateRequestV1>,
-        params: FrameConverterQueryParamsV1,
     ): List<Either<List<GeoJsonFeatureErrorResponseV1>, ValidTrackAddressToCoordinateRequestV1>> {
         val trackNumberOidLookup =
             requests
@@ -478,7 +477,7 @@ constructor(
         trackNumberDetails: TrackNumberDetails,
         geocodedAddress: AddressAndM,
         locationTrackOid: Oid<LocationTrack>?,
-    ): List<CoordinateToTrackAddressResponseV1> {
+    ): List<CoordinateToTrackAddressSuccessResponseV1> {
         val featureGeometry = createFeatureGeometry(params, closestTrack.closestPoint)
 
         val featureMatchSimple =
@@ -495,7 +494,7 @@ constructor(
             }
 
         return listOf(
-            CoordinateToTrackAddressResponseV1(
+            CoordinateToTrackAddressSuccessResponseV1(
                 geometry = featureGeometry,
                 properties =
                     CoordinateToTrackAddressResponsePropertiesV1(
@@ -514,7 +513,7 @@ constructor(
         addressPoint: AddressPoint<*>,
         locationTrackOid: Oid<LocationTrack>?,
         trackNumberDetails: TrackNumberDetails,
-    ): TrackAddressToCoordinateResponseV1 {
+    ): TrackAddressToCoordinateSuccessResponseV1 {
         val featureGeometry = createFeatureGeometry(params, addressPoint.point)
 
         val featureMatchSimple =
@@ -529,7 +528,7 @@ constructor(
                 createDetailedFeatureMatch(locationTrack, trackNumberDetails, addressPoint.address, locationTrackOid)
             }
 
-        return TrackAddressToCoordinateResponseV1(
+        return TrackAddressToCoordinateSuccessResponseV1(
             geometry = featureGeometry,
             properties =
                 TrackAddressToCoordinateResponsePropertiesV1(
