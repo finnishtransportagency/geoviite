@@ -2355,19 +2355,22 @@ constructor(
                         LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-draft",
                         mapOf("duplicateNames" to "b"),
-                    )),
+                    )
+                ),
                 listOf(
                     LayoutValidationIssue(
                         LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-draft",
                         mapOf("duplicateNames" to "a, c"),
-                    )),
+                    )
+                ),
                 listOf(
                     LayoutValidationIssue(
                         LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-draft",
                         mapOf("duplicateNames" to "b"),
-                    )),
+                    )
+                ),
             ),
             validation.validatedAsPublicationUnit.operationalPoints
                 .sortedBy { it.name.toString() }
@@ -2431,7 +2434,8 @@ constructor(
                     LayoutValidationIssueType.WARNING,
                     "validation.layout.operational-point.overlapping-polygon-official",
                     mapOf("duplicateNames" to "a"),
-                )),
+                )
+            ),
             validatedOnlyFirst.validatedAsPublicationUnit.operationalPoints[0].issues,
         )
 
@@ -2488,7 +2492,8 @@ constructor(
                         LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-official",
                         mapOf("duplicateNames" to "a"),
-                    )),
+                    )
+                ),
                 // polygon with no overlaps is fine
                 listOf(),
             ),
@@ -2867,7 +2872,8 @@ constructor(
                     LayoutValidationIssueType.WARNING,
                     "validation.layout.operational-point.overlapping-polygon-official",
                     mapOf("duplicateNames" to "b"),
-                )),
+                )
+            ),
             publicationValidationService.validateOperationalPoints(LayoutBranch.main, OFFICIAL, listOf(a))[0].errors,
         )
     }
@@ -3055,6 +3061,34 @@ constructor(
         assertContains(locationTrackValidations.find { it.id == mainTrack.id }!!.errors, expectedError)
         assertContains(locationTrackValidations.find { it.id == duplicateTrack.id }!!.errors, expectedError)
         assertContains(switchValidations.find { it.id == switchId }!!.errors, expectedError)
+    }
+
+    @Test
+    fun `switch validation notices nearby unlinked tracks`() {
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        mainOfficialContext
+            .save(
+                locationTrack(trackNumber, name = "track"),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(60.0, 0.0))),
+            )
+            .id
+        val switch =
+            mainDraftContext
+                .save(
+                    switch(
+                        joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(5.0, 0.0), null))
+                    )
+                )
+                .id
+        val switchValidations = publicationValidationService.validateSwitches(LayoutBranch.main, DRAFT, listOf(switch))
+        assertContains(
+            switchValidations.get(0).errors,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.WARNING,
+                "$VALIDATION_SWITCH.unlinked-track-nearby",
+                mapOf("tracks" to "track"),
+            ),
+        )
     }
 
     private fun getTopologicalSwitchConnectionTestCases(

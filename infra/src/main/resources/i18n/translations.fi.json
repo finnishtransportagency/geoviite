@@ -1856,7 +1856,8 @@
                     "switch-alignment-multiply-connected": "Jotkin vaihteen linjoista on liitetty useammalle kuin yhdelle raiteelle: {{locationTracks}}",
                     "multiple-outer-without-inner-links": "Vaihteen pisteeltä {{joint}} jatkuu enemmän kuin yksi raide, ilman omaa risteyskohdan vaihdetta: {{locationTracks}}",
                     "relinking-failed": "Vaihteen {{switch}} uudelleenlinkitys epäonnistui"
-                }
+                },
+                "unlinked-track-nearby": "Vaihteen lähellä on raiteita, joita ei ole linkitetty vaihteelle: {{tracks}}"
             },
             "operational-point": {
                 "reference-from-location-track": {

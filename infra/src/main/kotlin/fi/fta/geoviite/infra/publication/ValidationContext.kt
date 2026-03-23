@@ -9,10 +9,13 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AddressPointsResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.tracklayout.ContextCache
+import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ILayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -26,9 +29,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJointMatch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackCacheHit
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackM
+import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
@@ -96,6 +101,7 @@ class ValidationContext(
     val publicationDao: PublicationDao,
     val geocodingService: GeocodingService,
     val splitService: SplitService,
+    val locationTrackSpatialCacheService: LocationTrackSpatialCache,
     val publicationSet: ValidationVersions,
 ) {
     val target = publicationSet.target
@@ -131,6 +137,16 @@ class ValidationContext(
         NameCache<RinfId, OperationalPoint>(::fetchOperationalPointsByRinfIdGenerated)
 
     private val allUnfinishedSplits: List<Split> by lazy { splitService.findUnfinishedSplits(target.candidateBranch) }
+
+    private val locationTrackSpatialCache: ContextCache by lazy {
+        locationTrackSpatialCacheService.get(target, publicationSet.locationTracks)
+    }
+
+    fun getLocationTracksNear(location: Point, distance: Double): List<LocationTrackCacheHit> =
+        locationTrackSpatialCache.getClosestTracks(location, distance)
+
+    fun getLocationTracksWithin(boundingBox: BoundingBox): List<Pair<LocationTrack, DbLocationTrackGeometry>> =
+        locationTrackSpatialCache.getWithinBoundingBox(boundingBox)
 
     fun getTrackNumber(id: IntId<LayoutTrackNumber>): LayoutTrackNumber? =
         getObject(target.baseContext, id, publicationSet.trackNumbers, trackNumberDao, trackNumberVersionCache)

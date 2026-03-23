@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
@@ -25,10 +26,13 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.SwitchJointRole
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -49,6 +53,7 @@ constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val geocodingCacheService: GeocodingCacheService,
+    private val locationTrackSpatialCacheService: LocationTrackSpatialCache,
     private val splitService: SplitService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -270,6 +275,7 @@ constructor(
             publicationDao = publicationDao,
             switchLibraryService = switchLibraryService,
             splitService = splitService,
+            locationTrackSpatialCacheService = locationTrackSpatialCacheService,
             publicationSet = publicationSet,
         )
 
@@ -498,12 +504,16 @@ constructor(
                         switchDao.get(row.context, row.id)
                     },
                 )
+            val tracksWithinDistanceExpectedToBeLinked = tracksNearSwitch(switch, structure, validationContext, 0.5)
+            val unlinkedTracksIssues = validateNearbyTracksAreLinked(switch, tracksWithinDistanceExpectedToBeLinked)
+
             return incomingReferencesIssues +
                 outgoingReferencesIssues +
                 structureIssues +
                 duplicationIssues +
                 oidDuplicationIssues +
-                jointConnectionsDifferIssues
+                jointConnectionsDifferIssues +
+                unlinkedTracksIssues
         }
     }
 
@@ -801,3 +811,18 @@ constructor(
             }
         }
 }
+
+private fun tracksNearSwitch(
+    switch: LayoutSwitch,
+    structure: SwitchStructure,
+    validationContext: ValidationContext,
+    distance: Double,
+): List<Pair<LocationTrack, LocationTrackGeometry>> =
+    switch.joints
+        .filter { joint ->
+            listOf(SwitchJointRole.MAIN, SwitchJointRole.CONNECTION)
+                .contains(SwitchJointRole.of(structure, joint.number))
+        }
+        .flatMap { joint -> validationContext.getLocationTracksNear(joint.location, distance) }
+        .distinctBy { hit -> hit.track.id }
+        .map { hit -> hit.track to hit.geometry }

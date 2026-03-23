@@ -9,10 +9,11 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
+import fi.fta.geoviite.infra.publication.LayoutContextTransition
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
 
 @Service
 class LocationTrackSpatialCache
@@ -35,38 +36,57 @@ constructor(
         } ?: error("Cache should have been created")
     }
 
+    fun get(transition: LayoutContextTransition, publicationSet: List<LayoutRowVersion<LocationTrack>>): ContextCache {
+        val base = get(transition.baseContext)
+        val candidateTracks = locationTrackDao.fetchMany(publicationSet).associateBy { it.id as IntId }
+
+        return overlay(base, publicationSet.map { it.id }.toSet(), candidateTracks, null)
+    }
+
     private fun newCache(): ContextCache = ContextCache(locationTrackDao::fetch, alignmentDao::fetch)
 
     private fun refresh(
         cache: ContextCache,
         newTracks: Map<IntId<LocationTrack>, LocationTrack>,
-        changeTime: Instant
+        changeTime: Instant,
     ): ContextCache {
         // TODO: GVT-3113 This could possibly be optimized by edges, since their geometries don't change
 
-        val (staleTracks, currentTracks) =
-            cache.items
-                .asSequence()
-                .partition { (id, track) -> newTracks[id]?.getVersionOrThrow() != track.trackVersion }
-                .let { (stale, current) ->
-                    stale.associate { it.key to it.value } to current.associate { it.key to it.value }
+        val currentIds =
+            cache.items.filter { (id, entry) -> newTracks[id]?.getVersionOrThrow() == entry.trackVersion }.keys
+
+        val staleIds = cache.items.keys - currentIds
+        val tracksToAdd = newTracks.filterKeys { it !in currentIds }
+
+        return overlay(cache, staleIds, tracksToAdd, changeTime)
+    }
+
+    private fun overlay(
+        base: ContextCache,
+        removedIds: Set<IntId<LocationTrack>>,
+        addedTracks: Map<IntId<LocationTrack>, LocationTrack>,
+        changeTime: Instant?,
+    ): ContextCache {
+        // Remove entries for removed/replaced tracks from the R-tree
+        var network =
+            removedIds
+                .mapNotNull { id -> base.items[id] }
+                .flatMap { entry -> entry.segmentData }
+                .fold(base.network) { net, (segment, rect) -> net.delete(segment, rect) }
+
+        // Add entries for new/replaced tracks to the R-tree
+        val newEntries =
+            addedTracks
+                .map { (id, track) ->
+                    val entry = createEntry(track, alignmentDao.fetch(track.getVersionOrThrow()))
+                    network = entry.segmentData.fold(network) { net, (segment, rect) -> net.add(segment, rect) }
+                    id to entry
                 }
+                .toMap()
 
-        // Remove all stale items (tracks that have been removed or updated)
-        var newNet =
-            staleTracks
-                .flatMap { (_, entry) -> entry.segmentData }
-                .fold(cache.network) { net, (segment, rect) -> net.delete(segment, rect) }
+        val items = base.items.filterKeys { it !in removedIds } + newEntries
 
-        // Add all new items (tracks that have been added or updated)
-        fun addEntry(track: LocationTrack) =
-            createEntry(track, alignmentDao.fetch(track.getVersionOrThrow())).also { entry ->
-                newNet = entry.segmentData.fold(newNet) { net, (segment, rect) -> net.add(segment, rect) }
-            }
-
-        val newItems = newTracks.map { (id, track) -> id to (currentTracks[id] ?: addEntry(track)) }
-
-        return ContextCache(locationTrackDao::fetch, alignmentDao::fetch, newNet, newItems.toMap(), changeTime)
+        return ContextCache(locationTrackDao::fetch, alignmentDao::fetch, network, items, changeTime)
     }
 }
 
@@ -129,7 +149,7 @@ data class ContextCache(
                 }
             }
             .let { (_, hit) -> hit }
-    
+
     fun getClosestTracks(location: IPoint, thresholdMeters: Double = 100.0): List<LocationTrackCacheHit> =
         network
             .search(Geometries.point(location.x, location.y), thresholdMeters)

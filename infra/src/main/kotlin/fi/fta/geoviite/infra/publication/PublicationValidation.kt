@@ -41,6 +41,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameBetweenOperationalPoints
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNameChord
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.RINF_ID_OVERRIDE_REGEX
@@ -270,9 +271,10 @@ fun validateOperationalPointPolygonOverlap(
         validationTargetType,
         operationalPoint,
         overlapsWith,
-        WARNING) { contextDuplicates ->
-            listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
-        }
+        WARNING,
+    ) { contextDuplicates ->
+        listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
+    }
 
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,
@@ -402,6 +404,24 @@ fun validateSwitchOidDuplication(switch: LayoutSwitch, oidDuplicate: LayoutSwitc
     return if (oidDuplicate != null && oidDuplicate.id != switch.id) {
         listOf(validationError("$VALIDATION_SWITCH.duplicate-oid"))
     } else listOf()
+}
+
+fun validateNearbyTracksAreLinked(
+    switch: LayoutSwitch,
+    nearbyTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
+): List<LayoutValidationIssue> {
+    val unlinkedNearbyTracks =
+        nearbyTracks
+            .filter { (track, geometry) ->
+                track.state == LocationTrackState.IN_USE && !geometry.switchIds.contains(switch.id)
+            }
+            .map { (track) -> track }
+    return listOfNotNull(
+        validateWithParams(unlinkedNearbyTracks.isEmpty(), WARNING) {
+            "$VALIDATION_SWITCH.unlinked-track-nearby" to
+                LocalizationParams(mapOf("tracks" to unlinkedNearbyTracks.joinToString { it.name }))
+        }
+    )
 }
 
 fun validateNameMandatedSwitchLinks(track: LocationTrack): List<LayoutValidationIssue> {
