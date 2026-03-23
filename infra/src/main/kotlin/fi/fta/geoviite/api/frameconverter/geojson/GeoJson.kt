@@ -1,36 +1,45 @@
 package fi.fta.geoviite.api.frameconverter.geojson
 
-data class GeoJsonFeatureCollection(
-    val type: GeoJsonType = GeoJsonType.FeatureCollection,
-    val features: List<GeoJsonFeature> = emptyList(),
-)
+import io.swagger.v3.oas.annotations.media.Schema
+
+@Schema(hidden = true, name = "GeoJSON FeatureCollection")
+interface GeoJsonFeatureCollection {
+    @get:Schema(type = "string", allowableValues = ["FeatureCollection"])
+    val type: GeoJsonType
+        get() = GeoJsonType.FeatureCollection
+
+    val features: List<GeoJsonFeature>
+}
 
 enum class GeoJsonType {
     FeatureCollection,
     Feature,
 }
 
-abstract class GeoJsonFeature {
-    val type: GeoJsonType = GeoJsonType.Feature
+@Schema(hidden = true, name = "GeoJSON Feature")
+interface GeoJsonFeature {
+    @get:Schema(type = "string", allowableValues = ["Feature"])
+    val type: GeoJsonType
+        get() = GeoJsonType.Feature
 
-    abstract val geometry: GeoJsonGeometry?
-    abstract val properties: GeoJsonProperties?
+    val geometry: GeoJsonGeometry?
+    val properties: GeoJsonProperties?
 }
 
-abstract class GeoJsonGeometry
+@Schema(hidden = true, name = "GeoJSON Geometry") interface GeoJsonGeometry
 
 enum class GeoJsonGeometryType {
     Point
 }
 
-data class GeoJsonGeometryPoint(
-    val type: GeoJsonGeometryType = GeoJsonGeometryType.Point,
-    val coordinates: List<Double>,
-) : GeoJsonGeometry() {
+@Schema(hidden = true, name = "GeoJSON Point")
+data class GeoJsonGeometryPoint(@get:Schema(example = "[259348.205, 6804094.515]") val coordinates: List<Double>) :
+    GeoJsonGeometry {
+    @get:Schema(type = "string", allowableValues = ["Point"]) val type: GeoJsonGeometryType = GeoJsonGeometryType.Point
 
     companion object {
         fun empty() = GeoJsonGeometryPoint(coordinates = listOf())
     }
 }
 
-abstract class GeoJsonProperties
+@Schema(hidden = true, name = "GeoJSON Properties") interface GeoJsonProperties
