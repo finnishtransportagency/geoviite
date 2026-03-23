@@ -10,17 +10,17 @@ Taitepisteen `point`-tieto on sijanti koordinaatistossa, jossa x-koordinaatti ta
 ja y-koordinaatti korkeutta; tosin pyöristysjaksoilla raide ei käy y-koordinaatissa asti, vaan se on sen pisteen
 korkeus, jossa edeltävä ja jälkimmäinen kaltevuusjakso törmäisivät, jos ne jatkuisivat suorina.
 
-Geometriaprofiililta pystyy siis kysymään, mikä geometriaraiteen korkeus on minkäkin paaluluvun kohdalla. Saman tiedon
+Geometriaprofiililta voidaan kysyä, mikä geometriaraiteen korkeus on minkäkin paaluluvun kohdalla. Saman tiedon
 saa linkityksen kautta paikannuspohjan raiteille: Geometriaraiteesta linkitetystä paikannuspohjan raiteen segmentistä
 pystyy katsomaan aina tietyn m-arvon kohdalta, minkä geometriraiteen mihin paalulukuun tämä kohta viittaa, ja sitten
 kysyä geometriaraiteen profiililta, mikä sen korkeus on.
 
 Pystygeometrian korkeus on oletuksena raiteen korkeustasoa N2000-korkeusjärjestelmässä, johon se voidaan joutua
-muuntamaan HeightTransformation#transformHeightValue()lla N60-järjestelmästä.
+muuntamaan `HeightTransformation#transformHeightValue()`lla N60-järjestelmästä.
 
 ## Pystygeometrian elementtilista
 
-Geometriaraiteen elementtilista on varsin yksiselitteinen: Se sisältää vaan profiilin tiedot. Ellei
+Geometriaraiteen elementtilistan suhde lähtötietoon on yksiselitteinen: Se sisältää vaan profiilin tiedot. Ellei
 geometrialaskennassa mene jotain vikaan, listaan päätyy aina yhtenä rivinä yksittäinen pyöristysjakso, ja
 pyöristysjakson tietoina sitä ympäröivät kaltevuusjaksot.
 
