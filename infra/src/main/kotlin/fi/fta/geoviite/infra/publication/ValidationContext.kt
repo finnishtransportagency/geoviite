@@ -350,7 +350,6 @@ class ValidationContext(
         val allSwitchIds = (publicationSet.getSwitchIds() + linkedSwitchIds).distinct()
         preloadSwitchVersions(allSwitchIds)
         preloadSwitchesByName(publicationSet.switches.map { v -> v.id })
-        preloadSwitchTrackLinks(allSwitchIds)
         preloadOperationalPointOverlaps(publicationSet.getOperationalPointIds())
         preloadOperationalPointsByName(publicationSet.getOperationalPointIds())
         preloadOperationalPointsByAbbreviation(publicationSet.getOperationalPointIds())
