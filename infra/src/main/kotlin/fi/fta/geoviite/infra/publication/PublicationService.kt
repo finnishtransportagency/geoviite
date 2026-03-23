@@ -438,6 +438,7 @@ constructor(
                 request.locationTracks.forEach { id -> locationTrackService.mergeToMainBranch(fromBranch, id) }
                 request.switches.forEach { id -> switchService.mergeToMainBranch(fromBranch, id) }
                 request.kmPosts.forEach { id -> kmPostService.mergeToMainBranch(fromBranch, id) }
+                request.operationalPoints.forEach { id -> operationalPointService.mergeToMainBranch(fromBranch, id) }
             }
         } catch (exception: DataIntegrityViolationException) {
             enrichDuplicateNameExceptionOrRethrow(listOf(fromBranch), exception)
