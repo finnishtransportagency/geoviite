@@ -379,7 +379,10 @@ export async function findOperationalPointLocationTracks(
     operationalPointId: OperationalPointId,
 ): Promise<OperationalPointLocationTracks | undefined> {
     const changeTimes = getChangeTimes();
-    const changeTime = getMaxTimestamp(changeTimes.layoutSwitch, changeTimes.operationalPoints);
+    const changeTime = getMaxTimestamp(
+        changeTimes.layoutLocationTrack,
+        changeTimes.operationalPoints,
+    );
     const key = `${context.publicationState}_${context.branch}_${operationalPointId}`;
     return locationTracksByOperationalPointCache.get(changeTime, key, () =>
         getNonNull<OperationalPointLocationTracks>(

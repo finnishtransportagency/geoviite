@@ -105,6 +105,7 @@ data class RoutingConnection(val from: RoutingVertex, val to: RoutingVertex, val
     fun reverse(): RoutingConnection = copy(from = to.reverse(), to = from.reverse())
 }
 
+@Suppress("EqualsOrHashCode")
 data class SwitchJointVertex(
     val switchId: IntId<LayoutSwitch>,
     val jointNumber: JointNumber,
@@ -115,10 +116,9 @@ data class SwitchJointVertex(
     private val hash = Objects.hash(switchId.intValue, jointNumber.intValue, direction)
 
     override fun hashCode(): Int = hash
-
-    override fun equals(other: Any?): Boolean = this === other || (other as? SwitchJointVertex)?.hash == hash
 }
 
+@Suppress("EqualsOrHashCode")
 data class TrackBoundaryVertex(
     val trackId: IntId<LocationTrack>,
     val type: TrackBoundaryType,
@@ -129,10 +129,9 @@ data class TrackBoundaryVertex(
     private val hash = Objects.hash(trackId.intValue, type, direction)
 
     override fun hashCode(): Int = hash
-
-    override fun equals(other: Any?): Boolean = this === other || (other as? TrackBoundaryVertex)?.hash == hash
 }
 
+@Suppress("EqualsOrHashCode")
 data class TrackMidPointVertex(
     val trackId: IntId<LocationTrack>,
     val m: LineM<LocationTrackM>,
@@ -143,20 +142,18 @@ data class TrackMidPointVertex(
     private val hash = Objects.hash(trackId.intValue, m.distance, direction)
 
     override fun hashCode(): Int = hash
-
-    override fun equals(other: Any?): Boolean = this === other || (other as? TrackMidPointVertex)?.hash == hash
 }
 
+@Suppress("EqualsOrHashCode")
 data class TrackEdge(val edgeId: IntId<LayoutEdge>, val direction: EdgeDirection) : RoutingEdge() {
     override fun reverse(): TrackEdge = copy(direction = direction.reverse())
 
     private val hash = Objects.hash(edgeId.intValue, direction)
 
     override fun hashCode(): Int = hash
-
-    override fun equals(other: Any?): Boolean = this === other || (other as? TrackEdge)?.hash == hash
 }
 
+@Suppress("EqualsOrHashCode")
 data class PartialTrackEdge(
     val edgeId: IntId<LayoutEdge>,
     val direction: EdgeDirection,
@@ -167,30 +164,27 @@ data class PartialTrackEdge(
     private val hash = Objects.hash(edgeId.intValue, mRange.min.distance, mRange.max.distance, direction)
 
     override fun hashCode(): Int = hash
-
-    override fun equals(other: Any?): Boolean = this === other || (other as? PartialTrackEdge)?.hash == hash
 }
 
+@Suppress("EqualsOrHashCode")
 data class DirectConnectionEdge(val nodeId: IntId<LayoutNode>, val direction: EdgeDirection) : RoutingEdge() {
     override fun reverse(): DirectConnectionEdge = copy(direction = direction.reverse())
 
     private val hash = Objects.hash(nodeId.intValue, direction)
 
     override fun hashCode(): Int = hash
-
-    override fun equals(other: Any?): Boolean = this === other || (other as? DirectConnectionEdge)?.hash == hash
 }
 
+@Suppress("EqualsOrHashCode")
 data class SwitchInternalEdge(val alignment: RoutingSwitchAlignment, val direction: EdgeDirection) : RoutingEdge() {
     override fun reverse(): SwitchInternalEdge = copy(direction = direction.reverse())
 
     private val hash = Objects.hash(alignment.hashCode(), direction)
 
     override fun hashCode(): Int = hash
-
-    override fun equals(other: Any?): Boolean = this === other || (other as? SwitchInternalEdge)?.hash == hash
 }
 
+@Suppress("EqualsOrHashCode")
 data class PartialSwitchInternalEdge(
     val alignment: RoutingSwitchAlignment,
     val direction: EdgeDirection,
@@ -201,10 +195,9 @@ data class PartialSwitchInternalEdge(
     private val hash = Objects.hash(alignment.hashCode(), mRange.min.distance, mRange.max.distance, direction)
 
     override fun hashCode(): Int = hash
-
-    override fun equals(other: Any?): Boolean = this === other || (other as? PartialSwitchInternalEdge)?.hash == hash
 }
 
+@Suppress("EqualsOrHashCode")
 data class RoutingSwitchAlignment(val id: IntId<LayoutSwitch>, val alignment: SwitchStructureAlignment) {
 
     val jointNumbers: List<JointNumber>
@@ -214,8 +207,6 @@ data class RoutingSwitchAlignment(val id: IntId<LayoutSwitch>, val alignment: Sw
         get() = alignment.length()
 
     private val hash = Objects.hash(id.intValue, alignment.jointNumbers)
-
-    override fun equals(other: Any?): Boolean = this === other || (other as? RoutingSwitchAlignment)?.hash == hash
 
     override fun hashCode(): Int = hash
 }

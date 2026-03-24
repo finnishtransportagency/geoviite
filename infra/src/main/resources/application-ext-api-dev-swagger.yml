@@ -1,7 +1,3 @@
-geoviite:
-  ext-api:
-    static-url: '/rata-vkm/dev/static/**'
-
 springdoc:
   api-docs:
     path: /geoviite/dev/v3/api-docs
