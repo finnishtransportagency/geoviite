@@ -27,9 +27,9 @@ import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import java.time.Instant
 
 @GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -131,7 +131,7 @@ constructor(
                 if (includeBaseLocations && existingLocations.isNotEmpty())
                     getBaseRatkoSwitchLocations(
                         layoutBranch = layoutBranch,
-                        switchId = layoutSwitch.id,
+                        switchId = layoutSwitch.id as IntId,
                         existingRatkoLocations = existingLocations,
                         jointChanges = jointChanges,
                         switchStructure = switchStructure,

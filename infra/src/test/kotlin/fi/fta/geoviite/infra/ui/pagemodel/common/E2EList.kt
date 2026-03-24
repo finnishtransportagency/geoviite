@@ -51,7 +51,7 @@ abstract class E2EList<T>(listBy: By, val itemsBy: By, val selectedItemBy: By? =
     fun waitUntilItemCount(count: Int): E2EList<T> = apply {
         logger.info("Wait until item count is $count")
 
-        tryWaitNonNull(numberOfElementsToBe(childBy(itemsBy), count)) {
+        tryWaitNonNull<List<WebElement>>({ d -> d.until(numberOfElementsToBe(childBy(itemsBy), count)) }) {
             "Count did not become $count. Count: ${items.count()}"
         }
     }

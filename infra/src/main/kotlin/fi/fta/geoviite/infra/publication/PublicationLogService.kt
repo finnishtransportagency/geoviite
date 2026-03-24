@@ -52,12 +52,12 @@ import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.transaction.annotation.Transactional
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
@@ -247,10 +247,9 @@ constructor(
         val comparisonTimes =
             if (publications.isEmpty()) listOf()
             else listOf(publications.first().publicationTime.minusMillis(1)) + publications.map { it.publicationTime }
-        val diffsByPublicationIndex =
-            publications.mapIndexed { index, publication ->
-                mapDetailsToPublicationDiff(publication, publicationLogAsset, comparisonTimes[index])
-            }
+        val diffsByPublicationIndex = publications.mapIndexed { index, publication ->
+            mapDetailsToPublicationDiff(publication, publicationLogAsset, comparisonTimes[index])
+        }
         val (referenceChangesByPublicationIndex, assets) =
             collectPublicationReferencedAssetSetChanges(
                 publications,
@@ -367,14 +366,12 @@ constructor(
         return locationTrackChangesByPublicationIndex.zip(switchChangesByPublicationIndex) {
             locationTrackChanges,
             switchChanges ->
-            val versionsByLocationTracks =
-                locationTrackChanges.mapValues { (_, byChangeSide) ->
-                    byChangeSide.mapValues { (_, byLocationTrack) -> byLocationTrack.map(versions::getValue).toSet() }
-                }
-            val versionsBySwitches =
-                switchChanges.mapValues { (_, byChangeSide) ->
-                    byChangeSide.mapValues { (_, byLocationTrack) -> byLocationTrack.map(versions::getValue).toSet() }
-                }
+            val versionsByLocationTracks = locationTrackChanges.mapValues { (_, byChangeSide) ->
+                byChangeSide.mapValues { (_, byLocationTrack) -> byLocationTrack.map(versions::getValue).toSet() }
+            }
+            val versionsBySwitches = switchChanges.mapValues { (_, byChangeSide) ->
+                byChangeSide.mapValues { (_, byLocationTrack) -> byLocationTrack.map(versions::getValue).toSet() }
+            }
             versionsByLocationTracks to versionsBySwitches
         }
     }
@@ -468,9 +465,9 @@ constructor(
                 getSplitTargetTrackStartAndEndAddresses(ctx, sourceGeometry, target, geometry)
 
             return SplitTargetInPublication(
-                id = track.id,
+                id = track.id as IntId,
                 name = track.name,
-                oid = locationTrackDao.fetchExternalId(publicationBranch, track.id)?.oid,
+                oid = locationTrackDao.fetchExternalId(publicationBranch, track.id as IntId)?.oid,
                 startAddress = startAddress,
                 endAddress = endAddress,
                 operation = target.operation,
@@ -893,14 +890,13 @@ constructor(
         location: Point?,
         trackNumberId: IntId<LayoutTrackNumber>?,
         geocodingContextGetter: (IntId<LayoutTrackNumber>, Instant) -> GeocodingContext<ReferenceLineM>?,
-    ) =
-        location?.let {
-            trackNumberId?.let {
-                geocodingContextGetter(trackNumberId, timestamp)?.let { context ->
-                    context.getM(location)?.let { (m) -> context.referenceLineGeometry.getPointAtM(m)?.toPoint() }
-                }
+    ) = location?.let {
+        trackNumberId?.let {
+            geocodingContextGetter(trackNumberId, timestamp)?.let { context ->
+                context.getM(location)?.let { (m) -> context.referenceLineGeometry.getPointAtM(m)?.toPoint() }
             }
         }
+    }
 
     fun jointsString(jointNumbers: List<JointNumber>): String =
         jointNumbers.joinToString("-") { j -> j.intValue.toString() }
