@@ -386,6 +386,56 @@ constructor(
     }
 
     @Test
+    fun `joint snapping works for yv switch joint 3`() {
+        val trackNumber = mainOfficialContext.save(trackNumber()).id
+        mainOfficialContext
+            .save(
+                locationTrack(trackNumber, name = "trunk track"),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(60.0, 0.0))),
+            )
+            .id
+        val switchStructureId =
+            switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!.id
+        val firstSwitch = mainOfficialContext.save(switch(switchStructureId)).id
+        val secondSwitch = mainOfficialContext.save(switch(switchStructureId)).id
+
+        val firstBranchingTrack =
+            mainOfficialContext.save(
+                locationTrack(trackNumber, name = "first branching track"),
+                trackGeometry(
+                    edge(
+                        // the beef: we want to link firstSwitch's 1-3 alignment onto this edge, but it's a bit short
+                        listOf(segment(Point(1.0, 0.0), Point(34.5, -1.9))),
+                        endOuterSwitch = switchLinkYV(secondSwitch, 1),
+                    ),
+                    edge(
+                        listOf(segment(Point(34.5, -1.9), Point(52.0, -3.9))),
+                        startInnerSwitch = switchLinkYV(secondSwitch, 1),
+                        endInnerSwitch = switchLinkYV(secondSwitch, 5),
+                    ),
+                ),
+            )
+        mainOfficialContext.save(
+            locationTrack(trackNumber, name = "second branching track"),
+            trackGeometry(
+                edge(
+                    listOf(segment(Point(34.5, -1.9), Point(69.3, -5.9))),
+                    startInnerSwitch = switchLinkYV(secondSwitch, 1),
+                    endInnerSwitch = switchLinkYV(secondSwitch, 3),
+                )
+            ),
+        )
+        val suggestion = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(1.0, 0.0), firstSwitch)!!
+        switchLinkingService.saveSwitchLinking(LayoutBranch.main, suggestion, firstSwitch, null)
+        assertEquals(
+            listOf(1 to Point(1.0, 0.0), 3 to Point(34.5, -1.9)),
+            suggestion.trackLinks[firstBranchingTrack.id]?.suggestedLinks?.joints?.map {
+                it.jointNumber.intValue to it.location
+            },
+        )
+    }
+
+    @Test
     fun `Switch linking slight overlap correction should not remove previous switch linking`() {
         val switchOverlapAmount = SWITCH_JOINT_NODE_ADJUSTMENT_TOLERANCE - 0.01
         val testLocation = createLocationTracksWithLinkedSwitch()
