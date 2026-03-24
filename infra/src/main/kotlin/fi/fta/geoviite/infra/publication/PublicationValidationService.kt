@@ -123,6 +123,7 @@ constructor(
                         kmPosts = kmPostDao.fetchCandidateVersions(target.candidateContext),
                         trackNumbers = trackNumberDao.fetchCandidateVersions(target.candidateContext),
                         referenceLines = referenceLineDao.fetchCandidateVersions(target.candidateContext),
+                        operationalPoints = operationalPointDao.fetchCandidateVersions(target.candidateContext),
                     )
 
                 PublicationState.OFFICIAL -> createValidationContext(target)
@@ -149,8 +150,6 @@ constructor(
         if (switchIds.isEmpty()) return emptyList()
         val target = LayoutContextTransition.publicationIn(branch)
 
-        // Only tracks and switches affect switch validation, so we can ignore the other types in
-        // the publication unit
         val validationContext =
             when (state) {
                 PublicationState.DRAFT ->
@@ -158,6 +157,7 @@ constructor(
                         target = target,
                         switches = switchDao.fetchCandidateVersions(target.candidateContext),
                         locationTracks = locationTrackDao.fetchCandidateVersions(target.candidateContext),
+                        operationalPoints = operationalPointDao.fetchCandidateVersions(target.candidateContext),
                     )
 
                 PublicationState.OFFICIAL -> createValidationContext(target)
@@ -215,6 +215,8 @@ constructor(
                 PublicationState.DRAFT ->
                     createValidationContext(
                         target = target,
+                        switches = switchDao.fetchCandidateVersions(target.candidateContext),
+                        locationTracks = locationTrackDao.fetchCandidateVersions(target.candidateContext),
                         operationalPoints = operationalPointDao.fetchCandidateVersions(target.candidateContext),
                     )
 
