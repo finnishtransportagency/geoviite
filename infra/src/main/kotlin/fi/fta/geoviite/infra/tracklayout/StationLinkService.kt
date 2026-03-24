@@ -50,7 +50,7 @@ class StationLinkService(
         val tracksWithGeometry = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment)
         val operationalPoints = operationalPointDao.listOfficialAtMoment(branch, moment).associateBy { it.id as IntId }
         val switches = layoutSwitchDao.listOfficialAtMoment(branch, moment)
-        val connectingTracks = createConnectingTracks(tracksWithGeometry, switches, opFilter)
+        val connectingTracks = createConnectingTracks(tracksWithGeometry, switches, opFilter, operationalPoints.keys)
         val trackNumberIds = tracksWithGeometry.map { it.first.trackNumberId }
         val trackNumberVersions =
             layoutTrackNumberDao.fetchManyOfficialVersionsAtMoment(branch, trackNumberIds, moment).associateBy { it.id }
@@ -72,7 +72,7 @@ class StationLinkService(
         val tracksWithGeometry = locationTrackService.listWithGeometries(context, includeDeleted = false)
         val operationalPoints = operationalPointDao.list(context, includeDeleted = false).associateBy { it.id as IntId }
         val switches = layoutSwitchDao.list(context, includeDeleted = false)
-        val connectingTracks = createConnectingTracks(tracksWithGeometry, switches, opFilter)
+        val connectingTracks = createConnectingTracks(tracksWithGeometry, switches, opFilter, operationalPoints.keys)
         val trackNumberIds = tracksWithGeometry.map { it.first.trackNumberId }
         val trackNumberVersions = layoutTrackNumberDao.fetchVersions(context, trackNumberIds).associateBy { it.id }
         val linkData = StationLinkData(trackNumberVersions, connectingTracks, operationalPoints)
@@ -91,12 +91,14 @@ private fun createConnectingTracks(
     tracksWithGeometry: List<Pair<LocationTrack, DbLocationTrackGeometry>>,
     switches: List<LayoutSwitch>,
     opFilter: IntId<OperationalPoint>?,
+    existingOps: Set<IntId<OperationalPoint>>,
 ): Map<IntId<LocationTrack>, ConnectingTrack> {
     val switchIdToOpId = switches.mapNotNull { s -> s.operationalPointId?.let { s.id as IntId to it } }.associate { it }
     return tracksWithGeometry
         .mapNotNull { (track, geom) ->
             val switchConnections = track.switchIds.mapNotNull { switchId -> switchIdToOpId[switchId] }
-            val operationalPoints = (track.operationalPointIds + switchConnections).distinct()
+            val operationalPoints =
+                (track.operationalPointIds + switchConnections).filter(existingOps::contains).distinct()
             produceIf(
                 operationalPoints.isNotEmpty() && (opFilter == null || operationalPoints.any { it == opFilter })
             ) {
