@@ -1,9 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-    LayoutSwitchId,
-    OperationalPoint,
-    OperationalPointId,
-} from 'track-layout/track-layout-model';
+import { LayoutSwitchId, OperationalPoint, OperationalPointId, } from 'track-layout/track-layout-model';
 import { LayoutContext } from 'common/common-model';
 import {
     findOperationalPointSwitches,
@@ -25,17 +21,16 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import styles from './operational-point-infobox.scss';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
-import {
-    ProgressIndicatorType,
-    ProgressIndicatorWrapper,
-} from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { ProgressIndicatorType, ProgressIndicatorWrapper, } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { LinkingType } from 'linking/linking-model';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 import { updateAllChangeTimes } from 'common/change-time-api';
-import { OperationalPointSwitchesDirectionInfobox } from 'tool-panel/operational-point/operational-point-switches-direction-infobox';
+import {
+    OperationalPointSwitchesDirectionInfobox
+} from 'tool-panel/operational-point/operational-point-switches-direction-infobox';
 
 type OperationalPointSwitchesInfoboxProps = {
     contentVisible: boolean;
@@ -238,7 +233,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 polygonInclusion={switchLinkings ?? []}
                                 isEditing={!!operationalPointSwitchLinkingState}
                                 linkingAction={removeSwitch}
-                                massLinkingAction={removeAllSwitches}
+                                massLinkingAction={addAllSwitches}
                                 showArea={delegates.showArea}
                                 onSelectSwitch={onSelectSwitch}
                             />
@@ -250,7 +245,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 polygonInclusion={switchLinkings ?? []}
                                 isEditing={!!operationalPointSwitchLinkingState}
                                 linkingAction={addSwitch}
-                                massLinkingAction={addAllSwitches}
+                                massLinkingAction={removeAllSwitches}
                                 showArea={delegates.showArea}
                                 onSelectSwitch={onSelectSwitch}
                             />
