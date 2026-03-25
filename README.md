@@ -39,7 +39,46 @@ For reporting vulnerabilities or security defects, see [SECURITY.md](./SECURITY.
         ```
     - After installing the JDK, make sure Idea uses it in: File -> Project Structure -> (Left bar) Platform Settings ->
       SDKs
-- Docker
+- Docker with Docker Compose
 - Bash
 - 7zip
 - wget (in Mac)
+
+### Running the full stack locally with Docker
+
+The project includes a `geoviite.sh` helper script for building and running the entire stack (backend, frontend, and
+database) using Docker Compose. Configuration is defined in `.env` and `docker-compose.yml`.
+
+```bash
+# Start the backend (includes frontend, database, and all dependencies)
+./geoviite.sh up backend
+
+# Start the external API service
+./geoviite.sh up ext-api
+
+# Start just the database
+./geoviite.sh up postgres
+
+# Stop everything
+./geoviite.sh down all
+```
+
+#### Running tests
+
+```bash
+# Unit tests
+./geoviite.sh test unit
+
+# Integration tests (starts a test database automatically)
+./geoviite.sh test integration
+
+# End-to-end tests
+./geoviite.sh test e2e
+```
+
+#### Cleaning up
+
+```bash
+# Remove all Geoviite Docker images and build cache
+./geoviite.sh clean images
+```
