@@ -178,6 +178,7 @@ private fun completeIncompleteJointSequences(
                 structureAlignments.mapNotNull { structureAlignment ->
                     completeJointSequenceFromSwitchStructure(
                             fittedSwitch,
+                            fittedSwitch.switchStructure,
                             structureAlignment,
                             getEdge(edgeId, clearedTracks),
                             jointsFromSwitchFit,
@@ -232,18 +233,22 @@ const val MAX_INNER_JOINT_CHECK_SNAP_DISTANCE = 1.0
 
 private fun completeJointSequenceFromSwitchStructure(
     fittedSwitch: FittedSwitch,
+    structure: SwitchStructure,
     structureAlignment: LinkableSwitchStructureAlignment,
     edge: LayoutEdge,
     jointsOnEdge: List<JointOnEdge>,
 ): List<JointOnEdge>? {
-    val middleJointNumbers =
-        structureAlignment.joints.drop(1).dropLast(1).ifEmpty {
-            listOfNotNull(structureAlignment.innerJointOfSplitAlignment)
-        }
+    val rootJointNumbers =
+        structureAlignment.joints
+            .drop(1)
+            .dropLast(1)
+            .ifEmpty { listOfNotNull(structureAlignment.innerJointOfSplitAlignment) }
+            .ifEmpty { listOfNotNull(structureAlignment.joints.find { j -> j == structure.presentationJointNumber }) }
+
     return jointsOnEdge
-        .firstOrNull { jointOnEdge -> middleJointNumbers.contains(jointOnEdge.jointNumber) }
-        ?.let { middleJoint ->
-            completeJointSequenceWithRootJoint(fittedSwitch, structureAlignment.joints, edge, jointsOnEdge, middleJoint)
+        .firstOrNull { jointOnEdge -> rootJointNumbers.contains(jointOnEdge.jointNumber) }
+        ?.let { rootJoint ->
+            completeJointSequenceWithRootJoint(fittedSwitch, structureAlignment.joints, edge, jointsOnEdge, rootJoint)
         }
 }
 
