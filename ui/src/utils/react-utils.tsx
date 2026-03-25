@@ -32,10 +32,10 @@ export function useOptionalLoader<TEntity>(
 }
 
 export enum LoaderStatus {
-    Initialized,
-    Loading,
-    Ready,
-    Cancelled,
+    Initialized = 'Initialized',
+    Loading = 'Loading',
+    Ready = 'Ready',
+    Cancelled = 'Cancelled',
 }
 
 /**
