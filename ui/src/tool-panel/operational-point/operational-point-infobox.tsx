@@ -76,6 +76,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
 }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
+    const isOlp = operationalPoint.ratoType === 'OLP';
 
     const visibilityChange = (key: keyof OperationalPointInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
@@ -176,7 +177,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                         }
                     />
                     <React.Fragment>
-                        {operationalPoint.ratoType !== 'OLP' && (
+                        {!isOlp && (
                             <InfoboxField
                                 qaId="operational-point-rinf-id"
                                 label={t('tool-panel.operational-point.rinf-id')}
@@ -208,9 +209,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                     {isExternal && (
                         <InfoboxField
                             label={t('tool-panel.operational-point.type-raide')}
-                            value={t(
-                                `enum.OperationalPointRatoType.${operationalPoint.ratoType}`,
-                            )}
+                            value={t(`enum.OperationalPointRatoType.${operationalPoint.ratoType}`)}
                         />
                     )}
                     <InfoboxField
@@ -246,7 +245,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 onClearArea={onClearArea}
                 changeTimes={changeTimes}
             />
-            {operationalPoint.ratoType !== 'OLP' && (
+            {!isOlp && (
                 <React.Fragment>
                     <OperationalPointStationLinksInfobox
                         contentVisible={visibilities.stationLinks}
