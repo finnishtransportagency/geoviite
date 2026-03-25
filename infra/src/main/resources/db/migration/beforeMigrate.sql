@@ -12,3 +12,19 @@ $$
     end if;
   end
 $$;
+
+-- Ensure PostGIS extensions are at the latest available version before running migrations.
+-- Only runs if PostGIS is already installed but not yet at the expected version.
+do
+$$
+  declare
+    expected_postgis_version text = '3.5.1';
+    current_postgis_version  text;
+  begin
+    select extversion into current_postgis_version from pg_extension where extname = 'postgis';
+    if current_postgis_version is not null and current_postgis_version <> expected_postgis_version then
+      raise notice 'Upgrading PostGIS from % to %', current_postgis_version, expected_postgis_version;
+      perform postgis.postgis_extensions_upgrade();
+    end if;
+  end
+$$;
