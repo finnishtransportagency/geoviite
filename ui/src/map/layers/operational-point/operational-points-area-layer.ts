@@ -1,17 +1,19 @@
 import { MapLayerName } from 'map/map-model';
 import { Polygon as OlPolygon } from 'ol/geom';
-import { MapLayer } from 'map/layers/utils/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { createLayer, GeoviiteMapLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { OperationalPoint, OperationalPointId } from 'track-layout/track-layout-model';
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 import { Selection } from 'selection/selection-model';
 import {
+    findMatchingOperationalPoints,
     getOperationalPointsFromApi,
     operationalPointFeatureModeBySelection,
     renderOperationalPointAreaFeature,
 } from 'map/layers/operational-point/operational-points-layer-utils';
 import { LinkingState, LinkingType } from 'linking/linking-model';
+import { Rectangle } from 'model/geometry';
 
 const LAYER_NAME: MapLayerName = 'operational-points-area-layer';
 
@@ -38,6 +40,7 @@ export function createOperationalPointAreaLayer(
                           point.polygon,
                           operationalPointFeatureModeBySelection(point.id, selection),
                           undefined,
+                          point,
                       )
                     : undefined;
             })
@@ -53,5 +56,10 @@ export function createOperationalPointAreaLayer(
     return {
         name: LAYER_NAME,
         layer: layer,
+        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => ({
+            operationalPoints: findMatchingOperationalPoints(hitArea, source, options).map(
+                (operationalPoint) => operationalPoint.id,
+            ),
+        }),
     };
 }
