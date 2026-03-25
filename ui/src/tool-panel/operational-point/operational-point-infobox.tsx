@@ -246,31 +246,35 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
                 onClearArea={onClearArea}
                 changeTimes={changeTimes}
             />
-            <OperationalPointStationLinksInfobox
-                contentVisible={visibilities.stationLinks}
-                onVisibilityChange={visibilityChange}
-                layoutContext={layoutContext}
-                operationalPoint={operationalPoint}
-                changeTimes={changeTimes}
-                onSelectLocationTrack={selectLocationTrack}
-            />
-            <OperationalPointSwitchesInfobox
-                contentVisible={visibilities.switches}
-                onVisibilityChange={visibilityChange}
-                layoutContext={layoutContext}
-                operationalPoint={operationalPoint}
-                changeTimes={changeTimes}
-                onSelectSwitch={selectSwitch}
-                operationalPointFetchStatus={operationalPointFetchStatus}
-            />
-            <OperationalPointTracksInfobox
-                contentVisible={visibilities.tracks}
-                onVisibilityChange={visibilityChange}
-                layoutContext={layoutContext}
-                operationalPoint={operationalPoint}
-                changeTimes={changeTimes}
-                onSelectLocationTrack={selectLocationTrack}
-            />
+            {operationalPoint.ratoType !== 'OLP' && (
+                <React.Fragment>
+                    <OperationalPointStationLinksInfobox
+                        contentVisible={visibilities.stationLinks}
+                        onVisibilityChange={visibilityChange}
+                        layoutContext={layoutContext}
+                        operationalPoint={operationalPoint}
+                        changeTimes={changeTimes}
+                        onSelectLocationTrack={selectLocationTrack}
+                    />
+                    <OperationalPointSwitchesInfobox
+                        contentVisible={visibilities.switches}
+                        onVisibilityChange={visibilityChange}
+                        layoutContext={layoutContext}
+                        operationalPoint={operationalPoint}
+                        changeTimes={changeTimes}
+                        onSelectSwitch={selectSwitch}
+                        operationalPointFetchStatus={operationalPointFetchStatus}
+                    />
+                    <OperationalPointTracksInfobox
+                        contentVisible={visibilities.tracks}
+                        onVisibilityChange={visibilityChange}
+                        layoutContext={layoutContext}
+                        operationalPoint={operationalPoint}
+                        changeTimes={changeTimes}
+                        onSelectLocationTrack={selectLocationTrack}
+                    />
+                </React.Fragment>
+            )}
             <AssetValidationInfoboxContainer
                 contentVisible={visibilities.validation}
                 onContentVisibilityChange={() => visibilityChange('validation')}
