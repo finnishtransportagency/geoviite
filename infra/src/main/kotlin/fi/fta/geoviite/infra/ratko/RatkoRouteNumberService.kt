@@ -22,9 +22,9 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import java.time.Instant
 
 @GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -131,7 +131,7 @@ constructor(
 
             val addresses =
                 geocodingService
-                    .getGeocodingContextAtMoment(branch, trackNumber.id, moment)
+                    .getGeocodingContextAtMoment(branch, trackNumber.id as IntId, moment)
                     ?.referenceLineAddresses
                     ?.addresses
             checkNotNull(addresses) { "Cannot calculate addresses for track number, id=${trackNumber.id}" }
@@ -166,7 +166,9 @@ constructor(
     }
 
     private fun deleteRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, changedKmNumbers: Set<KmNumber>) =
-        changedKmNumbers.forEach { kmNumber -> ratkoClient.deleteRouteNumberPoints(routeNumberOid, kmNumber) }
+        changedKmNumbers.forEach { kmNumber ->
+            ratkoClient.deleteRouteNumberPoints(routeNumberOid, kmNumber)
+        }
 
     private fun updateRouteNumberGeometry(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
@@ -187,7 +189,7 @@ constructor(
 
             val addresses =
                 geocodingService
-                    .getGeocodingContextAtMoment(branch, trackNumber.id, moment)
+                    .getGeocodingContextAtMoment(branch, trackNumber.id as IntId, moment)
                     ?.referenceLineAddresses
                     ?.addresses
             checkNotNull(addresses) { "Cannot calculate addresses for track number, id=${trackNumber.id}" }

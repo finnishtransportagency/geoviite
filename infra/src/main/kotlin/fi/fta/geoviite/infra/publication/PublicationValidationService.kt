@@ -480,10 +480,9 @@ constructor(
             val jointConnectionsDifferIssues =
                 validateSwitchJointConnectionsOnDuplicateTracks(switch, jointConnections, linkedTracks)
 
-            val structureIssues =
-                locationIssues.ifEmpty {
-                    validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndGeometries)
-                }
+            val structureIssues = locationIssues.ifEmpty {
+                validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndGeometries)
+            }
 
             val duplicationIssues =
                 validateSwitchNameDuplication(
@@ -566,7 +565,8 @@ constructor(
                 val switchTracksAndGeometries = validationContext.getSwitchTracksWithGeometries(switch.id as IntId)
                 val switchTracks = switchTracksAndGeometries.map { (track, _) -> track }
 
-                val jointConnections = validationContext.getSwitchJointConnections(switch.id, switchTracksAndGeometries)
+                val jointConnections =
+                    validationContext.getSwitchJointConnections(switch.id as IntId, switchTracksAndGeometries)
                 val jointConnectionsDifferIssues =
                     validateSwitchJointConnectionsOnDuplicateTracks(switch, jointConnections, switchTracks)
                 val topologicalConnectivityIssues =
