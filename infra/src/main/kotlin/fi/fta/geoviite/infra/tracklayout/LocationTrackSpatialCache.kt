@@ -9,9 +9,10 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
-import java.util.concurrent.ConcurrentHashMap
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class LocationTrackSpatialCache
@@ -24,14 +25,23 @@ constructor(
     private val caches: ConcurrentHashMap<LayoutContext, ContextCache> = ConcurrentHashMap()
 
     fun get(context: LayoutContext): ContextCache {
-        val all = locationTrackService.list(context).associateBy { it.id as IntId }
-        return caches.compute(context) { _, cache -> refresh(cache ?: newCache(), all) }
-            ?: error("Cache should have been created")
+        return caches.compute(context) { _, currentCache ->
+            val changeTime = locationTrackService.getChangeTime()
+            val cache = currentCache ?: newCache()
+            if (cache.changeTime == null || cache.changeTime < changeTime) {
+                val all = locationTrackService.list(context).associateBy { it.id as IntId }
+                refresh(cache, all, changeTime)
+            } else cache
+        } ?: error("Cache should have been created")
     }
 
     private fun newCache(): ContextCache = ContextCache(locationTrackDao::fetch, alignmentDao::fetch)
 
-    private fun refresh(cache: ContextCache, newTracks: Map<IntId<LocationTrack>, LocationTrack>): ContextCache {
+    private fun refresh(
+        cache: ContextCache,
+        newTracks: Map<IntId<LocationTrack>, LocationTrack>,
+        changeTime: Instant
+    ): ContextCache {
         // TODO: GVT-3113 This could possibly be optimized by edges, since their geometries don't change
 
         val (staleTracks, currentTracks) =
@@ -56,7 +66,7 @@ constructor(
 
         val newItems = newTracks.map { (id, track) -> id to (currentTracks[id] ?: addEntry(track)) }
 
-        return ContextCache(locationTrackDao::fetch, alignmentDao::fetch, newNet, newItems.toMap())
+        return ContextCache(locationTrackDao::fetch, alignmentDao::fetch, newNet, newItems.toMap(), changeTime)
     }
 }
 
@@ -90,11 +100,37 @@ data class ContextCache(
     private val getGeometry: (LayoutRowVersion<LocationTrack>) -> DbLocationTrackGeometry,
     val network: RTree<SpatialCacheSegment, Rectangle> = RTree.star().create(),
     val items: Map<IntId<LocationTrack>, SpatialCacheEntry> = emptyMap(),
+    val changeTime: Instant? = null,
 ) {
     val size: Int
         get() = items.size
 
-    fun getClosest(location: IPoint, thresholdMeters: Double = 100.0): List<LocationTrackCacheHit> =
+    fun getClosestTrack(location: IPoint, thresholdMeters: Double = 100.0): LocationTrackCacheHit? =
+        network
+            .search(Geometries.point(location.x, location.y), thresholdMeters)
+            .fold(Double.MAX_VALUE to null) {
+                (currentMinDistance, currentHit): Pair<Double, LocationTrackCacheHit?>,
+                entry ->
+                val segment = entry.value()
+                val geometry = getGeometry(segment.locationTrackVersion)
+                val bbox = geometry.boundingBox!!
+                val bboxMinDistance = bbox.minimumDistance(location)
+
+                // bbox must be closer than current minimum distance
+                if (bboxMinDistance < currentMinDistance) {
+                    val hit = createHit(segment, location, thresholdMeters)
+                    if (hit != null && hit.distance < currentMinDistance && hit.distance < thresholdMeters) {
+                        hit.distance to hit
+                    } else {
+                        currentMinDistance to currentHit
+                    }
+                } else {
+                    currentMinDistance to currentHit
+                }
+            }
+            .let { (_, hit) -> hit }
+    
+    fun getClosestTracks(location: IPoint, thresholdMeters: Double = 100.0): List<LocationTrackCacheHit> =
         network
             .search(Geometries.point(location.x, location.y), thresholdMeters)
             .mapNotNull { entry -> createHit(entry.value(), location, thresholdMeters) }
@@ -120,7 +156,7 @@ data class ContextCache(
         thresholdMeters: Double,
     ): LocationTrackCacheHit? {
         val geometry = getGeometry(segment.locationTrackVersion)
-        val (layoutSegment, segmentM) = geometry.segmentsWithM[segment.segmentIndex]
+        val (layoutSegment, segmentM) = geometry.getSegmentWithM(segment.segmentIndex)
         val closestPointM = layoutSegment.getClosestPointM(segmentM.min, location).first
         val closestPoint = layoutSegment.seekPointAtM(segmentM.min, closestPointM).point
         val distance = lineLength(location, closestPoint)

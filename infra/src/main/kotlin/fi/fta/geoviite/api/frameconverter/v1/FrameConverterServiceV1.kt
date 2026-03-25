@@ -75,7 +75,7 @@ constructor(
     ): List<List<CoordinateToTrackAddressResponseV1>> {
         val spatialCache = locationTrackSpatialCache.get(branch.official)
         val nearbyTracks =
-            requestsWithPoints.map { (request, point) -> spatialCache.getClosest(point, request.searchRadius) }
+            requestsWithPoints.map { (request, point) -> spatialCache.getClosestTracks(point, request.searchRadius) }
 
         val distinctTrackNumberIds = distinctTrackNumberIdsFromCacheHits(nearbyTracks)
         val trackNumberInfo = getTrackNumberInfo(distinctTrackNumberIds, branch)
@@ -312,10 +312,9 @@ constructor(
                     FrameConverterErrorV1.SearchRadiusUnderRange
                 },
                 produceIf(
-                    request.searchRadius != null && request.searchRadius > allowedSearchRadiusRange.endInclusive
-                ) {
-                    FrameConverterErrorV1.SearchRadiusOverRange
-                },
+                    request.searchRadius != null && request.searchRadius > allowedSearchRadiusRange.endInclusive) {
+                        FrameConverterErrorV1.SearchRadiusOverRange
+                    },
             )
 
         val (mappedLocationTrackTypeOrNull, trackTypeErrors) =
@@ -362,8 +361,7 @@ constructor(
                     locationTrackName = locationTrackNameOrNull,
                     locationTrackOid = locationTrackOidOrNull,
                     locationTrackType = mappedLocationTrackTypeOrNull,
-                )
-            )
+                ))
         else Left(createErrorResponse(identifier = request.identifier, errors = errors))
     }
 
@@ -446,8 +444,7 @@ constructor(
                     locationTrackOid = locationTrackOidOrNull,
                     locationTrackName = locationTrackNameOrNull,
                     locationTrackType = mappedLocationTrackTypeOrNull,
-                )
-            )
+                ))
         } else {
             Left(createErrorResponse(identifier = request.identifier, errors = errors))
         }
@@ -466,8 +463,7 @@ constructor(
             GeoJsonFeatureErrorResponseV1(
                 identifier = identifier,
                 errorMessages = errors.map { error -> translation.t(error.localizationKey) },
-            )
-        )
+            ))
     }
 
     private fun createCoordinateToTrackAddressResponse(
@@ -502,8 +498,7 @@ constructor(
                         featureMatchSimple = featureMatchSimple,
                         featureMatchDetails = conversionDetails,
                     ),
-            )
-        )
+            ))
     }
 
     private fun createTrackAddressToCoordinateResponse(
@@ -569,8 +564,7 @@ constructor(
                     LAYOUT_SRID -> request.searchCoordinate
                     else ->
                         transformNonKKJCoordinate(request.searchCoordinate.srid, LAYOUT_SRID, request.searchCoordinate)
-                }
-            )
+                })
         } catch (ex: ClientException) {
             Left(createErrorResponse(request.identifier, FrameConverterErrorV1.InputCoordinateTransformationFailed))
         }

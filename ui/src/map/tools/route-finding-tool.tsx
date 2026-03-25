@@ -12,7 +12,7 @@ import { RouteLocation, RouteLocations } from 'track-layout/track-layout-slice';
 import { pixelsToMeters } from 'map/map-utils';
 import MapBrowserEvent from 'ol/MapBrowserEvent';
 
-const HOVER_DEBOUNCE_MS = 30;
+const HOVER_DEBOUNCE_MS = 20;
 const MAX_TRACK_SEEK_DISTANCE_IN_PIXELS = 40.0;
 const id = 'route-finding';
 
@@ -50,19 +50,23 @@ export function createRouteFindingTool(
                 return await getClosestTrackPoint(layoutContext, point, seekDistance);
             };
 
-            const debouncedUpdateHover = debounce(async (coordinate: Coordinate) => {
-                const seekDistance = getSeekDistance();
-                if (!seekDistance) return;
-                const hoverClosestPoint = await getClosest(coordinate, seekDistance);
-                const hoveredRouteLocation = hoverClosestPoint
-                    ? {
-                          selectedCoordinate: coordinate,
-                          closestTrackPoint: hoverClosestPoint,
-                          seekDistance: seekDistance,
-                      }
-                    : undefined;
-                onHoveredLocationChange(hoveredRouteLocation);
-            }, HOVER_DEBOUNCE_MS);
+            const debouncedUpdateHover = debounce(
+                async (coordinate: Coordinate) => {
+                    const seekDistance = getSeekDistance();
+                    if (!seekDistance) return;
+                    const hoverClosestPoint = await getClosest(coordinate, seekDistance);
+                    const hoveredRouteLocation = hoverClosestPoint
+                        ? {
+                              selectedCoordinate: coordinate,
+                              closestTrackPoint: hoverClosestPoint,
+                              seekDistance: seekDistance,
+                          }
+                        : undefined;
+                    onHoveredLocationChange(hoveredRouteLocation);
+                },
+                HOVER_DEBOUNCE_MS,
+                { isImmediate: true, maxWait: 100 },
+            );
 
             const handlePointerMove = ({ coordinate }: MapBrowserEvent) => {
                 debouncedUpdateHover(coordinate);

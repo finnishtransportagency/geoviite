@@ -29,7 +29,7 @@ class RoutingService(
         Caffeine.newBuilder().maximumSize(20).expireAfterAccess(layoutCacheDuration).build()
 
     fun getClosestTrackPoint(context: LayoutContext, location: Point, maxDistance: Double): ClosestTrackPoint? =
-        locationTrackSpatialCache.get(context).getClosest(location, maxDistance).firstOrNull()?.let { hit ->
+        locationTrackSpatialCache.get(context).getClosestTrack(location, maxDistance)?.let { hit ->
             toClosestTrackPoint(location, hit)
         }
 
@@ -69,8 +69,8 @@ class RoutingService(
         trackSeekDistance: Double,
     ): RouteResult? {
         val trackCache = locationTrackSpatialCache.get(context)
-        val startTrackHit = trackCache.getClosest(startLocation, trackSeekDistance).firstOrNull()
-        val endTrackHit = trackCache.getClosest(endLocation, trackSeekDistance).firstOrNull()
+        val startTrackHit = trackCache.getClosestTrack(startLocation, trackSeekDistance)
+        val endTrackHit = trackCache.getClosestTrack(endLocation, trackSeekDistance)
         return if (startTrackHit != null && endTrackHit != null) {
             getGraph(context).findPath(startTrackHit, endTrackHit)?.let { route ->
                 RouteResult(
