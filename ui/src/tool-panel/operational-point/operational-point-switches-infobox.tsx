@@ -87,6 +87,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
         linkingState?.type === LinkingType.LinkingOperationalPointSwitches
             ? linkingState
             : undefined;
+    const isEditing = !!operationalPointSwitchLinkingState;
 
     const [switchLinkings, linkedSwitchesFetchStatus] = useLoaderWithStatus(
         () => getSwitchesForOperationalPoint(layoutContext, operationalPoint.id),
@@ -214,7 +215,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                         linkedSwitchesFetchStatus !== LoaderStatus.Ready ||
                         operationalPointFetchStatus !== LoaderStatus.Ready
                     }>
-                    {operationalPoint.polygon || linkedItems.length > 0 ? (
+                    {operationalPoint.polygon || linkedItems.length > 0 || isEditing ? (
                         <React.Fragment>
                             {!operationalPoint.polygon && linkedItems.length > 0 && (
                                 <InfoboxContentSpread>
@@ -231,7 +232,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 switches={linkedSwitches}
                                 linkingDirection={'unlinking'}
                                 polygonInclusion={switchLinkings ?? []}
-                                isEditing={!!operationalPointSwitchLinkingState}
+                                isEditing={isEditing}
                                 linkingAction={removeSwitch}
                                 massLinkingAction={addAllSwitches}
                                 showArea={delegates.showArea}
@@ -243,7 +244,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 switches={unlinkedSwitches}
                                 linkingDirection={'linking'}
                                 polygonInclusion={switchLinkings ?? []}
-                                isEditing={!!operationalPointSwitchLinkingState}
+                                isEditing={isEditing}
                                 linkingAction={addSwitch}
                                 massLinkingAction={removeAllSwitches}
                                 showArea={delegates.showArea}
@@ -253,7 +254,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 className={
                                     styles['operational-point-linking-infobox__edit-buttons']
                                 }>
-                                {!operationalPointSwitchLinkingState ? (
+                                {!isEditing ? (
                                     <Button
                                         variant={ButtonVariant.SECONDARY}
                                         size={ButtonSize.SMALL}
