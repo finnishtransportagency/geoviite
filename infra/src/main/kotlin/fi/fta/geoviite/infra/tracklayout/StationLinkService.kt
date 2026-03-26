@@ -52,7 +52,7 @@ class StationLinkService(
         val operationalPoints =
             operationalPointDao
                 .listOfficialAtMoment(branch, moment)
-                .filter { it.ratoType != OperationalPointRatoType.OLP }
+                .filter { it.ratoType != OperationalPointRatoType.OLP && it.exists }
                 .associateBy { it.id as IntId }
         val switches = layoutSwitchDao.listOfficialAtMoment(branch, moment)
         val connectingTracks = createConnectingTracks(tracksWithGeometry, switches, opFilter, operationalPoints.keys)
