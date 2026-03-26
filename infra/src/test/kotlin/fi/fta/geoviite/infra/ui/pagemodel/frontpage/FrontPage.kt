@@ -6,15 +6,15 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
-import getElementWhenExists
-import java.time.Duration
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import getElementWhenClickable
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilExists
 import waitUntilNotExist
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
 
@@ -39,7 +39,7 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
         logger.info("Set split publication bulk transfer completed nth=$nth")
 
         openNthSplitActionsMenu(nth)
-        getElementWhenExists(byQaId("mark-bulk-transfer-as-finished-link")).click()
+        getElementWhenClickable(byQaId("mark-bulk-transfer-as-finished-link")).click()
         waitAndClearToast("toast-bulk-transfer-marked-as-successful")
     }
 

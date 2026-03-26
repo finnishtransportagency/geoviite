@@ -21,8 +21,6 @@ import java.util.*
  *
  * @see SHOW_BROWSER
  */
-
-
 const val UI_TEST_USER = "UI_TEST_USER"
 
 @ActiveProfiles("e2e")
@@ -59,6 +57,8 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
         }
 
         browser().navigate().to(startUrl)
+        Thread.sleep(100)
+        navigationBar.waitUntilInvisible()
     }
 
     fun goToFrontPage() = navigationBar.goToFrontPage()

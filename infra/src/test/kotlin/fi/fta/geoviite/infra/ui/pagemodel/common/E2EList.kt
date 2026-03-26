@@ -1,12 +1,13 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import defaultWait
 import getElementIfExists
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.ui.ExpectedConditions.not
-import org.openqa.selenium.support.ui.ExpectedConditions.numberOfElementsToBe
 import tryWait
-import tryWaitNonNull
+import waitUntilCount
+import waitUntilNotNull
 
 val byLiTag: By = By.tagName("li")
 
@@ -44,28 +45,25 @@ abstract class E2EList<T>(listBy: By, val itemsBy: By, val selectedItemBy: By? =
 
     fun waitUntilItemMatches(check: (T) -> Boolean): E2EList<T> = apply {
         logger.info("Wait until item matches")
-
         getItemWhenMatches(check)
     }
 
     fun waitUntilItemCount(count: Int): E2EList<T> = apply {
         logger.info("Wait until item count is $count")
-
-        tryWaitNonNull<List<WebElement>>({ d -> d.until(numberOfElementsToBe(childBy(itemsBy), count)) }) {
-            "Count did not become $count. Count: ${items.count()}"
-        }
+        waitUntilCount(count, childBy(itemsBy))
     }
 
     fun waitUntilItemIsRemoved(check: (T) -> Boolean) = apply {
         logger.info("Wait until item doesn't exist")
-
         tryWait(not { itemElements.firstOrNull { (_, item) -> check(item) } }) { "Item still exists" }
     }
 
     fun getElementWhenMatches(check: (T) -> Boolean): Pair<WebElement, T> =
-        tryWaitNonNull({ itemElements.firstOrNull { (_, item) -> check(item) } }) {
-            "No such element in items list. Items: $itemElements"
-        }
+        waitUntilNotNull(
+            defaultWait,
+            { itemElements.firstOrNull { (_, item) -> check(item) } },
+            { "No such element in items list. Items: $itemElements" },
+        )
 
     fun getItemWhenMatches(check: (T) -> Boolean): T = getElementWhenMatches(check).second
 
@@ -79,7 +77,6 @@ abstract class E2EList<T>(listBy: By, val itemsBy: By, val selectedItemBy: By? =
 
     open fun select(item: T): E2EList<T> = apply {
         logger.info("Select item $item")
-
         getElementWhenMatches { it == item }
             .first
             .let { match ->
@@ -91,7 +88,6 @@ abstract class E2EList<T>(listBy: By, val itemsBy: By, val selectedItemBy: By? =
 
     open fun unselect(item: T): E2EList<T> = apply {
         logger.info("Unselect item $item")
-
         getElementWhenMatches { it == item }
             .first
             .let { match ->
@@ -106,7 +102,6 @@ abstract class E2EList<T>(listBy: By, val itemsBy: By, val selectedItemBy: By? =
 
     open fun selectBy(item: T, by: By): E2EList<T> = apply {
         logger.info("Select item $item")
-
         getElementWhenMatches { it == item }.first.findElement(by).click()
     }
 }

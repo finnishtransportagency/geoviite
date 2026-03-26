@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import clickElementAtPoint
+import defaultWait
 import exists
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
@@ -17,9 +18,9 @@ import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.Actions
 import tryWait
-import tryWaitNonNull
 import waitUntilExists
 import waitUntilNotExist
+import waitUntilNotNull
 import java.time.Instant
 import kotlin.math.roundToInt
 
@@ -73,18 +74,20 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
     val mapScale: MapScale
         get() =
-            tryWaitNonNull({
-                val scale = childText(By.className("ol-scale-line-inner"))
-                scale
-                    .takeIf { it.isNotEmpty() }
-                    ?.let {
-                        requireNotNull(MapScale.entries.firstOrNull { it.value == scale }) {
-                            "Unknown map scale: $scale"
+            waitUntilNotNull(
+                defaultWait,
+                {
+                    val scale = childText(By.className("ol-scale-line-inner"))
+                    scale
+                        .takeIf { it.isNotEmpty() }
+                        ?.let {
+                            requireNotNull(MapScale.entries.firstOrNull { it.value == scale }) {
+                                "Unknown map scale: $scale"
+                            }
                         }
-                    }
-            }) {
-                "Could not get map scale"
-            }
+                },
+                { "Could not get map scale" },
+            )
 
     companion object {
         fun finishLoading() {

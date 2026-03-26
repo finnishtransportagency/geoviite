@@ -6,7 +6,9 @@ import org.openqa.selenium.interactions.Actions
 import org.openqa.selenium.support.ui.ExpectedCondition
 import org.openqa.selenium.support.ui.ExpectedConditions.elementToBeClickable
 import org.openqa.selenium.support.ui.ExpectedConditions.not
+import org.openqa.selenium.support.ui.ExpectedConditions.numberOfElementsToBe
 import org.openqa.selenium.support.ui.ExpectedConditions.presenceOfAllElementsLocatedBy
+import org.openqa.selenium.support.ui.ExpectedConditions.presenceOfElementLocated
 import org.openqa.selenium.support.ui.ExpectedConditions.textMatches
 import org.openqa.selenium.support.ui.ExpectedConditions.textToBe
 import org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfAllElementsLocatedBy
@@ -15,6 +17,7 @@ import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.time.Instant
 import java.util.regex.Pattern
 
 private val logger: Logger = LoggerFactory.getLogger(E2EViewFragment::class.java)
@@ -38,35 +41,36 @@ fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolea
     Thread.sleep(400) // Prevents double-clicking and zooming with map canvas
 }
 
-fun getElementWhenVisible(by: By, timeout: Duration = defaultWait): WebElement {
-    return tryWaitNonNull(timeout, { d -> d.until(visibilityOfElementLocated(by)) }) {
-        "Wait for element to be visible failed: seekBy=$by"
+fun getElementWhenVisible(by: By, timeout: Duration = defaultWait): WebElement =
+    tryGet({ "Wait for element to be visible failed: seekBy=$by" }) {
+        WebDriverWait(browser(), timeout, defaultPoll).until(visibilityOfElementLocated(by))
     }
-}
 
-fun getElementWhenExists(by: By, timeout: Duration = defaultWait): WebElement {
-    return tryWaitNonNull(timeout, { d -> d.until(presenceOfAllElementsLocatedBy(by))?.firstOrNull() }) {
-        "Wait for element to exists failed: seekBy=$by"
+fun getElementWhenExists(by: By, timeout: Duration = defaultWait): WebElement =
+    tryGet({ "Wait for element to exists failed: seekBy=$by" }) {
+        WebDriverWait(browser(), timeout, defaultPoll)
+            .until(presenceOfElementLocated(by) as ExpectedCondition<WebElement>)
     }
-}
 
-fun getElementsWhenVisible(by: By, timeout: Duration = defaultWait): List<WebElement> {
-    return tryWaitNonNull(timeout, { d -> d.until(visibilityOfAllElementsLocatedBy(by)) }) {
-        "Wait for elements to be visible failed: seekBy=$by"
+fun waitUntilCount(count: Int, itemsBy: By, timeout: Duration = defaultWait) =
+    tryGet({ "Count did not become $count." }) {
+        WebDriverWait(browser(), timeout, defaultPoll).until(numberOfElementsToBe(itemsBy, count))
     }
-}
 
-fun getElementsWhenExists(by: By, timeout: Duration = defaultWait): List<WebElement> {
-    return tryWaitNonNull(timeout, { d -> d.until(presenceOfAllElementsLocatedBy(by)) }) {
-        "Wait for elements to exists failed: seekBy=$by"
+fun getElementsWhenVisible(by: By, timeout: Duration = defaultWait): List<WebElement> =
+    tryGet({ "Wait for elements to be visible failed: seekBy=$by" }) {
+        WebDriverWait(browser(), timeout, defaultPoll).until(visibilityOfAllElementsLocatedBy(by))
     }
-}
 
-fun getElementWhenClickable(by: By, timeout: Duration = defaultWait): WebElement {
-    return tryWaitNonNull(timeout, { d -> d.until(elementToBeClickable(by)) }) {
-        "Wait for element to be clickable, by=$by"
+fun getElementsWhenExists(by: By, timeout: Duration = defaultWait): List<WebElement> =
+    tryGet({ "Wait for elements to exists failed: seekBy=$by" }) {
+        WebDriverWait(browser(), timeout, defaultPoll).until(presenceOfAllElementsLocatedBy(by))
     }
-}
+
+fun getElementWhenClickable(by: By, timeout: Duration = defaultWait): WebElement =
+    tryGet({ "Wait for element to be clickable, by=$by" }) {
+        WebDriverWait(browser(), timeout, defaultPoll).until(elementToBeClickable(by))
+    }
 
 fun waitUntilExists(by: By, timeout: Duration = defaultWait) {
     getElementsWhenExists(by, timeout)
@@ -119,33 +123,22 @@ fun exists(by: By): Boolean = getElements(by).isNotEmpty()
 fun tryWait(condition: ExpectedCondition<Boolean>, lazyErrorMessage: () -> String): Boolean =
     tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
 
-fun <T> tryWaitNonNull(op: (WebDriverWait) -> T?, lazyErrorMessage: () -> String): T =
-    tryWaitNonNull(defaultWait, defaultPoll, op, lazyErrorMessage)
-
 fun tryWait(
     timeout: Duration = defaultWait,
     condition: ExpectedCondition<Boolean>,
     lazyErrorMessage: () -> String,
 ): Boolean = tryWait(timeout, defaultPoll, condition, lazyErrorMessage)
 
-fun <T> tryWaitNonNull(timeout: Duration = defaultWait, op: (WebDriverWait) -> T?, lazyErrorMessage: () -> String): T =
-    tryWaitNonNull(timeout, defaultPoll, op, lazyErrorMessage)
-
 fun tryWait(
-    timeout: Duration = defaultWait,
-    pollInterval: Duration = defaultPoll,
+    timeout: Duration,
+    pollInterval: Duration,
     condition: ExpectedCondition<Boolean>,
     lazyErrorMessage: () -> String,
-): Boolean = tryWaitNonNull(timeout, pollInterval, { d -> d.until(condition) }, lazyErrorMessage)
+): Boolean = tryGet(lazyErrorMessage) { WebDriverWait(browser(), timeout, pollInterval).until(condition) }
 
-fun <T> tryWaitNonNull(
-    timeout: Duration = defaultWait,
-    pollInterval: Duration = defaultPoll,
-    op: (WebDriverWait) -> T?,
-    lazyErrorMessage: () -> String,
-): T =
+fun <T> tryGet(lazyErrorMessage: () -> String, op: () -> T?): T =
     try {
-        val result = op(WebDriverWait(browser(), timeout, pollInterval))
+        val result = op()
         requireNotNull(result) { lazyErrorMessage() }
     } catch (e: Exception) {
         logger.warn("${lazyErrorMessage()} cause=${e.message}")
@@ -154,4 +147,31 @@ fun <T> tryWaitNonNull(
 
 fun getElementIfExists(by: By): WebElement? {
     return getElements(by).firstOrNull()
+}
+
+fun <T> waitUntilNotNull(timeout: Duration, op: () -> T?, lazyErrorMessage: () -> String): T {
+    val start = Instant.now()
+    var result = op()
+    while (result == null) {
+        if (Duration.between(start, Instant.now()) > timeout) {
+            throw IllegalStateException(lazyErrorMessage())
+        } else {
+            Thread.sleep(defaultPoll.toMillis())
+            result = op()
+        }
+    }
+    return result
+}
+
+fun waitUntil(timeout: Duration, op: () -> Boolean, lazyErrorMessage: () -> String) {
+    val start = Instant.now()
+    var result = op()
+    while (!result) {
+        if (Duration.between(start, Instant.now()) > timeout) {
+            throw IllegalStateException(lazyErrorMessage())
+        } else {
+            Thread.sleep(defaultPoll.toMillis())
+            result = op()
+        }
+    }
 }
