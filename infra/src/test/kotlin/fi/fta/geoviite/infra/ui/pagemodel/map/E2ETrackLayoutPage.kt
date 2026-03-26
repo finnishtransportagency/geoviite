@@ -13,14 +13,15 @@ import fi.fta.geoviite.infra.ui.util.javaScriptExecutor
 import getElementIfExists
 import getElementWhenExists
 import getNonNullAttribute
-import java.time.Instant
-import kotlin.math.roundToInt
 import org.openqa.selenium.By
+import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.Actions
 import tryWait
 import tryWaitNonNull
 import waitUntilExists
 import waitUntilNotExist
+import java.time.Instant
+import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
@@ -64,16 +65,25 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     private val resolution: Double
         get() = childElement(By.className("map__ol-map")).getNonNullAttribute("qa-resolution").toDouble()
 
-    val switchToDraftModeButton = getElementIfExists(byQaId("draft-mode-tab"))
-    val switchToDesignModeButton = getElementIfExists(byQaId("design-mode-tab"))
+    val switchToDraftModeButton: WebElement?
+        get() = getElementIfExists(byQaId("draft-mode-tab"))
+
+    val switchToDesignModeButton: WebElement?
+        get() = getElementIfExists(byQaId("design-mode-tab"))
 
     val mapScale: MapScale
         get() =
             tryWaitNonNull({
                 val scale = childText(By.className("ol-scale-line-inner"))
-                MapScale.entries.firstOrNull { it.value == scale }
+                scale
+                    .takeIf { it.isNotEmpty() }
+                    ?.let {
+                        requireNotNull(MapScale.entries.firstOrNull { it.value == scale }) {
+                            "Unknown map scale: $scale"
+                        }
+                    }
             }) {
-                "Invalid map scale"
+                "Could not get map scale"
             }
 
     companion object {

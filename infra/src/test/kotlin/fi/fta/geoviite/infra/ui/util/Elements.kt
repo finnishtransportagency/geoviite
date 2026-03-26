@@ -122,9 +122,6 @@ fun tryWait(condition: ExpectedCondition<Boolean>, lazyErrorMessage: () -> Strin
 fun <T> tryWaitNonNull(op: (WebDriverWait) -> T?, lazyErrorMessage: () -> String): T =
     tryWaitNonNull(defaultWait, defaultPoll, op, lazyErrorMessage)
 
-fun <T> tryWaitNullable(op: (WebDriverWait) -> T?, lazyErrorMessage: () -> String): T? =
-    tryWaitNullable(defaultWait, defaultPoll, op, lazyErrorMessage)
-
 fun tryWait(
     timeout: Duration = defaultWait,
     condition: ExpectedCondition<Boolean>,
@@ -133,12 +130,6 @@ fun tryWait(
 
 fun <T> tryWaitNonNull(timeout: Duration = defaultWait, op: (WebDriverWait) -> T?, lazyErrorMessage: () -> String): T =
     tryWaitNonNull(timeout, defaultPoll, op, lazyErrorMessage)
-
-fun <T> tryWaitNullable(
-    timeout: Duration = defaultWait,
-    op: (WebDriverWait) -> T?,
-    lazyErrorMessage: () -> String,
-): T? = tryWaitNullable(timeout, defaultPoll, op, lazyErrorMessage)
 
 fun tryWait(
     timeout: Duration = defaultWait,
@@ -152,16 +143,10 @@ fun <T> tryWaitNonNull(
     pollInterval: Duration = defaultPoll,
     op: (WebDriverWait) -> T?,
     lazyErrorMessage: () -> String,
-): T = requireNotNull(tryWaitNullable(timeout, pollInterval, op, lazyErrorMessage)) { lazyErrorMessage() }
-
-fun <T> tryWaitNullable(
-    timeout: Duration = defaultWait,
-    pollInterval: Duration = defaultPoll,
-    op: (WebDriverWait) -> T?,
-    lazyErrorMessage: () -> String,
-): T? =
+): T =
     try {
-        op(WebDriverWait(browser(), timeout, pollInterval))
+        val result = op(WebDriverWait(browser(), timeout, pollInterval))
+        requireNotNull(result) { lazyErrorMessage() }
     } catch (e: Exception) {
         logger.warn("${lazyErrorMessage()} cause=${e.message}")
         throw e
