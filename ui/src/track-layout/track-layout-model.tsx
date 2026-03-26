@@ -128,7 +128,8 @@ export type LayoutAsset =
     | LayoutLocationTrack
     | LayoutSwitch
     | LayoutTrackNumber
-    | LayoutKmPost;
+    | LayoutKmPost
+    | OperationalPoint;
 
 export type LayoutReferenceLine = {
     id: ReferenceLineId;
