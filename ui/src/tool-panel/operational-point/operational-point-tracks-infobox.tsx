@@ -193,7 +193,7 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
                 <ProgressIndicatorWrapper
                     indicator={ProgressIndicatorType.Area}
                     inProgress={trackLinkingInfoFetchStatus !== LoaderStatus.Ready}>
-                    {operationalPoint.polygon || linkedItems.length > 0 ? (
+                    {operationalPoint.polygon || linkedItems.length > 0 || isEditing ? (
                         <React.Fragment>
                             {!operationalPoint.polygon && linkedItems.length > 0 && (
                                 <InfoboxContentSpread>
