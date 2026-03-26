@@ -23,58 +23,85 @@ import { doubleClick } from 'ol/events/condition';
 import OlMap from 'ol/Map';
 
 const LAYER_NAME = 'operational-points-area-placing-layer';
-let modify: Modify | undefined = undefined;
+
+export type OperationalPointsAreaPlacingLayer = MapLayer & {
+    layer: GeoviiteMapLayer<OlPolygon>;
+    modifyInteraction: Modify | undefined;
+};
 
 export const createOperationalPointsAreaPlacingLayer = (
-    existingOlLayer: GeoviiteMapLayer<OlPolygon>,
+    existingLayer: OperationalPointsAreaPlacingLayer | undefined,
     linkingState: PlacingOperationalPointArea | undefined,
     layoutContext: LayoutContext,
     map: OlMap,
     onSetOperationalPointPolygon: (polygon: Polygon) => void,
     onLoadingData: (loading: boolean) => void,
-): MapLayer => {
-    const { layer, source, isLatest } = createLayer(LAYER_NAME, existingOlLayer, true);
+): OperationalPointsAreaPlacingLayer => {
+    const existingOlLayer = existingLayer?.layer;
+    const { layer, source, isLatest } = createLayer<OlPolygon>(LAYER_NAME, existingOlLayer, true);
     const selectedOperationalPointId = linkingState?.operationalPoint?.id;
 
-    const previousModify = modify;
-    if (previousModify) {
-        map.removeInteraction(previousModify);
+    function setLayerFeatures(createFeatures: () => Feature<OlPolygon>[]) {
+        loadLayerData(
+            source,
+            isLatest,
+            onLoadingData,
+            selectedOperationalPointId
+                ? getOperationalPoint(selectedOperationalPointId, layoutContext)
+                : Promise.resolve(undefined),
+            createFeatures,
+        );
     }
 
-    modify = new Modify({
-        source: source,
-        deleteCondition: doubleClick,
-        style: new Style({
-            image: new CircleStyle({
-                radius: 5,
-                fill: new Fill({
-                    color: '#009BFF',
-                }),
-            }),
-        }),
-    });
-    modify.on('modifyend', (event) => {
-        const feature = event.features.item(0) as Feature<OlPolygon>;
-        if (!feature) {
-            return;
+    let modify: Modify | undefined;
+
+    if (linkingState?.area === undefined) {
+        if (existingLayer?.modifyInteraction) {
+            // react to area being cleared
+            map.removeInteraction(existingLayer.modifyInteraction);
+            modify = undefined;
+            setLayerFeatures(() => []);
         }
+    } else {
+        if (existingLayer?.modifyInteraction) {
+            modify = existingLayer.modifyInteraction;
+        } else {
+            modify = new Modify({
+                source: source,
+                deleteCondition: doubleClick,
+                style: new Style({
+                    image: new CircleStyle({
+                        radius: 5,
+                        fill: new Fill({
+                            color: '#009BFF',
+                        }),
+                    }),
+                }),
+            });
+            modify.on('modifyend', (event) => {
+                const feature = event.features.item(0) as Feature<OlPolygon>;
+                if (!feature) {
+                    return;
+                }
 
-        onSetOperationalPointPolygon(coordsToPolygon(getFeatureCoords(feature)));
-    });
-    map.addInteraction(modify);
-
-    loadLayerData(
-        source,
-        isLatest,
-        onLoadingData,
-        selectedOperationalPointId
-            ? getOperationalPoint(selectedOperationalPointId, layoutContext)
-            : Promise.resolve(undefined),
-        () =>
-            linkingState?.area
-                ? [renderOperationalPointAreaFeature(linkingState?.area, 'SELECTED', 'MODIFYING')]
-                : [],
-    );
+                onSetOperationalPointPolygon(coordsToPolygon(getFeatureCoords(feature)));
+            });
+            map.addInteraction(modify);
+            // these features become the Modify interaction's responsibility after being first drawn, hence we don't
+            // want to redraw them
+            setLayerFeatures(() => {
+                return linkingState?.area
+                    ? [
+                          renderOperationalPointAreaFeature(
+                              linkingState?.area,
+                              'SELECTED',
+                              'MODIFYING',
+                          ),
+                      ]
+                    : [];
+            });
+        }
+    }
 
     return {
         name: LAYER_NAME,
@@ -84,11 +111,9 @@ export const createOperationalPointsAreaPlacingLayer = (
                 (operationalPoint) => operationalPoint.id,
             ),
         }),
+        modifyInteraction: modify,
         onRemove: () => {
-            if (modify) {
-                map.removeInteraction(modify);
-                modify = undefined;
-            }
+            modify && map.removeInteraction(modify);
         },
     };
 };
