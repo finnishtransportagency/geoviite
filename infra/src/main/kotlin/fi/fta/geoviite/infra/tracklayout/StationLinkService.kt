@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.util.produceIf
 import java.time.Instant
 import java.util.*
@@ -48,7 +49,11 @@ class StationLinkService(
         opFilter: IntId<OperationalPoint>?,
     ): Pair<StationLinkData, RouteCalculator> {
         val tracksWithGeometry = locationTrackService.listOfficialWithGeometryAtMoment(branch, moment)
-        val operationalPoints = operationalPointDao.listOfficialAtMoment(branch, moment).associateBy { it.id as IntId }
+        val operationalPoints =
+            operationalPointDao
+                .listOfficialAtMoment(branch, moment)
+                .filter { it.ratoType != OperationalPointRatoType.OLP }
+                .associateBy { it.id as IntId }
         val switches = layoutSwitchDao.listOfficialAtMoment(branch, moment)
         val connectingTracks = createConnectingTracks(tracksWithGeometry, switches, opFilter, operationalPoints.keys)
         val trackNumberIds = tracksWithGeometry.map { it.first.trackNumberId }
@@ -70,7 +75,11 @@ class StationLinkService(
         opFilter: IntId<OperationalPoint>?,
     ): Pair<StationLinkData, RouteCalculator> {
         val tracksWithGeometry = locationTrackService.listWithGeometries(context, includeDeleted = false)
-        val operationalPoints = operationalPointDao.list(context, includeDeleted = false).associateBy { it.id as IntId }
+        val operationalPoints =
+            operationalPointDao
+                .list(context, includeDeleted = false)
+                .filter { it.ratoType != OperationalPointRatoType.OLP }
+                .associateBy { it.id as IntId }
         val switches = layoutSwitchDao.list(context, includeDeleted = false)
         val connectingTracks = createConnectingTracks(tracksWithGeometry, switches, opFilter, operationalPoints.keys)
         val trackNumberIds = tracksWithGeometry.map { it.first.trackNumberId }
