@@ -42,6 +42,7 @@ import {
     getLocationTracks,
     getLocationTracksByName,
     getLocationTrackStartAndEnd,
+    locationTrackInfoboxExtrasChangeTime,
 } from 'track-layout/layout-location-track-api';
 import { getSwitch, getSwitchChangeTimes, getSwitches } from 'track-layout/layout-switch-api';
 import {
@@ -234,13 +235,18 @@ export function useLocationTrackInfoboxExtras(
     id: LocationTrackId | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
-): [LocationTrackInfoboxExtras | undefined, LoaderStatus] {
+): [(LocationTrackInfoboxExtras & { id: LocationTrackId }) | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () =>
             id === undefined
                 ? undefined
                 : getLocationTrackInfoboxExtras(id, layoutContext, changeTimes),
-        [id, layoutContext.branch, layoutContext.publicationState, changeTimes],
+        [
+            id,
+            layoutContext.branch,
+            layoutContext.publicationState,
+            locationTrackInfoboxExtrasChangeTime(changeTimes),
+        ],
     );
 }
 
