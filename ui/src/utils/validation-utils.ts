@@ -1,5 +1,7 @@
 import { TOptions } from 'i18next';
 
+export type TranslationOptions = Omit<TOptions, 'context'> & { context?: string };
+
 export enum FieldValidationIssueType {
     WARNING = 'WARNING',
     ERROR = 'ERROR',
@@ -9,7 +11,7 @@ export type FieldValidationIssue<TEntity> = {
     field: keyof TEntity;
     reason: string;
     type: FieldValidationIssueType;
-    params?: TOptions;
+    params?: TranslationOptions;
 };
 
 export type PropEdit<T, TKey extends keyof T> = {
@@ -50,7 +52,7 @@ export const getVisibleIssuesAndParamsByProp = <T>(
     committedFields: (keyof T)[],
     validationIssues: FieldValidationIssue<T>[],
     prop: keyof T,
-): { reason: string; params: TOptions }[] => {
+): { reason: string; params: TranslationOptions }[] => {
     return committedFields.includes(prop)
         ? validationIssues
               .filter((error) => error.field === prop)
