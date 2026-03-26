@@ -382,8 +382,8 @@ const MapView: React.FC<MapViewProps> = ({
                 const mapTiles = calculateMapTiles(olView, undefined);
 
                 // Step 2. create the layer
-                // In some cases an adapter wants to reuse existing OL layer,
-                // e.g. tile layers cause flickering if recreated every time
+                // Some layer adapters want to retain either their own state or their OpenLayer layer's state,
+                // to avoid flickering or manage interaction lifecycles
                 const existingLayer = visibleLayers.find((l) => l.name === layerName);
                 const existingOlLayer = existingLayer?.layer;
 
