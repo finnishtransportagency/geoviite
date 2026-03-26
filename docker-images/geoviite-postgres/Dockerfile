@@ -1,4 +1,5 @@
-FROM postgres:16.11-alpine
+ARG REPO=""
+FROM ${REPO}postgres:16.11-alpine
 
 # The available postgres versions can be checked with:
 # aws rds describe-db-engine-versions --engine aurora-postgresql --query '*[].[EngineVersion]' --output text --profile geoviite-kehitys --region eu-west-1
