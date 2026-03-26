@@ -163,7 +163,7 @@ export function useHasPublicationLog<Id extends AssetId>(
     changeTime: TimeStamp | undefined,
 ): boolean {
     const [officialAsset, assetLoadingStatus] = useLoaderWithStatus(
-        () => assetId && assetGetter(assetId, mainOfficialLayoutContext, changeTime),
+        () => assetGetter(assetId, mainOfficialLayoutContext, changeTime),
         [assetId, changeTime],
     );
 
