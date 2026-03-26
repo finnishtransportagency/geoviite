@@ -277,6 +277,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             value={
                                 (switchJointTrackMeters && (
                                     <SwitchInfoboxTrackMeters
+                                        switchId={switchId}
                                         jointTrackMeters={switchJointTrackMeters}
                                         presentationJoint={structure?.presentationJointNumber}
                                     />

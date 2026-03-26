@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styles from './switch-infobox.scss';
-import { SwitchJointTrackMeter } from 'track-layout/track-layout-model';
+import { LayoutSwitchId, SwitchJointTrackMeter } from 'track-layout/track-layout-model';
 import { JointNumber } from 'common/common-model';
 import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
 import { groupBy } from 'utils/array-utils';
@@ -42,11 +42,13 @@ const JointTrackMeter: React.FC<JointTrackMeterProps> = ({
 };
 
 export type SwitchInfoboxTrackMetersProps = {
+    switchId: LayoutSwitchId;
     jointTrackMeters: SwitchJointTrackMeter[];
     presentationJoint?: JointNumber;
 };
 
 export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> = ({
+    switchId,
     jointTrackMeters,
     presentationJoint,
 }: SwitchInfoboxTrackMetersProps) => {
@@ -64,7 +66,7 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
 
     React.useEffect(() => {
         setShowOtherJoints(false);
-    }, [jointTrackMeters, presentationJoint]);
+    }, [switchId]);
 
     const addressMissingText = t('tool-panel.switch.layout.no-location');
 
