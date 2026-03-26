@@ -14,20 +14,26 @@ $$
 $$;
 
 -- Ensure PostGIS extensions are at the latest available version before running migrations.
--- Only runs if PostGIS is already installed but not yet at the expected version.
 do
 $$
   declare
-    expected_postgis_version text = '3.5.1';
-    current_postgis_version  text;
+    default_postgis_version text;
+    current_postgis_version text;
   begin
+    select default_version into default_postgis_version from pg_available_extensions where name = 'postgis';
+    -- Verify postgis is available
+    if default_postgis_version is null then
+      raise exception 'PostGIS extension not found in pg_available_extensions';
+      return;
+    end if;
+
     select extversion into current_postgis_version from pg_extension where extname = 'postgis';
-    if current_postgis_version is not null and current_postgis_version <> expected_postgis_version then
-      raise notice 'Upgrading PostGIS from % to %', current_postgis_version, expected_postgis_version;
+    -- Upgrade if not at the latest version
+    if current_postgis_version is not null and current_postgis_version <> default_postgis_version then
+      raise notice 'Upgrading PostGIS: old=% new=%', current_postgis_version, default_postgis_version;
       perform postgis.postgis_extensions_upgrade();
-      -- Log the actual installed version after the upgrade to keep notices accurate.
       select extversion into current_postgis_version from pg_extension where extname = 'postgis';
-      raise notice 'PostGIS upgrade complete, current version is %', current_postgis_version;
+      raise notice 'PostGIS upgrade complete: version=%', current_postgis_version;
     end if;
   end
 $$;
