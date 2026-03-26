@@ -157,10 +157,10 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
 
     protected fun fetchLatestChangeTimeFromTable(table: String): Instant =
         jdbcTemplate
-            .query("select coalesce(max(change_time), now()) change_time from $table", mapOf<String, Any>()) { rs, _ ->
+            .query("select max(change_time) change_time from $table", mapOf<String, Any>()) { rs, _ ->
                 rs.getInstantOrNull("change_time")
             }
-            .first()
+            .firstOrNull() ?: Instant.EPOCH
 
     protected fun fetchLatestChangeTime(table: DbTable): Instant = fetchLatestChangeTimeFromTable(table.versionTable)
 

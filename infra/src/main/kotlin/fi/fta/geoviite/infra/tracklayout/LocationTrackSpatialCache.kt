@@ -9,10 +9,10 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.lineLength
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
 
 @Service
 class LocationTrackSpatialCache
@@ -28,7 +28,7 @@ constructor(
         return caches.compute(context) { _, currentCache ->
             val changeTime = locationTrackService.getChangeTime()
             val cache = currentCache ?: newCache()
-            if (cache.changeTime == null || cache.changeTime < changeTime) {
+            if (cache.changeTime == null || cache.changeTime != changeTime) {
                 val all = locationTrackService.list(context).associateBy { it.id as IntId }
                 refresh(cache, all, changeTime)
             } else cache
@@ -40,7 +40,7 @@ constructor(
     private fun refresh(
         cache: ContextCache,
         newTracks: Map<IntId<LocationTrack>, LocationTrack>,
-        changeTime: Instant
+        changeTime: Instant,
     ): ContextCache {
         // TODO: GVT-3113 This could possibly be optimized by edges, since their geometries don't change
 
@@ -129,7 +129,7 @@ data class ContextCache(
                 }
             }
             .let { (_, hit) -> hit }
-    
+
     fun getClosestTracks(location: IPoint, thresholdMeters: Double = 100.0): List<LocationTrackCacheHit> =
         network
             .search(Geometries.point(location.x, location.y), thresholdMeters)
