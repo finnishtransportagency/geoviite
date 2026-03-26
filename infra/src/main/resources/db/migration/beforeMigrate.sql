@@ -25,6 +25,9 @@ $$
     if current_postgis_version is not null and current_postgis_version <> expected_postgis_version then
       raise notice 'Upgrading PostGIS from % to %', current_postgis_version, expected_postgis_version;
       perform postgis.postgis_extensions_upgrade();
+      -- Log the actual installed version after the upgrade to keep notices accurate.
+      select extversion into current_postgis_version from pg_extension where extname = 'postgis';
+      raise notice 'PostGIS upgrade complete, current version is %', current_postgis_version;
     end if;
   end
 $$;
