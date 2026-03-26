@@ -561,6 +561,15 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     t.asset.type === 'OPERATIONAL_POINT' &&
                     t.asset.id === linkingState.operationalPoint.id,
             )?.asset;
+        } else if (
+            linkingState?.type === LinkingType.LinkingOperationalPointSwitches ||
+            linkingState?.type === LinkingType.LinkingOperationalPointTracks
+        ) {
+            return tabs.find(
+                (t) =>
+                    t.asset.type === 'OPERATIONAL_POINT' &&
+                    t.asset.id === linkingState.operationalPoint,
+            )?.asset;
         } else if (splittingState) {
             return tabs.find(
                 (t) =>
