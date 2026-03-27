@@ -141,7 +141,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                         : GeometrySortBy.NAME,
                     GeometrySortOrder.ASCENDING,
                 ).then((result) => {
-                    setPlanHeadersDisplayableInPanel(
+                    setPlanHeadersDisplayableInPanel((planHeadersDisplayableInPanel) =>
                         reuseListElements(
                             result.planHeaders.items,
                             planHeadersDisplayableInPanel,

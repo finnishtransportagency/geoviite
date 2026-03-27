@@ -87,6 +87,7 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
         state.layoutContext.publicationState,
         state.selectedToolPanelTab,
         setSwitchToOfficialDialogOpen,
+        state.planDownloadState,
     ]);
 
     return (
