@@ -1057,7 +1057,9 @@
             }
         },
         "disabled": {
-            "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
+            "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa.",
+            "splitting-in-progress": "Raiteen jakaminen on kesken",
+            "linking-in-progress": "Linkitys on kesken"
         },
         "alignment-plan-sections": {
             "reference-line-geometries": "Pituusmittauslinjan geometriat",

@@ -37,8 +37,8 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
     );
     return (
         <a
-            title={title}
             className={tabClassName}
+            title={title}
             onClick={() => {
                 !disabled && onClick();
             }}

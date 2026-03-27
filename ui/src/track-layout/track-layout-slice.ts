@@ -939,6 +939,9 @@ function getPreviousSelectionHistoryIndex(
     return isEmptyItemCollections(currentlySelectedItems) ? currentIndex : currentIndex - 1;
 }
 
+const isLinkingOrSplittingActive = (state: TrackLayoutState) =>
+    !!state.linkingState || !!state.splittingState;
+
 export function canGoBackInSelectionHistory(state: TrackLayoutState) {
     const previousHistoryStep =
         state.selectionHistory[
@@ -947,7 +950,7 @@ export function canGoBackInSelectionHistory(state: TrackLayoutState) {
                 state.selectionHistoryIndex,
             )
         ];
-    return previousHistoryStep !== undefined;
+    return !isLinkingOrSplittingActive(state) && previousHistoryStep !== undefined;
 }
 
 function getNextSelectionHistoryIndex(currentIndex: number) {
@@ -957,5 +960,5 @@ function getNextSelectionHistoryIndex(currentIndex: number) {
 export function canGoForwardInSelectionHistory(state: TrackLayoutState) {
     const nextHistoryStep =
         state.selectionHistory[getNextSelectionHistoryIndex(state.selectionHistoryIndex)];
-    return nextHistoryStep !== undefined;
+    return !isLinkingOrSplittingActive(state) && nextHistoryStep !== undefined;
 }
