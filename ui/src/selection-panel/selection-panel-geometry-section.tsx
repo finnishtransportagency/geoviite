@@ -40,7 +40,7 @@ import {
 import { ChangeTimes } from 'common/common-slice';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { filterNotEmpty, filterUnique } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, reuseListElements } from 'utils/array-utils';
 import { GeometryPlanFilterMenuContainer } from 'selection-panel/geometry-plan-panel/geometry-plan-filter-menu-container';
 import { GeometryPlanGrouping } from 'track-layout/track-layout-slice';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -141,7 +141,13 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                         : GeometrySortBy.NAME,
                     GeometrySortOrder.ASCENDING,
                 ).then((result) => {
-                    setPlanHeadersDisplayableInPanel(result.planHeaders.items);
+                    setPlanHeadersDisplayableInPanel(
+                        reuseListElements(
+                            result.planHeaders.items,
+                            planHeadersDisplayableInPanel,
+                            (header) => header.id,
+                        ),
+                    );
                     setPlanHeaderCount(result.planHeaders.totalCount);
                     setPlanIdsInViewport(
                         result.planHeaders.items.map(({ id }) => id).concat(result.remainingIds),
