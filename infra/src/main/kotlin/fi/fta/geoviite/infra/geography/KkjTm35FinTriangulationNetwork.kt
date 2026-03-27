@@ -24,7 +24,7 @@ data class KkjTm35finTriangle(
 
     val polygon by lazy { toJtsGeoPolygon(listOf(corner1, corner2, corner3, corner1), sourceSrid) }
 
-    fun intersects(point: JtsPoint): Boolean = polygon.intersects(point)
+    fun intersects(point: JtsPoint): Boolean = jtsTriangleContainsPoint(polygon, point)
 
     fun intersects(poly: JtsPolygon): Boolean = polygon.intersects(poly)
 }

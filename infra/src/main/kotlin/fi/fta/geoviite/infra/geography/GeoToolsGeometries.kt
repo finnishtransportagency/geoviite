@@ -255,3 +255,26 @@ data class TM35FINToKKJTransformation(
 fun interface ToGkFinTransformation {
     fun transform(point: Point): GeometryPoint
 }
+
+fun jtsTriangleContainsPoint(polygon: JtsPolygon, point: JtsPoint): Boolean {
+    assert(polygon.coordinates.size == 4) {
+        "jtsTriangleContainsPoint expects a closed triangle, was given a polygon with ${polygon.coordinates.size} sides"
+    }
+    val coords = polygon.coordinates
+    val ax = coords[0].x
+    val ay = coords[0].y
+    val bx = coords[1].x
+    val by = coords[1].y
+    val cx = coords[2].x
+    val cy = coords[2].y
+    val px = point.x
+    val py = point.y
+
+    val d1 = (ax - px) * (by - py) - (bx - px) * (ay - py)
+    val d2 = (bx - px) * (cy - py) - (cx - px) * (by - py)
+    val d3 = (cx - px) * (ay - py) - (ax - px) * (cy - py)
+
+    val hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0)
+    val hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0)
+    return !(hasNeg && hasPos)
+}
