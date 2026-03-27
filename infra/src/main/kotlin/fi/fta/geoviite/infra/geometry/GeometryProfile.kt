@@ -39,18 +39,33 @@ data class GeometryProfile(val name: PlanElementName, val elements: List<Vertica
             distance.distance <= elements.first().point.x -> elements.first().point.y
             distance.distance >= elements.last().point.x -> elements.last().point.y
             else -> {
-                val segment =
-                    segments.find { s -> s.contains(distance.distance) }
-                        ?: throw IllegalArgumentException(
-                            "Requested point outside profile segments: " +
-                                "$distance <> " +
-                                "[${elements.first().point.x} to ${elements.last().point.x}] => " +
-                                "${segments.map { s -> "${s.start.x}-${s.end.x}" }}"
-                        )
-                segment.getYValueAt(distance.distance)
+                val x = distance.distance
+                val segment = binarySearchSegment(segments, x)
+                    ?: throw IllegalArgumentException(
+                        "Requested point outside profile segments: " +
+                            "$distance <> " +
+                            "[${elements.first().point.x} to ${elements.last().point.x}] => " +
+                            "${segments.map { s -> "${s.start.x}-${s.end.x}" }}"
+                    )
+                segment.getYValueAt(x)
             }
         }
     }
+}
+
+private fun binarySearchSegment(segments: List<ProfileSegment>, x: Double): ProfileSegment? {
+    var low = 0
+    var high = segments.lastIndex
+    while (low <= high) {
+        val mid = (low + high) ushr 1
+        val segment = segments[mid]
+        when {
+            x < segment.start.x -> high = mid - 1
+            x > segment.end.x -> low = mid + 1
+            else -> return segment
+        }
+    }
+    return null
 }
 
 private fun createSegments(elements: List<VerticalIntersection>): List<ProfileSegment> {
