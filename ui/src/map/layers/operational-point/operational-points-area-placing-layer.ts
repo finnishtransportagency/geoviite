@@ -65,6 +65,8 @@ export const createOperationalPointsAreaPlacingLayer = (
     } else {
         if (existingLayer?.modifyInteraction) {
             modify = existingLayer.modifyInteraction;
+            // Reusing existing interaction and its features; ensure any stale loading state is cleared.
+            onLoadingData(false);
         } else {
             modify = new Modify({
                 source: source,
