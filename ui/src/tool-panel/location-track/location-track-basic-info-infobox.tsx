@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LoaderStatus, useLoader } from 'utils/react-utils';
+import { useLoader } from 'utils/react-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
@@ -115,7 +115,7 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
     );
     const endSwitch = useSwitch(locationTrack.endSwitchId, layoutContext, changeTimes.layoutSwitch);
 
-    const [extraInfo, extraInfoLoadingStatus] = useLocationTrackInfoboxExtras(
+    const [extraInfo] = useLocationTrackInfoboxExtras(
         locationTrack?.id,
         layoutContext,
         changeTimes,
@@ -123,7 +123,7 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
 
     return (
         <Infobox
-            contentVisible={visibilities.basic && extraInfoLoadingStatus !== LoaderStatus.Loading}
+            contentVisible={visibilities.basic}
             onContentVisibilityChange={() => visibilityChange('basic')}
             title={t('tool-panel.location-track.basic-info-heading')}
             onEdit={openEditLocationTrackDialog}
@@ -170,7 +170,7 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
                     label={t('tool-panel.location-track.type')}
                     value={<LocationTrackTypeLabel type={locationTrack.type} />}
                 />
-                {extraInfoLoadingStatus === LoaderStatus.Ready && (
+                {extraInfo?.id === locationTrack.id && (
                     <InfoboxField
                         label={
                             locationTrack.duplicateOf

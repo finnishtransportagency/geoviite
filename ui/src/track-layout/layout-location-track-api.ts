@@ -111,12 +111,8 @@ export async function getLocationTrack(
     );
 }
 
-export async function getLocationTrackInfoboxExtras(
-    id: LocationTrackId,
-    layoutContext: LayoutContext,
-    changeTimes: ChangeTimes = getChangeTimes(),
-): Promise<LocationTrackInfoboxExtras | undefined> {
-    const changeTime = getMaxTimestamp(
+export function locationTrackInfoboxExtrasChangeTime(changeTimes: ChangeTimes): TimeStamp {
+    return getMaxTimestamp(
         changeTimes.layoutLocationTrack,
         changeTimes.layoutSwitch,
         changeTimes.layoutTrackNumber,
@@ -124,11 +120,23 @@ export async function getLocationTrackInfoboxExtras(
         changeTimes.layoutKmPost,
         changeTimes.split,
     );
-    return locationTrackInfoboxExtrasCache.get(changeTime, cacheKey(id, layoutContext), () =>
-        getNullable<LocationTrackInfoboxExtras>(
-            `${layoutUri('location-tracks', layoutContext, id)}/infobox-extras`,
-        ),
+}
+
+export async function getLocationTrackInfoboxExtras(
+    id: LocationTrackId,
+    layoutContext: LayoutContext,
+    changeTimes: ChangeTimes = getChangeTimes(),
+): Promise<(LocationTrackInfoboxExtras & { id: LocationTrackId }) | undefined> {
+    const changeTime = locationTrackInfoboxExtrasChangeTime(changeTimes);
+    const rv = await locationTrackInfoboxExtrasCache.get(
+        changeTime,
+        cacheKey(id, layoutContext),
+        () =>
+            getNullable<LocationTrackInfoboxExtras>(
+                `${layoutUri('location-tracks', layoutContext, id)}/infobox-extras`,
+            ),
     );
+    return rv && { id, ...rv };
 }
 
 export async function getRelinkableSwitchesCount(
