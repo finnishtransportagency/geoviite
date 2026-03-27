@@ -21,7 +21,6 @@ import { getPlanAreasByTile, getTrackLayoutPlans } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayerName, MapTile } from 'map/map-model';
 import VectorLayer from 'ol/layer/Vector';
-import BaseLayer from 'ol/layer/Base';
 import { expectCoordinate, isArray, tuple } from 'utils/type-utils';
 import { LayoutContext } from 'common/common-model';
 
@@ -179,7 +178,7 @@ const incrementAndGetLayerId = (name: MapLayerName) => {
 const isLatestLayerId = (name: MapLayerName, id: number) => latestLayerIds.get(name) === id;
 
 export type LayerResult<FeatureType extends Geometry> = {
-    layer: BaseLayer;
+    layer: GeoviiteMapLayer<FeatureType>;
     source: VectorSource<Feature<FeatureType>>;
     isLatest: () => boolean;
 };
