@@ -256,7 +256,7 @@ fun interface ToGkFinTransformation {
     fun transform(point: Point): GeometryPoint
 }
 
-fun jtsTriangleContainsPoint(polygon: JtsPolygon, point: JtsPoint): Boolean {
+internal fun jtsTriangleContainsPoint(polygon: JtsPolygon, point: JtsPoint): Boolean {
     require(polygon.coordinates.size == 4) {
         "jtsTriangleContainsPoint expects a closed triangle, was given a polygon with ${polygon.coordinates.size} sides"
     }
