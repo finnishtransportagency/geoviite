@@ -55,6 +55,7 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
+import styles from './tool-panel.scss';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -511,73 +512,80 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     ]);
 
     const getLockedAsset = (): ToolPanelAsset | undefined => {
-        if (linkingState?.type === LinkingType.LinkingAlignment) {
-            const tabTypeToFind = linkingStateLayoutAlignmentTabType(
-                linkingState.layoutAlignment.type,
-            );
+        if (linkingState) {
+            const type = linkingState.type;
 
-            return tabs.find(
-                (t) =>
-                    t.asset.type === tabTypeToFind &&
-                    t.asset.id === linkingState.layoutAlignment.id,
-            )?.asset;
-        } else if (
-            linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
-            linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
-            linkingState?.type === LinkingType.UnknownAlignment
-        ) {
-            return tabs.find(
-                (t) =>
-                    t.asset.type === 'GEOMETRY_ALIGNMENT' &&
-                    t.asset.id === linkingState.geometryAlignmentId,
-            )?.asset;
-        } else if (linkingState?.type === LinkingType.LinkingGeometrySwitch) {
-            return tabs.find((t) => {
-                return (
-                    (t.asset.type === 'GEOMETRY_SWITCH' || t.asset.type === 'SUGGESTED_SWITCH') &&
-                    t.asset.id === SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID
-                );
-            })?.asset;
-        } else if (linkingState?.type === LinkingType.LinkingLayoutSwitch) {
-            return tabs.find((t) => {
-                return (
-                    t.asset.type === 'SUGGESTED_SWITCH' &&
-                    t.asset.id === SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID
-                );
-            })?.asset;
-        } else if (linkingState?.type === LinkingType.LinkingKmPost) {
-            return tabs.find((t) => {
-                return (
-                    t.asset.type === 'GEOMETRY_KM_POST' &&
-                    t.asset.id === linkingState.geometryKmPostId
-                );
-            })?.asset;
-        } else if (
-            linkingState?.type === LinkingType.PlacingOperationalPoint ||
-            linkingState?.type === LinkingType.PlacingOperationalPointArea
-        ) {
-            return tabs.find(
-                (t) =>
-                    t.asset.type === 'OPERATIONAL_POINT' &&
-                    t.asset.id === linkingState.operationalPoint.id,
-            )?.asset;
-        } else if (
-            linkingState?.type === LinkingType.LinkingOperationalPointSwitches ||
-            linkingState?.type === LinkingType.LinkingOperationalPointTracks
-        ) {
-            return tabs.find(
-                (t) =>
-                    t.asset.type === 'OPERATIONAL_POINT' &&
-                    t.asset.id === linkingState.operationalPoint,
-            )?.asset;
+            switch (type) {
+                case LinkingType.LinkingAlignment:
+                    return tabs.find(
+                        (t) =>
+                            t.asset.type ===
+                                linkingStateLayoutAlignmentTabType(
+                                    linkingState.layoutAlignment.type,
+                                ) && t.asset.id === linkingState.layoutAlignment.id,
+                    )?.asset;
+                case LinkingType.LinkingGeometryWithEmptyAlignment:
+                case LinkingType.LinkingGeometryWithAlignment:
+                case LinkingType.UnknownAlignment:
+                    return tabs.find(
+                        (t) =>
+                            t.asset.type === 'GEOMETRY_ALIGNMENT' &&
+                            t.asset.id === linkingState.geometryAlignmentId,
+                    )?.asset;
+                case LinkingType.LinkingGeometrySwitch:
+                    return tabs.find((t) => {
+                        return (
+                            (t.asset.type === 'GEOMETRY_SWITCH' ||
+                                t.asset.type === 'SUGGESTED_SWITCH') &&
+                            t.asset.id === SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID
+                        );
+                    })?.asset;
+                case LinkingType.PlacingLayoutSwitch:
+                    return tabs.find((t) => {
+                        return (
+                            t.asset.type === 'SWITCH' && t.asset.id === linkingState.layoutSwitch.id
+                        );
+                    })?.asset;
+                case LinkingType.LinkingLayoutSwitch:
+                    return tabs.find((t) => {
+                        return (
+                            t.asset.type === 'SUGGESTED_SWITCH' &&
+                            t.asset.id === SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID
+                        );
+                    })?.asset;
+                case LinkingType.LinkingKmPost:
+                    return tabs.find((t) => {
+                        return (
+                            t.asset.type === 'GEOMETRY_KM_POST' &&
+                            t.asset.id === linkingState.geometryKmPostId
+                        );
+                    })?.asset;
+                case LinkingType.PlacingOperationalPoint:
+                case LinkingType.PlacingOperationalPointArea:
+                    return tabs.find(
+                        (t) =>
+                            t.asset.type === 'OPERATIONAL_POINT' &&
+                            t.asset.id === linkingState.operationalPoint.id,
+                    )?.asset;
+                case LinkingType.LinkingOperationalPointSwitches:
+                case LinkingType.LinkingOperationalPointTracks:
+                    return tabs.find(
+                        (t) =>
+                            t.asset.type === 'OPERATIONAL_POINT' &&
+                            t.asset.id === linkingState.operationalPoint,
+                    )?.asset;
+                default:
+                    return exhaustiveMatchingGuard(type);
+            }
         } else if (splittingState) {
             return tabs.find(
                 (t) =>
                     t.asset.type === 'LOCATION_TRACK' &&
                     t.asset.id === splittingState.originLocationTrack.id,
             )?.asset;
+        } else {
+            return undefined;
         }
-        return undefined;
     };
 
     function changeTab(tab: ToolPanelAsset) {
@@ -597,30 +605,46 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             : { activeTab: selectedTab ?? firstTab, isLocked: false };
     };
 
+    const getNavigationDisabledReason = (): string | undefined => {
+        if (linkingState) {
+            return t('tool-panel.disabled.linking-in-progress');
+        } else if (splittingState) {
+            return t('tool-panel.disabled.splitting-in-progress');
+        } else {
+            return undefined;
+        }
+    };
+
+    const navigationDisabledReason = getNavigationDisabledReason();
+
     const { activeTab, isLocked } = getActiveTab();
     return (
-        <div className="tool-panel">
-            <div className="tool-panel__tab-bar" qa-id="tool-panel-tabs">
-                <div className="tool-panel__tab-bar-buttons">
+        <div className={styles['tool-panel']}>
+            <div className={styles['tool-panel__tab-bar']} qa-id="tool-panel-tabs">
+                <div className={styles['tool-panel__tab-bar-buttons']}>
                     <Button
                         variant={ButtonVariant.GHOST}
                         size={ButtonSize.SMALL}
                         onClick={() => onSelectionHistoryBack()}
                         icon={Icons.Previous}
-                        disabled={!selectionHistoryBackEnabled}></Button>
+                        disabled={!selectionHistoryBackEnabled}
+                        title={navigationDisabledReason}
+                    />
                     <Button
                         variant={ButtonVariant.GHOST}
                         size={ButtonSize.SMALL}
                         onClick={() => onSelectionHistoryForward()}
                         icon={Icons.Next}
-                        disabled={!selectionHistoryForwardEnabled}></Button>
+                        disabled={!selectionHistoryForwardEnabled}
+                        title={navigationDisabledReason}
+                    />
                 </div>
                 {tabs.map((t, tabIndex) => {
                     const active = activeTab ? t.asset === activeTab.asset : tabIndex === 0;
                     const disabled = isLocked && !isSameAsset(t.asset, lockedAsset);
                     const className = createClassName(
-                        'tool-panel__tab-header',
-                        disabled && 'tool-panel__tab-header--disabled',
+                        styles['tool-panel__tab-header'],
+                        disabled && styles['tool-panel__tab-header--disabled'],
                     );
                     return (
                         <TabHeader
@@ -629,6 +653,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             key={t.asset.type + '_' + t.asset.id}
                             selected={active}
                             disabled={disabled}
+                            title={disabled ? navigationDisabledReason : undefined}
                             onClick={() => changeTab(t.asset)}>
                             {t.title}
                         </TabHeader>
