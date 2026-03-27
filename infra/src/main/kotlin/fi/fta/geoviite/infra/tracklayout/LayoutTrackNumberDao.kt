@@ -49,8 +49,26 @@ class LayoutTrackNumberDao(
 
     override fun getBaseSaveParams(rowVersion: LayoutRowVersion<LayoutTrackNumber>) = NoParams.instance
 
-    override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
-        fetchVersions(layoutContext, includeDeleted, null)
+    override fun fetchVersionsInternal(layoutContext: LayoutContext): List<CachedLayoutVersion<LayoutTrackNumber>> {
+        val sql =
+            """
+            select id, design_id, draft, version, (state = 'DELETED') as deleted
+            from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
+            order by number
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            CachedLayoutVersion(
+                rs.getLayoutRowVersion<LayoutTrackNumber>("id", "design_id", "draft", "version"),
+                deleted = rs.getBoolean("deleted"),
+            )
+        }
+    }
 
     @Transactional(readOnly = true)
     fun list(layoutContext: LayoutContext, trackNumber: TrackNumber): List<LayoutTrackNumber> =
@@ -224,6 +242,7 @@ class LayoutTrackNumberDao(
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to generate ID for new TrackNumber")
         logger.daoAccess(AccessType.INSERT, LayoutTrackNumber::class, response)
+        clearVersionCache()
         return response
     }
 

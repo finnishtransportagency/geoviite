@@ -393,6 +393,7 @@ class LocationTrackDao(
         logger.daoAccess(AccessType.INSERT, LocationTrack::class, response)
         alignmentDao.saveLocationTrackGeometry(response, geometry)
         saveOperationalPoints(response, item.operationalPointIds)
+        clearVersionCache()
         return response
     }
 
@@ -415,8 +416,25 @@ class LocationTrackDao(
         }
     }
 
-    override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
-        fetchVersions(layoutContext, includeDeleted, null)
+    override fun fetchVersionsInternal(layoutContext: LayoutContext): List<CachedLayoutVersion<LocationTrack>> {
+        val sql =
+            """
+            select id, design_id, draft, version, (state = 'DELETED') as deleted
+            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
+            """
+                .trimIndent()
+        val params =
+            mapOf(
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
+            )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            CachedLayoutVersion(
+                rs.getLayoutRowVersion<LocationTrack>("id", "design_id", "draft", "version"),
+                deleted = rs.getBoolean("deleted"),
+            )
+        }
+    }
 
     fun list(
         layoutContext: LayoutContext,
