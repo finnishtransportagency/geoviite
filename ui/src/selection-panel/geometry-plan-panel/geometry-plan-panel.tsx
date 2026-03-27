@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { GeometryPlanHeader } from 'geometry/geometry-model';
+import { GeometryPlanHeader, GeometryPlanId } from 'geometry/geometry-model';
 import {
     GeometryPlanLayout,
     LayoutKmPost,
@@ -12,6 +12,7 @@ import {
 } from 'geoviite-design-lib/alignment/location-track-badge';
 import { Accordion } from 'geoviite-design-lib/accordion/accordion';
 import {
+    OnSelectOptions,
     OpenPlanLayout,
     OptionalItemCollections,
     VisiblePlanLayout,
@@ -20,6 +21,7 @@ import styles from './geometry-plan-panel.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import {
+    createEmptyItemCollections,
     ToggleAccordionOpenPayload,
     ToggleAlignmentPayload,
     ToggleKmPostPayload,
@@ -35,17 +37,15 @@ import { AlignmentHeader, GeometryAlignmentHeader } from 'track-layout/layout-ma
 import { ChangeTimes } from 'common/common-slice';
 import { GeometryPlanLayoutResult } from 'geometry/geometry-api';
 import { CustomGeometryValidationIssue } from 'infra-model/infra-model-slice';
+import { first } from 'utils/array-utils';
 
 type GeometryPlanProps = {
     planHeader: GeometryPlanHeader;
-    onPlanHeaderSelection: (planHeader: GeometryPlanHeader) => void;
+    onSelect: (options: OnSelectOptions) => void;
     changeTimes: ChangeTimes;
     onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
-    onToggleAlignmentSelection: (alignment: GeometryAlignmentHeader) => void;
-    onToggleSwitchSelection: (switchItem: LayoutSwitch) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
-    onToggleKmPostSelection: (kmPost: LayoutKmPost) => void;
     onToggleKmPostVisibility: (payload: ToggleKmPostPayload) => void;
     selectedItems: OptionalItemCollections;
     openPlans: OpenPlanLayout[];
@@ -54,7 +54,7 @@ type GeometryPlanProps = {
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
-    loadPlanLayout: () => Promise<GeometryPlanLayoutResult | undefined>;
+    fetchPlanLayouts: (ids: GeometryPlanId[]) => Promise<GeometryPlanLayoutResult[]>;
     planLayout?: GeometryPlanLayout;
     planLayoutError?: CustomGeometryValidationIssue;
     linkStatus?: GeometryPlanLinkStatus;
@@ -69,16 +69,13 @@ type Visibilities = {
     kmPosts: boolean;
 };
 
-export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
+const GeometryPlanPanelM: React.FC<GeometryPlanProps> = ({
     planHeader,
-    onPlanHeaderSelection,
+    onSelect,
     onTogglePlanVisibility,
     onToggleAlignmentVisibility,
-    onToggleAlignmentSelection,
-    onToggleSwitchSelection,
     onToggleSwitchVisibility,
     onToggleKmPostVisibility,
-    onToggleKmPostSelection,
     selectedItems,
     openPlans,
     visiblePlans,
@@ -86,10 +83,10 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
-    loadPlanLayout,
     planLayout,
     planLayoutError,
     linkStatus,
+    fetchPlanLayouts,
     planBeingLoaded,
     disabled,
 }: GeometryPlanProps) => {
@@ -138,6 +135,9 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         }
     }, []);
 
+    const loadPlanLayout = () =>
+        fetchPlanLayouts([planHeader.id]).then((ps) => first(ps) ?? undefined);
+
     const loadPlan = () => {
         setOpeningAccordion(true);
         loadPlanLayout()
@@ -178,6 +178,53 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
             });
         }
     };
+
+    const onPlanHeaderSelection = () =>
+        onSelect({
+            ...createEmptyItemCollections(),
+            geometryPlans: [planHeader.id],
+            isToggle: true,
+        });
+
+    const onToggleAlignmentSelection = (alignment: GeometryAlignmentHeader) =>
+        onSelect({
+            ...createEmptyItemCollections(),
+            geometryAlignmentIds: [
+                {
+                    geometryId: alignment.id,
+                    planId: planHeader.id,
+                },
+            ],
+            isToggle: true,
+        });
+
+    const onToggleSwitchSelection = (switchItem: LayoutSwitch) =>
+        onSelect({
+            ...createEmptyItemCollections(),
+            geometrySwitchIds: switchItem.sourceId
+                ? [
+                      {
+                          geometryId: switchItem.sourceId,
+                          planId: planHeader.id,
+                      },
+                  ]
+                : [],
+            isToggle: true,
+        });
+
+    const onToggleKmPostSelection = (kmPost: LayoutKmPost) =>
+        onSelect({
+            ...createEmptyItemCollections(),
+            geometryKmPostIds: kmPost.sourceId
+                ? [
+                      {
+                          geometryId: kmPost.sourceId,
+                          planId: planHeader.id,
+                      },
+                  ]
+                : [],
+            isToggle: true,
+        });
 
     const onAlignmentSelect = (alignment: GeometryAlignmentHeader) => {
         if (planLayout) {
@@ -225,7 +272,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                 open={!disabled && (isPlanOpen || openingAccordion)}
                 onVisibilityToggle={onPlanVisibilityToggle}
                 visibility={visibilities.planHeader}
-                onHeaderClick={() => onPlanHeaderSelection(planHeader)}
+                onHeaderClick={onPlanHeaderSelection}
                 headerSelected={selectedItems.geometryPlans?.some((id) => id === planHeader.id)}
                 fetchingContent={openingAccordion || planBeingLoaded}
                 eyeHidden={disabled || !!planLayoutError}
@@ -331,6 +378,8 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         </div>
     );
 };
+
+export const GeometryPlanPanel = React.memo(GeometryPlanPanelM);
 
 function createKmPostRow(
     planLayout: GeometryPlanLayout,

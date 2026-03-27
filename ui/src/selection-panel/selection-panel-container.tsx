@@ -72,7 +72,7 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
         changeTimes.layoutSwitch,
     );
 
-    const togglePlanDownload = () => {
+    const togglePlanDownload = React.useCallback(() => {
         if (state.planDownloadState) {
             delegates.onClosePlanDownloadPopup();
         } else if (state.layoutContext.publicationState === 'DRAFT') {
@@ -83,7 +83,11 @@ export const SelectionPanelContainer: React.FC<SelectionPanelContainerProps> = (
                 : undefined;
             delegates.onOpenPlanDownloadPopup(initialAsset);
         }
-    };
+    }, [
+        state.layoutContext.publicationState,
+        state.selectedToolPanelTab,
+        setSwitchToOfficialDialogOpen,
+    ]);
 
     return (
         <SelectionPanel
