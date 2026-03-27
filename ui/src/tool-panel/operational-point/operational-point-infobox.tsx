@@ -12,14 +12,17 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import {
-    OperationalPoint,
-    operationalPointRinfTypeToTypeCode,
     LayoutSwitchId,
     LocationTrackId,
+    OperationalPoint,
+    operationalPointRinfTypeToTypeCode,
 } from 'track-layout/track-layout-model';
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { LoaderStatus, useLoader } from 'utils/react-utils';
-import { getOperationalPointChangeTimes } from 'track-layout/layout-operational-point-api';
+import {
+    getOperationalPoint,
+    getOperationalPointChangeTimes,
+} from 'track-layout/layout-operational-point-api';
 import { ChangeTimes } from 'common/common-slice';
 import { formatDateShort } from 'utils/date-utils';
 import { refreshOperationalPointSelection } from 'track-layout/track-layout-react-utils';
@@ -29,7 +32,6 @@ import { OperationalPointLocationInfobox } from 'tool-panel/operational-point/op
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { OperationalPointSwitchesInfobox } from 'tool-panel/operational-point/operational-point-switches-infobox';
 import { useHasPublicationLog } from 'publication/publication-utils';
-import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { useAppNavigate } from 'common/navigate';
 import { OperationalPointTracksInfobox } from 'tool-panel/operational-point/operational-point-tracks-infobox';
@@ -134,7 +136,7 @@ export const OperationalPointInfobox: React.FC<OperationalPointInfoboxProps> = (
 
     const hasPublicationLog = useHasPublicationLog(
         operationalPoint.id,
-        getLocationTrack,
+        getOperationalPoint,
         changeInfo?.changed,
     );
 

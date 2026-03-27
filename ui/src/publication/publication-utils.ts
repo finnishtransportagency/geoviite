@@ -15,8 +15,8 @@ import { brand } from 'common/brand';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { mapLazy } from 'utils/array-utils';
 import { AssetId, LayoutContext, mainOfficialLayoutContext, TimeStamp } from 'common/common-model';
-import { LayoutAsset } from 'track-layout/track-layout-model';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { LayoutAsset } from 'track-layout/track-layout-model';
 
 export const defaultPublicationSearch: PublicationSearch = {
     globalStartDate: subMonths(currentDay, 1).toISOString(),
@@ -153,10 +153,10 @@ export const noCalculatedChanges: CalculatedChanges = {
     },
 };
 
-export function useHasPublicationLog(
-    assetId: AssetId,
+export function useHasPublicationLog<Id extends AssetId>(
+    assetId: Id,
     assetGetter: (
-        id: AssetId,
+        id: Id,
         layoutContext: LayoutContext,
         changeTime: TimeStamp | undefined,
     ) => Promise<LayoutAsset | undefined>,
