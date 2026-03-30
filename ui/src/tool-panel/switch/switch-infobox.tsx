@@ -7,6 +7,7 @@ import {
     LayoutSwitchId,
     LayoutSwitchJointConnection,
     LocationTrackId,
+    OperationalPoint,
     SwitchJointTrackMeter,
 } from 'track-layout/track-layout-model';
 import Infobox from 'tool-panel/infobox/infobox';
@@ -17,7 +18,7 @@ import { IconColor, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
 import SwitchHand from 'geoviite-design-lib/switch/switch-hand';
 import { formatToTM35FINString } from 'utils/geography-utils';
-import { useLoader } from 'utils/react-utils';
+import { useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -51,6 +52,8 @@ import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { SwitchOid } from 'track-layout/oid';
 import { SwitchChangeInfoInfobox } from 'tool-panel/switch/switch-change-info-infobox';
+import { getOperationalPoint } from 'track-layout/layout-operational-point-api';
+import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -130,6 +133,28 @@ export const getSwitchJointTrackMeters = async (
     return jointTrackMeters.filter(filterNotEmpty);
 };
 
+const OperationalPointLink: React.FC<{
+    operationalPoint: OperationalPoint;
+    onSelect: (options: OnSelectOptions) => void;
+}> = ({ operationalPoint, onSelect }) => {
+    const { t } = useTranslation();
+
+    return (
+        <span>
+            <AnchorLink
+                onClick={() => {
+                    onSelect({
+                        operationalPoints: [operationalPoint.id],
+                        selectedTab: { id: operationalPoint.id, type: 'OPERATIONAL_POINT' },
+                    });
+                }}>
+                {operationalPoint.name}
+            </AnchorLink>
+            {operationalPoint.state === 'DELETED' ? ` (${t('enum.LayoutState.DELETED')})` : ''}
+        </span>
+    );
+};
+
 const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     switchId,
     showArea,
@@ -172,6 +197,18 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         structure &&
         layoutSwitch &&
         getSwitchPresentationJoint(layoutSwitch, structure.presentationJointNumber)?.location;
+    const [operationalPoint, operationalPointFetchStatus] = useLoaderWithStatus(
+        () =>
+            layoutSwitch?.operationalPointId
+                ? getOperationalPoint(layoutSwitch?.operationalPointId, layoutContext)
+                : Promise.resolve(undefined),
+        [
+            layoutContext.branch,
+            layoutContext.publicationState,
+            layoutSwitch?.operationalPointId,
+            changeTimes.operationalPoints,
+        ],
+    );
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const canStartPlacing = placingSwitchLinkingState === undefined && layoutSwitch !== undefined;
@@ -282,6 +319,21 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                         presentationJoint={structure?.presentationJointNumber}
                                     />
                                 )) || <Spinner />
+                            }
+                        />
+                        <InfoboxField
+                            label={t('tool-panel.switch.layout.operational-point')}
+                            value={
+                                operationalPointFetchStatus !== 'Ready' ? (
+                                    <Spinner />
+                                ) : operationalPoint ? (
+                                    <OperationalPointLink
+                                        operationalPoint={operationalPoint}
+                                        onSelect={onSelect}
+                                    />
+                                ) : (
+                                    t('tool-panel.switch.layout.not-linked')
+                                )
                             }
                         />
                         <InfoboxButtons>
