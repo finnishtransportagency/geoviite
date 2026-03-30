@@ -13,14 +13,15 @@ import fi.fta.geoviite.infra.tracklayout.EdgeDirection.DOWN
 import fi.fta.geoviite.infra.tracklayout.EdgeDirection.UP
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.IN
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.OUT
+import fi.fta.geoviite.infra.util.alsoIfNull
 import fi.fta.geoviite.infra.util.produceIf
-import java.util.*
 import org.jgrapht.Graph
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath
 import org.jgrapht.graph.AsGraphUnion
 import org.jgrapht.graph.DirectedWeightedMultigraph
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.util.*
 
 private val logger: Logger = LoggerFactory.getLogger(RoutingGraph::class.java)
 
@@ -283,14 +284,13 @@ data class RoutingGraph(
     ) =
         switchInternalEdges[alignment]?.mapNotNull { switchEdge ->
             val edgeDirection = if (edgeDirection == UP) switchEdge.direction else switchEdge.direction.reverse()
-            val edgeRangeLimit =
-                mRangeLimit?.let { switchM ->
-                    val edgeMin = switchEdge.toEdgeM(switchM.min)
-                    val edgeMax = switchEdge.toEdgeM(switchM.max)
-                    Range(minOf(edgeMin, edgeMax), maxOf(edgeMin, edgeMax)).takeIf {
-                        it.length().distance >= LAYOUT_M_DELTA
-                    }
+            val edgeRangeLimit = mRangeLimit?.let { switchM ->
+                val edgeMin = switchEdge.toEdgeM(switchM.min)
+                val edgeMax = switchEdge.toEdgeM(switchM.max)
+                Range(minOf(edgeMin, edgeMax), maxOf(edgeMin, edgeMax)).takeIf {
+                    it.length().distance >= LAYOUT_M_DELTA
                 }
+            }
             findRouteSection(switchEdge.id, edgeDirection, favoredTrackIds, edgeRangeLimit)
         } ?: emptyList()
 
@@ -383,13 +383,11 @@ data class RoutingGraph(
                 val (edge, edgeMRange) = edgeWithM
                 val midPointM = midPoint.m.toEdgeM(edgeMRange.min)
                 graph.addVertex(midPoint)
-                // Note: switch inner links produce "edge ends" at switch alignment ends instead. Due to how some
-                // strucutres
-                // are modeled, there might be multiple endpoints (if the edge is a part of multiple structure
-                // alignments).
-                // Those endpoints might also be outside the edge (if the edge is only a part of the alignment). This
-                // logic
-                // works with all those scenarios.
+                // Note: switch inner links produce "edge ends" at switch alignment ends instead.
+                // Due to how some structures are modeled, there might be multiple endpoints (if the
+                // edge is a part of multiple structure alignments). Those endpoints might also be
+                // outside the edge (if the edge is only a part of the alignment).
+                // This logic works with all those scenarios.
                 (createEdgeStartVertices(edge, vertexDirection) + createEdgeEndVertices(edge, vertexDirection))
                     .forEach { data ->
                         graph.addVertex(data.vertex)
@@ -472,11 +470,15 @@ data class RoutingGraph(
                 }
                 .distinctBy { it.vertex }
         } else
-            listOf(
-                requireNotNull(createIncomingTrackConnectionVertex(edge.startNode)) {
-                        "Failed to resolve incoming vertex from edge start: edge=${edge.id} startNode=${edge.startNode}"
+            listOfNotNull(
+                createIncomingTrackConnectionVertex(edge.startNode)
+                    .alsoIfNull {
+                        // Can happen when the edge is inside a broken switch-linking -> won't yield a routable path
+                        logger.warn(
+                            "Failed to resolve incoming vertex from edge start: edge=${edge.id} startNode=${edge.startNode} endNode=${edge.endNode}"
+                        )
                     }
-                    .let { TmpTrackVertexData(if (vertexDirection == IN) it else it.reverse(), LineM(0.0)) }
+                    ?.let { TmpTrackVertexData(if (vertexDirection == IN) it else it.reverse(), LineM(0.0)) }
             )
 
     private fun createEdgeEndVertices(edge: DbLayoutEdge, vertexDirection: VertexDirection): List<TmpVertexData> =
@@ -493,11 +495,15 @@ data class RoutingGraph(
                 }
                 .distinctBy { it.vertex }
         } else
-            listOf(
-                requireNotNull(createIncomingTrackConnectionVertex(edge.endNode)) {
-                        "Failed to resolve incoming vertex from edge start: edge=${edge.id} startNode=${edge.endNode}"
+            listOfNotNull(
+                createIncomingTrackConnectionVertex(edge.endNode)
+                    .alsoIfNull {
+                        // Can happen when the edge is inside a broken switch-linking -> won't yield a routable path
+                        logger.warn(
+                            "Failed to resolve incoming vertex from edge end: edge=${edge.id} startNode=${edge.endNode} endNode=${edge.endNode}"
+                        )
                     }
-                    .let { TmpTrackVertexData(if (vertexDirection == IN) it else it.reverse(), edge.length) }
+                    ?.let { TmpTrackVertexData(if (vertexDirection == IN) it else it.reverse(), edge.length) }
             )
 }
 
@@ -711,6 +717,7 @@ private fun DirectedWeightedMultigraph<RoutingVertex, RoutingEdge>.addWeightedEd
             logger.warn("Did not add duplicate edge: edge=$edge from=$from to=$to")
         }
     } catch (e: IllegalArgumentException) {
-        logger.error("Failed to add edge: edge=$edge from=$from to=$to error=${e.message}")
+        // These can happen when incorrectly built switch linked result in edges whose vertices are not in the graph
+        logger.warn("Failed to add edge: edge=$edge from=$from to=$to error=${e.message}")
     }
 }
