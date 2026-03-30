@@ -30,7 +30,6 @@ import { useLocationTrackInfoboxExtras, useSwitch } from 'track-layout/track-lay
 import { LocationTrackState } from 'geoviite-design-lib/location-track-state/location-track-state';
 import { LocationTrackOid } from 'track-layout/oid';
 import { AnchorLink } from 'geoviite-design-lib/link/anchor-link';
-import { ToolPanelAsset } from 'tool-panel/tool-panel';
 
 type LocationTrackBasicInfoInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -53,7 +52,6 @@ export const LocationTrackBasicInfoInfoboxContainer: React.FC<
             {...props}
             changeTimes={changeTimes}
             onSelect={delegates.onSelect}
-            setToolPanelTab={delegates.setToolPanelTab}
             showArea={delegates.showArea}
         />
     );
@@ -61,7 +59,6 @@ export const LocationTrackBasicInfoInfoboxContainer: React.FC<
 
 type LocationTrackBasicInfoInfoboxProps = LocationTrackBasicInfoInfoboxContainerProps & {
     onSelect: (items: OnSelectOptions) => void;
-    setToolPanelTab: (tab: ToolPanelAsset) => void;
     showArea: (area: BoundingBox) => void;
     changeTimes: ChangeTimes;
 };
@@ -77,7 +74,6 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
     editingDisabled,
     editingDisabledReason,
     onSelect,
-    setToolPanelTab,
     showArea,
 }) => {
     const { t } = useTranslation();
@@ -93,15 +89,20 @@ const LocationTrackBasicInfoInfoboxM: React.FC<LocationTrackBasicInfoInfoboxProp
         if (sw) {
             const switchId = sw.id;
             return (
-                <AnchorLink
-                    onClick={() => {
-                        onSelect({
-                            switches: [switchId],
-                        });
-                        setToolPanelTab({ id: switchId, type: 'SWITCH' });
-                    }}>
-                    {sw.name}
-                </AnchorLink>
+                <span>
+                    <AnchorLink
+                        onClick={() => {
+                            onSelect({
+                                switches: [switchId],
+                                selectedTab: { id: switchId, type: 'SWITCH' },
+                            });
+                        }}>
+                        {sw.name}
+                    </AnchorLink>
+                    {sw.stateCategory === 'NOT_EXISTING'
+                        ? ` (${t('enum.LayoutStateCategory.NOT_EXISTING')})`
+                        : ''}
+                </span>
             );
         } else {
             return t('tool-panel.location-track.no-start-or-end-switch');
