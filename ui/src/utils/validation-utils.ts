@@ -1,6 +1,4 @@
-import { TOptions } from 'i18next';
-
-export type TranslationOptions = Omit<TOptions, 'context'> & { context?: string };
+export type TranslationOptions = Record<string, string | number | undefined>;
 
 export enum FieldValidationIssueType {
     WARNING = 'WARNING',
