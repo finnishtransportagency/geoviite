@@ -231,7 +231,7 @@ export function loadLayerData<Data, FeatureType extends Geometry>(
         });
 }
 
-export const clearFeatures = (vectorSource: VectorSource) => vectorSource.clear();
+export const clearFeatures = (vectorSource: VectorSource) => vectorSource.clear(true);
 
 function mergeOptionalArrays<T>(a1: T[] | undefined, a2: T[] | undefined): T[] | undefined {
     if (a1 === undefined) return a2;
