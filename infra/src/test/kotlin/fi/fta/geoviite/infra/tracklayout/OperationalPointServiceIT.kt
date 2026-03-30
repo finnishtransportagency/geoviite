@@ -240,6 +240,24 @@ constructor(
     }
 
     @Test
+    fun `deleting an external operational point draft with no pending Ratko version update does delete the draft`() {
+        val externalPointId =
+            ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
+
+        val officialPointVersion =
+            testDBService.save(
+                operationalPoint(
+                    contextData = createMainContext(externalPointId, false),
+                    origin = OperationalPointOrigin.RATKO,
+                    ratkoVersion = 1,
+                )
+            )
+        val draftPointVersion = mainDraftContext.copyFrom(officialPointVersion)
+        operationalPointService.deleteDraft(LayoutBranch.main, draftPointVersion.id)
+        assertEquals(officialPointVersion, mainDraftContext.fetchVersion(officialPointVersion.id))
+    }
+
+    @Test
     fun `deleting a draft-only external operational point draft instead resets the point`() {
         val externalPointId =
             ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
@@ -261,10 +279,11 @@ constructor(
     }
 
     @Test
-    fun `deleting a drafted update to an external operational point draft instead resets the point`() {
+    fun `deleting a drafted update to an external operational point draft instead resets the point to the official state`() {
         val externalPointId =
             ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
 
+        val polygon = Polygon(Point(0.0, 0.0), Point(11.0, 0.0), Point(11.0, 11.0), Point(0.0, 11.0), Point(0.0, 0.0))
         val point =
             testDBService
                 .save(
@@ -272,6 +291,8 @@ constructor(
                         contextData = createMainContext(externalPointId, false),
                         origin = OperationalPointOrigin.RATKO,
                         ratkoVersion = 1,
+                        rinfType = OperationalPointRinfType.DEPOT_OR_WORKSHOP,
+                        polygon = polygon,
                     )
                 )
                 .id
@@ -289,8 +310,9 @@ constructor(
 
         operationalPointService.deleteDraft(LayoutBranch.main, point)
 
-        // after deleteDraft, the RINF type assignment has been cleared, but the Ratko version update is still pending
-        assertEquals(null, mainDraftContext.fetch(point)?.rinfType)
+        // after deleteDraft, the RINF type assignment has been reset, but the Ratko version update is still pending
+        assertEquals(OperationalPointRinfType.DEPOT_OR_WORKSHOP, mainDraftContext.fetch(point)?.rinfType)
+        assertEquals(polygon, mainDraftContext.fetch(point)?.polygon)
         assertEquals(1, mainOfficialContext.fetch(point)?.ratkoVersion)
         assertEquals(2, mainDraftContext.fetch(point)?.ratkoVersion)
     }
