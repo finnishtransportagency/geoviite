@@ -500,7 +500,7 @@ data class RoutingGraph(
                     .alsoIfNull {
                         // Can happen when the edge is inside a broken switch-linking -> won't yield a routable path
                         logger.warn(
-                            "Failed to resolve incoming vertex from edge end: edge=${edge.id} startNode=${edge.endNode} endNode=${edge.endNode}"
+                            "Failed to resolve incoming vertex from edge end: edge=${edge.id} startNode=${edge.startNode} endNode=${edge.endNode}"
                         )
                     }
                     ?.let { TmpTrackVertexData(if (vertexDirection == IN) it else it.reverse(), edge.length) }
