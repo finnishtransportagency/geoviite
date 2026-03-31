@@ -270,9 +270,10 @@ fun validateOperationalPointPolygonOverlap(
         validationTargetType,
         operationalPoint,
         overlapsWith,
-        WARNING) { contextDuplicates ->
-            listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
-        }
+        WARNING,
+    ) { contextDuplicates ->
+        listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
+    }
 
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,
@@ -684,24 +685,6 @@ private fun tracksWithOutsideConnection(
         }
     }
 
-private fun findValidatingTrackSwitchAlignment(
-    switchId: IntId<LayoutSwitch>,
-    validatingTrack: LocationTrack?,
-    locationTracksAndGeometries: List<Pair<LocationTrack, LocationTrackGeometry>>,
-    structureAlignmentsToCheck: List<LinkableSwitchStructureAlignment>,
-): SwitchStructureAlignment? =
-    locationTracksAndGeometries
-        .find { (track) -> track.id == validatingTrack?.id }
-        ?.let { trackAndGeometry ->
-            structureAlignmentsToCheck
-                // with really bad linking, this could be ambiguous, and the choice of finding the
-                // first one arbitrary; but that shouldn't really happen
-                .find { switchAlignment ->
-                    alignmentLinkingQuality(switchId, switchAlignment, listOf(trackAndGeometry)).hasSomethingLinked()
-                }
-                ?.originalAlignment
-        }
-
 private fun summarizeSwitchAlignmentLocationTrackLinks(
     links: List<Pair<LocationTrack, SwitchStructureAlignment>>
 ): String =
@@ -722,25 +705,13 @@ fun validateSwitchAlignmentTopology(
     validatingTrack: LocationTrack?,
 ): List<LayoutValidationIssue> {
     val structureAlignmentsToCheck = switchConnectivity(switchStructure).alignments.filter { !it.isSplittable }
-    val linkingQuality =
+    val qualitiesToValidate =
         structureAlignmentsToCheck.map { alignment ->
             alignmentLinkingQuality(switchId, alignment, locationTracksAndGeometries)
         }
-    val validatingTrackSwitchAlignment =
-        findValidatingTrackSwitchAlignment(
-            switchId,
-            validatingTrack,
-            locationTracksAndGeometries,
-            structureAlignmentsToCheck,
-        )
     val switchHasTopologicalConnections =
         locationTracksAndGeometries.any { (_, geom) ->
             geom.outerStartSwitch?.id == switchId || geom.outerEndSwitch?.id == switchId
-        }
-
-    val qualitiesToValidate =
-        linkingQuality.filter { quality ->
-            validatingTrackSwitchAlignment == null || quality.originalAlignment == validatingTrackSwitchAlignment
         }
 
     val notLinked = qualitiesToValidate.filter { !it.hasSomethingLinked() }
@@ -758,12 +729,15 @@ fun validateSwitchAlignmentTopology(
             .flatMap { alignment -> alignment.nonDuplicateTracks.map { track -> track to alignment.originalAlignment } }
 
     return listOfNotNull(
-        validateWithParams(linkingQuality.any { it.hasSomethingLinked() } || switchHasTopologicalConnections, ERROR) {
+        validateWithParams(
+            qualitiesToValidate.any { it.hasSomethingLinked() } || switchHasTopologicalConnections,
+            ERROR,
+        ) {
             "${switchOrTrackLinkageKey(validatingTrack)}.switch-no-alignments-connected" to
                 localizationParams("switch" to switchName.toString())
         },
         validateWithParams(
-            (linkingQuality.none { it.hasSomethingLinked() } && !switchHasTopologicalConnections) ||
+            (qualitiesToValidate.none { it.hasSomethingLinked() } && !switchHasTopologicalConnections) ||
                 notLinked.isEmpty(),
             WARNING,
         ) {
@@ -802,7 +776,7 @@ fun validateSwitchAlignmentTopology(
             switchId,
             switchName,
             locationTracksAndGeometries,
-            linkingQuality
+            qualitiesToValidate
                 .flatMap { quality -> quality.nonDuplicateTracks.takeIf { it.size > 1 } ?: listOf() }
                 .map { track -> track.id }
                 .toSet(),
@@ -829,11 +803,7 @@ fun validateSwitchOuterLinkUniqueness(
         }
         .groupBy({ it.first }, { it.second })
         .mapNotNull { (jointNumber, tracksAndConnections) ->
-            validateWithParams(
-                (validatingTrack != null && tracksAndConnections.none { (track) -> track.id == validatingTrack.id }) ||
-                    tracksAndConnections.count { (_, c) -> c.switchIn == null } <= 1,
-                WARNING,
-            ) {
+            validateWithParams(tracksAndConnections.count { (_, c) -> c.switchIn == null } <= 1, WARNING) {
                 "${switchOrTrackLinkageKey(validatingTrack)}.multiple-outer-without-inner-links" to
                     localizationParams(
                         "switch" to switchName.toString(),
