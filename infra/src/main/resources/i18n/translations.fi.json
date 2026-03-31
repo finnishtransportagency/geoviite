@@ -894,6 +894,20 @@
                 "detach-button": "Poista linkitys",
                 "success-toast": "Vaihde {{switchName}} irrotettu raiteelta {{trackName}}"
             },
+            "operational-point-links": {
+                "heading": "Raiteen toiminnalliset pisteet",
+                "no-operational-points": "Raidetta ei ole linkitetty toiminnallisille pisteille",
+                "show-more": "Näytä kaikki {{count}} kpl",
+                "no-location": "Ei sijaintia",
+                "not-existing": "Poistettu",
+                "detach": "Irrota"
+            },
+            "detach-operational-point-links-dialog": {
+                "title": "Toiminnallisen pisteen linkityksen poistaminen raiteelta",
+                "message": "Haluatko irrottaa toiminnallisen pisteen {{operationalPointName}} linkityksen raiteelta {{trackName}}?",
+                "detach-button": "Poista linkitys",
+                "success-toast": "Toiminnallinen piste {{operationalPointName}} irrotettu raiteelta {{trackName}}"
+            },
             "topological-connectivity": "Topologinen kytkeytyminen",
             "start-switch": "Vaihde raiteen alussa",
             "end-switch": "Vaihde raiteen lopussa",
