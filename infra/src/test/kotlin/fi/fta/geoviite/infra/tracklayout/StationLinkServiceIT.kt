@@ -327,6 +327,105 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     }
 
     @Test
+    fun `getStationLinks returns correct links when filtering by operational point id`() {
+        val tnVersion =
+            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
+                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
+            )
+        val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(10.0, 0.0)))
+        val op1Address = TrackMeter("0000+0010.000")
+        val op2 = mainOfficialContext.save(operationalPoint("OP2", location = Point(90.0, 0.0)))
+        val op2Address = TrackMeter("0000+0090.000")
+
+        // Switch1 belongs to OP1, switch2 belongs to OP2
+        val switch1Id = mainOfficialContext.save(switch(operationalPointId = op1.id)).id
+        val switch2Id = mainOfficialContext.save(switch(operationalPointId = op2.id)).id
+
+        // Extension track on OP1 side: covers from OP1 location area to switch1
+        // Only connected to OP1 (via switch1)
+        mainOfficialContext.save(
+            locationTrack(tnVersion.id),
+            trackGeometry(
+                edge(
+                    endOuterSwitch = switchLinkYV(switch1Id, 1),
+                    segments = listOf(segment(Point(0.0, 5.0), Point(30.0, 5.0), calc = M_CALC.LAYOUT)),
+                )
+            ),
+        )
+
+        // Mid track: connects switch1 to switch2
+        // Connected to both OPs via switches, but doesn't reach either OP's center location
+        val connectingTrack =
+            mainOfficialContext.save(
+                locationTrack(tnVersion.id),
+                trackGeometry(
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch1Id, 1),
+                        endInnerSwitch = switchLinkYV(switch1Id, 3),
+                        segments = listOf(segment(Point(30.0, 5.0), Point(40.0, 5.0), calc = M_CALC.LAYOUT)),
+                    ),
+                    edge(
+                        startOuterSwitch = switchLinkYV(switch1Id, 3),
+                        endOuterSwitch = switchLinkYV(switch2Id, 1),
+                        segments = listOf(segment(Point(40.0, 5.0), Point(60.0, 5.0), calc = M_CALC.LAYOUT)),
+                    ),
+                    edge(
+                        startInnerSwitch = switchLinkYV(switch2Id, 1),
+                        endInnerSwitch = switchLinkYV(switch2Id, 2),
+                        segments = listOf(segment(Point(60.0, 5.0), Point(70.0, 5.0), calc = M_CALC.LAYOUT)),
+                    ),
+                ),
+            )
+
+        // Extension track on OP2 side: covers from switch2 to OP2 location area
+        // Only connected to OP2 (via switch2)
+        mainOfficialContext.save(
+            locationTrack(tnVersion.id),
+            trackGeometry(
+                edge(
+                    startOuterSwitch = switchLinkYV(switch2Id, 2),
+                    segments = listOf(segment(Point(70.0, 5.0), Point(100.0, 5.0), calc = M_CALC.LAYOUT)),
+                )
+            ),
+        )
+
+        testDBService.createPublication()
+
+        val expectedLink =
+            listOf(StationLink(tnVersion, op1, op2, listOf(connectingTrack), op1Address, op2Address, 0.0))
+        val expectedLength = 89.758
+
+        // Without filter: should find the link
+        stationLinkService.getStationLinks(mainOfficialContext.context).also { links ->
+            assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
+            assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
+        }
+
+        // With filter by OP1: should still find the same link
+        stationLinkService.getStationLinks(mainOfficialContext.context, opFilter = op1.id).also { links ->
+            assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
+            assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
+        }
+
+        // With filter by OP2: should still find the same link
+        stationLinkService.getStationLinks(mainOfficialContext.context, opFilter = op2.id).also { links ->
+            assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
+            assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
+        }
+
+        // Verify moment-based fetch with filters works too
+        val moment = testDBService.getDbTime()
+        stationLinkService.getStationLinks(LayoutBranch.main, moment, opFilter = op1.id).also { links ->
+            assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
+            assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
+        }
+        stationLinkService.getStationLinks(LayoutBranch.main, moment, opFilter = op2.id).also { links ->
+            assertEquals(expectedLink, links.map { it.copy(length = 0.0) })
+            assertEquals(expectedLength, links[0].length, LAYOUT_M_DELTA)
+        }
+    }
+
+    @Test
     fun `getStationLinks handles tracks referencing deleted operational points`() {
         val tnVersion =
             mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
