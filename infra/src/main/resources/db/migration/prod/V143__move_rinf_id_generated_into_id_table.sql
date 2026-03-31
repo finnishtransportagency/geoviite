@@ -1,6 +1,4 @@
-drop trigger operational_point_rinf_id_generated_unique_check on layout.operational_point;
-
-drop function layout.check_rinf_id_generated_uniqueness;
+drop view if exists layout.operational_point_version_view;
 
 alter table layout.operational_point
   drop column rinf_id_generated;
