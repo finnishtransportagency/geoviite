@@ -870,16 +870,16 @@ class RoutingTest {
 
         val graph = assertDoesNotThrow { buildGraph(listOf(trackGeom), activeSwitches, structures) }
 
-        // Routing over or from the deleted switch area should not throw
-        assertDoesNotThrow {
+        // Routing over or from the deleted switch area won't work but should not throw
+        assertNull(
             graph.findPath(trackCacheHit(trackGeom, Point(10.0, 0.0)), trackCacheHit(trackGeom, Point(290.0, 0.0)))
-        }
-        assertDoesNotThrow {
+        )
+        assertNull(
             graph.findPath(trackCacheHit(trackGeom, Point(150.0, 0.0)), trackCacheHit(trackGeom, Point(290.0, 0.0)))
-        }
-        assertDoesNotThrow {
+        )
+        assertNull(
             graph.findPath(trackCacheHit(trackGeom, Point(10.0, 0.0)), trackCacheHit(trackGeom, Point(150.0, 0.0)))
-        }
+        )
     }
 }
 
