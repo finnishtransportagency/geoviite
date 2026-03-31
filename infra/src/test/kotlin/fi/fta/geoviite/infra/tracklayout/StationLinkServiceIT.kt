@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -271,6 +272,82 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 calculateDistance(LAYOUT_SRID, Point(20.0, 5.0), Point(80.0, 5.0)),
                 links[0].length,
                 LAYOUT_M_DELTA,
+            )
+        }
+    }
+
+    @Test
+    fun `getStationLinks does not produce links for OLP-type operational points`() {
+        val tnVersion =
+            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
+                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
+            )
+        val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
+        val olp =
+            mainOfficialContext.save(
+                operationalPoint("OLP1", location = Point(50.0, 0.0), ratoType = OperationalPointRatoType.OLP)
+            )
+        val op2 = mainOfficialContext.save(operationalPoint("OP2", location = Point(80.0, 0.0)))
+
+        // Track connects OP1, OLP, and OP2 directly
+        mainOfficialContext.save(
+            locationTrack(trackNumberId = tnVersion.id, operationalPointIds = setOf(op1.id, olp.id, op2.id)),
+            trackGeometry(edge(segments = listOf(segment(Point(15.0, 2.0), Point(85.0, 2.0), calc = M_CALC.LAYOUT)))),
+        )
+
+        testDBService.createPublication()
+
+        stationLinkService.getStationLinks(mainOfficialContext.context).also { links ->
+            // Only the OP1-OP2 link should exist; OLP should be excluded entirely
+            assertEquals(
+                listOf(op1 to op2),
+                links.map { it.startOperationalPointVersion to it.endOperationalPointVersion },
+            )
+        }
+
+        // Verify moment-based fetch also excludes OLP
+        stationLinkService.getStationLinks(LayoutBranch.main, testDBService.getDbTime()).also { links ->
+            // Only the OP1-OP2 link should exist; OLP should be excluded entirely
+            assertEquals(
+                listOf(op1 to op2),
+                links.map { it.startOperationalPointVersion to it.endOperationalPointVersion },
+            )
+        }
+    }
+
+    @Test
+    fun `getStationLinks handles tracks referencing deleted operational points`() {
+        val tnVersion =
+            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
+                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
+            )
+        val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
+        val deletedOp = mainOfficialContext.save(
+            operationalPoint("DELETED_OP", location = Point(50.0, 0.0), state = OperationalPointState.DELETED)
+        )
+        val op2 = mainOfficialContext.save(operationalPoint("OP2", location = Point(80.0, 0.0)))
+
+        // Track references two real OPs and one that has been deleted
+        mainOfficialContext.save(
+            locationTrack(trackNumberId = tnVersion.id, operationalPointIds = setOf(op1.id, deletedOp.id, op2.id)),
+            trackGeometry(edge(segments = listOf(segment(Point(15.0, 2.0), Point(85.0, 2.0), calc = M_CALC.LAYOUT)))),
+        )
+
+        testDBService.createPublication()
+
+        // Should not throw and should produce a link between the two existing OPs only
+        stationLinkService.getStationLinks(mainOfficialContext.context).also { links ->
+            assertEquals(
+                listOf(op1 to op2),
+                links.map { it.startOperationalPointVersion to it.endOperationalPointVersion },
+            )
+        }
+
+        // Verify moment-based fetch also handles the broken reference gracefully
+        stationLinkService.getStationLinks(LayoutBranch.main, testDBService.getDbTime()).also { links ->
+            assertEquals(
+                listOf(op1 to op2),
+                links.map { it.startOperationalPointVersion to it.endOperationalPointVersion },
             )
         }
     }

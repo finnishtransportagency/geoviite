@@ -1,3 +1,4 @@
+import { fromExtent } from 'ol/geom/Polygon';
 import { MapLayerName } from 'map/map-model';
 import { Point as OlPoint } from 'ol/geom';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
@@ -14,15 +15,15 @@ import { LayoutContext } from 'common/common-model';
 import { Selection } from 'selection/selection-model';
 import { Point, Rectangle } from 'model/geometry';
 import {
+    filterByResolution,
+    findMatchingOperationalPointCluster,
     findMatchingOperationalPoints,
     getOperationalPointsFromApi,
     isBeingMoved,
-    operationalPointFeatureModeBySelection,
-    renderOperationalPointCircleFeature,
-    filterByResolution,
-    findMatchingOperationalPointCluster,
-    renderClusteredOperationalPointCircleFeature,
     operationalPointClusterFeatureModeBySelection,
+    operationalPointFeatureModeBySelection,
+    renderClusteredOperationalPointCircleFeature,
+    renderOperationalPointCircleFeature,
 } from 'map/layers/operational-point/operational-points-layer-utils';
 import { LinkingState } from 'linking/linking-model';
 import { expectDefined } from 'utils/type-utils';
@@ -74,11 +75,16 @@ export function createOperationalPointIconLayer(
     const onLoadingChange = () => {};
 
     const createFeatures = (points: OperationalPoint[]) => {
+        const viewPolygon = fromExtent(olView.calculateExtent());
+
         const prefilteredPoints = points.filter(
             (point) =>
                 point.state !== 'DELETED' &&
                 !isBeingMoved(linkingState, point.id) &&
-                filterByResolution(point, resolution),
+                filterByResolution(point, resolution) &&
+                point.location &&
+                // pre-filter points in viewport, to avoid expense in clustering
+                viewPolygon.containsXY(point.location.x, point.location.y),
         );
 
         return clusterNearbyOperationalPoints(prefilteredPoints, resolution)

@@ -26,7 +26,12 @@ import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
-    enum class MapScale(val value: String) {
+    enum class MapScale(
+        val value: String,
+        // Sometimes openlayers shows scale in different format, e.g. "1 km" instead of "1000 m"
+        // This is out of our direct control and both are correct -> just allow either
+        val optionalForm: String? = null,
+    ) {
         MM_5("5 mm"),
         MM_10("10 mm"),
         MM_20("20 mm"),
@@ -34,7 +39,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         MM_100("100 mm"),
         MM_200("200 mm"),
         MM_500("500 mm"),
-        MM_1000("1000 mm"),
+        MM_1000("1000 mm", "1 m"),
         M_2("2 m"),
         M_5("5 m"),
         M_10("10 m"),
@@ -43,7 +48,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         M_100("100 m"),
         M_200("200 m"),
         M_500("500 m"),
-        M_1000("1000 m"),
+        M_1000("1000 m", "1 km"),
         KM_2("2 km"),
         KM_5("5 km"),
         KM_10("10 km"),
@@ -51,7 +56,9 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         KM_50("50 km"),
         KM_100("100 km"),
         KM_200("200 km"),
-        KM_500("500 km"),
+        KM_500("500 km");
+
+        fun matches(scale: String) = scale == value || (optionalForm != null && scale == optionalForm)
     }
 
     init {
@@ -81,7 +88,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
                     scale
                         .takeIf { it.isNotEmpty() }
                         ?.let {
-                            requireNotNull(MapScale.entries.firstOrNull { it.value == scale }) {
+                            requireNotNull(MapScale.entries.firstOrNull { it.matches(scale) }) {
                                 "Unknown map scale: $scale"
                             }
                         }

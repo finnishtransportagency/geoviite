@@ -156,13 +156,17 @@ class OperationalPointService(
         return if (draft?.origin != OperationalPointOrigin.RATKO || branch != LayoutBranch.main) {
             dao.deleteDraft(branch, id)
         } else {
-            // avoid deleting ID row, which the DAO's #deleteDraft would do in case this is draft-only
-            dao.deleteRow(LayoutRowId(id, branch.draft))
-
             val draftRatkoVersion = requireNotNull(draft.ratkoVersion)
-            val officialRatkoVersion = get(branch.official, id)?.ratkoVersion
-            if (officialRatkoVersion == null || officialRatkoVersion < draftRatkoVersion) {
-                dao.insertRatkoPoint(id, draftRatkoVersion)
+            val official = get(branch.official, id)
+
+            if (official?.ratkoVersion != null && official.ratkoVersion < draftRatkoVersion) {
+                dao.save(asDraft(LayoutBranch.main, official.copy(ratkoVersion = draftRatkoVersion)))
+            } else {
+                // avoid deleting ID row, which the DAO's #deleteDraft would do in case this is draft-only
+                dao.deleteRow(LayoutRowId(id, branch.draft))
+                if (official == null) {
+                    dao.insertRatkoPoint(id, draftRatkoVersion)
+                }
             }
             draftVersion
         }

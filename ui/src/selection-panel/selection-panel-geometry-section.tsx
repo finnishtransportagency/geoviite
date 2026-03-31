@@ -3,7 +3,6 @@ import { Eye } from 'geoviite-design-lib/eye/eye';
 import { createClassName } from 'vayla-design-lib/utils';
 import { GeometryPlanPanel } from 'selection-panel/geometry-plan-panel/geometry-plan-panel';
 import {
-    createEmptyItemCollections,
     ToggleAccordionOpenPayload,
     ToggleAlignmentPayload,
     ToggleKmPostPayload,
@@ -41,7 +40,7 @@ import {
 import { ChangeTimes } from 'common/common-slice';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { filterNotEmpty, filterUnique, first } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, reuseListElements } from 'utils/array-utils';
 import { GeometryPlanFilterMenuContainer } from 'selection-panel/geometry-plan-panel/geometry-plan-filter-menu-container';
 import { GeometryPlanGrouping } from 'track-layout/track-layout-slice';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -142,7 +141,13 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                         : GeometrySortBy.NAME,
                     GeometrySortOrder.ASCENDING,
                 ).then((result) => {
-                    setPlanHeadersDisplayableInPanel(result.planHeaders.items);
+                    setPlanHeadersDisplayableInPanel((planHeadersDisplayableInPanel) =>
+                        reuseListElements(
+                            result.planHeaders.items,
+                            planHeadersDisplayableInPanel,
+                            (header) => header.id,
+                        ),
+                    );
                     setPlanHeaderCount(result.planHeaders.totalCount);
                     setPlanIdsInViewport(
                         result.planHeaders.items.map(({ id }) => id).concat(result.remainingIds),
@@ -166,26 +171,29 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         ],
     );
 
-    const fetchPlanLayouts = (ids: GeometryPlanId[]): Promise<GeometryPlanLayoutResult[]> => {
-        ids.forEach(startFetchingPlan);
-        return Promise.all([
-            getTrackLayoutPlans(ids, changeTimes.geometryPlan),
-            getPlanLinkStatuses(ids, layoutContext),
-        ])
-            .then(([layouts, linkStatuses]) => {
-                ids.forEach((id, index) => {
-                    const layout = layouts[index];
-                    const linkStatus = linkStatuses[index];
-                    setSingleFetchedPlan(id, {
-                        planLayout: layout?.layout,
-                        planLayoutError: layout?.error,
-                        linkStatus,
+    const fetchPlanLayouts = React.useCallback(
+        (ids: GeometryPlanId[]): Promise<GeometryPlanLayoutResult[]> => {
+            ids.forEach(startFetchingPlan);
+            return Promise.all([
+                getTrackLayoutPlans(ids, changeTimes.geometryPlan),
+                getPlanLinkStatuses(ids, layoutContext),
+            ])
+                .then(([layouts, linkStatuses]) => {
+                    ids.forEach((id, index) => {
+                        const layout = layouts[index];
+                        const linkStatus = linkStatuses[index];
+                        setSingleFetchedPlan(id, {
+                            planLayout: layout?.layout,
+                            planLayoutError: layout?.error,
+                            linkStatus,
+                        });
                     });
-                });
-                return layouts;
-            })
-            .finally(() => ids.forEach(finishFetchingPlan));
-    };
+                    return layouts;
+                })
+                .finally(() => ids.forEach(finishFetchingPlan));
+        },
+        [changeTimes.geometryPlan, layoutContext],
+    );
 
     const visiblePlansInView = visiblePlans.filter((p) =>
         planIdsInViewport.some((planId) => planId === p.id),
@@ -290,58 +298,12 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 <GeometryPlanPanel
                                     key={h.id}
                                     planHeader={h}
-                                    onPlanHeaderSelection={(header) =>
-                                        onSelect({
-                                            ...createEmptyItemCollections(),
-                                            geometryPlans: [header.id],
-                                            isToggle: true,
-                                        })
-                                    }
+                                    onSelect={onSelect}
                                     changeTimes={changeTimes}
                                     onTogglePlanVisibility={onTogglePlanVisibility}
                                     onToggleAlignmentVisibility={onToggleAlignmentVisibility}
-                                    onToggleAlignmentSelection={(alignment) =>
-                                        onSelect({
-                                            ...createEmptyItemCollections(),
-                                            geometryAlignmentIds: [
-                                                {
-                                                    geometryId: alignment.id,
-                                                    planId: h.id,
-                                                },
-                                            ],
-                                            isToggle: true,
-                                        })
-                                    }
                                     onToggleSwitchVisibility={onToggleSwitchVisibility}
-                                    onToggleSwitchSelection={(switchItem) =>
-                                        onSelect({
-                                            ...createEmptyItemCollections(),
-                                            geometrySwitchIds: switchItem.sourceId
-                                                ? [
-                                                      {
-                                                          geometryId: switchItem.sourceId,
-                                                          planId: h.id,
-                                                      },
-                                                  ]
-                                                : [],
-                                            isToggle: true,
-                                        })
-                                    }
                                     onToggleKmPostVisibility={onToggleKmPostVisibility}
-                                    onToggleKmPostSelection={(kmPost) =>
-                                        onSelect({
-                                            ...createEmptyItemCollections(),
-                                            geometryKmPostIds: kmPost.sourceId
-                                                ? [
-                                                      {
-                                                          geometryId: kmPost.sourceId,
-                                                          planId: h.id,
-                                                      },
-                                                  ]
-                                                : [],
-                                            isToggle: true,
-                                        })
-                                    }
                                     selectedItems={selectedItems}
                                     visiblePlans={visiblePlans}
                                     togglePlanOpen={togglePlanOpen}
@@ -353,11 +315,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                     planLayoutError={fetchedPlans.get(h.id)?.planLayoutError}
                                     linkStatus={fetchedPlans.get(h.id)?.linkStatus}
                                     planBeingLoaded={plansBeingFetched.has(h.id)}
-                                    loadPlanLayout={() =>
-                                        fetchPlanLayouts([h.id]).then(
-                                            (ps) => first(ps) ?? undefined,
-                                        )
-                                    }
+                                    fetchPlanLayouts={fetchPlanLayouts}
                                     disabled={disabled}
                                 />
                             </React.Fragment>
