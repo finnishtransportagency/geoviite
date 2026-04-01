@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -198,16 +199,26 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     fun `getStationLinks returns correct links when the track doesn't cover the whole way`() {
         val tnVersion =
             mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
-                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
+                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(200.0, 0.0))
             )
         val op1Version = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
         val op1Address = TrackMeter("0000+0020.000")
-        val op2Version = mainOfficialContext.save(operationalPoint("OP2", location = Point(80.0, 0.0)))
-        val op2Address = TrackMeter("0000+0080.000")
+        val op2Version = mainOfficialContext.save(operationalPoint("OP2", location = Point(180.0, 0.0)))
+        val op2Address = TrackMeter("0000+0180.000")
 
         // The switches connect to the operational points with the same number
-        val switch1Id = mainOfficialContext.save(switch(operationalPointId = op1Version.id)).id
-        val switch2Id = mainOfficialContext.save(switch(operationalPointId = op2Version.id)).id
+        val structure = switchStructureYV60_300_1_9()
+        val switch1Id = mainOfficialContext.save(switch(structure.id, operationalPointId = op1Version.id)).id
+        val switch2Id = mainOfficialContext.save(switch(structure.id, operationalPointId = op2Version.id)).id
+
+        // Use switch joint locations for segments to get consistent length calculation:
+        // |-- extraTrack1 -- <J1 switch1 J2> -- connectingTrack -- <J1 switch2 J2> -- extraTrack2 --|
+        val start = Point(0.0, 5.0)
+        val switch1Joint1Location = Point(30.0, 5.0)
+        val switch1Joint2Location = switch1Joint1Location + structure.getJointLocation(JointNumber(2))
+        val switch2Joint2Location = Point(170.0, 5.0)
+        val switch2Joint1Location = switch2Joint2Location - structure.getJointLocation(JointNumber(2))
+        val end = Point(200.0, 5.0)
 
         // We need a track from OP1 main location to the closest point on connecting track
         // It's not actually a connecting track itself (won't be mentioned in station-links)
@@ -215,31 +226,31 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
             locationTrack(tnVersion.id),
             trackGeometry(
                 edge(
-                    endOuterSwitch = switchLinkYV(switch1Id, 3),
-                    segments = listOf(segment(Point(0.0, 5.0), Point(30.0, 5.0), calc = M_CALC.LAYOUT)),
+                    endOuterSwitch = switchLinkYV(switch1Id, 1),
+                    segments = listOf(segment(start, switch1Joint1Location, calc = M_CALC.LAYOUT)),
                 )
             ),
         )
 
-        // The main connecting track that links to both OP1 and OP2, but doesn't cover the whole distance between them
         val connectingTrack =
             mainOfficialContext.save(
                 locationTrack(tnVersion.id),
                 trackGeometry(
                     edge(
                         startInnerSwitch = switchLinkYV(switch1Id, 1),
-                        endInnerSwitch = switchLinkYV(switch1Id, 3),
-                        segments = listOf(segment(Point(30.0, 5.0), Point(40.0, 5.0), calc = M_CALC.LAYOUT)),
+                        endInnerSwitch = switchLinkYV(switch1Id, 2),
+                        // Make segment length match the structure alignment for consistent length calculation
+                        segments = listOf(segment(switch1Joint1Location, switch1Joint2Location, calc = M_CALC.LAYOUT)),
                     ),
                     edge(
-                        startOuterSwitch = switchLinkYV(switch1Id, 3),
+                        startOuterSwitch = switchLinkYV(switch1Id, 2),
                         endOuterSwitch = switchLinkYV(switch2Id, 1),
-                        segments = listOf(segment(Point(40.0, 5.0), Point(60.0, 5.0), calc = M_CALC.LAYOUT)),
+                        segments = listOf(segment(switch1Joint2Location, switch2Joint1Location, calc = M_CALC.LAYOUT)),
                     ),
                     edge(
                         startInnerSwitch = switchLinkYV(switch2Id, 1),
                         endInnerSwitch = switchLinkYV(switch2Id, 2),
-                        segments = listOf(segment(Point(60.0, 5.0), Point(70.0, 5.0), calc = M_CALC.LAYOUT)),
+                        segments = listOf(segment(switch2Joint1Location, switch2Joint2Location, calc = M_CALC.LAYOUT)),
                     ),
                 ),
             )
@@ -251,7 +262,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 // The only edge goes from switch2 to switch3 (not switch-internal geometry)
                 edge(
                     startOuterSwitch = switchLinkYV(switch2Id, 2),
-                    segments = listOf(segment(Point(70.0, 5.0), Point(100.0, 5.0), calc = M_CALC.LAYOUT)),
+                    segments = listOf(segment(switch2Joint2Location, end, calc = M_CALC.LAYOUT)),
                 )
             ),
         )
@@ -269,7 +280,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
             )
             // Verify link length (longer than the connecting track!)
             assertEquals(
-                calculateDistance(LAYOUT_SRID, Point(20.0, 5.0), Point(80.0, 5.0)),
+                calculateDistance(LAYOUT_SRID, Point(20.0, 5.0), Point(180.0, 5.0)),
                 links[0].length,
                 LAYOUT_M_DELTA,
             )
@@ -322,9 +333,10 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(20.0, 0.0)))
-        val deletedOp = mainOfficialContext.save(
-            operationalPoint("DELETED_OP", location = Point(50.0, 0.0), state = OperationalPointState.DELETED)
-        )
+        val deletedOp =
+            mainOfficialContext.save(
+                operationalPoint("DELETED_OP", location = Point(50.0, 0.0), state = OperationalPointState.DELETED)
+            )
         val op2 = mainOfficialContext.save(operationalPoint("OP2", location = Point(80.0, 0.0)))
 
         // Track references two real OPs and one that has been deleted
