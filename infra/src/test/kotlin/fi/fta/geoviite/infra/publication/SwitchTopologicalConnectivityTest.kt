@@ -142,7 +142,7 @@ class SwitchTopologicalConnectivityTest {
     }
 
     @Test
-    fun `through track is not responsible for missing branching track`() {
+    fun `through track is responsible for missing branching track`() {
         val (switch, link) = switchAndLink()
         val throughTrack = track("through track", null, link(1, 5), link(5, 2))
         val issues =
@@ -152,7 +152,21 @@ class SwitchTopologicalConnectivityTest {
                 listOf(throughTrack),
                 throughTrack.first,
             )
-        assertEquals(listOf(), issues)
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
+                    mapOf("switch" to switch.name.toString(), "alignments" to "1-3"),
+                    inRelationTo =
+                        setOf(
+                            PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH),
+                            PublicationLogAsset(throughTrack.first.id as IntId, PublicationLogAssetType.LOCATION_TRACK),
+                        ),
+                )
+            ),
+            issues,
+        )
     }
 
     @Test
@@ -170,13 +184,27 @@ class SwitchTopologicalConnectivityTest {
     }
 
     @Test
-    fun `track through rail crossing is not responsible for missing links on other switch alignments`() {
+    fun `track through rail crossing is responsible for missing links on other switch alignments`() {
         val (switch, link) = switchAndLink(switchStructureRR54_4x1_9())
         val track152 = track("track 152", link(1, 5), link(5, 2))
 
         val issues =
             validateSwitchTopologicalConnectivity(switch, switchStructureRR54_4x1_9(), listOf(track152), track152.first)
-        assertEquals(emptyList(), issues)
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
+                    mapOf("switch" to switch.name.toString(), "alignments" to "4-5, 5-3"),
+                    inRelationTo =
+                        setOf(
+                            PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH),
+                            PublicationLogAsset(track152.first.id as IntId, PublicationLogAssetType.LOCATION_TRACK),
+                        ),
+                )
+            ),
+            issues,
+        )
     }
 
     @Test
@@ -214,7 +242,7 @@ class SwitchTopologicalConnectivityTest {
     }
 
     @Test
-    fun `track linked to a split alignment is not responsible for missing links on a different switch alignment`() {
+    fun `track linked to a split alignment is responsible for missing links on a different switch alignment`() {
         val (switch, link) = switchAndLink(switchStructureRR54_4x1_9())
         val track15 = track("track 15", link(1, 5))
         val track52 = track("track 52", link(5, 2))
@@ -222,7 +250,21 @@ class SwitchTopologicalConnectivityTest {
         // missing track link on 5-3
         val tracks = listOf(track15, track52, track45)
         val issues = validateSwitchTopologicalConnectivity(switch, switchStructureRR54_4x1_9(), tracks, track15.first)
-        assertEquals(listOf(), issues)
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    LayoutValidationIssueType.WARNING,
+                    "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
+                    mapOf("switch" to switch.name.toString(), "alignments" to "5-3"),
+                    inRelationTo =
+                        setOf(
+                            PublicationLogAsset(switch.id as IntId, PublicationLogAssetType.SWITCH),
+                            PublicationLogAsset(track15.first.id as IntId, PublicationLogAssetType.LOCATION_TRACK),
+                        ),
+                )
+            ),
+            issues,
+        )
     }
 
     @Test

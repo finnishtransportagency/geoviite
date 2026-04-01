@@ -1745,8 +1745,7 @@ constructor(
         locationTrackService.cancel(designBranch, branchingTrack)
 
         // .. but if the location tracks are cancelled, then the switch will see the branching
-        // alignment is no longer connected. Both the switch and the branching alignment should be blamed, but the
-        // through track is innocent.
+        // alignment is no longer connected.
         val validateCancellation =
             publicationValidationService.validatePublicationCandidates(
                 publicationService.collectPublicationCandidates(PublicationInDesign(designBranch)),
@@ -1780,12 +1779,23 @@ constructor(
                     ),
             ),
         )
-        // cancelling the edit to the through track is fine, as it was already correctly linked in main
-        assertFalse(
-            validateCancellation.validatedAsPublicationUnit.locationTracks
-                .find { it.id == throughTrack }!!
-                .issues
-                .any { it.localizationKey.toString().contains("linkage") }
+        assertEquals(
+            listOf(
+                LayoutValidationIssue(
+                    localizationKey =
+                        LocalizationKey.of(
+                            "validation.layout.location-track.switch-linkage.switch-alignment-not-connected"
+                        ),
+                    type = LayoutValidationIssueType.WARNING,
+                    params = LocalizationParams(mapOf("switch" to "some switch", "alignments" to "1-3")),
+                    inRelationTo =
+                        setOf(
+                            PublicationLogAsset(switch, PublicationLogAssetType.SWITCH),
+                            PublicationLogAsset(throughTrack, PublicationLogAssetType.LOCATION_TRACK),
+                        ),
+                )
+            ),
+            validateCancellation.validatedAsPublicationUnit.locationTracks.find { it.id == throughTrack }!!.issues,
         )
     }
 
@@ -2355,19 +2365,22 @@ constructor(
                         LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-draft",
                         mapOf("duplicateNames" to "b"),
-                    )),
+                    )
+                ),
                 listOf(
                     LayoutValidationIssue(
                         LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-draft",
                         mapOf("duplicateNames" to "a, c"),
-                    )),
+                    )
+                ),
                 listOf(
                     LayoutValidationIssue(
                         LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-draft",
                         mapOf("duplicateNames" to "b"),
-                    )),
+                    )
+                ),
             ),
             validation.validatedAsPublicationUnit.operationalPoints
                 .sortedBy { it.name.toString() }
@@ -2431,7 +2444,8 @@ constructor(
                     LayoutValidationIssueType.WARNING,
                     "validation.layout.operational-point.overlapping-polygon-official",
                     mapOf("duplicateNames" to "a"),
-                )),
+                )
+            ),
             validatedOnlyFirst.validatedAsPublicationUnit.operationalPoints[0].issues,
         )
 
@@ -2488,7 +2502,8 @@ constructor(
                         LayoutValidationIssueType.WARNING,
                         "validation.layout.operational-point.overlapping-polygon-official",
                         mapOf("duplicateNames" to "a"),
-                    )),
+                    )
+                ),
                 // polygon with no overlaps is fine
                 listOf(),
             ),
@@ -2867,7 +2882,8 @@ constructor(
                     LayoutValidationIssueType.WARNING,
                     "validation.layout.operational-point.overlapping-polygon-official",
                     mapOf("duplicateNames" to "b"),
-                )),
+                )
+            ),
             publicationValidationService.validateOperationalPoints(LayoutBranch.main, OFFICIAL, listOf(a))[0].errors,
         )
     }

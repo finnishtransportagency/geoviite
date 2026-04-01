@@ -1,3 +1,9 @@
+alter table layout.operational_point
+  disable trigger version_update_trigger;
+alter table layout.operational_point
+  disable trigger version_row_trigger;
+
+
 create sequence if not exists layout.rinf_id_seq
   start with 100000
   increment by 1;
@@ -10,11 +16,17 @@ $$
 select 'FI' || nextval('layout.rinf_id_seq')::text;
 $$;
 
-alter table layout.operational_point_id
-  add column rinf_id_generated varchar(12),
-  add constraint rinf_id_generated_uk unique (rinf_id_generated);
-
+alter table layout.operational_point
+  add column rinf_id_generated varchar(12);
 alter table layout.operational_point
   add column rinf_id_override varchar(12);
+
+alter table layout.operational_point_version
+  add column rinf_id_generated varchar(12);
 alter table layout.operational_point_version
   add column rinf_id_override varchar(12);
+
+alter table layout.operational_point
+  enable trigger version_update_trigger;
+alter table layout.operational_point
+  enable trigger version_row_trigger;
