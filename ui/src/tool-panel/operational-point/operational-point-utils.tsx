@@ -55,7 +55,8 @@ export function linkingSummaryTranslationInfo(
 export const Hide: React.FC<React.PropsWithChildren<{ when: boolean }>> = ({ when, children }) =>
     when ? <div /> : <div style={{ display: 'contents' }}>{children}</div>;
 
-const RINF_ID_REGEX = /^[A-Z]{2}[0-9]{1,}$/;
+const EU_RINF_ID_REGEX = /^EU[0-9]{1,}$/;
+const SE_RINF_ID_REGEX = /^SE[A-Za-z]{1,}$/;
 
 export const withConditionalRinfIdOverride = <T,>(request: T, allowRinfIdOverride: boolean): T =>
     allowRinfIdOverride ? request : { ...request, rinfIdOverride: undefined };
@@ -67,10 +68,11 @@ export const validateRinfIdOverride = (
         validate<OperationalPointSaveRequestBase>(
             rinfIdOverride === undefined ||
                 rinfIdOverride.length < 2 ||
-                rinfIdOverride.startsWith('EU'),
+                rinfIdOverride.startsWith('EU') ||
+                rinfIdOverride.startsWith('SE'),
             {
                 field: 'rinfIdOverride',
-                reason: 'rinf-id-must-start-with-eu',
+                reason: 'override-wrong-prefix',
                 type: FieldValidationIssueType.ERROR,
             },
         ),
@@ -83,7 +85,9 @@ export const validateRinfIdOverride = (
             },
         ),
         validate<OperationalPointSaveRequestBase>(
-            rinfIdOverride === undefined || RINF_ID_REGEX.test(rinfIdOverride),
+            rinfIdOverride === undefined ||
+                EU_RINF_ID_REGEX.test(rinfIdOverride) ||
+                SE_RINF_ID_REGEX.test(rinfIdOverride),
             {
                 field: 'rinfIdOverride',
                 reason: 'invalid-rinf-id',
