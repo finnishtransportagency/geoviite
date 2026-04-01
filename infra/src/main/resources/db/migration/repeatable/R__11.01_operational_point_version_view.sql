@@ -1,3 +1,4 @@
+-- Increment this to force a rerun: 1
 drop view if exists layout.operational_point_version_view;
 create view layout.operational_point_version_view as
 select
