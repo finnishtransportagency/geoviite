@@ -1343,7 +1343,7 @@ class PublicationValidationTest {
     @Test
     fun `RINF id validation returns no errors for valid overrides`() {
         val euOp = operationalPoint(rinfIdOverride = "EU12345", rinfIdGenerated = "FI1234")
-        val seOp = operationalPoint(rinfIdOverride = "EU12345", rinfIdGenerated = "FI1234")
+        val seOp = operationalPoint(rinfIdOverride = "SEAbc", rinfIdGenerated = "FI1234")
         assertEquals(0, validateOperationalPointRinfId(euOp).size)
         assertEquals(0, validateOperationalPointRinfId(seOp).size)
     }
