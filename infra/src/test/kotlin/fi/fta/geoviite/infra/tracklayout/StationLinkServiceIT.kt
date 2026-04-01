@@ -220,7 +220,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
         val switch2Joint1Location = switch2Joint2Location - structure.getJointLocation(JointNumber(2))
         val end = Point(200.0, 5.0)
 
-        // We need a track from OP1 main location to the closest point on connecting track
+        // Extra track from OP1 main location to the closest point on connecting track
         // It's not actually a connecting track itself (won't be mentioned in station-links)
         mainOfficialContext.save(
             locationTrack(tnVersion.id),
@@ -255,11 +255,11 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 ),
             )
 
-        // A second extra track to complete the route to OP2 by
+        // Second extra track from the closest point on connecting track to the OP2 main location
+        // It's not actually a connecting track itself (won't be mentioned in station-links)
         mainOfficialContext.save(
             locationTrack(tnVersion.id),
             trackGeometry(
-                // The only edge goes from switch2 to switch3 (not switch-internal geometry)
                 edge(
                     startOuterSwitch = switchLinkYV(switch2Id, 2),
                     segments = listOf(segment(switch2Joint2Location, end, calc = M_CALC.LAYOUT)),
@@ -278,7 +278,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
                 ),
                 links.map { it.copy(length = 0.0) },
             )
-            // Verify link length (longer than the connecting track!)
+            // Verify link length
             assertEquals(
                 calculateDistance(LAYOUT_SRID, Point(20.0, 5.0), Point(180.0, 5.0)),
                 links[0].length,
