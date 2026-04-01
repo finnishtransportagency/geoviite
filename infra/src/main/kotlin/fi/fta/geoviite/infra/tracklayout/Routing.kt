@@ -558,8 +558,9 @@ fun resolveSwitchAlignments(
     val switchId = edge.startNode.switchIn?.id?.takeIf { edge.endNode.switchIn?.id == it }
     val startJoint = edge.startNode.switchIn?.jointNumber
     val endJoint = edge.endNode.switchIn?.jointNumber
-    return if (switchId != null && startJoint != null && endJoint != null) {
-        val structure = structures.getValue(switches.getValue(switchId).switchStructureId)
+    val switch = switchId?.let(switches::get)
+    return if (switch != null && startJoint != null && endJoint != null) {
+        val structure = structures.getValue(switch.switchStructureId)
         val alignments = structure.alignments.filter { it.contains(startJoint) && it.contains(endJoint) }
         alignments
             .mapNotNull { alignment ->

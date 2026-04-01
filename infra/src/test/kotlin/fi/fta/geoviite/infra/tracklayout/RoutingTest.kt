@@ -18,7 +18,10 @@ import fi.fta.geoviite.infra.tracklayout.VertexDirection.IN
 import fi.fta.geoviite.infra.tracklayout.VertexDirection.OUT
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertNotNull
 
 class RoutingTest {
 
@@ -724,6 +727,159 @@ class RoutingTest {
                 getRoute(end to trackGeom1, start to trackGeom1),
             )
         }
+    }
+
+    @Test
+    fun `Routing does not throw when an edge has a broken switch linking`() {
+        // While we no longer create these, some historical data has edges with broken switch linkings:
+        //   Both ends connect to a switch as inner connection, but the switches are different. In effect,
+        //   the edge claims to be part of the internal geometry of two different switches.
+        // Such a switch is unroutable, but we don't want the graph building to fail as we know these exist
+        val structure = switchStructureYV60_300_1_9()
+        val structures = mapOf(structure.id to structure)
+
+        val switch1Id = IntId<LayoutSwitch>(1)
+        val switch2Id = IntId<LayoutSwitch>(2)
+        val switch1 = switch(id = switch1Id, structureId = structure.id)
+        val switch2 = switch(id = switch2Id, structureId = structure.id)
+
+        val trackStartNode = dbTrackEndNode(10, 111, START)
+        val trackEndNode = dbTrackEndNode(11, 111, END)
+        val switch1Node = dbSwitchNode(12, 1, 1)
+        val switch2Node = dbSwitchNode(13, 2, 2)
+
+        val trackStart = Point(0.0, 0.0)
+        val switch1Location = Point(100.0, 0.0)
+        val switch2Location = Point(200.0, 0.0)
+        val trackEnd = Point(300.0, 0.0)
+
+        val startEdge =
+            DbLayoutEdge(
+                id = IntId(10000),
+                // Start at track start
+                startNode = DbNodeConnection(NodePortType.A, trackStartNode),
+                // Connect to switch1 as outer connection
+                endNode = DbNodeConnection(NodePortType.B, switch1Node),
+                segments = listOf(segment(trackStart, switch1Location)),
+            )
+        val brokenInnerSwitchEdge =
+            DbLayoutEdge(
+                id = IntId(10001),
+                // Connect start to switch1 as inner connection
+                startNode = DbNodeConnection(NodePortType.A, switch1Node),
+                // Connect end to switch2 as inner connection
+                endNode = DbNodeConnection(NodePortType.A, switch2Node),
+                segments = listOf(segment(switch1Location, switch2Location)),
+            )
+        val endEdge =
+            DbLayoutEdge(
+                id = IntId(10002),
+                // Start at switch2 as outer connection
+                startNode = DbNodeConnection(NodePortType.B, switch2Node),
+                // End at track end
+                endNode = DbNodeConnection(NodePortType.A, trackEndNode),
+                segments = listOf(segment(switch2Location, trackEnd)),
+            )
+
+        val trackGeom =
+            DbLocationTrackGeometry(
+                trackRowVersion = layoutRowVersion(111),
+                edges = listOf(startEdge, brokenInnerSwitchEdge, endEdge),
+            )
+
+        val graph = assertDoesNotThrow { buildGraph(listOf(trackGeom), listOf(switch1, switch2), structures) }
+
+        // The graph should still have vertices for the valid switches and track ends
+        val vertices = graph.getVertices()
+        assertEquals(4, vertices.filter { it is TrackBoundaryVertex }.size) {
+            "Graph should contain in & out boundary vertices for track start and end (2 x 2)"
+        }
+        assertEquals(12, vertices.filter { it is SwitchJointVertex }.size) {
+            "Graph should contain in & out joint vertices for both switches' connection points (2 x 2 x 3)"
+        }
+
+        // Routing over / from / to the switch won't work but shouldn't throw either
+        assertNull(
+            graph.findPath(trackCacheHit(trackGeom, Point(10.0, 0.0)), trackCacheHit(trackGeom, Point(290.0, 0.0)))
+        )
+        assertNull(
+            graph.findPath(trackCacheHit(trackGeom, Point(150.0, 0.0)), trackCacheHit(trackGeom, Point(290.0, 0.0)))
+        )
+        assertNull(
+            graph.findPath(trackCacheHit(trackGeom, Point(10.0, 0.0)), trackCacheHit(trackGeom, Point(150.0, 0.0)))
+        )
+
+        // Routing will work on the un-borked section
+        assertNotNull(
+            graph.findPath(trackCacheHit(trackGeom, Point(10.0, 0.0)), trackCacheHit(trackGeom, Point(90.0, 0.0)))
+        )
+    }
+
+    @Test
+    fun `Routing does not throw when a switch is deleted but tracks still reference it`() {
+        // When a switch has stateCategory=NOT_EXISTING, RoutingService filters it out of the
+        // switches list passed to buildGraph. But the track edges may still have nodes that
+        // reference the deleted switch. The graph building/routing should handle this gracefully.
+        val structure = switchStructureYV60_300_1_9()
+        val structures = mapOf(structure.id to structure)
+
+        val switchId = IntId<LayoutSwitch>(1)
+        val deletedSwitch =
+            switch(id = switchId, structureId = structure.id, stateCategory = LayoutStateCategory.NOT_EXISTING)
+
+        val trackStartNode = dbTrackEndNode(10, 111, START)
+        val trackEndNode = dbTrackEndNode(11, 111, END)
+        val switchStartNode = dbSwitchNode(12, 1, 1)
+        val switchEndNode = dbSwitchNode(13, 1, 2)
+
+        val trackStart = Point(0.0, 0.0)
+        val switchLocation = Point(100.0, 0.0)
+        val switchEndLocation = Point(200.0, 0.0)
+        val trackEnd = Point(300.0, 0.0)
+
+        val startEdge =
+            DbLayoutEdge(
+                id = IntId(10000),
+                startNode = DbNodeConnection(NodePortType.A, trackStartNode),
+                endNode = DbNodeConnection(NodePortType.B, switchStartNode),
+                segments = listOf(segment(trackStart, switchLocation)),
+            )
+        val switchInnerEdge =
+            DbLayoutEdge(
+                id = IntId(10001),
+                startNode = DbNodeConnection(NodePortType.A, switchStartNode),
+                endNode = DbNodeConnection(NodePortType.A, switchEndNode),
+                segments = listOf(segment(switchLocation, switchEndLocation)),
+            )
+        val endEdge =
+            DbLayoutEdge(
+                id = IntId(10002),
+                startNode = DbNodeConnection(NodePortType.B, switchEndNode),
+                endNode = DbNodeConnection(NodePortType.A, trackEndNode),
+                segments = listOf(segment(switchEndLocation, trackEnd)),
+            )
+
+        val trackGeom =
+            DbLocationTrackGeometry(
+                trackRowVersion = layoutRowVersion(111),
+                edges = listOf(startEdge, switchInnerEdge, endEdge),
+            )
+
+        // Simulate RoutingService behavior: the deleted switch is filtered out
+        val activeSwitches = listOf(deletedSwitch).filter { it.exists }
+
+        val graph = assertDoesNotThrow { buildGraph(listOf(trackGeom), activeSwitches, structures) }
+
+        // Routing over or from the deleted switch area won't work but should not throw
+        assertNull(
+            graph.findPath(trackCacheHit(trackGeom, Point(10.0, 0.0)), trackCacheHit(trackGeom, Point(290.0, 0.0)))
+        )
+        assertNull(
+            graph.findPath(trackCacheHit(trackGeom, Point(150.0, 0.0)), trackCacheHit(trackGeom, Point(290.0, 0.0)))
+        )
+        assertNull(
+            graph.findPath(trackCacheHit(trackGeom, Point(10.0, 0.0)), trackCacheHit(trackGeom, Point(150.0, 0.0)))
+        )
     }
 }
 
