@@ -79,9 +79,11 @@ data class OperationalPointAbbreviation @JsonCreator(mode = DELEGATING) construc
 // Swedish RINF IDs are in the format of SE + abbreviation (i.e. "SEHp"). We need to support both
 private val RINF_ID_SANITY_REGEX = Regex("^[A-Z]{2}[a-zA-Z0-9]{1,10}\$")
 
-// Overrides always start with "EU" and are in the format of EU + potential padding with zeros + UIC code (e.g.
-// "EU00123").
-val RINF_ID_OVERRIDE_REGEX = Regex("^EU[0-9]{1,10}\$")
+// Valid override formats:
+// "EU" followed by 1-10 digits (e.g. "EU12345")
+// "SE" followed by 1-10 characters (e.g. "SEAbc")
+val EU_RINF_ID_OVERRIDE_REGEX = Regex("^EU[0-9]{1,10}\$")
+val SE_RINF_ID_OVERRIDE_REGEX = Regex("^SE[a-zA-Z]{1,10}\$")
 
 data class RinfId @JsonCreator(mode = DELEGATING) constructor(private val value: String) {
     init {

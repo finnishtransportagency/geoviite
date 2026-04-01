@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureAlignment
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
+import fi.fta.geoviite.infra.tracklayout.EU_RINF_ID_OVERRIDE_REGEX
 import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutEdge
@@ -43,10 +44,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackNameChord
 import fi.fta.geoviite.infra.tracklayout.LocationTrackNamingScheme
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
-import fi.fta.geoviite.infra.tracklayout.RINF_ID_OVERRIDE_REGEX
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
+import fi.fta.geoviite.infra.tracklayout.SE_RINF_ID_OVERRIDE_REGEX
 import fi.fta.geoviite.infra.tracklayout.TOPOLOGY_CALC_DISTANCE
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLink
@@ -253,7 +254,8 @@ fun validateOperationalPointRinfId(operationalPoint: OperationalPoint): List<Lay
     listOfNotNull(
         validate(
             operationalPoint.rinfIdOverride == null ||
-                RINF_ID_OVERRIDE_REGEX.matches(operationalPoint.rinfIdOverride.toString())
+                EU_RINF_ID_OVERRIDE_REGEX.matches(operationalPoint.rinfIdOverride.toString()) ||
+                SE_RINF_ID_OVERRIDE_REGEX.matches(operationalPoint.rinfIdOverride.toString())
         ) {
             "$VALIDATION_OPERATIONAL_POINT.rinf-id-override-invalid-format"
         }
@@ -270,9 +272,10 @@ fun validateOperationalPointPolygonOverlap(
         validationTargetType,
         operationalPoint,
         overlapsWith,
-        WARNING) { contextDuplicates ->
-            listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
-        }
+        WARNING,
+    ) { contextDuplicates ->
+        listOf("duplicateNames" to contextDuplicates.joinToString { it.name.toString() })
+    }
 
 fun validateKmPostReferences(
     kmPost: LayoutKmPost,

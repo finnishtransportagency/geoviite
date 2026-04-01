@@ -1341,10 +1341,11 @@ class PublicationValidationTest {
     }
 
     @Test
-    fun `RINF id validation returns no errors for valid override`() {
-        val op = operationalPoint(rinfIdOverride = "EU12345", rinfIdGenerated = "FI1234")
-        val errors = validateOperationalPointRinfId(op)
-        assertEquals(0, errors.size)
+    fun `RINF id validation returns no errors for valid overrides`() {
+        val euOp = operationalPoint(rinfIdOverride = "EU12345", rinfIdGenerated = "FI1234")
+        val seOp = operationalPoint(rinfIdOverride = "EU12345", rinfIdGenerated = "FI1234")
+        assertEquals(0, validateOperationalPointRinfId(euOp).size)
+        assertEquals(0, validateOperationalPointRinfId(seOp).size)
     }
 
     @Test
@@ -1364,7 +1365,8 @@ class PublicationValidationTest {
 
     @Test
     fun `RINF id validation returns error for invalid overrides`() {
-        // Valid override format: "EU" followed by 1-10 digits, e.g. "EU0123"
+        // Valid override formats: "EU" followed by 1-10 digits, e.g. "EU0123" or "SE" followed by 1-10 characters, e.g.
+        // "SEabc"
         assertContainsError(
             true,
             validateOperationalPointRinfId(operationalPoint(rinfIdOverride = "FI12345")),
@@ -1373,6 +1375,16 @@ class PublicationValidationTest {
         assertContainsError(
             true,
             validateOperationalPointRinfId(operationalPoint(rinfIdOverride = "EUabc")),
+            "$VALIDATION_OPERATIONAL_POINT.rinf-id-override-invalid-format",
+        )
+        assertContainsError(
+            true,
+            validateOperationalPointRinfId(operationalPoint(rinfIdOverride = "SE12345")),
+            "$VALIDATION_OPERATIONAL_POINT.rinf-id-override-invalid-format",
+        )
+        assertContainsError(
+            true,
+            validateOperationalPointRinfId(operationalPoint(rinfIdOverride = "DE12345")),
             "$VALIDATION_OPERATIONAL_POINT.rinf-id-override-invalid-format",
         )
     }

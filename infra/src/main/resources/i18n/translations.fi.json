@@ -1886,6 +1886,7 @@
                 "overlapping-polygon-official": "Toiminnallisen pisteen alue on päällekkäin toisen toiminnallisen pisteen alueen kanssa: {{duplicateNames}}",
                 "overlapping-polygon-draft": "Muutosjoukossa on päällekkäisiä toiminnallisten pisteiden alueita: {{duplicateNames}}",
                 "overlapping-polygon-draft-in-main": "Toiminnallisen pisteen alue on päällekkäin paikannuspohjan luonnoksen kanssa: {{duplicateNames}}",
+                "rinf-id-override-invalid-format": "RINF-tunnuksen muoto on virheellinen",
                 "rinf-type-missing": "RINF-tyyppi puuttuu",
                 "polygon-missing": "Alue puuttuu",
                 "location-outside-polygon": "Pistemäinen sijainti on toiminnallisen pisteen alueen ulkopuolella",
@@ -2030,7 +2031,8 @@
             "rinf-id": "Tunnus (RINF)",
             "polygon": "Alue",
             "linked-switches": "Vaihdelinkitykset",
-            "linked-operational-point": "Toiminnallisen pisteen asetus"
+            "linked-operational-point": "Liitos toiminnalliseen pisteeseen",
+            "linked-operational-points": "Liitokset toiminnallisiin pisteisiin"
         }
     },
     "publication-log": {
@@ -2394,7 +2396,7 @@
             "invalid-uic-code": "Virheellinen UIC-koodi",
             "invalid-rinf-id": "Virheellinen tunnus",
             "rinf-id-too-long": "Tunnuksen maksimipituus on 12 merkkiä",
-            "rinf-id-must-start-with-eu": "Käsin syötetyn tunnuksen tulee alkaa etuliitteellä \"EU\"",
+            "override-wrong-prefix": "Käsin syötetyn tunnuksen tulee alkaa etuliitteellä \"EU\" tai \"SE\"",
             "mandatory-field": "Pakollinen kenttä",
             "name-in-use": "Paikannuspohjassa on toinen toiminnallinen piste samalla nimellä",
             "name-in-use-deleted": "Paikannuspohjassa on poistettu toiminnallinen piste samalla nimellä",
