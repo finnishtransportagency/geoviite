@@ -22,10 +22,10 @@ import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) =
     Split(
@@ -109,8 +109,9 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             """
                 .trimIndent()
 
-        val params =
-            relinkedSwitches.map { switchId -> mapOf("splitId" to splitId.intValue, "switchId" to switchId.intValue) }
+        val params = relinkedSwitches.map { switchId ->
+            mapOf("splitId" to splitId.intValue, "switchId" to switchId.intValue)
+        }
 
         jdbcTemplate.batchUpdate(sql, params.toTypedArray())
     }
@@ -123,10 +124,9 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             """
                 .trimIndent()
 
-        val params =
-            updatedDuplicates.map { duplicateId ->
-                mapOf("splitId" to splitId.intValue, "duplicateLocationTrackId" to duplicateId.intValue)
-            }
+        val params = updatedDuplicates.map { duplicateId ->
+            mapOf("splitId" to splitId.intValue, "duplicateLocationTrackId" to duplicateId.intValue)
+        }
 
         jdbcTemplate.batchUpdate(sql, params.toTypedArray())
     }
@@ -161,16 +161,15 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             """
                 .trimIndent()
 
-        val params =
-            splitTargets.map { st ->
-                mapOf(
-                    "splitId" to splitId.intValue,
-                    "trackId" to st.locationTrackId.intValue,
-                    "edgeStart" to st.edgeIndices.first,
-                    "edgeEnd" to st.edgeIndices.last,
-                    "operation" to st.operation.name,
-                )
-            }
+        val params = splitTargets.map { st ->
+            mapOf(
+                "splitId" to splitId.intValue,
+                "trackId" to st.locationTrackId.intValue,
+                "edgeStart" to st.edgeIndices.first,
+                "edgeEnd" to st.edgeIndices.last,
+                "operation" to st.operation.name,
+            )
+        }
 
         jdbcTemplate.batchUpdate(sql, params.toTypedArray())
     }
@@ -297,6 +296,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 operation
             from publication.split_target_location_track
             where split_id = :id
+            order by source_start_edge_index, source_end_edge_index, location_track_id
             """
                 .trimIndent()
 

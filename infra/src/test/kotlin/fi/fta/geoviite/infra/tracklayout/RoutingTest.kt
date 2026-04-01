@@ -881,6 +881,162 @@ class RoutingTest {
             graph.findPath(trackCacheHit(trackGeom, Point(10.0, 0.0)), trackCacheHit(trackGeom, Point(150.0, 0.0)))
         )
     }
+
+    @Test
+    fun `Route length is correctly calculated in and over switches`() {
+        val structure = switchStructureYV60_300_1_9()
+        val structures = mapOf(structure.id to structure)
+
+        val switchId1 = IntId<LayoutSwitch>(1)
+        val switch1 = switch(id = switchId1, structureId = structure.id)
+        val switchId2 = IntId<LayoutSwitch>(2)
+        val switch2 = switch(id = switchId2, structureId = structure.id)
+
+        // Build the following tracks
+        //  Track1: start -- switch1 (outer)
+        //  Track2: switch1 (inner) -- switch2 (inner)
+        //  Track3: switch2 (outer) -- end
+
+        val track1StartNode = dbTrackEndNode(10, 111, START)
+        val switch1StartNode = dbSwitchNode(11, 1, 1)
+        val switch1EndNode = dbSwitchNode(12, 1, 2)
+        val switch2StartNode = dbSwitchNode(13, 2, 1)
+        val switch2EndNode = dbSwitchNode(14, 2, 2)
+        val track3EndNode = dbTrackEndNode(15, 333, END)
+
+        val track1Start = Point(0.0, 10.0)
+        val switch1Joint1Location = Point(100.0, 10.0)
+        val switch1Joint2Location = Point(100.0, 10.0) + structure.getJointLocation(JointNumber(2))
+        val switch2Joint1Location = Point(200.0, 10.0) - structure.getJointLocation(JointNumber(2))
+        val switch2Joint2Location = Point(200.0, 10.0)
+        val track3End = Point(300.0, 10.0)
+
+        val track1Edge =
+            DbLayoutEdge(
+                id = IntId(10000),
+                startNode = DbNodeConnection(NodePortType.A, track1StartNode),
+                endNode = DbNodeConnection(NodePortType.B, switch1StartNode),
+                segments = listOf(segment(track1Start, switch1Joint1Location)),
+            )
+        val switch1InnerEdge =
+            DbLayoutEdge(
+                id = IntId(10001),
+                startNode = DbNodeConnection(NodePortType.A, switch1StartNode),
+                endNode = DbNodeConnection(NodePortType.A, switch1EndNode),
+                segments = listOf(segment(switch1Joint1Location, switch1Joint2Location)),
+            )
+        val track2MidEdge =
+            DbLayoutEdge(
+                id = IntId(10002),
+                startNode = DbNodeConnection(NodePortType.B, switch1EndNode),
+                endNode = DbNodeConnection(NodePortType.B, switch2StartNode),
+                segments = listOf(segment(switch1Joint2Location, switch2Joint1Location)),
+            )
+        val switch2InnerEdge =
+            DbLayoutEdge(
+                id = IntId(10003),
+                startNode = DbNodeConnection(NodePortType.A, switch2StartNode),
+                endNode = DbNodeConnection(NodePortType.A, switch2EndNode),
+                segments = listOf(segment(switch2Joint1Location, switch2Joint2Location)),
+            )
+        val track3Edge =
+            DbLayoutEdge(
+                id = IntId(10004),
+                startNode = DbNodeConnection(NodePortType.B, switch2EndNode),
+                endNode = DbNodeConnection(NodePortType.A, track3EndNode),
+                segments = listOf(segment(switch2Joint2Location, track3End)),
+            )
+
+        val trackGeom1 = DbLocationTrackGeometry(layoutRowVersion(111), listOf(track1Edge))
+        val trackGeom2 =
+            DbLocationTrackGeometry(layoutRowVersion(222), listOf(switch1InnerEdge, track2MidEdge, switch2InnerEdge))
+        val trackGeom3 = DbLocationTrackGeometry(layoutRowVersion(333), listOf(track3Edge))
+
+        val graph =
+            buildGraph(
+                trackGeoms = listOf(trackGeom1, trackGeom2, trackGeom3),
+                switches = listOf(switch1, switch2),
+                structures = structures,
+            )
+        val getLength =
+            {
+                (from, fromTrack): Pair<Point, DbLocationTrackGeometry>,
+                (to, toTrack): Pair<Point, DbLocationTrackGeometry> ->
+                graph.findPath(trackCacheHit(fromTrack, from), trackCacheHit(toTrack, to))?.totalLength
+            }
+
+        // Verify correct lengths on various routing cases on the same graph
+
+        // Full length over all tracks
+        assertEquals(300.0, getLength(track1Start to trackGeom1, track3End to trackGeom3))
+
+        // From start to switch1 joint 1 should be 100, regardless of direction & track the cache-hits land on
+        assertEquals(100.0, getLength(track1Start to trackGeom1, switch1Joint1Location to trackGeom1))
+        assertEquals(100.0, getLength(track1Start to trackGeom1, switch1Joint1Location to trackGeom2))
+        assertEquals(100.0, getLength(switch1Joint1Location to trackGeom1, track1Start to trackGeom1))
+        assertEquals(100.0, getLength(switch1Joint1Location to trackGeom2, track1Start to trackGeom1))
+
+        // From end to switch2 joint 2 should be 100, regardless of direction & track the cache-hits land on
+        assertEquals(100.0, getLength(track3End to trackGeom3, switch2Joint2Location to trackGeom3))
+        assertEquals(100.0, getLength(track3End to trackGeom3, switch2Joint2Location to trackGeom2))
+        assertEquals(100.0, getLength(switch2Joint2Location to trackGeom3, track3End to trackGeom3))
+        assertEquals(100.0, getLength(switch2Joint2Location to trackGeom2, track3End to trackGeom3))
+
+        // From switch1 joint 1 to switch2 joint 2 should be 100, regardless of direction & track the cache-hits land on
+        assertEquals(100.0, getLength(switch1Joint1Location to trackGeom2, switch2Joint2Location to trackGeom2))
+        assertEquals(100.0, getLength(switch1Joint1Location to trackGeom1, switch2Joint2Location to trackGeom2))
+        assertEquals(100.0, getLength(switch1Joint1Location to trackGeom2, switch2Joint2Location to trackGeom3))
+        assertEquals(100.0, getLength(switch1Joint1Location to trackGeom1, switch2Joint2Location to trackGeom3))
+        assertEquals(100.0, getLength(switch2Joint2Location to trackGeom2, switch1Joint1Location to trackGeom2))
+        assertEquals(100.0, getLength(switch2Joint2Location to trackGeom2, switch1Joint1Location to trackGeom1))
+        assertEquals(100.0, getLength(switch2Joint2Location to trackGeom3, switch1Joint1Location to trackGeom2))
+        assertEquals(100.0, getLength(switch2Joint2Location to trackGeom3, switch1Joint1Location to trackGeom1))
+
+        // From switch1 joint 2 to switch2 joint 1 should be 100-2*[switch alignment length] ~ 31.14, regardless of
+        // direction
+        assertEquals(
+            31.14,
+            getLength(switch1Joint2Location to trackGeom2, switch2Joint1Location to trackGeom2)!!,
+            LAYOUT_M_DELTA,
+        )
+        assertEquals(
+            31.14,
+            getLength(switch2Joint1Location to trackGeom2, switch1Joint2Location to trackGeom2)!!,
+            LAYOUT_M_DELTA,
+        )
+
+        // From mid-track1 to mid-track2 should be 100, regardless of direction
+        assertEquals(100.0, getLength(Point(50.0, 10.0) to trackGeom1, Point(150.0, 10.0) to trackGeom2))
+        assertEquals(100.0, getLength(Point(150.0, 10.0) to trackGeom2, Point(50.0, 10.0) to trackGeom1))
+
+        // From mid-track1 to mid-track3 should be 200, regardless of direction
+        assertEquals(200.0, getLength(Point(50.0, 10.0) to trackGeom1, Point(250.0, 10.0) to trackGeom3))
+        assertEquals(200.0, getLength(Point(250.0, 10.0) to trackGeom3, Point(50.0, 10.0) to trackGeom1))
+
+        // From mid-track2 to mid-track3 should be 100, regardless of direction
+        assertEquals(100.0, getLength(Point(150.0, 10.0) to trackGeom2, Point(250.0, 10.0) to trackGeom3))
+        assertEquals(100.0, getLength(Point(250.0, 10.0) to trackGeom3, Point(150.0, 10.0) to trackGeom2))
+
+        // From start to mid-switch1 (by 10m) should be 110, regardless of direction
+        assertEquals(110.0, getLength(track1Start to trackGeom1, Point(110.0, 0.0) to trackGeom2))
+        assertEquals(110.0, getLength(Point(110.0, 0.0) to trackGeom2, track1Start to trackGeom1))
+
+        // From mid-switch1 (by 10m) to end should be 190, regardless of direction
+        assertEquals(190.0, getLength(Point(110.0, 0.0) to trackGeom2, track3End to trackGeom3))
+        assertEquals(190.0, getLength(track3End to trackGeom3, Point(110.0, 0.0) to trackGeom2))
+
+        // From mid-switch2 (by 10m) to end should be 110, regardless of direction
+        assertEquals(110.0, getLength(Point(190.0, 10.0) to trackGeom2, track3End to trackGeom3))
+        assertEquals(110.0, getLength(track3End to trackGeom3, Point(190.0, 10.0) to trackGeom2))
+
+        // From start to mid-switch2 (by 10m) should be 190, regardless of direction
+        assertEquals(190.0, getLength(track1Start to trackGeom1, Point(190.0, 10.0) to trackGeom2))
+        assertEquals(190.0, getLength(Point(190.0, 10.0) to trackGeom2, track1Start to trackGeom1))
+
+        // From mid-switch1 (by 10m) to mid-switch2 (by 10m) should be 80, regardless of direction
+        assertEquals(80.0, getLength(Point(110.0, 0.0) to trackGeom2, Point(190.0, 10.0) to trackGeom2))
+        assertEquals(80.0, getLength(Point(190.0, 10.0) to trackGeom2, Point(110.0, 0.0) to trackGeom2))
+    }
 }
 
 private fun routeSection(trackId: Int, startM: Double, endM: Double, direction: EdgeDirection) =
