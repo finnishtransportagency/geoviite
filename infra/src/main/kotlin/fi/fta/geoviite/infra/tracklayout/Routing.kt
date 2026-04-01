@@ -287,11 +287,11 @@ data class RoutingGraph(
             val edgeRangeLimit = mRangeLimit?.let { switchM ->
                 val edgeMin = switchEdge.toEdgeM(switchM.min)
                 val edgeMax = switchEdge.toEdgeM(switchM.max)
-                Range(minOf(edgeMin, edgeMax), maxOf(edgeMin, edgeMax)).takeIf {
-                    it.length().distance >= LAYOUT_M_DELTA
-                }
+                Range(minOf(edgeMin, edgeMax), maxOf(edgeMin, edgeMax))
             }
-            findRouteSection(switchEdge.id, edgeDirection, favoredTrackIds, edgeRangeLimit)
+            if (edgeRangeLimit == null || edgeRangeLimit.length().distance >= LAYOUT_M_DELTA) {
+                findRouteSection(switchEdge.id, edgeDirection, favoredTrackIds, edgeRangeLimit)
+            } else null
         } ?: emptyList()
 
     private fun findRouteSection(
@@ -332,7 +332,7 @@ data class RoutingGraph(
 
         return when {
             // Special case: no distance between points -> no need for path
-            abs(startEdgeM - endEdgeM).distance < LAYOUT_M_DELTA -> emptyList()
+            startEdge.id == endEdge.id && abs(startEdgeM - endEdgeM).distance < LAYOUT_M_DELTA -> emptyList()
 
             // Special case: on the same edge -> a direct single-step path along the edge is the shortest
             startEdge.id == endEdge.id -> {
@@ -429,14 +429,25 @@ data class RoutingGraph(
         abstract val vertex: RoutingVertex
 
         abstract fun edgeDirection(midPointM: LineM<EdgeM>, vertexDirection: VertexDirection): EdgeDirection
+
+        protected fun <T : AnyM<T>> calculateEdgeDirection(sourceM: LineM<T>, targetM: LineM<T>): EdgeDirection =
+            when {
+                targetM > sourceM -> UP
+                sourceM > targetM -> DOWN
+                // Special cases for the same location: assume we're coming from the center direction
+                // If the target is at the start of the edge (0.0) we're heading DOWN, otherwise UP
+                targetM.distance == 0.0 -> DOWN
+                else -> UP
+            }
     }
 
     private data class TmpTrackVertexData(override val vertex: RoutingVertex, val vertexM: LineM<EdgeM>) :
         TmpVertexData() {
+
         override fun edgeDirection(midPointM: LineM<EdgeM>, vertexDirection: VertexDirection): EdgeDirection =
             when (vertexDirection) {
-                IN -> if (midPointM >= vertexM) UP else DOWN
-                OUT -> if (midPointM <= vertexM) UP else DOWN
+                IN -> calculateEdgeDirection(vertexM, midPointM)
+                OUT -> calculateEdgeDirection(midPointM, vertexM)
             }
     }
 
@@ -446,12 +457,11 @@ data class RoutingGraph(
         val alignment: RoutingSwitchAlignment,
         val switchEdge: SwitchEdge,
     ) : TmpVertexData() {
-
         override fun edgeDirection(midPointM: LineM<EdgeM>, vertexDirection: VertexDirection): EdgeDirection =
             switchEdge.toSwitchM(midPointM).let { switchM ->
                 when (vertexDirection) {
-                    IN -> if (switchM >= vertexM) UP else DOWN
-                    OUT -> if (switchM <= vertexM) UP else DOWN
+                    IN -> calculateEdgeDirection(vertexM, switchM)
+                    OUT -> calculateEdgeDirection(switchM, vertexM)
                 }
             }
     }
@@ -558,8 +568,9 @@ fun resolveSwitchAlignments(
     val switchId = edge.startNode.switchIn?.id?.takeIf { edge.endNode.switchIn?.id == it }
     val startJoint = edge.startNode.switchIn?.jointNumber
     val endJoint = edge.endNode.switchIn?.jointNumber
-    return if (switchId != null && startJoint != null && endJoint != null) {
-        val structure = structures.getValue(switches.getValue(switchId).switchStructureId)
+    val switch = switchId?.let(switches::get)
+    return if (switch != null && startJoint != null && endJoint != null) {
+        val structure = structures.getValue(switch.switchStructureId)
         val alignments = structure.alignments.filter { it.contains(startJoint) && it.contains(endJoint) }
         alignments
             .mapNotNull { alignment ->
