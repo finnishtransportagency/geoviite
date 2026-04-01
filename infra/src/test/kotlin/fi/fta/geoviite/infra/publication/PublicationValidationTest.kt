@@ -1365,7 +1365,7 @@ class PublicationValidationTest {
 
     @Test
     fun `RINF id validation returns error for invalid overrides`() {
-        // Valid override formats: "EU" followed by 1-10 digits, e.g. "EU0123" or "SE" followed by 1-10 characters, e.g.
+        // Valid override formats: "EU" followed by 1-10 digits, e.g. "EU0123" or "SE" followed by 1-10 letters, e.g.
         // "SEabc"
         assertContainsError(
             true,
