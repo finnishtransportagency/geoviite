@@ -129,7 +129,10 @@ class OperationalPointService(
         branch: LayoutBranch,
         version: LayoutRowVersion<OperationalPoint>,
     ): PublicationResultVersions<OperationalPoint> {
-        if (dao.getRinfIdGenerated(version.id) == null && dao.fetch(version).ratoType != OperationalPointRatoType.OLP) {
+        if (
+            dao.getRinfIdGenerated(version.id) == null &&
+                dao.fetch(version).let { it.ratoType != OperationalPointRatoType.OLP && it.rinfIdOverride == null }
+        ) {
             dao.setRinfIdGenerated(version.id, dao.generateRinfId())
         }
         val publishedVersion = publishInternal(branch, version)
