@@ -330,16 +330,17 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
     fun `getStationLinks returns correct links when filtering by operational point id`() {
         val tnVersion =
             mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
-                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(100.0, 0.0))
+                referenceLineGeometryOfPoints(Point(0.0, 0.0), Point(200.0, 0.0))
             )
         val op1 = mainOfficialContext.save(operationalPoint("OP1", location = Point(10.0, 0.0)))
         val op1Address = TrackMeter("0000+0010.000")
-        val op2 = mainOfficialContext.save(operationalPoint("OP2", location = Point(90.0, 0.0)))
-        val op2Address = TrackMeter("0000+0090.000")
+        val op2 = mainOfficialContext.save(operationalPoint("OP2", location = Point(190.0, 0.0)))
+        val op2Address = TrackMeter("0000+0190.000")
 
         // Switch1 belongs to OP1, switch2 belongs to OP2
-        val switch1Id = mainOfficialContext.save(switch(operationalPointId = op1.id)).id
-        val switch2Id = mainOfficialContext.save(switch(operationalPointId = op2.id)).id
+        val structure = switchStructureYV60_300_1_9()
+        val switch1Id = mainOfficialContext.save(switch(structure.id, operationalPointId = op1.id)).id
+        val switch2Id = mainOfficialContext.save(switch(structure.id, operationalPointId = op2.id)).id
 
         // Extension track on OP1 side: covers from OP1 location area to switch1
         // Only connected to OP1 (via switch1)
@@ -348,34 +349,38 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
             trackGeometry(
                 edge(
                     endOuterSwitch = switchLinkYV(switch1Id, 1),
-                    segments = listOf(segment(Point(0.0, 5.0), Point(30.0, 5.0), calc = M_CALC.LAYOUT)),
+                    segments = listOf(segment(Point(0.0, 5.0), Point(20.0, 5.0), calc = M_CALC.LAYOUT)),
                 )
             ),
         )
-
         // Mid track: connects switch1 to switch2
         // Connected to both OPs via switches, but doesn't reach either OP's center location
-        val connectingTrack =
-            mainOfficialContext.save(
-                locationTrack(tnVersion.id),
-                trackGeometry(
-                    edge(
-                        startInnerSwitch = switchLinkYV(switch1Id, 1),
-                        endInnerSwitch = switchLinkYV(switch1Id, 3),
-                        segments = listOf(segment(Point(30.0, 5.0), Point(40.0, 5.0), calc = M_CALC.LAYOUT)),
-                    ),
-                    edge(
-                        startOuterSwitch = switchLinkYV(switch1Id, 3),
-                        endOuterSwitch = switchLinkYV(switch2Id, 1),
-                        segments = listOf(segment(Point(40.0, 5.0), Point(60.0, 5.0), calc = M_CALC.LAYOUT)),
-                    ),
-                    edge(
-                        startInnerSwitch = switchLinkYV(switch2Id, 1),
-                        endInnerSwitch = switchLinkYV(switch2Id, 2),
-                        segments = listOf(segment(Point(60.0, 5.0), Point(70.0, 5.0), calc = M_CALC.LAYOUT)),
-                    ),
+        val trackGeometry =
+            trackGeometry(
+                edge(
+                    startInnerSwitch = switchLinkYV(switch1Id, 1),
+                    endInnerSwitch = switchLinkYV(switch1Id, 2),
+                    // Match segment length to structure alignment 1-2 (43.34) to get more predictable length
+                    segments = listOf(segment(Point(20.0, 5.0), Point(54.43, 5.0), calc = M_CALC.LAYOUT)),
+                ),
+                edge(
+                    startOuterSwitch = switchLinkYV(switch1Id, 2),
+                    endOuterSwitch = switchLinkYV(switch2Id, 1),
+                    segments = listOf(segment(Point(54.43, 5.0), Point(145.57, 5.0), calc = M_CALC.LAYOUT)),
+                ),
+                edge(
+                    startInnerSwitch = switchLinkYV(switch2Id, 1),
+                    endInnerSwitch = switchLinkYV(switch2Id, 2),
+                    // Match segment length to structure alignment 1-2 (43.34) to get more predictable length
+                    segments = listOf(segment(Point(145.57, 5.0), Point(180.0, 5.0), calc = M_CALC.LAYOUT)),
                 ),
             )
+        assertEquals(
+            calculateDistance(LAYOUT_SRID, Point(20.0, 5.0), Point(180.0, 5.0)),
+            trackGeometry.length.distance,
+            LAYOUT_M_DELTA,
+        )
+        val connectingTrack = mainOfficialContext.save(locationTrack(tnVersion.id), trackGeometry)
 
         // Extension track on OP2 side: covers from switch2 to OP2 location area
         // Only connected to OP2 (via switch2)
@@ -384,7 +389,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
             trackGeometry(
                 edge(
                     startOuterSwitch = switchLinkYV(switch2Id, 2),
-                    segments = listOf(segment(Point(70.0, 5.0), Point(100.0, 5.0), calc = M_CALC.LAYOUT)),
+                    segments = listOf(segment(Point(180.0, 5.0), Point(200.0, 5.0), calc = M_CALC.LAYOUT)),
                 )
             ),
         )
@@ -393,7 +398,7 @@ class StationLinkServiceIT @Autowired constructor(private val stationLinkService
 
         val expectedLink =
             listOf(StationLink(tnVersion, op1, op2, listOf(connectingTrack), op1Address, op2Address, 0.0))
-        val expectedLength = 89.758
+        val expectedLength = calculateDistance(LAYOUT_SRID, Point(10.0, 5.0), Point(190.0, 5.0))
 
         // Without filter: should find the link
         stationLinkService.getStationLinks(mainOfficialContext.context).also { links ->
