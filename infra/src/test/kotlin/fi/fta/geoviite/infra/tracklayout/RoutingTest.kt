@@ -992,7 +992,7 @@ class RoutingTest {
         assertEquals(100.0, getLength(switch2Joint2Location to trackGeom3, switch1Joint1Location to trackGeom2))
         assertEquals(100.0, getLength(switch2Joint2Location to trackGeom3, switch1Joint1Location to trackGeom1))
 
-        // From switch1 joint 2 to switch2 joint 1 should be 100-2*[switch alignment length] ~ 31.66, regardless of
+        // From switch1 joint 2 to switch2 joint 1 should be 100-2*[switch alignment length] ~ 31.14, regardless of
         // direction
         assertEquals(
             31.14,
