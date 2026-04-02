@@ -1,3 +1,2 @@
-springdoc:
-  api-docs:
-    path: /dev/v3/api-docs
+# This profile enables dev-specific swagger endpoints (the /dev/ variants).
+# No configuration overrides needed — the ext-api base config applies.
