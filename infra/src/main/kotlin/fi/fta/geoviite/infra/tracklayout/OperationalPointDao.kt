@@ -235,7 +235,7 @@ class OperationalPointDao(
                 mapOf(
                     "id" to id.intValue,
                     "ratko_operational_point_version" to ratkoPointVersion,
-                    "state" to state.toString(),
+                    "state" to state.name,
                 ),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
