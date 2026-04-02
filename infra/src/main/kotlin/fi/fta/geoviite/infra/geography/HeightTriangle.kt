@@ -22,5 +22,5 @@ data class HeightTriangle(
 
 fun findHeightTriangleContainingPoint(triangles: List<HeightTriangle>, point: IPoint): HeightTriangle? {
     val jtsPoint = toJtsGeoPoint(point, LAYOUT_SRID)
-    return triangles.find { triangle -> triangle.polygon.intersects(jtsPoint) }
+    return triangles.find { triangle -> jtsTriangleContainsPoint(triangle.polygon, jtsPoint) }
 }
