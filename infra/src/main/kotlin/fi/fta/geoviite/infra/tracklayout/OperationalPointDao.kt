@@ -198,7 +198,11 @@ class OperationalPointDao(
     @Transactional fun save(item: OperationalPoint): LayoutRowVersion<OperationalPoint> = save(item, NoParams.instance)
 
     @Transactional
-    fun insertRatkoPoint(id: IntId<OperationalPoint>, ratkoPointVersion: Int): LayoutRowVersion<OperationalPoint> {
+    fun insertRatkoPoint(
+        id: IntId<OperationalPoint>,
+        ratkoPointVersion: Int,
+        state: OperationalPointState,
+    ): LayoutRowVersion<OperationalPoint> {
         val sql =
             """
             insert into
@@ -216,7 +220,7 @@ class OperationalPointDao(
               true,
               null,
               'main_draft',
-              'IN_USE',
+              :state::layout.operational_point_state,
               'RATKO',
               :ratko_operational_point_version
             )
@@ -228,7 +232,11 @@ class OperationalPointDao(
         val response: LayoutRowVersion<OperationalPoint> =
             jdbcTemplate.queryForObject(
                 sql,
-                mapOf("id" to id.intValue, "ratko_operational_point_version" to ratkoPointVersion),
+                mapOf(
+                    "id" to id.intValue,
+                    "ratko_operational_point_version" to ratkoPointVersion,
+                    "state" to state.toString(),
+                ),
             ) { rs, _ ->
                 rs.getLayoutRowVersion("id", "design_id", "draft", "version")
             } ?: throw IllegalStateException("Failed to save operational point")

@@ -160,7 +160,7 @@ constructor(
         ratkoPointsWithVersions.forEach { (ratkoPoint, ratkoPointVersion) ->
             val id = layoutPointsByOid[ratkoPoint.externalId.cast()]
             if (id != null && layoutPoints.none { layoutPoint -> layoutPoint.id == id }) {
-                operationalPointDao.insertRatkoPoint(id, ratkoPointVersion)
+                operationalPointDao.insertRatkoPoint(id, ratkoPointVersion, OperationalPointState.IN_USE)
             }
         }
     }
