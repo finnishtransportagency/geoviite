@@ -10,6 +10,4 @@ data class ExtApiConfiguration(
     var urlPathPrefixes: List<String> = emptyList(),
     var publicHosts: List<String> = emptyList(),
     var privateHosts: List<String> = emptyList(),
-    var soaServerURL: String = "",
-    var rootURL: String = "",
 )

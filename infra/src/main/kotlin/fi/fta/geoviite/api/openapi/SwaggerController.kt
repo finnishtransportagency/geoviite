@@ -7,23 +7,18 @@ import fi.fta.geoviite.infra.authorization.AUTH_API_SWAGGER
 import io.swagger.v3.oas.annotations.Hidden
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
-import org.springframework.core.env.Environment
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 
 // Browser-facing api-docs paths: each path is under its own prefix so that integrators
 // proxying only /geoviite/** or /rata-vkm/** can reach the API definition for their portion.
-// The no-prefix path is for full-subdomain proxies that don't use a prefix at all.
 const val OPENAPI_GEOVIITE_PATH = "/geoviite/v3/api-docs"
-const val OPENAPI_GEOVIITE_NO_PREFIX_PATH = "/v3/api-docs/geoviite-user-api"
 const val OPENAPI_RATAVKM_PATH = "/rata-vkm/v3/api-docs"
 
 const val OPENAPI_GEOVIITE_DEV_PATH = "/geoviite/dev/v3/api-docs"
-const val OPENAPI_GEOVIITE_DEV_NO_PREFIX_PATH = "/dev/v3/api-docs/geoviite-user-api"
 const val OPENAPI_RATAVKM_DEV_PATH = "/rata-vkm/dev/v3/api-docs"
 
 // Actual SpringDoc-served paths (springdoc.api-docs.path + group name). These are internal
@@ -38,15 +33,7 @@ val allowedResourcePrefixes = listOf("/", "/geoviite", "/rata-vkm")
 @GeoviiteExtApiController([])
 @Hidden // These controller paths are hidden from the dynamically generated OpenApi definitions.
 @ConditionalOnProperty(name = ["springdoc.swagger-ui.enabled"], havingValue = "true")
-class SwaggerController @Autowired constructor(env: Environment) {
-
-    private val openApiGeoviiteNoPrefixPath: String by lazy {
-        if ("ext-api-dev-swagger" in env.activeProfiles.toSet()) {
-            OPENAPI_GEOVIITE_DEV_NO_PREFIX_PATH
-        } else {
-            OPENAPI_GEOVIITE_NO_PREFIX_PATH
-        }
-    }
+class SwaggerController {
 
     @PreAuthorize(AUTH_API_GEOMETRY)
     @GetMapping("/geoviite", "/geoviite/", "/geoviite/swagger-ui", "/geoviite/swagger-ui/")
@@ -54,10 +41,12 @@ class SwaggerController @Autowired constructor(env: Environment) {
         sendRedirect(response, "/geoviite/swagger-ui/index.html")
     }
 
+    // Redirect root/no-prefix access to the /geoviite swagger. Full-subdomain proxies land here
+    // and get redirected to the prefixed swagger so that paths in the docs match the actual API.
     @PreAuthorize(AUTH_API_GEOMETRY)
     @GetMapping("", "/", "/swagger-ui", "/swagger-ui/")
-    fun sendGeoviiteSwaggerNoPrefixIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/swagger-ui/index.html")
+    fun sendRootSwaggerRedirect(response: HttpServletResponse) {
+        sendRedirect(response, "/geoviite/swagger-ui/index.html")
     }
 
     @Profile("ext-api-dev-swagger")
@@ -83,12 +72,6 @@ class SwaggerController @Autowired constructor(env: Environment) {
     // Serve a per-prefix swagger-initializer.js with the correct API docs URL baked in.
     // This replaces the previous approach of passing ?url= query params to swagger-ui, which required
     // queryConfigEnabled and prevented layout customization. Now the URL is determined server-side.
-    @PreAuthorize(AUTH_API_SWAGGER)
-    @GetMapping("/swagger-ui/swagger-initializer.js")
-    fun serveNoPrefixSwaggerInitializer(response: HttpServletResponse) {
-        serveSwaggerInitializer(response, openApiGeoviiteNoPrefixPath)
-    }
-
     @PreAuthorize(AUTH_API_SWAGGER)
     @GetMapping("/geoviite/swagger-ui/swagger-initializer.js")
     fun serveGeoviiteSwaggerInitializer(response: HttpServletResponse) {
