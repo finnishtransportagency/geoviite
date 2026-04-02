@@ -627,7 +627,7 @@ class LayoutSwitchDao(
                 SwitchWithinOperationalPoint(
                     switchId,
                     operationalPointLinkInfo.first,
-                    operationalPointLinkInfo.second.flatten().distinct(),
+                    operationalPointLinkInfo.second.flatten().toSet(),
                 )
             }
     }
@@ -646,6 +646,7 @@ class LayoutSwitchDao(
                                                                   :design_id) other_point
                        on postgis.st_intersects(query_point.polygon, other_point.polygon) and query_point.id != other_point.id
                 where query_point.id = :operational_point_id
+                  and other_point.state = 'IN_USE'
             )
             select switch_version_joint.switch_id, switch_version_joint.number, overlapping_operational_point_ids
               from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) switch
@@ -700,6 +701,7 @@ class LayoutSwitchDao(
                   where switch_version_joint.switch_id = switch.id
                     and switch_version_joint.switch_layout_context_id = switch.layout_context_id
                     and switch_version_joint.switch_version = switch.version
+                    and operational_point.state = 'IN_USE'
                     and not exists (
                     select *
                       from unnest(:switch_joint_switch_ids, :switch_joint_switch_numbers) e(switch_id, number)
