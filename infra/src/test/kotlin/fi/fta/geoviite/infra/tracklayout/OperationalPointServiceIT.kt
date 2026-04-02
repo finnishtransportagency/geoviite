@@ -302,7 +302,7 @@ constructor(
         val externalPointId =
             ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
 
-        val officialVersion =
+        val draftVersion =
             testDBService.save(
                 operationalPoint(
                     contextData = createMainContext(externalPointId, true),
@@ -312,8 +312,8 @@ constructor(
             )
         ratkoTestService.updateRatkoOperationalPoints()
 
-        operationalPointService.deleteDraft(LayoutBranch.main, officialVersion.id)
-        assertEquals(OperationalPointState.DELETED, mainDraftContext.fetch(officialVersion.id)?.state)
+        operationalPointService.deleteDraft(LayoutBranch.main, draftVersion.id)
+        assertEquals(OperationalPointState.DELETED, mainDraftContext.fetch(draftVersion.id)?.state)
     }
 
     @Test
