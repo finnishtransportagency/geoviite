@@ -21,8 +21,13 @@ const val OPENAPI_GEOVIITE_NO_PREFIX_PATH = "/geoviite/v3/api-docs/geoviite-user
 const val OPENAPI_GEOVIITE_DEV_PATH = "/geoviite/dev/v3/api-docs/geoviite-dev"
 const val OPENAPI_GEOVIITE_DEV_NO_PREFIX_PATH = "/geoviite/dev/v3/api-docs/geoviite-user-api"
 
-const val OPENAPI_RATAVKM_PATH = "/geoviite/v3/api-docs/rata-vkm"
-const val OPENAPI_RATAVKM_DEV_PATH = "/geoviite/dev/v3/api-docs/rata-vkm-dev"
+// Browser-facing paths: under /rata-vkm/ so integrators proxying /rata-vkm/** can reach them.
+const val OPENAPI_RATAVKM_PATH = "/rata-vkm/v3/api-docs/rata-vkm"
+const val OPENAPI_RATAVKM_DEV_PATH = "/rata-vkm/dev/v3/api-docs/rata-vkm-dev"
+
+// Actual SpringDoc-served paths (determined by springdoc.api-docs.path + group name).
+private const val SPRINGDOC_RATAVKM_PATH = "/geoviite/v3/api-docs/rata-vkm"
+private const val SPRINGDOC_RATAVKM_DEV_PATH = "/geoviite/dev/v3/api-docs/rata-vkm-dev"
 
 val allowedResourcePrefixes = listOf("/", "/geoviite", "/rata-vkm")
 
@@ -104,6 +109,22 @@ class SwaggerController @Autowired constructor(env: Environment) {
     @GetMapping("/rata-vkm/dev/swagger-ui/swagger-initializer.js")
     fun serveRataVkmDevSwaggerInitializer(response: HttpServletResponse) {
         serveSwaggerInitializer(response, OPENAPI_RATAVKM_DEV_PATH)
+    }
+
+    // Forward rata-vkm api-docs requests to the actual SpringDoc-served paths under /geoviite/.
+    // This is needed because SpringDoc's api-docs base path is global (/geoviite/v3/api-docs), but
+    // integrators proxying only /rata-vkm/** need to reach the rata-vkm API definition.
+    @PreAuthorize(AUTH_API_FRAME_CONVERTER)
+    @GetMapping(OPENAPI_RATAVKM_PATH)
+    fun forwardRataVkmApiDocs(request: HttpServletRequest, response: HttpServletResponse) {
+        request.getRequestDispatcher(SPRINGDOC_RATAVKM_PATH).forward(request, response)
+    }
+
+    @Profile("ext-api-dev-swagger")
+    @PreAuthorize(AUTH_API_FRAME_CONVERTER)
+    @GetMapping(OPENAPI_RATAVKM_DEV_PATH)
+    fun forwardRataVkmDevApiDocs(request: HttpServletRequest, response: HttpServletResponse) {
+        request.getRequestDispatcher(SPRINGDOC_RATAVKM_DEV_PATH).forward(request, response)
     }
 
     // Resource forwarding: serve swagger-ui static files (JS bundles, CSS) from springdoc's webjar.
