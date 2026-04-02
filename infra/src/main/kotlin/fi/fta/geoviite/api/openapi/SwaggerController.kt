@@ -7,37 +7,35 @@ import fi.fta.geoviite.infra.authorization.AUTH_API_SWAGGER
 import io.swagger.v3.oas.annotations.Hidden
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
-import org.springframework.core.env.Environment
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 
-const val OPENAPI_GEOVIITE_PATH = "/geoviite/v3/api-docs/geoviite"
-const val OPENAPI_GEOVIITE_NO_PREFIX_PATH = "/geoviite/v3/api-docs/geoviite-user-api"
+// Browser-facing api-docs paths: each path is under its own prefix so that integrators
+// proxying only /geoviite/** or /rata-vkm/** can reach the API definition for their portion.
+// These intentionally don't end with the SpringDoc base path (/v3/api-docs) to avoid
+// interfering with SpringDoc's auto-generated server URL calculation.
+const val OPENAPI_GEOVIITE_PATH = "/geoviite/openapi"
+const val OPENAPI_RATAVKM_PATH = "/rata-vkm/openapi"
 
-const val OPENAPI_GEOVIITE_DEV_PATH = "/geoviite/dev/v3/api-docs/geoviite-dev"
-const val OPENAPI_GEOVIITE_DEV_NO_PREFIX_PATH = "/geoviite/dev/v3/api-docs/geoviite-user-api"
+const val OPENAPI_GEOVIITE_DEV_PATH = "/geoviite/dev/openapi"
+const val OPENAPI_RATAVKM_DEV_PATH = "/rata-vkm/dev/openapi"
 
-const val OPENAPI_RATAVKM_PATH = "/geoviite/v3/api-docs/rata-vkm"
-const val OPENAPI_RATAVKM_DEV_PATH = "/geoviite/dev/v3/api-docs/rata-vkm-dev"
+// Actual SpringDoc-served paths (springdoc.api-docs.path + group name). These are internal
+// implementation details — browsers never fetch these directly.
+private const val SPRINGDOC_GEOVIITE_PATH = "/v3/api-docs/geoviite"
+private const val SPRINGDOC_RATAVKM_PATH = "/v3/api-docs/rata-vkm"
+private const val SPRINGDOC_GEOVIITE_DEV_PATH = "/dev/v3/api-docs/geoviite-dev"
+private const val SPRINGDOC_RATAVKM_DEV_PATH = "/dev/v3/api-docs/rata-vkm-dev"
 
-val allowedResourcePrefixes = listOf("/", "/geoviite", "/rata-vkm")
+val allowedResourcePrefixes = listOf("/", "/geoviite", "/rata-vkm", "/geoviite/dev", "/rata-vkm/dev")
 
 @GeoviiteExtApiController([])
 @Hidden // These controller paths are hidden from the dynamically generated OpenApi definitions.
 @ConditionalOnProperty(name = ["springdoc.swagger-ui.enabled"], havingValue = "true")
-class SwaggerController @Autowired constructor(env: Environment) {
-
-    private val openApiGeoviiteNoPrefixPath: String by lazy {
-        if ("ext-api-dev-swagger" in env.activeProfiles.toSet()) {
-            OPENAPI_GEOVIITE_DEV_NO_PREFIX_PATH
-        } else {
-            OPENAPI_GEOVIITE_NO_PREFIX_PATH
-        }
-    }
+class SwaggerController {
 
     @PreAuthorize(AUTH_API_GEOMETRY)
     @GetMapping("/geoviite", "/geoviite/", "/geoviite/swagger-ui", "/geoviite/swagger-ui/")
@@ -45,10 +43,12 @@ class SwaggerController @Autowired constructor(env: Environment) {
         sendRedirect(response, "/geoviite/swagger-ui/index.html")
     }
 
+    // Redirect root/no-prefix access to the /geoviite swagger. Full-subdomain proxies land here
+    // and get redirected to the prefixed swagger so that paths in the docs match the actual API.
     @PreAuthorize(AUTH_API_GEOMETRY)
     @GetMapping("", "/", "/swagger-ui", "/swagger-ui/")
-    fun sendGeoviiteSwaggerNoPrefixIndexRedirect(response: HttpServletResponse) {
-        sendRedirect(response, "/swagger-ui/index.html")
+    fun sendRootSwaggerRedirect(response: HttpServletResponse) {
+        sendRedirect(response, "/geoviite/swagger-ui/index.html")
     }
 
     @Profile("ext-api-dev-swagger")
@@ -75,12 +75,6 @@ class SwaggerController @Autowired constructor(env: Environment) {
     // This replaces the previous approach of passing ?url= query params to swagger-ui, which required
     // queryConfigEnabled and prevented layout customization. Now the URL is determined server-side.
     @PreAuthorize(AUTH_API_SWAGGER)
-    @GetMapping("/swagger-ui/swagger-initializer.js")
-    fun serveNoPrefixSwaggerInitializer(response: HttpServletResponse) {
-        serveSwaggerInitializer(response, openApiGeoviiteNoPrefixPath)
-    }
-
-    @PreAuthorize(AUTH_API_SWAGGER)
     @GetMapping("/geoviite/swagger-ui/swagger-initializer.js")
     fun serveGeoviiteSwaggerInitializer(response: HttpServletResponse) {
         serveSwaggerInitializer(response, OPENAPI_GEOVIITE_PATH)
@@ -104,6 +98,36 @@ class SwaggerController @Autowired constructor(env: Environment) {
     @GetMapping("/rata-vkm/dev/swagger-ui/swagger-initializer.js")
     fun serveRataVkmDevSwaggerInitializer(response: HttpServletResponse) {
         serveSwaggerInitializer(response, OPENAPI_RATAVKM_DEV_PATH)
+    }
+
+    // Forward prefixed api-docs requests to the actual SpringDoc-served paths.
+    // SpringDoc's api-docs base path is global (/v3/api-docs), but each swagger-ui serves its
+    // api-docs URL under its own prefix so that integrators proxying only /geoviite/** or
+    // /rata-vkm/** can reach the API definition for their portion.
+    @PreAuthorize(AUTH_API_GEOMETRY)
+    @GetMapping(OPENAPI_GEOVIITE_PATH)
+    fun forwardGeoviiteApiDocs(request: HttpServletRequest, response: HttpServletResponse) {
+        request.getRequestDispatcher(SPRINGDOC_GEOVIITE_PATH).forward(request, response)
+    }
+
+    @PreAuthorize(AUTH_API_FRAME_CONVERTER)
+    @GetMapping(OPENAPI_RATAVKM_PATH)
+    fun forwardRataVkmApiDocs(request: HttpServletRequest, response: HttpServletResponse) {
+        request.getRequestDispatcher(SPRINGDOC_RATAVKM_PATH).forward(request, response)
+    }
+
+    @Profile("ext-api-dev-swagger")
+    @PreAuthorize(AUTH_API_GEOMETRY)
+    @GetMapping(OPENAPI_GEOVIITE_DEV_PATH)
+    fun forwardGeoviiteDevApiDocs(request: HttpServletRequest, response: HttpServletResponse) {
+        request.getRequestDispatcher(SPRINGDOC_GEOVIITE_DEV_PATH).forward(request, response)
+    }
+
+    @Profile("ext-api-dev-swagger")
+    @PreAuthorize(AUTH_API_FRAME_CONVERTER)
+    @GetMapping(OPENAPI_RATAVKM_DEV_PATH)
+    fun forwardRataVkmDevApiDocs(request: HttpServletRequest, response: HttpServletResponse) {
+        request.getRequestDispatcher(SPRINGDOC_RATAVKM_DEV_PATH).forward(request, response)
     }
 
     // Resource forwarding: serve swagger-ui static files (JS bundles, CSS) from springdoc's webjar.
