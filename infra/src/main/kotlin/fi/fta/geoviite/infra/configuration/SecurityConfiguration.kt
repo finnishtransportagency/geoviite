@@ -44,6 +44,7 @@ class SecurityConfiguration {
                     // meant to be reached via server-side forwards from SwaggerController, which
                     // are not matched here (FORWARD dispatch type is excluded).
                     .requestMatchers(
+                        directRequestMatcher("/swagger-ui/**"),
                         directRequestMatcher("/v3/api-docs/**"),
                         directRequestMatcher("/dev/v3/api-docs/**"),
                     )
