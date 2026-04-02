@@ -27,8 +27,8 @@ const val OPENAPI_RATAVKM_DEV_PATH = "/rata-vkm/dev/openapi"
 // implementation details — browsers never fetch these directly.
 private const val SPRINGDOC_GEOVIITE_PATH = "/v3/api-docs/geoviite"
 private const val SPRINGDOC_RATAVKM_PATH = "/v3/api-docs/rata-vkm"
-private const val SPRINGDOC_GEOVIITE_DEV_PATH = "/dev/v3/api-docs/geoviite-dev"
-private const val SPRINGDOC_RATAVKM_DEV_PATH = "/dev/v3/api-docs/rata-vkm-dev"
+private const val SPRINGDOC_GEOVIITE_DEV_PATH = "/v3/api-docs/geoviite-dev"
+private const val SPRINGDOC_RATAVKM_DEV_PATH = "/v3/api-docs/rata-vkm-dev"
 
 val allowedResourcePrefixes = listOf("/", "/geoviite", "/rata-vkm", "/geoviite/dev", "/rata-vkm/dev")
 

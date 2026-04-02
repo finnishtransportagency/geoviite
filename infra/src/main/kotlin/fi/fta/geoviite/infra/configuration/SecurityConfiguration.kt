@@ -46,7 +46,6 @@ class SecurityConfiguration {
                     .requestMatchers(
                         directRequestMatcher("/swagger-ui/**"),
                         directRequestMatcher("/v3/api-docs/**"),
-                        directRequestMatcher("/dev/v3/api-docs/**"),
                     )
                     .denyAll()
                     // Browser-facing openapi forwarding paths for geoviite.
