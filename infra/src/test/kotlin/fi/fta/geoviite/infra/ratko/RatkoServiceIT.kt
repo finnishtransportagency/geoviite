@@ -89,6 +89,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
+import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
 import fi.fta.geoviite.infra.tracklayout.OperationalPointRinfType
 import fi.fta.geoviite.infra.tracklayout.OperationalPointService
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
@@ -98,10 +99,12 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TmpLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.combineEdges
+import fi.fta.geoviite.infra.tracklayout.createMainContext
 import fi.fta.geoviite.infra.tracklayout.edge
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.ratkoOperationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
@@ -160,6 +163,7 @@ constructor(
     val splitTestDataService: SplitTestDataService,
     val layoutDesignDao: LayoutDesignDao,
     val publicationTestSupportService: PublicationTestSupportService,
+    val ratkoTestService: RatkoTestService,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -1473,6 +1477,25 @@ constructor(
             OperationalPointRinfType.SMALL_STATION,
             afterSecondUpdate.find { it.name.toString() == "Nujertamo" }?.rinfType,
         )
+    }
+
+    @Test
+    fun `rows removed from Ratko are placed in deleted state even if draft-only`() {
+        val externalPointId =
+            ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
+
+        val point =
+            mainDraftContext
+                .save(
+                    operationalPoint(
+                        contextData = createMainContext(externalPointId, true),
+                        origin = OperationalPointOrigin.RATKO,
+                        ratkoVersion = 1,
+                    )
+                )
+                .id
+        ratkoTestService.updateRatkoOperationalPoints()
+        assertEquals(OperationalPointState.DELETED, mainDraftContext.fetch(point)?.state)
     }
 
     @Test

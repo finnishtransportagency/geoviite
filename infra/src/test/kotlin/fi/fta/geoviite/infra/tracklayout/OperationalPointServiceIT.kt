@@ -279,6 +279,44 @@ constructor(
     }
 
     @Test
+    fun `deleting an external operational point draft retains state from the integration`() {
+        val externalPointId =
+            ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
+
+        val officialVersion =
+            testDBService.save(
+                operationalPoint(
+                    contextData = createMainContext(externalPointId, false),
+                    origin = OperationalPointOrigin.RATKO,
+                    ratkoVersion = 1,
+                )
+            )
+        ratkoTestService.updateRatkoOperationalPoints()
+
+        operationalPointService.deleteDraft(LayoutBranch.main, officialVersion.id)
+        assertEquals(OperationalPointState.DELETED, mainDraftContext.fetch(officialVersion.id)?.state)
+    }
+
+    @Test
+    fun `deleting a draft-only external operational point draft retains state from the integration`() {
+        val externalPointId =
+            ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
+
+        val draftVersion =
+            testDBService.save(
+                operationalPoint(
+                    contextData = createMainContext(externalPointId, true),
+                    origin = OperationalPointOrigin.RATKO,
+                    ratkoVersion = 1,
+                )
+            )
+        ratkoTestService.updateRatkoOperationalPoints()
+
+        operationalPointService.deleteDraft(LayoutBranch.main, draftVersion.id)
+        assertEquals(OperationalPointState.DELETED, mainDraftContext.fetch(draftVersion.id)?.state)
+    }
+
+    @Test
     fun `deleting a drafted update to an external operational point draft instead resets the point to the official state`() {
         val externalPointId =
             ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
