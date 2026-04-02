@@ -340,7 +340,7 @@ data class SwitchWithOperationalPointPolygonInclusions(
 data class SwitchWithinOperationalPoint(
     val switchId: IntId<LayoutSwitch>,
     val isLinked: Boolean,
-    val allOperationalPoints: List<IntId<OperationalPoint>>,
+    val allOperationalPoints: Set<IntId<OperationalPoint>>,
 )
 
 fun groupConnectionsByJointNumber(

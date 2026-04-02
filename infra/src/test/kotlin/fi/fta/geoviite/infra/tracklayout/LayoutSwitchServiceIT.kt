@@ -572,10 +572,10 @@ constructor(
         val switchAElsewhere = switch(opA, Point(30.0, 30.0))
 
         fun s(switchId: IntId<LayoutSwitch>, isLinked: Boolean, vararg operationalPointIds: IntId<OperationalPoint>) =
-            SwitchWithinOperationalPoint(switchId, isLinked, operationalPointIds.toList())
+            SwitchWithinOperationalPoint(switchId, isLinked, operationalPointIds.toSet())
 
         fun sortResults(r: List<SwitchWithinOperationalPoint>) =
-            r.map { sp -> sp.copy(allOperationalPoints = sp.allOperationalPoints.sortedBy { it.intValue }) }
+            r.map { sp -> sp.copy(allOperationalPoints = sp.allOperationalPoints.toSet()) }
                 .sortedBy { it.switchId.intValue }
 
         assertEquals(
@@ -642,10 +642,83 @@ constructor(
 
         assertEquals(
             listOf(
-                SwitchWithinOperationalPoint(inAreaExisting, false, listOf(operationalPoint)),
-                SwitchWithinOperationalPoint(outOfAreaLinkedExisting, true, listOf()),
+                SwitchWithinOperationalPoint(inAreaExisting, false, setOf(operationalPoint)),
+                SwitchWithinOperationalPoint(outOfAreaLinkedExisting, true, setOf()),
             ),
             switchService.findSwitchesRelatedToOperationalPoint(mainDraftContext.context, operationalPoint),
+        )
+    }
+
+    @Test
+    fun `findSwitchesRelatedToOperationalPoint ignores other DELETED operational points`() {
+        val polygon = Polygon(Point(0.0, 0.0), Point(10.0, 0.0), Point(10.0, 10.0), Point(0.0, 10.0), Point(0.0, 0.0))
+        // pointA is the only one that exists
+        val pointA = mainDraftContext.save(operationalPoint(polygon = polygon)).id
+
+        // b's area intersects a's directly
+        val pointB =
+            mainDraftContext
+                .save(
+                    operationalPoint(polygon = polygon.moveBy(Point(5.0, 0.0)), state = OperationalPointState.DELETED)
+                )
+                .id
+
+        // c's area doesn't intersect a's directly, but it's close enough that switches can be within both
+        val pointC =
+            mainDraftContext
+                .save(
+                    operationalPoint(polygon = polygon.moveBy(Point(0.0, 11.0)), state = OperationalPointState.DELETED)
+                )
+                .id
+
+        val switchInAAndB =
+            mainDraftContext.save(
+                switch(
+                    joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 10.0), null))
+                )
+            )
+        val switchInAAndC =
+            mainDraftContext.save(
+                switch(
+                    joints =
+                        listOf(
+                            LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.0, 4.0), null),
+                            LayoutSwitchJoint(JointNumber(2), SwitchJointRole.MAIN, Point(4.0, 14.0), null),
+                        )
+                )
+            )
+        val switchInAAndCLinkedToA =
+            mainDraftContext.save(
+                switch(
+                    joints =
+                        listOf(
+                            LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(4.0, 4.0), null),
+                            LayoutSwitchJoint(JointNumber(2), SwitchJointRole.MAIN, Point(4.0, 14.0), null),
+                        ),
+                    operationalPointId = pointA,
+                )
+            )
+        val switchLinkedToC = mainDraftContext.save(switch(operationalPointId = pointC))
+
+        assertEquals(
+            listOf(
+                SwitchWithinOperationalPoint(switchInAAndB.id, false, setOf(pointA)),
+                SwitchWithinOperationalPoint(switchInAAndC.id, false, setOf(pointA)),
+                SwitchWithinOperationalPoint(switchInAAndCLinkedToA.id, true, setOf(pointA)),
+            ),
+            switchService.findSwitchesRelatedToOperationalPoint(mainDraftContext.context, pointA),
+        )
+        assertEquals(
+            listOf(SwitchWithinOperationalPoint(switchInAAndB.id, false, setOf(pointA, pointB))),
+            switchService.findSwitchesRelatedToOperationalPoint(mainDraftContext.context, pointB),
+        )
+        assertEquals(
+            listOf(
+                SwitchWithinOperationalPoint(switchInAAndC.id, false, setOf(pointA, pointC)),
+                SwitchWithinOperationalPoint(switchInAAndCLinkedToA.id, false, setOf(pointA, pointC)),
+                SwitchWithinOperationalPoint(switchLinkedToC.id, true, setOf()),
+            ),
+            switchService.findSwitchesRelatedToOperationalPoint(mainDraftContext.context, pointC),
         )
     }
 
