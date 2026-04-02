@@ -574,48 +574,38 @@ constructor(
         fun s(switchId: IntId<LayoutSwitch>, isLinked: Boolean, vararg operationalPointIds: IntId<OperationalPoint>) =
             SwitchWithinOperationalPoint(switchId, isLinked, operationalPointIds.toSet())
 
-        fun sortResults(r: List<SwitchWithinOperationalPoint>) =
-            r.map { sp -> sp.copy(allOperationalPoints = sp.allOperationalPoints.toSet()) }
-                .sortedBy { it.switchId.intValue }
-
-        assertEquals(
-            sortResults(
-                listOf(
-                    s(switchOnlyInA, false, opA),
-                    s(switchInABOverlap, false, opA, opB),
-                    s(switchInAAndB, false, opA, opB),
-                    s(switchAOnlyInA, true, opA),
-                    s(switchAOnlyInB, true, opB),
-                    s(switchAOnlyInC, true, opC),
-                    s(switchAInABOverlap, true, opA, opB),
-                    s(switchAInAAndB, true, opA, opB),
-                    s(switchANoJoints, true),
-                    s(switchAElsewhere, true),
-                    s(switchInAAndC, false, opA, opC),
-                )
+        assertSameSwitchesWithinOperationalPoint(
+            listOf(
+                s(switchOnlyInA, false, opA),
+                s(switchInABOverlap, false, opA, opB),
+                s(switchInAAndB, false, opA, opB),
+                s(switchAOnlyInA, true, opA),
+                s(switchAOnlyInB, true, opB),
+                s(switchAOnlyInC, true, opC),
+                s(switchAInABOverlap, true, opA, opB),
+                s(switchAInAAndB, true, opA, opB),
+                s(switchANoJoints, true),
+                s(switchAElsewhere, true),
+                s(switchInAAndC, false, opA, opC),
             ),
-            sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opA)),
+            switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opA),
         )
 
-        assertEquals(
-            sortResults(
-                listOf(
-                    s(switchOnlyInB, false, opB),
-                    s(switchInABOverlap, false, opA, opB),
-                    s(switchInAAndB, false, opA, opB),
-                    s(switchAOnlyInB, false, opB),
-                    s(switchAInABOverlap, false, opA, opB),
-                    s(switchAInAAndB, false, opA, opB),
-                )
+        assertSameSwitchesWithinOperationalPoint(
+            listOf(
+                s(switchOnlyInB, false, opB),
+                s(switchInABOverlap, false, opA, opB),
+                s(switchInAAndB, false, opA, opB),
+                s(switchAOnlyInB, false, opB),
+                s(switchAInABOverlap, false, opA, opB),
+                s(switchAInAAndB, false, opA, opB),
             ),
-            sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opB)),
+            switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opB),
         )
 
-        assertEquals(
-            sortResults(
-                listOf(s(switchOnlyInC, false, opC), s(switchAOnlyInC, false, opC), s(switchInAAndC, false, opA, opC))
-            ),
-            sortResults(switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opC)),
+        assertSameSwitchesWithinOperationalPoint(
+            listOf(s(switchOnlyInC, false, opC), s(switchAOnlyInC, false, opC), s(switchInAAndC, false, opA, opC)),
+            switchService.findSwitchesRelatedToOperationalPoint(mainOfficialContext.context, opC),
         )
     }
 
@@ -640,7 +630,7 @@ constructor(
         mainDraftContext.save(inAreaSwitchObject.copy(stateCategory = LayoutStateCategory.NOT_EXISTING))
         mainDraftContext.save(outOfAreaLinkedSwitchObject.copy(stateCategory = LayoutStateCategory.NOT_EXISTING))
 
-        assertEquals(
+        assertSameSwitchesWithinOperationalPoint(
             listOf(
                 SwitchWithinOperationalPoint(inAreaExisting, false, setOf(operationalPoint)),
                 SwitchWithinOperationalPoint(outOfAreaLinkedExisting, true, setOf()),
@@ -700,7 +690,7 @@ constructor(
             )
         val switchLinkedToC = mainDraftContext.save(switch(operationalPointId = pointC))
 
-        assertEquals(
+        assertSameSwitchesWithinOperationalPoint(
             listOf(
                 SwitchWithinOperationalPoint(switchInAAndB.id, false, setOf(pointA)),
                 SwitchWithinOperationalPoint(switchInAAndC.id, false, setOf(pointA)),
@@ -708,11 +698,11 @@ constructor(
             ),
             switchService.findSwitchesRelatedToOperationalPoint(mainDraftContext.context, pointA),
         )
-        assertEquals(
+        assertSameSwitchesWithinOperationalPoint(
             listOf(SwitchWithinOperationalPoint(switchInAAndB.id, false, setOf(pointA, pointB))),
             switchService.findSwitchesRelatedToOperationalPoint(mainDraftContext.context, pointB),
         )
-        assertEquals(
+        assertSameSwitchesWithinOperationalPoint(
             listOf(
                 SwitchWithinOperationalPoint(switchInAAndC.id, false, setOf(pointA, pointC)),
                 SwitchWithinOperationalPoint(switchInAAndCLinkedToA.id, false, setOf(pointA, pointC)),
@@ -841,3 +831,11 @@ constructor(
 
     private fun getSwitches() = switchService.listWithStructure(MainLayoutContext.official)
 }
+
+private fun sortSwitchWithinOperationalPoints(r: List<SwitchWithinOperationalPoint>) =
+    r.map { sp -> sp.copy(allOperationalPoints = sp.allOperationalPoints.toSet()) }.sortedBy { it.switchId.intValue }
+
+private fun assertSameSwitchesWithinOperationalPoint(
+    expected: List<SwitchWithinOperationalPoint>,
+    actual: List<SwitchWithinOperationalPoint>,
+) = assertEquals(sortSwitchWithinOperationalPoints(expected), sortSwitchWithinOperationalPoints(actual))
