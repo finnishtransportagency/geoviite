@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { LayoutSwitchId, OperationalPoint, OperationalPointId, } from 'track-layout/track-layout-model';
+import { useOperationalPoints } from 'track-layout/track-layout-react-utils';
 import { LayoutContext } from 'common/common-model';
 import {
     findOperationalPointSwitches,
@@ -88,6 +89,12 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
             ? linkingState
             : undefined;
     const isEditing = !!operationalPointSwitchLinkingState;
+
+    const allOperationalPoints = useOperationalPoints(layoutContext);
+    const olpOperationalPointIds = useMemo(
+        () => new Set(allOperationalPoints.filter((op) => op.ratoType === 'OLP').map((op) => op.id)),
+        [allOperationalPoints],
+    );
 
     const [switchLinkings, linkedSwitchesFetchStatus] = useLoaderWithStatus(
         () => getSwitchesForOperationalPoint(layoutContext, operationalPoint.id),
@@ -232,6 +239,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 switches={linkedSwitches}
                                 linkingDirection={'unlinking'}
                                 polygonInclusion={switchLinkings ?? []}
+                                olpOperationalPointIds={olpOperationalPointIds}
                                 isEditing={isEditing}
                                 linkingAction={removeSwitch}
                                 massLinkingAction={addAllSwitches}
@@ -244,6 +252,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 switches={unlinkedSwitches}
                                 linkingDirection={'linking'}
                                 polygonInclusion={switchLinkings ?? []}
+                                olpOperationalPointIds={olpOperationalPointIds}
                                 isEditing={isEditing}
                                 linkingAction={addSwitch}
                                 massLinkingAction={removeAllSwitches}
