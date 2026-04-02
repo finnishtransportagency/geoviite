@@ -13,7 +13,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy.STATELESS
 import org.springframework.security.web.SecurityFilterChain
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher
 import org.springframework.security.web.util.matcher.RequestMatcher
 
 @ConditionalOnWebApplication
@@ -60,7 +60,7 @@ class SecurityConfiguration {
 }
 
 private fun directRequestMatcher(pattern: String): RequestMatcher {
-    val pathMatcher = AntPathRequestMatcher(pattern)
+    val pathMatcher = PathPatternRequestMatcher.withDefaults().matcher(pattern)
     return RequestMatcher { request ->
         request.dispatcherType == DispatcherType.REQUEST && pathMatcher.matches(request)
     }
