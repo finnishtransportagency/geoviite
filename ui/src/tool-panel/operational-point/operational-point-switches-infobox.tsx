@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { LayoutSwitchId, OperationalPoint, OperationalPointId, } from 'track-layout/track-layout-model';
+import {
+    LayoutSwitchId,
+    OperationalPoint,
+    OperationalPointId,
+} from 'track-layout/track-layout-model';
 import { useOperationalPoints } from 'track-layout/track-layout-react-utils';
 import { LayoutContext } from 'common/common-model';
 import {
@@ -22,16 +26,17 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import styles from './operational-point-infobox.scss';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
-import { ProgressIndicatorType, ProgressIndicatorWrapper, } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { LinkingType } from 'linking/linking-model';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 import { updateAllChangeTimes } from 'common/change-time-api';
-import {
-    OperationalPointSwitchesDirectionInfobox
-} from 'tool-panel/operational-point/operational-point-switches-direction-infobox';
+import { OperationalPointSwitchesDirectionInfobox } from 'tool-panel/operational-point/operational-point-switches-direction-infobox';
 
 type OperationalPointSwitchesInfoboxProps = {
     contentVisible: boolean;
@@ -90,9 +95,10 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
             : undefined;
     const isEditing = !!operationalPointSwitchLinkingState;
 
-    const allOperationalPoints = useOperationalPoints(layoutContext);
+    const allOperationalPoints = useOperationalPoints(layoutContext, changeTimes.operationalPoints);
     const olpOperationalPointIds = useMemo(
-        () => new Set(allOperationalPoints.filter((op) => op.ratoType === 'OLP').map((op) => op.id)),
+        () =>
+            new Set(allOperationalPoints.filter((op) => op.ratoType === 'OLP').map((op) => op.id)),
         [allOperationalPoints],
     );
 
