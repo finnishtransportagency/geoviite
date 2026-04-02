@@ -15,7 +15,14 @@ import {
     LayoutSwitchJointConnection,
     OperationalPointId,
 } from 'track-layout/track-layout-model';
-import { deleteNonNull, getNonNull, getNullable, postNonNull, putNonNull, queryParams, } from 'api/api-fetch';
+import {
+    deleteNonNull,
+    getNonNull,
+    getNullable,
+    postNonNull,
+    putNonNull,
+    queryParams,
+} from 'api/api-fetch';
 import {
     changeInfoUri,
     layoutUri,
@@ -24,7 +31,11 @@ import {
     TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
-import { getChangeTimes, updateLocationTrackChangeTime, updateSwitchChangeTime, } from 'common/change-time-api';
+import {
+    getChangeTimes,
+    updateLocationTrackChangeTime,
+    updateSwitchChangeTime,
+} from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { LayoutSwitchSaveRequestBase, LayoutSwitchUpdateRequest } from 'linking/linking-model';
@@ -188,7 +199,11 @@ export const getSwitchesValidation = async (
     ids: LayoutSwitchId[],
 ) => {
     const changeTimes = getChangeTimes();
-    const maxTime = getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutSwitch);
+    const maxTime = getMaxTimestamp(
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutSwitch,
+        changeTimes.operationalPoints,
+    );
     const fetchOperation = (fetchIds: LayoutSwitchId[]) =>
         getNonNull<ValidatedSwitch[]>(
             `${layoutUri('switches', layoutContext)}/validation?ids=${fetchIds}`,

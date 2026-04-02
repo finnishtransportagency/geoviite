@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.ratko.RatkoTestService
+import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTarget
@@ -2025,6 +2026,38 @@ constructor(
             PublicationRequest(publicationRequestIds(operationalPoints = listOf(pointId)), PublicationMessage.of("bee")),
         )
         assertEquals("Beepponen", operationalPointService.get(mainOfficialContext.context, pointId)!!.name.toString())
+    }
+
+    @Test
+    fun `publication generates rinf_id_generated for operational points, except OLP and already-overridden ids`() {
+        val olpPoint = mainDraftContext.save(operationalPoint(ratoType = OperationalPointRatoType.OLP)).id
+        val overriddenIdPoint =
+            mainDraftContext
+                .save(operationalPoint(ratoType = OperationalPointRatoType.LP, rinfIdOverride = "EU00123"))
+                .id
+        val ordinaryPoint = mainDraftContext.save(operationalPoint(ratoType = OperationalPointRatoType.LP)).id
+        publicationService.publishManualPublication(
+            LayoutBranch.main,
+            PublicationRequest(
+                publicationRequestIds(operationalPoints = listOf(olpPoint, overriddenIdPoint, ordinaryPoint)),
+                PublicationMessage.of("publish all"),
+            ),
+        )
+        assertEquals(null, operationalPointDao.getRinfIdGenerated(olpPoint))
+        assertEquals(null, operationalPointDao.getRinfIdGenerated(overriddenIdPoint))
+        assertTrue(operationalPointDao.getRinfIdGenerated(ordinaryPoint) != null)
+
+        mainDraftContext.save(mainOfficialContext.fetch(olpPoint)!!.copy(ratoType = OperationalPointRatoType.LP))
+        mainDraftContext.save(mainOfficialContext.fetch(overriddenIdPoint)!!.copy(rinfIdOverride = null))
+        publicationService.publishManualPublication(
+            LayoutBranch.main,
+            PublicationRequest(
+                publicationRequestIds(operationalPoints = listOf(olpPoint, overriddenIdPoint)),
+                PublicationMessage.of("change points to want rinf_id_generated"),
+            ),
+        )
+        assertTrue(operationalPointDao.getRinfIdGenerated(olpPoint) != null)
+        assertTrue(operationalPointDao.getRinfIdGenerated(overriddenIdPoint) != null)
     }
 
     private fun touchAsDraftAndPublish(

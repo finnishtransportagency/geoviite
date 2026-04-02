@@ -1,5 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { LayoutSwitchId, OperationalPoint, OperationalPointId, } from 'track-layout/track-layout-model';
+import {
+    LayoutSwitchId,
+    OperationalPoint,
+    OperationalPointId,
+} from 'track-layout/track-layout-model';
+import { useOperationalPoints } from 'track-layout/track-layout-react-utils';
 import { LayoutContext } from 'common/common-model';
 import {
     findOperationalPointSwitches,
@@ -21,16 +26,17 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import styles from './operational-point-infobox.scss';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
-import { ProgressIndicatorType, ProgressIndicatorWrapper, } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { MessageBox, MessageBoxType } from 'geoviite-design-lib/message-box/message-box';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { LinkingType } from 'linking/linking-model';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 import { updateAllChangeTimes } from 'common/change-time-api';
-import {
-    OperationalPointSwitchesDirectionInfobox
-} from 'tool-panel/operational-point/operational-point-switches-direction-infobox';
+import { OperationalPointSwitchesDirectionInfobox } from 'tool-panel/operational-point/operational-point-switches-direction-infobox';
 
 type OperationalPointSwitchesInfoboxProps = {
     contentVisible: boolean;
@@ -88,6 +94,13 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
             ? linkingState
             : undefined;
     const isEditing = !!operationalPointSwitchLinkingState;
+
+    const allOperationalPoints = useOperationalPoints(layoutContext, changeTimes.operationalPoints);
+    const olpOperationalPointIds = useMemo(
+        () =>
+            new Set(allOperationalPoints.filter((op) => op.ratoType === 'OLP').map((op) => op.id)),
+        [allOperationalPoints],
+    );
 
     const [switchLinkings, linkedSwitchesFetchStatus] = useLoaderWithStatus(
         () => getSwitchesForOperationalPoint(layoutContext, operationalPoint.id),
@@ -232,6 +245,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 switches={linkedSwitches}
                                 linkingDirection={'unlinking'}
                                 polygonInclusion={switchLinkings ?? []}
+                                olpOperationalPointIds={olpOperationalPointIds}
                                 isEditing={isEditing}
                                 linkingAction={removeSwitch}
                                 massLinkingAction={addAllSwitches}
@@ -244,6 +258,7 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
                                 switches={unlinkedSwitches}
                                 linkingDirection={'linking'}
                                 polygonInclusion={switchLinkings ?? []}
+                                olpOperationalPointIds={olpOperationalPointIds}
                                 isEditing={isEditing}
                                 linkingAction={addSwitch}
                                 massLinkingAction={removeAllSwitches}

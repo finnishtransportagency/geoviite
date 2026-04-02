@@ -129,7 +129,10 @@ class OperationalPointService(
         branch: LayoutBranch,
         version: LayoutRowVersion<OperationalPoint>,
     ): PublicationResultVersions<OperationalPoint> {
-        if (dao.getRinfIdGenerated(version.id) == null && dao.fetch(version).ratoType != OperationalPointRatoType.OLP) {
+        if (
+            dao.getRinfIdGenerated(version.id) == null &&
+                dao.fetch(version).let { it.ratoType != OperationalPointRatoType.OLP && it.rinfIdOverride == null }
+        ) {
             dao.setRinfIdGenerated(version.id, dao.generateRinfId())
         }
         val publishedVersion = publishInternal(branch, version)
@@ -159,14 +162,18 @@ class OperationalPointService(
             val draftRatkoVersion = requireNotNull(draft.ratkoVersion)
             val official = get(branch.official, id)
 
-            if (official?.ratkoVersion != null && official.ratkoVersion < draftRatkoVersion) {
-                dao.save(asDraft(LayoutBranch.main, official.copy(ratkoVersion = draftRatkoVersion)))
-            } else {
-                // avoid deleting ID row, which the DAO's #deleteDraft would do in case this is draft-only
-                dao.deleteRow(LayoutRowId(id, branch.draft))
-                if (official == null) {
-                    dao.insertRatkoPoint(id, draftRatkoVersion)
+            if (official != null) {
+                if (draftRatkoVersion != official.ratkoVersion || draft.state != official.state) {
+                    dao.save(
+                        asDraft(LayoutBranch.main, official.copy(ratkoVersion = draftRatkoVersion, state = draft.state))
+                    )
+                } else {
+                    dao.deleteRow(LayoutRowId(id, branch.draft))
                 }
+            } else {
+                // avoid deleting ID row, which the DAO's #deleteDraft would do since this is draft-only
+                dao.deleteRow(LayoutRowId(id, branch.draft))
+                dao.insertRatkoPoint(id, draftRatkoVersion, draft.state)
             }
             draftVersion
         }

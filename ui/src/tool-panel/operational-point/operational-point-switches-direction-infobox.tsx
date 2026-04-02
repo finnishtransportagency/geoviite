@@ -32,6 +32,7 @@ type OperationalPointSwitchesDirectionInfoboxProps = {
     operationalPoint: OperationalPoint;
     switches: LayoutSwitch[];
     polygonInclusion: OperationalPointSwitchLinkingInfo[];
+    olpOperationalPointIds: ReadonlySet<OperationalPointId>;
     linkingDirection: LinkingDirection;
     isEditing: boolean;
     linkingAction: (id: LayoutSwitchId) => void;
@@ -48,6 +49,7 @@ export const OperationalPointSwitchesDirectionInfobox: React.FC<
     switches,
     linkingDirection,
     polygonInclusion,
+    olpOperationalPointIds,
     isEditing,
     linkingAction,
     massLinkingAction,
@@ -65,6 +67,7 @@ export const OperationalPointSwitchesDirectionInfobox: React.FC<
                 polygonInclusion.find((obj) => obj.switchId === item.id)?.allOperationalPoints ??
                     [],
                 linkingDirection,
+                olpOperationalPointIds,
             ),
         }))
         .sort((a, b) => {
@@ -230,9 +233,11 @@ function validateOperationalPointSwitchRow(
     switchItem: LayoutSwitch,
     polygonInclusions: OperationalPointId[],
     linkingDirection: LinkingDirection,
+    olpOperationalPointIds: ReadonlySet<OperationalPointId>,
 ): SwitchRowValidationIssue[] {
     const wrongPolygonProblems = polygonInclusions
         .filter((inPolygon) => inPolygon !== operationalPointId)
+        .filter((inPolygon) => !olpOperationalPointIds.has(inPolygon))
         .map((i) => ({ type: 'switch-in-wrong-polygon', operationalPointId: i }) as const);
     const linkedToWrongPointProblem =
         linkingDirection === 'linking' &&
