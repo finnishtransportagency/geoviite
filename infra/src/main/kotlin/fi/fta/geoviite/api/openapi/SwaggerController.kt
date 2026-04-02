@@ -15,11 +15,13 @@ import org.springframework.web.bind.annotation.PathVariable
 
 // Browser-facing api-docs paths: each path is under its own prefix so that integrators
 // proxying only /geoviite/** or /rata-vkm/** can reach the API definition for their portion.
-const val OPENAPI_GEOVIITE_PATH = "/geoviite/v3/api-docs"
-const val OPENAPI_RATAVKM_PATH = "/rata-vkm/v3/api-docs"
+// These intentionally don't end with the SpringDoc base path (/v3/api-docs) to avoid
+// interfering with SpringDoc's auto-generated server URL calculation.
+const val OPENAPI_GEOVIITE_PATH = "/geoviite/openapi"
+const val OPENAPI_RATAVKM_PATH = "/rata-vkm/openapi"
 
-const val OPENAPI_GEOVIITE_DEV_PATH = "/geoviite/dev/v3/api-docs"
-const val OPENAPI_RATAVKM_DEV_PATH = "/rata-vkm/dev/v3/api-docs"
+const val OPENAPI_GEOVIITE_DEV_PATH = "/geoviite/dev/openapi"
+const val OPENAPI_RATAVKM_DEV_PATH = "/rata-vkm/dev/openapi"
 
 // Actual SpringDoc-served paths (springdoc.api-docs.path + group name). These are internal
 // implementation details — browsers never fetch these directly.

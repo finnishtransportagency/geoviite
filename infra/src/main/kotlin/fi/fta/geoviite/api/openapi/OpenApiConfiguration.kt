@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.environmentInfo.EnvironmentInfo
 import io.swagger.v3.oas.models.Paths
 import io.swagger.v3.oas.models.info.Contact
 import io.swagger.v3.oas.models.info.Info
-import io.swagger.v3.oas.models.servers.Server
 import org.springdoc.core.customizers.OpenApiCustomizer
 import org.springdoc.core.models.GroupedOpenApi
 import org.springframework.beans.factory.annotation.Autowired
@@ -57,8 +56,6 @@ class OpenApiConfiguration @Autowired constructor(private val environmentInfo: E
             .build()
     }
 
-    // Server URL is set to empty string so that swagger-ui uses the current page's origin,
-    // making "Try it out" work regardless of which domain the user is on.
     fun geoviiteOpenApiCustomizer(): OpenApiCustomizer {
         return OpenApiCustomizer { openApi ->
             openApi.info(
@@ -72,8 +69,6 @@ class OpenApiConfiguration @Autowired constructor(private val environmentInfo: E
                             .email(environmentInfo.geoviiteSupportEmailAddress)
                     )
             )
-
-            openApi.servers(listOf(Server().apply { url = "" }))
 
             // Alphabetically sort paths & components for user friendliness.
             openApi.paths =
@@ -106,8 +101,6 @@ class OpenApiConfiguration @Autowired constructor(private val environmentInfo: E
                             .email(environmentInfo.geoviiteSupportEmailAddress)
                     )
             )
-
-            openApi.servers(listOf(Server().apply { url = "" }))
 
             // Alphabetically sort paths & components for user friendliness.
             // Trailing slash variants are excluded since each path is mapped both with and without trailing slash.
