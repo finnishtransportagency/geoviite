@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.configuration
 import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_DEV_PATH
 import fi.fta.geoviite.api.openapi.OPENAPI_GEOVIITE_PATH
 import fi.fta.geoviite.infra.authorization.AUTH_FLAG_API_GEOMETRY
+import jakarta.servlet.DispatcherType
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
@@ -12,6 +13,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy.STATELESS
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher
+import org.springframework.security.web.util.matcher.RequestMatcher
 
 @ConditionalOnWebApplication
 @EnableWebSecurity
@@ -37,7 +40,16 @@ class SecurityConfiguration {
             // Set permissions on endpoints
             .authorizeHttpRequests { auth ->
                 auth
-                    // Dynamically generated openapi paths.
+                    // Block direct access to internal SpringDoc api-docs paths. These are only
+                    // meant to be reached via server-side forwards from SwaggerController, which
+                    // are not matched here (FORWARD dispatch type is excluded).
+                    .requestMatchers(
+                        directRequestMatcher("/swagger-ui/**"),
+                        directRequestMatcher("/v3/api-docs/**"),
+                        directRequestMatcher("/dev/v3/api-docs/**"),
+                    )
+                    .denyAll()
+                    // Browser-facing openapi forwarding paths for geoviite.
                     .requestMatchers(OPENAPI_GEOVIITE_PATH, OPENAPI_GEOVIITE_DEV_PATH)
                     .hasAuthority(AUTH_FLAG_API_GEOMETRY)
                     // All others
@@ -45,5 +57,12 @@ class SecurityConfiguration {
                     .authenticated()
             }
             .build()
+    }
+}
+
+private fun directRequestMatcher(pattern: String): RequestMatcher {
+    val pathMatcher = PathPatternRequestMatcher.withDefaults().matcher(pattern)
+    return RequestMatcher { request ->
+        request.dispatcherType == DispatcherType.REQUEST && pathMatcher.matches(request)
     }
 }

@@ -50,6 +50,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException
 import org.springframework.web.multipart.support.MissingServletRequestPartException
 import org.springframework.web.servlet.NoHandlerFoundException
+import org.springframework.web.servlet.resource.NoResourceFoundException
 
 fun handleErrorResponseCreation(
     exception: Exception,
@@ -147,6 +148,7 @@ fun getStatusCode(exception: Exception): HttpStatus? =
         is MissingServletRequestPartException -> BAD_REQUEST
         is BindException -> BAD_REQUEST
         is NoHandlerFoundException -> NOT_FOUND
+        is NoResourceFoundException -> NOT_FOUND
         is AsyncRequestTimeoutException -> SERVICE_UNAVAILABLE
         is MaxUploadSizeExceededException -> BAD_REQUEST
         is TransactionTimedOutException -> REQUEST_TIMEOUT
@@ -199,6 +201,13 @@ fun describe(ex: Exception): ErrorDescription? {
         is NoHandlerFoundException ->
             ErrorDescription(
                 message = "No handler found: ${ex.httpMethod} ${ex.requestURL}",
+                key = "error.bad-request.invalid-path",
+                params = localizationParams("method" to ex.httpMethod),
+            )
+
+        is NoResourceFoundException ->
+            ErrorDescription(
+                message = "Resource not found: ${ex.resourcePath}",
                 key = "error.bad-request.invalid-path",
                 params = localizationParams("method" to ex.httpMethod),
             )

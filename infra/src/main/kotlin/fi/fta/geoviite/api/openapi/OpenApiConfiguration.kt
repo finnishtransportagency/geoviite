@@ -1,11 +1,9 @@
 package fi.fta.geoviite.api.openapi
 
-import fi.fta.geoviite.api.configuration.ExtApiConfiguration
 import fi.fta.geoviite.infra.environmentInfo.EnvironmentInfo
 import io.swagger.v3.oas.models.Paths
 import io.swagger.v3.oas.models.info.Contact
 import io.swagger.v3.oas.models.info.Info
-import io.swagger.v3.oas.models.servers.Server
 import org.springdoc.core.customizers.OpenApiCustomizer
 import org.springdoc.core.models.GroupedOpenApi
 import org.springframework.beans.factory.annotation.Autowired
@@ -16,9 +14,7 @@ import org.springframework.context.annotation.Profile
 // Due to the unfortunate nature of the dev-env redirect, some of the mappings are duplicated.
 @Configuration
 @Profile("ext-api")
-class OpenApiConfiguration
-@Autowired
-constructor(private val environmentInfo: EnvironmentInfo, private val extApiConfiguration: ExtApiConfiguration) {
+class OpenApiConfiguration @Autowired constructor(private val environmentInfo: EnvironmentInfo) {
 
     @Bean
     fun geoviiteApi(): GroupedOpenApi {
@@ -26,16 +22,7 @@ constructor(private val environmentInfo: EnvironmentInfo, private val extApiConf
             .group("geoviite")
             .pathsToMatch("/geoviite/**")
             .pathsToExclude("/geoviite/dev/**")
-            .addOpenApiCustomizer(geoviiteOpenApiCustomizer(extApiConfiguration.soaServerURL))
-            .build()
-    }
-
-    @Bean
-    fun geoviiteNoPrefixApi(): GroupedOpenApi {
-        return GroupedOpenApi.builder()
-            .group("geoviite-user-api")
-            .pathsToMatch("/paikannuspohja/v1/**")
-            .addOpenApiCustomizer(geoviiteOpenApiCustomizer(extApiConfiguration.rootURL))
+            .addOpenApiCustomizer(geoviiteOpenApiCustomizer())
             .build()
     }
 
@@ -45,7 +32,7 @@ constructor(private val environmentInfo: EnvironmentInfo, private val extApiConf
         return GroupedOpenApi.builder()
             .group("geoviite-dev")
             .pathsToMatch("/geoviite/dev/**")
-            .addOpenApiCustomizer(geoviiteOpenApiCustomizer(extApiConfiguration.soaServerURL))
+            .addOpenApiCustomizer(geoviiteOpenApiCustomizer())
             .build()
     }
 
@@ -55,7 +42,7 @@ constructor(private val environmentInfo: EnvironmentInfo, private val extApiConf
             .group("rata-vkm")
             .pathsToMatch("/rata-vkm/**")
             .pathsToExclude("/rata-vkm/dev/**")
-            .addOpenApiCustomizer(rataVkmOpenApiCustomizer(extApiConfiguration.soaServerURL))
+            .addOpenApiCustomizer(rataVkmOpenApiCustomizer())
             .build()
     }
 
@@ -65,11 +52,11 @@ constructor(private val environmentInfo: EnvironmentInfo, private val extApiConf
         return GroupedOpenApi.builder()
             .group("rata-vkm-dev")
             .pathsToMatch("/rata-vkm/dev/**")
-            .addOpenApiCustomizer(rataVkmOpenApiCustomizer(extApiConfiguration.soaServerURL))
+            .addOpenApiCustomizer(rataVkmOpenApiCustomizer())
             .build()
     }
 
-    fun geoviiteOpenApiCustomizer(serverURL: String): OpenApiCustomizer {
+    fun geoviiteOpenApiCustomizer(): OpenApiCustomizer {
         return OpenApiCustomizer { openApi ->
             openApi.info(
                 Info()
@@ -83,8 +70,6 @@ constructor(private val environmentInfo: EnvironmentInfo, private val extApiConf
                     )
             )
 
-            openApi.servers(listOf(Server().apply { url = serverURL }))
-
             // Alphabetically sort paths & components for user friendliness.
             openApi.paths =
                 Paths().apply {
@@ -95,7 +80,7 @@ constructor(private val environmentInfo: EnvironmentInfo, private val extApiConf
         }
     }
 
-    fun rataVkmOpenApiCustomizer(serverURL: String): OpenApiCustomizer {
+    fun rataVkmOpenApiCustomizer(): OpenApiCustomizer {
         return OpenApiCustomizer { openApi ->
             openApi.info(
                 Info()
@@ -116,8 +101,6 @@ constructor(private val environmentInfo: EnvironmentInfo, private val extApiConf
                             .email(environmentInfo.geoviiteSupportEmailAddress)
                     )
             )
-
-            openApi.servers(listOf(Server().apply { url = serverURL }))
 
             // Alphabetically sort paths & components for user friendliness.
             // Trailing slash variants are excluded since each path is mapped both with and without trailing slash.
