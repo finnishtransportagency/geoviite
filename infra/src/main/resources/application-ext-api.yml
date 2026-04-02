@@ -54,6 +54,6 @@ springdoc:
   trim-kotlin-indent: true
   api-docs:
     enabled: true
-    path: /geoviite/v3/api-docs
+    path: /v3/api-docs
   swagger-ui:
     enabled: true

@@ -37,7 +37,7 @@ class SecurityConfiguration {
             // Set permissions on endpoints
             .authorizeHttpRequests { auth ->
                 auth
-                    // Dynamically generated openapi paths.
+                    // Browser-facing openapi forwarding paths for geoviite.
                     .requestMatchers(OPENAPI_GEOVIITE_PATH, OPENAPI_GEOVIITE_DEV_PATH)
                     .hasAuthority(AUTH_FLAG_API_GEOMETRY)
                     // All others

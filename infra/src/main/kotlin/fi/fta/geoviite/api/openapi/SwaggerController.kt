@@ -15,19 +15,23 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 
-const val OPENAPI_GEOVIITE_PATH = "/geoviite/v3/api-docs/geoviite"
-const val OPENAPI_GEOVIITE_NO_PREFIX_PATH = "/geoviite/v3/api-docs/geoviite-user-api"
+// Browser-facing api-docs paths: each path is under its own prefix so that integrators
+// proxying only /geoviite/** or /rata-vkm/** can reach the API definition for their portion.
+// The no-prefix path is for full-subdomain proxies that don't use a prefix at all.
+const val OPENAPI_GEOVIITE_PATH = "/geoviite/v3/api-docs"
+const val OPENAPI_GEOVIITE_NO_PREFIX_PATH = "/v3/api-docs/geoviite-user-api"
+const val OPENAPI_RATAVKM_PATH = "/rata-vkm/v3/api-docs"
 
-const val OPENAPI_GEOVIITE_DEV_PATH = "/geoviite/dev/v3/api-docs/geoviite-dev"
-const val OPENAPI_GEOVIITE_DEV_NO_PREFIX_PATH = "/geoviite/dev/v3/api-docs/geoviite-user-api"
+const val OPENAPI_GEOVIITE_DEV_PATH = "/geoviite/dev/v3/api-docs"
+const val OPENAPI_GEOVIITE_DEV_NO_PREFIX_PATH = "/dev/v3/api-docs/geoviite-user-api"
+const val OPENAPI_RATAVKM_DEV_PATH = "/rata-vkm/dev/v3/api-docs"
 
-// Browser-facing paths: under /rata-vkm/ so integrators proxying /rata-vkm/** can reach them.
-const val OPENAPI_RATAVKM_PATH = "/rata-vkm/v3/api-docs/rata-vkm"
-const val OPENAPI_RATAVKM_DEV_PATH = "/rata-vkm/dev/v3/api-docs/rata-vkm-dev"
-
-// Actual SpringDoc-served paths (determined by springdoc.api-docs.path + group name).
-private const val SPRINGDOC_RATAVKM_PATH = "/geoviite/v3/api-docs/rata-vkm"
-private const val SPRINGDOC_RATAVKM_DEV_PATH = "/geoviite/dev/v3/api-docs/rata-vkm-dev"
+// Actual SpringDoc-served paths (springdoc.api-docs.path + group name). These are internal
+// implementation details — browsers never fetch these directly.
+private const val SPRINGDOC_GEOVIITE_PATH = "/v3/api-docs/geoviite"
+private const val SPRINGDOC_RATAVKM_PATH = "/v3/api-docs/rata-vkm"
+private const val SPRINGDOC_GEOVIITE_DEV_PATH = "/dev/v3/api-docs/geoviite-dev"
+private const val SPRINGDOC_RATAVKM_DEV_PATH = "/dev/v3/api-docs/rata-vkm-dev"
 
 val allowedResourcePrefixes = listOf("/", "/geoviite", "/rata-vkm")
 
@@ -111,13 +115,27 @@ class SwaggerController @Autowired constructor(env: Environment) {
         serveSwaggerInitializer(response, OPENAPI_RATAVKM_DEV_PATH)
     }
 
-    // Forward rata-vkm api-docs requests to the actual SpringDoc-served paths under /geoviite/.
-    // This is needed because SpringDoc's api-docs base path is global (/geoviite/v3/api-docs), but
-    // integrators proxying only /rata-vkm/** need to reach the rata-vkm API definition.
+    // Forward prefixed api-docs requests to the actual SpringDoc-served paths.
+    // SpringDoc's api-docs base path is global (/v3/api-docs), but each swagger-ui serves its
+    // api-docs URL under its own prefix so that integrators proxying only /geoviite/** or
+    // /rata-vkm/** can reach the API definition for their portion.
+    @PreAuthorize(AUTH_API_GEOMETRY)
+    @GetMapping(OPENAPI_GEOVIITE_PATH)
+    fun forwardGeoviiteApiDocs(request: HttpServletRequest, response: HttpServletResponse) {
+        request.getRequestDispatcher(SPRINGDOC_GEOVIITE_PATH).forward(request, response)
+    }
+
     @PreAuthorize(AUTH_API_FRAME_CONVERTER)
     @GetMapping(OPENAPI_RATAVKM_PATH)
     fun forwardRataVkmApiDocs(request: HttpServletRequest, response: HttpServletResponse) {
         request.getRequestDispatcher(SPRINGDOC_RATAVKM_PATH).forward(request, response)
+    }
+
+    @Profile("ext-api-dev-swagger")
+    @PreAuthorize(AUTH_API_GEOMETRY)
+    @GetMapping(OPENAPI_GEOVIITE_DEV_PATH)
+    fun forwardGeoviiteDevApiDocs(request: HttpServletRequest, response: HttpServletResponse) {
+        request.getRequestDispatcher(SPRINGDOC_GEOVIITE_DEV_PATH).forward(request, response)
     }
 
     @Profile("ext-api-dev-swagger")
