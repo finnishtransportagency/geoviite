@@ -29,6 +29,7 @@ import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_GEOMETRY } from 'user/user-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { LocationTrackSwitchLinksInfobox } from 'tool-panel/location-track/location-track-switch-links-infobox';
+import { LocationTrackOperationalPointLinksInfobox } from 'tool-panel/location-track/location-track-operational-point-links-infobox';
 import { useLoaderWithStatus } from 'utils/react-utils';
 import { getLocationTrackValidation } from 'track-layout/layout-location-track-api';
 
@@ -175,6 +176,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 locationTrack={locationTrack}
                 validation={validation}
                 validationLoaderStatus={validationLoaderStatus}
+                layoutContext={layoutContext}
+                changeTimes={changeTimes}
+                onSelect={onSelect}
+            />
+            <LocationTrackOperationalPointLinksInfobox
+                contentVisible={visibilities.operationalPointLinks}
+                onContentVisibilityChange={() => visibilityChange('operationalPointLinks')}
+                locationTrack={locationTrack}
                 layoutContext={layoutContext}
                 changeTimes={changeTimes}
                 onSelect={onSelect}

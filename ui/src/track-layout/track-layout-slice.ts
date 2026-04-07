@@ -114,6 +114,7 @@ export type LocationTrackInfoboxVisibilities = {
     geometry: boolean;
     verticalGeometry: boolean;
     switchLinks: boolean;
+    operationalPointLinks: boolean;
 };
 
 export type KmPostInfoboxVisibilities = {
@@ -187,6 +188,7 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
         geometry: true,
         verticalGeometry: true,
         switchLinks: true,
+        operationalPointLinks: true,
     },
     kmPost: {
         basic: true,
