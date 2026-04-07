@@ -23,7 +23,6 @@ import fi.fta.geoviite.infra.math.Polygon
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -36,6 +35,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1115,7 +1115,7 @@ constructor(
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
-            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V002"), name)
+            assertEquals(AlignmentName("ABC V001-ABC V002 - ${LocationTrackNameSpecifier.EKR.properForm}"), name)
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
@@ -1136,7 +1136,7 @@ constructor(
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
-            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V003"), name)
+            assertEquals(AlignmentName("ABC V001-ABC V003 - ${LocationTrackNameSpecifier.EKR.properForm}"), name)
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
@@ -1151,7 +1151,7 @@ constructor(
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
-            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V999-ABC V003"), name)
+            assertEquals(AlignmentName("ABC V999-ABC V003 - ${LocationTrackNameSpecifier.EKR.properForm}"), name)
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)
@@ -1162,7 +1162,7 @@ constructor(
         getDraftNameAndStructure(trackId).let { (name, structure) ->
             assertEquals(LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS, structure.scheme)
             assertEquals(LocationTrackNameSpecifier.EKR, structure.specifier)
-            assertEquals(AlignmentName("${LocationTrackNameSpecifier.EKR.properForm} ABC V001-ABC V003"), name)
+            assertEquals(AlignmentName("ABC V001-ABC V003 - ${LocationTrackNameSpecifier.EKR.properForm}"), name)
         }
         getDraftDescriptionAndStructure(trackId).let { (description, structure) ->
             assertEquals(LocationTrackDescriptionSuffix.SWITCH_TO_SWITCH, structure.suffix)

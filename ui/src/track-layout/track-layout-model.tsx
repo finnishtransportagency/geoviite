@@ -655,7 +655,7 @@ export function formatTrackName(
             return formatTrackNumberTrackName(trackNumber, nameSpecifier, nameFreeText);
         case LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS:
             return nameSpecifier
-                ? `${toProperForm(nameSpecifier)} ${getShortName(startSwitch)}-${getShortName(endSwitch)}`
+                ? `${getShortName(startSwitch)}-${getShortName(endSwitch)} - ${toProperForm(nameSpecifier)}`
                 : `${getShortName(startSwitch)}-${getShortName(endSwitch)}`;
         case LocationTrackNamingScheme.CHORD: {
             if (startSwitch !== undefined && startSwitch?.prefix === endSwitch?.prefix) {
