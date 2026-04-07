@@ -903,7 +903,8 @@ class LocationTrackDao(
                      on lt.id = ltvop.location_track_id
                        and lt.layout_context_id = ltvop.location_track_layout_context_id
                        and lt.version = ltvop.location_track_version
-              where operational_point_id = :operational_point_id;
+              where operational_point_id = :operational_point_id
+                and lt.state != 'DELETED';
             """
                 .trimIndent()
         return jdbcTemplate.query(
@@ -939,6 +940,7 @@ class LocationTrackDao(
                   where lt.id = ltve.location_track_id
                     and lt.layout_context_id = ltve.location_track_layout_context_id
                     and lt.version = ltve.location_track_version
+                    and lt.state != 'DELETED'
                     and postgis.st_intersects(lt.bounding_box, op.polygon)
                     and postgis.st_intersects(e.bounding_box, op.polygon)
                     and postgis.st_intersects(sg.geometry, op.polygon)
