@@ -393,7 +393,7 @@ fun validateSwitchNameDuplication(
     validationTargetType: ValidationTargetType,
 ): List<LayoutValidationIssue> {
     return if (switch.exists) {
-        validateNameDuplication(VALIDATION_SWITCH, validationTargetType, switch, duplicates) {
+        validateNameDuplication(VALIDATION_SWITCH, validationTargetType, switch, duplicates.filter { it.exists }) {
             listOf("switch" to switch.name)
         }
     } else {
@@ -499,7 +499,7 @@ fun validateLocationTrackNameDuplication(
             VALIDATION_LOCATION_TRACK,
             validationTargetType,
             track,
-            duplicates.filter { it.trackNumberId == track.trackNumberId },
+            duplicates.filter { it.trackNumberId == track.trackNumberId && it.exists },
         ) {
             listOf("locationTrack" to track.name, "trackNumber" to trackNumber)
         }
