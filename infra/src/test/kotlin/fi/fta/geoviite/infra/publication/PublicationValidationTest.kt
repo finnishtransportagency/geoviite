@@ -515,6 +515,66 @@ class PublicationValidationTest {
     }
 
     @Test
+    fun `name duplication validation allows deleted switches to share names with existing ones`() {
+        val existingSwitch = switch(name = "abc", id = IntId(1), draft = true, stateCategory = EXISTING)
+        val deletedSwitch =
+            switch(name = "abc", id = IntId(2), draft = true, stateCategory = LayoutStateCategory.NOT_EXISTING)
+
+        assertEquals(
+            listOf(),
+            validateSwitchNameDuplication(existingSwitch, listOf(deletedSwitch), ValidationTargetType.PUBLISHING),
+        )
+
+        assertEquals(
+            listOf(),
+            validateSwitchNameDuplication(deletedSwitch, listOf(existingSwitch), ValidationTargetType.PUBLISHING),
+        )
+    }
+
+    @Test
+    fun `name duplication validation allows deleted tracks to share names with existing ones`() {
+        val trackNumberId = IntId<LayoutTrackNumber>(1)
+        val trackNumber = TrackNumber("001")
+        val trackName = "test-track"
+
+        val existingTrack =
+            locationTrack(
+                trackNumberId = trackNumberId,
+                id = IntId(1),
+                draft = true,
+                name = trackName,
+                state = LocationTrackState.IN_USE,
+            )
+        val deletedTrack =
+            locationTrack(
+                trackNumberId = trackNumberId,
+                id = IntId(2),
+                draft = true,
+                name = trackName,
+                state = LocationTrackState.DELETED,
+            )
+        assertEquals(
+            listOf(),
+            validateLocationTrackNameDuplication(
+                deletedTrack,
+                trackNumber,
+                listOf(existingTrack),
+                ValidationTargetType.PUBLISHING,
+            ),
+        )
+
+        assertEquals(
+            listOf(),
+            validateLocationTrackNameDuplication(
+                existingTrack,
+                trackNumber,
+                listOf(deletedTrack),
+                ValidationTargetType.PUBLISHING,
+            ),
+        )
+    }
+
+    @Test
     fun `Validation catches chord tracks without both end switches`() {
         val switch = switch(id = IntId(0))
         val trackWithoutSwitches =
