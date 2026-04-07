@@ -18,7 +18,7 @@ import { IconColor, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
 import SwitchHand from 'geoviite-design-lib/switch/switch-hand';
 import { formatToTM35FINString } from 'utils/geography-utils';
-import { useLoader, useLoaderWithStatus } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -324,7 +324,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         <InfoboxField
                             label={t('tool-panel.switch.layout.operational-point')}
                             value={
-                                operationalPointFetchStatus !== 'Ready' ? (
+                                operationalPointFetchStatus !== LoaderStatus.Ready ? (
                                     <Spinner />
                                 ) : operationalPoint ? (
                                     <OperationalPointLink
