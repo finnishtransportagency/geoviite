@@ -520,16 +520,14 @@ class PublicationValidationTest {
         val deletedSwitch =
             switch(name = "abc", id = IntId(2), draft = true, stateCategory = LayoutStateCategory.NOT_EXISTING)
 
-        assertContainsError(
-            false,
+        assertEquals(
+            listOf(),
             validateSwitchNameDuplication(existingSwitch, listOf(deletedSwitch), ValidationTargetType.PUBLISHING),
-            "$VALIDATION_SWITCH.duplicate-name-draft",
         )
 
-        assertContainsError(
-            false,
+        assertEquals(
+            listOf(),
             validateSwitchNameDuplication(deletedSwitch, listOf(existingSwitch), ValidationTargetType.PUBLISHING),
-            "$VALIDATION_SWITCH.duplicate-name-draft",
         )
     }
 
@@ -555,29 +553,24 @@ class PublicationValidationTest {
                 name = trackName,
                 state = LocationTrackState.DELETED,
             )
-
-        // A deleted track's name may duplicate an existing one
-        assertContainsError(
-            false,
+        assertEquals(
+            listOf(),
             validateLocationTrackNameDuplication(
                 deletedTrack,
                 trackNumber,
                 listOf(existingTrack),
                 ValidationTargetType.PUBLISHING,
             ),
-            "$VALIDATION_LOCATION_TRACK.duplicate-name-draft",
         )
 
-        // An existing track's name may duplicate a deleted one
-        assertContainsError(
-            false,
+        assertEquals(
+            listOf(),
             validateLocationTrackNameDuplication(
                 existingTrack,
                 trackNumber,
                 listOf(deletedTrack),
                 ValidationTargetType.PUBLISHING,
             ),
-            "$VALIDATION_LOCATION_TRACK.duplicate-name-draft",
         )
     }
 
