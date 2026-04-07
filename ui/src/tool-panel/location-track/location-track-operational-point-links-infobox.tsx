@@ -48,7 +48,14 @@ type OperationalPointAddress = {
 
 export const LocationTrackOperationalPointLinksInfobox: React.FC<
     LocationTrackOperationalPointLinksInfoboxProps
-> = ({ contentVisible, onContentVisibilityChange, locationTrack, layoutContext, changeTimes, onSelect }) => {
+> = ({
+    contentVisible,
+    onContentVisibilityChange,
+    locationTrack,
+    layoutContext,
+    changeTimes,
+    onSelect,
+}) => {
     const { t } = useTranslation();
     const [showingDialogToDetachOp, setShowingDialogToDetachOp] = React.useState<
         { id: OperationalPointId; name: string } | undefined
@@ -63,17 +70,20 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
             [locationTrack.id],
             showingDialogToDetachOp.id,
         )
-            .then(() => updateAllChangeTimes())
-            .then(() => {
-                setIsDetaching(false);
+            .then(async () => {
+                await updateAllChangeTimes();
                 setShowingDialogToDetachOp(undefined);
                 Snackbar.success(
-                    t('tool-panel.location-track.detach-operational-point-links-dialog.success-toast', {
-                        operationalPointName: showingDialogToDetachOp.name,
-                        trackName: locationTrack.name,
-                    }),
+                    t(
+                        'tool-panel.location-track.detach-operational-point-links-dialog.success-toast',
+                        {
+                            operationalPointName: showingDialogToDetachOp.name,
+                            trackName: locationTrack.name,
+                        },
+                    ),
                 );
-            });
+            })
+            .finally(() => setIsDetaching(false));
     };
 
     const [operationalPoints, opLoadStatus] = useLoaderWithStatus(
@@ -92,27 +102,24 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
         ],
     );
 
-    const [addresses, addressLoadStatus] = useLoaderWithStatus(
-        async () => {
-            if (!operationalPoints) return [];
-            const results: OperationalPointAddress[] = await Promise.all(
-                operationalPoints.map(async (op) => ({
-                    operationalPointId: op.id,
-                    address: op.location
-                        ? await getAddress(locationTrack.trackNumberId, op.location, layoutContext)
-                        : undefined,
-                })),
-            );
-            return results;
-        },
-        [
-            operationalPoints,
-            locationTrack.trackNumberId,
-            layoutContext.branch,
-            layoutContext.publicationState,
-            geocodingChangeTime(changeTimes),
-        ],
-    );
+    const [addresses, addressLoadStatus] = useLoaderWithStatus(async () => {
+        if (!operationalPoints) return [];
+        const results: OperationalPointAddress[] = await Promise.all(
+            operationalPoints.map(async (op) => ({
+                operationalPointId: op.id,
+                address: op.location
+                    ? await getAddress(locationTrack.trackNumberId, op.location, layoutContext)
+                    : undefined,
+            })),
+        );
+        return results;
+    }, [
+        operationalPoints,
+        locationTrack.trackNumberId,
+        layoutContext.branch,
+        layoutContext.publicationState,
+        geocodingChangeTime(changeTimes),
+    ]);
 
     const addressMap = React.useMemo(() => {
         const map: Record<string, TrackMeter | undefined> = {};
@@ -164,9 +171,7 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
                                             operationalPoint={operationalPoint}
                                             address={address}
                                             layoutContext={layoutContext}
-                                            setShowingDialogToDetachOp={
-                                                setShowingDialogToDetachOp
-                                            }
+                                            setShowingDialogToDetachOp={setShowingDialogToDetachOp}
                                             onSelect={onSelect}
                                         />
                                     ))}
@@ -210,10 +215,7 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
                                 disabled={isDetaching}>
                                 {t('button.cancel')}
                             </Button>
-                            <div
-                                className={
-                                    dialogStyles['dialog__footer-content--right-aligned']
-                                }>
+                            <div className={dialogStyles['dialog__footer-content--right-aligned']}>
                                 <Button
                                     disabled={isDetaching}
                                     isProcessing={isDetaching}
