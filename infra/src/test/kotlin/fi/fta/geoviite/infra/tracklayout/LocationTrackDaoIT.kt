@@ -140,6 +140,11 @@ constructor(
                     segment(Point(25.0, 20.0), Point(25.0, 5.0)),
                 ),
             )
+        // overlapping with both operational points, but deleted, so should be ignored
+        mainOfficialContext.save(
+            locationTrack(trackNumber, state = LocationTrackState.DELETED),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(30.0, 10.0))),
+        )
         assertEquals(
             listOf(overlappingOnlyOp1Track.id),
             locationTrackDao.getTracksOverlappingOperationalPoint(mainOfficialContext.context, operationalPoint1),
@@ -166,6 +171,12 @@ constructor(
                 locationTrack(trackNumberId = trackNumber, operationalPointIds = setOf(op2, op3)),
                 trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
             )
+        // deleted track, so ignore it regardless of what it's linked to
+        mainOfficialContext.save(
+            locationTrack(trackNumber, state = LocationTrackState.DELETED, operationalPointIds = setOf(op1, op2, op3)),
+            trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+        )
+
         assertEquals(
             listOf(onOp1Track.id),
             locationTrackDao.getTracksLinkedToOperationalPoint(mainOfficialContext.context, op1),
