@@ -68,7 +68,10 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
                 setIsDetaching(false);
                 setShowingDialogToDetachOp(undefined);
                 Snackbar.success(
-                    'tool-panel.location-track.detach-operational-point-links-dialog.success-toast',
+                    t('tool-panel.location-track.detach-operational-point-links-dialog.success-toast', {
+                        operationalPointName: showingDialogToDetachOp.name,
+                        trackName: locationTrack.name,
+                    }),
                 );
             });
     };
