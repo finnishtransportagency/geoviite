@@ -185,7 +185,7 @@ data class LocationTrackNameBetweenOperationalPoints(override val specifier: Loc
 
     fun format(startSwitch: LayoutSwitch?, endSwitch: LayoutSwitch?): AlignmentName {
         val nameString =
-            if (specifier != null) "${specifier.properForm} ${getShortName(startSwitch)}-${getShortName(endSwitch)}"
+            if (specifier != null) "${getShortName(startSwitch)}-${getShortName(endSwitch)} - ${specifier.properForm}"
             else "${getShortName(startSwitch)}-${getShortName(endSwitch)}"
 
         return AlignmentName(nameString.trim())
