@@ -40,6 +40,7 @@ import {
 import {
     GeometryPlanLayout,
     LocationTrackId,
+    OperationalPointId,
     SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
@@ -767,6 +768,7 @@ function updateSelection(state: TrackLayoutState, onSelectOptions: OnSelectOptio
         state.linkingState,
         state.selectedToolPanelTab,
         onSelectOptions.selectedTab,
+        onSelectOptions.operationalPointsHitByIcon,
     );
 }
 
@@ -867,7 +869,7 @@ export const getFirstOfTypeInSelection = (
         OPERATIONAL_POINT: () => first(selectedItems.operationalPoints),
         SUGGESTED_SWITCH: () =>
             switchLinkingActive ? SUGGESTED_SWITCH_TOOL_PANEL_TAB_ID : undefined,
-        GEOMETRY_SWITCH: () => first(selectedItems.switches),
+        GEOMETRY_SWITCH: () => first(selectedItems.geometrySwitchIds)?.geometryId,
         LOCATION_TRACK: () => first(selectedItems.locationTracks),
         GEOMETRY_ALIGNMENT: () => first(selectedItems.geometryAlignmentIds)?.geometryId,
     };
@@ -875,17 +877,27 @@ export const getFirstOfTypeInSelection = (
     return id ? { id, type } : undefined;
 };
 
-export const getFirstToolPanelAsset = (
+export const getPrioritizedToolPanelAsset = (
     selection: Selection,
     linkingState: LinkingState | undefined,
+    operationalPointsHitByIcon?: OperationalPointId[],
 ): ToolPanelAsset | undefined => {
-    const firstAssetType = TOOL_PANEL_ASSET_ORDER.find(
-        (type) => getFirstOfTypeInSelection(selection, linkingState, type) !== undefined,
+    const hasOperationalPointIconHit = selection.selectedItems.operationalPoints.some((op) =>
+        (operationalPointsHitByIcon ?? []).includes(op),
     );
 
-    return firstAssetType
-        ? getFirstOfTypeInSelection(selection, linkingState, firstAssetType)
-        : undefined;
+    for (const type of TOOL_PANEL_ASSET_ORDER) {
+        if (type === 'OPERATIONAL_POINT' && !hasOperationalPointIconHit) continue;
+        const firstAsset = getFirstOfTypeInSelection(selection, linkingState, type);
+        if (firstAsset !== undefined) {
+            return firstAsset;
+        }
+    }
+
+    if (!hasOperationalPointIconHit) {
+        return getFirstOfTypeInSelection(selection, linkingState, 'OPERATIONAL_POINT');
+    }
+    return undefined;
 };
 
 const updateSelectedToolPanelTab = (
@@ -893,6 +905,7 @@ const updateSelectedToolPanelTab = (
     linkingState: LinkingState | undefined,
     currentlySelectedTab: ToolPanelAsset | undefined,
     selectedTabOverride?: ToolPanelAsset | undefined,
+    operationalPointsHitByIcon?: OperationalPointId[],
 ): ToolPanelAsset | undefined => {
     if (selectedTabOverride) {
         return selectedTabOverride;
@@ -900,7 +913,7 @@ const updateSelectedToolPanelTab = (
         !currentlySelectedTab ||
         !toolPanelAssetExists(selection, linkingState, currentlySelectedTab)
     ) {
-        return getFirstToolPanelAsset(selection, linkingState);
+        return getPrioritizedToolPanelAsset(selection, linkingState, operationalPointsHitByIcon);
     } else {
         return currentlySelectedTab;
     }

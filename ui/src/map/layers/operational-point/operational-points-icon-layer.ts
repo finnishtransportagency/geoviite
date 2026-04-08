@@ -126,10 +126,14 @@ export function createOperationalPointIconLayer(
             const clusters = findMatchingOperationalPointCluster(hitArea, source, options);
 
             if (!clusters.length) {
+                const operationalPoints = findMatchingOperationalPoints(
+                    hitArea,
+                    source,
+                    options,
+                ).map((operationalPoint) => operationalPoint.id);
                 return {
-                    operationalPoints: findMatchingOperationalPoints(hitArea, source, options).map(
-                        (operationalPoint) => operationalPoint.id,
-                    ),
+                    operationalPoints,
+                    operationalPointsHitByIcon: operationalPoints,
                     operationalPointClusters: [],
                 };
             } else {
