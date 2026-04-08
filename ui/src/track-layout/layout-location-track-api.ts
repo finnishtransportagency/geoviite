@@ -119,6 +119,7 @@ export function locationTrackInfoboxExtrasChangeTime(changeTimes: ChangeTimes): 
         changeTimes.layoutReferenceLine,
         changeTimes.layoutKmPost,
         changeTimes.split,
+        changeTimes.operationalPoints,
     );
 }
 

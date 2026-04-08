@@ -7,11 +7,12 @@ import {
     OperationalPoint,
     OperationalPointId,
 } from 'track-layout/track-layout-model';
+import { useLocationTrackInfoboxExtras } from 'track-layout/track-layout-react-utils';
 import { LayoutContext, TrackMeter } from 'common/common-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { unlinkLocationTracksFromOperationalPoint } from 'track-layout/layout-location-track-api';
-import { geocodingChangeTime, updateAllChangeTimes } from 'common/change-time-api';
+import { updateAllChangeTimes } from 'common/change-time-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import styles from './location-track-operational-point-links-infobox.scss';
 import { ChangeTimes } from 'common/common-slice';
@@ -25,7 +26,6 @@ import {
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getManyOperationalPoints } from 'track-layout/layout-operational-point-api';
-import { getAddress } from 'common/geocoding-api';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import infoboxStyles from 'tool-panel/infobox/infobox.module.scss';
 import { createClassName } from 'vayla-design-lib/utils';
@@ -39,11 +39,6 @@ type LocationTrackOperationalPointLinksInfoboxProps = {
     layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
     onSelect: (items: OnSelectOptions) => void;
-};
-
-type OperationalPointAddress = {
-    operationalPointId: OperationalPointId;
-    address: TrackMeter | undefined;
 };
 
 export const LocationTrackOperationalPointLinksInfobox: React.FC<
@@ -86,53 +81,24 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
             .finally(() => setIsDetaching(false));
     };
 
-    const [operationalPoints, opLoadStatus] = useLoaderWithStatus(
-        () =>
-            getManyOperationalPoints(
-                locationTrack.operationalPointIds,
-                layoutContext,
-                changeTimes.operationalPoints,
-            ),
+    const [infoboxExtras, infoboxExtrasLoadStatus] = useLocationTrackInfoboxExtras(
+        locationTrack.id,
+        layoutContext,
+        changeTimes,
+    );
+    const operationalPointExtras = infoboxExtras?.operationalPoints ?? [];
+    const opIds = operationalPointExtras.map((op) => op.operationalPointId);
+
+    const [operationalPoints, linkedPointFetchStatus] = useLoaderWithStatus(
+        () => getManyOperationalPoints(opIds, layoutContext, changeTimes.operationalPoints),
         [
-            JSON.stringify(locationTrack.operationalPointIds),
             locationTrack.id,
+            JSON.stringify(opIds),
             layoutContext.branch,
             layoutContext.publicationState,
             changeTimes.operationalPoints,
         ],
     );
-
-    const [addresses, addressLoadStatus] = useLoaderWithStatus(async () => {
-        if (!operationalPoints) return [];
-        const results: OperationalPointAddress[] = await Promise.all(
-            operationalPoints.map(async (op) => ({
-                operationalPointId: op.id,
-                address: op.location
-                    ? await getAddress(locationTrack.trackNumberId, op.location, layoutContext)
-                    : undefined,
-            })),
-        );
-        return results;
-    }, [
-        operationalPoints,
-        locationTrack.trackNumberId,
-        layoutContext.branch,
-        layoutContext.publicationState,
-        geocodingChangeTime(changeTimes),
-    ]);
-
-    const addressMap = React.useMemo(() => {
-        const map: Record<string, TrackMeter | undefined> = {};
-        (addresses ?? []).forEach((a) => {
-            map[a.operationalPointId] = a.address;
-        });
-        return map;
-    }, [addresses]);
-
-    const operationalPointsAll = (operationalPoints ?? []).map((op) => ({
-        operationalPoint: op,
-        address: addressMap[op.id],
-    }));
 
     const [showAll, setShowAll] = React.useState(false);
 
@@ -146,12 +112,12 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
                 <ProgressIndicatorWrapper
                     indicator={ProgressIndicatorType.Area}
                     inProgress={
-                        opLoadStatus !== LoaderStatus.Ready ||
-                        addressLoadStatus !== LoaderStatus.Ready
+                        infoboxExtrasLoadStatus !== LoaderStatus.Ready ||
+                        linkedPointFetchStatus !== LoaderStatus.Ready
                     }
                     inline={true}>
                     <InfoboxContent>
-                        {operationalPointsAll.length > 0 ? (
+                        {!!operationalPoints && operationalPoints.length > 0 ? (
                             <React.Fragment>
                                 <div
                                     className={
@@ -160,30 +126,33 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
                                         ]
                                     }>
                                     {(showAll
-                                        ? operationalPointsAll
-                                        : operationalPointsAll.slice(
-                                              0,
-                                              maxOperationalPointsToDisplay,
-                                          )
-                                    ).map(({ operationalPoint, address }) => (
+                                        ? operationalPoints
+                                        : operationalPoints.slice(0, maxOperationalPointsToDisplay)
+                                    ).map((operationalPoint) => (
                                         <LocationTrackOperationalPointLink
                                             key={operationalPoint.id}
                                             operationalPoint={operationalPoint}
-                                            address={address}
+                                            address={
+                                                operationalPointExtras?.find(
+                                                    (op) =>
+                                                        op.operationalPointId ===
+                                                        operationalPoint.id,
+                                                )?.displayAddress
+                                            }
                                             layoutContext={layoutContext}
                                             setShowingDialogToDetachOp={setShowingDialogToDetachOp}
                                             onSelect={onSelect}
                                         />
                                     ))}
                                 </div>
-                                {operationalPointsAll.length > maxOperationalPointsToDisplay && (
+                                {operationalPoints.length > maxOperationalPointsToDisplay && (
                                     <ShowMoreButton
                                         expanded={showAll}
                                         onShowMore={() => setShowAll(!showAll)}
                                         showMoreText={t(
                                             'tool-panel.location-track.operational-point-links.show-more',
                                             {
-                                                count: operationalPointsAll.length,
+                                                count: operationalPoints.length,
                                             },
                                         )}
                                     />

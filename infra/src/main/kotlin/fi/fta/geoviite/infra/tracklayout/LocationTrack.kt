@@ -296,11 +296,18 @@ data class LocationTrackInfoboxExtras(
     val startSplitPoint: SplitPoint?,
     val endSplitPoint: SplitPoint?,
     val switches: List<LocationTrackInfoboxSwitch>,
+    val operationalPoints: List<LocationTrackInfoboxOperationalPoint>,
 )
 
 data class LocationTrackInfoboxSwitch(
     val switchId: IntId<LayoutSwitch>,
     val location: Point,
+    val displayAddress: TrackMeter?,
+)
+
+data class LocationTrackInfoboxOperationalPoint(
+    val operationalPointId: IntId<OperationalPoint>,
+    val location: Point?,
     val displayAddress: TrackMeter?,
 )
 
