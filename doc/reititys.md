@@ -56,7 +56,7 @@ Reititysgraafi on suunnattu painotettu monigraafi, jossa solmut ovat suunnallisi
 painotettuja yhteyksiä niiden välillä. Painotus on kaaren pituus metreinä, joten Dijkstra löytää lyhimmän fyysisen
 reitin.
 
-### Suunnattu malli (IN/OUT)
+### Suunnattu graafi (IN/OUT -solmut)
 
 Koska reitti kulkee rataverkolla tiettyyn suuntaan, graafin solmut on jaettu suunnallisiksi. Jokaisesta fyysisestä
 pisteestä (vaihdepisteestä tai raiteen päästä) luodaan kaksi solmua: **IN** (saapuva) ja **OUT** (lähtevä). Tämä
@@ -74,6 +74,16 @@ Raideosuudet puolestaan kytkevät niiden alun ja lopun solmut toisiinsa niin ett
 toisen pään IN-solmuun ja päinvastoin, jolloin reitti voi kulkea kumpaankin suuntaan raiteella, mutta sen täytyy jatkaa
 raideosuuden jälkeen samaan suuntaan. Poikkeuksena tähän on raiteiden päät, joissa lisätään ylimääräinen nollapituinen
 kaari OUT-solmusta IN-solmuun, mikä mahdollistaa reitin kääntymisen ympäri raiteen päässä.
+
+Alla oleva kuva esittää esimerkin YV-vaihteen IN/OUT-kytkennöistä siihen liittyvien kolmen raideosuuden kanssa. Kukin
+vaihdepiste on kuvattu IN- ja OUT-solmuparinaan. Vaihteen linjaukset kulkevat IN-solmusta OUT-solmuun (esim. 1 IN → 2
+OUT). Raideosuudet kulkevat raiteen alun IN-solmusta ("sisään raiteelle") vaihdepisteen IN-solmuun ("sisään
+vaihteeseen") ja vastaavasti vaihdepisten OUT-solmusta ("ulos vaihteesta") raiteen päädyn OUT-solmuun ("ulos
+raiteelta"). Raiteiden päädyissä nähdään yhdyskaaret päädyn OUT-solmusta saman pisteen IN-solmuun, mahdollistaen
+kääntymisen takaisin linjalle. Seuraamalla yhdyskaarien kulkusuuntia voidaan todentaa että suunnattu graafi toteuttaa
+YV-vaihteen kääntymissäännöt.
+
+![reititys_solmut_ja_kaaret.png](./images/reititys_solmut_ja_kaaret.png)
 
 Lisäksi yhdyssolmuissa, eli solmuissa jossa kaksi vaihdetta ovat välitömästi peräkäin ilman raideosuutta niiden välissä,
 luodaan molempiin suuntiin nollapituinen kaari kummankin vaihdepisteen OUT- solmulta vastakkaisen IN-solmuun välille,
