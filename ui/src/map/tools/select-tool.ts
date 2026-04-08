@@ -28,6 +28,7 @@ export const selectTool: MapTool = {
                 geometryPlans: items.geometryPlans ?? [],
                 operationalPoints: items.operationalPoints ?? [],
                 operationalPointClusters: items.operationalPointClusters ?? [],
+                operationalPointsHitByIcon: items.operationalPointsHitByIcon ?? [],
             });
         });
 

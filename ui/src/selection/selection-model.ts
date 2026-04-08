@@ -116,7 +116,8 @@ export type OnSelectFlags = {
     selectedTab?: ToolPanelAsset;
 };
 
-export type OnSelectOptions = OnSelectFlags & OptionalItemCollections;
+export type OnSelectOptions = OnSelectFlags &
+    OptionalItemCollections & { operationalPointsHitByIcon?: OperationalPointId[] };
 
 export type OnSelectFunction = (options: OnSelectOptions) => void;
 

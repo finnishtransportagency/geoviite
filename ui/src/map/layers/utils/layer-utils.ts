@@ -302,6 +302,10 @@ export function mergePartialItemSearchResults(
                 merged.operationalPointPublicationCandidates,
                 searchResult.operationalPointPublicationCandidates,
             ),
+            operationalPointsHitByIcon: mergeOptionalArrays(
+                merged.operationalPointsHitByIcon,
+                searchResult.operationalPointsHitByIcon,
+            ),
         };
     }, {});
 }

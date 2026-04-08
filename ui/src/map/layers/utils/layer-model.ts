@@ -10,6 +10,7 @@ import {
     SwitchPublicationCandidate,
     TrackNumberPublicationCandidate,
 } from 'publication/publication-model';
+import { OperationalPointId } from 'track-layout/track-layout-model';
 
 export type LayerItemSearchResult = OptionalItemCollections & {
     locationTrackPublicationCandidates?: LocationTrackPublicationCandidate[];
@@ -18,6 +19,7 @@ export type LayerItemSearchResult = OptionalItemCollections & {
     switchPublicationCandidates?: SwitchPublicationCandidate[];
     kmPostPublicationCandidates?: KmPostPublicationCandidate[];
     operationalPointPublicationCandidates?: OperationalPointPublicationCandidate[];
+    operationalPointsHitByIcon?: OperationalPointId[];
 };
 
 export type SearchItemsOptions = {
