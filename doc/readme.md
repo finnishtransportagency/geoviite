@@ -19,6 +19,7 @@ Geoviitteen dokumentaatio säilytetään versionhallinnassa, koodin rinnalla mar
 * [Rajapintapalvelu](rajapintapalvelu.md)
 * [Rataverkon graafimalli](rataverkko_graafi.md)
 * [Ratkovienti](ratkovienti.md)
+* [Reititys](reititys.md)
 * [Tietokanta](tietokanta.md)
 * [Tietomalli](tietomalli.md)
 * [Välimuisti](välimuisti.md)
