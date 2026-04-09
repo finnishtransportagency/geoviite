@@ -349,11 +349,18 @@ export type LocationTrackInfoboxExtras = {
     endSplitPoint?: SplitPoint;
     partOfUnfinishedSplit?: boolean;
     switches: LocationTrackInfoboxSwitch[];
+    operationalPoints: LocationTrackInfoboxOperationalPoint[];
 };
 
 export type LocationTrackInfoboxSwitch = {
     switchId: LayoutSwitchId;
     location: Point;
+    displayAddress?: TrackMeter;
+};
+
+export type LocationTrackInfoboxOperationalPoint = {
+    operationalPointId: OperationalPointId;
+    location?: Point;
     displayAddress?: TrackMeter;
 };
 

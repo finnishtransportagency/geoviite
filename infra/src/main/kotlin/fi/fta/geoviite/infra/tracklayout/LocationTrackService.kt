@@ -511,6 +511,26 @@ class LocationTrackService(
                     .values
                     .sortedBy { it.displayAddress }
 
+            val operationalPoints =
+                track.operationalPointIds.let { opIds ->
+                    val versions = operationalPointDao.fetchVersions(layoutContext, true, opIds.toList())
+                    operationalPointDao
+                        .fetchMany(versions)
+                        .map { op ->
+                            val opLocation = op.location
+                            LocationTrackInfoboxOperationalPoint(
+                                operationalPointId = op.id as IntId,
+                                location = opLocation,
+                                displayAddress =
+                                    opLocation
+                                        ?.let { loc -> geocodingContext?.getAddress(loc) }
+                                        ?.takeIf { (_, intersectType) -> intersectType == IntersectType.WITHIN }
+                                        ?.first,
+                            )
+                        }
+                        .sortedBy { op -> op.displayAddress }
+                }
+
             LocationTrackInfoboxExtras(
                 duplicateOf,
                 duplicates,
@@ -518,6 +538,7 @@ class LocationTrackService(
                 startSplitPoint,
                 endSplitPoint,
                 switches,
+                operationalPoints,
             )
         }
     }
