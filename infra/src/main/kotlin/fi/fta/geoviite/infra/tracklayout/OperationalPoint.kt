@@ -170,6 +170,16 @@ data class InternalOperationalPointSaveRequest(
     val rinfIdOverride: RinfId?,
 )
 
+data class InternalOperationalPointUpdateRequest(
+    val name: OperationalPointInputName,
+    val abbreviation: OperationalPointInputAbbreviation?,
+    val rinfType: OperationalPointRinfType,
+    val state: OperationalPointState,
+    val uicCode: UicCode,
+    val rinfIdOverride: RinfId?,
+    val severLinks: Boolean,
+)
+
 data class ExternalOperationalPointSaveRequest(val rinfType: OperationalPointRinfType?, val rinfIdOverride: RinfId?)
 
 enum class OperationalPointRinfType {

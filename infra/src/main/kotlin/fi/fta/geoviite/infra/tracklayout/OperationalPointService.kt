@@ -66,9 +66,9 @@ class OperationalPointService(
     fun update(
         branch: LayoutBranch,
         id: IntId<OperationalPoint>,
-        request: InternalOperationalPointSaveRequest,
-    ): LayoutRowVersion<OperationalPoint> =
-        saveDraft(
+        request: InternalOperationalPointUpdateRequest,
+    ): LayoutRowVersion<OperationalPoint> {
+        val version = saveDraft(
             branch,
             dao.getOrThrow(branch.draft, id)
                 .also {
@@ -86,6 +86,11 @@ class OperationalPointService(
                     rinfIdOverride = request.rinfIdOverride,
                 ),
         )
+        if (request.severLinks) {
+            clearOperationalPointReferences(branch, version.id)
+        }
+        return version
+    }
 
     @Transactional
     fun update(

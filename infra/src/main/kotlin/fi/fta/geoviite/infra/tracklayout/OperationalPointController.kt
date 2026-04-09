@@ -83,7 +83,7 @@ class OperationalPointController(
     fun updateInternalOperationalPoint(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable("id") id: IntId<OperationalPoint>,
-        @RequestBody request: InternalOperationalPointSaveRequest,
+        @RequestBody request: InternalOperationalPointUpdateRequest,
     ): IntId<OperationalPoint> {
         return operationalPointService.update(layoutBranch, id, request).id
     }
