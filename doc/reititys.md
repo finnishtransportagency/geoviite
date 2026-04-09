@@ -2,8 +2,8 @@
 
 Reititys on rataverkon graafimallin päälle rakennettu ominaisuus, joka etsii lyhimmän reitin kahden rataverkon pisteen
 välillä. Reitti kulkee raiteita pitkin, noudattaen linkitettyjen vaihteiden tarjoamia kytkentäkohtia toisille raiteille.
-Toisin sanoen, reitti voi haarautua vaihteissa ja kääntyä takaisin raiteiden päissä, mutta ei voi hypätä raiteelta toiselle
-ilman topologista kytkentää, tai kääntyä vaihteilla vastoin vaihdetyypin mukaisia kääntymissääntöjä.
+Toisin sanoen, reitti voi haarautua vaihteissa ja kääntyä takaisin raiteiden päissä, mutta ei voi hypätä raiteelta
+toiselle ilman topologista kytkentää, tai kääntyä vaihteilla vastoin vaihdetyypin mukaisia kääntymissääntöjä.
 
 Reititys on tarjolla käyttöliittymällä karttatyökaluna, jolla voi valita kaksi pistettä kartalta ja visualisoida niiden
 välinen reitti. Taustapalveluiden puolella reititystä hyödynnetään sisäisesti esimerkiksi liikennepaikkavälien
@@ -42,11 +42,12 @@ tulkita takaisinpäin rataverkon raideosuuksiksi.
 
 Reititystä varten muodostetaan käytännössä aina kaksi reititysgraafia. Ensimmäinen näistä on varsinainen rataverkosta
 rakennettu graafi joka sisältää kaikki raiteet ja vaihteet, eli kuvaa koko rataverkon mahdollisen reitityksen. Toinen on
-tilapäinen lisägraafi, johon luodaan solmut haetun reitin alku- ja loppupisteelle sekä kaaret jotka yhdistävät ne päägraafin
-solmuihin molempiin suuntiin molemmista päätypisteistä. Varsinainen reititys tehdään näiden graafien unionin päällä.
+tilapäinen lisägraafi, johon luodaan solmut haetun reitin alku- ja loppupisteelle sekä kaaret jotka yhdistävät ne
+päägraafin solmuihin molempiin suuntiin molemmista päätypisteistä. Varsinainen reititys tehdään näiden graafien unionin
+päällä.
 
-Erillinen tilapäisgraafi mahdollistaa sen että rataverkon päägraafi on muuttumaton useiden reittihakujen välillä,
-ja voidaan pitää välimuistissa niin kauan kuin itse rataverkko ei muutu.
+Erillinen tilapäisgraafi mahdollistaa sen että rataverkon päägraafi on muuttumaton useiden reittihakujen välillä, ja
+voidaan pitää välimuistissa niin kauan kuin itse rataverkko ei muutu.
 
 ## Graafin rakenne
 
@@ -65,30 +66,31 @@ tarkoittaa raiteeseen/vaihteeseen sisäänpäin tulevaa suuntaa ja OUT siitä po
 
 Suunnatut solmut mahdollistavat sen, että vaihteen läpi kulkeva liikenne seuraa oikeita kääntymissääntöjä: liikenne
 saapuu vaihteeseen jonkun vaihdepisteen IN-solmun kautta ja voi poistua kaarien kuvaamilla yhteyksillä vain tiettyjen
-pisteiden OUT-solmujen kautta. Koska graafiin lisätään vain vaihteen rakenteen (`SwitchStructure`) sisältämien linjausten
-(`SwitchStructureAlignment`) mukaiset yhteydet, reititys on mahdollista vain noita linjauksia pitkin. Yksittäinen
-vaihdelinja kuvataan kaarena tietyn pisteen IN-solmusta toisen pisteen OUT-solmuun. Vaihdelinjan sisäisille pisteille
-(esim. piste 5 linjalla 1-5-2) ei siis luoda graafiin mitään esitystä, koska niiden kautta ei voi saapua vaihteeseen eikä
-lähteä vaihteesta pois. 
+pisteiden OUT-solmujen kautta. Koska graafiin lisätään vain vaihteen rakenteen (`SwitchStructure`) sisältämien
+linjausten (`SwitchStructureAlignment`) mukaiset yhteydet, reititys on mahdollista vain noita linjauksia pitkin.
+Yksittäinen vaihdelinja kuvataan kaarena tietyn pisteen IN-solmusta toisen pisteen OUT-solmuun. Vaihdelinjan sisäisille
+pisteille (esim. piste 5 linjalla 1-5-2) ei siis luoda graafiin mitään esitystä, koska niiden kautta ei voi saapua
+vaihteeseen eikä lähteä vaihteesta pois.
 
-Esimerkiksi yksinkertaisessa (YV) vaihteessa, on linjat 1-5-2 ja 1-3. Näistä muodostetaan graafiin solmut 1 (IN), 1 (OUT),
-2 (IN), 2 (OUT), 3 (IN) ja 3 (OUT). Solmujen välille luodaan yhteydet 1 (IN) -> 2 (OUT), 1 (IN) -> 3 (OUT), sekä niiden
-vastakkaiset suunnat 2 (IN) -> 1 (OUT) ja 3 (IN) -> 1 (OUT). Yhteyttä pisteiden 2 ja 3 välillä ei ole, koska rakenteessa
-ei ole sellaista linjaa. Tällöin jos tullaan vaihteeseen vaikkapa pisteen 2 kautta, saavutaan solmuun 2 (IN), josta
-voidaan jatkaa eteenpäin vain pisteen 1 (OUT) kautta.
+Esimerkiksi yksinkertaisessa (YV) vaihteessa, on linjat 1-5-2 ja 1-3. Näistä muodostetaan graafiin solmut 1 (IN), 1
+(OUT), 2 (IN), 2 (OUT), 3 (IN) ja 3 (OUT). Solmujen välille luodaan yhteydet 1 (IN) -> 2 (OUT), 1 (IN) -> 3 (OUT), sekä
+niiden vastakkaiset suunnat 2 (IN) -> 1 (OUT) ja 3 (IN) -> 1 (OUT). Yhteyttä pisteiden 2 ja 3 välillä ei ole, koska
+rakenteessa ei ole sellaista linjaa. Tällöin jos tullaan vaihteeseen vaikkapa pisteen 2 kautta, saavutaan solmuun 2 (
+IN), josta voidaan jatkaa eteenpäin vain pisteen 1 (OUT) kautta.
 
 ### Raideosuudet osana graafia
 
-Raideosuudet vaihteiden välillä kytkevät niiden alun ja lopun solmut toisiinsa niin että esimerkiksi toisen pään vaihteen
-OUT-solmu on yhteydessä toisen pään vaihteen IN-solmuun. Lisäksi luodaan kaari päinvastaiseen suuntaan, jälleen yhden vaihteen
-OUT-solmusta toisen IN-solmuun, jolloin reitti voi kulkea kumpaankin suuntaan raiteella, mutta sen täytyy jatkaa raideosuuden
-jälkeen samaan suuntaan. Toisessa päässä (tai teoriassa jopa molemmissa) voi olla vaihteen sijaan myös raiteen päätesolmu.
-Tämä toimii muutoin samoin kuin vaihdesolmukin, mutta IN/OUT termit menevät käänteisesti, koska ne kuvaavat reitin jatkumista
-sisään/ulos raiteelta (vs sisään/ulos raiteen päässä olevalle vaihteelle). Tämä havainnollistuu alla olevassa esimerkissä.
+Raideosuudet vaihteiden välillä kytkevät niiden alun ja lopun solmut toisiinsa niin että esimerkiksi toisen pään
+vaihteen OUT-solmu on yhteydessä toisen pään vaihteen IN-solmuun. Lisäksi luodaan kaari päinvastaiseen suuntaan, jälleen
+yhden vaihteen OUT-solmusta toisen IN-solmuun, jolloin reitti voi kulkea kumpaankin suuntaan raiteella, mutta sen täytyy
+jatkaa raideosuuden jälkeen samaan suuntaan. Toisessa päässä (tai teoriassa jopa molemmissa) voi olla vaihteen sijaan
+myös raiteen päätesolmu. Tämä toimii muutoin samoin kuin vaihdesolmukin, mutta IN/OUT termit menevät käänteisesti, koska
+ne kuvaavat reitin jatkumista sisään/ulos raiteelta (vs sisään/ulos raiteen päässä olevalle vaihteelle). Tämä
+havainnollistuu alla olevassa esimerkissä.
 
-On huomattavaa että kun raideosuudet rakennetaan graafinluonnissa raiteiden geometrioista, tässä logiikassa sivuutetaan kokonaan
-ne osat raidegeometriaa, jotka ovat myös osa vaihteen sisäistä geometriaa. Nuo graafin kaaret on jo rakennettu vaihteiden ja
-vaihderakenteiden pohjalta yllä kuvatulla logiikalla.
+On huomattavaa että kun raideosuudet rakennetaan graafinluonnissa raiteiden geometrioista, tässä logiikassa sivuutetaan
+kokonaan ne osat raidegeometriaa, jotka ovat myös osa vaihteen sisäistä geometriaa. Nuo graafin kaaret on jo rakennettu
+vaihteiden ja vaihderakenteiden pohjalta yllä kuvatulla logiikalla.
 
 Koska raideosuudet rakennetaan paikannuspohjan `LayoutEdge`-olioista, duplikaattiraiteista ei synny reititysgraafiin
 duplikaattikaaria, vaan jokainen raideosuus syntyy vain kerran. On kuitenkin oleellista muistaa että millä vain
@@ -96,33 +98,35 @@ osuudella saattaa kulkea kuitenkin useampi sijaintiraide.
 
 ### Nollapituiset yhdyskaaret
 
-Varsinaisten raideosuuksien lisäksi luodaan vielä nollapituiset yhdyskaaret kytkemään pisteitä joiden välillä ei ole varsinaista
-matkaa. Näitä syntyy kahdessa eri tilanteessa.
+Varsinaisten raideosuuksien lisäksi luodaan vielä nollapituiset yhdyskaaret kytkemään pisteitä joiden välillä ei ole
+varsinaista matkaa. Näitä syntyy kahdessa eri tilanteessa.
 
-Ensimmäinen tilanne on yhdistelmäsolmut, eli geoviitteen graafimallin solmut, joissa kaksi vaihdetta ovat välitömästi peräkäin
-ilman raideosuutta niiden välissä (2 eri vaihteen pistettä samassa solmussa). Tällöin luodaan molempiin suuntiin nollapituinen
-kaari kummankin vaihdepisteen OUT-solmulta vastakkaisen pisteen IN-solmuun, mikä mahdollistaa siirtymisen vaihteelta toiselle. 
+Ensimmäinen tilanne on yhdistelmäsolmut, eli geoviitteen graafimallin solmut, joissa kaksi vaihdetta ovat välitömästi
+peräkäin ilman raideosuutta niiden välissä (2 eri vaihteen pistettä samassa solmussa). Tällöin luodaan molempiin
+suuntiin nollapituinen kaari kummankin vaihdepisteen OUT-solmulta vastakkaisen pisteen IN-solmuun, mikä mahdollistaa
+siirtymisen vaihteelta toiselle.
 
-Toinen tilanne on raiteiden päät, joissa lisätään nollapituinen kaari raidepäädyn OUT-solmusta IN-solmuun, mikä mahdollistaa
-reitin kääntymisen ympäri raiteen päässä. Tähän ei tarvita kytkentää toiseen suuntaan (IN -> OUT), eikä sille olisi mielekästä
-tulkintaa.
+Toinen tilanne on raiteiden päät, joissa lisätään nollapituinen kaari raidepäädyn OUT-solmusta IN-solmuun, mikä
+mahdollistaa reitin kääntymisen ympäri raiteen päässä. Tähän ei tarvita kytkentää toiseen suuntaan (IN -> OUT), eikä
+sille olisi mielekästä tulkintaa.
 
 ### Esimerkkigraafi
 
 Alla oleva kuva esittää esimerkkinä YV-vaihteen IN/OUT-kytkennät siihen liittyvien kolmen raideosuuden kanssa. Kukin
-vaihdepiste on kuvattu IN- ja OUT-solmuparinaan. Vaihteen linjaukset kulkevat IN-solmusta OUT-solmuun (esim. 1 IN -> 2 OUT).
-Raideosuudet kulkevat raiteen alun IN-solmusta ("sisään raiteelle") vaihdepisteen IN-solmuun ("sisään vaihteeseen") ja
-vastaavasti vaihdepisteen OUT-solmusta ("ulos vaihteesta") raiteen päädyn OUT-solmuun ("ulos raiteelta"). Raiteiden päädyissä
-nähdään yhdyskaaret päädyn OUT-solmusta saman pisteen IN-solmuun, mahdollistaen kääntymisen takaisin linjalle. Seuraamalla
-yhdyskaarien kulkusuuntia voidaan todentaa että suunnattu graafi toteuttaa YV-vaihteen kääntymissäännöt.
+vaihdepiste on kuvattu IN- ja OUT-solmuparinaan. Vaihteen linjaukset kulkevat IN-solmusta OUT-solmuun (esim. 1 IN -> 2
+OUT). Raideosuudet kulkevat raiteen alun IN-solmusta ("sisään raiteelle") vaihdepisteen IN-solmuun ("sisään
+vaihteeseen") ja vastaavasti vaihdepisteen OUT-solmusta ("ulos vaihteesta") raiteen päädyn OUT-solmuun ("ulos
+raiteelta"). Raiteiden päädyissä nähdään yhdyskaaret päädyn OUT-solmusta saman pisteen IN-solmuun, mahdollistaen
+kääntymisen takaisin linjalle. Seuraamalla yhdyskaarien kulkusuuntia voidaan todentaa että suunnattu graafi toteuttaa
+YV-vaihteen kääntymissäännöt.
 
 ![reititys_solmut_ja_kaaret.png](./images/reititys_solmut_ja_kaaret.png)
 
 ### Kaarien suunnat
 
-Kaikilla kaarilla on myös suunta, UP tai DOWN, joka kuvaa reitin kulkusuunnan. Itse reititykselle tuolla ei ole merkitystä
-sillä kaari liitetään graafiin lähde-solmusta kohde-solmuun (mikä itsessään kertoo reitin suunnan), mutta erillinen suunta
--kenttä auttaa löydetyn reitin (lista kaaria) tulkinnassa rataverkon raideosuuksiksi.
+Kaikilla kaarilla on myös suunta, UP tai DOWN, joka kuvaa reitin kulkusuunnan. Itse reititykselle tuolla ei ole
+merkitystä sillä kaari liitetään graafiin lähde-solmusta kohde-solmuun (mikä itsessään kertoo reitin suunnan), mutta
+erillinen suunta -kenttä auttaa löydetyn reitin (lista kaaria) tulkinnassa rataverkon raideosuuksiksi.
 
 ### Kaarien pituudet (painot)
 
@@ -136,7 +140,7 @@ käytännössä lähes sama.
 ### Solmutyypit (RoutingVertex)
 
 Reititysgraafin solmutyypeissä on oleellista huomata että niissä kaikissa solmun sisältö kuvaa sen identiteetin, eli
-kahta samansisältöistä vertexiä ei voi olla graafissa yhtä aikaa. 
+kahta samansisältöistä vertexiä ei voi olla graafissa yhtä aikaa.
 
 - **SwitchJointVertex**: Vaihteen suunnattu vaihdepiste. Solmuja luodaan vaihteen linjausten päätepisteille, eli niille
   vaihdepisteille joihin raide voi kytkeytyä vaihteen ulkopuolelta.
@@ -165,7 +169,8 @@ graafissa.
   2 (IN) -> 1 (OUT) on vastaavasti suunta DOWN.
 
 - **PartialSwitchInternalEdge**: Tilapäisgraafissa käytettävä osittainen vaihteen sisäinen yhteys, jota käytetään kun
-  reitti alkaa tai päättyy vaihdelinjan sisällä. Suunta määritellään vaihdelinjan mukaisesti kuten `SwitchInternalEdge`illä.
+  reitti alkaa tai päättyy vaihdelinjan sisällä. Suunta määritellään vaihdelinjan mukaisesti kuten `SwitchInternalEdge`
+  illä.
 
 - **DirectConnectionEdge**: Nollapituinen yhteys kahden samassa sijainnissa olevan solmun välillä. Käytetään kun kaksi
   vaihdepistettä tai raiteen päätä sijaitsevat samassa solmussa (eli yhdistelmäsolmussa) sekä raiteen päissä
@@ -186,9 +191,9 @@ joten valinta voi olla mielivaltainen.
 
 ### M-arvomuunnokset
 
-Raideosuuksia kuvaavilla kaarilla m-arvot ovat paikannuspohjan `LayoutEdge`:n sisäisiä m-arvoja, eli
-`LineM<EdgeM>`. Ne muunnetaan raiteen m-arvoiksi (`LineM<LocationTrackM>`) samoin kuin paikannuspohjassa muuallakin:
-yhdistämällä sisäinen m-arvo kyseisen kaaren alku-m-arvoon kyseisellä raiteella.
+Raideosuuksia kuvaavilla kaarilla m-arvot ovat paikannuspohjan `LayoutEdge`:n sisäisiä m-arvoja, eli `LineM<EdgeM>`. Ne
+muunnetaan raiteen m-arvoiksi (`LineM<LocationTrackM>`) samoin kuin paikannuspohjassa muuallakin: yhdistämällä sisäinen
+m-arvo kyseisen kaaren alku-m-arvoon kyseisellä raiteella.
 
 Vaihteilla puolestaan vaihdelinja kuvataan yhtenä kokonaisuutena (`SwitchEdge`), joten sen m-arvot kuvataan linjan
 sisäisinä, tyypillä `LineM<SwitchStructureAlignmentM>`. Jotta nämä voidaan muuntaa raiteen m-arvoiksi, täytyy
