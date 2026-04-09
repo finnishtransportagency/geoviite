@@ -1194,6 +1194,46 @@ constructor(
         assertTrue(oidMatchFunction(oidTerm.toString(), track2.track))
     }
 
+    @Test
+    fun `getInfoboxExtras includes operational point addresses`() {
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumberAndReferenceLine(
+                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
+                )
+                .id
+
+        val op1Id = mainOfficialContext.save(operationalPoint(name = "OP1", location = Point(50.0, 0.0), draft = false)).id
+        val op2Id =
+            mainOfficialContext.save(
+                operationalPoint(name = "OP2", draft = false).copy(location = null)
+            ).id
+
+        val (track, _) =
+            mainOfficialContext.save(
+                locationTrack(
+                    trackNumberId,
+                    draft = false,
+                    operationalPointIds = setOf(op1Id, op2Id),
+                ),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
+
+        val extras = locationTrackService.getInfoboxExtras(MainLayoutContext.official, track.id as IntId)
+        assertNotNull(extras)
+        assertEquals(2, extras!!.operationalPoints.size)
+
+        val op1Extra = extras.operationalPoints.find { it.operationalPointId == op1Id }
+        assertNotNull(op1Extra)
+        assertNotNull(op1Extra!!.location)
+        assertNotNull(op1Extra.displayAddress)
+
+        val op2Extra = extras.operationalPoints.find { it.operationalPointId == op2Id }
+        assertNotNull(op2Extra)
+        assertNull(op2Extra!!.location)
+        assertNull(op2Extra.displayAddress)
+    }
+
     private fun updateDraft(
         id: IntId<LocationTrack>,
         op: (LocationTrack, LocationTrackGeometry) -> Pair<LocationTrack, LocationTrackGeometry>,
