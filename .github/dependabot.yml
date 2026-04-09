@@ -6,6 +6,8 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "org.seleniumhq*"
     groups:
       spring-boot:
         patterns:
@@ -17,13 +19,29 @@ updates:
       jackson:
         patterns:
           - "com.fasterxml.jackson*"
+      flyway:
+        patterns:
+          - "org.flywaydb*"
+      geotools:
+        patterns:
+          - "org.geotools*"
+      auth0:
+        patterns:
+          - "com.auth0*"
+      jakarta-xml:
+        patterns:
+          - "jakarta.activation*"
+          - "jakarta.xml.bind*"
+          - "org.glassfish.jaxb*"
       test-dependencies:
         dependency-type: "development"
         patterns:
-          - "org.seleniumhq*"
           - "org.mock-server*"
           - "org.apache.httpcomponents*"
           - "io.projectreactor:reactor-test"
+      other:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/ui"
@@ -37,6 +55,11 @@ updates:
           - "react"
           - "react-*"
           - "@types/react*"
+          - "@reduxjs/*"
+          - "redux"
+          - "redux-*"
+          - "i18next"
+          - "i18next-*"
       eslint:
         patterns:
           - "eslint*"
@@ -55,6 +78,9 @@ updates:
           - "webpack-*"
           - "*-webpack-plugin"
           - "*-loader"
+      other:
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
