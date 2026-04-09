@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
+import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
@@ -21,6 +21,7 @@ import {
     initialInternalOperationalPointEditState,
     InternalOperationalPointEditState,
     InternalOperationalPointSaveRequest,
+    InternalOperationalPointUpdateRequest,
     reducer,
 } from 'tool-panel/operational-point/dialog/internal-operational-point-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
@@ -45,6 +46,16 @@ import {
     hasSameRinfId,
     withConditionalRinfIdOverride,
 } from 'tool-panel/operational-point/operational-point-utils';
+import { useLoaderWithStatus } from 'utils/react-utils';
+import {
+    findOperationalPointLocationTracks,
+    getLocationTracks,
+} from 'track-layout/layout-location-track-api';
+import {
+    findOperationalPointSwitches,
+    getSwitches,
+} from 'track-layout/layout-switch-api';
+import { OperationalPointDeleteConfirmationDialog } from 'tool-panel/operational-point/dialog/operational-point-delete-confirmation-dialog';
 
 type InternalOperationalPointEditDialogProps = {
     operationalPoint: OperationalPoint | undefined;
@@ -89,6 +100,27 @@ export const InternalOperationalPointEditDialog: React.FC<
     const [deleteOperationalPointConfirmDialogOpen, setDeleteOperationalPointConfirmDialogOpen] =
         React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
+
+    const [linkedAssets, linkedAssetsLoaderStatus] = useLoaderWithStatus(async () => {
+        if (!operationalPoint) return { tracks: [], switches: [] };
+        const [tracks, switches] = await Promise.all([
+            findOperationalPointLocationTracks(layoutContext, operationalPoint.id).then(
+                (result) =>
+                    result ? getLocationTracks(result.assigned, layoutContext) : [],
+            ),
+            findOperationalPointSwitches(layoutContext, operationalPoint.id).then(
+                (swOps) => {
+                    const linkedIds = swOps
+                        .filter((s) => s.isLinked)
+                        .map((s) => s.switchId);
+                    return linkedIds.length > 0
+                        ? getSwitches(linkedIds, layoutContext)
+                        : [];
+                },
+            ),
+        ]);
+        return { tracks, switches };
+    }, [layoutContext.branch, layoutContext.publicationState, operationalPoint?.id]);
 
     const stateOptions = operationalPointStates.map((s) =>
         s.value !== 'DELETED' || !isDraftOnly ? s : { ...s, disabled: true },
@@ -180,13 +212,18 @@ export const InternalOperationalPointEditDialog: React.FC<
         id: OperationalPointId,
         updatedOperationalPoint: InternalOperationalPointSaveRequest,
         allowRinfIdOverride: boolean,
+        severLinks: boolean,
     ) {
         setIsSaving(true);
         const saveRequest = withConditionalRinfIdOverride(
             updatedOperationalPoint,
             allowRinfIdOverride,
         );
-        updateInternalOperationalPoint(id, saveRequest, layoutContext)
+        const updateRequest: InternalOperationalPointUpdateRequest = {
+            ...saveRequest,
+            severLinks,
+        };
+        updateInternalOperationalPoint(id, updateRequest, layoutContext)
             .then(
                 () => {
                     onSave(id);
@@ -205,6 +242,7 @@ export const InternalOperationalPointEditDialog: React.FC<
                   operationalPoint.id,
                   state.operationalPoint,
                   state.editingRinfId,
+                  false,
               );
 
     const saveOrConfirm = () =>
@@ -212,8 +250,15 @@ export const InternalOperationalPointEditDialog: React.FC<
             ? setDeleteOperationalPointConfirmDialogOpen(true)
             : save();
 
-    const deleteOperationalPoint = () => {
-        save();
+    const deleteOperationalPoint = (severLinks: boolean) => {
+        if (operationalPoint) {
+            saveUpdatedOperationalPoint(
+                operationalPoint.id,
+                state.operationalPoint,
+                state.editingRinfId,
+                severLinks,
+            );
+        }
         setDeleteOperationalPointConfirmDialogOpen(false);
     };
 
@@ -392,32 +437,14 @@ export const InternalOperationalPointEditDialog: React.FC<
                 />
             )}
             {deleteOperationalPointConfirmDialogOpen && (
-                <Dialog
-                    title={t('operational-point-dialog.delete-confirm-dialog.title')}
+                <OperationalPointDeleteConfirmationDialog
+                    linkedLocationTracks={linkedAssets?.tracks ?? []}
+                    linkedSwitches={linkedAssets?.switches ?? []}
+                    linkedAssetsLoaderStatus={linkedAssetsLoaderStatus}
+                    onConfirm={(severLinks) => deleteOperationalPoint(severLinks)}
                     onClose={() => setDeleteOperationalPointConfirmDialogOpen(false)}
-                    variant={DialogVariant.DARK}
-                    allowClose={false}
-                    footerContent={
-                        <div className={dialogStyles['dialog__footer-content--centered']}>
-                            <Button
-                                variant={ButtonVariant.SECONDARY}
-                                onClick={() => setDeleteOperationalPointConfirmDialogOpen(false)}>
-                                {t('button.cancel')}
-                            </Button>
-                            <Button
-                                variant={ButtonVariant.PRIMARY_WARNING}
-                                onClick={deleteOperationalPoint}>
-                                {t('button.delete')}
-                            </Button>
-                        </div>
-                    }>
-                    <div className={dialogStyles['dialog__text']}>
-                        {t('operational-point-dialog.delete-confirm-dialog.deleted-op-not-allowed')}
-                    </div>
-                    <div className={dialogStyles['dialog__text']}>
-                        {t('operational-point-dialog.delete-confirm-dialog.confirm')}
-                    </div>
-                </Dialog>
+                    isSaving={isSaving}
+                />
             )}
         </React.Fragment>
     );

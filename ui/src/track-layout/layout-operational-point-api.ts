@@ -21,7 +21,7 @@ import {
     TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
 import { getChangeTimes, updateOperationalPointsChangeTime } from 'common/change-time-api';
-import { InternalOperationalPointSaveRequest } from 'tool-panel/operational-point/dialog/internal-operational-point-edit-store';
+import { InternalOperationalPointSaveRequest, InternalOperationalPointUpdateRequest } from 'tool-panel/operational-point/dialog/internal-operational-point-edit-store';
 import { ExternalOperationalPointSaveRequest } from 'tool-panel/operational-point/dialog/external-operational-point-edit-store';
 import { Point, Polygon } from 'model/geometry';
 import { ValidatedOperationalPoint } from 'publication/publication-model';
@@ -30,6 +30,7 @@ import { getMaxTimestamp } from 'utils/date-utils';
 type OriginInUri = 'internal' | 'external';
 type OperationalPointSaveRequest =
     | InternalOperationalPointSaveRequest
+    | InternalOperationalPointUpdateRequest
     | ExternalOperationalPointSaveRequest;
 
 const allOperationalPointsCache = asyncCache<string, OperationalPoint[]>();
@@ -129,7 +130,7 @@ async function updateOperationalPoint(
 
 export const updateInternalOperationalPoint = (
     id: OperationalPointId,
-    updatedOperationalPoint: InternalOperationalPointSaveRequest,
+    updatedOperationalPoint: InternalOperationalPointUpdateRequest,
     layoutContext: LayoutContext,
 ): Promise<OperationalPointId> =>
     updateOperationalPoint(id, 'internal', updatedOperationalPoint, layoutContext);
