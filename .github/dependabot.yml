@@ -3,11 +3,66 @@ updates:
   - package-ecosystem: "gradle"
     directory: "/infra"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 0
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      spring-boot:
+        patterns:
+          - "org.springframework*"
+          - "io.spring*"
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+      jackson:
+        patterns:
+          - "com.fasterxml.jackson*"
+      test-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "org.seleniumhq*"
+          - "org.mock-server*"
+          - "org.apache.httpcomponents*"
+          - "io.projectreactor:reactor-test"
 
   - package-ecosystem: "npm"
     directory: "/ui"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 0
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-*"
+          - "@types/react*"
+      eslint:
+        patterns:
+          - "eslint*"
+          - "@eslint/*"
+          - "*eslint*"
+          - "typescript-eslint"
+      jest:
+        patterns:
+          - "jest"
+          - "jest-*"
+          - "@jest/*"
+          - "ts-jest"
+      webpack:
+        patterns:
+          - "webpack"
+          - "webpack-*"
+          - "*-webpack-plugin"
+          - "*-loader"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
