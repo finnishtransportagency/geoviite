@@ -522,12 +522,10 @@ class LocationTrackService(
                                 operationalPointId = op.id as IntId,
                                 location = opLocation,
                                 displayAddress =
-                                    opLocation?.let { loc ->
-                                        geocodingContext
-                                            ?.getAddress(loc)
-                                            ?.takeIf { (_, intersectType) -> intersectType == IntersectType.WITHIN }
-                                            ?.first
-                                    },
+                                    opLocation
+                                        ?.let { loc -> geocodingContext?.getAddress(loc) }
+                                        ?.takeIf { (_, intersectType) -> intersectType == IntersectType.WITHIN }
+                                        ?.first,
                             )
                         }
                         .sortedBy { op -> op.displayAddress }
