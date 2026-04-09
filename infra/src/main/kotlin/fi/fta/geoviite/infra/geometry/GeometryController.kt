@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.NAME
+import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
@@ -360,4 +361,12 @@ constructor(private val geometryService: GeometryService, private val planLayout
             tickLength = tickLength,
         )
     }
+
+    @PreAuthorize(AUTH_VIEW_GEOMETRY)
+    @GetMapping("/plans/{planId}/alignments/{planAlignmentId}/elements-preventing-linking")
+    fun checkElementsPreventingLinking(
+        @PathVariable("planId") planId: IntId<GeometryPlan>,
+        @PathVariable("planAlignmentId") planAlignmentId: IntId<GeometryAlignment>,
+    ): ResponseEntity<List<PlanElementName>> =
+        toResponse(planLayoutService.checkElementsPreventingLinking(planId, planAlignmentId))
 }

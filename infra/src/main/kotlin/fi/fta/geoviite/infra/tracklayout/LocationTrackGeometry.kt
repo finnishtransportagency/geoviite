@@ -27,6 +27,8 @@ import java.util.*
 import kotlin.math.PI
 import kotlin.math.abs
 
+const val MAX_GAP_BETWEEN_SEGMENT_ENDS = 0.001
+
 enum class TrackSwitchLinkType {
     INNER,
     OUTER,
@@ -879,7 +881,7 @@ private fun verifyEdgeContent(edge: LayoutEdge) {
         }
     }
     edge.segments.zipWithNext().mapIndexed { i, (prev, next) ->
-        require(prev.segmentEnd.isSame(next.segmentStart, 0.001)) {
+        require(prev.segmentEnd.isSame(next.segmentStart, MAX_GAP_BETWEEN_SEGMENT_ENDS)) {
             "Edge segments should begin where the previous one ends: index=$i prev=${prev.segmentEnd} next=${next.segmentStart}"
         }
     }

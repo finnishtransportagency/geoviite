@@ -783,6 +783,7 @@
                 "show-on-map": "Kohdista kartalla",
                 "no-linkable-location-tracks": "Sopivia sijaintiraiteita ei löytynyt linkitettäväksi.",
                 "no-linkable-reference-lines": "Sopivia pituusmittauslinjoja ei löytynyt linkitettäväksi.",
+                "elements-prevent-plan-linking": "Suunnitelmageometriassa on elementtejä, jotka eivät ala tarkasti siitä, mihin edellinen jäi: {{elementNames}}",
                 "part-of-unfinished-split": "Raiteen {{locationTrackName}} geometriaa ei voi muokata, ennen kuin jakamiseen liittyvä julkaisu on viety Ratkoon tai jaetun raiteen muokkaus on sallittu manuaalisesti."
             },
             "geometry-segment": {
