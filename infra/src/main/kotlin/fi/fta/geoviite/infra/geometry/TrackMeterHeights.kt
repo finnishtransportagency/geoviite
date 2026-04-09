@@ -227,13 +227,12 @@ private fun <M : AlignmentM<M>, GM : GeocodingAlignmentM<GM>> getLastEndM(
     kms: List<GeocodingKm<GM>>,
     alignmentEnd: AddressPoint<M>,
     alignment: IAlignment<M>,
-): LineM<M> =
-    if (kms.last().kmNumber == alignmentEnd.address.kmNumber) alignmentEnd.point.m
-    else {
-        // null safety: Here we know we're on a track km before the alignment's end address,
-        // so the end address must be geocodable onto the alignment.
-        checkNotNull(geocodingContext.getTrackLocation(alignment, kms.last().endAddress)).point.m
-    }
+): LineM<M> {
+    val lastKmIndex = geocodingContext.kms.indexOfFirst { km -> km.kmNumber == kms.last().kmNumber }
+    return geocodingContext.kms.getOrNull(lastKmIndex + 1)?.let { nextKm ->
+        geocodingContext.getTrackLocation(alignment, nextKm.startAddress)?.point?.m
+    } ?: alignmentEnd.point.m
+}
 
 data class GeometryAlignmentBoundaryPoint<M : AlignmentM<M>>(val distanceOnAlignment: LineM<M>, val segmentIndex: Int)
 
