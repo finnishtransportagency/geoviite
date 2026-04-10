@@ -15,6 +15,7 @@ import {
     LocationAccuracy,
     LocationTrackOwnerId,
     Oid,
+    Range,
     RowVersion,
     Srid,
     SwitchOwnerId,
@@ -510,7 +511,7 @@ export type PlanAndStatus = {
 export type PlanLayoutAlignment = {
     header: GeometryAlignmentHeader;
     polyLine?: AlignmentPolyLine;
-    segmentMValues: number[];
+    segmentMValues: Range<number>[];
 };
 
 export type LayoutTrackNumberId = Brand<string, 'LayoutTrackNumberId'>;
