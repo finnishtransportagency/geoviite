@@ -1048,9 +1048,9 @@
                 "no-switches": "Ei vaihteita"
             },
             "track-links": {
-                "infobox-header": "Toiminnallisen pisteen raiteet ({{count}})",
-                "attached-header": "Toiminnalliseen pisteeseen linkitetyt raiteet ({{count}} kpl)",
-                "detached-in-polygon-header": "Toiminnalliseen pisteeseen linkittämättömät, alueella sijaitsevat raiteet ({{count}} kpl)",
+                "infobox-header": "Toiminnallisen pisteen sijaintiraiteet ({{count}})",
+                "attached-header": "Toiminnalliseen pisteeseen linkitetyt sijaintiraiteet ({{count}} kpl)",
+                "detached-in-polygon-header": "Toiminnalliseen pisteeseen linkittämättömät, alueella sijaitsevat sijaintiraiteet ({{count}} kpl)",
                 "detach-all": "Irrota pisteeltä kaikki raiteet ({{count}} kpl)",
                 "attach-all": "Linkitä pisteeseen kaikki raiteet ({{count}} kpl)",
                 "show-all": "Näytä kaikki ({{count}} kpl)...",
