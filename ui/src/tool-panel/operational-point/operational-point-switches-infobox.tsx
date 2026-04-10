@@ -218,7 +218,9 @@ export const OperationalPointSwitchesInfobox: React.FC<OperationalPointSwitchesI
 
     return (
         <Infobox
-            title={t('tool-panel.operational-point.switch-links.infobox-header')}
+            title={t('tool-panel.operational-point.switch-links.infobox-header', {
+                count: linkedItems.length,
+            })}
             contentVisible={contentVisible}
             onContentVisibilityChange={() => onVisibilityChange('switches')}>
             <InfoboxContent>

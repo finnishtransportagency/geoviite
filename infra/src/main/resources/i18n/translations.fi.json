@@ -613,7 +613,7 @@
             "cannot-shorten-deleted-track-number": "Poistettua ratanumeroa ei voi lyhentää",
             "no-geometry": "Ratanumerolla ei ole geometriaa",
             "cant-edit-while-linking": "Ratanumeron tietoja ei voi muokata linkitystilassa",
-            "location-tracks-title": "Sijaintiraiteet ({{count}})",
+            "location-tracks-title": "Ratanumeron sijaintiraiteet ({{count}})",
             "location-tracks-filter-by-area": "Vain kartalle osuvat raiteet",
             "no-location-tracks": "Ei sijaintiraiteita",
             "revert-dialog": {
@@ -628,7 +628,7 @@
         "km-post": {
             "layout": {
                 "show-on-map": "Kohdista kartalla",
-                "general-title": "Tasakmpisteen perustiedot",
+                "general-title": "Tasakilometripisteen perustiedot",
                 "km-post": "Tasakmpistetunnus",
                 "track-number": "Ratanumero",
                 "state": "Tila",
@@ -881,9 +881,9 @@
                 "diagram-visibility": "Kuvaaja"
             },
             "switch-links": {
-                "heading": "Raiteen vaihteet",
+                "heading": "Raiteen vaihteet ({{count}})",
                 "no-switches": "Raiteella ei ole vaihteita",
-                "show-more": "Näytä kaikki {{count}} kpl",
+                "show-more": "Näytä kaikki",
                 "no-location": "Ei sijaintia",
                 "not-existing": "Poistettu",
                 "detach": "Irrota"
@@ -895,9 +895,9 @@
                 "success-toast": "Vaihde {{switchName}} irrotettu raiteelta {{trackName}}"
             },
             "operational-point-links": {
-                "heading": "Raiteen toiminnalliset pisteet",
+                "heading": "Raiteen toiminnalliset pisteet ({{count}})",
                 "no-operational-points": "Raidetta ei ole linkitetty toiminnallisille pisteille",
-                "show-more": "Näytä kaikki {{count}} kpl",
+                "show-more": "Näytä kaikki",
                 "no-location": "Ei sijaintia",
                 "not-existing": "Poistettu",
                 "detach": "Irrota"
@@ -993,7 +993,7 @@
         },
         "operational-point": {
             "basic-info-heading": "Toiminnallisen pisteen perustiedot",
-            "location-heading": "Sijainti",
+            "location-heading": "Toiminnallisen pisteen sijainti",
             "log-heading": "Lokitiedot",
             "source": "Lähde",
             "identifier": "OID",
@@ -1006,9 +1006,9 @@
             "uic-code": "UIC-koodi",
             "location": "Sijainti",
             "address": "Rataosoite ({{trackNumber}})",
-            "address-unknown": "osoitetta ei voi laskea",
+            "address-unknown": "Osoitetta ei voi laskea",
             "no-linked-tracks-label": "Rataosoite",
-            "no-linked-tracks-text": "pisteeseen ei ole linkitetty raiteita",
+            "no-linked-tracks-text": "Pisteeseen ei ole linkitetty raiteita",
             "focus-on-map": "Kohdista kartalla",
             "set-location": "Aseta sijainti kartalla",
             "set-location-help": "Klikkaa toiminnallisen pisteen sijainti kartalle",
@@ -1027,7 +1027,7 @@
             "save-links": "Tallenna muutokset",
             "cancel-editing-links": "Peruuta",
             "switch-links": {
-                "infobox-header": "Vaihteet",
+                "infobox-header": "Toiminnallisen pisteen vaihteet ({{count}})",
                 "attached-header": "Toiminnalliseen pisteeseen linkitetyt vaihteet ({{count}} kpl)",
                 "detached-in-polygon-header": "Toiminnalliseen pisteeseen linkittämättömät, alueella sijaitsevat vaihteet ({{count}} kpl)",
                 "detach-all": "Irrota pisteeltä kaikki vaihteet ({{count}} kpl)",
@@ -1048,7 +1048,7 @@
                 "no-switches": "Ei vaihteita"
             },
             "track-links": {
-                "infobox-header": "Raiteet",
+                "infobox-header": "Toiminnallisen pisteen raiteet ({{count}})",
                 "attached-header": "Toiminnalliseen pisteeseen linkitetyt raiteet ({{count}} kpl)",
                 "detached-in-polygon-header": "Toiminnalliseen pisteeseen linkittämättömät, alueella sijaitsevat raiteet ({{count}} kpl)",
                 "detach-all": "Irrota pisteeltä kaikki raiteet ({{count}} kpl)",
@@ -1067,9 +1067,8 @@
                 "no-tracks": "Ei raiteita"
             },
             "station-links": {
-                "infobox-header": "Yhteydet muille liikennepaikoille",
-                "count": "{{count}} liikennepaikkaväliä",
-                "no-links": "Ei liikennepaikkavälejä"
+                "infobox-header": "Yhteydet muille toiminnallisille pisteille ({{count}})",
+                "no-links": "Ei yhteyksiä muille toiminnallisille pisteille"
             }
         },
         "disabled": {

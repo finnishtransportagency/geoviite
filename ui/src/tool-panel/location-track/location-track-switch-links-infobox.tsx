@@ -100,7 +100,9 @@ export const LocationTrackSwitchLinksInfobox: React.FC<
 
     return (
         <Infobox
-            title={t('tool-panel.location-track.switch-links.heading')}
+            title={t('tool-panel.location-track.switch-links.heading', {
+                count: switchesAll.length,
+            })}
             qa-id={'location-track-switch-links-infobox'}
             contentVisible={contentVisible}
             onContentVisibilityChange={onContentVisibilityChange}>
@@ -137,9 +139,6 @@ export const LocationTrackSwitchLinksInfobox: React.FC<
                                     onShowMore={() => setShowAllSwitches(!showAllSwitches)}
                                     showMoreText={t(
                                         'tool-panel.location-track.switch-links.show-more',
-                                        {
-                                            count: switchesAll.length,
-                                        },
                                     )}
                                 />
                             )}

@@ -67,7 +67,9 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
 
     return (
         <Infobox
-            title={t('tool-panel.location-track.operational-point-links.heading')}
+            title={t('tool-panel.location-track.operational-point-links.heading', {
+                count: operationalPoints?.length ?? 0,
+            })}
             qa-id={'location-track-operational-point-links-infobox'}
             contentVisible={contentVisible}
             onContentVisibilityChange={onContentVisibilityChange}>
@@ -107,9 +109,6 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
                                     onShowMore={() => setShowAll(!showAll)}
                                     showMoreText={t(
                                         'tool-panel.location-track.operational-point-links.show-more',
-                                        {
-                                            count: operationalPoints.length,
-                                        },
                                     )}
                                 />
                             )}
@@ -126,4 +125,3 @@ export const LocationTrackOperationalPointLinksInfobox: React.FC<
         </Infobox>
     );
 };
-
