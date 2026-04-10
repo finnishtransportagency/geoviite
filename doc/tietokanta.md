@@ -153,3 +153,17 @@ kuvauksesta [Julkaisut](julkaisut.md).
 Projektivelho-skeema sisältää projektivelho-integraation (synkronointi-ajon) tilaa kuvaavat taulut. Lisäksi samassa
 skeemassa säilytetään myös tuodut dokumentit ja niihin littyvät projektitiedot sekä tarvittavat Projektivelhon
 nimikkeistöt (Dictionary). Näistä on tarkempaa tietoa kuvauksessa [Projektivelho](projektivelho.md)
+
+# Transaktiorajat
+
+Transaktioita käsitellään yleiseen Spring-tapaan @Transactional-annotaatioilla. Useimmiten transaktioraja on service-
+tason rajalla, mutta ei välttämättä säännönmukaisesti näin. Esimerkiksi jos service-kutsu tekee ainoastaan yhden
+varsinaista nykytilaa katsovan tietokantahaun, ja sen jälkeen joko ei tee muita kantahakuja, tai tekee ainoastaan
+versioituja hakuja (joiden ei tarvitse olla samassa transaktiossa, koska saman versioidun haun tulos on joka tapauksessa
+aina sama), voidaan transaktioraja jättää alemmaksi: Yleisperiaatteenahan transaktion pituuden pitää olla mahdollisimman
+lyhyt.
+
+... mutta ei liian lyhyt: @Transactional-annotaation läpi menemisellä on aina oma hintansa. Hinta on pieni, jos tässä
+pinossa ollaan jo transaktiorajan sisällä, mutta jos ei, pinnan läpi meneminen aiheuttaa verraten kalliin
+transaktio-slotin allokoinnin yhteysaltaasta. Tästä (ja muistakin) syistä hakuja kannattaa tehdä mahdollisimman paljon
+massana.
