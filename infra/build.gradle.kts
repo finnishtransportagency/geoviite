@@ -12,7 +12,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val geotoolsVersion = "33.2"
+val geotoolsVersion = "34.3"
 val kotlinVersion = "2.3.20"
 
 plugins {
