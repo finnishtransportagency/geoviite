@@ -16,7 +16,7 @@ val geotoolsVersion = "34.3"
 val kotlinVersion = "2.3.20"
 
 plugins {
-    id("org.springframework.boot") version "3.5.12"
+    id("org.springframework.boot") version "3.5.13"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.2"
     kotlin("jvm") version "2.3.20"
@@ -81,7 +81,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.16")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
