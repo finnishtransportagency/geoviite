@@ -79,6 +79,8 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "ol"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
     groups:
       react:
         patterns:
