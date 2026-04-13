@@ -42,6 +42,7 @@ updates:
       gradle:
         patterns:
           - "gradle"
+          - "gradle-wrapper"
       other:
         patterns:
           - "*"
