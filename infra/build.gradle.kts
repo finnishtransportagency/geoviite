@@ -87,8 +87,8 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.2")
     implementation("com.zaxxer:HikariCP:7.0.2")
-    implementation("org.flywaydb:flyway-core:11.20.3")
-    implementation("org.flywaydb:flyway-database-postgresql:11.20.3")
+    implementation("org.flywaydb:flyway-core:12.3.0")
+    implementation("org.flywaydb:flyway-database-postgresql:12.3.0")
     implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
     implementation("org.geotools:gt-main:$geotoolsVersion") {
         // Excluded as the license (JDL or JRL) compatibility is unconfirmed. We don't need this.
