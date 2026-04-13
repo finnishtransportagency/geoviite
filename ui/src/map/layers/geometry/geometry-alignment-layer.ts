@@ -31,7 +31,7 @@ import { Rectangle } from 'model/geometry';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { cache } from 'cache/cache';
 import { MapLayerName, MapTile } from 'map/map-model';
-import { LayoutContext } from 'common/common-model';
+import { LayoutContext, mapRangesToValues } from 'common/common-model';
 import { brand } from 'common/brand';
 
 const alignmentFeatureCache = cache<string, Feature<LineString>>(500);
@@ -134,7 +134,7 @@ function getAlignmentsWithLinking(
         return {
             header: alignment.header,
             points: filterAlignmentPoints(toMapAlignmentResolution(resolution), points),
-            segmentMValues: alignment.segmentMValues,
+            segmentMValues: mapRangesToValues(alignment.segmentMValues),
             linked: alignment.header.id ? linkedAlignmentIds.includes(alignment.header.id) : false,
         };
     });

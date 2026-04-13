@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.util.StringSanitizer
 
-const val ALLOWED_ALIGNMENT_NAME_CHARACTERS = "A-Za-zÄÖÅäöå0-9 \\-_/!?"
+const val ALLOWED_ALIGNMENT_NAME_CHARACTERS = "A-Za-zÄÖÅäöå0-9 \\-_/!?()"
 
 data class AlignmentName @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
     Comparable<AlignmentName>, CharSequence by value {

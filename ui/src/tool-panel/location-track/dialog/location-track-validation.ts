@@ -5,7 +5,7 @@ import { LocationTrackSaveRequest } from 'linking/linking-model';
 import { isNilOrBlank } from 'utils/string-utils';
 import { isNil } from 'utils/type-utils';
 
-export const ALIGNMENT_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-_]+$/g;
+export const ALIGNMENT_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-_()]+$/g;
 export const ALIGNMENT_DESCRIPTION_REGEX = /^[A-ZÄÖÅa-zäöå0-9 _\-–—+().,'"/\\<>:!?&]+$/g;
 export const ALIGNMENT_NAME_MAX_LENGTH = 50;
 
