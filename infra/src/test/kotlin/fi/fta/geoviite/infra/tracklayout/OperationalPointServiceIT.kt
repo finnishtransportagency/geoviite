@@ -99,7 +99,7 @@ constructor(
                 .update(
                     LayoutBranch.main,
                     original.id,
-                    internalPointSaveRequest(
+                    internalPointUpdateRequest(
                         name = "updated",
                         abbreviation = "upd",
                         rinfType = OperationalPointRinfType.PASSENGER_TERMINAL,
@@ -132,7 +132,7 @@ constructor(
                 .id
 
         assertThrows<SavingFailureException> {
-            operationalPointService.update(LayoutBranch.main, external, internalPointSaveRequest("updated"))
+            operationalPointService.update(LayoutBranch.main, external, internalPointUpdateRequest("updated"))
         }
     }
 
@@ -199,7 +199,7 @@ constructor(
         operationalPointService.publish(LayoutBranch.main, firstDraft)
         val assignedOid = operationalPointDao.fetchExternalId(LayoutBranch.main, firstDraft.id)
         assertNotNull(assignedOid)
-        operationalPointService.update(LayoutBranch.main, firstDraft.id, internalPointSaveRequest("b"))
+        operationalPointService.update(LayoutBranch.main, firstDraft.id, internalPointUpdateRequest("b"))
         operationalPointService.publish(LayoutBranch.main, firstDraft)
         val oidAfterSecondPublication = operationalPointDao.fetchExternalId(LayoutBranch.main, firstDraft.id)
         assertEquals(assignedOid.oid, oidAfterSecondPublication?.oid)
@@ -408,10 +408,69 @@ constructor(
             rinfIdOverride,
         )
 
+    private fun internalPointUpdateRequest(
+        name: String = "name",
+        abbreviation: String = name,
+        rinfType: OperationalPointRinfType = OperationalPointRinfType.SMALL_STATION,
+        state: OperationalPointState = OperationalPointState.IN_USE,
+        uicCode: String = "10101",
+        rinfIdOverride: RinfId? = null,
+        severLinks: Boolean = false,
+    ) =
+        InternalOperationalPointUpdateRequest(
+            OperationalPointInputName(name),
+            OperationalPointInputAbbreviation(abbreviation),
+            rinfType,
+            state,
+            UicCode(uicCode),
+            rinfIdOverride,
+            severLinks,
+        )
+
     private fun externalPointSaveRequest(
         rinfType: OperationalPointRinfType = OperationalPointRinfType.SMALL_STATION,
         rinfIdOverride: RinfId? = null,
     ) = ExternalOperationalPointSaveRequest(rinfType, rinfIdOverride)
+
+    @Test
+    fun `update with severLinks = true clears references from location tracks and switches`() {
+        val opId = operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("op")).id
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+
+        val locationTrack = mainDraftContext.save(locationTrack(trackNumberId, operationalPointIds = setOf(opId))).id
+        val switch = mainDraftContext.save(switch(operationalPointId = opId)).id
+
+        operationalPointService.update(
+            LayoutBranch.main,
+            opId,
+            internalPointUpdateRequest(name = "op", state = OperationalPointState.DELETED, severLinks = true),
+        )
+
+        val trackAfter = locationTrackService.getOrThrow(mainDraftContext.context, locationTrack)
+        assertEquals(emptySet<Nothing>(), trackAfter.operationalPointIds)
+        val switchAfter = switchService.getOrThrow(mainDraftContext.context, switch)
+        assertNull(switchAfter.operationalPointId)
+    }
+
+    @Test
+    fun `update with severLinks = false preserves references on location tracks and switches`() {
+        val opId = operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("op")).id
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+
+        val locationTrack = mainDraftContext.save(locationTrack(trackNumberId, operationalPointIds = setOf(opId))).id
+        val switch = mainDraftContext.save(switch(operationalPointId = opId)).id
+
+        operationalPointService.update(
+            LayoutBranch.main,
+            opId,
+            internalPointUpdateRequest(name = "op", state = OperationalPointState.DELETED, severLinks = false),
+        )
+
+        val trackAfter = locationTrackService.getOrThrow(mainDraftContext.context, locationTrack)
+        assertEquals(setOf(opId), trackAfter.operationalPointIds)
+        val switchAfter = switchService.getOrThrow(mainDraftContext.context, switch)
+        assertEquals(opId, switchAfter.operationalPointId)
+    }
 
     @Test
     fun `should reject setting rinf_id_generated once set`() {

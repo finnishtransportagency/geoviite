@@ -33,6 +33,10 @@ export type InternalOperationalPointSaveRequest = OperationalPointSaveRequestBas
     uicCode: UICCode;
 };
 
+export type InternalOperationalPointUpdateRequest = InternalOperationalPointSaveRequest & {
+    severLinks: boolean;
+};
+
 function validateInternalOperationalPoint(
     saveRequest: InternalOperationalPointSaveRequest,
     editingRinfId: boolean,
