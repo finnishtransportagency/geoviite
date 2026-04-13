@@ -39,6 +39,9 @@ updates:
           - "org.mock-server*"
           - "org.apache.httpcomponents*"
           - "io.projectreactor:reactor-test"
+      gradle:
+        patterns:
+          - "gradle"
       other:
         patterns:
           - "*"
