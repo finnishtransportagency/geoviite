@@ -2,3 +2,5 @@ out/
 .idea/
 *.scss.d.ts
 **/.DS_store
+.github/agents/
+.github/skills/
