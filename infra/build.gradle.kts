@@ -18,10 +18,10 @@ val kotlinVersion = "2.3.20"
 plugins {
     id("org.springframework.boot") version "3.5.12"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.github.jk1.dependency-license-report") version "3.0.1"
+    id("com.github.jk1.dependency-license-report") version "3.1.2"
     kotlin("jvm") version "2.3.20"
     kotlin("plugin.spring") version "2.3.20"
-    id("com.ncorti.ktfmt.gradle") version "0.25.0"
+    id("com.ncorti.ktfmt.gradle") version "0.26.0"
 }
 
 group = "fi.fta.geoviite"
@@ -55,8 +55,8 @@ dependencies {
     implementation("org.apache.commons:commons-text:1.15.0")
     implementation("org.apache.commons:commons-lang3:3.20.0")
     implementation("com.fasterxml.jackson.core:jackson-core:2.21.2")
-    testImplementation("com.nimbusds:nimbus-jose-jwt:10.8")
-    testImplementation("org.mozilla:rhino:1.7.15.1")
+    testImplementation("com.nimbusds:nimbus-jose-jwt:10.9")
+    testImplementation("org.mozilla:rhino:1.9.1")
     constraints {
         // org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.16 has a vulnerable transitive dependency
         implementation("org.apache.commons:commons-text:1.15.0")
@@ -66,8 +66,8 @@ dependencies {
         implementation("com.fasterxml.jackson.core:jackson-core:2.21.2")
 
         // org.mock-server:mockserver-netty:5.15.0 has a vulnerable transitive dependency
-        testImplementation("com.nimbusds:nimbus-jose-jwt:10.8")
-        testImplementation("org.mozilla:rhino:1.7.15.1")
+        testImplementation("com.nimbusds:nimbus-jose-jwt:10.9")
+        testImplementation("org.mozilla:rhino:1.9.1")
     }
 
     // Actual deps
@@ -81,7 +81,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.16")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
@@ -116,7 +116,7 @@ dependencies {
         exclude("commons-collections", "commons-collections")
     }
     implementation("org.aspectj:aspectjweaver:1.9.25.1")
-    implementation("org.jgrapht:jgrapht-core:1.5.2")
+    implementation("org.jgrapht:jgrapht-core:1.5.3")
     compileOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.7")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
