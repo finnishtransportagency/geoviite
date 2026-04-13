@@ -8,21 +8,7 @@ updates:
     open-pull-requests-limit: 10
     ignore:
       - dependency-name: "org.seleniumhq*"
-      - dependency-name: "org.springdoc*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "org.springframework*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "io.spring*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "org.postgresql*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "org.flywaydb*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "org.geotools*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "org.jetbrains.kotlin*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "com.fasterxml.jackson*"
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
     groups:
       spring-boot:
@@ -69,27 +55,7 @@ updates:
       day: "monday"
     open-pull-requests-limit: 10
     ignore:
-      - dependency-name: "react"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "react-dom"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "webpack"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "ol"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "eslint"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@eslint/js"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "jest"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "sass"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "react-router-dom"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@typescript-eslint/parser"
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
     groups:
       react:
