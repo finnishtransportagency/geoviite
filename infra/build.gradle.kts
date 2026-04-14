@@ -72,7 +72,7 @@ dependencies {
 
     // Actual deps
     implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.797") { exclude("commons-logging", "commons-logging") }
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.83")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -125,7 +125,7 @@ dependencies {
     testImplementation("org.seleniumhq.selenium:selenium-java:4.41.0")
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6")
-    testImplementation("io.projectreactor:reactor-test:3.8.4")
+    testImplementation("io.projectreactor:reactor-test:3.8.5")
 }
 
 licenseReport {
