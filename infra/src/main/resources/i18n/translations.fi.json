@@ -513,6 +513,7 @@
         "full-name": "Valmis tunnus",
         "track-number": "Ratanumero",
         "state": "Tila",
+        "state-disabled-by-split": "Raiteen tilaa ei voi muokata koska raide on jaettu",
         "track-type": "Raidetyyppi",
         "owner": "Omistaja",
         "track-metadata": "Raiteen metatiedot",

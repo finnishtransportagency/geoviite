@@ -491,8 +491,14 @@ class LocationTrackService(
             val startSplitPoint = createSplitPoint(start, startSwitchLink?.id, START, geocodingContext)
             val endSplitPoint = createSplitPoint(end, endSwitchLink?.id, END, geocodingContext)
 
-            val partOfUnfinishedSplit =
-                splitDao.locationTracksPartOfAnyUnfinishedSplit(layoutContext.branch, listOf(id)).isNotEmpty()
+            val partOfSplit =
+                when {
+                    splitDao.isLocationTracksPartOfAnyUnfinishedSplit(layoutContext.branch, listOf(id)).isNotEmpty() ->
+                        PartOfSplit.UNFINISHED
+                    splitDao.isLocationTrackSourceOfAnyFinishedSplit(layoutContext.branch, id) ->
+                        PartOfSplit.FINISHED_SOURCE_TRACK
+                    else -> PartOfSplit.NONE
+                }
 
             val switches =
                 geometry.trackSwitchLinks
@@ -534,7 +540,7 @@ class LocationTrackService(
             LocationTrackInfoboxExtras(
                 duplicateOf,
                 duplicates,
-                partOfUnfinishedSplit,
+                partOfSplit,
                 startSplitPoint,
                 endSplitPoint,
                 switches,
@@ -618,46 +624,42 @@ class LocationTrackService(
         layoutContext: LayoutContext,
         requests: List<TopologyRecalculationRequest>,
     ): List<List<Pair<LocationTrack, LocationTrackGeometry>>> {
-        val changedTracksByRequestIx =
-            requests.map { request ->
-                request.changedTracks.map { (track, geometry) ->
-                    val trackId =
-                        requireNotNull(track.id as? IntId) { "A track must have a stored ID for node combining." }
-                    track to geometry.withLocationTrackId(trackId)
-                }
+        val changedTracksByRequestIx = requests.map { request ->
+            request.changedTracks.map { (track, geometry) ->
+                val trackId = requireNotNull(track.id as? IntId) { "A track must have a stored ID for node combining." }
+                track to geometry.withLocationTrackId(trackId)
             }
+        }
 
         val dbNodeConnectionsByTargetIxByRequestIx =
             processFlattened(requests.map { it.jointLocations }) { target ->
                 alignmentDao.getNodeConnectionsNearPoints(layoutContext, target, TOPOLOGY_CALC_DISTANCE)
             }
 
-        val nearbyConnections =
-            requests.mapIndexed { index, request ->
-                val changedTracks = request.changedTracks
-                val changedTrackIds = changedTracks.mapNotNull { (t, _) -> t.id as? IntId }.toSet()
+        val nearbyConnections = requests.mapIndexed { index, request ->
+            val changedTracks = request.changedTracks
+            val changedTrackIds = changedTracks.mapNotNull { (t, _) -> t.id as? IntId }.toSet()
 
-                val dbConnectionsByTargetIx =
-                    dbNodeConnectionsByTargetIxByRequestIx[index].map { targetConnections ->
-                        targetConnections
-                            .mapNotNull { c -> c.filterOut(changedTrackIds) }
-                            .map { c -> NodeReplacementTarget(c.node, c.trackVersions.map(::getWithGeometry)) }
-                    }
-
-                val changedTrackConnectionsByTargetIx =
-                    request.jointLocations.map { target ->
-                        changedTracks.flatMap { (track, geometry) ->
-                            geometry.nodesWithLocation
-                                .filter { (_, location) -> target.isWithinDistance(location, TOPOLOGY_CALC_DISTANCE) }
-                                .map { (node, _) -> NodeReplacementTarget(node, track, geometry) }
-                        }
-                    }
-
-                dbConnectionsByTargetIx.zip(changedTrackConnectionsByTargetIx) { dbConnections, changedTrackConnections
-                    ->
-                    mergeNodeConnections(dbConnections + changedTrackConnections)
+            val dbConnectionsByTargetIx =
+                dbNodeConnectionsByTargetIxByRequestIx[index].map { targetConnections ->
+                    targetConnections
+                        .mapNotNull { c -> c.filterOut(changedTrackIds) }
+                        .map { c -> NodeReplacementTarget(c.node, c.trackVersions.map(::getWithGeometry)) }
                 }
+
+            val changedTrackConnectionsByTargetIx =
+                request.jointLocations.map { target ->
+                    changedTracks.flatMap { (track, geometry) ->
+                        geometry.nodesWithLocation
+                            .filter { (_, location) -> target.isWithinDistance(location, TOPOLOGY_CALC_DISTANCE) }
+                            .map { (node, _) -> NodeReplacementTarget(node, track, geometry) }
+                    }
+                }
+
+            dbConnectionsByTargetIx.zip(changedTrackConnectionsByTargetIx) { dbConnections, changedTrackConnections ->
+                mergeNodeConnections(dbConnections + changedTrackConnections)
             }
+        }
 
         return requests.mapIndexed { index, request ->
             recalculateTopology(nearbyConnections[index], changedTracksByRequestIx[index])
@@ -670,11 +672,10 @@ class LocationTrackService(
         changedTracksTmp: List<Pair<LocationTrack, LocationTrackGeometry>>,
         locations: List<MultiPoint>,
     ): List<Pair<LocationTrack, LocationTrackGeometry>> {
-        val changedTracks =
-            changedTracksTmp.map { (track, geometry) ->
-                val trackId = requireNotNull(track.id as? IntId) { "A track must have a stored ID for node combining." }
-                track to geometry.withLocationTrackId(trackId)
-            }
+        val changedTracks = changedTracksTmp.map { (track, geometry) ->
+            val trackId = requireNotNull(track.id as? IntId) { "A track must have a stored ID for node combining." }
+            track to geometry.withLocationTrackId(trackId)
+        }
         val request = TopologyRecalculationRequest(changedTracks, locations)
         return recalculateTopologies(layoutContext, listOf(request)).first()
     }
@@ -818,32 +819,30 @@ class LocationTrackService(
         branch: LayoutBranch,
         ids: List<IntId<LocationTrack>>,
         operationalPointId: IntId<OperationalPoint>,
-    ): List<IntId<LocationTrack>> =
-        ids.map { id ->
-            val (draft, geometry) = getWithGeometryOrThrow(branch.draft, id)
-            saveDraft(
-                    branch,
-                    draft.copy(operationalPointIds = draft.operationalPointIds.plus(operationalPointId)),
-                    geometry,
-                )
-                .id
-        }
+    ): List<IntId<LocationTrack>> = ids.map { id ->
+        val (draft, geometry) = getWithGeometryOrThrow(branch.draft, id)
+        saveDraft(
+                branch,
+                draft.copy(operationalPointIds = draft.operationalPointIds.plus(operationalPointId)),
+                geometry,
+            )
+            .id
+    }
 
     @Transactional
     fun unlinkFromOperationalPoint(
         branch: LayoutBranch,
         ids: List<IntId<LocationTrack>>,
         operationalPointId: IntId<OperationalPoint>,
-    ): List<IntId<LocationTrack>> =
-        ids.map { id ->
-            val (draft, geometry) = getWithGeometryOrThrow(branch.draft, id)
-            saveDraft(
-                    branch,
-                    draft.copy(operationalPointIds = draft.operationalPointIds.minus(operationalPointId)),
-                    geometry,
-                )
-                .id
-        }
+    ): List<IntId<LocationTrack>> = ids.map { id ->
+        val (draft, geometry) = getWithGeometryOrThrow(branch.draft, id)
+        saveDraft(
+                branch,
+                draft.copy(operationalPointIds = draft.operationalPointIds.minus(operationalPointId)),
+                geometry,
+            )
+            .id
+    }
 
     @Transactional
     fun detachSwitch(
@@ -911,11 +910,10 @@ private fun recalculateTopology(
     nearbyConnections: List<List<NodeReplacementTarget>>,
     changedTracksTmp: List<Pair<LocationTrack, LocationTrackGeometry>>,
 ): List<Pair<LocationTrack, LocationTrackGeometry>> {
-    val changedTracks =
-        changedTracksTmp.map { (track, geometry) ->
-            val trackId = requireNotNull(track.id as? IntId) { "A track must have a stored ID for node combining." }
-            track to geometry.withLocationTrackId(trackId)
-        }
+    val changedTracks = changedTracksTmp.map { (track, geometry) ->
+        val trackId = requireNotNull(track.id as? IntId) { "A track must have a stored ID for node combining." }
+        track to geometry.withLocationTrackId(trackId)
+    }
     val combinations =
         nearbyConnections.map { connections -> resolveNodeCombinations(connections) }.let(::mergeNodeCombinations)
 

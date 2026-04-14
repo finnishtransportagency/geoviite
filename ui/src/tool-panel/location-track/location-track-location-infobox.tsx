@@ -183,7 +183,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.location-track.splitting.validation.branch-not-main');
         }
 
-        if (extraInfo?.partOfUnfinishedSplit) {
+        if (extraInfo?.partOfSplit === 'UNFINISHED') {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
         }
 
@@ -220,7 +220,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const getModifyStartOrEndDisabledReasonTranslated = () => {
         if (!isDraft) {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
-        } else if (splittingState || extraInfo?.partOfUnfinishedSplit) {
+        } else if (splittingState || extraInfo?.partOfSplit === 'UNFINISHED') {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
         } else if (locationTrack.state === 'DELETED') {
             return t('tool-panel.location-track.cannot-shorten-deleted-track');
@@ -369,7 +369,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         locationTrack.state === 'DELETED' ||
         !isDraft ||
         !!splittingState ||
-        extraInfo?.partOfUnfinishedSplit ||
+        extraInfo?.partOfSplit === 'UNFINISHED' ||
         !startAndEndPoints?.start?.point ||
         !startAndEndPoints?.end?.point ||
         startingSplitting;
@@ -380,7 +380,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         locationTrack.isDraft ||
         duplicatesOnOtherTrackNumbers ||
         duplicatesOnOtherLocationTracks ||
-        extraInfo?.partOfUnfinishedSplit ||
+        extraInfo?.partOfSplit === 'UNFINISHED' ||
         startingSplitting ||
         !startAndEndAddressDefined ||
         layoutContext.branch !== 'MAIN';
@@ -417,7 +417,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
                             {linkingState === undefined && (
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {isDraft && extraInfo?.partOfUnfinishedSplit && (
+                                    {isDraft && extraInfo?.partOfSplit === 'UNFINISHED' && (
                                         <InfoboxContentSpread>
                                             <MessageBox>
                                                 {t(
@@ -479,7 +479,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                 {isMainDraft && !linkingState && (
                                     <React.Fragment>
                                         {locationTrack.isDraft &&
-                                            !extraInfo?.partOfUnfinishedSplit && (
+                                            extraInfo?.partOfSplit !== 'UNFINISHED' && (
                                                 <InfoboxContentSpread>
                                                     <MessageBox>
                                                         {t(
@@ -489,7 +489,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 </InfoboxContentSpread>
                                             )}
                                         {duplicatesOnOtherTrackNumbers &&
-                                            !extraInfo?.partOfUnfinishedSplit && (
+                                            extraInfo?.partOfSplit !== 'UNFINISHED' && (
                                                 <InfoboxContentSpread>
                                                     <MessageBox>
                                                         {t(
@@ -499,7 +499,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 </InfoboxContentSpread>
                                             )}
                                         {duplicatesOnOtherLocationTracks &&
-                                            !extraInfo?.partOfUnfinishedSplit && (
+                                            extraInfo?.partOfSplit !== 'UNFINISHED' && (
                                                 <InfoboxContentSpread>
                                                     <MessageBox>
                                                         {t(

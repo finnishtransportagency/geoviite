@@ -51,6 +51,7 @@ constructor(
     private val splitService: SplitService,
     private val splitTestDataService: SplitTestDataService,
     private val layoutTrackNumberService: LayoutTrackNumberService,
+    private val splitDao: fi.fta.geoviite.infra.split.SplitDao,
 ) : DBTestBase() {
     @BeforeEach
     fun setup() {
@@ -1232,6 +1233,40 @@ constructor(
         assertNotNull(op2Extra)
         assertNull(op2Extra!!.location)
         assertNull(op2Extra.displayAddress)
+    }
+
+    @Test
+    fun `getInfoboxExtras returns correct partOfSplit value`() {
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
+        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), geometry)
+
+        val extrasBeforeSplit = locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id)
+        assertNotNull(extrasBeforeSplit)
+        assertEquals(PartOfSplit.NONE, extrasBeforeSplit!!.partOfSplit)
+
+        val splitId = splitDao.saveSplit(
+            sourceTrack,
+            listOf(
+                fi.fta.geoviite.infra.split.SplitTarget(
+                    targetTrack.id, 0..0, fi.fta.geoviite.infra.split.SplitTargetOperation.CREATE,
+                ),
+            ),
+            listOf(mainOfficialContext.createSwitch().id),
+            updatedDuplicates = emptyList(),
+        )
+
+        val extrasUnfinished = locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id)
+        assertNotNull(extrasUnfinished)
+        assertEquals(PartOfSplit.UNFINISHED, extrasUnfinished!!.partOfSplit)
+
+        splitDao.updateSplit(splitId, bulkTransferState = fi.fta.geoviite.infra.split.BulkTransferState.DONE)
+
+        val extrasFinished = locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id)
+        assertNotNull(extrasFinished)
+        assertEquals(PartOfSplit.FINISHED_SOURCE_TRACK, extrasFinished!!.partOfSplit)
     }
 
     private fun updateDraft(

@@ -236,13 +236,13 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const canLink =
         !linkingCallInProgress &&
         linkingState?.state === 'allSet' &&
-        !selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit;
+        selectedLocationTrackInfoboxExtras?.partOfSplit !== 'UNFINISHED';
 
     const canLockAlignment =
         (linkingAlignmentType === 'REFERENCE_LINE' && selectedLayoutReferenceLine) ||
         (linkingAlignmentType === 'LOCATION_TRACK' &&
             selectedLayoutLocationTrack &&
-            !selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit);
+            selectedLocationTrackInfoboxExtras?.partOfSplit !== 'UNFINISHED');
 
     const [linkedAlignmentIds, linkedAlignmentIdsStatus] = useLoaderWithStatus(
         () => getLinkedAlignmentIdsInPlan(planId, layoutContext),
@@ -420,7 +420,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                         setShowAddLocationTrackDialog(true)
                                     }
                                     selectedPartOfUnfinishedSplit={
-                                        selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit ||
+                                        selectedLocationTrackInfoboxExtras?.partOfSplit === 'UNFINISHED' ||
                                         false
                                     }
                                 />

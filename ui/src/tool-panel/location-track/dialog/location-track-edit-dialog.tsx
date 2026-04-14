@@ -373,6 +373,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 d.duplicateStatus.duplicateOfId === state.existingLocationTrack?.id,
         ) || [];
 
+    const isPartOfSplit =
+        extraInfo?.partOfSplit === 'FINISHED_SOURCE_TRACK' || extraInfo?.partOfSplit === 'UNFINISHED';
     return (
         <React.Fragment>
             <Dialog
@@ -463,6 +465,12 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     onChange={(value) => value && updateProp('state', value)}
                                     onBlur={() => stateActions.onCommitField('state')}
                                     hasError={hasErrors('state')}
+                                    disabled={isPartOfSplit}
+                                    title={
+                                        isPartOfSplit
+                                            ? t('location-track-dialog.state-disabled-by-split')
+                                            : undefined
+                                    }
                                     wide
                                     searchable
                                 />
