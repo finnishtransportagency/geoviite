@@ -186,7 +186,9 @@ export const OperationalPointTracksInfobox: React.FC<OperationalPointTracksInfob
 
     return (
         <Infobox
-            title={t('tool-panel.operational-point.track-links.infobox-header')}
+            title={t('tool-panel.operational-point.track-links.infobox-header', {
+                count: linkedTracks.length,
+            })}
             contentVisible={contentVisible}
             onContentVisibilityChange={() => onVisibilityChange('tracks')}>
             <InfoboxContent>

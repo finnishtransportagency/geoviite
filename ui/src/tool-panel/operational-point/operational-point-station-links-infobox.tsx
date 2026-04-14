@@ -49,7 +49,9 @@ export const OperationalPointStationLinksInfobox: React.FC<
 
     return (
         <Infobox
-            title={t('tool-panel.operational-point.station-links.infobox-header')}
+            title={t('tool-panel.operational-point.station-links.infobox-header', {
+                count: stationLinks?.length ?? 0,
+            })}
             contentVisible={contentVisible}
             onContentVisibilityChange={() => onVisibilityChange('stationLinks')}>
             {
@@ -62,30 +64,20 @@ export const OperationalPointStationLinksInfobox: React.FC<
                                 {t('tool-panel.operational-point.station-links.no-links')}
                             </p>
                         ) : (
-                            <>
-                                <p className="infobox__text">
-                                    {t('tool-panel.operational-point.station-links.count', {
-                                        count: stationLinks?.length ?? 0,
-                                    })}
-                                </p>
-                                <ul
-                                    className={
-                                        styles['operational-point-infobox__station-links-list']
-                                    }>
-                                    {(stationLinks ?? []).map((stationLink) => (
-                                        <li
-                                            key={`${stationLink.startOperationalPointId}-${stationLink.endOperationalPointId}-${stationLink.trackNumberId}`}>
-                                            <StationLinkView
-                                                stationLink={stationLink}
-                                                ownOperationalPointId={operationalPoint.id}
-                                                layoutContext={layoutContext}
-                                                changeTimes={changeTimes}
-                                                onSelectLocationTrack={onSelectLocationTrack}
-                                            />
-                                        </li>
-                                    ))}
-                                </ul>
-                            </>
+                            <ul className={styles['operational-point-infobox__station-links-list']}>
+                                {(stationLinks ?? []).map((stationLink) => (
+                                    <li
+                                        key={`${stationLink.startOperationalPointId}-${stationLink.endOperationalPointId}-${stationLink.trackNumberId}`}>
+                                        <StationLinkView
+                                            stationLink={stationLink}
+                                            ownOperationalPointId={operationalPoint.id}
+                                            layoutContext={layoutContext}
+                                            changeTimes={changeTimes}
+                                            onSelectLocationTrack={onSelectLocationTrack}
+                                        />
+                                    </li>
+                                ))}
+                            </ul>
                         )}
                     </InfoboxContent>
                 </ProgressIndicatorWrapper>
