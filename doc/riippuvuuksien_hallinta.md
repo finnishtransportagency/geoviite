@@ -12,8 +12,8 @@ repositorion [Security-välilehdeltä](https://github.com/finnishtransportagency
 
 Dependabot tarkistaa riippuvuuspäivitykset viikoittain ja avaa automaattisesti pull requesteja **minor**- ja **patch**
 -tason päivityksille. Major-version päivitykset on rajattu pois automaatiosta, ja ne tehdään kehittäjien toimesta
-manuaalisesti. PR:n yhteydessä ajettavat automatisoidut workflow:t varmistavat että tulos ainakin kääntyy ja testit
-menevät läpi. Dependabot ei kuitenkaan osaa tehdä asialle mitään jos build epäonnistuu, vaan ongelma jää kehittäjien
+manuaalisesti. PR:n yhteydessä ajettavat automatisoidut workflow:t varmistavat, että tulos ainakin kääntyy ja testit
+menevät läpi. Dependabot ei kuitenkaan osaa tehdä asialle mitään, jos build epäonnistuu, vaan ongelma jää kehittäjien
 ratkaistavaksi.
 
 Riippuvuudet on ryhmitelty siten, että toisiinsa kytkeytyvät kirjastot päivitetään yhdessä, mutta mahdolliset build/test-
