@@ -1,6 +1,6 @@
 # Riippuvuuksien hallinta
 
-Riippuvuuksien haavoittuvuusskannaukset ja automatisoidut päivitykset on automatisoitu
+Riippuvuuksien haavoittuvuusskannaukset ja päivitykset hoidetaan
 [GitHub Dependabotin](https://docs.github.com/en/code-security/tutorials/secure-your-dependencies) avulla.
 
 ## Haavoittuvuusskannaus
