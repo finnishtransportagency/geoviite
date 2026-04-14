@@ -25,4 +25,4 @@ löytyy [dependabotin dokumentaatiosta](https://docs.github.com/en/code-security
 ## Docker-kuvien skannaus
 
 Docker-kuvat skannataan haavoittuvuuksien varalta image-repositoriossa AWS:ssä (ECR) ja tuloksia voi tarkastella AWS:n
-security hubista tai ECR-imagen kuvauksesta.
+Security Hubista tai ECR-imagen kuvauksesta.
