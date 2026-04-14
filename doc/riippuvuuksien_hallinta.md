@@ -16,8 +16,8 @@ manuaalisesti. PR:n yhteydessä ajettavat automatisoidut workflow:t varmistavat 
 menevät läpi. Dependabot ei kuitenkaan osaa tehdä asialle mitään jos build epäonnistuu, vaan ongelma jää kehittäjien
 ratkaistavaksi.
 
-Riippuvuudet on ryhmitelty siten, että toisiinsa kytkeytyvät kirjastot päivitetään yhdessä, mutta mahdolliset build/test
-ajojen epäonnistumiset kohdistuu hiukan tarkemmin johonkin tiettyyn päivitykseen. Ryhmittelyn konfiguraatio löytyy
+Riippuvuudet on ryhmitelty siten, että toisiinsa kytkeytyvät kirjastot päivitetään yhdessä, mutta mahdolliset build/test-
+ajojen epäonnistumiset kohdistuvat hiukan tarkemmin johonkin tiettyyn päivitykseen. Ryhmittelyn konfiguraatio löytyy
 tiedostosta [`.github/dependabot.yml`](../.github/dependabot.yml), jossa ryhmittelyä voi säätää, jos automaattiset PR:t
 eivät toimi toivotulla tavalla. Lisää ohjeita konfiguraatioon
 löytyy [dependabotin dokumentaatiosta](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference)
