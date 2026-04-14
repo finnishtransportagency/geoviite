@@ -58,6 +58,24 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
     groups:
+      toolchain:
+        patterns:
+          - "webpack"
+          - "webpack-*"
+          - "*-webpack-plugin"
+          - "*-loader"
+          - "eslint*"
+          - "@eslint/*"
+          - "*eslint*"
+          - "typescript-eslint"
+          - "jest"
+          - "jest-*"
+          - "@jest/*"
+          - "ts-jest"
+          - "typescript"
+          - "ts-node"
+          - "prettier"
+          - "sass"
       react:
         patterns:
           - "react"
@@ -68,22 +86,10 @@ updates:
           - "redux-*"
           - "i18next"
           - "i18next-*"
-      jest:
+      openlayers:
         patterns:
-          - "jest"
-          - "jest-*"
-          - "@jest/*"
-          - "ts-jest"
-      webpack:
-        patterns:
-          - "webpack"
-          - "webpack-*"
-          - "*-webpack-plugin"
-          - "*-loader"
-          - "eslint*"
-          - "@eslint/*"
-          - "*eslint*"
-          - "typescript-eslint"
+          - "ol"
+          - "proj4"
       other:
         patterns:
           - "*"
