@@ -1927,6 +1927,7 @@
                 "km-post-too-far-from-reference-line": "Ratanumeron {{trackNumber}} tasakilometripiste {{kmNumber}} sijaitsee liian kaukana pituusmittauslinjalta"
             },
             "split": {
+                "finished-source-not-deleted": "Raide on jaettu, mutta se ei ole Poistettu-tilassa",
                 "source-not-deleted": "Jaettava raide {{sourceName}} ei ole Poistettu-tilassa",
                 "source-edited-after-split": "Jaettavaa raidetta {{sourceName}} on muokattu vaikka jako on vielä kesken",
                 "source-and-target-track-numbers-are-different": "Jakamisessa syntynyt raide {{targetName}} on eri ratanumerolla on kuin alkuperäinen jaettu raide {{sourceName}}",

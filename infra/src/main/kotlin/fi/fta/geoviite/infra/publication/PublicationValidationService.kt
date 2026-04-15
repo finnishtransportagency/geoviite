@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -652,12 +653,18 @@ constructor(
                     validationContext.target.validationTargetType,
                 )
 
+            val finishedSplitSourceIssues =
+                if (track.exists && validationContext.isLocationTrackSourceOfAnyFinishedSplit(id)) {
+                    listOf(validationError("$VALIDATION_SPLIT.finished-source-not-deleted"))
+                } else emptyList()
+
             (switchTrackIssues +
                 duplicateIssues +
                 alignmentIssues +
                 geocodingIssues +
                 switchNameIssues +
                 nameDuplicationIssues +
+                finishedSplitSourceIssues +
                 trackNetworkTopologyIssues +
                 incomingReferenceIssues +
                 outgoingReferenceIssues +

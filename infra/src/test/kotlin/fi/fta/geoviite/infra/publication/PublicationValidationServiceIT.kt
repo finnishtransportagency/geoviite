@@ -425,8 +425,9 @@ constructor(
             "validation.layout.location-track.reference-from-location-track-duplicate-of.not-published",
         )
 
-    private fun containsError(errors: List<LayoutValidationIssue>, key: String) =
-        errors.any { e -> e.localizationKey.toString() == key }
+    private fun containsError(errors: List<LayoutValidationIssue>, key: String) = errors.any { e ->
+        e.localizationKey.toString() == key
+    }
 
     private fun validateLocationTrack(
         toValidate: IntId<LocationTrack>,
@@ -832,8 +833,9 @@ constructor(
         index: Int,
     ) {
         val allKeys = expected.map { it.localizationKey.toString() } + actual.map { it.localizationKey.toString() }
-        val commonPrefix =
-            allKeys.reduce { acc, next -> acc.take(acc.zip(next) { a, b -> a == b }.takeWhile { it }.count()) }
+        val commonPrefix = allKeys.reduce { acc, next ->
+            acc.take(acc.zip(next) { a, b -> a == b }.takeWhile { it }.count())
+        }
 
         fun cleanupKey(key: LocalizationKey) = key.toString().let { k -> if (commonPrefix.length > 3) "...$k" else k }
 
@@ -1286,6 +1288,31 @@ constructor(
                 LayoutValidationIssueType.ERROR,
                 LocalizationKey.of("validation.layout.split.source-not-deleted"),
                 localizationParams("sourceName" to locationTrackDao.fetch(splitSetup.sourceTrack).name),
+            ),
+        )
+    }
+
+    @Test
+    fun `split source location track validation should fail if source of a finished split isn't deleted`() {
+        val splitSetup = publicationTestSupportService.simpleSplitSetup()
+
+        val splitId = publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
+        splitDao.updateSplit(splitId, bulkTransferState = BulkTransferState.DONE)
+
+        val sourceTrack = locationTrackDao.fetch(splitSetup.sourceTrack)
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            sourceTrack.copy(state = LocationTrackState.IN_USE),
+            alignmentDao.fetch(splitSetup.sourceTrack),
+        )
+
+        val errors = validateLocationTracks(splitSetup.sourceTrack.id)
+        assertContains(
+            errors,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                LocalizationKey.of("validation.layout.split.finished-source-not-deleted"),
+                localizationParams("sourceName" to sourceTrack.name),
             ),
         )
     }

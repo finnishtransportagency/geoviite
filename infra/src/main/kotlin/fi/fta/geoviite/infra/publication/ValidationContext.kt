@@ -295,6 +295,9 @@ class ValidationContext(
     fun getUnfinishedSplits(): List<Split> =
         allUnfinishedSplits.filter { split -> split.publicationId != null || publicationSet.containsSplit(split.id) }
 
+    fun isLocationTrackSourceOfAnyFinishedSplit(id: IntId<LocationTrack>): Boolean =
+        splitService.isLocationTrackSourceOfAnyFinishedSplit(target.candidateBranch, id)
+
     fun getGeocodingContext(trackNumberId: IntId<LayoutTrackNumber>) =
         getGeocodingContextCacheKey(trackNumberId)?.let { key -> geocodingService.getGeocodingContext(key) }
 

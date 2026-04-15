@@ -374,7 +374,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         ) || [];
 
     const isPartOfSplit =
-        extraInfo?.partOfSplit === 'FINISHED_SOURCE_TRACK' || extraInfo?.partOfSplit === 'UNFINISHED';
+        extraInfo?.partOfSplit === 'FINISHED_SOURCE_TRACK' ||
+        extraInfo?.partOfSplit === 'UNFINISHED';
     return (
         <React.Fragment>
             <Dialog

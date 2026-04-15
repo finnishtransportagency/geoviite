@@ -107,6 +107,11 @@ class SplitService(
             }
         }
 
+    fun isLocationTrackSourceOfAnyFinishedSplit(
+        branch: LayoutBranch,
+        locationTrackId: IntId<LocationTrack>,
+    ): Boolean = splitDao.isLocationTrackSourceOfAnyFinishedSplit(branch, locationTrackId)
+
     fun fetchPublicationVersions(
         branch: LayoutBranch,
         locationTracks: List<IntId<LocationTrack>>,
