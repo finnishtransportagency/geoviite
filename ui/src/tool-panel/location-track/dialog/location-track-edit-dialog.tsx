@@ -163,6 +163,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const stateOptions = locationTrackStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
+    const finishedSplitStateOptions = locationTrackStates
+        .map((s) => (s.value === 'DELETED' ? s : { ...s, disabled: true }))
+        .map((ls) => ({ ...ls, qaId: ls.value }));
 
     const typeOptions = locationTrackTypes.map((ls) => ({ ...ls, qaId: ls.value }));
     const topologicalConnectivityOptions = topologicalConnectivityTypes.map((tc) => ({
@@ -277,7 +280,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const saveOrConfirm = () => {
         if (
             state.locationTrack?.state === 'DELETED' &&
-            state.existingLocationTrack?.state !== 'DELETED'
+            state.existingLocationTrack?.state !== 'DELETED' &&
+            extraInfo?.partOfSplit !== 'FINISHED_SOURCE_TRACK'
         ) {
             setNonDraftDeleteConfirmationVisible(true);
         } else {
@@ -462,13 +466,19 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 <Dropdown
                                     qaId="location-track-state"
                                     value={state.locationTrack?.state}
-                                    options={stateOptions}
+                                    options={
+                                        extraInfo?.partOfSplit === 'FINISHED_SOURCE_TRACK'
+                                            ? finishedSplitStateOptions
+                                            : stateOptions
+                                    }
                                     onChange={(value) => value && updateProp('state', value)}
                                     onBlur={() => stateActions.onCommitField('state')}
                                     hasError={hasErrors('state')}
-                                    disabled={isPartOfSplit}
+                                    disabled={
+                                        isPartOfSplit && props.locationTrack?.state === 'DELETED'
+                                    }
                                     title={
-                                        isPartOfSplit
+                                        isPartOfSplit && props.locationTrack?.state === 'DELETED'
                                             ? t('location-track-dialog.state-disabled-by-split')
                                             : undefined
                                     }
