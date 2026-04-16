@@ -291,7 +291,8 @@ data class LocationTrack(
 
 enum class PartOfSplit {
     FINISHED_SOURCE_TRACK,
-    UNFINISHED,
+    UNFINISHED_SOURCE_TRACK,
+    UNFINISHED_TARGET_TRACK,
     NONE,
 }
 

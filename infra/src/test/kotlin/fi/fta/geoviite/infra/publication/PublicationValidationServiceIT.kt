@@ -1287,32 +1287,44 @@ constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.ERROR,
                 LocalizationKey.of("validation.layout.split.source-not-deleted"),
-                localizationParams("sourceName" to locationTrackDao.fetch(splitSetup.sourceTrack).name),
+                localizationParams(),
             ),
         )
     }
 
     @Test
-    fun `split source location track validation should fail if source of a finished split isn't deleted`() {
+    fun `split source location track validation should fail if source of a published split isn't deleted`() {
         val splitSetup = publicationTestSupportService.simpleSplitSetup()
 
         val splitId = publicationTestSupportService.saveSplit(splitSetup.sourceTrack, splitSetup.targetParams)
-        splitDao.updateSplit(splitId, bulkTransferState = BulkTransferState.DONE)
+        publish(publicationService, locationTracks = splitSetup.trackIds)
+        val locationTrack = locationTrackDao.getOrThrow(MainLayoutContext.official, splitSetup.sourceTrack.id)
+        locationTrackService
+            .saveDraft(
+                LayoutBranch.main,
+                locationTrack.copy(state = LocationTrackState.IN_USE),
+                alignmentDao.fetch(locationTrack.version!!),
+            )
+            .let(locationTrackDao::fetch)
 
-        val sourceTrack = locationTrackDao.fetch(splitSetup.sourceTrack)
-        locationTrackService.saveDraft(
-            LayoutBranch.main,
-            sourceTrack.copy(state = LocationTrackState.IN_USE),
-            alignmentDao.fetch(splitSetup.sourceTrack),
-        )
-
-        val errors = validateLocationTracks(splitSetup.sourceTrack.id)
+        val errorsBeforeBulkTransfer = validateLocationTracks(splitSetup.sourceTrack.id)
         assertContains(
-            errors,
+            errorsBeforeBulkTransfer,
             LayoutValidationIssue(
                 LayoutValidationIssueType.ERROR,
-                LocalizationKey.of("validation.layout.split.finished-source-not-deleted"),
-                localizationParams("sourceName" to sourceTrack.name),
+                LocalizationKey.of("validation.layout.split.source-not-deleted"),
+                localizationParams(),
+            ),
+        )
+        splitDao.updateSplit(splitId, bulkTransferState = BulkTransferState.DONE)
+
+        val errorAfterBulkTransfer = validateLocationTracks(splitSetup.sourceTrack.id)
+        assertContains(
+            errorAfterBulkTransfer,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.ERROR,
+                LocalizationKey.of("validation.layout.split.source-not-deleted"),
+                localizationParams(),
             ),
         )
     }

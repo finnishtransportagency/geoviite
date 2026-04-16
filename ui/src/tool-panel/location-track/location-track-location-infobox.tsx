@@ -19,6 +19,7 @@ import { formatToTM35FINString } from 'utils/geography-utils';
 import Infobox from 'tool-panel/infobox/infobox';
 import {
     AlignmentEndPoint,
+    isPartOfUnfinishedSplit,
     LAYOUT_SRID,
     LayoutLocationTrack,
     LayoutSwitchId,
@@ -183,7 +184,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.location-track.splitting.validation.branch-not-main');
         }
 
-        if (extraInfo?.partOfSplit === 'UNFINISHED') {
+        if (isPartOfUnfinishedSplit(extraInfo?.partOfSplit)) {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
         }
 
@@ -220,7 +221,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const getModifyStartOrEndDisabledReasonTranslated = () => {
         if (!isDraft) {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
-        } else if (splittingState || extraInfo?.partOfSplit === 'UNFINISHED') {
+        } else if (splittingState || isPartOfUnfinishedSplit(extraInfo?.partOfSplit)) {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
         } else if (locationTrack.state === 'DELETED') {
             return t('tool-panel.location-track.cannot-shorten-deleted-track');
@@ -369,7 +370,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         locationTrack.state === 'DELETED' ||
         !isDraft ||
         !!splittingState ||
-        extraInfo?.partOfSplit === 'UNFINISHED' ||
+        isPartOfUnfinishedSplit(extraInfo?.partOfSplit) ||
         !startAndEndPoints?.start?.point ||
         !startAndEndPoints?.end?.point ||
         startingSplitting;
@@ -380,7 +381,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         locationTrack.isDraft ||
         duplicatesOnOtherTrackNumbers ||
         duplicatesOnOtherLocationTracks ||
-        extraInfo?.partOfSplit === 'UNFINISHED' ||
+        isPartOfUnfinishedSplit(extraInfo?.partOfSplit) ||
         startingSplitting ||
         !startAndEndAddressDefined ||
         layoutContext.branch !== 'MAIN';
@@ -417,7 +418,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
                             {linkingState === undefined && (
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {isDraft && extraInfo?.partOfSplit === 'UNFINISHED' && (
+                                    {isDraft && isPartOfUnfinishedSplit(extraInfo?.partOfSplit) && (
                                         <InfoboxContentSpread>
                                             <MessageBox>
                                                 {t(
@@ -479,7 +480,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                 {isMainDraft && !linkingState && (
                                     <React.Fragment>
                                         {locationTrack.isDraft &&
-                                            extraInfo?.partOfSplit !== 'UNFINISHED' && (
+                                            !isPartOfUnfinishedSplit(extraInfo?.partOfSplit) && (
                                                 <InfoboxContentSpread>
                                                     <MessageBox>
                                                         {t(
@@ -489,7 +490,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 </InfoboxContentSpread>
                                             )}
                                         {duplicatesOnOtherTrackNumbers &&
-                                            extraInfo?.partOfSplit !== 'UNFINISHED' && (
+                                            !isPartOfUnfinishedSplit(extraInfo?.partOfSplit) && (
                                                 <InfoboxContentSpread>
                                                     <MessageBox>
                                                         {t(
@@ -499,7 +500,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 </InfoboxContentSpread>
                                             )}
                                         {duplicatesOnOtherLocationTracks &&
-                                            extraInfo?.partOfSplit !== 'UNFINISHED' && (
+                                            !isPartOfUnfinishedSplit(extraInfo?.partOfSplit) && (
                                                 <InfoboxContentSpread>
                                                     <MessageBox>
                                                         {t(

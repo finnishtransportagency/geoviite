@@ -655,7 +655,7 @@ constructor(
 
             val finishedSplitSourceIssues =
                 if (track.exists && validationContext.isLocationTrackSourceOfAnyFinishedSplit(id)) {
-                    listOf(validationError("$VALIDATION_SPLIT.finished-source-not-deleted"))
+                    listOf(validationError("$VALIDATION_SPLIT.source-not-deleted"))
                 } else emptyList()
 
             (switchTrackIssues +

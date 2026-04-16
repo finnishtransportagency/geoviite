@@ -377,9 +377,11 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 d.duplicateStatus.duplicateOfId === state.existingLocationTrack?.id,
         ) || [];
 
-    const isPartOfSplit =
+    const isSplitSourceTrack =
         extraInfo?.partOfSplit === 'FINISHED_SOURCE_TRACK' ||
-        extraInfo?.partOfSplit === 'UNFINISHED';
+        extraInfo?.partOfSplit === 'UNFINISHED_SOURCE_TRACK';
+    const stateEditingDisabled = isSplitSourceTrack && props.locationTrack?.state === 'DELETED';
+
     return (
         <React.Fragment>
             <Dialog
@@ -467,18 +469,16 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     qaId="location-track-state"
                                     value={state.locationTrack?.state}
                                     options={
-                                        extraInfo?.partOfSplit === 'FINISHED_SOURCE_TRACK'
+                                        isSplitSourceTrack
                                             ? finishedSplitStateOptions
                                             : stateOptions
                                     }
                                     onChange={(value) => value && updateProp('state', value)}
                                     onBlur={() => stateActions.onCommitField('state')}
                                     hasError={hasErrors('state')}
-                                    disabled={
-                                        isPartOfSplit && props.locationTrack?.state === 'DELETED'
-                                    }
+                                    disabled={stateEditingDisabled}
                                     title={
-                                        isPartOfSplit && props.locationTrack?.state === 'DELETED'
+                                        stateEditingDisabled
                                             ? t('location-track-dialog.state-disabled-by-split')
                                             : undefined
                                     }

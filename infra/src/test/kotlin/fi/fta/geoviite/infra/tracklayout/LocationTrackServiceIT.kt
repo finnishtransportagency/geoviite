@@ -1243,9 +1243,10 @@ constructor(
         val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
         val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), geometry)
 
-        val extrasBeforeSplit = locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id)
-        assertNotNull(extrasBeforeSplit)
-        assertEquals(PartOfSplit.NONE, extrasBeforeSplit!!.partOfSplit)
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id).also { extrasBeforeSplit ->
+            assertNotNull(extrasBeforeSplit)
+            assertEquals(PartOfSplit.NONE, extrasBeforeSplit!!.partOfSplit)
+        }
 
         val splitId = splitDao.saveSplit(
             sourceTrack,
@@ -1258,15 +1259,27 @@ constructor(
             updatedDuplicates = emptyList(),
         )
 
-        val extrasUnfinished = locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id)
-        assertNotNull(extrasUnfinished)
-        assertEquals(PartOfSplit.UNFINISHED, extrasUnfinished!!.partOfSplit)
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id).also { extrasSourceUnfinished ->
+            assertNotNull(extrasSourceUnfinished)
+            assertEquals(PartOfSplit.UNFINISHED_SOURCE_TRACK, extrasSourceUnfinished!!.partOfSplit)
+        }
+
+        locationTrackService.getInfoboxExtras(MainLayoutContext.draft, targetTrack.id).also { extrasTargetUnfinished ->
+            assertNotNull(extrasTargetUnfinished)
+            assertEquals(PartOfSplit.UNFINISHED_TARGET_TRACK, extrasTargetUnfinished!!.partOfSplit)
+        }
 
         splitDao.updateSplit(splitId, bulkTransferState = fi.fta.geoviite.infra.split.BulkTransferState.DONE)
 
-        val extrasFinished = locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id)
-        assertNotNull(extrasFinished)
-        assertEquals(PartOfSplit.FINISHED_SOURCE_TRACK, extrasFinished!!.partOfSplit)
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id).also { extrasSourceFinished ->
+            assertNotNull(extrasSourceFinished)
+            assertEquals(PartOfSplit.FINISHED_SOURCE_TRACK, extrasSourceFinished!!.partOfSplit)
+        }
+
+        locationTrackService.getInfoboxExtras(MainLayoutContext.draft, targetTrack.id).also { extrasTargetFinished ->
+            assertNotNull(extrasTargetFinished)
+            assertEquals(PartOfSplit.NONE, extrasTargetFinished!!.partOfSplit)
+        }
     }
 
     private fun updateDraft(
