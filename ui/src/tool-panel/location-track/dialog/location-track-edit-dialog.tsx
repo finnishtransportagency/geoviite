@@ -151,6 +151,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         layoutContextDraft,
         props.changeTimes,
     );
+    const isSplitSourceTrack =
+        extraInfo?.partOfSplit === 'FINISHED_SOURCE_TRACK' ||
+        extraInfo?.partOfSplit === 'UNFINISHED_SOURCE_TRACK';
 
     const hasOfficialLocationTrack =
         useLocationTrack(
@@ -281,7 +284,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         if (
             state.locationTrack?.state === 'DELETED' &&
             state.existingLocationTrack?.state !== 'DELETED' &&
-            extraInfo?.partOfSplit !== 'FINISHED_SOURCE_TRACK'
+            !isSplitSourceTrack
         ) {
             setNonDraftDeleteConfirmationVisible(true);
         } else {
@@ -377,9 +380,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 d.duplicateStatus.duplicateOfId === state.existingLocationTrack?.id,
         ) || [];
 
-    const isSplitSourceTrack =
-        extraInfo?.partOfSplit === 'FINISHED_SOURCE_TRACK' ||
-        extraInfo?.partOfSplit === 'UNFINISHED_SOURCE_TRACK';
     const stateEditingDisabled = isSplitSourceTrack && props.locationTrack?.state === 'DELETED';
 
     return (
