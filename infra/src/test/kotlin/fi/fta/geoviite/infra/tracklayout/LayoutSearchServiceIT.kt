@@ -133,17 +133,21 @@ constructor(
     }
 
     @Test
-    fun `free text search should return operational points when their name, abbreviation or uic code matches the search term`() {
+    fun `free text search should return operational points when their name, abbreviation, uic code or rinf id matches the search term`() {
         val op1 = mainDraftContext.save(operationalPoint(name = "Blaa 0001"))
         val op2 = mainDraftContext.save(operationalPoint(name = "Blaahaa", abbreviation = "BL0001"))
         val op3 = mainDraftContext.save(operationalPoint(name = "Blee", uicCode = "0001"))
-        mainDraftContext.save(operationalPoint(name = "Woohoo 1234", abbreviation = "WH1234", uicCode = "1234"))
+        val op4 = mainDraftContext.save(operationalPoint(name = "Bloorgh", rinfIdOverride = "EU0001"))
+        mainDraftContext.save(
+            operationalPoint(name = "Woohoo 1234", abbreviation = "WH1234", uicCode = "1234", rinfIdOverride = "EU1234")
+        )
 
         val result = searchService.searchAllOperationalPoints(searchParameters("0001")).map { it.version }
-        assertEquals(3, result.size)
+        assertEquals(4, result.size)
         assertContains(result, op1)
         assertContains(result, op2)
         assertContains(result, op3)
+        assertContains(result, op4)
     }
 
     @Test
