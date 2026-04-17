@@ -209,5 +209,6 @@ class OperationalPointService(
         (includeDeleted || item.exists) &&
             (item.name.contains(term, true) ||
                 item.abbreviation.toString().contains(term, true) ||
-                item.uicCode.toString().contains(term, true)) || item.rinfId.toString().contains(term, true)
+                item.uicCode.toString().contains(term, true) ||
+                item.rinfId.toString().contains(term, true))
 }
