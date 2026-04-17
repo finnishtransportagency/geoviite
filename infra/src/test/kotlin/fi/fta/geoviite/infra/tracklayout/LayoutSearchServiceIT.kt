@@ -133,7 +133,7 @@ constructor(
     }
 
     @Test
-    fun `free text search should return operational points when their name, abbreviation or uic code matches the search term`() {
+    fun `free text search should return operational points when their name, abbreviation, uic code or rinf id matches the search term`() {
         val op1 = mainDraftContext.save(operationalPoint(name = "Blaa 0001"))
         val op2 = mainDraftContext.save(operationalPoint(name = "Blaahaa", abbreviation = "BL0001"))
         val op3 = mainDraftContext.save(operationalPoint(name = "Blee", uicCode = "0001"))
