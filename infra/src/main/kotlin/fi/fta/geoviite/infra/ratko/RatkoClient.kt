@@ -51,7 +51,6 @@ import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -64,6 +63,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 val defaultBlockTimeout: Duration = defaultResponseTimeout.plusMinutes(1L)
 
@@ -155,7 +155,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             ?.let { response ->
                 ratkoJsonMapper.readTree(response).firstOrNull()?.let { locationTrackJsonNode ->
                     replaceKmM(locationTrackJsonNode.get("nodecollection"))
-                    ratkoJsonMapper.treeToValue(locationTrackJsonNode, RatkoLocationTrack::class.java)
+                    parseJsonNode<RatkoLocationTrack>(locationTrackJsonNode, "getLocationTrack")
                 }
             }
     }
@@ -359,7 +359,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
                     switchJsonNode.get("locations")?.forEach { location -> replaceKmM(location.get("nodecollection")) }
 
-                    ratkoJsonMapper.treeToValue(switchJsonNode, RatkoSwitchAsset::class.java)
+                    parseJsonNode<RatkoSwitchAsset>(switchJsonNode, "getSwitchAsset")
                 }
             }
     }
@@ -480,8 +480,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             ?.let { response ->
                 ratkoJsonMapper.readTree(response).let { routeNumberJsonNode ->
                     replaceKmM(routeNumberJsonNode.get("nodecollection"))
-
-                    ratkoJsonMapper.treeToValue(routeNumberJsonNode, RatkoRouteNumber::class.java)
+                    parseJsonNode<RatkoRouteNumber>(routeNumberJsonNode, "getRouteNumber")
                 }
             }
     }
@@ -527,7 +526,9 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                     ),
                 ))
             val allAssetsInPage =
-                ratkoJsonMapper.readValue(body, RatkoOperationalPointAssetsResponse::class.java)?.assets ?: listOf()
+                body
+                    ?.let { parseJsonValue<RatkoOperationalPointAssetsResponse>(body, "fetchOperationalPoints") }
+                    ?.assets ?: emptyList()
             val validOperationalPointsInPage = allAssetsInPage.mapNotNull { parseAsset(it, logger) }
             allPoints.addAll(validOperationalPointsInPage)
         } while (allAssetsInPage.size == 100)
@@ -543,7 +544,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 content = mapOf("this-is-something-that-should-be-defined" to "in-the-future"),
             )
 
-        val bulkTransferId = ratkoJsonMapper.readValue(body, RatkoBulkTransferResponse::class.java)?.id
+        val bulkTransferId = body?.let { parseJsonValue<RatkoBulkTransferResponse>(it, "startNewBulkTransfer") }?.id
         checkNotNull(bulkTransferId) { "Received bulk transfer id was null" }
 
         // The state may also be received from the api regarding how it is created in Ratko's end.
@@ -561,12 +562,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             }
             .block(defaultBlockTimeout)
             .let { response ->
-                val bulkTransferState =
-                    ratkoJsonMapper.readValue(response, RatkoBulkTransferResponse::class.java)?.state
-
+                val bulkTransferState = response?.let {
+                    parseJsonValue<RatkoBulkTransferResponse>(it, "pollBulkTransferState").state
+                }
                 checkNotNull(bulkTransferState) { "Received bulk transfer id was null!" }
-
-                bulkTransferState
             }
     }
 
@@ -592,6 +591,32 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                     point.put("kmM", RatkoTrackMeter(TrackMeter(km, m)).toString())
                 }
             }
+        }
+    }
+
+    private inline fun <reified T> parseJsonValue(json: String, context: String): T {
+        return try {
+            ratkoJsonMapper.readValue(json, T::class.java)
+        } catch (e: Exception) {
+            logger.error(
+                "Failed to parse Ratko JSON response as ${T::class.simpleName} in $context: " +
+                    json.take(MAX_JSON_LOG_LENGTH),
+                e,
+            )
+            throw e
+        }
+    }
+
+    private inline fun <reified T> parseJsonNode(node: JsonNode, context: String): T {
+        return try {
+            ratkoJsonMapper.treeToValue(node, T::class.java)
+        } catch (e: Exception) {
+            logger.error(
+                "Failed to parse Ratko JSON node as ${T::class.simpleName} in $context: " +
+                    node.toString().take(MAX_JSON_LOG_LENGTH),
+                e,
+            )
+            throw e
         }
     }
 
