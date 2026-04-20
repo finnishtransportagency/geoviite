@@ -124,7 +124,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
     testImplementation("org.seleniumhq.selenium:selenium-java:4.41.0")
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
-    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6")
+    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.1")
     testImplementation("io.projectreactor:reactor-test:3.8.5")
 }
 
