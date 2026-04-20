@@ -691,6 +691,7 @@ data class OperationalPointPublicationCandidate(
     override val publicationGroup: PublicationGroup? = null,
     override val designAssetState: DesignAssetState?,
     val location: Point?,
+    val externalChange: Boolean,
 ) : PublicationCandidate<OperationalPoint> {
     override val type = PublishableObjectType.OPERATIONAL_POINT
 }
@@ -821,8 +822,9 @@ data class SwitchChanges(
     private fun getTrackNumberJointLocation(
         trackNumberId: IntId<LayoutTrackNumber>,
         jointNumber: JointNumber,
-    ): Change<Point?> =
-        trackConnections.map { tracks -> getTrackNumberJointLocation(tracks, trackNumberId, jointNumber) }
+    ): Change<Point?> = trackConnections.map { tracks ->
+        getTrackNumberJointLocation(tracks, trackNumberId, jointNumber)
+    }
 
     private fun getTrackNumberJointLocation(
         tracks: List<SwitchLocationTrack>,

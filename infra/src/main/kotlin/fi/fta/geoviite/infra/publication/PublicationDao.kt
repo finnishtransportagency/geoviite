@@ -462,7 +462,13 @@ class PublicationDao(
               ) as operation,
               candidate_operational_point.design_asset_state,
               postgis.st_x(candidate_operational_point.location) as point_x,
-              postgis.st_y(candidate_operational_point.location) as point_y
+              postgis.st_y(candidate_operational_point.location) as point_y,
+              (candidate_operational_point.origin = 'RATKO'
+               and candidate_operational_point.ratko_operational_point_version is distinct from
+                   (select ratko_operational_point_version
+                    from layout.operational_point_in_layout_context('OFFICIAL', null)
+                    where id = candidate_operational_point.id)
+              ) as external_change
             from layout.operational_point_version_view candidate_operational_point
             where exists(select * from layout.operational_point live_op
                          where live_op.id = candidate_operational_point.id
@@ -489,6 +495,7 @@ class PublicationDao(
                     operation = rs.getEnum("operation"),
                     designAssetState = rs.getEnumOrNull<DesignAssetState>("design_asset_state"),
                     location = rs.getPointOrNull("point_x", "point_y"),
+                    externalChange = rs.getBoolean("external_change"),
                 )
             }
         logger.daoAccess(
