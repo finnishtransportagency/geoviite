@@ -269,10 +269,10 @@ constructor(
                     )
             }
             .associate { (id, file) -> id to file }
-            .also {
+            .also { result ->
                 logger.daoAccess(FETCH, InfraModelFile::class, planIds)
-                if (!it.keys.containsAll(planIds)) {
-                    throw NoSuchEntityException(GeometryPlan::class, (planIds - it.keys).toString())
+                (planIds - result.keys).let { missingIds ->
+                    if (missingIds.isNotEmpty()) throw NoSuchEntityException(GeometryPlan::class, missingIds.toString())
                 }
             }
     }

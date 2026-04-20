@@ -3,9 +3,11 @@ package fi.fta.geoviite.infra.geometry
 import assertPlansMatch
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.authorization.UserName
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.ProjectName
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -243,5 +245,12 @@ constructor(val geometryDao: GeometryDao, val locationTrackService: LocationTrac
         assertEquals(expected.size, 2)
         assertContains(expected, plan1Version)
         assertContains(expected, plan2Version)
+    }
+
+    @Test
+    fun `getPlanFiles throws NoSuchEntityException for nonexistent plan id`() {
+        assertThrows(NoSuchEntityException::class.java) {
+            geometryDao.getPlanFiles(listOf(IntId(-1)))
+        }
     }
 }

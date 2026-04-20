@@ -583,10 +583,10 @@ class PublicationDao(
                     )
             }
             .associate { it }
-            .also {
+            .also { result ->
                 logger.daoAccess(FETCH, Publication::class, publicationIds)
-                if (!it.keys.containsAll(publicationIds)) {
-                    throw NoSuchEntityException(Publication::class, (publicationIds - it.keys).toString())
+                (publicationIds - result.keys).let { missingIds ->
+                    if (missingIds.isNotEmpty()) throw NoSuchEntityException(Publication::class, missingIds.toString())
                 }
             }
     }
