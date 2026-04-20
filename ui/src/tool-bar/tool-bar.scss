@@ -73,6 +73,12 @@
         align-items: center;
         margin-left: 4px;
     }
+
+    &__preview-button {
+        align-items: center;
+        display: flex;
+        gap: 6px;
+    }
 }
 
 .tool-bar__tab-content {
