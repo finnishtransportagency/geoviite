@@ -546,7 +546,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                 val bulkTransferState = response?.let {
                     parseJsonValue<RatkoBulkTransferResponse>(it, "pollBulkTransferState").state
                 }
-                checkNotNull(bulkTransferState) { "Received bulk transfer id was null!" }
+                checkNotNull(bulkTransferState) { "Received bulk transfer state was null!" }
             }
     }
 
