@@ -146,20 +146,13 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun getLocationTrack(locationTrackOid: RatkoOid<RatkoLocationTrack>): RatkoLocationTrack? {
         logger.integrationCall("getLocationTrack", "locationTrackOid" to locationTrackOid)
 
-        return getSpec(combinePaths(LOCATION_TRACK_LOCATIONS_PATH, locationTrackOid))
-            .defaultErrorHandler(
-                LOCATION,
-                FETCH_EXISTING,
-                combinePaths(LOCATION_TRACK_LOCATIONS_PATH, locationTrackOid),
-            )
-            .bodyToMono<String>()
-            .block(defaultBlockTimeout)
-            ?.let { response ->
-                ratkoJsonMapper.readTree(response).firstOrNull()?.let { locationTrackJsonNode ->
-                    replaceKmM(locationTrackJsonNode.get("nodecollection"))
-                    parseJsonNode<RatkoLocationTrack>(locationTrackJsonNode, "getLocationTrack")
-                }
+        return getWithJsonResponseBody(combinePaths(LOCATION_TRACK_LOCATIONS_PATH, locationTrackOid), LOCATION)?.let {
+            response ->
+            ratkoJsonMapper.readTree(response).firstOrNull()?.let { locationTrackJsonNode ->
+                replaceKmM(locationTrackJsonNode.get("nodecollection"))
+                parseJsonNode<RatkoLocationTrack>(locationTrackJsonNode, "getLocationTrack")
             }
+        }
     }
 
     fun updateLocationTrackProperties(locationTrack: RatkoLocationTrack, oid: Oid<LocationTrack>) {
@@ -325,7 +318,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun <T : RatkoAsset> newAsset(asset: RatkoAsset): RatkoOid<T>? {
         logger.integrationCall("newAsset", "asset" to asset)
 
-        return postForRawJson(ASSET_PATH, asset.withoutGeometries())
+        return postWithJsonResponseBody(ASSET_PATH, asset.withoutGeometries())
             ?.let { response -> ratkoJsonMapper.readTree(response).firstOrNull()?.get("id")?.textValue() }
             ?.let(::RatkoOid)
     }
@@ -349,20 +342,14 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun <T : RatkoAsset> getSwitchAsset(assetOid: RatkoOid<T>): RatkoSwitchAsset? {
         logger.integrationCall("getSwitchAsset", "assetOid" to assetOid)
 
-        return getSpec(combinePaths(ASSET_PATH, assetOid))
-            .defaultErrorHandler(PROPERTIES, FETCH_EXISTING, combinePaths(ASSET_PATH, assetOid))
-            .bodyToMono<String>()
-            .block(defaultBlockTimeout)
-            ?.let { response ->
-                ratkoJsonMapper.readTree(response).let { switchJsonNode ->
-                    switchJsonNode.get("assetGeoms")?.map { asset ->
-                        (asset as ObjectNode).replace("geometry", asset.get("geometryOriginal"))
-                    }
-
-                    switchJsonNode.get("locations")?.forEach { location -> replaceKmM(location.get("nodecollection")) }
-
-                    parseJsonNode<RatkoSwitchAsset>(switchJsonNode, "getSwitchAsset")
+        return getWithJsonResponseBody(combinePaths(ASSET_PATH, assetOid))
+            ?.let { response -> ratkoJsonMapper.readTree(response) }
+            ?.let { switchJsonNode ->
+                switchJsonNode.get("assetGeoms")?.forEach { asset ->
+                    (asset as ObjectNode).replace("geometry", asset.get("geometryOriginal"))
                 }
+                switchJsonNode.get("locations")?.forEach { location -> replaceKmM(location.get("nodecollection")) }
+                parseJsonNode<RatkoSwitchAsset>(switchJsonNode, "getSwitchAsset")
             }
     }
 
@@ -475,16 +462,12 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun getRouteNumber(routeNumberOid: RatkoOid<RatkoRouteNumber>): RatkoRouteNumber? {
         logger.integrationCall("getRouteNumber", "routeNumberOid" to routeNumberOid)
 
-        return getSpec(combinePaths(ROUTE_NUMBER_LOCATIONS_PATH, routeNumberOid))
-            .defaultErrorHandler(PROPERTIES, FETCH_EXISTING, combinePaths(ROUTE_NUMBER_LOCATIONS_PATH, routeNumberOid))
-            .bodyToMono<String>()
-            .block(defaultBlockTimeout)
-            ?.let { response ->
-                ratkoJsonMapper.readTree(response).let { routeNumberJsonNode ->
-                    replaceKmM(routeNumberJsonNode.get("nodecollection"))
-                    parseJsonNode<RatkoRouteNumber>(routeNumberJsonNode, "getRouteNumber")
-                }
+        return getWithJsonResponseBody(combinePaths(ROUTE_NUMBER_LOCATIONS_PATH, routeNumberOid))?.let { response ->
+            ratkoJsonMapper.readTree(response).let { routeNumberJsonNode ->
+                replaceKmM(routeNumberJsonNode.get("nodecollection"))
+                parseJsonNode<RatkoRouteNumber>(routeNumberJsonNode, "getRouteNumber")
             }
+        }
     }
 
     fun newRouteNumber(routeNumber: RatkoRouteNumber): RatkoOid<RatkoRouteNumber>? {
@@ -518,15 +501,16 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             logger.info("fetching operational points for page $pageNumber")
             val allAssetsInPage =
                 postWithResponseBody<RatkoOperationalPointAssetsResponse>(
-                    "$ASSET_PATH/search?fields=summary",
-                    mapOf(
-                        "assetType" to RatkoAssetType.RAILWAY_TRAFFIC_OPERATIONAL_POINT.value,
-                        "pageNumber" to pageNumber++,
-                        "size" to 100,
-                        "sortOrder" to "ASC",
-                        "secondarySortOrder" to "ASC",
-                    ),
-                )?.assets ?: emptyList()
+                        "$ASSET_PATH/search?fields=summary",
+                        mapOf(
+                            "assetType" to RatkoAssetType.RAILWAY_TRAFFIC_OPERATIONAL_POINT.value,
+                            "pageNumber" to pageNumber++,
+                            "size" to 100,
+                            "sortOrder" to "ASC",
+                            "secondarySortOrder" to "ASC",
+                        ),
+                    )
+                    ?.assets ?: emptyList()
             val validOperationalPointsInPage = allAssetsInPage.mapNotNull { parseAsset(it, logger) }
             allPoints.addAll(validOperationalPointsInPage)
         } while (allAssetsInPage.size == 100)
@@ -538,9 +522,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
 
         val bulkTransferId =
             postWithResponseBody<RatkoBulkTransferResponse>(
-                url = "$BULK_TRANSFER_PATH/start",
-                content = mapOf("this-is-something-that-should-be-defined" to "in-the-future"),
-            )?.id
+                    url = "$BULK_TRANSFER_PATH/start",
+                    content = mapOf("this-is-something-that-should-be-defined" to "in-the-future"),
+                )
+                ?.id
         checkNotNull(bulkTransferId) { "Received bulk transfer id was null" }
 
         // The state may also be received from the api regarding how it is created in Ratko's end.
@@ -616,14 +601,17 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         }
     }
 
-    private fun postForRawJson(url: String, content: Any): String? =
+    private fun postWithJsonResponseBody(url: String, content: Any): String? =
         postSpec(url, content)
             .defaultErrorHandler(PROPERTIES, CREATE, url, content)
             .bodyToMono<String>()
             .block(defaultBlockTimeout)
 
     private inline fun <reified TOut : Any> postWithResponseBody(url: String, content: Any): TOut? =
-        postForRawJson(url, content)?.let { parseJsonValue<TOut>(it, url) }
+        postWithJsonResponseBody(url, content)?.let { parseJsonValue<TOut>(it, url) }
+
+    private fun getWithJsonResponseBody(url: String, errorType: RatkoPushErrorType = PROPERTIES): String? =
+        getSpec(url).defaultErrorHandler(errorType, FETCH_EXISTING, url).bodyToMono<String>().block(defaultBlockTimeout)
 
     private fun putWithoutResponseBody(url: String, content: Any, errorType: RatkoPushErrorType = PROPERTIES) {
         putSpec(url, content)
