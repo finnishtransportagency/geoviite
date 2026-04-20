@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.DirectChanges
 import fi.fta.geoviite.infra.integration.IndirectChanges
@@ -55,6 +56,7 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -504,5 +506,12 @@ constructor(
 
     private fun publishAndCheck(rowVersion: LayoutRowVersion<LocationTrack>) {
         publishAndCheck(rowVersion, locationTrackDao, locationTrackService)
+    }
+
+    @Test
+    fun `getPublications throws NoSuchEntityException for nonexistent publication id`() {
+        assertThrows(NoSuchEntityException::class.java) {
+            publicationDao.getPublications(setOf(IntId(-1)))
+        }
     }
 }

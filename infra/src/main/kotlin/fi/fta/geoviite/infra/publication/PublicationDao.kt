@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.configuration.staticDataCacheDuration
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.error.TrackLayoutVersionNotFound
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -101,11 +102,11 @@ import fi.fta.geoviite.infra.util.getUicCodeOrNull
 import fi.fta.geoviite.infra.util.getUuid
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -582,7 +583,12 @@ class PublicationDao(
                     )
             }
             .associate { it }
-            .also { logger.daoAccess(FETCH, Publication::class, publicationIds) }
+            .also { result ->
+                logger.daoAccess(FETCH, Publication::class, publicationIds)
+                (publicationIds - result.keys).let { missingIds ->
+                    if (missingIds.isNotEmpty()) throw NoSuchEntityException(Publication::class, missingIds.toString())
+                }
+            }
     }
 
     @Transactional

@@ -73,15 +73,15 @@ import fi.fta.geoviite.infra.util.getTrackNumberOrNull
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 
 enum class VerticalIntersectionType {
     POINT,
@@ -269,7 +269,12 @@ constructor(
                     )
             }
             .associate { (id, file) -> id to file }
-            .also { logger.daoAccess(FETCH, InfraModelFile::class, planIds) }
+            .also { result ->
+                logger.daoAccess(FETCH, InfraModelFile::class, planIds)
+                (planIds - result.keys).let { missingIds ->
+                    if (missingIds.isNotEmpty()) throw NoSuchEntityException(GeometryPlan::class, missingIds.toString())
+                }
+            }
     }
 
     fun fetchDuplicateGeometryPlanVersion(newFileHash: FileHash, source: PlanSource): RowVersion<GeometryPlan>? {
@@ -615,28 +620,26 @@ constructor(
         alignments: List<GeometryAlignment>,
         switchDatabaseIds: Map<DomainId<GeometrySwitch>, IntId<GeometrySwitch>>,
     ) {
-        val idToAlignment: List<Pair<IntId<GeometryAlignment>, GeometryAlignment>> =
-            alignments.map { alignment -> insertAlignment(planId, alignment).id to alignment }
+        val idToAlignment: List<Pair<IntId<GeometryAlignment>, GeometryAlignment>> = alignments.map { alignment ->
+            insertAlignment(planId, alignment).id to alignment
+        }
 
-        val elementParams =
-            idToAlignment.flatMap { (alignmentId, alignment) ->
-                getGeometryElementSqlParams(alignmentId, alignment.elements, switchDatabaseIds)
-            }
+        val elementParams = idToAlignment.flatMap { (alignmentId, alignment) ->
+            getGeometryElementSqlParams(alignmentId, alignment.elements, switchDatabaseIds)
+        }
         insertGeometryElements(elementParams)
 
-        val viParams =
-            idToAlignment.flatMap { (alignmentId, alignment) ->
-                alignment.profile?.let { profile -> getVerticalIntersectionSqlParams(alignmentId, profile.elements) }
-                    ?: listOf()
-            }
+        val viParams = idToAlignment.flatMap { (alignmentId, alignment) ->
+            alignment.profile?.let { profile -> getVerticalIntersectionSqlParams(alignmentId, profile.elements) }
+                ?: listOf()
+        }
         if (viParams.isNotEmpty()) {
             insertVerticalIntersections(viParams)
         }
 
-        val cantParams =
-            idToAlignment.flatMap { (alignmentId, alignment) ->
-                alignment.cant?.let { cant -> getCantPointSqlParams(alignmentId, cant.points) } ?: listOf()
-            }
+        val cantParams = idToAlignment.flatMap { (alignmentId, alignment) ->
+            alignment.cant?.let { cant -> getCantPointSqlParams(alignmentId, cant.points) } ?: listOf()
+        }
         if (cantParams.isNotEmpty()) {
             insertCantPoints(cantParams)
         }
