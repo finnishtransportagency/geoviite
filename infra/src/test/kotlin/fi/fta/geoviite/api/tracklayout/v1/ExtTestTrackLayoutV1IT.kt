@@ -1,10 +1,12 @@
 import fi.fta.geoviite.api.ExtApiTestDataServiceV1
+import fi.fta.geoviite.api.tracklayout.v1.COORDINATE_SYSTEM
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackLayoutTestApiService
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.geography.kkjSrids
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -432,6 +434,33 @@ constructor(
                 apiCall(oid.toString(), arrayOf("osoitepistevali" to "10.0"), HttpStatus.BAD_REQUEST)
                 apiCall(oid.toString(), arrayOf("osoitepistevali" to "1337"), HttpStatus.BAD_REQUEST)
             }
+    }
+
+    @Test
+    fun `Ext api asset endpoints should return HTTP 400 if the coordinate system is unsupported`() {
+        val dummyOid = someOid<Nothing>().toString()
+        val unsupportedCoordinateSystems =
+            kkjSrids.map { it.toString() } +
+                listOf(
+                    "EPSG:1023", // Out of allowed SRID range
+                    "EPSG:32768", // Out of allowed SRID range
+                    "BOGUS", // Malformed
+                )
+
+        unsupportedCoordinateSystems.forEach { srid ->
+            errorTests.forEach { (_, apiCall) ->
+                apiCall(dummyOid, arrayOf(COORDINATE_SYSTEM to srid), HttpStatus.BAD_REQUEST)
+            }
+            modificationErrorTests.forEach { (_, apiCall) ->
+                apiCall(dummyOid, arrayOf(COORDINATE_SYSTEM to srid), HttpStatus.BAD_REQUEST)
+            }
+            collectionErrorTests.forEach { apiCall ->
+                apiCall(arrayOf(COORDINATE_SYSTEM to srid), HttpStatus.BAD_REQUEST)
+            }
+            collectionModificationErrorTests.forEach { apiCall ->
+                apiCall(arrayOf(COORDINATE_SYSTEM to srid), HttpStatus.BAD_REQUEST)
+            }
+        }
     }
 
     private fun setupValidTrackNumber(): Oid<LayoutTrackNumber> {

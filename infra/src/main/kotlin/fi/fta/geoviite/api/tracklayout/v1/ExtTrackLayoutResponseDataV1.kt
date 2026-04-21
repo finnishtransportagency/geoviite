@@ -10,7 +10,9 @@ import fi.fta.geoviite.api.tracklayout.v1.ExtKmPostLocationConfirmedV1.NOT_CONFI
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.error.UnsupportedSridException
 import fi.fta.geoviite.infra.geography.GeometryPoint
+import fi.fta.geoviite.infra.geography.isKKJ
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
@@ -390,6 +392,11 @@ data class ExtModifiedCenterLineTrackIntervalV1(
     example = "EPSG:3067",
 )
 data class ExtSridV1(val value: Srid) {
+
+    init {
+        if (isKKJ(value)) throw UnsupportedSridException(value)
+    }
+
     @JsonValue override fun toString() = value.toString()
 
     @JsonCreator(mode = DELEGATING) constructor(value: String) : this(Srid(value))
