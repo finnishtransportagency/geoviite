@@ -564,6 +564,16 @@ class FakeRatko(port: Int) {
             .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Switch couldn't be found with the external id [$oid]")))
     }
 
+    fun doesNotHaveLocationTrackPoints(oid: String, km: String) {
+        delete("/api/infra/v1.0/points/$oid/$km")
+            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Points couldn't be found for location track [$oid] at km [$km]")))
+    }
+
+    fun doesNotHaveRouteNumberPoints(oid: String, km: String) {
+        delete("/api/infra/v1.0/routenumber/points/$oid/$km")
+            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Points couldn't be found for route number [$oid] at km [$km]")))
+    }
+
     private fun ok() = HttpResponse.response().withStatusCode(200)
 
     private fun notFoundJson(body: Any) =

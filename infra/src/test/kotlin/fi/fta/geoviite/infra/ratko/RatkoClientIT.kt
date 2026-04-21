@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
@@ -136,6 +137,22 @@ constructor(
         fakeRatko.doesNotHaveSwitch(oid)
         val result = ratkoClient.getSwitchAsset(RatkoOid(oid))
         assertNull(result)
+    }
+
+    @Test
+    fun `deleteLocationTrackPoints should not throw when points do not exist`() {
+        val oid = "1.2.3.4.5"
+        val km = "0042"
+        fakeRatko.doesNotHaveLocationTrackPoints(oid, km)
+        ratkoClient.deleteLocationTrackPoints(RatkoOid(oid), KmNumber(km))
+    }
+
+    @Test
+    fun `deleteRouteNumberPoints should not throw when points do not exist`() {
+        val oid = "1.2.3.4.5"
+        val km = "0042"
+        fakeRatko.doesNotHaveRouteNumberPoints(oid, km)
+        ratkoClient.deleteRouteNumberPoints(RatkoOid(oid), KmNumber(km))
     }
 
     @Test
