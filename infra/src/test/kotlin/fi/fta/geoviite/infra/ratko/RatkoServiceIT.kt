@@ -838,8 +838,9 @@ constructor(
         )
     }
 
-    private fun sortRatkoSwitchLocationsByTrack(locations: List<RatkoAssetLocation>) =
-        locations.sortedBy { it.nodecollection.nodes.first().point.locationtrack.toString() }
+    private fun sortRatkoSwitchLocationsByTrack(locations: List<RatkoAssetLocation>) = locations.sortedBy {
+        it.nodecollection.nodes.first().point.locationtrack.toString()
+    }
 
     @Test
     fun removeLocationTrackWithSwitch() {
@@ -1331,6 +1332,7 @@ constructor(
         val draft: Boolean,
         val version: Int,
         val state: OperationalPointState,
+        val ratkoVersion: Int?,
     )
 
     private fun assertLayoutOperationalTableContent(expected: List<OperationalPointComparison>) =
@@ -1344,6 +1346,7 @@ constructor(
                         op.isDraft,
                         requireNotNull(op.version).version,
                         op.state,
+                        op.ratkoVersion,
                     )
                 }
                 .sortedBy { it.name },
@@ -1364,9 +1367,9 @@ constructor(
         ratkoService.updateOperationalPointsFromRatko()
         assertLayoutOperationalTableContent(
             listOf(
-                OperationalPointComparison("Kannustamo", true, 1, OperationalPointState.IN_USE),
-                OperationalPointComparison("Liukuainen", true, 1, OperationalPointState.IN_USE),
-                OperationalPointComparison("Turpeela", true, 1, OperationalPointState.IN_USE),
+                OperationalPointComparison("Kannustamo", true, 1, OperationalPointState.IN_USE, 1),
+                OperationalPointComparison("Liukuainen", true, 1, OperationalPointState.IN_USE, 1),
+                OperationalPointComparison("Turpeela", true, 1, OperationalPointState.IN_USE, 1),
             )
         )
 
@@ -1379,9 +1382,9 @@ constructor(
         // a deletion row in the version table, so draft versions get incremented an extra time
         assertLayoutOperationalTableContent(
             listOf(
-                OperationalPointComparison("Kannustamo", true, 3, OperationalPointState.DELETED),
-                OperationalPointComparison("Liukuainen", false, 1, OperationalPointState.IN_USE),
-                OperationalPointComparison("Turpasauna", true, 3, OperationalPointState.IN_USE),
+                OperationalPointComparison("Kannustamo", true, 3, OperationalPointState.DELETED, 2),
+                OperationalPointComparison("Liukuainen", false, 1, OperationalPointState.IN_USE, 1),
+                OperationalPointComparison("Turpasauna", true, 3, OperationalPointState.IN_USE, 2),
             )
         )
         operationalPointDao
@@ -1397,9 +1400,9 @@ constructor(
         // should have no updates now that the official state of everything matched the integration table already
         assertLayoutOperationalTableContent(
             listOf(
-                OperationalPointComparison("Kannustamo", false, 2, OperationalPointState.DELETED),
-                OperationalPointComparison("Liukuainen", false, 1, OperationalPointState.IN_USE),
-                OperationalPointComparison("Turpasauna", false, 2, OperationalPointState.IN_USE),
+                OperationalPointComparison("Kannustamo", false, 2, OperationalPointState.DELETED, 2),
+                OperationalPointComparison("Liukuainen", false, 1, OperationalPointState.IN_USE, 1),
+                OperationalPointComparison("Turpasauna", false, 2, OperationalPointState.IN_USE, 2),
             )
         )
     }

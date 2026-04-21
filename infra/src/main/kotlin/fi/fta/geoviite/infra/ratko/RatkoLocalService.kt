@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.transaction.annotation.Transactional
@@ -55,8 +56,9 @@ constructor(
     @Transactional
     fun updateLayoutPointsFromIntegrationTable() {
         val ratkoPointsWithVersions = ratkoOperationalPointDao.listWithVersions()
-        val ratkoPointsByOid =
-            ratkoPointsWithVersions.associateBy { (point) -> point.externalId.cast<OperationalPoint>() }
+        val ratkoPointsByOid = ratkoPointsWithVersions.associateBy { (point) ->
+            point.externalId.cast<OperationalPoint>()
+        }
         val layoutPoints =
             operationalPointDao.list(LayoutBranch.main.draft, true).filter { point ->
                 point.origin == OperationalPointOrigin.RATKO
@@ -132,14 +134,22 @@ constructor(
         originalLayoutPointOids: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
         ratkoPointsByOid: Map<Oid<OperationalPoint>, Pair<RatkoOperationalPoint, Int>>,
     ): Set<IntId<OperationalPoint>> {
-        val deleted =
-            layoutPoints.filter { layoutPoint ->
-                layoutPoint.state != OperationalPointState.DELETED &&
-                    originalLayoutPointOids.contains(layoutPoint.id) &&
-                    !ratkoPointsByOid.contains(originalLayoutPointOids[layoutPoint.id])
-            }
+        val deleted = layoutPoints.filter { layoutPoint ->
+            layoutPoint.state != OperationalPointState.DELETED &&
+                originalLayoutPointOids.contains(layoutPoint.id) &&
+                !ratkoPointsByOid.contains(originalLayoutPointOids[layoutPoint.id])
+        }
+        val now = Instant.now()
         deleted.forEach { layoutPoint ->
-            operationalPointDao.save(asMainDraft(layoutPoint.copy(state = OperationalPointState.DELETED)))
+            val ratkoVersionOfDeleted =
+                originalLayoutPointOids.getValue(layoutPoint.id as IntId).let {
+                    ratkoOperationalPointDao.fetchVersionAt(it.cast(), now)
+                }
+            operationalPointDao.save(
+                asMainDraft(
+                    layoutPoint.copy(state = OperationalPointState.DELETED, ratkoVersion = ratkoVersionOfDeleted)
+                )
+            )
         }
         return deleted.map { it.id as IntId }.toSet()
     }

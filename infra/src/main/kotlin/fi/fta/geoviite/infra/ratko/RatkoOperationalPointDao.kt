@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
+import java.sql.Timestamp
 import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -137,6 +138,25 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 .trimIndent()
 
         return jdbcTemplate.query(sql) { rs, _ -> toRatkoOperationalPoint(rs) to rs.getInt("version") }
+    }
+
+    @Transactional(readOnly = true)
+    fun fetchVersionAt(oid: Oid<RatkoOperationalPoint>, moment: Instant): Int {
+        val sql =
+            """
+            select version
+              from integrations.ratko_operational_point_version
+              where external_id = :oid
+                and :moment >= change_time
+                and (expiry_time is null or :moment < expiry_time)
+            """
+                .trimIndent()
+        return jdbcTemplate.queryOne(
+            sql,
+            mapOf("oid" to oid.toString(), "moment" to Timestamp.from(moment)),
+        ) { rs, _ ->
+            rs.getInt("version")
+        }
     }
 
     @Transactional(readOnly = true)
