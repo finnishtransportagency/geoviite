@@ -2,10 +2,12 @@ package fi.fta.geoviite.infra.ratko.model
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class RatkoRouteNumber(
-    val id: String?,
+    val id: Oid<LayoutTrackNumber>?,
     val nodecollection: RatkoNodes?,
     val name: String,
     val description: String,

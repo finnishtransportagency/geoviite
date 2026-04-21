@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoOperationalPointParse
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.UicCode
@@ -15,12 +16,12 @@ import fi.fta.geoviite.infra.util.getOid
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.time.Instant
 
 fun toRatkoOperationalPoint(rs: ResultSet): RatkoOperationalPoint {
     return RatkoOperationalPoint(
@@ -49,7 +50,7 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     private fun deleteRemovedPoints(newPoints: List<RatkoOperationalPointParse>) {
         val oldPointsIds =
             jdbcTemplate.query("""select external_id from integrations.ratko_operational_point""") { rs, _ ->
-                rs.getOid<RatkoOperationalPoint>("external_id")
+                rs.getOid<OperationalPoint>("external_id")
             }
         val newPointsIds = newPoints.map { point -> point.externalId }.toSet()
         jdbcTemplate.batchUpdate(
@@ -140,7 +141,7 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     }
 
     @Transactional(readOnly = true)
-    fun fetch(oid: Oid<RatkoOperationalPoint>, version: Int): RatkoOperationalPoint {
+    fun fetch(oid: Oid<OperationalPoint>, version: Int): RatkoOperationalPoint {
         val sql =
             """
             select

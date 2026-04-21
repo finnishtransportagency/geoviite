@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.OperationalPointAbbreviation
 import fi.fta.geoviite.infra.tracklayout.OperationalPointName
 import fi.fta.geoviite.infra.tracklayout.UicCode
@@ -27,7 +28,7 @@ abstract class AbstractRatkoOperationalPoint(
 )
 
 data class RatkoOperationalPointParse(
-    val externalId: Oid<RatkoOperationalPoint>,
+    val externalId: Oid<OperationalPoint>,
     override val name: OperationalPointName,
     override val abbreviation: OperationalPointAbbreviation,
     override val uicCode: UicCode,
@@ -37,7 +38,7 @@ data class RatkoOperationalPointParse(
 ) : AbstractRatkoOperationalPoint(name, abbreviation, uicCode, type, location)
 
 data class RatkoOperationalPoint(
-    val externalId: Oid<RatkoOperationalPoint>,
+    val externalId: Oid<OperationalPoint>,
     override val name: OperationalPointName,
     override val abbreviation: OperationalPointAbbreviation,
     override val uicCode: UicCode,
@@ -47,7 +48,7 @@ data class RatkoOperationalPoint(
 ) : AbstractRatkoOperationalPoint(name, abbreviation, uicCode, type, location)
 
 fun parseAsset(asset: RatkoOperationalPointAsset, logger: Logger): RatkoOperationalPointParse? {
-    val externalId = Oid<RatkoOperationalPoint>(asset.id)
+    val externalId = Oid<OperationalPoint>(asset.id)
     val type = asset.getEnumProperty<OperationalPointRatoType>("operational_point_type")
     val soloPoint =
         asset.locations
@@ -91,7 +92,7 @@ fun parseAsset(asset: RatkoOperationalPointAsset, logger: Logger): RatkoOperatio
 
 private fun getSanitizedName(
     asset: RatkoOperationalPointAsset,
-    externalId: Oid<RatkoOperationalPoint>,
+    externalId: Oid<OperationalPoint>,
     logger: Logger,
 ): OperationalPointName? {
     val name = asset.getStringProperty("name")
@@ -108,7 +109,7 @@ private fun getSanitizedName(
 
 private fun getSanitizedAbbreviation(
     asset: RatkoOperationalPointAsset,
-    externalId: Oid<RatkoOperationalPoint>,
+    externalId: Oid<OperationalPoint>,
     logger: Logger,
 ): OperationalPointAbbreviation? {
     val abbreviation = asset.getStringProperty("operational_point_abbreviation")
@@ -125,7 +126,7 @@ private fun getSanitizedAbbreviation(
 
 private fun getSanitizedUicCode(
     asset: RatkoOperationalPointAsset,
-    externalId: Oid<RatkoOperationalPoint>,
+    externalId: Oid<OperationalPoint>,
     logger: Logger,
 ): UicCode? {
     val uicCode = asset.getIntProperty("operational_point_code")

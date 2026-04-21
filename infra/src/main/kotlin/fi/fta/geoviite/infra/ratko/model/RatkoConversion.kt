@@ -193,14 +193,14 @@ fun convertToRatkoLocationTrack(
     locationTrackStateOverride: RatkoLocationTrackState? = null,
 ) =
     RatkoLocationTrack(
-        id = locationTrackExternalId?.oid?.toString(),
+        id = locationTrackExternalId?.oid,
         name = locationTrack.name.toString(),
         routenumber = trackNumberOid?.let(::RatkoOid),
         description = locationTrack.description.toString(),
         state = locationTrackStateOverride ?: mapToRatkoLocationTrackState(locationTrack.state),
         type = mapToRatkoLocationTrackType(locationTrack.type),
         nodecollection = nodeCollection,
-        duplicateOf = duplicateOfOid?.toString(),
+        duplicateOf = duplicateOfOid,
         topologicalConnectivity = mapToRatkoTopologicalConnectivityType(locationTrack.topologicalConnectivity),
         owner = owner.name.toString(),
         isPlanContext = locationTrackExternalId is DesignRatkoExternalId,
@@ -213,7 +213,7 @@ fun convertToRatkoRouteNumber(
     nodeCollection: RatkoNodes? = null,
 ) =
     RatkoRouteNumber(
-        id = trackNumberExternalId?.oid?.toString(),
+        id = trackNumberExternalId?.oid,
         name = trackNumber.number.toString(),
         description = trackNumber.description.toString(),
         state = mapToRatkoRouteNumberState(trackNumber.state),
@@ -317,7 +317,7 @@ fun convertToRatkoSwitch(
     existingRatkoSwitch: RatkoSwitchAsset? = null,
 ) =
     RatkoSwitchAsset(
-        id = layoutSwitchExternalId?.oid?.toString(),
+        id = layoutSwitchExternalId?.oid,
         state = mapToRatkoSwitchState(layoutSwitch.stateCategory, existingRatkoSwitch?.state),
         properties =
             listOf(
