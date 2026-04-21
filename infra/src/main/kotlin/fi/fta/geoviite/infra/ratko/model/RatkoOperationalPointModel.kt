@@ -34,7 +34,7 @@ data class RatkoOperationalPointParse(
     override val uicCode: UicCode,
     override val type: OperationalPointRatoType,
     override val location: Point,
-    val trackNumberExternalId: Oid<RatkoRouteNumber>,
+    val trackNumberExternalId: Oid<LayoutTrackNumber>,
 ) : AbstractRatkoOperationalPoint(name, abbreviation, uicCode, type, location)
 
 data class RatkoOperationalPoint(
@@ -61,7 +61,7 @@ fun parseAsset(asset: RatkoOperationalPointAsset, logger: Logger): RatkoOperatio
     if (location == null) {
         logger.warn("operational point with id $externalId will be rejected: null location")
     }
-    val trackNumberExternalId: Oid<RatkoRouteNumber>? = soloPoint?.routenumber?.toString()?.let(::Oid)
+    val trackNumberExternalId: Oid<LayoutTrackNumber>? = soloPoint?.routenumber?.toString()?.let(::Oid)
     if (trackNumberExternalId == null) {
         logger.warn("operational point with id $externalId will be rejected: null trackNumberExternalId")
     }
