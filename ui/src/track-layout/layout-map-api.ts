@@ -22,6 +22,7 @@ import { getChangeTimes } from 'common/change-time-api';
 import {
     draftLayoutContext,
     LayoutContext,
+    mapRangesToValues,
     RowVersion,
     TimeStamp,
     TrackMeter,
@@ -532,7 +533,7 @@ export async function getGeometryLinkPointsByTiles(
     if (alignment && alignment.polyLine) {
         const header = alignment.header;
         const polyLine = alignment.polyLine;
-        const segmentMValues = alignment.segmentMValues;
+        const segmentMValues = mapRangesToValues(alignment.segmentMValues);
         const points = polyLine.points.filter(
             (p) =>
                 boundingBoxContains(bounds, p) &&

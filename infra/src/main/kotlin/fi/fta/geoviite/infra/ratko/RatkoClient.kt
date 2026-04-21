@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.fasterxml.jackson.module.kotlin.treeToValue
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
@@ -51,7 +53,6 @@ import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -64,6 +65,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 val defaultBlockTimeout: Duration = defaultResponseTimeout.plusMinutes(1L)
 
@@ -144,20 +146,13 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun getLocationTrack(locationTrackOid: RatkoOid<RatkoLocationTrack>): RatkoLocationTrack? {
         logger.integrationCall("getLocationTrack", "locationTrackOid" to locationTrackOid)
 
-        return getSpec(combinePaths(LOCATION_TRACK_LOCATIONS_PATH, locationTrackOid))
-            .defaultErrorHandler(
-                LOCATION,
-                FETCH_EXISTING,
-                combinePaths(LOCATION_TRACK_LOCATIONS_PATH, locationTrackOid),
-            )
-            .bodyToMono<String>()
-            .block(defaultBlockTimeout)
-            ?.let { response ->
-                ratkoJsonMapper.readTree(response).firstOrNull()?.let { locationTrackJsonNode ->
-                    replaceKmM(locationTrackJsonNode.get("nodecollection"))
-                    ratkoJsonMapper.treeToValue(locationTrackJsonNode, RatkoLocationTrack::class.java)
-                }
+        return getWithJsonResponseBody(combinePaths(LOCATION_TRACK_LOCATIONS_PATH, locationTrackOid), LOCATION)?.let {
+            response ->
+            ratkoJsonMapper.readTree(response).firstOrNull()?.let { locationTrackJsonNode ->
+                replaceKmM(locationTrackJsonNode.get("nodecollection"))
+                parseJsonNode<RatkoLocationTrack>(locationTrackJsonNode, "getLocationTrack")
             }
+        }
     }
 
     fun updateLocationTrackProperties(locationTrack: RatkoLocationTrack, oid: Oid<LocationTrack>) {
@@ -323,7 +318,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun <T : RatkoAsset> newAsset(asset: RatkoAsset): RatkoOid<T>? {
         logger.integrationCall("newAsset", "asset" to asset)
 
-        return postWithResponseBody<String>(ASSET_PATH, asset.withoutGeometries())
+        return postWithJsonResponseBody(ASSET_PATH, asset.withoutGeometries())
             ?.let { response -> ratkoJsonMapper.readTree(response).firstOrNull()?.get("id")?.textValue() }
             ?.let(::RatkoOid)
     }
@@ -347,20 +342,14 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun <T : RatkoAsset> getSwitchAsset(assetOid: RatkoOid<T>): RatkoSwitchAsset? {
         logger.integrationCall("getSwitchAsset", "assetOid" to assetOid)
 
-        return getSpec(combinePaths(ASSET_PATH, assetOid))
-            .defaultErrorHandler(PROPERTIES, FETCH_EXISTING, combinePaths(ASSET_PATH, assetOid))
-            .bodyToMono<String>()
-            .block(defaultBlockTimeout)
-            ?.let { response ->
-                ratkoJsonMapper.readTree(response).let { switchJsonNode ->
-                    switchJsonNode.get("assetGeoms")?.map { asset ->
-                        (asset as ObjectNode).replace("geometry", asset.get("geometryOriginal"))
-                    }
-
-                    switchJsonNode.get("locations")?.forEach { location -> replaceKmM(location.get("nodecollection")) }
-
-                    ratkoJsonMapper.treeToValue(switchJsonNode, RatkoSwitchAsset::class.java)
+        return getWithJsonResponseBody(combinePaths(ASSET_PATH, assetOid))
+            ?.let { response -> ratkoJsonMapper.readTree(response) }
+            ?.let { switchJsonNode ->
+                switchJsonNode.get("assetGeoms")?.forEach { asset ->
+                    (asset as ObjectNode).replace("geometry", asset.get("geometryOriginal"))
                 }
+                switchJsonNode.get("locations")?.forEach { location -> replaceKmM(location.get("nodecollection")) }
+                parseJsonNode<RatkoSwitchAsset>(switchJsonNode, "getSwitchAsset")
             }
     }
 
@@ -473,17 +462,12 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun getRouteNumber(routeNumberOid: RatkoOid<RatkoRouteNumber>): RatkoRouteNumber? {
         logger.integrationCall("getRouteNumber", "routeNumberOid" to routeNumberOid)
 
-        return getSpec(combinePaths(ROUTE_NUMBER_LOCATIONS_PATH, routeNumberOid))
-            .defaultErrorHandler(PROPERTIES, FETCH_EXISTING, combinePaths(ROUTE_NUMBER_LOCATIONS_PATH, routeNumberOid))
-            .bodyToMono<String>()
-            .block(defaultBlockTimeout)
-            ?.let { response ->
-                ratkoJsonMapper.readTree(response).let { routeNumberJsonNode ->
-                    replaceKmM(routeNumberJsonNode.get("nodecollection"))
-
-                    ratkoJsonMapper.treeToValue(routeNumberJsonNode, RatkoRouteNumber::class.java)
-                }
+        return getWithJsonResponseBody(combinePaths(ROUTE_NUMBER_LOCATIONS_PATH, routeNumberOid))?.let { response ->
+            ratkoJsonMapper.readTree(response).let { routeNumberJsonNode ->
+                replaceKmM(routeNumberJsonNode.get("nodecollection"))
+                parseJsonNode<RatkoRouteNumber>(routeNumberJsonNode, "getRouteNumber")
             }
+        }
     }
 
     fun newRouteNumber(routeNumber: RatkoRouteNumber): RatkoOid<RatkoRouteNumber>? {
@@ -515,19 +499,22 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         var pageNumber = 0
         do {
             logger.info("fetching operational points for page $pageNumber")
-            val body =
-                (postWithResponseBody<String>(
-                    "$ASSET_PATH/search?fields=summary",
-                    mapOf(
-                        "assetType" to RatkoAssetType.RAILWAY_TRAFFIC_OPERATIONAL_POINT.value,
-                        "pageNumber" to pageNumber++,
-                        "size" to 100,
-                        "sortOrder" to "ASC",
-                        "secondarySortOrder" to "ASC",
-                    ),
-                ))
             val allAssetsInPage =
-                ratkoJsonMapper.readValue(body, RatkoOperationalPointAssetsResponse::class.java)?.assets ?: listOf()
+                requireNotNull(
+                    postWithResponseBody<RatkoOperationalPointAssetsResponse>(
+                            "$ASSET_PATH/search?fields=summary",
+                            mapOf(
+                                "assetType" to RatkoAssetType.RAILWAY_TRAFFIC_OPERATIONAL_POINT.value,
+                                "pageNumber" to pageNumber++,
+                                "size" to 100,
+                                "sortOrder" to "ASC",
+                                "secondarySortOrder" to "ASC",
+                            ),
+                        )
+                        ?.assets
+                ) {
+                    "Failed to get operational points from Ratko (empty response)"
+                }
             val validOperationalPointsInPage = allAssetsInPage.mapNotNull { parseAsset(it, logger) }
             allPoints.addAll(validOperationalPointsInPage)
         } while (allAssetsInPage.size == 100)
@@ -537,13 +524,12 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun startNewBulkTransfer(split: Split): Pair<IntId<BulkTransfer>, BulkTransferState> {
         logger.integrationCall("startNewBulkTransfer", "splitId" to split.id)
 
-        val body =
-            postWithResponseBody<String>(
-                url = "$BULK_TRANSFER_PATH/start",
-                content = mapOf("this-is-something-that-should-be-defined" to "in-the-future"),
-            )
-
-        val bulkTransferId = ratkoJsonMapper.readValue(body, RatkoBulkTransferResponse::class.java)?.id
+        val bulkTransferId =
+            postWithResponseBody<RatkoBulkTransferResponse>(
+                    url = "$BULK_TRANSFER_PATH/start",
+                    content = mapOf("this-is-something-that-should-be-defined" to "in-the-future"),
+                )
+                ?.id
         checkNotNull(bulkTransferId) { "Received bulk transfer id was null" }
 
         // The state may also be received from the api regarding how it is created in Ratko's end.
@@ -561,12 +547,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             }
             .block(defaultBlockTimeout)
             .let { response ->
-                val bulkTransferState =
-                    ratkoJsonMapper.readValue(response, RatkoBulkTransferResponse::class.java)?.state
-
-                checkNotNull(bulkTransferState) { "Received bulk transfer id was null!" }
-
-                bulkTransferState
+                val bulkTransferState = response?.let {
+                    parseJsonValue<RatkoBulkTransferResponse>(it, "pollBulkTransferState").state
+                }
+                checkNotNull(bulkTransferState) { "Received bulk transfer state was null!" }
             }
     }
 
@@ -595,11 +579,43 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         }
     }
 
-    private inline fun <reified TOut : Any> postWithResponseBody(url: String, content: Any): TOut? =
+    private inline fun <reified T> parseJsonValue(json: String, context: String): T {
+        return try {
+            ratkoJsonMapper.readValue<T>(json)
+        } catch (e: Exception) {
+            logger.error(
+                "Failed to parse Ratko JSON response as ${T::class.simpleName} in $context: " +
+                    json.take(MAX_JSON_LOG_LENGTH),
+                e,
+            )
+            throw e
+        }
+    }
+
+    private inline fun <reified T> parseJsonNode(node: JsonNode, context: String): T {
+        return try {
+            ratkoJsonMapper.treeToValue<T>(node)
+        } catch (e: Exception) {
+            logger.error(
+                "Failed to parse Ratko JSON node as ${T::class.simpleName} in $context: " +
+                    node.toString().take(MAX_JSON_LOG_LENGTH),
+                e,
+            )
+            throw e
+        }
+    }
+
+    private fun postWithJsonResponseBody(url: String, content: Any): String? =
         postSpec(url, content)
             .defaultErrorHandler(PROPERTIES, CREATE, url, content)
-            .bodyToMono<TOut>()
+            .bodyToMono<String>()
             .block(defaultBlockTimeout)
+
+    private inline fun <reified TOut : Any> postWithResponseBody(url: String, content: Any): TOut? =
+        postWithJsonResponseBody(url, content)?.let { parseJsonValue<TOut>(it, url) }
+
+    private fun getWithJsonResponseBody(url: String, errorType: RatkoPushErrorType = PROPERTIES): String? =
+        getSpec(url).defaultErrorHandler(errorType, FETCH_EXISTING, url).bodyToMono<String>().block(defaultBlockTimeout)
 
     private fun putWithoutResponseBody(url: String, content: Any, errorType: RatkoPushErrorType = PROPERTIES) {
         putSpec(url, content)

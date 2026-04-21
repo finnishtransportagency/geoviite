@@ -68,25 +68,24 @@ class OperationalPointService(
         id: IntId<OperationalPoint>,
         request: InternalOperationalPointUpdateRequest,
     ): LayoutRowVersion<OperationalPoint> {
-        val version =
-            saveDraft(
-                branch,
-                dao.getOrThrow(branch.draft, id)
-                    .also {
-                        if (it.origin != OperationalPointOrigin.GEOVIITE)
-                            throw SavingFailureException(
-                                "Only operational points originating from Geoviite can be updated with this method. pointId=$id"
-                            )
-                    }
-                    .copy(
-                        state = request.state,
-                        name = OperationalPointName(request.name.toString()),
-                        abbreviation = request.abbreviation?.toString()?.let(::OperationalPointAbbreviation),
-                        uicCode = request.uicCode,
-                        rinfType = request.rinfType,
-                        rinfIdOverride = request.rinfIdOverride,
-                    ),
-            )
+        val version = saveDraft(
+            branch,
+            dao.getOrThrow(branch.draft, id)
+                .also {
+                    if (it.origin != OperationalPointOrigin.GEOVIITE)
+                        throw SavingFailureException(
+                            "Only operational points originating from Geoviite can be updated with this method. pointId=$id"
+                        )
+                }
+                .copy(
+                    state = request.state,
+                    name = OperationalPointName(request.name.toString()),
+                    abbreviation = request.abbreviation?.toString()?.let(::OperationalPointAbbreviation),
+                    uicCode = request.uicCode,
+                    rinfType = request.rinfType,
+                    rinfIdOverride = request.rinfIdOverride,
+                ),
+        )
         if (request.severLinks) {
             clearOperationalPointReferences(branch, version.id)
         }

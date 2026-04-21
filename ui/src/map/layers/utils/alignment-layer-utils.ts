@@ -1,9 +1,5 @@
 import { RegularShape, Stroke, Style } from 'ol/style';
-import {
-    AlignmentDataHolder,
-    LayoutAlignmentDataHolder,
-    LayoutAlignmentHeader,
-} from 'track-layout/layout-map-api';
+import { AlignmentDataHolder, LayoutAlignmentDataHolder, LayoutAlignmentHeader, } from 'track-layout/layout-map-api';
 import { ItemCollections, Selection } from 'selection/selection-model';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import Feature from 'ol/Feature';
@@ -12,7 +8,7 @@ import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-util
 import { Coordinate } from 'ol/coordinate';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { interpolateXY } from 'utils/math-utils';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first } from 'utils/array-utils';
 import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
@@ -89,6 +85,40 @@ export function getTickStyle(
     });
 }
 
+export function getTickStyleByDirection(
+    point: Coordinate,
+    fromDirection: Coordinate,
+    toDirection: Coordinate,
+    length: number,
+    style: Style,
+): Style {
+    const numberOfDifferentAngles = 128;
+    const angleStep = (Math.PI * 2) / numberOfDifferentAngles;
+    const [x1, y1] = expectCoordinate(fromDirection);
+    const [x2, y2] = expectCoordinate(toDirection);
+    const actualAngle = Math.atan2(x1 - x2, y1 - y2) + Math.PI / 2;
+    const roundAngle = Math.round(actualAngle / angleStep) * angleStep;
+
+    const cacheKey = `${roundAngle}-${JSON.stringify(style.getStroke())}`;
+    const image = tickImageCache.getOrCreate(
+        cacheKey,
+        () =>
+            new RegularShape({
+                stroke: style.getStroke() || undefined,
+                points: 2,
+                radius: length,
+                radius2: 0,
+                angle: roundAngle,
+            }),
+    );
+
+    return new Style({
+        geometry: new OlPoint(point),
+        image: image,
+        zIndex: style.getZIndex(),
+    });
+}
+
 export function getTickStyles(
     points: AlignmentPoint[],
     mValues: number[],
@@ -101,50 +131,53 @@ export function getTickStyles(
         return [];
     }
     const coordinates = interpolateCoordinatesAtMs(points, mValues);
-    return mValues
-        .map((m, i) => {
-            const interval = coordinates[i];
-            if (!interval) {
-                return undefined;
-            }
-            const { coordinate, nextIndex } = interval;
-            if (m >= last.m) {
-                return getTickStyle(pointToCoords(secondToLast), coordinate, length, 'end', style);
-            } else {
-                const next = points[nextIndex];
-                return next
-                    ? getTickStyle(coordinate, pointToCoords(next), length, 'start', style)
-                    : undefined;
-            }
-        })
-        .filter(filterNotEmpty);
+    return coordinates.map((coord) => {
+        const { coordinate, from, to } = coord;
+        return getTickStyleByDirection(coordinate, from, to, length, style);
+    });
 }
 
 function interpolateCoordinatesAtMs(
     points: AlignmentPoint[],
     ms: number[],
-): ({ coordinate: number[]; nextIndex: number } | undefined)[] {
-    let lastPointIndexBeforeM = 0;
-    return ms.map((m) => {
-        while (
-            lastPointIndexBeforeM < points.length &&
-            expectDefined(points[lastPointIndexBeforeM]).m < m
-        ) {
-            lastPointIndexBeforeM++;
-        }
-        const prev = points[lastPointIndexBeforeM];
-        const nextIndex = lastPointIndexBeforeM + 1;
-        const next = points[nextIndex];
-        if (!next) {
-            return undefined;
-        } else if (next.m === m) {
-            return { nextIndex, coordinate: pointToCoords(next) };
-        } else if (!prev) {
-            return undefined;
-        } else {
-            return { nextIndex, coordinate: interpolateXY(prev, next, m) };
-        }
-    });
+): { coordinate: number[]; from: number[]; to: number[] }[] {
+    let firstPointIndexAfterM = 0;
+    return ms
+        .map((m) => {
+            while (
+                firstPointIndexAfterM < points.length &&
+                m > expectDefined(points[firstPointIndexAfterM]).m
+            ) {
+                firstPointIndexAfterM++;
+            }
+
+            const intervalStartIndex = firstPointIndexAfterM - 1;
+            const intervalEndIndex = firstPointIndexAfterM;
+            const intervalStartPoint = points[intervalStartIndex];
+            const intervalEndPoint = points[intervalEndIndex];
+
+            if (!intervalStartPoint && intervalEndPoint && intervalEndPoint.m === m) {
+                // special case, at the start of first point interval
+                const firstPoint = expectDefined(first(points));
+                const secondPoint = expectDefined(points[1]);
+                return {
+                    coordinate: pointToCoords(firstPoint),
+                    from: pointToCoords(firstPoint),
+                    to: pointToCoords(secondPoint),
+                };
+            } else if (intervalStartPoint && intervalEndPoint) {
+                // in point interval
+                return {
+                    coordinate: interpolateXY(intervalStartPoint, intervalEndPoint, m),
+                    from: pointToCoords(intervalStartPoint),
+                    to: pointToCoords(intervalEndPoint),
+                };
+            } else {
+                // out of point intervals
+                return undefined;
+            }
+        })
+        .filter(filterNotEmpty);
 }
 
 export function createAlignmentFeature(
