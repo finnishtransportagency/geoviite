@@ -1,4 +1,5 @@
 import fi.fta.geoviite.api.ExtApiTestDataServiceV1
+import fi.fta.geoviite.api.tracklayout.v1.COORDINATE_SYSTEM
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackLayoutTestApiService
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
@@ -432,6 +433,32 @@ constructor(
                 apiCall(oid.toString(), arrayOf("osoitepistevali" to "10.0"), HttpStatus.BAD_REQUEST)
                 apiCall(oid.toString(), arrayOf("osoitepistevali" to "1337"), HttpStatus.BAD_REQUEST)
             }
+    }
+
+    @Test
+    fun `Ext api asset endpoints should return HTTP 400 if the coordinate system is unsupported`() {
+        val dummyOid = someOid<Nothing>().toString()
+        val unsupportedCoordinateSystems =
+            listOf(
+                "EPSG:2391", // KKJ1
+                "EPSG:2392", // KKJ2
+                "EPSG:2393", // KKJ3
+                "EPSG:2394", // KKJ4
+                "EPSG:3386", // KKJ0
+                "EPSG:3387", // KKJ5
+                "EPSG:1023", // Out of allowed SRID range
+                "EPSG:32768", // Out of allowed SRID range
+                "BOGUS", // Malformed
+            )
+
+        unsupportedCoordinateSystems.forEach { srid ->
+            errorTests.forEach { (_, apiCall) ->
+                apiCall(dummyOid, arrayOf(COORDINATE_SYSTEM to srid), HttpStatus.BAD_REQUEST)
+            }
+            collectionErrorTests.forEach { apiCall ->
+                apiCall(arrayOf(COORDINATE_SYSTEM to srid), HttpStatus.BAD_REQUEST)
+            }
+        }
     }
 
     private fun setupValidTrackNumber(): Oid<LayoutTrackNumber> {
