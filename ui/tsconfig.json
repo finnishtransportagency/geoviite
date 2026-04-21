@@ -21,6 +21,9 @@
         "downlevelIteration": true,
         "baseUrl": "./",
         "paths": {
+            "react-toastify/unstyled": [
+                "./node_modules/react-toastify/dist/unstyled"
+            ],
             "*": [
                 "./src/*"
             ]
