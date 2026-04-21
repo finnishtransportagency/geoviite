@@ -500,17 +500,21 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         do {
             logger.info("fetching operational points for page $pageNumber")
             val allAssetsInPage =
-                postWithResponseBody<RatkoOperationalPointAssetsResponse>(
-                        "$ASSET_PATH/search?fields=summary",
-                        mapOf(
-                            "assetType" to RatkoAssetType.RAILWAY_TRAFFIC_OPERATIONAL_POINT.value,
-                            "pageNumber" to pageNumber++,
-                            "size" to 100,
-                            "sortOrder" to "ASC",
-                            "secondarySortOrder" to "ASC",
-                        ),
-                    )
-                    ?.assets ?: emptyList()
+                requireNotNull(
+                    postWithResponseBody<RatkoOperationalPointAssetsResponse>(
+                            "$ASSET_PATH/search?fields=summary",
+                            mapOf(
+                                "assetType" to RatkoAssetType.RAILWAY_TRAFFIC_OPERATIONAL_POINT.value,
+                                "pageNumber" to pageNumber++,
+                                "size" to 100,
+                                "sortOrder" to "ASC",
+                                "secondarySortOrder" to "ASC",
+                            ),
+                        )
+                        ?.assets
+                ) {
+                    "Failed to get operational points from Ratko (empty response)"
+                }
             val validOperationalPointsInPage = allAssetsInPage.mapNotNull { parseAsset(it, logger) }
             allPoints.addAll(validOperationalPointsInPage)
         } while (allAssetsInPage.size == 100)
