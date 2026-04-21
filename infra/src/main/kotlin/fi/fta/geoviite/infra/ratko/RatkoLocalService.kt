@@ -64,7 +64,7 @@ constructor(
             }
 
         val nonDeletedVersions = latestRatkoVersions.filter { !it.deleted }
-        val layoutPointOids = upsertIdsForRatkoPoints(nonDeletedVersions)
+        val layoutPointOids = updateAndFetchRatkoOperationalPointOids(nonDeletedVersions)
         insertNewLayoutOperationalPoints(nonDeletedVersions, layoutPointOids, layoutPoints)
         updateExistingLayoutOperationalPoints(layoutPoints, layoutPointOids, ratkoPointsByOid)
     }
@@ -86,7 +86,7 @@ constructor(
             RatkoPushErrorAndDetails(errorWithAsset, publicationLogService.getPublicationDetails(publicationId))
         }
 
-    private fun upsertIdsForRatkoPoints(
+    private fun updateAndFetchRatkoOperationalPointOids(
         ratkoPointVersions: List<RatkoOperationalPointVersion>
     ): Map<IntId<OperationalPoint>, Oid<OperationalPoint>> {
         val existingIds = operationalPointDao.fetchExternalIds(LayoutBranch.main).mapValues { (_, extId) -> extId.oid }
