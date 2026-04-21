@@ -549,7 +549,27 @@ class FakeRatko(port: Int) {
             )
             .also { logger.info("Binding $method $url, queryParams=$queryParams, body=$body") }
 
+    fun doesNotHaveRouteNumber(oid: String) {
+        get("/api/locations/v1.1/routenumber/$oid")
+            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Route number couldn't be found with the external id [$oid]")))
+    }
+
+    fun doesNotHaveLocationTrack(oid: String) {
+        get("/api/locations/v1.1/locationtracks/$oid")
+            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Location track couldn't be found with the external id [$oid]")))
+    }
+
+    fun doesNotHaveSwitch(oid: String) {
+        get("/api/assets/v1.2/$oid")
+            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Switch couldn't be found with the external id [$oid]")))
+    }
+
     private fun ok() = HttpResponse.response().withStatusCode(200)
+
+    private fun notFoundJson(body: Any) =
+        HttpResponse.response(jsonMapper.writeValueAsString(body))
+            .withStatusCode(404)
+            .withContentType(MediaType.APPLICATION_JSON)
 
     private fun okJson(body: Any) =
         HttpResponse.response(jsonMapper.writeValueAsString(body))

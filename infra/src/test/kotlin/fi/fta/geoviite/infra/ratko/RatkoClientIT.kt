@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.switch
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -111,6 +112,30 @@ constructor(
 
         assertEquals(expectedBulkTransferId, receivedBulkTransferId)
         assertEquals(BulkTransferState.IN_PROGRESS, receivedBulkTransferState)
+    }
+
+    @Test
+    fun `getRouteNumber should return null when route number does not exist`() {
+        val oid = "1.2.3.4.5"
+        fakeRatko.doesNotHaveRouteNumber(oid)
+        val result = ratkoClient.getRouteNumber(RatkoOid(oid))
+        assertNull(result)
+    }
+
+    @Test
+    fun `getLocationTrack should return null when location track does not exist`() {
+        val oid = "1.2.3.4.5"
+        fakeRatko.doesNotHaveLocationTrack(oid)
+        val result = ratkoClient.getLocationTrack(RatkoOid(oid))
+        assertNull(result)
+    }
+
+    @Test
+    fun `getSwitchAsset should return null when switch does not exist`() {
+        val oid = "1.2.3.4.5"
+        fakeRatko.doesNotHaveSwitch(oid)
+        val result = ratkoClient.getSwitchAsset(RatkoOid(oid))
+        assertNull(result)
     }
 
     @Test
