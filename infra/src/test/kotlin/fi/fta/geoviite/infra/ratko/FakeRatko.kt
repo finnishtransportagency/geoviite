@@ -282,7 +282,7 @@ class FakeRatko(port: Int) {
             .filter { body -> body.length > 3 }
             .mapNotNull { body ->
                 val json = jsonMapper.readValue(body, RatkoRouteNumber::class.java)
-                if (json.id == oid.toString()) json else null
+                if (json.id == oid) json else null
             }
 
     fun acceptsNewBulkTransferGivingItId(bulkTransferId: IntId<BulkTransfer>) {
