@@ -111,34 +111,49 @@ constructor(
         layoutPointOids: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
         ratkoPointsByOid: Map<Oid<OperationalPoint>, RatkoOperationalPointVersion>,
     ) {
-        layoutPoints.forEach { layoutPoint ->
-            val extId = layoutPointOids[layoutPoint.id as IntId] ?: return@forEach
-            val ratkoData = ratkoPointsByOid[extId] ?: return@forEach
-            if (ratkoData.version <= requireNotNull(layoutPoint.ratkoVersion)) return@forEach
-
-            when {
-                ratkoData.deleted && layoutPoint.state != OperationalPointState.DELETED -> {
-                    operationalPointDao.save(
-                        asMainDraft(
-                            layoutPoint.copy(state = OperationalPointState.DELETED, ratkoVersion = ratkoData.version)
+        layoutPoints
+            .mapNotNull { layoutPoint ->
+                layoutPointOids[layoutPoint.id as IntId]
+                    ?.let { extId -> extId to ratkoPointsByOid[extId] }
+                    ?.let { (extId, ratkoData) ->
+                        if (ratkoData != null) Triple(layoutPoint, extId, ratkoData) else null
+                    }
+            }
+            .forEach { (layoutPoint, extId, ratkoPointVersion) ->
+                when {
+                    // Deletion
+                    ratkoPointVersion.deleted && layoutPoint.state != OperationalPointState.DELETED -> {
+                        operationalPointDao.save(
+                            asMainDraft(
+                                layoutPoint.copy(
+                                    state = OperationalPointState.DELETED,
+                                    ratkoVersion = ratkoPointVersion.version,
+                                )
+                            )
                         )
-                    )
-                }
-                !ratkoData.deleted && layoutPoint.state == OperationalPointState.DELETED -> {
-                    operationalPointDao.save(
-                        asMainDraft(
-                            layoutPoint.copy(state = OperationalPointState.IN_USE, ratkoVersion = ratkoData.version)
+                    }
+                    // Restore
+                    !ratkoPointVersion.deleted && layoutPoint.state == OperationalPointState.DELETED -> {
+                        operationalPointDao.save(
+                            asMainDraft(
+                                layoutPoint.copy(
+                                    state = OperationalPointState.IN_USE,
+                                    ratkoVersion = ratkoPointVersion.version,
+                                )
+                            )
                         )
-                    )
-                }
-                !ratkoData.deleted && layoutPoint.state != OperationalPointState.DELETED -> {
-                    val savedRatkoPoint = ratkoOperationalPointDao.fetch(extId.cast(), layoutPoint.ratkoVersion)
-                    if (ratkoOperationalPointContentDiffers(ratkoData.point, savedRatkoPoint)) {
-                        operationalPointDao.save(asMainDraft(layoutPoint.copy(ratkoVersion = ratkoData.version)))
+                    }
+                    // Normal update
+                    layoutPoint.ratkoVersion != null -> {
+                        val savedRatkoPoint = ratkoOperationalPointDao.fetch(extId.cast(), layoutPoint.ratkoVersion)
+                        if (ratkoOperationalPointContentDiffers(ratkoPointVersion.point, savedRatkoPoint)) {
+                            operationalPointDao.save(
+                                asMainDraft(layoutPoint.copy(ratkoVersion = ratkoPointVersion.version))
+                            )
+                        }
                     }
                 }
             }
-        }
     }
 
     private fun ratkoOperationalPointContentDiffers(a: RatkoOperationalPoint, b: RatkoOperationalPoint) =
