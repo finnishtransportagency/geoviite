@@ -141,19 +141,19 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     }
 
     @Transactional(readOnly = true)
-    fun fetchVersionAt(oid: Oid<RatkoOperationalPoint>, moment: Instant): Int {
+    fun fetchVersionAt(oid: Oid<RatkoOperationalPoint>, moment: Instant? = null): Int {
         val sql =
             """
             select version
               from integrations.ratko_operational_point_version
               where external_id = :oid
-                and :moment >= change_time
-                and (expiry_time is null or :moment < expiry_time)
+                and coalesce(:moment, now()) >= change_time
+                and (expiry_time is null or coalesce(:moment, now()) < expiry_time)
             """
                 .trimIndent()
         return jdbcTemplate.queryOne(
             sql,
-            mapOf("oid" to oid.toString(), "moment" to Timestamp.from(moment)),
+            mapOf("oid" to oid.toString(), "moment" to moment?.let { Timestamp.from(it) }),
         ) { rs, _ ->
             rs.getInt("version")
         }

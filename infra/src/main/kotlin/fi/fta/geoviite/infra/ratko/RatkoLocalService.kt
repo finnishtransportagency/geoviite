@@ -27,7 +27,6 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointDao
 import fi.fta.geoviite.infra.tracklayout.OperationalPointOrigin
 import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
-import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.transaction.annotation.Transactional
@@ -139,11 +138,10 @@ constructor(
                 originalLayoutPointOids.contains(layoutPoint.id) &&
                 !ratkoPointsByOid.contains(originalLayoutPointOids[layoutPoint.id])
         }
-        val now = Instant.now()
         deleted.forEach { layoutPoint ->
             val ratkoVersionOfDeleted =
                 originalLayoutPointOids.getValue(layoutPoint.id as IntId).let {
-                    ratkoOperationalPointDao.fetchVersionAt(it.cast(), now)
+                    ratkoOperationalPointDao.fetchVersionAt(it.cast())
                 }
             operationalPointDao.save(
                 asMainDraft(
