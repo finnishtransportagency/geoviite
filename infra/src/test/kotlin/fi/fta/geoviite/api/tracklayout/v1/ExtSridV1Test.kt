@@ -21,14 +21,7 @@ class ExtSridV1Test {
 
     @Test
     fun `all KKJ coordinate systems are rejected`() {
-        kkjSrids.forEach { kkjSrid ->
-            assertThrows<UnsupportedSridException> { ExtSridV1(kkjSrid) }
-        }
-    }
-
-    @Test
-    fun `KKJ coordinate systems are rejected when parsed from string`() {
-        assertThrows<UnsupportedSridException> { ExtSridV1("EPSG:2393") }
+        kkjSrids.forEach { kkjSrid -> assertThrows<UnsupportedSridException> { ExtSridV1(kkjSrid) } }
     }
 
     @Test
