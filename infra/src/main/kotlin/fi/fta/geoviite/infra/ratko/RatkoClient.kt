@@ -615,7 +615,13 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         postWithJsonResponseBody(url, content)?.let { parseJsonValue<TOut>(it, url) }
 
     private fun getWithJsonResponseBody(url: String, errorType: RatkoPushErrorType = PROPERTIES): String? =
-        getSpec(url).defaultErrorHandler(errorType, FETCH_EXISTING, url).bodyToMono<String>().block(defaultBlockTimeout)
+        getSpec(url)
+            .defaultErrorHandler(errorType, FETCH_EXISTING, url)
+            .bodyToMono<String>()
+            .onErrorResume(WebClientResponseException::class.java) { ex ->
+                if (ex.statusCode == NOT_FOUND) Mono.empty() else Mono.error(ex)
+            }
+            .block(defaultBlockTimeout)
 
     private fun putWithoutResponseBody(url: String, content: Any, errorType: RatkoPushErrorType = PROPERTIES) {
         putSpec(url, content)
@@ -632,7 +638,13 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     }
 
     private fun deletePoints(url: String) {
-        deleteSpec(url).defaultErrorHandler(GEOMETRY, DELETE, url).toBodilessEntity().block(defaultBlockTimeout)
+        deleteSpec(url)
+            .defaultErrorHandler(GEOMETRY, DELETE, url)
+            .toBodilessEntity()
+            .onErrorResume(WebClientResponseException::class.java) { ex ->
+                if (ex.statusCode == NOT_FOUND) Mono.empty() else Mono.error(ex)
+            }
+            .block(defaultBlockTimeout)
     }
 
     private fun deleteSpec(url: String) = client.delete().uri(url).retrieve()
@@ -655,19 +667,18 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         requestBody: Any? = null,
     ) =
         onStatus(
-            { !it.is2xxSuccessful },
+            { status ->
+                !status.is2xxSuccessful &&
+                    !(status == NOT_FOUND && (operation == FETCH_EXISTING || operation == DELETE))
+            },
             { response ->
-                when (val status = response.statusCode()) {
-                    NOT_FOUND if (operation == FETCH_EXISTING || operation == DELETE) -> Mono.empty()
-                    else ->
-                        response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { responseBody ->
-                            val request = getBodyJsonForLog(requestBody).take(MAX_JSON_LOG_LENGTH)
-                            val response = responseBody.take(MAX_JSON_LOG_LENGTH)
-                            logger.error(
-                                "Error during Ratko push: status=$status responseBody=$response requestUrl=\"$requestUrl\" requestBody=$request"
-                            )
-                            Mono.error(RatkoPushException(errorType, operation))
-                        }
+                response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { responseBody ->
+                    val request = getBodyJsonForLog(requestBody).take(MAX_JSON_LOG_LENGTH)
+                    val truncatedResponse = responseBody.take(MAX_JSON_LOG_LENGTH)
+                    logger.error(
+                        "Error during Ratko push: status=${response.statusCode()} responseBody=$truncatedResponse requestUrl=\"$requestUrl\" requestBody=$request"
+                    )
+                    Mono.error(RatkoPushException(errorType, operation))
                 }
             },
         )
