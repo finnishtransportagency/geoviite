@@ -16,12 +16,17 @@ import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
 import java.sql.ResultSet
-import java.sql.Timestamp
 import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+
+data class RatkoOperationalPointVersion(
+    val point: RatkoOperationalPoint,
+    val version: Int,
+    val deleted: Boolean,
+)
 
 fun toRatkoOperationalPoint(rs: ResultSet): RatkoOperationalPoint {
     return RatkoOperationalPoint(
@@ -120,7 +125,7 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     }
 
     @Transactional(readOnly = true)
-    fun listWithVersions(): List<Pair<RatkoOperationalPoint, Int>> {
+    fun listLatestVersions(): List<RatkoOperationalPointVersion> {
         val sql =
             """
             select
@@ -132,30 +137,19 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               postgis.st_x(location) as x,
               postgis.st_y(location) as y,
               track_number_id,
-              version
-              from integrations.ratko_operational_point
-            """
-                .trimIndent()
-
-        return jdbcTemplate.query(sql) { rs, _ -> toRatkoOperationalPoint(rs) to rs.getInt("version") }
-    }
-
-    @Transactional(readOnly = true)
-    fun fetchVersionAt(oid: Oid<RatkoOperationalPoint>, moment: Instant? = null): Int {
-        val sql =
-            """
-            select version
+              version,
+              deleted
               from integrations.ratko_operational_point_version
-              where external_id = :oid
-                and coalesce(:moment, now()) >= change_time
-                and (expiry_time is null or coalesce(:moment, now()) < expiry_time)
+              where expiry_time is null
             """
                 .trimIndent()
-        return jdbcTemplate.queryOne(
-            sql,
-            mapOf("oid" to oid.toString(), "moment" to moment?.let { Timestamp.from(it) }),
-        ) { rs, _ ->
-            rs.getInt("version")
+
+        return jdbcTemplate.query(sql) { rs, _ ->
+            RatkoOperationalPointVersion(
+                point = toRatkoOperationalPoint(rs),
+                version = rs.getInt("version"),
+                deleted = rs.getBoolean("deleted"),
+            )
         }
     }
 
