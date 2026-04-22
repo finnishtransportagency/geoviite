@@ -15,7 +15,7 @@ import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import styles from 'track-layout/oid.scss';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
-import { TFunction } from 'i18next/typescript/t';
+import { TFunction } from 'i18next';
 import { getOperationalPointOids } from 'track-layout/layout-operational-point-api';
 
 type TrackNumberOidProps = OidProps<LayoutTrackNumberId>;

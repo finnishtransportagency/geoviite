@@ -4,7 +4,7 @@ import {
     menuOption,
     MenuSelectOption,
 } from 'vayla-design-lib/menu/menu';
-import { TFunction } from 'i18next/typescript/t';
+import { TFunction } from 'i18next';
 import { getNonNull } from 'api/api-fetch';
 
 type Translation = TFunction<'translation', undefined>;

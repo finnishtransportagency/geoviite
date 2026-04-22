@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-NVM_VERSION="v0.38.0"
+NVM_VERSION="v0.40.4"
 NVM_DIR="${HOME}/.nvm"
 
 rm -rf NVM_DIR
