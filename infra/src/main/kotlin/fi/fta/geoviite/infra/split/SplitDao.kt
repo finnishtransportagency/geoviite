@@ -22,10 +22,10 @@ import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.ResultSet
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
 
 private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) =
     Split(
@@ -361,8 +361,30 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             .also { _ -> logger.daoAccess(AccessType.FETCH, Split::class, "publicationIds" to publicationIds) }
     }
 
-    fun locationTracksPartOfAnyUnfinishedSplit(
+    fun getUnfinishedSplitsContainingLocationTracks(
         branch: LayoutBranch,
         locationTrackIds: Collection<IntId<LocationTrack>>,
     ) = fetchUnfinishedSplits(branch).filter { split -> locationTrackIds.any { lt -> split.containsLocationTrack(lt) } }
+
+    fun isSplitSource(branch: LayoutBranch, locationTrackId: IntId<LocationTrack>): Boolean {
+        val sql =
+            """
+            select exists(
+                select 1
+                from publication.split
+                    inner join layout.location_track_version ltv
+                        on split.source_location_track_id = ltv.id
+                         and split.layout_context_id = ltv.layout_context_id
+                         and split.source_location_track_version = ltv.version
+                where split.bulk_transfer_state = 'DONE'
+                  and (ltv.design_id is null or ltv.design_id = :design_id)
+                  and split.source_location_track_id = :location_track_id
+            ) as result
+            """
+                .trimIndent()
+
+        val params = mapOf("design_id" to branch.designId?.intValue, "location_track_id" to locationTrackId.intValue)
+
+        return jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getBoolean("result") } ?: false
+    }
 }

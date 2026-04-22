@@ -343,12 +343,22 @@ export type LocationTrackDuplicate = {
     length: number;
 };
 
+export type PartOfSplit =
+    | 'FINISHED_SOURCE_TRACK'
+    | 'UNFINISHED_SOURCE_TRACK'
+    | 'UNFINISHED_TARGET_TRACK'
+    | 'NONE';
+
+export function isPartOfUnfinishedSplit(partOfSplit: PartOfSplit | undefined): boolean {
+    return partOfSplit === 'UNFINISHED_SOURCE_TRACK' || partOfSplit === 'UNFINISHED_TARGET_TRACK';
+}
+
 export type LocationTrackInfoboxExtras = {
     duplicateOf?: LocationTrackDuplicate;
     duplicates: LocationTrackDuplicate[];
     startSplitPoint?: SplitPoint;
     endSplitPoint?: SplitPoint;
-    partOfUnfinishedSplit?: boolean;
+    partOfSplit: PartOfSplit;
     switches: LocationTrackInfoboxSwitch[];
     operationalPoints: LocationTrackInfoboxOperationalPoint[];
 };

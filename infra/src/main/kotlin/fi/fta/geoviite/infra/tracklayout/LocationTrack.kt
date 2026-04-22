@@ -289,10 +289,17 @@ data class LocationTrack(
         copy(contextData = contextData)
 }
 
+enum class PartOfSplit {
+    FINISHED_SOURCE_TRACK,
+    UNFINISHED_SOURCE_TRACK,
+    UNFINISHED_TARGET_TRACK,
+    NONE,
+}
+
 data class LocationTrackInfoboxExtras(
     val duplicateOf: LocationTrackDuplicate?,
     val duplicates: List<LocationTrackDuplicate>,
-    val partOfUnfinishedSplit: Boolean?,
+    val partOfSplit: PartOfSplit,
     val startSplitPoint: SplitPoint?,
     val endSplitPoint: SplitPoint?,
     val switches: List<LocationTrackInfoboxSwitch>,

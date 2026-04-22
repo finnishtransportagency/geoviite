@@ -20,9 +20,11 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.MultiPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Polygon
+import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -35,7 +37,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -51,6 +52,7 @@ constructor(
     private val splitService: SplitService,
     private val splitTestDataService: SplitTestDataService,
     private val layoutTrackNumberService: LayoutTrackNumberService,
+    private val splitDao: SplitDao,
 ) : DBTestBase() {
     @BeforeEach
     fun setup() {
@@ -1203,19 +1205,13 @@ constructor(
                 )
                 .id
 
-        val op1Id = mainOfficialContext.save(operationalPoint(name = "OP1", location = Point(50.0, 0.0), draft = false)).id
-        val op2Id =
-            mainOfficialContext.save(
-                operationalPoint(name = "OP2", draft = false).copy(location = null)
-            ).id
+        val op1Id =
+            mainOfficialContext.save(operationalPoint(name = "OP1", location = Point(50.0, 0.0), draft = false)).id
+        val op2Id = mainOfficialContext.save(operationalPoint(name = "OP2", draft = false).copy(location = null)).id
 
         val (track, _) =
             mainOfficialContext.save(
-                locationTrack(
-                    trackNumberId,
-                    draft = false,
-                    operationalPointIds = setOf(op1Id, op2Id),
-                ),
+                locationTrack(trackNumberId, draft = false, operationalPointIds = setOf(op1Id, op2Id)),
                 trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
             )
 
@@ -1232,6 +1228,57 @@ constructor(
         assertNotNull(op2Extra)
         assertNull(op2Extra!!.location)
         assertNull(op2Extra.displayAddress)
+    }
+
+    @Test
+    fun `getInfoboxExtras returns correct partOfSplit value`() {
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+        val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+
+        val sourceTrack = mainOfficialContext.save(locationTrack(trackNumberId), geometry)
+        val targetTrack = mainDraftContext.save(locationTrack(trackNumberId), geometry)
+
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id).also { extrasBeforeSplit ->
+            assertNotNull(extrasBeforeSplit)
+            assertEquals(PartOfSplit.NONE, extrasBeforeSplit!!.partOfSplit)
+        }
+
+        val splitId =
+            splitDao.saveSplit(
+                sourceTrack,
+                listOf(
+                    fi.fta.geoviite.infra.split.SplitTarget(
+                        targetTrack.id,
+                        0..0,
+                        fi.fta.geoviite.infra.split.SplitTargetOperation.CREATE,
+                    )
+                ),
+                listOf(mainOfficialContext.createSwitch().id),
+                updatedDuplicates = emptyList(),
+            )
+
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id).also { extrasSourceUnfinished
+            ->
+            assertNotNull(extrasSourceUnfinished)
+            assertEquals(PartOfSplit.UNFINISHED_SOURCE_TRACK, extrasSourceUnfinished!!.partOfSplit)
+        }
+
+        locationTrackService.getInfoboxExtras(MainLayoutContext.draft, targetTrack.id).also { extrasTargetUnfinished ->
+            assertNotNull(extrasTargetUnfinished)
+            assertEquals(PartOfSplit.UNFINISHED_TARGET_TRACK, extrasTargetUnfinished!!.partOfSplit)
+        }
+
+        splitDao.updateSplit(splitId, bulkTransferState = fi.fta.geoviite.infra.split.BulkTransferState.DONE)
+
+        locationTrackService.getInfoboxExtras(MainLayoutContext.official, sourceTrack.id).also { extrasSourceFinished ->
+            assertNotNull(extrasSourceFinished)
+            assertEquals(PartOfSplit.FINISHED_SOURCE_TRACK, extrasSourceFinished!!.partOfSplit)
+        }
+
+        locationTrackService.getInfoboxExtras(MainLayoutContext.draft, targetTrack.id).also { extrasTargetFinished ->
+            assertNotNull(extrasTargetFinished)
+            assertEquals(PartOfSplit.NONE, extrasTargetFinished!!.partOfSplit)
+        }
     }
 
     private fun updateDraft(
@@ -1354,15 +1401,10 @@ constructor(
         }
 }
 
-fun assertContains(polygon: Polygon, vararg points: Point) =
-    points.forEach { p ->
-        assertTrue(contains(polygon, p, LAYOUT_SRID), "Expected polygon to overlap location: point=$p polygon=$polygon")
-    }
+fun assertContains(polygon: Polygon, vararg points: Point) = points.forEach { p ->
+    assertTrue(contains(polygon, p, LAYOUT_SRID), "Expected polygon to overlap location: point=$p polygon=$polygon")
+}
 
-fun assertDoesntContain(polygon: Polygon, vararg points: Point) =
-    points.forEach { p ->
-        assertFalse(
-            contains(polygon, p, LAYOUT_SRID),
-            "Expected polygon to overlap location: point=$p polygon=$polygon",
-        )
-    }
+fun assertDoesntContain(polygon: Polygon, vararg points: Point) = points.forEach { p ->
+    assertFalse(contains(polygon, p, LAYOUT_SRID), "Expected polygon to overlap location: point=$p polygon=$polygon")
+}

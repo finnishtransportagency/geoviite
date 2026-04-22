@@ -151,6 +151,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         layoutContextDraft,
         props.changeTimes,
     );
+    const isSplitSourceTrack =
+        extraInfo?.partOfSplit === 'FINISHED_SOURCE_TRACK' ||
+        extraInfo?.partOfSplit === 'UNFINISHED_SOURCE_TRACK';
 
     const hasOfficialLocationTrack =
         useLocationTrack(
@@ -162,6 +165,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const canSetDeleted = !state.isNewLocationTrack && hasOfficialLocationTrack;
     const stateOptions = locationTrackStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
+        .map((ls) => ({ ...ls, qaId: ls.value }));
+    const splitSourceTrackStateOptions = locationTrackStates
+        .map((s) => (s.value === 'DELETED' ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
 
     const typeOptions = locationTrackTypes.map((ls) => ({ ...ls, qaId: ls.value }));
@@ -277,7 +283,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const saveOrConfirm = () => {
         if (
             state.locationTrack?.state === 'DELETED' &&
-            state.existingLocationTrack?.state !== 'DELETED'
+            state.existingLocationTrack?.state !== 'DELETED' &&
+            !isSplitSourceTrack
         ) {
             setNonDraftDeleteConfirmationVisible(true);
         } else {
@@ -373,6 +380,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 d.duplicateStatus.duplicateOfId === state.existingLocationTrack?.id,
         ) || [];
 
+    const stateEditingDisabled = isSplitSourceTrack && props.locationTrack?.state === 'DELETED';
+
     return (
         <React.Fragment>
             <Dialog
@@ -459,10 +468,20 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 <Dropdown
                                     qaId="location-track-state"
                                     value={state.locationTrack?.state}
-                                    options={stateOptions}
+                                    options={
+                                        isSplitSourceTrack
+                                            ? splitSourceTrackStateOptions
+                                            : stateOptions
+                                    }
                                     onChange={(value) => value && updateProp('state', value)}
                                     onBlur={() => stateActions.onCommitField('state')}
                                     hasError={hasErrors('state')}
+                                    disabled={stateEditingDisabled}
+                                    title={
+                                        stateEditingDisabled
+                                            ? t('location-track-dialog.state-disabled-by-split')
+                                            : undefined
+                                    }
                                     wide
                                     searchable
                                 />
