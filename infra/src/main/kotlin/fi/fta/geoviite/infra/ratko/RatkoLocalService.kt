@@ -55,8 +55,7 @@ constructor(
     @Transactional
     fun updateLayoutPointsFromIntegrationTable() {
         val ratkoPointsWithVersions = ratkoOperationalPointDao.listWithVersions()
-        val ratkoPointsByOid =
-            ratkoPointsWithVersions.associateBy { (point) -> point.externalId.cast<OperationalPoint>() }
+        val ratkoPointsByOid = ratkoPointsWithVersions.associateBy { (point) -> point.externalId }
         val layoutPoints =
             operationalPointDao.list(LayoutBranch.main.draft, true).filter { point ->
                 point.origin == OperationalPointOrigin.RATKO
@@ -96,16 +95,16 @@ constructor(
         val existingOidsSet = existingIds.values.toSet()
         val createdIds =
             ratkoPointsWithVersions
-                .filter { (ratkoPoint) -> !existingOidsSet.contains(ratkoPoint.externalId.cast()) }
+                .filter { (ratkoPoint) -> !existingOidsSet.contains(ratkoPoint.externalId) }
                 .associate { (ratkoPoint) ->
-                    createOperationalPointIdForRatkoPoint(ratkoPoint) to ratkoPoint.externalId.cast<OperationalPoint>()
+                    createOperationalPointIdForRatkoPoint(ratkoPoint) to ratkoPoint.externalId
                 }
         return existingIds + createdIds
     }
 
     private fun createOperationalPointIdForRatkoPoint(point: RatkoOperationalPoint): IntId<OperationalPoint> {
         val id = operationalPointDao.createId()
-        operationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, id, point.externalId.cast())
+        operationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, id, point.externalId)
         return id
     }
 
@@ -118,7 +117,7 @@ constructor(
             val extId = layoutPointOids.getValue(layoutPoint.id as IntId)
             ratkoPointsByOid[extId]?.let { (currentRatkoPoint, currentRatkoPointVersion) ->
                 if (currentRatkoPointVersion > requireNotNull(layoutPoint.ratkoVersion)) {
-                    val savedRatkoPoint = ratkoOperationalPointDao.fetch(extId.cast(), layoutPoint.ratkoVersion)
+                    val savedRatkoPoint = ratkoOperationalPointDao.fetch(extId, layoutPoint.ratkoVersion)
                     if (ratkoOperationalPointContentDiffers(currentRatkoPoint, savedRatkoPoint)) {
                         operationalPointDao.save(asMainDraft(layoutPoint.copy(ratkoVersion = currentRatkoPointVersion)))
                     }
@@ -132,12 +131,11 @@ constructor(
         originalLayoutPointOids: Map<IntId<OperationalPoint>, Oid<OperationalPoint>>,
         ratkoPointsByOid: Map<Oid<OperationalPoint>, Pair<RatkoOperationalPoint, Int>>,
     ): Set<IntId<OperationalPoint>> {
-        val deleted =
-            layoutPoints.filter { layoutPoint ->
-                layoutPoint.state != OperationalPointState.DELETED &&
-                    originalLayoutPointOids.contains(layoutPoint.id) &&
-                    !ratkoPointsByOid.contains(originalLayoutPointOids[layoutPoint.id])
-            }
+        val deleted = layoutPoints.filter { layoutPoint ->
+            layoutPoint.state != OperationalPointState.DELETED &&
+                originalLayoutPointOids.contains(layoutPoint.id) &&
+                !ratkoPointsByOid.contains(originalLayoutPointOids[layoutPoint.id])
+        }
         deleted.forEach { layoutPoint ->
             operationalPointDao.save(asMainDraft(layoutPoint.copy(state = OperationalPointState.DELETED)))
         }
@@ -158,7 +156,7 @@ constructor(
     ) {
         val layoutPointsByOid = layoutPointOids.entries.associate { (k, v) -> v to k }
         ratkoPointsWithVersions.forEach { (ratkoPoint, ratkoPointVersion) ->
-            val id = layoutPointsByOid[ratkoPoint.externalId.cast()]
+            val id = layoutPointsByOid[ratkoPoint.externalId]
             if (id != null && layoutPoints.none { layoutPoint -> layoutPoint.id == id }) {
                 operationalPointDao.insertRatkoPoint(id, ratkoPointVersion, OperationalPointState.IN_USE)
             }

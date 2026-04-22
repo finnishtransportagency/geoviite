@@ -101,11 +101,11 @@ enum class RatkoConnectionStatus {
     NOT_CONFIGURED,
 }
 
-fun isFakeOID(oid: String): Boolean {
-    return oid.startsWith(FAKE_OID_PREFIX)
-}
+fun isFakeOID(oid: String): Boolean = oid.startsWith(FAKE_OID_PREFIX)
 
 fun <T> isFakeOID(oid: RatkoOid<T>): Boolean = isFakeOID(oid.toString())
+
+fun <T> isFakeOID(oid: Oid<T>): Boolean = isFakeOID(oid.toString())
 
 @Component
 @ConditionalOnBean(RatkoFakeOidGeneratorConfiguration::class)

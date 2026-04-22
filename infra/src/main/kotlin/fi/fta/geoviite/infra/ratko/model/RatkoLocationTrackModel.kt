@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ratko.model
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.MainBranchRatkoExternalId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.publication.PublicationDetails
 import fi.fta.geoviite.infra.split.Split
@@ -13,7 +14,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class RatkoLocationTrack(
-    val id: String?,
+    val id: Oid<LocationTrack>?,
     val routenumber: RatkoOid<RatkoRouteNumber>?,
     val nodecollection: RatkoNodes?,
     val name: String,
@@ -21,7 +22,7 @@ data class RatkoLocationTrack(
     val type: RatkoLocationTrackType,
     val state: RatkoLocationTrackState,
     val rowMetadata: RatkoMetadata = RatkoMetadata(),
-    val duplicateOf: String?,
+    val duplicateOf: Oid<LocationTrack>?,
     val topologicalConnectivity: RatkoTopologicalConnectivityType,
     val owner: String?,
     val isPlanContext: Boolean,
