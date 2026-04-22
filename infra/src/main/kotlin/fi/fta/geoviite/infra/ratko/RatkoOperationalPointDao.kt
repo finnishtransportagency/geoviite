@@ -23,6 +23,12 @@ import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.time.Instant
 
+data class RatkoOperationalPointVersion(
+    val point: RatkoOperationalPoint,
+    val version: Int,
+    val deleted: Boolean,
+)
+
 fun toRatkoOperationalPoint(rs: ResultSet): RatkoOperationalPoint {
     return RatkoOperationalPoint(
         externalId = rs.getOid("external_id"),
@@ -120,7 +126,7 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     }
 
     @Transactional(readOnly = true)
-    fun listWithVersions(): List<Pair<RatkoOperationalPoint, Int>> {
+    fun listLatestVersions(): List<RatkoOperationalPointVersion> {
         val sql =
             """
             select
@@ -132,12 +138,20 @@ class RatkoOperationalPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               postgis.st_x(location) as x,
               postgis.st_y(location) as y,
               track_number_id,
-              version
-              from integrations.ratko_operational_point
+              version,
+              deleted
+              from integrations.ratko_operational_point_version
+              where expiry_time is null
             """
                 .trimIndent()
 
-        return jdbcTemplate.query(sql) { rs, _ -> toRatkoOperationalPoint(rs) to rs.getInt("version") }
+        return jdbcTemplate.query(sql) { rs, _ ->
+            RatkoOperationalPointVersion(
+                point = toRatkoOperationalPoint(rs),
+                version = rs.getInt("version"),
+                deleted = rs.getBoolean("deleted"),
+            )
+        }
     }
 
     @Transactional(readOnly = true)
