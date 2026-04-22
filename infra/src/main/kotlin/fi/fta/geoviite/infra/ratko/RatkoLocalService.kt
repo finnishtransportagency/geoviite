@@ -116,7 +116,9 @@ constructor(
                 layoutPointOids[layoutPoint.id as IntId]
                     ?.let { extId -> extId to ratkoPointsByOid[extId] }
                     ?.let { (extId, ratkoData) ->
-                        if (ratkoData != null) Triple(layoutPoint, extId, ratkoData) else null
+                        if (ratkoData != null && layoutPoint.ratkoVersion != ratkoData.version)
+                            Triple(layoutPoint, extId, ratkoData)
+                        else null
                     }
             }
             .forEach { (layoutPoint, extId, ratkoPointVersion) ->

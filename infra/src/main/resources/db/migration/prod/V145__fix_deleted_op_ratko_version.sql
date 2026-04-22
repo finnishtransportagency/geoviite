@@ -8,6 +8,7 @@ set ratko_operational_point_version = ropv.version
   from layout.operational_point_external_id ext_id
     join integrations.ratko_operational_point_version ropv
          on ext_id.external_id = ropv.external_id
+           and ext_id.layout_context_id = 'main_official'
   where op.id = ext_id.id
     and op.origin = 'RATKO'
     and op.state = 'DELETED'
@@ -20,6 +21,7 @@ set ratko_operational_point_version = ropv.version
   from layout.operational_point_external_id ext_id
     join integrations.ratko_operational_point_version ropv
          on ext_id.external_id = ropv.external_id
+           and ext_id.layout_context_id = 'main_official'
   where opv.id = ext_id.id
     and opv.origin = 'RATKO'
     and opv.state = 'DELETED'
