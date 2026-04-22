@@ -87,15 +87,15 @@ export function getTickStyle(
 
 export function getTickStyleByDirection(
     point: Coordinate,
-    fromDirection: Coordinate,
-    toDirection: Coordinate,
+    alignmentPoint1: Coordinate,
+    alignmentPoint2: Coordinate,
     length: number,
     style: Style,
 ): Style {
     const numberOfDifferentAngles = 128;
     const angleStep = (Math.PI * 2) / numberOfDifferentAngles;
-    const [x1, y1] = expectCoordinate(fromDirection);
-    const [x2, y2] = expectCoordinate(toDirection);
+    const [x1, y1] = expectCoordinate(alignmentPoint1);
+    const [x2, y2] = expectCoordinate(alignmentPoint2);
     const actualAngle = Math.atan2(x1 - x2, y1 - y2) + Math.PI / 2;
     const roundAngle = Math.round(actualAngle / angleStep) * angleStep;
 
