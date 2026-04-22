@@ -838,8 +838,9 @@ constructor(
         )
     }
 
-    private fun sortRatkoSwitchLocationsByTrack(locations: List<RatkoAssetLocation>) =
-        locations.sortedBy { it.nodecollection.nodes.first().point.locationtrack.toString() }
+    private fun sortRatkoSwitchLocationsByTrack(locations: List<RatkoAssetLocation>) = locations.sortedBy {
+        it.nodecollection.nodes.first().point.locationtrack.toString()
+    }
 
     @Test
     fun removeLocationTrackWithSwitch() {
@@ -1305,18 +1306,16 @@ constructor(
         ratkoService.updateOperationalPointsFromRatko()
         fakeRatko.hasOperationalPoints(listOf(turpeela.copy(name = OperationalPointName("Turpasauna")), liukuainen))
         ratkoService.updateOperationalPointsFromRatko()
-        assertTrue(
-            jdbc.queryOne(
-                """select deleted from integrations.ratko_operational_point_version where name = 'Kannustamo' and version = 2"""
-            ) { rs, _ ->
-                rs.getBoolean("deleted")
-            }
-        )
-        val pointsFromDatabase = ratkoOperationalPointDao.listWithVersions()
-        assertEquals(2, pointsFromDatabase.size)
+        val pointsFromDatabase = ratkoOperationalPointDao.listLatestVersions()
+        assertEquals(3, pointsFromDatabase.size)
+        val sortedPoints = pointsFromDatabase.sortedBy { it.point.name.toString() }
         assertEquals(
-            listOf("Liukuainen", "Turpasauna"),
-            pointsFromDatabase.map { (point) -> point.name.toString() }.sorted(),
+            listOf("Kannustamo", "Liukuainen", "Turpasauna"),
+            sortedPoints.map { it.point.name.toString() },
+        )
+        assertEquals(
+            listOf(true, false, false),
+            sortedPoints.map { it.deleted },
         )
         assertEquals(
             5,
@@ -1326,11 +1325,90 @@ constructor(
         )
     }
 
+    @Test
+    fun `listLatestVersions returns all points including deleted`() {
+        val trackNumberId =
+            trackNumberService
+                .saveDraft(LayoutBranch.main, trackNumber(testDBService.getUnusedTrackNumber(), draft = true))
+                .id
+        trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
+        val alpha = ratkoOperationalPoint("1.2.3.4.1", "Alpha", trackNumberOid = "5.5.5.5.5")
+        val beta = ratkoOperationalPoint("1.2.3.4.2", "Beta", trackNumberOid = "5.5.5.5.5")
+        val gamma = ratkoOperationalPoint("1.2.3.4.3", "Gamma", trackNumberOid = "5.5.5.5.5")
+
+        ratkoOperationalPointDao.updateOperationalPoints(listOf(alpha, beta, gamma))
+
+        ratkoOperationalPointDao.listLatestVersions().sortedBy { it.point.name.toString() }.also { versions ->
+            assertEquals(3, versions.size)
+            assertEquals(listOf("Alpha", "Beta", "Gamma"), versions.map { it.point.name.toString() })
+            assertEquals(listOf(1, 1, 1), versions.map { it.version })
+            assertEquals(listOf(false, false, false), versions.map { it.deleted })
+        }
+
+        ratkoOperationalPointDao.updateOperationalPoints(listOf(alpha, gamma))
+
+        ratkoOperationalPointDao.listLatestVersions().sortedBy { it.point.name.toString() }.also { versions ->
+            assertEquals(3, versions.size)
+            assertEquals(listOf("Alpha", "Beta", "Gamma"), versions.map { it.point.name.toString() })
+            assertEquals(listOf(false, true, false), versions.map { it.deleted })
+            val betaVersion = versions.first { it.point.name.toString() == "Beta" }
+            assertEquals(2, betaVersion.version)
+        }
+    }
+
+    @Test
+    fun `deleted operational point is restored when recreated in Ratko`() {
+        val trackNumberId =
+            trackNumberService
+                .saveDraft(LayoutBranch.main, trackNumber(testDBService.getUnusedTrackNumber(), draft = true))
+                .id
+        trackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, Oid("5.5.5.5.5"))
+        val station = ratkoOperationalPoint("1.2.3.4.8", "Station", trackNumberOid = "5.5.5.5.5")
+
+        // Create the point
+        fakeRatko.hasOperationalPoints(listOf(station))
+        ratkoService.updateOperationalPointsFromRatko()
+
+        operationalPointDao.list(mainDraftContext.context, true)
+            .filter { it.origin == OperationalPointOrigin.RATKO }
+            .also { points ->
+                assertEquals(1, points.size)
+                assertEquals(OperationalPointState.IN_USE, points.first().state)
+                assertEquals(1, points.first().ratkoVersion)
+            }
+
+        // Delete the point
+        fakeRatko.hasOperationalPoints(emptyList())
+        ratkoService.updateOperationalPointsFromRatko()
+
+        operationalPointDao.list(mainDraftContext.context, true)
+            .filter { it.origin == OperationalPointOrigin.RATKO }
+            .also { points ->
+                assertEquals(1, points.size)
+                assertEquals(OperationalPointState.DELETED, points.first().state)
+                assertEquals(2, points.first().ratkoVersion)
+            }
+
+        // Recreate the point with different content
+        val recreatedStation = station.copy(name = OperationalPointName("Station Reborn"))
+        fakeRatko.hasOperationalPoints(listOf(recreatedStation))
+        ratkoService.updateOperationalPointsFromRatko()
+
+        operationalPointDao.list(mainDraftContext.context, true)
+            .filter { it.origin == OperationalPointOrigin.RATKO }
+            .also { points ->
+                assertEquals(1, points.size)
+                assertEquals(OperationalPointState.IN_USE, points.first().state)
+                assertEquals(3, points.first().ratkoVersion)
+            }
+    }
+
     private data class OperationalPointComparison(
         val name: String,
         val draft: Boolean,
         val version: Int,
         val state: OperationalPointState,
+        val ratkoVersion: Int?,
     )
 
     private fun assertLayoutOperationalTableContent(expected: List<OperationalPointComparison>) =
@@ -1344,6 +1422,7 @@ constructor(
                         op.isDraft,
                         requireNotNull(op.version).version,
                         op.state,
+                        op.ratkoVersion,
                     )
                 }
                 .sortedBy { it.name },
@@ -1364,9 +1443,9 @@ constructor(
         ratkoService.updateOperationalPointsFromRatko()
         assertLayoutOperationalTableContent(
             listOf(
-                OperationalPointComparison("Kannustamo", true, 1, OperationalPointState.IN_USE),
-                OperationalPointComparison("Liukuainen", true, 1, OperationalPointState.IN_USE),
-                OperationalPointComparison("Turpeela", true, 1, OperationalPointState.IN_USE),
+                OperationalPointComparison("Kannustamo", true, 1, OperationalPointState.IN_USE, 1),
+                OperationalPointComparison("Liukuainen", true, 1, OperationalPointState.IN_USE, 1),
+                OperationalPointComparison("Turpeela", true, 1, OperationalPointState.IN_USE, 1),
             )
         )
 
@@ -1379,9 +1458,9 @@ constructor(
         // a deletion row in the version table, so draft versions get incremented an extra time
         assertLayoutOperationalTableContent(
             listOf(
-                OperationalPointComparison("Kannustamo", true, 3, OperationalPointState.DELETED),
-                OperationalPointComparison("Liukuainen", false, 1, OperationalPointState.IN_USE),
-                OperationalPointComparison("Turpasauna", true, 3, OperationalPointState.IN_USE),
+                OperationalPointComparison("Kannustamo", true, 3, OperationalPointState.DELETED, 2),
+                OperationalPointComparison("Liukuainen", false, 1, OperationalPointState.IN_USE, 1),
+                OperationalPointComparison("Turpasauna", true, 3, OperationalPointState.IN_USE, 2),
             )
         )
         operationalPointDao
@@ -1397,9 +1476,9 @@ constructor(
         // should have no updates now that the official state of everything matched the integration table already
         assertLayoutOperationalTableContent(
             listOf(
-                OperationalPointComparison("Kannustamo", false, 2, OperationalPointState.DELETED),
-                OperationalPointComparison("Liukuainen", false, 1, OperationalPointState.IN_USE),
-                OperationalPointComparison("Turpasauna", false, 2, OperationalPointState.IN_USE),
+                OperationalPointComparison("Kannustamo", false, 2, OperationalPointState.DELETED, 2),
+                OperationalPointComparison("Liukuainen", false, 1, OperationalPointState.IN_USE, 1),
+                OperationalPointComparison("Turpasauna", false, 2, OperationalPointState.IN_USE, 2),
             )
         )
     }

@@ -8,7 +8,7 @@ import {
     OperationalPointId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { compare } from 'utils/array-utils';
+import { compare, filterUnique } from 'utils/array-utils';
 import i18next from 'i18next';
 import { brand, Brand } from 'common/brand';
 import { KmNumberRange } from 'geometry/geometry-model';
@@ -268,3 +268,7 @@ export type Range<T> = {
     min: T;
     max: T;
 };
+
+export function mapRangesToValues<T>(ranges: Range<T>[]): T[] {
+    return ranges.flatMap((range) => [range.min, range.max]).filter(filterUnique);
+}

@@ -53,20 +53,19 @@ internal fun validateSplitContent(
             emptyList()
         }
 
-    val contentErrors =
-        publicationSplits.flatMap { split ->
-            val containsSource = trackVersions.any { it.id == split.sourceLocationTrackId }
-            val containsTargets =
-                split.targetLocationTracks.all { tlt -> trackVersions.any { it.id == tlt.locationTrackId } }
-            val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.id == s } }
-            listOfNotNull(
-                    validate(containsSource && containsTargets, ERROR) {
-                        "$VALIDATION_SPLIT.split-missing-location-tracks"
-                    },
-                    validate(containsSwitches, ERROR) { "$VALIDATION_SPLIT.split-missing-switches" },
-                )
-                .map { e -> split to e }
-        }
+    val contentErrors = publicationSplits.flatMap { split ->
+        val containsSource = trackVersions.any { it.id == split.sourceLocationTrackId }
+        val containsTargets =
+            split.targetLocationTracks.all { tlt -> trackVersions.any { it.id == tlt.locationTrackId } }
+        val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.id == s } }
+        listOfNotNull(
+                validate(containsSource && containsTargets, ERROR) {
+                    "$VALIDATION_SPLIT.split-missing-location-tracks"
+                },
+                validate(containsSwitches, ERROR) { "$VALIDATION_SPLIT.split-missing-switches" },
+            )
+            .map { e -> split to e }
+    }
 
     return listOf(multipleSplitsStagedErrors, contentErrors).flatten()
 }
@@ -122,9 +121,7 @@ internal fun validateSplitStatus(
 
 internal fun validateSplitSourceLocationTrack(locationTrack: LocationTrack, split: Split): List<LayoutValidationIssue> =
     listOfNotNull(
-        produceIf(locationTrack.exists) {
-            validationError("$VALIDATION_SPLIT.source-not-deleted", "sourceName" to locationTrack.name)
-        },
+        produceIf(locationTrack.exists) { validationError("$VALIDATION_SPLIT.source-not-deleted") },
         produceIf(locationTrack.version != split.sourceLocationTrackVersion) {
             validationError("$VALIDATION_SPLIT.source-edited-after-split", "sourceName" to locationTrack.name)
         },

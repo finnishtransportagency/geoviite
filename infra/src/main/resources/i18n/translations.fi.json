@@ -513,6 +513,7 @@
         "full-name": "Valmis tunnus",
         "track-number": "Ratanumero",
         "state": "Tila",
+        "state-disabled-by-split": "Raiteen tilaa ei voi muokata koska raide on jaettu",
         "track-type": "Raidetyyppi",
         "owner": "Omistaja",
         "track-metadata": "Raiteen metatiedot",
@@ -1927,7 +1928,7 @@
                 "km-post-too-far-from-reference-line": "Ratanumeron {{trackNumber}} tasakilometripiste {{kmNumber}} sijaitsee liian kaukana pituusmittauslinjalta"
             },
             "split": {
-                "source-not-deleted": "Jaettava raide {{sourceName}} ei ole Poistettu-tilassa",
+                "source-not-deleted": "Raide on jaettu, mutta se ei ole Poistettu-tilassa",
                 "source-edited-after-split": "Jaettavaa raidetta {{sourceName}} on muokattu vaikka jako on vielä kesken",
                 "source-and-target-track-numbers-are-different": "Jakamisessa syntynyt raide {{targetName}} on eri ratanumerolla on kuin alkuperäinen jaettu raide {{sourceName}}",
                 "duplicate-on-different-track-number": "Duplikaattiraide {{duplicateTrack}} on eri ratanumerolla kuin jaettava raide",

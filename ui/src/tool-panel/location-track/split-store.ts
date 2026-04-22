@@ -3,6 +3,7 @@ import {
     AlignmentPoint,
     DuplicateStatus,
     formatTrackName,
+    getLongLocationTrackNameSpecifier,
     getNameFreeText,
     getNameSpecifier,
     LayoutLocationTrack,
@@ -547,10 +548,14 @@ export function addSplitToState(
 }
 
 function getLocationTrackDescription(
+    trackNumber: TrackNumber,
     prevStation: OperationalPoint,
     nextStation: OperationalPoint,
+    nameSpecifier?: LocationTrackNameSpecifier,
 ): string {
-    return `${prevStation.name}-${nextStation.name}`;
+    return nameSpecifier
+        ? `${trackNumber} ${prevStation.name} - ${nextStation.name} ${getLongLocationTrackNameSpecifier(nameSpecifier)}`
+        : `${trackNumber} ${prevStation.name} - ${nextStation.name}`;
 }
 
 function getNameForTarget(
@@ -597,8 +602,10 @@ function getNameForTarget(
             endSwitch.nearestOperationalPoint !== undefined &&
             startSwitch.nearestOperationalPoint.name !== endSwitch.nearestOperationalPoint.name
                 ? getLocationTrackDescription(
+                      trackNumber,
                       startSwitch.nearestOperationalPoint,
                       endSwitch.nearestOperationalPoint,
+                      nameSpecifier,
                   )
                 : '',
     };

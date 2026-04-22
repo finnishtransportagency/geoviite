@@ -15,6 +15,7 @@ import {
     LocationAccuracy,
     LocationTrackOwnerId,
     Oid,
+    Range,
     RowVersion,
     Srid,
     SwitchOwnerId,
@@ -342,12 +343,22 @@ export type LocationTrackDuplicate = {
     length: number;
 };
 
+export type PartOfSplit =
+    | 'FINISHED_SOURCE_TRACK'
+    | 'UNFINISHED_SOURCE_TRACK'
+    | 'UNFINISHED_TARGET_TRACK'
+    | 'NONE';
+
+export function isPartOfUnfinishedSplit(partOfSplit: PartOfSplit | undefined): boolean {
+    return partOfSplit === 'UNFINISHED_SOURCE_TRACK' || partOfSplit === 'UNFINISHED_TARGET_TRACK';
+}
+
 export type LocationTrackInfoboxExtras = {
     duplicateOf?: LocationTrackDuplicate;
     duplicates: LocationTrackDuplicate[];
     startSplitPoint?: SplitPoint;
     endSplitPoint?: SplitPoint;
-    partOfUnfinishedSplit?: boolean;
+    partOfSplit: PartOfSplit;
     switches: LocationTrackInfoboxSwitch[];
     operationalPoints: LocationTrackInfoboxOperationalPoint[];
 };
@@ -517,7 +528,7 @@ export type PlanAndStatus = {
 export type PlanLayoutAlignment = {
     header: GeometryAlignmentHeader;
     polyLine?: AlignmentPolyLine;
-    segmentMValues: number[];
+    segmentMValues: Range<number>[];
 };
 
 export type LayoutTrackNumberId = Brand<string, 'LayoutTrackNumberId'>;
@@ -662,7 +673,7 @@ export function formatTrackName(
             return formatTrackNumberTrackName(trackNumber, nameSpecifier, nameFreeText);
         case LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS:
             return nameSpecifier
-                ? `${getShortName(startSwitch)}-${getShortName(endSwitch)} - ${toProperForm(nameSpecifier)}`
+                ? `${getShortName(startSwitch)}-${getShortName(endSwitch)} (${toProperForm(nameSpecifier)})`
                 : `${getShortName(startSwitch)}-${getShortName(endSwitch)}`;
         case LocationTrackNamingScheme.CHORD: {
             if (startSwitch !== undefined && startSwitch?.prefix === endSwitch?.prefix) {
@@ -725,7 +736,7 @@ function getShortName(layoutSwitch: SwitchNameParts | undefined): string {
 //         ? t(`location-track-dialog.name-specifiers.${specifier}`)
 //         : withPlaceholder(undefined);
 // }
-function toProperForm(specifier: LocationTrackNameSpecifier | undefined): string {
+export function toProperForm(specifier: LocationTrackNameSpecifier | undefined): string {
     switch (specifier) {
         case undefined:
             return withPlaceholder(undefined);
@@ -751,5 +762,46 @@ function toProperForm(specifier: LocationTrackNameSpecifier | undefined): string
             return 'LänHR';
         default:
             return LocationTrackNameSpecifier[specifier];
+    }
+}
+
+export function getLongLocationTrackNameSpecifier(
+    specifier: LocationTrackNameSpecifier | undefined,
+): string {
+    switch (specifier) {
+        case undefined:
+            return withPlaceholder(undefined);
+        case LocationTrackNameSpecifier.KR:
+            return 'keskiraide';
+        case LocationTrackNameSpecifier.PR:
+            return 'pohjoinen raide';
+        case LocationTrackNameSpecifier.ER:
+            return 'eteläinen raide';
+        case LocationTrackNameSpecifier.IR:
+            return 'itäinen raide';
+        case LocationTrackNameSpecifier.LR:
+            return 'läntinen raide';
+        case LocationTrackNameSpecifier.PSR:
+            return 'pohjoisin raide';
+        case LocationTrackNameSpecifier.ESR:
+            return 'eteläisin raide';
+        case LocationTrackNameSpecifier.ISR:
+            return 'itäisin raide';
+        case LocationTrackNameSpecifier.LSR:
+            return 'läntisin raide';
+        case LocationTrackNameSpecifier.PKR:
+            return 'pohjoinen keskiraide';
+        case LocationTrackNameSpecifier.EKR:
+            return 'eteläinen keskiraide';
+        case LocationTrackNameSpecifier.IKR:
+            return 'itäinen keskiraide';
+        case LocationTrackNameSpecifier.LKR:
+            return 'läntinen keskiraide';
+        case LocationTrackNameSpecifier.ITHR:
+            return 'itäinen huoltoraide';
+        case LocationTrackNameSpecifier.LANHR:
+            return 'läntinen huoltoraide';
+        default:
+            return exhaustiveMatchingGuard(specifier);
     }
 }

@@ -5,6 +5,7 @@ import InfoboxField from 'tool-panel/infobox/infobox-field';
 import styles from './geometry-alignment-infobox.scss';
 import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import {
+    isPartOfUnfinishedSplit,
     LayoutLocationTrack,
     LayoutReferenceLine,
     LocationTrackId,
@@ -236,13 +237,13 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const canLink =
         !linkingCallInProgress &&
         linkingState?.state === 'allSet' &&
-        !selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit;
+        !isPartOfUnfinishedSplit(selectedLocationTrackInfoboxExtras?.partOfSplit);
 
     const canLockAlignment =
         (linkingAlignmentType === 'REFERENCE_LINE' && selectedLayoutReferenceLine) ||
         (linkingAlignmentType === 'LOCATION_TRACK' &&
             selectedLayoutLocationTrack &&
-            !selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit);
+            !isPartOfUnfinishedSplit(selectedLocationTrackInfoboxExtras?.partOfSplit));
 
     const [linkedAlignmentIds, linkedAlignmentIdsStatus] = useLoaderWithStatus(
         () => getLinkedAlignmentIdsInPlan(planId, layoutContext),
@@ -420,8 +421,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                         setShowAddLocationTrackDialog(true)
                                     }
                                     selectedPartOfUnfinishedSplit={
-                                        selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit ||
-                                        false
+                                        isPartOfUnfinishedSplit(selectedLocationTrackInfoboxExtras?.partOfSplit)
                                     }
                                 />
                             )}

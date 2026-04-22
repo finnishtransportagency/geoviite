@@ -35,11 +35,7 @@ class RatkoTestService(
             )
             val pointIds: List<IntId<OperationalPoint>> = points.map { operationalPointDao.createId() }
             points.zip(pointIds).forEach { (point, pointId) ->
-                operationalPointDao.insertExternalIdInExistingTransaction(
-                    LayoutBranch.main,
-                    pointId,
-                    point.externalId.cast(),
-                )
+                operationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, pointId, point.externalId)
             }
             ratkoLocalService.updateLayoutPointsFromIntegrationTable()
             pointIds
