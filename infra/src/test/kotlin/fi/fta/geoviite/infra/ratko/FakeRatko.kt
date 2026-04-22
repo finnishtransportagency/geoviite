@@ -282,7 +282,7 @@ class FakeRatko(port: Int) {
             .filter { body -> body.length > 3 }
             .mapNotNull { body ->
                 val json = jsonMapper.readValue(body, RatkoRouteNumber::class.java)
-                if (json.id == oid.toString()) json else null
+                if (json.id == oid) json else null
             }
 
     fun acceptsNewBulkTransferGivingItId(bulkTransferId: IntId<BulkTransfer>) {
@@ -549,7 +549,37 @@ class FakeRatko(port: Int) {
             )
             .also { logger.info("Binding $method $url, queryParams=$queryParams, body=$body") }
 
+    fun doesNotHaveRouteNumber(oid: String) {
+        get("/api/locations/v1.1/routenumber/$oid")
+            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Route number couldn't be found with the external id [$oid]")))
+    }
+
+    fun doesNotHaveLocationTrack(oid: String) {
+        get("/api/locations/v1.1/locationtracks/$oid")
+            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Location track couldn't be found with the external id [$oid]")))
+    }
+
+    fun doesNotHaveSwitch(oid: String) {
+        get("/api/assets/v1.2/$oid")
+            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Switch couldn't be found with the external id [$oid]")))
+    }
+
+    fun doesNotHaveLocationTrackPoints(oid: String, km: String) {
+        delete("/api/infra/v1.0/points/$oid/$km")
+            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Points couldn't be found for location track [$oid] at km [$km]")))
+    }
+
+    fun doesNotHaveRouteNumberPoints(oid: String, km: String) {
+        delete("/api/infra/v1.0/routenumber/points/$oid/$km")
+            .respond(notFoundJson(mapOf("code" to "NOT_FOUND", "message" to "Points couldn't be found for route number [$oid] at km [$km]")))
+    }
+
     private fun ok() = HttpResponse.response().withStatusCode(200)
+
+    private fun notFoundJson(body: Any) =
+        HttpResponse.response(jsonMapper.writeValueAsString(body))
+            .withStatusCode(404)
+            .withContentType(MediaType.APPLICATION_JSON)
 
     private fun okJson(body: Any) =
         HttpResponse.response(jsonMapper.writeValueAsString(body))

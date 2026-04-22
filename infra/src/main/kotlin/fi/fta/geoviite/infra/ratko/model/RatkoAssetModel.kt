@@ -3,9 +3,11 @@ package fi.fta.geoviite.infra.ratko.model
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 abstract class RatkoAsset(
@@ -41,7 +43,7 @@ data class RatkoMetadataAsset(
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class RatkoSwitchAsset(
-    val id: String?,
+    val id: Oid<LayoutSwitch>?,
     override val state: RatkoAssetState,
     override val properties: Collection<RatkoAssetProperty>,
     override val rowMetadata: RatkoMetadata = RatkoMetadata(),

@@ -56,7 +56,7 @@ constructor(
     fun updateLayoutPointsFromIntegrationTable() {
         val latestRatkoVersions = ratkoOperationalPointDao.listLatestVersions()
         val ratkoPointsByOid = latestRatkoVersions.associateBy { ratkoVersion ->
-            ratkoVersion.point.externalId.cast<OperationalPoint>()
+            ratkoVersion.point.externalId
         }
         val layoutPoints =
             operationalPointDao.list(LayoutBranch.main.draft, true).filter { point ->
@@ -93,16 +93,16 @@ constructor(
         val existingOidsSet = existingIds.values.toSet()
         val createdIds =
             ratkoPointVersions
-                .filter { (ratkoPoint) -> !existingOidsSet.contains(ratkoPoint.externalId.cast()) }
+                .filter { (ratkoPoint) -> !existingOidsSet.contains(ratkoPoint.externalId) }
                 .associate { (ratkoPoint) ->
-                    createOperationalPointIdForRatkoPoint(ratkoPoint) to ratkoPoint.externalId.cast<OperationalPoint>()
+                    createOperationalPointIdForRatkoPoint(ratkoPoint) to ratkoPoint.externalId
                 }
         return existingIds + createdIds
     }
 
     private fun createOperationalPointIdForRatkoPoint(point: RatkoOperationalPoint): IntId<OperationalPoint> {
         val id = operationalPointDao.createId()
-        operationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, id, point.externalId.cast())
+        operationalPointDao.insertExternalIdInExistingTransaction(LayoutBranch.main, id, point.externalId)
         return id
     }
 
@@ -172,7 +172,7 @@ constructor(
     ) {
         val layoutPointsByOid = layoutPointOids.entries.associate { (k, v) -> v to k }
         ratkoPointVersions.forEach { (ratkoPoint, ratkoPointVersion) ->
-            val id = layoutPointsByOid[ratkoPoint.externalId.cast()]
+            val id = layoutPointsByOid[ratkoPoint.externalId]
             if (id != null && layoutPoints.none { layoutPoint -> layoutPoint.id == id }) {
                 operationalPointDao.insertRatkoPoint(id, ratkoPointVersion, OperationalPointState.IN_USE)
             }
