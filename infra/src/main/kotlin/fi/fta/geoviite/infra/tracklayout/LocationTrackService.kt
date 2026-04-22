@@ -492,18 +492,13 @@ class LocationTrackService(
             val endSplitPoint = createSplitPoint(end, endSwitchLink?.id, END, geocodingContext)
 
             val unfinishedSplits =
-                splitDao.isLocationTracksPartOfAnyUnfinishedSplit(layoutContext.branch, listOf(id))
+                splitDao.getUnfinishedSplitsContainingLocationTracks(layoutContext.branch, listOf(id))
 
             val partOfSplit =
                 when {
-                    unfinishedSplits.isNotEmpty() ->
-                        if (unfinishedSplits.any { it.sourceLocationTrackId == id }) {
-                            PartOfSplit.UNFINISHED_SOURCE_TRACK
-                        } else {
-                            PartOfSplit.UNFINISHED_TARGET_TRACK
-                        }
-                    splitDao.isLocationTrackSourceOfAnyFinishedSplit(layoutContext.branch, id) ->
-                        PartOfSplit.FINISHED_SOURCE_TRACK
+                    unfinishedSplits.any { it.sourceLocationTrackId == id } -> PartOfSplit.UNFINISHED_SOURCE_TRACK
+                    unfinishedSplits.isNotEmpty() -> PartOfSplit.UNFINISHED_TARGET_TRACK
+                    splitDao.isSplitSource(layoutContext.branch, id) -> PartOfSplit.FINISHED_SOURCE_TRACK
                     else -> PartOfSplit.NONE
                 }
 

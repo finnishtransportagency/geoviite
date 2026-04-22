@@ -166,7 +166,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const stateOptions = locationTrackStates
         .map((s) => (s.value !== 'DELETED' || canSetDeleted ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
-    const finishedSplitStateOptions = locationTrackStates
+    const splitSourceTrackStateOptions = locationTrackStates
         .map((s) => (s.value === 'DELETED' ? s : { ...s, disabled: true }))
         .map((ls) => ({ ...ls, qaId: ls.value }));
 
@@ -470,7 +470,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     value={state.locationTrack?.state}
                                     options={
                                         isSplitSourceTrack
-                                            ? finishedSplitStateOptions
+                                            ? splitSourceTrackStateOptions
                                             : stateOptions
                                     }
                                     onChange={(value) => value && updateProp('state', value)}

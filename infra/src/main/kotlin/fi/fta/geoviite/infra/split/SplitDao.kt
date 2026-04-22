@@ -366,7 +366,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         locationTrackIds: Collection<IntId<LocationTrack>>,
     ) = fetchUnfinishedSplits(branch).filter { split -> locationTrackIds.any { lt -> split.containsLocationTrack(lt) } }
 
-    fun isLocationTrackSourceOfAnyFinishedSplit(branch: LayoutBranch, locationTrackId: IntId<LocationTrack>): Boolean {
+    fun isSplitSource(branch: LayoutBranch, locationTrackId: IntId<LocationTrack>): Boolean {
         val sql =
             """
             select exists(

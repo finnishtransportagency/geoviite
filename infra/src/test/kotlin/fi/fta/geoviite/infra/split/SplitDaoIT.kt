@@ -12,10 +12,10 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -136,7 +136,7 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
     }
 
     @Test
-    fun `isLocationTrackSourceOfAnyFinishedSplit returns true for source track and false for target tracks of finished splits`() {
+    fun `isSplitSource returns true for source track and false for target tracks of finished splits`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val geometry = trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
@@ -152,14 +152,14 @@ class SplitDaoIT @Autowired constructor(val splitDao: SplitDao, val publicationD
                 updatedDuplicates = emptyList(),
             )
 
-        assertFalse(splitDao.isLocationTrackSourceOfAnyFinishedSplit(LayoutBranch.main, sourceTrack.id))
-        assertFalse(splitDao.isLocationTrackSourceOfAnyFinishedSplit(LayoutBranch.main, targetTrack.id))
+        assertFalse(splitDao.isSplitSource(LayoutBranch.main, sourceTrack.id))
+        assertFalse(splitDao.isSplitSource(LayoutBranch.main, targetTrack.id))
 
         splitDao.updateSplit(splitId, bulkTransferState = BulkTransferState.DONE)
 
-        assertTrue(splitDao.isLocationTrackSourceOfAnyFinishedSplit(LayoutBranch.main, sourceTrack.id))
-        assertFalse(splitDao.isLocationTrackSourceOfAnyFinishedSplit(LayoutBranch.main, targetTrack.id))
-        assertFalse(splitDao.isLocationTrackSourceOfAnyFinishedSplit(LayoutBranch.main, unrelatedTrack.id))
+        assertTrue(splitDao.isSplitSource(LayoutBranch.main, sourceTrack.id))
+        assertFalse(splitDao.isSplitSource(LayoutBranch.main, targetTrack.id))
+        assertFalse(splitDao.isSplitSource(LayoutBranch.main, unrelatedTrack.id))
     }
 
     @Test

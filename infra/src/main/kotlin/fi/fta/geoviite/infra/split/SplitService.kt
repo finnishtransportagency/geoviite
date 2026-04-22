@@ -107,10 +107,8 @@ class SplitService(
             }
         }
 
-    fun isLocationTrackSourceOfAnyFinishedSplit(
-        branch: LayoutBranch,
-        locationTrackId: IntId<LocationTrack>,
-    ): Boolean = splitDao.isLocationTrackSourceOfAnyFinishedSplit(branch, locationTrackId)
+    fun isLocationTrackSourceOfAnyFinishedSplit(branch: LayoutBranch, locationTrackId: IntId<LocationTrack>): Boolean =
+        splitDao.isSplitSource(branch, locationTrackId)
 
     fun fetchPublicationVersions(
         branch: LayoutBranch,
@@ -195,10 +193,9 @@ class SplitService(
             candidates.locationTracks
                 .associate { version ->
                     val ltSplitIssues = validateSplitForLocationTrack(version.id, context)
-                    val contentIssues =
-                        splitIssues.mapNotNull { (split, error) ->
-                            if (split.containsLocationTrack(version.id)) error else null
-                        }
+                    val contentIssues = splitIssues.mapNotNull { (split, error) ->
+                        if (split.containsLocationTrack(version.id)) error else null
+                    }
                     version.id to ltSplitIssues + contentIssues
                 }
                 .filterValues { it.isNotEmpty() }
@@ -277,11 +274,9 @@ class SplitService(
         splits: List<Pair<Split, LocationTrack>>,
         track: LocationTrack,
     ): List<LayoutValidationIssue> {
-        val splitSourceLocationTrackErrors =
-            splits.flatMap { (split, _) ->
-                if (split.sourceLocationTrackId == trackId) validateSplitSourceLocationTrack(track, split)
-                else emptyList()
-            }
+        val splitSourceLocationTrackErrors = splits.flatMap { (split, _) ->
+            if (split.sourceLocationTrackId == trackId) validateSplitSourceLocationTrack(track, split) else emptyList()
+        }
 
         val statusErrors = splits.mapNotNull { (split, sourceTrack) -> validateSplitStatus(track, sourceTrack, split) }
 
@@ -294,12 +289,9 @@ class SplitService(
         // - Changes to the geocoding context are blocked for any tracks associated with a split
         val draftSplits = splits.filter { (split, _) -> split.publicationId == null }
 
-        val trackNumberMismatchErrors =
-            draftSplits.mapNotNull { (split, sourceTrack) ->
-                produceIf(split.containsTargetTrack(trackId)) {
-                    validateTargetTrackNumberIsUnchanged(sourceTrack, track)
-                }
-            }
+        val trackNumberMismatchErrors = draftSplits.mapNotNull { (split, sourceTrack) ->
+            produceIf(split.containsTargetTrack(trackId)) { validateTargetTrackNumberIsUnchanged(sourceTrack, track) }
+        }
 
         // Geometry error checking is skipped if the track numbers are different between any source
         // & target tracks,
@@ -326,27 +318,24 @@ class SplitService(
         // addresspoints in
         // the validation context (that is: draft target geometry is a subset of draft source
         // geometry)
-        val targetGeometryErrors =
-            splits.mapNotNull { (split, sourceTrack) ->
-                split.getTargetLocationTrack(trackId)?.let { target ->
-                    val (sourceAddresses, targetAddresses) =
-                        getTargetValidationAddressPoints(sourceTrack, target, context)
-                    validateTargetGeometry(target.operation, targetAddresses, sourceAddresses)
-                }
+        val targetGeometryErrors = splits.mapNotNull { (split, sourceTrack) ->
+            split.getTargetLocationTrack(trackId)?.let { target ->
+                val (sourceAddresses, targetAddresses) = getTargetValidationAddressPoints(sourceTrack, target, context)
+                validateTargetGeometry(target.operation, targetAddresses, sourceAddresses)
             }
+        }
 
         // Source address validation ensures that the in-validationcontext source addresspoints are
         // unchanged from the
         // official ones (that is: draft source geometry == official source geometry)
-        val sourceGeometryErrors =
-            splits.mapNotNull { (_, sourceTrack) ->
-                produceIf(trackId == sourceTrack.id) {
-                    val draftAddresses = context.getAddressPoints(sourceTrack)?.addresses
-                    val officialAddresses =
-                        geocodingService.getAddressPoints(context.target.baseContext, trackId)?.addresses
-                    validateSourceGeometry(draftAddresses, officialAddresses)
-                }
+        val sourceGeometryErrors = splits.mapNotNull { (_, sourceTrack) ->
+            produceIf(trackId == sourceTrack.id) {
+                val draftAddresses = context.getAddressPoints(sourceTrack)?.addresses
+                val officialAddresses =
+                    geocodingService.getAddressPoints(context.target.baseContext, trackId)?.addresses
+                validateSourceGeometry(draftAddresses, officialAddresses)
             }
+        }
 
         return targetGeometryErrors + sourceGeometryErrors
     }
@@ -364,31 +353,27 @@ class SplitService(
                 val end = geocodingContext.toAddressPoint(sourceEndPoint)?.first
                 if (start != null && end != null) start to end else null
             }
-        val sourceAddresses: List<AddressPoint<LocationTrackM>>? =
-            sourceAddressPointRange?.let { (start, end) ->
-                context
-                    .getAddressPoints(sourceTrack)
-                    ?.addresses
-                    ?.midPoints
-                    ?.filter { p -> p.address > start.address && p.address < end.address }
-                    ?.let { midPoints ->
-                        listOfNotNull(start.withIntegerPrecision()) +
-                            midPoints +
-                            listOfNotNull(end.withIntegerPrecision())
-                    }
-            }
+        val sourceAddresses: List<AddressPoint<LocationTrackM>>? = sourceAddressPointRange?.let { (start, end) ->
+            context
+                .getAddressPoints(sourceTrack)
+                ?.addresses
+                ?.midPoints
+                ?.filter { p -> p.address > start.address && p.address < end.address }
+                ?.let { midPoints ->
+                    listOfNotNull(start.withIntegerPrecision()) + midPoints + listOfNotNull(end.withIntegerPrecision())
+                }
+        }
 
-        val targetAddresses =
-            sourceAddressPointRange?.let { (sourceStart, sourceEnd) ->
-                val addressRange = sourceStart.address..sourceEnd.address
-                context.getAddressPoints(target.locationTrackId)?.addresses?.integerPrecisionPoints?.let { points ->
-                    if (target.operation == SplitTargetOperation.TRANSFER) {
-                        points.filter { p -> p.address in addressRange }
-                    } else {
-                        points
-                    }
+        val targetAddresses = sourceAddressPointRange?.let { (sourceStart, sourceEnd) ->
+            val addressRange = sourceStart.address..sourceEnd.address
+            context.getAddressPoints(target.locationTrackId)?.addresses?.integerPrecisionPoints?.let { points ->
+                if (target.operation == SplitTargetOperation.TRANSFER) {
+                    points.filter { p -> p.address in addressRange }
+                } else {
+                    points
                 }
             }
+        }
 
         return sourceAddresses to targetAddresses
     }
@@ -461,12 +446,11 @@ class SplitService(
                 targets = collectSplitTargetParams(branch, request.targetTracks, suggestions),
             )
 
-        val savedSplitTargetLocationTracks =
-            targetResults.map { result ->
-                val response = locationTrackService.saveDraft(branch, result.locationTrack, result.geometry)
-                val (resultTrack, resultGeometry) = locationTrackService.getWithGeometry(response)
-                result.copy(locationTrack = resultTrack, geometry = resultGeometry)
-            }
+        val savedSplitTargetLocationTracks = targetResults.map { result ->
+            val response = locationTrackService.saveDraft(branch, result.locationTrack, result.geometry)
+            val (resultTrack, resultGeometry) = locationTrackService.getWithGeometry(response)
+            result.copy(locationTrack = resultTrack, geometry = resultGeometry)
+        }
 
         geocodingService.getGeocodingContext(branch.draft, sourceTrack.trackNumberId)?.let { geocodingContext ->
             updateUnusedDuplicateReferencesToSplitTargetTracks(
@@ -586,18 +570,17 @@ fun findPartialDuplicateCuttingPoint(
             },
             { "Failed to find a shared split point from split source and target tracks" },
         )
-    val splitPointByRequestedSwitch =
-        requestedSwitch?.let {
-            val (switchId, jointNumber) = requestedSwitch
-            requireNotNull(
-                targetSplitPoints.find { targetSplitPoint ->
-                    targetSplitPoint is SwitchSplitPoint &&
-                        targetSplitPoint.switchId == switchId &&
-                        targetSplitPoint.jointNumber == jointNumber
-                },
-                { "Failed to find a switch split point by requested switch" },
-            )
-        }
+    val splitPointByRequestedSwitch = requestedSwitch?.let {
+        val (switchId, jointNumber) = requestedSwitch
+        requireNotNull(
+            targetSplitPoints.find { targetSplitPoint ->
+                targetSplitPoint is SwitchSplitPoint &&
+                    targetSplitPoint.switchId == switchId &&
+                    targetSplitPoint.jointNumber == jointNumber
+            },
+            { "Failed to find a switch split point by requested switch" },
+        )
+    }
     return splitPointByRequestedSwitch ?: lastSharedSplitPoint
 }
 
@@ -880,17 +863,16 @@ private fun cutEdges(geometry: LocationTrackGeometry, indices: ClosedRange<Int>)
 
 private fun verifySwitchSuggestions(
     suggestions: List<Pair<IntId<LayoutSwitch>, SuggestedSwitch?>>
-): List<Pair<IntId<LayoutSwitch>, SuggestedSwitch>> =
-    suggestions.map { (id, suggestion) ->
-        if (suggestion == null) {
-            throw SplitFailureException(
-                message = "Switch re-linking failed to produce a suggestion: switch=$id",
-                localizedMessageKey = "switch-linking-failed",
-            )
-        } else {
-            id to suggestion
-        }
+): List<Pair<IntId<LayoutSwitch>, SuggestedSwitch>> = suggestions.map { (id, suggestion) ->
+    if (suggestion == null) {
+        throw SplitFailureException(
+            message = "Switch re-linking failed to produce a suggestion: switch=$id",
+            localizedMessageKey = "switch-linking-failed",
+        )
+    } else {
+        id to suggestion
     }
+}
 
 private data class GeocodedLocationTrack(
     val track: LocationTrack,
@@ -912,11 +894,13 @@ private fun findNewLocationTracksForUnusedDuplicates(
     unusedDuplicates: List<Pair<LocationTrack, LocationTrackGeometry>>,
     splitTargetLocationTracks: List<SplitTargetResult>,
 ): List<Pair<LocationTrack, LocationTrackGeometry>> {
-    val geocodedUnusedDuplicates =
-        unusedDuplicates.mapNotNull { (track, geometry) -> getGeocoded(geocodingContext, track, geometry) }
+    val geocodedUnusedDuplicates = unusedDuplicates.mapNotNull { (track, geometry) ->
+        getGeocoded(geocodingContext, track, geometry)
+    }
 
-    val geocodedSplitTargets =
-        splitTargetLocationTracks.mapNotNull { (track, geometry) -> getGeocoded(geocodingContext, track, geometry) }
+    val geocodedSplitTargets = splitTargetLocationTracks.mapNotNull { (track, geometry) ->
+        getGeocoded(geocodingContext, track, geometry)
+    }
 
     return geocodedUnusedDuplicates.map { duplicate ->
         geocodedSplitTargets
