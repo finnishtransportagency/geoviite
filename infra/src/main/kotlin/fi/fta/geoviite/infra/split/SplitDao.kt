@@ -361,7 +361,7 @@ class SplitDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             .also { _ -> logger.daoAccess(AccessType.FETCH, Split::class, "publicationIds" to publicationIds) }
     }
 
-    fun isLocationTracksPartOfAnyUnfinishedSplit(
+    fun getUnfinishedSplitsContainingLocationTracks(
         branch: LayoutBranch,
         locationTrackIds: Collection<IntId<LocationTrack>>,
     ) = fetchUnfinishedSplits(branch).filter { split -> locationTrackIds.any { lt -> split.containsLocationTrack(lt) } }
