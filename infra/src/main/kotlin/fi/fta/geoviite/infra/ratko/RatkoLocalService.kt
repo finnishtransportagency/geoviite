@@ -55,9 +55,7 @@ constructor(
     @Transactional
     fun updateLayoutPointsFromIntegrationTable() {
         val latestRatkoVersions = ratkoOperationalPointDao.listLatestVersions()
-        val ratkoPointsByOid = latestRatkoVersions.associateBy { ratkoVersion ->
-            ratkoVersion.point.externalId
-        }
+        val ratkoPointsByOid = latestRatkoVersions.associateBy { ratkoVersion -> ratkoVersion.point.externalId }
         val layoutPoints =
             operationalPointDao.list(LayoutBranch.main.draft, true).filter { point ->
                 point.origin == OperationalPointOrigin.RATKO
@@ -147,7 +145,7 @@ constructor(
                     }
                     // Normal update
                     layoutPoint.ratkoVersion != null -> {
-                        val savedRatkoPoint = ratkoOperationalPointDao.fetch(extId.cast(), layoutPoint.ratkoVersion)
+                        val savedRatkoPoint = ratkoOperationalPointDao.fetch(extId, layoutPoint.ratkoVersion)
                         if (ratkoOperationalPointContentDiffers(ratkoPointVersion.point, savedRatkoPoint)) {
                             operationalPointDao.save(
                                 asMainDraft(layoutPoint.copy(ratkoVersion = ratkoPointVersion.version))
