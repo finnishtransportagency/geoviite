@@ -499,4 +499,57 @@ constructor(
         assertEquals(2, points.size)
         assertEquals(listOf(null, null), points.map { it.rinfIdGenerated })
     }
+
+    @Test
+    fun `GEOVIITE-origin OP has hasExternalChanges = false through its lifecycle`() {
+        // Draft-only
+        val version = operationalPointService.insert(LayoutBranch.main, internalPointSaveRequest("geoviite-op"))
+        assertEquals(false, operationalPointService.get(mainDraftContext.context, version.id)!!.hasExternalChanges)
+
+        // After publishing
+        operationalPointService.publish(LayoutBranch.main, version)
+        assertEquals(false, operationalPointService.get(mainOfficialContext.context, version.id)!!.hasExternalChanges)
+
+        // After user edit
+        operationalPointService.update(LayoutBranch.main, version.id, internalPointUpdateRequest("updated"))
+        assertEquals(false, operationalPointService.get(mainDraftContext.context, version.id)!!.hasExternalChanges)
+    }
+
+    @Test
+    fun `hasExternalChanges reflects Ratko sync state through the OP lifecycle`() {
+        val externalPointId =
+            ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "external"))[0]
+
+        // Draft-only RATKO OP with ratko version: external change (never published)
+        testDBService.save(
+            operationalPoint(
+                contextData = createMainContext(externalPointId, true),
+                origin = OperationalPointOrigin.RATKO,
+                ratkoVersion = 1,
+            )
+        )
+        assertEquals(true, operationalPointService.get(mainDraftContext.context, externalPointId)!!.hasExternalChanges)
+
+        // After publishing: official version compares against itself, no external change
+        testDBService.save(
+            operationalPoint(
+                contextData = createMainContext(externalPointId, false),
+                origin = OperationalPointOrigin.RATKO,
+                ratkoVersion = 1,
+            )
+        )
+        assertEquals(false, operationalPointService.get(mainOfficialContext.context, externalPointId)!!.hasExternalChanges)
+
+        // Manual user edit (no Ratko sync): still no external change
+        operationalPointService.update(
+            LayoutBranch.main,
+            externalPointId,
+            externalPointSaveRequest(rinfType = OperationalPointRinfType.FREIGHT_TERMINAL),
+        )
+        assertEquals(false, operationalPointService.get(mainDraftContext.context, externalPointId)!!.hasExternalChanges)
+
+        // New Ratko sync bumps version: external change detected
+        ratkoTestService.updateRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "changed external"))
+        assertEquals(true, operationalPointService.get(mainDraftContext.context, externalPointId)!!.hasExternalChanges)
+    }
 }
