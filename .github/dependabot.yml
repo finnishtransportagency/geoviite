@@ -58,7 +58,7 @@ updates:
       - dependency-name: "*"
         update-types: [ "version-update:semver-major" ]
       - dependency-name: "react-toastify"
-        versions: [ ">=11.0.5" ]
+        versions: [ "11.0.5" ]
     groups:
       toolchain:
         patterns:
