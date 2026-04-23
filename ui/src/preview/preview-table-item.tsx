@@ -24,7 +24,6 @@ import { PreviewTableEntry } from 'preview/preview-table';
 import { BoundingBox } from 'model/geometry';
 import { RevertRequestSource } from 'preview/preview-view-revert-request';
 import { PublicationGroupAmounts } from 'publication/publication-utils';
-
 import { ValidationStateCell } from './preview-table-validation-state-cell';
 import { ValidationStateRow } from './preview-table-validation-state-row';
 import { ExclamationPoint } from 'geoviite-design-lib/exclamation-point/exclamation-point';
@@ -232,10 +231,14 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     return (
         <React.Fragment>
             <tr className={'preview-table-item'}>
-                <td className={styles['preview-table-item__name']}>
+                <td>
                     <span>{tableEntry.uiName}</span>
                     {externalChange && (
-                        <ExclamationPoint title={t('preview-table.external-change')} />
+                        <span
+                            className={styles['preview-table-item__notify-container']}
+                            title={t('preview-table.external-change')}>
+                            <ExclamationPoint />
+                        </span>
                     )}
                 </td>
                 <td>{trackNumberSpans}</td>
