@@ -170,10 +170,9 @@ $-color-warning: vayla-design.$color-lemon-dark;
         padding: 10px;
     }
 
-    &__name {
-        display: flex;
-        gap: 6px;
-        align-items: center;
+    &__notify-container {
+        vertical-align: text-bottom;
+        margin-left: 4px;
     }
 }
 
