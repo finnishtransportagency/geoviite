@@ -48,6 +48,7 @@ constructor(
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getWithExpectedError,
             ::setupValidLocationTrack to api.locationTrackGeometry::getWithExpectedError,
+            ::setupValidLocationTrack to api.locationTrackProfile::getWithExpectedError,
             ::setupValidTrackNumber to api.trackNumbers::getWithExpectedError,
             ::setupValidTrackNumber to api.trackNumberGeometry::getWithExpectedError,
             ::setupValidTrackNumber to api.trackNumberKms::getWithExpectedError,
@@ -93,6 +94,7 @@ constructor(
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getWithEmptyBody,
             ::setupValidLocationTrack to api.locationTrackGeometry::getWithEmptyBody,
+            ::setupValidLocationTrack to api.locationTrackProfile::getWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumbers::getWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumberGeometry::getWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumberKms::getWithEmptyBody,

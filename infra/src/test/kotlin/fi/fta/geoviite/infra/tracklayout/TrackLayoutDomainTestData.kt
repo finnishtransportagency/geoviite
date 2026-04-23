@@ -333,6 +333,16 @@ fun referenceLineAndGeometry(
     return referenceLine to geometry
 }
 
+fun referenceLineAndGeometryOfElements(
+    trackNumberId: IntId<LayoutTrackNumber>,
+    elements: List<GeometryElement>,
+    startAddress: TrackMeter = TrackMeter.ZERO,
+): Pair<ReferenceLine, ReferenceLineGeometry> {
+    val geometry = referenceLineGeometryOfElements(elements)
+    val referenceLine = referenceLine(trackNumberId = trackNumberId, geometry = geometry, startAddress = startAddress)
+    return referenceLine to geometry
+}
+
 fun referenceLine(
     trackNumberId: IntId<LayoutTrackNumber>,
     geometry: ReferenceLineGeometry? = null,
@@ -526,6 +536,11 @@ fun referenceLineGeometry(vararg segments: LayoutSegment): ReferenceLineGeometry
 fun referenceLineGeometry(segments: List<LayoutSegment>): ReferenceLineGeometry =
     ReferenceLineGeometry(segments = segments)
 
+fun referenceLineGeometryOfElements(elements: List<GeometryElement>): ReferenceLineGeometry =
+    referenceLineGeometry(elements.map { element ->
+        segment(element.start, element.end, sourceId = element.id, sourceStartM = 0.0)
+    })
+
 fun trackGeometryOfSegments(vararg segments: LayoutSegment): TmpLocationTrackGeometry =
     trackGeometryOfSegments(segments.toList())
 
@@ -541,6 +556,11 @@ fun trackGeometryOfSegments(segments: List<LayoutSegment>): TmpLocationTrackGeom
                 )
             )
         )
+
+fun trackGeometryOfElements(elements: List<GeometryElement>): TmpLocationTrackGeometry =
+    trackGeometryOfSegments(elements.map { element ->
+        segment(element.start, element.end, sourceId = element.id, sourceStartM = 0.0)
+    })
 
 class BuildTrackTopology {
     constructor() {

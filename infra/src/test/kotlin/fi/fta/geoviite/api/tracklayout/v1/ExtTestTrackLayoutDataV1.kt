@@ -305,3 +305,65 @@ data class ExtTestStationLinkCollectionResponseV1(
     val rataverkon_versio: String,
     val liikennepaikkavalit: List<ExtTestStationLinkV1>,
 )
+
+data class ExtTestLocationTrackProfileResponseV1(
+    val rataverkon_versio: String,
+    val sijaintiraide_oid: String,
+    val koordinaatisto: String,
+    val osoitevalit: List<ExtTestProfileAddressRangeV1>,
+)
+
+data class ExtTestProfileAddressRangeV1(
+    val alku: String?,
+    val loppu: String?,
+    val taitepisteet: List<ExtTestProfileBreakPointV1>,
+)
+
+data class ExtTestProfileBreakPointV1(
+    val pyoristyksen_alku: ExtTestProfileCurvedSectionEndpointV1,
+    val taite: ExtTestProfileIntersectionPointV1,
+    val pyoristyksen_loppu: ExtTestProfileCurvedSectionEndpointV1,
+    val pyoristyssade: Number,
+    val tangentti: Number?,
+    val kaltevuusjakso_taaksepain: ExtTestProfileLinearSectionV1,
+    val kaltevuusjakso_eteenpain: ExtTestProfileLinearSectionV1,
+    val paaluluku: ExtTestProfileStationValuesV1,
+    @Suppress("NonAsciiCharacters") val suunnitelman_korkeusjärjestelmä: String?,
+    val suunnitelman_korkeusasema: String?,
+    val huomiot: List<ExtTestProfileRemarkV1>,
+)
+
+data class ExtTestProfileCurvedSectionEndpointV1(
+    @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: Number,
+    val korkeus_n2000: Number?,
+    val kaltevuus: Number,
+    val sijainti: ExtTestProfileLocationV1,
+)
+
+data class ExtTestProfileIntersectionPointV1(
+    @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: Number,
+    val korkeus_n2000: Number?,
+    val sijainti: ExtTestProfileLocationV1,
+)
+
+data class ExtTestProfileLocationV1(
+    val rataosoite: String?,
+    val x: Number?,
+    val y: Number?,
+)
+
+data class ExtTestProfileLinearSectionV1(
+    val pituus: Number?,
+    val suora_osa: Number?,
+)
+
+data class ExtTestProfileStationValuesV1(
+    val alku: Number?,
+    val taite: Number?,
+    val loppu: Number?,
+)
+
+data class ExtTestProfileRemarkV1(
+    val koodi: String,
+    val selite: String,
+)
