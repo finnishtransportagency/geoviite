@@ -9,7 +9,7 @@ updates:
     ignore:
       - dependency-name: "org.seleniumhq*"
       - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+        update-types: [ "version-update:semver-major" ]
     groups:
       spring-boot:
         patterns:
@@ -56,7 +56,9 @@ updates:
     open-pull-requests-limit: 10
     ignore:
       - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+        update-types: [ "version-update:semver-major" ]
+      - dependency-name: "react-toastify"
+        versions: [ "11.1.0" ]
     groups:
       toolchain:
         patterns:
