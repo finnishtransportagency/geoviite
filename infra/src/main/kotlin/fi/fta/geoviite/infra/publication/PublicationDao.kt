@@ -455,20 +455,21 @@ class PublicationDao(
               candidate_operational_point.change_time,
               candidate_operational_point.change_user,
               layout.infer_operation_from_operational_point_state_transition(
-                (select state
-                 from layout.operational_point_in_layout_context('OFFICIAL', null)
-                 where id = candidate_operational_point.id),
+                official_op.state,
                 candidate_operational_point.state
               ) as operation,
               candidate_operational_point.design_asset_state,
               postgis.st_x(candidate_operational_point.location) as point_x,
               postgis.st_y(candidate_operational_point.location) as point_y,
               (candidate_operational_point.ratko_operational_point_version is distinct from
-                  (select ratko_operational_point_version
-                   from layout.operational_point_in_layout_context('OFFICIAL', null)
-                   where id = candidate_operational_point.id)
+                  official_op.ratko_operational_point_version
               ) as external_change
             from layout.operational_point_version_view candidate_operational_point
+              left join lateral (
+                select state, ratko_operational_point_version
+                from layout.operational_point_in_layout_context('OFFICIAL', null)
+                where id = candidate_operational_point.id
+              ) official_op on true
             where exists(select * from layout.operational_point live_op
                          where live_op.id = candidate_operational_point.id
                           and live_op.version = candidate_operational_point.version
