@@ -17,6 +17,7 @@ import {
     LayoutSwitchId,
     LocationTrackId,
     SplitPoint,
+    SwitchNameParts,
 } from 'track-layout/track-layout-model';
 import {
     FirstSplitTargetCandidate,
@@ -258,6 +259,16 @@ export function getSplitPointName(
 const splitKey = (split: SplitTargetCandidate | FirstSplitTargetCandidate) =>
     `${split.location.x}_${split.location.y}`;
 
+function getSwitchNameParts(
+    splitPoint: SplitPoint,
+    switches: LayoutSwitch[],
+): SwitchNameParts | undefined {
+    if (splitPoint.type === 'SWITCH_SPLIT_POINT') {
+        return switches.find((s) => s.id === splitPoint.switchId)?.nameParts;
+    }
+    return undefined;
+}
+
 const createSplitComponent = (
     validatedSplit: ValidatedSplit,
     switches: LayoutSwitch[],
@@ -272,6 +283,7 @@ const createSplitComponent = (
     setHighlightedSplitPoint: (splitPoint: undefined | SplitPoint) => void,
     setNameRef: (key: SplitTargetId, value: HTMLInputElement | null) => void,
     setDescriptionBaseRef: (key: SplitTargetId, value: HTMLInputElement | null) => void,
+    endSplitPoint: SplitPoint,
 ) => {
     const splitPoint = validatedSplit.split.splitPoint;
     const splitPointExists =
@@ -279,6 +291,9 @@ const createSplitComponent = (
         (splitPoint.type === 'SWITCH_SPLIT_POINT' &&
             switches.find((s) => s.id === splitPoint.switchId)?.stateCategory !== 'NOT_EXISTING');
     const { split, nameIssues, descriptionIssues, switchIssues } = validatedSplit;
+
+    const startSwitchNameParts = getSwitchNameParts(split.splitPoint, switches);
+    const endSwitchNameParts = getSwitchNameParts(endSplitPoint, switches);
 
     return {
         component: (
@@ -302,6 +317,8 @@ const createSplitComponent = (
                 setFocusedSplit={setFocusedSplit}
                 setHighlightedSplit={setHighlightedSplit}
                 setHighlightedSplitPoint={setHighlightedSplitPoint}
+                startSwitchNameParts={startSwitchNameParts}
+                endSwitchNameParts={endSwitchNameParts}
             />
         ),
 
@@ -471,7 +488,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
 
     const splitComponents = useMinimallyUpdatedMappedList(
         splitsValidated,
-        (split) =>
+        (split, index) =>
             createSplitComponent(
                 split,
                 switches,
@@ -486,6 +503,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 setHighlightedSplitPoint,
                 setNameRef,
                 setDescriptionBaseRef,
+                allSplits[index + 1]?.splitPoint ?? splittingState.endSplitPoint,
             ),
         (split) => split.split.id,
     );
