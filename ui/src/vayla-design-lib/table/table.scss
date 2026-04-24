@@ -57,7 +57,7 @@ $table-cell-padding: 10px 16px;
     &--dark {
         td,
         .table__td {
-            background: transparent;
+            background: colors.$color-blue-darker;
             color: colors.$color-white-default;
             border-bottom: 1px solid colors.$color-blue-dark;
         }
