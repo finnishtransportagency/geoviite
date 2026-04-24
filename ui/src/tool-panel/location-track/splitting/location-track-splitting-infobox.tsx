@@ -17,7 +17,6 @@ import {
     LayoutSwitchId,
     LocationTrackId,
     SplitPoint,
-    SwitchNameParts,
 } from 'track-layout/track-layout-model';
 import {
     FirstSplitTargetCandidate,
@@ -57,6 +56,7 @@ import { LocationTrackSplitRelinkingNotice } from 'tool-panel/location-track/spl
 import { ConfirmSplitDialog } from 'tool-panel/location-track/splitting/confirm-split-dialog';
 import {
     findFirstErroredField,
+    getSwitchNameParts,
     hasUnrelinkableSwitches,
     mandatoryFieldMissing,
     otherError,
@@ -259,16 +259,6 @@ export function getSplitPointName(
 
 const splitKey = (split: SplitTargetCandidate | FirstSplitTargetCandidate) =>
     `${split.location.x}_${split.location.y}`;
-
-function getSwitchNameParts(
-    splitPoint: SplitPoint,
-    switches: LayoutSwitch[],
-): SwitchNameParts | undefined {
-    if (splitPoint.type === 'SWITCH_SPLIT_POINT') {
-        return switches.find((s) => s.id === splitPoint.switchId)?.nameParts;
-    }
-    return undefined;
-}
 
 const createSplitComponent = (
     validatedSplit: ValidatedSplit,

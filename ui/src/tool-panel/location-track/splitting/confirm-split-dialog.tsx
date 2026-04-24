@@ -10,6 +10,7 @@ import {
     FirstSplitTargetCandidate,
     SplitTargetCandidate,
 } from 'tool-panel/location-track/split-store';
+import { getSwitchNameParts } from 'tool-panel/location-track/splitting/split-utils';
 import { TrackMeter } from 'common/common-model';
 import {
     formatTrackDescription,
@@ -37,21 +38,14 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
 }) => {
     const { t } = useTranslation();
 
-    function getSwitchNameParts(splitPoint: SplitPoint) {
-        if (splitPoint.type === 'SWITCH_SPLIT_POINT') {
-            return switches.find((s) => s.id === splitPoint.switchId)?.nameParts;
-        }
-        return undefined;
-    }
-
     function getDescription(
         target: FirstSplitTargetCandidate | SplitTargetCandidate,
         index: number,
     ): string {
         if (target.suffixMode === 'NONE') return target.descriptionBase;
-        const startSwitchNameParts = getSwitchNameParts(target.splitPoint);
+        const startSwitchNameParts = getSwitchNameParts(target.splitPoint, switches);
         const endSplitPointForTarget = allSplits[index + 1]?.splitPoint ?? endSplitPoint;
-        const endSwitchNameParts = getSwitchNameParts(endSplitPointForTarget);
+        const endSwitchNameParts = getSwitchNameParts(endSplitPointForTarget, switches);
         return formatTrackDescription(
             target.descriptionBase,
             target.suffixMode,
