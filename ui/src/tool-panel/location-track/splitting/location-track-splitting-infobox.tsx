@@ -617,7 +617,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             {confirmSplit && (
                 <ConfirmSplitDialog
                     sourceTrackName={locationTrack.name}
+                    sourceTrackId={locationTrack.id}
+                    changeTimes={changeTimes}
                     allSplits={allSplits}
+                    endSplitPoint={splittingState.endSplitPoint}
                     onConfirm={postSplit}
                     onCancel={() => setConfirmSplit(false)}
                 />
