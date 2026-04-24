@@ -1,3 +1,5 @@
+@use 'vayla-design-lib/colors' as *;
+
 .oid-container {
     display: inline-flex;
     align-items: center;
@@ -7,4 +9,12 @@
     display: flex;
     cursor: pointer;
     padding: 0 6px;
+}
+
+.oid--dark {
+    .oid-icon-container {
+        svg {
+            fill: $color-blue-light;
+        }
+    }
 }

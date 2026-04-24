@@ -10,17 +10,16 @@ import {
     FirstSplitTargetCandidate,
     SplitTargetCandidate,
 } from 'tool-panel/location-track/split-store';
-import { Oid, TrackMeter } from 'common/common-model';
+import { LayoutBranch, TrackMeter } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { LocationTrackId, SplitPoint } from 'track-layout/track-layout-model';
 import { formatTrackMeter } from 'utils/geography-utils';
-import { getLocationTrackOids } from 'track-layout/layout-location-track-api';
-import { useLoader } from 'utils/react-utils';
-import { filterNotEmpty } from 'utils/array-utils';
+import { LocationTrackOid, OidVariant } from 'track-layout/oid';
 
 type ConfirmSplitDialogProps = {
     sourceTrackName: string;
     sourceTrackId: LocationTrackId;
+    branch: LayoutBranch;
     changeTimes: ChangeTimes;
     allSplits: (FirstSplitTargetCandidate | SplitTargetCandidate)[];
     endSplitPoint: SplitPoint;
@@ -31,6 +30,7 @@ type ConfirmSplitDialogProps = {
 export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
     sourceTrackName,
     sourceTrackId,
+    branch,
     changeTimes,
     allSplits,
     endSplitPoint,
@@ -39,35 +39,6 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
 }) => {
     const { t } = useTranslation();
     const oidPlaceholder = t('tool-panel.location-track.splitting.oid-set-on-publish');
-
-    const sourceOid = useLoader(
-        () => getLocationTrackOids(sourceTrackId, changeTimes.layoutLocationTrackExtId),
-        [sourceTrackId, changeTimes.layoutLocationTrackExtId],
-    );
-
-    const duplicateTrackIds = allSplits
-        .filter((s) => s.duplicateTrackId && s.operation !== 'CREATE')
-        .map((s) => s.duplicateTrackId)
-        .filter(filterNotEmpty);
-
-    const duplicateOids = useLoader(
-        () =>
-            Promise.all(
-                duplicateTrackIds.map((id) =>
-                    getLocationTrackOids(id, changeTimes.layoutLocationTrackExtId).then(
-                        (oids) => [id, oids['MAIN']] as [LocationTrackId, Oid | undefined],
-                    ),
-                ),
-            ).then((entries) => new Map(entries)),
-        [duplicateTrackIds.join(','), changeTimes.layoutLocationTrackExtId],
-    );
-
-    const getTargetOid = (target: FirstSplitTargetCandidate | SplitTargetCandidate): string => {
-        if (target.duplicateTrackId && target.operation !== 'CREATE') {
-            return duplicateOids?.get(target.duplicateTrackId) ?? '';
-        }
-        return oidPlaceholder;
-    };
 
     return (
         <Dialog
@@ -97,7 +68,14 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                     <div>{sourceTrackName}</div>
                 </FieldLayout>
                 <FieldLayout label={t('split-details-dialog.source-oid')} variant={FieldLayoutVariant.DARK}>
-                    <div>{sourceOid?.['MAIN'] ?? ''}</div>
+                    <div>
+                        <LocationTrackOid
+                            id={sourceTrackId}
+                            branch={branch}
+                            changeTimes={changeTimes}
+                            variant={OidVariant.DARK}
+                        />
+                    </div>
                 </FieldLayout>
                 <FieldLayout
                     variant={FieldLayoutVariant.DARK}
@@ -122,7 +100,18 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                                 {allSplits.map((target, index) => (
                                     <tr key={target.id}>
                                         <td>{target.name}</td>
-                                        <td>{getTargetOid(target)}</td>
+                                        <td>
+                                            {target.duplicateTrackId && target.operation !== 'CREATE' ? (
+                                                <LocationTrackOid
+                                                    id={target.duplicateTrackId}
+                                                    branch={branch}
+                                                    changeTimes={changeTimes}
+                                                    variant={OidVariant.DARK}
+                                                />
+                                            ) : (
+                                                oidPlaceholder
+                                            )}
+                                        </td>
                                         <td>
                                             {t(`tool-panel.location-track.splitting.operation.${target.operation}`)}
                                         </td>
