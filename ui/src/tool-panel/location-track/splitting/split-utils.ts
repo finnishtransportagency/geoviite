@@ -6,6 +6,7 @@ import {
     LocationTrackNamingScheme,
     SplitPoint,
     splitPointsAreSame,
+    SwitchNameParts,
 } from 'track-layout/track-layout-model';
 import {
     FirstSplitTargetCandidate,
@@ -334,6 +335,16 @@ export const hasUnrelinkableSwitches = (
     relinkingValidationResults.some((err) =>
         err.validationIssues.some((ve) => ve.type === 'ERROR'),
     );
+
+export function getSwitchNameParts(
+    splitPoint: SplitPoint,
+    switches: LayoutSwitch[],
+): SwitchNameParts | undefined {
+    if (splitPoint.type === 'SWITCH_SPLIT_POINT') {
+        return switches.find((s) => s.id === splitPoint.switchId)?.nameParts;
+    }
+    return undefined;
+}
 
 export const getOperation = (
     trackId: LocationTrackId,
