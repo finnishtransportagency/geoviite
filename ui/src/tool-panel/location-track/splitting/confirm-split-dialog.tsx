@@ -10,22 +10,16 @@ import {
     FirstSplitTargetCandidate,
     SplitTargetCandidate,
 } from 'tool-panel/location-track/split-store';
-import { LayoutBranch, TrackMeter } from 'common/common-model';
-import { ChangeTimes } from 'common/common-slice';
+import { TrackMeter } from 'common/common-model';
 import {
     formatTrackDescription,
     LayoutSwitch,
-    LocationTrackId,
     SplitPoint,
 } from 'track-layout/track-layout-model';
 import { formatTrackMeter } from 'utils/geography-utils';
-import { LocationTrackOid, OidVariant } from 'track-layout/oid';
 
 type ConfirmSplitDialogProps = {
     sourceTrackName: string;
-    sourceTrackId: LocationTrackId;
-    branch: LayoutBranch;
-    changeTimes: ChangeTimes;
     allSplits: (FirstSplitTargetCandidate | SplitTargetCandidate)[];
     switches: LayoutSwitch[];
     endSplitPoint: SplitPoint;
@@ -35,9 +29,6 @@ type ConfirmSplitDialogProps = {
 
 export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
     sourceTrackName,
-    sourceTrackId,
-    branch,
-    changeTimes,
     allSplits,
     switches,
     endSplitPoint,
@@ -45,7 +36,6 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
     onCancel,
 }) => {
     const { t } = useTranslation();
-    const oidPlaceholder = t('tool-panel.location-track.splitting.oid-set-on-publish');
 
     function getSwitchNameParts(splitPoint: SplitPoint) {
         if (splitPoint.type === 'SWITCH_SPLIT_POINT') {
@@ -98,16 +88,6 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                 <FieldLayout label={t('split-details-dialog.source-name')} variant={FieldLayoutVariant.DARK}>
                     <div>{sourceTrackName}</div>
                 </FieldLayout>
-                <FieldLayout label={t('split-details-dialog.source-oid')} variant={FieldLayoutVariant.DARK}>
-                    <div>
-                        <LocationTrackOid
-                            id={sourceTrackId}
-                            branch={branch}
-                            changeTimes={changeTimes}
-                            variant={OidVariant.DARK}
-                        />
-                    </div>
-                </FieldLayout>
                 <FieldLayout
                     variant={FieldLayoutVariant.DARK}
                     label={t('tool-panel.location-track.splitting.confirm-split-targets', {
@@ -120,7 +100,6 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                                     splitDetailsStyles['split-details-dialog__table-header']
                                 }>
                                 <tr>
-                                    <Th>{t('split-details-dialog.target-oid')}</Th>
                                     <Th>{t('split-details-dialog.target-name')}</Th>
                                     <Th>{t('tool-panel.location-track.splitting.full-description')}</Th>
                                     <Th>{t('split-details-dialog.operation')}</Th>
@@ -131,18 +110,6 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                             <tbody>
                                 {allSplits.map((target, index) => (
                                     <tr key={target.id}>
-                                        <td>
-                                            {target.duplicateTrackId && target.operation !== 'CREATE' ? (
-                                                <LocationTrackOid
-                                                    id={target.duplicateTrackId}
-                                                    branch={branch}
-                                                    changeTimes={changeTimes}
-                                                    variant={OidVariant.DARK}
-                                                />
-                                            ) : (
-                                                oidPlaceholder
-                                            )}
-                                        </td>
                                         <td>{target.name}</td>
                                         <td>{getDescription(target, index)}</td>
                                         <td>
