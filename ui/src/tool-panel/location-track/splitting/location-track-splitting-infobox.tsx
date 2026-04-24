@@ -54,6 +54,7 @@ import {
     NoticeWithNavigationLink,
 } from 'tool-panel/location-track/splitting/location-track-split-notices';
 import { LocationTrackSplitRelinkingNotice } from 'tool-panel/location-track/splitting/location-track-split-relinking-notice';
+import { ConfirmSplitDialog } from 'tool-panel/location-track/splitting/confirm-split-dialog';
 import {
     findFirstErroredField,
     hasUnrelinkableSwitches,
@@ -378,6 +379,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const { t } = useTranslation();
     const [confirmExit, setConfirmExit] = React.useState(false);
     const [confirmOpenTaskListAndExit, setConfirmOpenTaskListAndExit] = React.useState(false);
+    const [confirmSplit, setConfirmSplit] = React.useState(false);
     const allSplits = useMinimallyUpdatedList(
         [splittingState.firstSplit, ...splittingState.splits],
         (split) => splitKey(split),
@@ -582,7 +584,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         </Button>
                         <Button
                             size={ButtonSize.SMALL}
-                            onClick={() => postSplit()}
+                            onClick={() => setConfirmSplit(true)}
                             isProcessing={isPostingSplit}
                             disabled={
                                 splittingState.disabled ||
@@ -610,6 +612,14 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                     closeDialog={() => setConfirmOpenTaskListAndExit(false)}
                     stopSplitting={stopSplitting}
                     showTaskList={() => onShowTaskList(locationTrack.id)}
+                />
+            )}
+            {confirmSplit && (
+                <ConfirmSplitDialog
+                    sourceTrackName={locationTrack.name}
+                    allSplits={allSplits}
+                    onConfirm={postSplit}
+                    onCancel={() => setConfirmSplit(false)}
                 />
             )}
         </React.Fragment>
