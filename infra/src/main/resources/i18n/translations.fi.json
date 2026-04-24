@@ -931,6 +931,7 @@
                 "confirm-split": "Suorita jako",
                 "confirm-split-title": "Vahvista raiteen jakaminen",
                 "confirm-split-targets": "Jakamisessa syntyvät/muokattavat raiteet ({{trackCount}} kpl)",
+                "oid-set-on-publish": "Asetetaan julkaisussa",
                 "confirm-split-point-removal": "Poista katkaisukohta",
                 "splitting-success": "Sijaintiraide {{locationTrackName}} jaettu {{count}} osaan",
                 "splitting-guide": "Valitse kartalta vaihteet, joiden kohdalta raide katkaistaan.",

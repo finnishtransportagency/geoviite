@@ -3,9 +3,14 @@ import styles from './table.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconComponent, IconSize } from 'vayla-design-lib/icon/Icon';
 
+export enum TableVariant {
+    DARK = 'table--dark',
+}
+
 export type TableProps = {
     wide?: boolean;
     isLoading?: boolean;
+    variant?: TableVariant;
 } & React.HTMLProps<HTMLTableElement>;
 
 export const Table: React.FC<TableProps> = (props: TableProps) => {
@@ -13,6 +18,7 @@ export const Table: React.FC<TableProps> = (props: TableProps) => {
         props.className,
         styles.table,
         props.wide && styles['table--wide'],
+        props.variant && styles[props.variant],
     );
 
     const containerClassName = createClassName(
