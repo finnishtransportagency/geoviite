@@ -85,7 +85,7 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                 </div>
             }>
             <div>
-                <FieldLayout label={t('split-details-dialog.source-name')} variant={FieldLayoutVariant.DARK}>
+                <FieldLayout label={t('tool-panel.location-track.splitting.confirm-split-source-name')} variant={FieldLayoutVariant.DARK}>
                     <div>{sourceTrackName}</div>
                 </FieldLayout>
                 <FieldLayout
@@ -100,11 +100,11 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                                     splitDetailsStyles['split-details-dialog__table-header']
                                 }>
                                 <tr>
-                                    <Th>{t('split-details-dialog.target-name')}</Th>
-                                    <Th>{t('tool-panel.location-track.splitting.full-description')}</Th>
-                                    <Th>{t('split-details-dialog.operation')}</Th>
-                                    <Th>{t('split-details-dialog.start-address')}</Th>
-                                    <Th>{t('split-details-dialog.end-address')}</Th>
+                                    <Th>{t('tool-panel.location-track.splitting.confirm-split-target-name')}</Th>
+                                    <Th>{t('tool-panel.location-track.splitting.confirm-split-description')}</Th>
+                                    <Th>{t('tool-panel.location-track.splitting.confirm-split-operation')}</Th>
+                                    <Th>{t('tool-panel.location-track.splitting.confirm-split-start-address')}</Th>
+                                    <Th>{t('tool-panel.location-track.splitting.confirm-split-end-address')}</Th>
                                 </tr>
                             </thead>
                             <tbody>

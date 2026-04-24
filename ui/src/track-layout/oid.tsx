@@ -26,16 +26,11 @@ type SwitchOidProps = OidProps<LayoutSwitchId>;
 
 type OperationalPointOidProps = OidProps<OperationalPointId>;
 
-export enum OidVariant {
-    DARK = 'oid--dark',
-}
-
 interface OidProps<Id> {
     id: Id;
     branch: LayoutBranch;
     changeTimes: ChangeTimes;
     getFallbackTextIfNoOid?: () => string;
-    variant?: OidVariant;
 }
 
 function copyOidToClipBoard(t: TFunction<'translation', undefined>, oid: string): () => void {
@@ -53,7 +48,7 @@ function oidComponent<Id>(
     apiGetter: (id: Id, changeTime: TimeStamp) => Promise<{ [key in LayoutBranch]?: Oid }>,
     changeTimeGetter: (changeTimes: ChangeTimes) => TimeStamp,
 ): (props: OidProps<Id>) => React.JSX.Element {
-    return ({ id, changeTimes, getFallbackTextIfNoOid, variant }) => {
+    return ({ id, changeTimes, getFallbackTextIfNoOid }) => {
         const { t } = useTranslation();
 
         const changeTime = changeTimeGetter(changeTimes);
@@ -61,10 +56,9 @@ function oidComponent<Id>(
 
         const oidExists = oids !== undefined && 'MAIN' in oids;
         const oidToDisplay = oidExists ? (oids['MAIN'] ?? '') : (getFallbackTextIfNoOid?.() ?? '');
-        const variantClass = variant ? ` ${styles[variant]}` : '';
 
         return oidExists ? (
-            <span className={styles['oid-container'] + variantClass}>
+            <span className={styles['oid-container']}>
                 {oidToDisplay}
                 <a
                     className={styles['oid-icon-container']}
@@ -73,7 +67,7 @@ function oidComponent<Id>(
                 </a>
             </span>
         ) : (
-            <span className={variantClass}>{oidToDisplay}</span>
+            <span>{oidToDisplay}</span>
         );
     };
 }
