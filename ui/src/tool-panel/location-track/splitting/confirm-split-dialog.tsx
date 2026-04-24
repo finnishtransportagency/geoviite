@@ -12,7 +12,12 @@ import {
 } from 'tool-panel/location-track/split-store';
 import { LayoutBranch, TrackMeter } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
-import { LocationTrackId, SplitPoint } from 'track-layout/track-layout-model';
+import {
+    formatTrackDescription,
+    LayoutSwitch,
+    LocationTrackId,
+    SplitPoint,
+} from 'track-layout/track-layout-model';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { LocationTrackOid, OidVariant } from 'track-layout/oid';
 
@@ -22,6 +27,7 @@ type ConfirmSplitDialogProps = {
     branch: LayoutBranch;
     changeTimes: ChangeTimes;
     allSplits: (FirstSplitTargetCandidate | SplitTargetCandidate)[];
+    switches: LayoutSwitch[];
     endSplitPoint: SplitPoint;
     onConfirm: () => void;
     onCancel: () => void;
@@ -33,12 +39,37 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
     branch,
     changeTimes,
     allSplits,
+    switches,
     endSplitPoint,
     onConfirm,
     onCancel,
 }) => {
     const { t } = useTranslation();
     const oidPlaceholder = t('tool-panel.location-track.splitting.oid-set-on-publish');
+
+    function getSwitchNameParts(splitPoint: SplitPoint) {
+        if (splitPoint.type === 'SWITCH_SPLIT_POINT') {
+            return switches.find((s) => s.id === splitPoint.switchId)?.nameParts;
+        }
+        return undefined;
+    }
+
+    function getDescription(
+        target: FirstSplitTargetCandidate | SplitTargetCandidate,
+        index: number,
+    ): string {
+        if (target.suffixMode === 'NONE') return target.descriptionBase;
+        const startSwitchNameParts = getSwitchNameParts(target.splitPoint);
+        const endSplitPointForTarget = allSplits[index + 1]?.splitPoint ?? endSplitPoint;
+        const endSwitchNameParts = getSwitchNameParts(endSplitPointForTarget);
+        return formatTrackDescription(
+            target.descriptionBase,
+            target.suffixMode,
+            startSwitchNameParts,
+            endSwitchNameParts,
+            t,
+        );
+    }
 
     return (
         <Dialog
@@ -89,8 +120,9 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                                     splitDetailsStyles['split-details-dialog__table-header']
                                 }>
                                 <tr>
-                                    <Th>{t('split-details-dialog.target-name')}</Th>
                                     <Th>{t('split-details-dialog.target-oid')}</Th>
+                                    <Th>{t('split-details-dialog.target-name')}</Th>
+                                    <Th>{t('tool-panel.location-track.splitting.full-description')}</Th>
                                     <Th>{t('split-details-dialog.operation')}</Th>
                                     <Th>{t('split-details-dialog.start-address')}</Th>
                                     <Th>{t('split-details-dialog.end-address')}</Th>
@@ -99,7 +131,6 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                             <tbody>
                                 {allSplits.map((target, index) => (
                                     <tr key={target.id}>
-                                        <td>{target.name}</td>
                                         <td>
                                             {target.duplicateTrackId && target.operation !== 'CREATE' ? (
                                                 <LocationTrackOid
@@ -112,6 +143,8 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                                                 oidPlaceholder
                                             )}
                                         </td>
+                                        <td>{target.name}</td>
+                                        <td>{getDescription(target, index)}</td>
                                         <td>
                                             {t(`tool-panel.location-track.splitting.operation.${target.operation}`)}
                                         </td>
