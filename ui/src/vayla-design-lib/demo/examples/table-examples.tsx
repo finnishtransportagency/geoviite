@@ -69,26 +69,24 @@ export const TableExamples: React.FC = () => {
                 </tbody>
             </Table>
             <h3>Dark table</h3>
-            <div style={{ background: '#0b335a', padding: '16px' }}>
-                <Table variant={TableVariant.DARK}>
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Title</th>
-                            <th>Company</th>
+            <Table variant={TableVariant.DARK}>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Title</th>
+                        <th>Company</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {examplePersons.slice(0, 3).map((person) => (
+                        <tr key={person.id}>
+                            <td>{person.name}</td>
+                            <td>{person.title}</td>
+                            <td>{person.company}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {examplePersons.slice(0, 3).map((person) => (
-                            <tr key={person.id}>
-                                <td>{person.name}</td>
-                                <td>{person.title}</td>
-                                <td>{person.company}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </Table>
-            </div>
+                    ))}
+                </tbody>
+            </Table>
         </div>
     );
 };
