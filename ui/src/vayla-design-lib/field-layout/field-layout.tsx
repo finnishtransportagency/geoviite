@@ -3,10 +3,6 @@ import { createClassName } from 'vayla-design-lib/utils';
 import styles from './field-layout.scss';
 import { flatten } from 'utils/array-utils';
 
-export enum FieldLayoutVariant {
-    DARK = 'field-layout--dark',
-}
-
 export type FieldLayoutProps = {
     label?: React.ReactNode;
     value?: React.ReactNode;
@@ -16,7 +12,6 @@ export type FieldLayoutProps = {
     disabled?: boolean;
     children?: React.ReactNode;
     spacing?: boolean;
-    variant?: FieldLayoutVariant;
 };
 
 export const FieldLayout: React.FC<FieldLayoutProps> = ({
@@ -27,7 +22,6 @@ export const FieldLayout: React.FC<FieldLayoutProps> = ({
         styles['field-layout'],
         props.errors?.length && styles['field-layout--has-error'],
         spacing && styles['field-layout--extra-spacing'],
-        props.variant && styles[props.variant],
     );
 
     const labelClassName = createClassName(

@@ -29,10 +29,6 @@
     white-space: pre-wrap;
 }
 
-.field-layout--dark .field-layout__label {
-    color: colors.$color-white-darker;
-}
-
 .field-layout--has-error .field-layout__label {
     color: colors.$color-red-dark;
 }

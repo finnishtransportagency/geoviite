@@ -54,28 +54,6 @@ $table-cell-padding: 10px 16px;
         // Body row
     }
 
-    &--dark {
-        td,
-        .table__td {
-            background: colors.$color-blue-darker;
-            color: colors.$color-white-default;
-            border-bottom: 1px solid colors.$color-blue-dark;
-        }
-
-        th,
-        .table__th {
-            color: colors.$color-white-default;
-
-            &.table__th--has-background {
-                background: colors.$color-blue-dark;
-            }
-
-            &.table__th--clickable:hover {
-                background: colors.$color-blue-default;
-            }
-        }
-    }
-
     &--loading {
         position: absolute;
         z-index: 1;

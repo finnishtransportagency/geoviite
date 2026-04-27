@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogVariant, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
-import { FieldLayout, FieldLayoutVariant } from 'vayla-design-lib/field-layout/field-layout';
-import { Table, TableVariant, Th } from 'vayla-design-lib/table/table';
+import { Dialog, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
+import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
+import { Table, Th } from 'vayla-design-lib/table/table';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import splitDetailsStyles from 'publication/split/split-details-dialog.scss';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
@@ -12,11 +12,7 @@ import {
 } from 'tool-panel/location-track/split-store';
 import { getSwitchNameParts } from 'tool-panel/location-track/splitting/split-utils';
 import { TrackMeter } from 'common/common-model';
-import {
-    formatTrackDescription,
-    LayoutSwitch,
-    SplitPoint,
-} from 'track-layout/track-layout-model';
+import { formatTrackDescription, LayoutSwitch, SplitPoint } from 'track-layout/track-layout-model';
 import { formatTrackMeter } from 'utils/geography-utils';
 
 type ConfirmSplitDialogProps = {
@@ -60,7 +56,6 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
             qaId={'confirm-split-dialog'}
             title={t('tool-panel.location-track.splitting.confirm-split-title')}
             allowClose={false}
-            variant={DialogVariant.DARK}
             width={DialogWidth.THREE_COLUMNS}
             footerContent={
                 <div className={dialogStyles['dialog__footer-content--centered']}>
@@ -79,26 +74,46 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                 </div>
             }>
             <div>
-                <FieldLayout label={t('tool-panel.location-track.splitting.confirm-split-source-name')} variant={FieldLayoutVariant.DARK}>
+                <FieldLayout
+                    label={t('tool-panel.location-track.splitting.confirm-split-source-name')}>
                     <div>{sourceTrackName}</div>
                 </FieldLayout>
                 <FieldLayout
-                    variant={FieldLayoutVariant.DARK}
                     label={t('tool-panel.location-track.splitting.confirm-split-targets', {
                         trackCount: allSplits.length,
                     })}>
                     <div className={splitDetailsStyles['split-details-dialog__table']}>
-                        <Table wide variant={TableVariant.DARK}>
+                        <Table wide>
                             <thead
                                 className={
                                     splitDetailsStyles['split-details-dialog__table-header']
                                 }>
                                 <tr>
-                                    <Th>{t('tool-panel.location-track.splitting.confirm-split-target-name')}</Th>
-                                    <Th>{t('tool-panel.location-track.splitting.confirm-split-description')}</Th>
-                                    <Th>{t('tool-panel.location-track.splitting.confirm-split-operation')}</Th>
-                                    <Th>{t('tool-panel.location-track.splitting.confirm-split-start-address')}</Th>
-                                    <Th>{t('tool-panel.location-track.splitting.confirm-split-end-address')}</Th>
+                                    <Th>
+                                        {t(
+                                            'tool-panel.location-track.splitting.confirm-split-target-name',
+                                        )}
+                                    </Th>
+                                    <Th>
+                                        {t(
+                                            'tool-panel.location-track.splitting.confirm-split-description',
+                                        )}
+                                    </Th>
+                                    <Th>
+                                        {t(
+                                            'tool-panel.location-track.splitting.confirm-split-operation',
+                                        )}
+                                    </Th>
+                                    <Th>
+                                        {t(
+                                            'tool-panel.location-track.splitting.confirm-split-start-address',
+                                        )}
+                                    </Th>
+                                    <Th>
+                                        {t(
+                                            'tool-panel.location-track.splitting.confirm-split-end-address',
+                                        )}
+                                    </Th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -107,16 +122,15 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
                                         <td>{target.name}</td>
                                         <td>{getDescription(target, index)}</td>
                                         <td>
-                                            {t(`tool-panel.location-track.splitting.operation.${target.operation}`)}
+                                            {t(
+                                                `tool-panel.location-track.splitting.operation.${target.operation}`,
+                                            )}
                                         </td>
-                                        <td>
-                                            {formatAddress(target.splitPoint.address)}
-                                        </td>
+                                        <td>{formatAddress(target.splitPoint.address)}</td>
                                         <td>
                                             {formatAddress(
-                                                (allSplits[index + 1]?.splitPoint ??
-                                                    endSplitPoint
-                                                ).address,
+                                                (allSplits[index + 1]?.splitPoint ?? endSplitPoint)
+                                                    .address,
                                             )}
                                         </td>
                                     </tr>
