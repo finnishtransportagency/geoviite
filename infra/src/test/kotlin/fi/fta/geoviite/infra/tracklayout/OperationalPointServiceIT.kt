@@ -475,7 +475,7 @@ constructor(
         // Merge to main
         operationalPointService.mergeToMainBranch(designBranch, externalPointId)
 
-        // Make sure that the operational poin in main draft is an unholy union of the design point's user modifiable
+        // Make sure that the operational point in main draft is an unholy union of the design point's user modifiable
         // fields and the Ratko version's state and Ratko version
         val merged = mainDraftContext.fetch(externalPointId)
         assertNotNull(merged)
