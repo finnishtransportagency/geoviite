@@ -393,6 +393,46 @@ constructor(
     }
 
     @Test
+    fun `mergeToMainBranch syncs all fields from design branch for Geoviite points`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, PublicationState.OFFICIAL)
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val officialVersion =
+            mainOfficialContext.save(
+                operationalPoint(name = "original", state = OperationalPointState.IN_USE, draft = false)
+            )
+
+        mainDraftContext.save(
+            asMainDraft(mainOfficialContext.fetch(officialVersion.id)!!).copy(state = OperationalPointState.DELETED)
+        )
+
+        designOfficialContext.moveFrom(
+            designDraftContext.save(
+                asDesignDraft(
+                    mainOfficialContext
+                        .fetch(officialVersion.id)!!
+                        .copy(
+                            name = OperationalPointName("edited in design"),
+                            rinfType = OperationalPointRinfType.FREIGHT_TERMINAL,
+                            state = OperationalPointState.IN_USE,
+                        ),
+                    designBranch.designId,
+                )
+            )
+        )
+
+        operationalPointService.mergeToMainBranch(designBranch, officialVersion.id)
+
+        val merged = mainDraftContext.fetch(officialVersion.id)
+        assertNotNull(merged)
+        assertEquals("edited in design", merged.name.toString())
+        assertEquals(OperationalPointRinfType.FREIGHT_TERMINAL, merged.rinfType)
+        assertEquals(OperationalPointState.IN_USE, merged.state)
+        assertNull(merged.ratkoVersion)
+    }
+
+    @Test
     fun `mergeToMainBranch preserves ratkoVersion and state from existing main-draft for Ratko points`() {
         val designBranch = testDBService.createDesignBranch()
         val designOfficialContext = testDBService.testContext(designBranch, PublicationState.OFFICIAL)
