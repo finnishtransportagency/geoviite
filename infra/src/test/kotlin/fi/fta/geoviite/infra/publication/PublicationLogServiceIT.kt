@@ -425,13 +425,14 @@ constructor(
             ) { _, _ ->
                 null
             }
-        assertEquals(6, diff.size)
+        assertEquals(7, diff.size)
         assertEquals("location-track", diff[0].propKey.key.toString())
         assertEquals("state", diff[1].propKey.key.toString())
         assertEquals("location-track-type", diff[2].propKey.key.toString())
-        assertEquals("description-base", diff[3].propKey.key.toString())
-        assertEquals("description-suffix", diff[4].propKey.key.toString())
-        assertEquals("duplicate-of", diff[5].propKey.key.toString())
+        assertEquals("description", diff[3].propKey.key.toString())
+        assertEquals("description-base", diff[4].propKey.key.toString())
+        assertEquals("description-suffix", diff[5].propKey.key.toString())
+        assertEquals("duplicate-of", diff[6].propKey.key.toString())
     }
 
     @Test
@@ -463,7 +464,7 @@ constructor(
                 locationTrackService.update(
                     LayoutBranch.main,
                     locationTrack.id,
-                    saveReq.copy(descriptionBase = LocationTrackDescriptionBase("TEST2")),
+                    saveReq.copy(type = LocationTrackType.CHORD),
                 )
             )
         publish(publicationService, locationTracks = listOf(updatedLocationTrack.id as IntId))
@@ -490,9 +491,9 @@ constructor(
                 null
             }
         assertEquals(1, diff.size)
-        assertEquals("description-base", diff[0].propKey.key.toString())
-        assertEquals(locationTrack.descriptionStructure.base, diff[0].value.oldValue)
-        assertEquals(updatedLocationTrack.descriptionStructure.base, diff[0].value.newValue)
+        assertEquals("location-track-type", diff[0].propKey.key.toString())
+        assertEquals(locationTrack.type, diff[0].value.oldValue)
+        assertEquals(updatedLocationTrack.type, diff[0].value.newValue)
     }
 
     @Test

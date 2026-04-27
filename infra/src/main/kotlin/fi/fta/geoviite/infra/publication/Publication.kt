@@ -730,6 +730,7 @@ data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
     val name: Change<AlignmentName>,
     val namingScheme: Change<LocationTrackNamingScheme>,
+    val description: Change<FreeText>,
     val descriptionBase: Change<LocationTrackDescriptionBase>,
     val descriptionSuffix: Change<LocationTrackDescriptionSuffix>,
     val state: Change<LocationTrackState>,
