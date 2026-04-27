@@ -8,6 +8,14 @@ Toisen järjestelmän omistajana haluan pystyä lukemaan Geoviitteestä pystygeo
 
 Toteutetaan Geoviitteeseen API, josta voi lukea raiteen pystygeometrian muutokset. Raiteen versiokohtaisen pystygeometrian lukeminen on kuvattu speksillä `ext-api-track-profile.spec.md`
 
+### Keskeiset käsitteet
+
+Muutosendpointissa **pystygeometriaolio** edustaa muuttunutta osoiteväliä ja sisältää **loppuversion** taitepisteet kyseisellä välillä. Taitepiste identifioidaan sen keskipisteen rataosoitteella (`point.address`), ja taitepisteen kuuluminen osoiteväliin määräytyy tämän keskipisteen osoitteen perusteella.
+
+Muutosten synkronointimalli: käyttäjä voi poistaa kaikki nykyiset taitepisteensä ilmoitetulta osoiteväliltä ja kirjoittaa tilalle vastauksen tarjoamat uudet taitepisteet. Jos taitepisteitä on poistettu osoiteväliltä, tämä näkyy pystygeometriaoliona, jossa `taitepisteet`-lista on tyhjä.
+
+Tämä on analoginen vaakageometrian `osoitevalit`-kenttään (`ExtLocationTrackModifiedGeometryResponseV1.trackIntervals`).
+
 ## Endpoint
 
 ### URL
@@ -35,17 +43,19 @@ Rekisteröidään myös vaihtoehtoiset polut olemassa olevan käytännön mukais
 | Koodi | Kuvaus |
 |-------|--------|
 | 200 | Pystygeometrian muutokset haettiin onnistuneesti kahden rataverkon version välillä. |
-| 204 | Sijaintiraiteen OID-tunnus löytyi, mutta pystygeometrian muutoksia vertailtavien versioiden välillä ei ole. Palautetaan myös silloin, kun alkuversio ja loppuversio ovat sama julkaisu. |
+| 204 | Sijaintiraiteen OID-tunnus löytyi, mutta pystygeometrian muutoksia vertailtavien versioiden välillä ei ole. Palautetaan myös silloin, kun alkuversio ja loppuversio ovat sama julkaisu, tai kun sijaintiraide on DELETED-tilassa molemmissa versioissa. |
 | 400 | Hakuargumenttien muoto virheellinen. |
 | 404 | Sijaintiraidetta ei löytynyt OID-tunnuksella tai yhtä tai useampaa rataverkon versiota ei ole olemassa. |
 | 500 | Palvelussa tapahtui sisäinen virhe. |
 
 Esimerkkejä HTTP-paluukoodien arvoista tietyissä tilanteissa (vrt. `ExtLocationTrackControllerV1.getExtLocationTrackModifications`):
-- **200**: Sijaintiraiteen pystygeometria on muuttunut versioiden välillä (esim. uusi suunnitelma linkitetty tai suunnitelmaa päivitetty).
-- **200**: Sijaintiraiteen pystygeometria on luotu versioiden välillä (ei pystygeometriaa alkuversiossa, mutta on loppuversiossa).
+- **200**: Sijaintiraiteen pystygeometria on muuttunut versioiden välillä (esim. taitepisteiden arvot muuttuneet, uusia taitepisteitä ilmestynyt tai vanhoja poistunut).
+- **200**: Sijaintiraiteen pystygeometria on luotu versioiden välillä (ei taitepisteitä alkuversiossa, mutta on loppuversiossa). Osoiteväli kattaa uudet taitepisteet.
+- **200**: Sijaintiraiteen pystygeometria on poistettu versioiden välillä (taitepisteitä alkuversiossa, mutta ei loppuversiossa). Osoiteväli kattaa poistetut taitepisteet, `taitepisteet`-lista on tyhjä.
+- **200**: Sijaintiraide on siirtynyt DELETED-tilaan loppuversiossa (olemassa alkuversiossa). Tämä on muutos.
 - **204**: Alkuversio ja loppuversio ovat sama julkaisu.
-- **204**: Sijaintiraiteen pystygeometria ei ole muuttunut versioiden välillä.
-- **204**: Sijaintiraiteella ei ole pystygeometriaa kummassakaan versiossa.
+- **204**: Sijaintiraiteen pystygeometria ei ole muuttunut versioiden välillä (samat taitepisteet samoilla arvoilla).
+- **204**: Sijaintiraide on DELETED-tilassa molemmissa versioissa.
 
 ### Autorisointi
 
@@ -60,22 +70,40 @@ Muutostunnistus noudattaa samaa mallia kuin olemassa olevat muutos-endpointit (e
 1. **Versioiden vertailu**: `PublicationService.getPublicationsToCompare(alkuversio, loppuversio)` hakee `PublicationComparison`-olion.
 2. **Samanlaisuustarkistus**: Jos `publications.areDifferent()` palauttaa `false`, palautetaan `null` → 204 No Content.
 3. **Muuttuneiden raiteen versioiden haku**: `PublicationDao.fetchPublishedLocationTrackBetween(trackId, startMoment, endMoment)` palauttaa uusimman version, jos sijaintiraide on julkaistu versioiden välillä. Jos `null`, raiteeseen ei ole tehty muutoksia → 204 No Content.
-4. **Pystygeometrian haku molemmissa versioissa**: Haetaan `VerticalGeometryListing` sekä alkuversion (`startMoment`) että loppuversion (`endMoment`) ajanhetkellä ja vertaillaan muutoksia.
+4. **DELETED-tilan käsittely**: Jos sijaintiraide on DELETED-tilassa molemmissa versioissa → 204 No Content. Jos raide on siirtynyt DELETED-tilaan tai sieltä pois, tämä on muutos.
+5. **Pystygeometrian haku molemmissa versioissa**: Haetaan `VerticalGeometryListing` sekä alkuversion (`startMoment`) että loppuversion (`endMoment`) ajanhetkellä ja vertaillaan taitepisteitä.
 
 ### Muutoksen tunnistaminen
 
-Pystygeometrian muutos tunnistetaan vertaamalla `VerticalGeometryListing`-listoja alkuversion ja loppuversion välillä. Vertailun jälkeen palautetaan loppuversion pystygeometriatiedot muuttuneille osoiteväleille.
-
-Jos raide itsessään ei ole muuttunut (onko sijaintiraide julkaistu `alkuversion` ja `loppuversion` välillä -- `fetchPublishedLocationTrackBetween`), sen pystygeometriakaan ei ole voinut muuttua. Jos muutos kuitenkin on olemassa, joudutaan pystygeometriat laskemaan sekä alku- että loppuversiolla muutosvälien tuottamista varten, vastaavasti kuin vaakageometriankin kohdalla tehdään.
+Pystygeometrian muutos tunnistetaan vertaamalla taitepisteitä (PVI-pisteitä) alkuversion ja loppuversion välillä. Taitepisteet identifioidaan niiden keskipisteen rataosoitteella (`point.address`).
 
 Muutos voidaan todeta, jos jokin seuraavista pitää paikkansa:
-- Sijaintiraiteen linkitetyt geometriasuunnitelmat ovat muuttuneet (uusia, poistettuja tai päivitettyjä)
-- Taitepisteiden lukumäärä on eri
+- Taitepisteiden lukumäärä on eri versioiden välillä
 - Yksittäisten taitepisteiden arvot ovat muuttuneet (korkeus, sijainti, pyöristyssäde jne.)
+- Taitepisteitä on lisätty tai poistettu (keskipisteen osoite esiintyy vain toisessa versiossa)
+- Sijaintiraide on siirtynyt DELETED-tilaan tai sieltä pois
+
+### Muutosvälien muodostus
+
+Muutosvälien muodostus noudattaa samaa periaatetta kuin vaakageometrian muutosvälit (`createModifiedCenterLineIntervals` in `ExtGeometryDiff.kt`): **muutosvälin osoitealueen tulee kattaa sekä vanhat että uudet muuttuneet taitepisteet.** Tämä tarkoittaa:
+
+- Jos taitepiste on siirtynyt osoitteesta A osoitteeseen B, muutosvälin tulee kattaa molemmat osoitteet.
+- Jos taitepisteitä on poistettu osoiteväliltä, muutosvälin tulee kattaa poistettujen pisteiden osoitteet, ja `taitepisteet`-lista on tyhjä.
+- Jos taitepisteitä on lisätty, muutosvälin tulee kattaa uusien pisteiden osoitteet.
+- Peräkkäiset muutokset yhdistetään yhtenäisiksi muutosväleiksi.
+
+Vastauksessa `osoitevalit` on lista, koska yhdellä raiteella voi olla useita erillisiä muutosvälejä.
 
 ### Datan tuottaminen
 
-Muutosvastauksessa palautetaan **loppuversion** pystygeometriadata muuttuneiden osoitevälien osalta, vastaavasti kuin vaakageometrian muutoksissa. Pystygeometriatiedot tuotetaan samalla `ExtLocationTrackProfileServiceV1`-palvelulla kuin perusendpointissa, mutta `PublicationComparison`-kontekstissa. Korkeusmuunnokset, osoitevälien ryhmittely ja huomiot toimivat identtisesti.
+Muutosvastauksessa palautetaan **loppuversion** taitepisteet muuttuneiden osoitevälien osalta. Kukin pystygeometriaolio `osoitevalit`-listassa kuvaa yhden muutosvälin:
+
+- **`alku`/`loppu`**: Muutosvälin osoitealue, joka kattaa sekä vanhojen (alkuversion) että uusien (loppuversion) taitepisteiden osoitteet.
+- **`taitepisteet`**: Loppuversion taitepisteet kyseisellä osoitevälillä. Tyhjä lista, jos kaikki taitepisteet on poistettu tältä väliltä.
+
+Synkronointimalli: käyttäjä poistaa kaikki nykyiset taitepisteensä ilmoitetulta `alku`–`loppu`-osoiteväliltä ja kirjoittaa tilalle `taitepisteet`-listan sisällön.
+
+Pystygeometriatiedot tuotetaan samalla `ExtLocationTrackProfileServiceV1`-palvelulla kuin perusendpointissa, mutta `PublicationComparison`-kontekstissa. Korkeusmuunnokset ja huomiot toimivat identtisesti.
 
 ## Toteutuksen arkkitehtuuri
 
@@ -106,7 +134,9 @@ Noudatetaan olemassa olevaa ext-API-kerrosrakennetta ja jaetaan perusendpointin 
 
 ### Pystygeometriaolio
 
-Pystygeometriaolio on identtinen perusendpointin kanssa (ks. `ext-api-track-profile.spec.md`). Yksi osoiteväli, joka sisältää yhden tai useamman taitepisteen:
+Pystygeometriaolio on rakenteellisesti identtinen perusendpointin kanssa (ks. `ext-api-track-profile.spec.md`), mutta semanttisesti edustaa muuttunutta osoiteväliä. `alku`/`loppu` kattavat sekä vanhojen että uusien taitepisteiden osoitteet, ja `taitepisteet` sisältää loppuversion taitepisteet (tai tyhjän listan, jos taitepisteet on poistettu väliltä).
+
+Yksi muutosväli, joka sisältää loppuversion taitepisteet:
 
 ```json
 {
@@ -181,7 +211,7 @@ Pystygeometriaolio on identtinen perusendpointin kanssa (ks. `ext-api-track-prof
 | `loppuversio` | string (UUID) | Ei | Vertailun kohdeversion tunnus. |
 | `sijaintiraide_oid` | string (OID) | Ei | Sijaintiraiteen OID-tunnus (esim. `"1.2.246.578.13.123.456"`). |
 | `koordinaatisto` | string | Ei | Käytetty koordinaatisto (esim. `"EPSG:3067"`). |
-| `osoitevalit` | array | Ei | Lista pystygeometriaolioita loppuversion tilassa. Sisältää kaikki osoitevälit, joissa pystygeometria on muuttunut versioiden välillä. |
+| `osoitevalit` | array | Ei | Lista pystygeometriaolioita, kukin kuvaa yhden muuttuneen osoitevälin. Osoiteväli kattaa sekä vanhojen että uusien taitepisteiden osoitteet, ja sisältää loppuversion taitepisteet (tai tyhjän listan, jos taitepisteet poistettu). |
 
 #### Muut oliot
 

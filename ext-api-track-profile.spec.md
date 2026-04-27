@@ -12,6 +12,12 @@ Pystygeometrian muutosten lukeminen on kuvattu speksillä `ext-api-track-profile
 
 Toteutetaan Geoviitteeseen API, josta voi lukea raiteen pystygeometriatiedot. Pystygeometriatiedot näytetään jo tietotuotteina (`VerticalGeometryListing` ja `GeometryService.getVerticalGeometryListing`), joten kyseistä toiminnallisuutta voi hyödyntää/jalostaa tätä tarkoitusta varten. Suurin ero tietotuotteeseen verrattuna on geometriasuunnitelmatietojen puuttuminen (esim. suunnitelman nimi, tiedostonimi, luontiaika, koordinaatiston nimi), koska suunnitelmien tietoja luovutetaan toistaiseksi vain operaattorin välityksellä.
 
+### Keskeiset käsitteet
+
+Pystygeometria koostuu **taitepisteistä** (PVI-pisteistä, vertical intersection points). Kukin `VerticalGeometryListing`-olio vastaa yhtä taitepistettä ja kuvaa profiilin käyttäytymisen kyseisen pisteen ympärillä (pyöristyskaari, kaltevuusjaksot jne.). Taitepiste identifioidaan sen **keskipisteen rataosoitteella** (`point.address` eli `VerticalGeometryListing.point.address`), joka on taitepisteen varsinainen sijainti raiteen osoiteavaruudessa.
+
+**Pystygeometriaolio** edustaa osoiteväliä, jonka sisälle kuuluvat kaikki taitepisteet, joiden keskipisteen rataosoite osuu kyseiselle välille. Tässä perusendpointissa osoiteväli on aina sijaintiraiteen koko osoiteväli (alusta loppuun), joten vastaus sisältää aina tasan yhden pystygeometriaolion, jossa ovat kaikki raiteen taitepisteet. Tämä on analoginen vaakageometrian `osoitevali`-kenttään (`ExtLocationTrackGeometryResponseV1.trackInterval`).
+
 ## Endpoint
 
 ### URL
@@ -38,7 +44,7 @@ Rekisteröidään myös vaihtoehtoiset polut olemassa olevan käytännön mukais
 | Koodi | Kuvaus |
 |-------|--------|
 | 200 | Pystygeometrian haku onnistui. |
-| 204 | Sijaintiraiteen OID löytyi, mutta sille ei ole pystygeometriaa annetussa versiossa (esim. ei linkitettyjä suunnitelmia). |
+| 204 | Sijaintiraiteen OID löytyi, mutta raide on DELETED-tilassa annetussa rataverkon versiossa, jolloin pystygeometriaa ei palauteta (vastaavasti kuin vaakageometrian endpointissa). |
 | 400 | Hakuargumenttien muoto virheellinen. |
 | 404 | Sijaintiraidetta ei löytynyt OID-tunnuksella tai annettua rataverkon versiota ei ole olemassa. |
 | 500 | Palvelussa tapahtui sisäinen virhe. |
@@ -75,13 +81,13 @@ N2000-muunnos riippuu suunnitelman alkuperäisestä korkeusjärjestelmästä (`v
 - **N43** → muunnosta ei tueta tällä hetkellä (`transformHeightValue` heittää `IllegalArgumentException`)
   - Ei yritetäkään muuntaa näitä, vaan palautetaan `korkeus_n2000` arvona `null` ja dokumentoidaan rajoitus
 >
-### Osoitevälien muodostus
+### Osoitevälin muodostus
 
-Yksi sijaintiraide voi saada pystygeometriadatan useista eri suunnitelmista, jotka kattavat eri osoitevälejä raiteen pituudelta. `VerticalGeometryListing` palauttaa jo taitepistelistausta, jossa kukin taitepiste tietää oman osoitevälinsä (start.address → end.address).
+Perusendpointissa osoiteväli on aina sijaintiraiteen koko osoiteväli (raiteen alku → raiteen loppu), joten vastaus sisältää aina tasan yhden pystygeometriaolion. Pystygeometriaolio sisältää kaikki raiteen taitepisteet, joiden keskipisteen rataosoite osuu kyseiselle välille — eli käytännössä kaikki raiteen taitepisteet.
 
-Nämä taitepisteet tulee ryhmitellä yhtenäisiksi osoiteväleiksi (`osoitevalit`-lista). Taitepisteet, jotka ovat peräkkäisiä ja muodostavat katkeamattoman ketjun (edellisen loppu = seuraavan alku tai ne limittyvät), kuuluvat samaan osoiteväliin. Katko osoitevälissä (gap ilman pystygeometriaa) aloittaa uuden osoitevälin.
+Jos raiteella ei ole pystygeometriaa (esim. ei linkitettyjä suunnitelmia), pystygeometriaolio palautetaan silti, mutta sen `taitepisteet`-lista on tyhjä. Vastaus on 204 (No Content) ainoastaan silloin, kun sijaintiraide itse on DELETED-tilassa, vastaavasti kuin vaakageometrian endpointissa.
 
-> **Huom**: Vastauksessa `osoitevalit` on lista, koska yhdellä raiteella voi olla pystygeometriatietoja useille erillisille osoiteväleille.
+> **Huom**: Tämä eroaa vaakageometriasta, jossa `osoitevali` voi olla `null` osoitesuodatuksen vuoksi. Pystygeometriassa osoitesuodatusta ei ole, joten `osoitevali` on aina olemassa (ei-null) kun vastaus on 200.
 
 ## Toteutuksen arkkitehtuuri
 
@@ -90,7 +96,7 @@ Noudatetaan olemassa olevaa ext-API-kerrosrakennetta:
 1. **Controller** (`ExtLocationTrackControllerV1`): Lisätään uusi endpoint olemassa olevaan controlleriin (vastaavasti kuin `/geometria`). Uusi service injektoidaan controlleriin.
 2. **Service** (uusi `ExtLocationTrackProfileServiceV1`): Vastaa liiketoimintalogiikasta — hakee `VerticalGeometryListing`-datan, muuntaa N2000-korkeuksiksi, ryhmittelee osoiteväleiksi ja rakentaa vastaus-DTO:t.
 3. **DTO-luokat** (uudet `Ext*V1`-luokat): Vastaus- ja datamallien JSON-serialisointi `@JsonProperty`-annotaatioilla suomenkielisillä kenttänimillä.
-4. **Vakiot** (`ExtTrackLayoutConstantsV1`): Lisätään uudet JSON-kenttänimet vakioiksi (esim. `VERTICAL_GEOMETRY = "pystygeometria"`, `BREAK_POINTS = "taitepisteet"` jne.).
+4. **Vakiot** (`ExtTrackLayoutConstantsV1`): Lisätään uudet JSON-kenttänimet vakioiksi (esim. `VERTICAL_GEOMETRY = "pystygeometria"`, `BREAK_POINTS = "taitepisteet"` jne.). Käytetään olemassa olevia `TRACK_INTERVAL = "osoitevali"` ja `TRACK_INTERVALS = "osoitevalit"` -vakioita vastaavasti kuin vaakageometriassa.
 
 Ei tarvita uusia DAO-luokkia — käytetään olemassa olevia `GeometryService`- ja `PublicationService`-palveluja.
 
@@ -103,20 +109,17 @@ Ei tarvita uusia DAO-luokkia — käytetään olemassa olevia `GeometryService`-
   "rataverkon_versio": "e079915c-fe4a-45e8-8ad7-a54db5497d54",
   "sijaintiraide_oid": "1.2.246.578.13.123.456",
   "koordinaatisto": "EPSG:3067",
-  "osoitevalit": [
-    { "...pystygeometriaolio..." },
-    { "...pystygeometriaolio..." }
-  ]
+  "osoitevali": { "...pystygeometriaolio..." }
 }
 ```
 
 ### Pystygeometriaolio
 
-Yksi osoiteväli, joka sisältää yhden tai useamman taitepisteen:
+Raiteen koko osoiteväli, joka sisältää kaikki raiteen taitepisteet:
 
 ```json
 {
-  "alku": "0193+0097.308",
+  "alku": "0193+0000.000",
   "loppu": "0341+0919.306",
   "taitepisteet": [
     {
@@ -186,15 +189,15 @@ Yksi osoiteväli, joka sisältää yhden tai useamman taitepisteen:
 | `rataverkon_versio` | string (UUID) | Ei | Haetun rataverkon version tunnus |
 | `sijaintiraide_oid` | string (OID) | Ei | Sijaintiraiteen OID-tunnus (esim. `"1.2.246.578.13.123.456"`) |
 | `koordinaatisto` | string | Ei | Käytetty koordinaatisto (esim. `"EPSG:3067"`) |
-| `osoitevalit` | array | Ei | Lista pystygeometriaolioita. Tyhjä lista, jos pystygeometriaa ei löydy. |
+| `osoitevali` | object | Ei | Pystygeometriaolio, joka kattaa raiteen koko osoitevälin ja sisältää kaikki raiteen taitepisteet. Tyhjä `taitepisteet`-lista, jos raiteella ei ole pystygeometriaa. |
 
 #### Pystygeometriaolio (osoiteväli)
 
 | Kenttä | Tyyppi | Nullable | Kuvaus |
 |--------|--------|----------|--------|
-| `alku` | string | Kyllä | Osoitevälin alkurataosoite (esim. `"0193+0097.308"`). Null, jos geocoding ei onnistu. |
-| `loppu` | string | Kyllä | Osoitevälin loppurataosoite. Null, jos geocoding ei onnistu. |
-| `taitepisteet` | array | Ei | Lista taitepisteolioita tässä osoitevälissä. |
+| `alku` | string | Kyllä | Sijaintiraiteen alkurataosoite (esim. `"0193+0000.000"`). Null, jos geocoding ei onnistu. |
+| `loppu` | string | Kyllä | Sijaintiraiteen loppurataosoite. Null, jos geocoding ei onnistu. |
+| `taitepisteet` | array | Ei | Lista taitepisteolioita tässä osoitevälissä. Tyhjä lista, jos raiteella ei ole pystygeometriaa. |
 
 #### Taitepisteolio
 
