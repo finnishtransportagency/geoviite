@@ -90,7 +90,8 @@ export const validateLocationTrackDescriptionBase = (
     descriptionBase: string | undefined,
 ): FieldValidationIssue<{ descriptionBase?: string }>[] => {
     if (descriptionBase) {
-        if (descriptionBase.length < 4 || descriptionBase.length > 256) {
+        const trimmedDescriptionBase = descriptionBase.trim();
+        if (trimmedDescriptionBase.length < 4 || trimmedDescriptionBase.length > 256) {
             return [
                 {
                     field: 'descriptionBase',

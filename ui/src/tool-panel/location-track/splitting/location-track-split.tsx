@@ -9,10 +9,12 @@ import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
 import {
     AlignmentEndPoint,
+    formatTrackDescription,
     LocationTrackId,
     LocationTrackNameSpecifier,
     LocationTrackNamingScheme,
     SplitPoint,
+    SwitchNameParts,
 } from 'track-layout/track-layout-model';
 import {
     FirstSplitTargetCandidate,
@@ -21,16 +23,25 @@ import {
     SplitTargetId,
     SplitTargetOperation,
 } from 'tool-panel/location-track/split-store';
-import { calculateBoundingBoxToShowAroundLocation, MAP_POINT_NEAR_BBOX_OFFSET, } from 'map/map-utils';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_NEAR_BBOX_OFFSET,
+} from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
-import { END_SPLIT_POINT_NOT_MATCHING_ERROR, START_SPLIT_POINT_NOT_MATCHING_ERROR, } from './split-utils';
+import {
+    END_SPLIT_POINT_NOT_MATCHING_ERROR,
+    START_SPLIT_POINT_NOT_MATCHING_ERROR,
+} from './split-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { BoundingBox, Point } from 'model/geometry';
 import { SplitDuplicateTrack } from 'track-layout/layout-location-track-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { RemovalConfirmationMenu } from 'tool-panel/location-track/splitting/removal-confirmation-menu';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { locationTrackNameSpecifiers, locationTrackNamingSchemesFiltered, } from 'utils/enum-localization-utils';
+import {
+    locationTrackNameSpecifiers,
+    locationTrackNamingSchemesFiltered,
+} from 'utils/enum-localization-utils';
 
 type CommonProps = {
     editingDisabled: boolean;
@@ -61,6 +72,8 @@ type SplitProps = CommonProps & {
     setFocusedSplit: (id: undefined | SplitTargetId) => void;
     setHighlightedSplit: (id: undefined | SplitTargetId) => void;
     setHighlightedSplitPoint: (splitPoint: undefined | SplitPoint) => void;
+    startSwitchNameParts: SwitchNameParts | undefined;
+    endSwitchNameParts: SwitchNameParts | undefined;
 };
 
 export function getShowSwitchOnMapBoundingBox(location: Point): BoundingBox {
@@ -131,6 +144,8 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
     setFocusedSplit,
     setHighlightedSplit,
     setHighlightedSplitPoint,
+    startSwitchNameParts,
+    endSwitchNameParts,
 }) => {
     const { t } = useTranslation();
     const [nameCommitted, setNameCommitted] = React.useState(split.name !== '');
@@ -172,7 +187,13 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
     const closeButtonRef = React.useRef(null);
 
     const nameErrorsVisible = nameCommitted && nameIssues.length > 0;
-    const descriptionErrorsVisible = descriptionCommitted && descriptionIssues.length > 0;
+    const namingSchemeIssues = nameIssues.filter((e) => e.field === 'namingScheme');
+    const namingSchemeErrorsVisible = nameCommitted && namingSchemeIssues.length > 0;
+    const descriptionBaseIssues = descriptionIssues.filter((e) => e.field !== 'suffixMode');
+    const descriptionSuffixIssues = descriptionIssues.filter((e) => e.field === 'suffixMode');
+    const descriptionBaseErrorsVisible = descriptionCommitted && descriptionBaseIssues.length > 0;
+    const descriptionSuffixErrorsVisible = descriptionSuffixIssues.length > 0;
+    const descriptionErrorsVisible = descriptionBaseErrorsVisible || descriptionSuffixErrorsVisible;
 
     const isPartialDuplicate = split.duplicateStatus?.match === 'PARTIAL';
     const duplicateLength = duplicate?.length;
@@ -276,6 +297,16 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
     const showNameSpecifierInput =
         split.namingScheme === LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS;
     const showFullName = !showFreeTextInput;
+    const showFullDescription = split.suffixMode !== 'NONE';
+    const fullDescription = showFullDescription
+        ? formatTrackDescription(
+              split.descriptionBase,
+              split.suffixMode,
+              startSwitchNameParts,
+              endSwitchNameParts,
+              t,
+          )
+        : undefined;
 
     function updateName(
         namingScheme: LocationTrackNamingScheme,
@@ -381,12 +412,14 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                     )}
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
-                        label={t('tool-panel.location-track.track-naming-scheme')}>
+                        label={t('tool-panel.location-track.track-naming-scheme')}
+                        hasErrors={namingSchemeErrorsVisible}>
                         <Dropdown
                             wide
                             qaId="split-target-track-naming-scheme"
                             useAnchorElementWidth={false}
                             options={namingSchemeOptions}
+                            hasError={namingSchemeErrorsVisible}
                             value={split.namingScheme}
                             disabled={editingDisabled}
                             onChange={(newNamingScheme) => {
@@ -538,11 +571,11 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                     )}
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
-                        hasErrors={descriptionErrorsVisible}
+                        hasErrors={descriptionBaseErrorsVisible}
                         label={t('tool-panel.location-track.splitting.description-base')}>
                         <TextField
                             value={split.descriptionBase}
-                            hasError={descriptionErrorsVisible}
+                            hasError={descriptionBaseErrorsVisible}
                             disabled={editingDisabled}
                             onChange={(e) => {
                                 updateSplit({
@@ -560,26 +593,26 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                             qa-id={'split-target-track-description'}
                         />
                     </InfoboxField>
-                    {descriptionErrorsVisible && (
+                    {descriptionBaseErrorsVisible && (
                         <InfoboxField
                             className={createClassName(
                                 styles['location-track-infobox__split-remark'],
                             )}
-                            hasErrors={descriptionErrorsVisible}
+                            hasErrors={descriptionBaseErrorsVisible}
                             label={''}>
-                            {descriptionErrorsVisible &&
-                                descriptionIssues.map((error, index) => (
-                                    <InfoboxText
-                                        value={t(
-                                            `tool-panel.location-track.splitting.validation.${error.reason}`,
-                                        )}
-                                        key={index.toString()}
-                                    />
-                                ))}
+                            {descriptionBaseIssues.map((error, index) => (
+                                <InfoboxText
+                                    value={t(
+                                        `tool-panel.location-track.splitting.validation.${error.reason}`,
+                                    )}
+                                    key={index.toString()}
+                                />
+                            ))}
                         </InfoboxField>
                     )}
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
+                        hasErrors={descriptionSuffixErrorsVisible}
                         label={t('tool-panel.location-track.splitting.description-suffix')}>
                         <DescriptionSuffixDropdown
                             suffixMode={split.suffixMode}
@@ -588,8 +621,45 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                             }}
                             onBlur={onBlur}
                             disabled={editingDisabled}
+                            hasError={descriptionSuffixErrorsVisible}
                         />
                     </InfoboxField>
+                    {showFullDescription && (
+                        <InfoboxField
+                            className={
+                                styles['location-track-infobox__split-item-field-label--low']
+                            }
+                            label={t('tool-panel.location-track.splitting.full-description')}
+                            hasErrors={descriptionErrorsVisible}>
+                            <span
+                                className={createClassName(
+                                    styles['location-track-infobox__split-full-name'],
+                                    descriptionErrorsVisible &&
+                                        styles[
+                                            'location-track-infobox__split-full-name--has-errors'
+                                        ],
+                                )}>
+                                {fullDescription}
+                            </span>
+                        </InfoboxField>
+                    )}
+                    {descriptionSuffixErrorsVisible && (
+                        <InfoboxField
+                            className={createClassName(
+                                styles['location-track-infobox__split-remark'],
+                            )}
+                            hasErrors={descriptionSuffixErrorsVisible}
+                            label={''}>
+                            {descriptionSuffixIssues.map((error, index) => (
+                                <InfoboxText
+                                    value={t(
+                                        `tool-panel.location-track.splitting.validation.${error.reason}`,
+                                    )}
+                                    key={index.toString()}
+                                />
+                            ))}
+                        </InfoboxField>
+                    )}
                     {endSwitchMatchingError && (
                         <div
                             className={createClassName(

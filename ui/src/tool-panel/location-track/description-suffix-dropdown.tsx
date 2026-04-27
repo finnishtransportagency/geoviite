@@ -11,6 +11,7 @@ type DescriptionSuffixDropdownProps = {
     size?: DropdownSize;
     disabled?: boolean;
     qaId?: string;
+    hasError?: boolean;
 };
 
 export const DescriptionSuffixDropdown: React.FC<DescriptionSuffixDropdownProps> = ({
@@ -20,6 +21,7 @@ export const DescriptionSuffixDropdown: React.FC<DescriptionSuffixDropdownProps>
     onFocus,
     size,
     qaId,
+    hasError = false,
     disabled = false,
 }) => {
     const options = descriptionSuffixModes.map((s) => ({ ...s, qaId: s.value }));
@@ -37,6 +39,7 @@ export const DescriptionSuffixDropdown: React.FC<DescriptionSuffixDropdownProps>
             wide
             size={size}
             disabled={disabled}
+            hasError={hasError}
         />
     );
 };

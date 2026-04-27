@@ -1,7 +1,9 @@
 import {
     DuplicateStatus,
     LayoutSwitch,
+    LocationTrackDescriptionSuffixMode,
     LocationTrackId,
+    LocationTrackNamingScheme,
     SplitPoint,
     splitPointsAreSame,
 } from 'track-layout/track-layout-model';
@@ -21,6 +23,7 @@ import {
 } from 'tool-panel/location-track/dialog/location-track-validation';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export const START_SPLIT_POINT_NOT_MATCHING_ERROR = 'split-point-not-matching-start';
 export const END_SPLIT_POINT_NOT_MATCHING_ERROR = 'split-point-not-matching-end';
@@ -77,8 +80,22 @@ export const validateSplit = (
     lastSplitPoint: SplitPoint,
 ): ValidatedSplit => ({
     split: split,
-    nameIssues: validateSplitName(split.name, allSplitNames, conflictingTrackNames),
-    descriptionIssues: validateSplitDescription(split.descriptionBase, split.duplicateTrackId),
+    nameIssues: validateSplitName(
+        split.name,
+        allSplitNames,
+        conflictingTrackNames,
+        split.namingScheme,
+        split.splitPoint,
+        nextSplit ? nextSplit.splitPoint : lastSplitPoint,
+    ),
+    descriptionIssues: [
+        ...validateSplitDescriptionBase(split.descriptionBase, split.duplicateTrackId),
+        ...validateSplitDescriptionSuffix(
+            split.suffixMode,
+            split.splitPoint,
+            nextSplit ? nextSplit.splitPoint : lastSplitPoint,
+        ),
+    ],
     switchIssues: validateSplitSwitch(
         split,
         nextSplit,
@@ -91,28 +108,51 @@ const validateSplitName = (
     splitName: string,
     allSplitNames: string[],
     conflictingTrackNames: string[],
+    splitNamingScheme: LocationTrackNamingScheme,
+    startSplitPoint: SplitPoint,
+    endSplitPoint: SplitPoint,
 ) => {
-    // TODO: GVT-3083 This needs to validate the structural name with options other than free text
-    const errors: FieldValidationIssue<SplitTargetCandidate>[] =
-        validateLocationTrackName(splitName);
+    const namingSchemeErrors: FieldValidationIssue<SplitTargetCandidate>[] = [];
+    const startIsSwitch = startSplitPoint.type === 'SWITCH_SPLIT_POINT';
+    const endIsSwitch = endSplitPoint.type === 'SWITCH_SPLIT_POINT';
+    switch (splitNamingScheme) {
+        case LocationTrackNamingScheme.CHORD:
+        case LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS:
+            if (!startIsSwitch || !endIsSwitch) {
+                namingSchemeErrors.push({
+                    field: 'namingScheme',
+                    reason: 'name-switches-required-at-both-ends',
+                    type: FieldValidationIssueType.ERROR,
+                });
+            }
+            break;
+        case LocationTrackNamingScheme.FREE_TEXT:
+        case LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT:
+        case LocationTrackNamingScheme.TRACK_NUMBER_TRACK:
+            break;
+        default:
+            exhaustiveMatchingGuard(splitNamingScheme);
+    }
 
+    const conflictErrors: FieldValidationIssue<SplitTargetCandidate>[] = [];
     if (allSplitNames.filter((s) => s !== '' && isEqualIgnoreCase(s, splitName)).length > 1)
-        errors.push({
+        conflictErrors.push({
             field: 'name',
             reason: 'conflicts-with-split',
             type: FieldValidationIssueType.ERROR,
         });
     if (conflictingTrackNames.map((t) => t.toLowerCase()).includes(splitName.toLowerCase())) {
-        errors.push({
+        conflictErrors.push({
             field: 'name',
             reason: 'conflicts-with-track',
             type: FieldValidationIssueType.ERROR,
         });
     }
-    return errors;
+
+    return [...namingSchemeErrors, ...conflictErrors, ...validateLocationTrackName(splitName)];
 };
 
-const validateSplitDescription = (
+const validateSplitDescriptionBase = (
     description: string,
     duplicateOf: LocationTrackId | undefined,
 ) => {
@@ -125,6 +165,55 @@ const validateSplitDescription = (
             type: FieldValidationIssueType.ERROR,
         });
     return errors;
+};
+
+const validateSplitDescriptionSuffix = (
+    suffixMode: LocationTrackDescriptionSuffixMode,
+    startSplitPoint: SplitPoint,
+    endSplitPoint: SplitPoint,
+): FieldValidationIssue<SplitTargetCandidate>[] => {
+    const startIsSwitch = startSplitPoint.type === 'SWITCH_SPLIT_POINT';
+    const endIsSwitch = endSplitPoint.type === 'SWITCH_SPLIT_POINT';
+
+    switch (suffixMode) {
+        case 'NONE':
+            return [];
+        case 'SWITCH_TO_SWITCH':
+            if (!startIsSwitch || !endIsSwitch) {
+                return [
+                    {
+                        field: 'suffixMode',
+                        reason: 'description-switches-required-at-both-ends',
+                        type: FieldValidationIssueType.ERROR,
+                    },
+                ];
+            }
+            return [];
+        case 'SWITCH_TO_BUFFER':
+        case 'SWITCH_TO_OWNERSHIP_BOUNDARY':
+            if (!startIsSwitch && !endIsSwitch) {
+                return [
+                    {
+                        field: 'suffixMode',
+                        reason: 'no-end-switches',
+                        type: FieldValidationIssueType.ERROR,
+                    },
+                ];
+            } else if (
+                startIsSwitch &&
+                endIsSwitch &&
+                startSplitPoint.switchId !== endSplitPoint.switchId
+            ) {
+                return [
+                    {
+                        field: 'suffixMode',
+                        reason: 'switches-not-allowed-at-both-ends',
+                        type: FieldValidationIssueType.ERROR,
+                    },
+                ];
+            }
+            return [];
+    }
 };
 
 export const validateSplitSwitch = (
