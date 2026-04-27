@@ -1640,7 +1640,8 @@
         "errors-group-title": "Virheitä",
         "warnings-group-title": "Varoituksia",
         "cancellation": "Suunnitellun muutoksen ({{operation}}) peruminen",
-        "api-error-icon-hover-text": "Validointipyynnössä tapahtui virhe"
+        "api-error-icon-hover-text": "Validointipyynnössä tapahtui virhe",
+        "external-change": "Sisältää Ratkosta automaattisesti tuotuja muutoksia"
     },
     "preview-footer": {
         "reject-changes": "Hylkää muutokset",
@@ -2176,7 +2177,8 @@
         "search-from-track": "Hae raiteelta {{track}}...",
         "new": "Luo uusi",
         "preview-mode": {
-            "enable": "Esikatselu"
+            "enable": "Esikatselu",
+            "has-ratko-changes": "Ratkosta on tuotu muutoksia, jotka täytyy julkaista"
         },
         "new-track-number": "Uusi ratanumero",
         "new-switch": "Uusi vaihde",

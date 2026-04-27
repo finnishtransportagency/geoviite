@@ -4,6 +4,7 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
 import {
+    DraftChangeType,
     LayoutValidationIssue,
     LayoutValidationIssueType,
     PublicationStage,
@@ -23,9 +24,9 @@ import { PreviewTableEntry } from 'preview/preview-table';
 import { BoundingBox } from 'model/geometry';
 import { RevertRequestSource } from 'preview/preview-view-revert-request';
 import { PublicationGroupAmounts } from 'publication/publication-utils';
-
 import { ValidationStateCell } from './preview-table-validation-state-cell';
 import { ValidationStateRow } from './preview-table-validation-state-row';
+import { ExclamationPoint } from 'geoviite-design-lib/exclamation-point/exclamation-point';
 
 const conditionalMenuOption = (
     condition: unknown | undefined,
@@ -73,6 +74,10 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     const hasErrors = tableEntry.issues.length > 0;
 
     const actionMenuRef = React.useRef(null);
+
+    const externalChange =
+        tableEntry.publishCandidate.type === DraftChangeType.OPERATIONAL_POINT &&
+        tableEntry.publishCandidate.externalChange;
 
     const publicationGroupAssetAmount = tableEntry.publicationGroup
         ? publicationGroupAmounts[tableEntry.publicationGroup?.id]
@@ -226,7 +231,16 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     return (
         <React.Fragment>
             <tr className={'preview-table-item'}>
-                <td>{tableEntry.uiName}</td>
+                <td>
+                    <span>{tableEntry.uiName}</span>
+                    {externalChange && (
+                        <span
+                            className={styles['preview-table-item__notify-container']}
+                            title={t('preview-table.external-change')}>
+                            <ExclamationPoint />
+                        </span>
+                    )}
+                </td>
                 <td>{trackNumberSpans}</td>
                 <td>{operation}</td>
                 <td>{formatDateFull(tableEntry.changeTime)}</td>

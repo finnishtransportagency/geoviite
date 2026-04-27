@@ -482,6 +482,7 @@ export type OperationalPointOrigin = 'GEOVIITE' | 'RATKO';
 export type OperationalPoint = {
     id: OperationalPointId;
     origin: OperationalPointOrigin;
+    hasExternalChanges: boolean;
     name: string;
     abbreviation?: string;
     uicCode: UICCode;

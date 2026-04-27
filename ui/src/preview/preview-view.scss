@@ -149,7 +149,7 @@ $-color-warning: vayla-design.$color-lemon-dark;
 
 .preview-table-item {
     white-space: pre-wrap;
-    
+
     &__checkbox {
         margin-right: 8px;
     }
@@ -168,6 +168,11 @@ $-color-warning: vayla-design.$color-lemon-dark;
 
     &__revert-spinner {
         padding: 10px;
+    }
+
+    &__notify-container {
+        vertical-align: text-bottom;
+        margin-left: 4px;
     }
 }
 
