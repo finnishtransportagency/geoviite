@@ -16,7 +16,7 @@ import fi.fta.geoviite.infra.geometry.VICircularCurve
 import fi.fta.geoviite.infra.geometry.VIPoint
 import fi.fta.geoviite.infra.geometry.VerticalIntersection
 import fi.fta.geoviite.infra.geometry.geometryAlignment
-import fi.fta.geoviite.infra.geometry.lineFromOrigin
+import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
@@ -56,11 +56,18 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     @Test
     fun `Profile API versioning works across multiple publications`() {
-        val plan = insertPlan(listOf(profileAlignment()))
+        val trackStart = Point(0.0, 0.0)
+        val trackEnd = Point(0.0, 100.0)
+        val expectedStartAddress = "0000+0000.000"
+        val expectedEndAddress = "0000+0100.000"
+
+        val plan = insertPlan(listOf(profileAlignment(start = trackStart, end = trackEnd)))
         val elements = plan.alignments[0].elements
         val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
+
+        // Publication 1: track with plan-linked profile
         val publication1 =
             extTestDataService.publishInMain(
                 trackNumbers = listOf(trackNumberId),
@@ -68,16 +75,58 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 locationTracks = listOf(trackId),
             )
 
+        // Publication 2: empty publish — no changes to the track
         val publication2 = extTestDataService.publishInMain()
 
-        val responseLatest = api.locationTrackProfile.get(oid)
-        assertProfileResponseTopLevel(responseLatest, oid, publication2.uuid)
+        // Publication 3: re-save the track with unlinked segments (removes profile)
+        initUser()
+        val (track, geometry) = mainDraftContext.fetchLocationTrackWithGeometry(trackId)!!
+        val unlinkedGeometry =
+            trackGeometryOfSegments(geometry.segments.map { it.copy(sourceId = null, sourceStartM = null) })
+        mainDraftContext.save(track, unlinkedGeometry)
+        val publication3 = extTestDataService.publishInMain(locationTracks = listOf(trackId))
 
-        val responseAtV1 = api.locationTrackProfile.getAtVersion(oid, publication1.uuid)
-        assertProfileResponseTopLevel(responseAtV1, oid, publication1.uuid)
+        // --- Profile endpoint assertions ---
 
-        val responseAtV2 = api.locationTrackProfile.getAtVersion(oid, publication2.uuid)
-        assertProfileResponseTopLevel(responseAtV2, oid, publication2.uuid)
+        // Latest (after publication 3) should have no profile
+        api.locationTrackProfile.assertDoesntExist(oid)
+
+        // Explicit v1 still has profile; v2 has identical content (no change between v1 and v2)
+        api.locationTrackProfile.getAtVersion(oid, publication1.uuid).also { v1 ->
+            assertProfileResponseTopLevel(v1, oid, publication1.uuid)
+            assertProfileInterval(v1.osoitevalit.single(), expectedStartAddress, expectedEndAddress, 1)
+
+            api.locationTrackProfile.getAtVersion(oid, publication2.uuid).also { v2 ->
+                assertProfileResponseTopLevel(v2, oid, publication2.uuid)
+                assertEquals(v1.osoitevalit, v2.osoitevalit, "V2 profile should be identical to V1")
+            }
+        }
+
+        // Explicit v3 should have no profile
+        api.locationTrackProfile.assertDoesntExistAtVersion(oid, publication3.uuid)
+
+        // --- Changes endpoint assertions ---
+
+        // No modification when comparing same version
+        api.locationTrackProfile.assertNoModificationBetween(oid, publication1.uuid, publication1.uuid)
+
+        // No modification between v1 and v2 (nothing changed)
+        api.locationTrackProfile.assertNoModificationBetween(oid, publication1.uuid, publication2.uuid)
+
+        // Modification between v2 and v3 (profile was removed)
+        api.locationTrackProfile.getModifiedBetween(oid, publication2.uuid, publication3.uuid).also { response ->
+            assertProfileChangesTopLevel(response, oid, publication2.uuid, publication3.uuid)
+            assertProfileInterval(response.osoitevalit.single(), expectedStartAddress, expectedEndAddress, 0)
+        }
+
+        // Modification between v1 and v3 (profile was removed)
+        api.locationTrackProfile.getModifiedBetween(oid, publication1.uuid, publication3.uuid).also { response ->
+            assertProfileChangesTopLevel(response, oid, publication1.uuid, publication3.uuid)
+            assertProfileInterval(response.osoitevalit.single(), expectedStartAddress, expectedEndAddress, 0)
+        }
+
+        // No modification since latest
+        api.locationTrackProfile.assertNoModificationSince(oid, publication3.uuid)
     }
 
     @Test
@@ -403,6 +452,29 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         assertEquals(version.toString(), response.rataverkon_versio)
     }
 
+    private fun assertProfileChangesTopLevel(
+        response: ExtTestModifiedLocationTrackProfileResponseV1,
+        oid: Oid<LocationTrack>,
+        fromVersion: Uuid<Publication>,
+        toVersion: Uuid<Publication>,
+    ) {
+        assertEquals(oid.toString(), response.sijaintiraide_oid)
+        assertEquals(LAYOUT_SRID.toString(), response.koordinaatisto)
+        assertEquals(fromVersion.toString(), response.alkuversio)
+        assertEquals(toVersion.toString(), response.loppuversio)
+    }
+
+    private fun assertProfileInterval(
+        interval: ExtTestProfileAddressRangeV1,
+        expectedStart: String?,
+        expectedEnd: String?,
+        expectedBreakPointCount: Int,
+    ) {
+        assertEquals(expectedStart, interval.alku, "Interval start address")
+        assertEquals(expectedEnd, interval.loppu, "Interval end address")
+        assertEquals(expectedBreakPointCount, interval.taitepisteet.size, "Break point count in interval")
+    }
+
     private fun insertTrackNumberWithReferenceLine(
         elements: List<GeometryElement>
     ): Pair<IntId<LayoutTrackNumber>, IntId<ReferenceLine>> {
@@ -413,6 +485,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     }
 
     private fun profileAlignment(
+        start: Point = Point(0.0, 0.0),
+        end: Point = Point(0.0, 100.0),
         profileElements: List<VerticalIntersection> =
             listOf(
                 VIPoint(PlanElementName("start"), Point(0.0, 50.0)),
@@ -421,7 +495,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             )
     ): GeometryAlignment =
         geometryAlignment(
-            elements = listOf(lineFromOrigin(1.0)),
+            elements = listOf(line(start, end)),
             profile = GeometryProfile(PlanElementName("profile"), profileElements),
         )
 

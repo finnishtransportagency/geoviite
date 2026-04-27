@@ -367,3 +367,11 @@ data class ExtTestProfileRemarkV1(
     val koodi: String,
     val selite: String,
 )
+
+data class ExtTestModifiedLocationTrackProfileResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val sijaintiraide_oid: String,
+    val koordinaatisto: String,
+    val osoitevalit: List<ExtTestProfileAddressRangeV1>,
+)
