@@ -193,13 +193,15 @@ class OperationalPointService(
     ): LayoutRowVersion<OperationalPoint> {
         val designBranchPoint = fetchAndCheckForMerging(fromBranch, id).first
         val mainBranchPoint = dao.fetchVersion(MainLayoutContext.draft, id)?.let(operationalPointDao::fetch)
+        val isRatkoPoint = mainBranchPoint?.origin == OperationalPointOrigin.RATKO
         return dao.save(
             asMainDraft(
-                // Handle all fields whose values reside in layout.operational_point but who are still controlled by
-                // Ratko sync. Ratko sync only runs in main, so use main draft's values for them
+                // If an operational point is synced from Ratko, its ratko version and state are handled by the Ratko
+                // sync. Ratko sync only runs in main, so that data should be used over whatever exists in the design.
+                // If the operational point is from Geoviite, we can just take the state info from the design branch.
                 designBranchPoint.copy(
-                    ratkoVersion = mainBranchPoint?.ratkoVersion ?: mainBranchPoint?.ratkoVersion,
-                    state = mainBranchPoint?.state ?: designBranchPoint.state,
+                    ratkoVersion = if (isRatkoPoint) mainBranchPoint.ratkoVersion else null,
+                    state = if (isRatkoPoint) mainBranchPoint.state else designBranchPoint.state,
                 )
             )
         )
