@@ -430,7 +430,7 @@ class OperationalPointDao(
                 sql,
                 mapOf(
                     "publication_state" to context.state.name,
-                    "design_id" to context.branch.designId,
+                    "design_id" to context.branch.designId?.intValue,
                     "rinf_ids" to items.map { it.toString() }.toTypedArray(),
                 ),
             ) { rs, _ ->
