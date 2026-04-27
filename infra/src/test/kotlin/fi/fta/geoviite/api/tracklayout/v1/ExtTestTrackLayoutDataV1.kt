@@ -310,7 +310,7 @@ data class ExtTestLocationTrackProfileResponseV1(
     val rataverkon_versio: String,
     val sijaintiraide_oid: String,
     val koordinaatisto: String,
-    val osoitevalit: List<ExtTestProfileAddressRangeV1>,
+    val osoitevali: ExtTestProfileAddressRangeV1,
 )
 
 data class ExtTestProfileAddressRangeV1(

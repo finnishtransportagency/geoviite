@@ -88,22 +88,28 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         // --- Profile endpoint assertions ---
 
-        // Latest (after publication 3) should have no profile
-        api.locationTrackProfile.assertDoesntExist(oid)
+        // Latest (after publication 3) should have empty break points (profile removed but track exists)
+        api.locationTrackProfile.get(oid).also { response ->
+            assertProfileResponseTopLevel(response, oid, publication3.uuid)
+            assertProfileInterval(response.osoitevali, expectedStartAddress, expectedEndAddress, 0)
+        }
 
         // Explicit v1 still has profile; v2 has identical content (no change between v1 and v2)
         api.locationTrackProfile.getAtVersion(oid, publication1.uuid).also { v1 ->
             assertProfileResponseTopLevel(v1, oid, publication1.uuid)
-            assertProfileInterval(v1.osoitevalit.single(), expectedStartAddress, expectedEndAddress, 1)
+            assertProfileInterval(v1.osoitevali, expectedStartAddress, expectedEndAddress, 1)
 
             api.locationTrackProfile.getAtVersion(oid, publication2.uuid).also { v2 ->
                 assertProfileResponseTopLevel(v2, oid, publication2.uuid)
-                assertEquals(v1.osoitevalit, v2.osoitevalit, "V2 profile should be identical to V1")
+                assertEquals(v1.osoitevali, v2.osoitevali, "V2 profile should be identical to V1")
             }
         }
 
-        // Explicit v3 should have no profile
-        api.locationTrackProfile.assertDoesntExistAtVersion(oid, publication3.uuid)
+        // Explicit v3 should have empty break points (profile removed)
+        api.locationTrackProfile.getAtVersion(oid, publication3.uuid).also { response ->
+            assertProfileResponseTopLevel(response, oid, publication3.uuid)
+            assertProfileInterval(response.osoitevali, expectedStartAddress, expectedEndAddress, 0)
+        }
 
         // --- Changes endpoint assertions ---
 
@@ -155,9 +161,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         val response = api.locationTrackProfile.get(oid)
         assertProfileResponseTopLevel(response, oid, publication.uuid)
-        assertEquals(1, response.osoitevalit.size, "Expected exactly one address range")
 
-        val breakPoints = response.osoitevalit[0].taitepisteet
+        val breakPoints = response.osoitevali.taitepisteet
         assertEquals(1, breakPoints.size, "Expected exactly one break point for one curve")
 
         val breakPoint = breakPoints[0]
@@ -202,9 +207,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         val response = api.locationTrackProfile.get(oid)
-        assertEquals(1, response.osoitevalit.size)
-        assertEquals(1, response.osoitevalit[0].taitepisteet.size)
-        val breakPoint = response.osoitevalit[0].taitepisteet[0]
+        assertEquals(1, response.osoitevali.taitepisteet.size)
+        val breakPoint = response.osoitevali.taitepisteet[0]
 
         // Curved section endpoints (pyoristyksen_alku/loppu) have kaltevuus field
         // Intersection point (taite) does not — enforced by type ExtTestProfileIntersectionPointV1 having no kaltevuus
@@ -226,9 +230,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         val response = api.locationTrackProfile.get(oid)
-        assertEquals(1, response.osoitevalit.size)
-        assertEquals(1, response.osoitevalit[0].taitepisteet.size)
-        val breakPoint = response.osoitevalit[0].taitepisteet[0]
+        assertEquals(1, response.osoitevali.taitepisteet.size)
+        val breakPoint = response.osoitevali.taitepisteet[0]
 
         assertEquals(
             breakPoint.pyoristyksen_alku.korkeus_alkuperäinen.toDouble(),
@@ -261,9 +264,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         val response = api.locationTrackProfile.get(oid)
-        assertEquals(1, response.osoitevalit.size)
-        assertEquals(1, response.osoitevalit[0].taitepisteet.size)
-        val breakPoint = response.osoitevalit[0].taitepisteet[0]
+        assertEquals(1, response.osoitevali.taitepisteet.size)
+        val breakPoint = response.osoitevali.taitepisteet[0]
 
         assertNull(
             breakPoint.pyoristyksen_alku.korkeus_n2000,
@@ -274,7 +276,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     }
 
     @Test
-    fun `Consecutive break points form a single address range`() {
+    fun `Single plan produces single address range covering full track`() {
         val plan = insertPlan(listOf(profileAlignment()))
         val elements = plan.alignments[0].elements
         val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements)
@@ -287,12 +289,13 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         val response = api.locationTrackProfile.get(oid)
-        assertEquals(1, response.osoitevalit.size, "Expected a single address range for consecutive break points")
-        assertEquals(1, response.osoitevalit[0].taitepisteet.size, "Expected one break point for one curve")
+        assertNotNull(response.osoitevali.alku, "Address range start should be present")
+        assertNotNull(response.osoitevali.loppu, "Address range end should be present")
+        assertEquals(1, response.osoitevali.taitepisteet.size, "Expected one break point for one curve")
     }
 
     @Test
-    fun `Gap in break points creates separate address ranges`() {
+    fun `Gap in plan linkage still returns all break points in single address range`() {
         val plan1 = insertPlan(listOf(profileAlignment()), fileName = FileName("profile_gap_1.xml"))
         val plan2 = insertPlan(listOf(profileAlignment()), fileName = FileName("profile_gap_2.xml"))
         val sourceElement1 = plan1.alignments[0].elements[0]
@@ -323,7 +326,14 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         val response = api.locationTrackProfile.get(oid)
-        assertEquals(2, response.osoitevalit.size, "Expected two address ranges separated by the unlinked gap")
+        // With the new spec, osoitevali always covers the full track range,
+        // break points from both linked sections are included in the single range
+        assertNotNull(response.osoitevali.alku, "Address range start should be present")
+        assertNotNull(response.osoitevali.loppu, "Address range end should be present")
+        assertTrue(
+            response.osoitevali.taitepisteet.size >= 2,
+            "Expected break points from both linked sections in the single address range",
+        )
     }
 
     @Test
@@ -356,7 +366,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         val response = api.locationTrackProfile.get(oid)
-        val allRemarks = response.osoitevalit.flatMap { range -> range.taitepisteet.flatMap { it.huomiot } }
+        val allRemarks = response.osoitevali.taitepisteet.flatMap { it.huomiot }
         val overlapRemarks = allRemarks.filter { it.koodi == "kaltevuusjakso_limittain" }
         assertTrue(overlapRemarks.isNotEmpty(), "Expected kaltevuusjakso_limittain remarks for overlapping profiles")
         overlapRemarks.forEach { remark -> assertTrue(remark.selite.isNotBlank(), "Remark selite should be non-blank") }
@@ -376,8 +386,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         val response = api.locationTrackProfile.get(oid)
-        assertEquals(1, response.osoitevalit.size, "Expected a single address range with no overlap")
-        val allRemarks = response.osoitevalit.flatMap { range -> range.taitepisteet.flatMap { it.huomiot } }
+        val allRemarks = response.osoitevali.taitepisteet.flatMap { it.huomiot }
         assertEquals(0, allRemarks.size, "Expected no remarks when there is no overlap")
     }
 
@@ -407,26 +416,24 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         val sleeperResponse = api.locationTrackProfile.get(sleeperOid)
-        assertEquals(1, sleeperResponse.osoitevalit.size)
-        assertEquals(1, sleeperResponse.osoitevalit[0].taitepisteet.size)
+        assertEquals(1, sleeperResponse.osoitevali.taitepisteet.size)
         assertEquals(
             "Korkeusviiva",
-            sleeperResponse.osoitevalit[0].taitepisteet[0].suunnitelman_korkeusasema,
+            sleeperResponse.osoitevali.taitepisteet[0].suunnitelman_korkeusasema,
             "TOP_OF_SLEEPER should map to 'Korkeusviiva'",
         )
 
         val railResponse = api.locationTrackProfile.get(railOid)
-        assertEquals(1, railResponse.osoitevalit.size)
-        assertEquals(1, railResponse.osoitevalit[0].taitepisteet.size)
+        assertEquals(1, railResponse.osoitevali.taitepisteet.size)
         assertEquals(
             "Kiskon selkä",
-            railResponse.osoitevalit[0].taitepisteet[0].suunnitelman_korkeusasema,
+            railResponse.osoitevali.taitepisteet[0].suunnitelman_korkeusasema,
             "TOP_OF_RAIL should map to 'Kiskon selkä'",
         )
     }
 
     @Test
-    fun `Location track with no vertical geometry returns 204`() {
+    fun `Location track with no vertical geometry returns 200 with empty break points`() {
         val refLineSegment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val referenceLineId =
@@ -439,7 +446,10 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(trackId),
         )
 
-        api.locationTrackProfile.assertDoesntExist(oid)
+        val response = api.locationTrackProfile.get(oid)
+        assertNotNull(response.osoitevali.alku, "Address range start should be present for existing track")
+        assertNotNull(response.osoitevali.loppu, "Address range end should be present for existing track")
+        assertEquals(0, response.osoitevali.taitepisteet.size, "Expected no break points when no profile exists")
     }
 
     private fun assertProfileResponseTopLevel(
