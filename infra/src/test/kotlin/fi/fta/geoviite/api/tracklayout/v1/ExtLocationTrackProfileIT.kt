@@ -242,10 +242,20 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         // Linear sections (kaltevuusjaksot)
-        assertNotNull(pviPoint.kaltevuusjakso_taaksepain.pituus, "Backward linear section should have length")
-        assertNotNull(pviPoint.kaltevuusjakso_taaksepain.suora_osa, "Backward linear section should have linear part")
-        assertNotNull(pviPoint.kaltevuusjakso_eteenpain.pituus, "Forward linear section should have length")
-        assertNotNull(pviPoint.kaltevuusjakso_eteenpain.suora_osa, "Forward linear section should have linear part")
+        // Backward: from leftPvi (start of profile) to the curve's station point
+        assertLinearSection(
+            pviPoint.kaltevuusjakso_taaksepain,
+            expectedLength = roundTo3Decimals(stationPoint.x - leftPvi.x),
+            expectedLinearPart = roundTo3Decimals(tangentPoints.first.x - leftPvi.x),
+            label = "Backward",
+        )
+        // Forward: from the curve's station point to rightPvi (end of profile)
+        assertLinearSection(
+            pviPoint.kaltevuusjakso_eteenpain,
+            expectedLength = roundTo3Decimals(rightPvi.x - stationPoint.x),
+            expectedLinearPart = roundTo3Decimals(rightPvi.x - tangentPoints.second.x),
+            label = "Forward",
+        )
 
         // Station values (paaluluku)
         assertStationValues(
