@@ -46,6 +46,7 @@ import fi.fta.geoviite.infra.tracklayout.trackGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -359,15 +360,30 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             pviPoint.pyoristyksen_alku.korkeus_n2000,
             "N2000 height should be present for N60 source data (start)",
         )
+        assertNotEquals(
+            pviPoint.pyoristyksen_alku.korkeus_alkuperäinen,
+            pviPoint.pyoristyksen_alku.korkeus_n2000,
+            "N2000 height should differ from original for N60 source data (start)",
+        )
         assertNotNull(pviPoint.taite.korkeus_alkuperäinen, "Original height should be present (intersection)")
         assertNotNull(
             pviPoint.taite.korkeus_n2000,
             "N2000 height should be present for N60 source data (intersection)",
         )
+        assertNotEquals(
+            pviPoint.taite.korkeus_alkuperäinen,
+            pviPoint.taite.korkeus_n2000,
+            "N2000 height should differ from original for N60 source data (intersection)",
+        )
         assertNotNull(pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen, "Original height should be present (end)")
         assertNotNull(
             pviPoint.pyoristyksen_loppu.korkeus_n2000,
             "N2000 height should be present for N60 source data (end)",
+        )
+        assertNotEquals(
+            pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen,
+            pviPoint.pyoristyksen_loppu.korkeus_n2000,
+            "N2000 height should differ from original for N60 source data (end)",
         )
     }
 

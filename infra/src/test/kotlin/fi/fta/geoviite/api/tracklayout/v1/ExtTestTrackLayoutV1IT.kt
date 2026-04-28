@@ -72,6 +72,7 @@ constructor(
             ::setupValidSwitch to api.switch::getModifiedWithExpectedError,
             ::setupValidTrackNumber to api.trackNumberGeometry::getModifiedWithExpectedError,
             ::setupValidLocationTrack to api.locationTrackGeometry::getModifiedWithExpectedError,
+            ::setupValidLocationTrack to api.locationTrackProfile::getModifiedWithExpectedError,
             ::setupValidOperationalPoint to api.operationalPoint::getModifiedWithExpectedError,
         )
 
@@ -114,6 +115,7 @@ constructor(
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getModifiedWithEmptyBody,
             ::setupValidLocationTrack to api.locationTrackGeometry::getModifiedWithEmptyBody,
+            ::setupValidLocationTrack to api.locationTrackProfile::getModifiedWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumbers::getModifiedWithEmptyBody,
             ::setupValidTrackNumber to api.trackNumberGeometry::getModifiedWithEmptyBody,
             ::setupValidSwitch to api.switch::getModifiedWithEmptyBody,
@@ -124,6 +126,7 @@ constructor(
         listOf(
             ::setupValidLocationTrack to api.locationTracks::getModified,
             ::setupValidLocationTrack to api.locationTrackGeometry::getModified,
+            ::setupValidLocationTrack to api.locationTrackProfile::getModified,
             ::setupValidTrackNumber to api.trackNumbers::getModified,
             ::setupValidTrackNumber to api.trackNumberGeometry::getModified,
             ::setupValidSwitch to api.switch::getModified,
