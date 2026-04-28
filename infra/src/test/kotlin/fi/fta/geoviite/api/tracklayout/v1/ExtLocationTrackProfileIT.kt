@@ -31,6 +31,7 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.math.roundTo6Decimals
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -97,7 +98,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         // --- Profile endpoint assertions ---
 
-        // Latest (after publication 3) should have empty break points (profile removed but track exists)
+        // Latest (after publication 3) should have no PVI points (profile removed but track exists)
         api.locationTrackProfile.get(oid).also { response ->
             assertProfileResponseTopLevel(response, oid, publication3.uuid)
             assertProfileInterval(response.osoitevali, expectedStartAddress, expectedEndAddress, 0)
@@ -114,7 +115,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             }
         }
 
-        // Explicit v3 should have empty break points (profile removed)
+        // Explicit v3 should have no PVI points (profile removed)
         api.locationTrackProfile.getAtVersion(oid, publication3.uuid).also { response ->
             assertProfileResponseTopLevel(response, oid, publication3.uuid)
             assertProfileInterval(response.osoitevali, expectedStartAddress, expectedEndAddress, 0)
@@ -164,12 +165,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 signedRadius,
             )
         val stationPoint = circCurveStationPoint(curvedSegment)
-        val expectedTangent = roundTo3Decimals(lineLength(tangentPoints.first, stationPoint))
-        val expectedStartGradient = roundTo6Decimals(angleFractionBetweenPoints(stationPoint, curvedSegment.start)!!)
-        val expectedEndGradient = roundTo6Decimals(angleFractionBetweenPoints(stationPoint, curvedSegment.end)!!)
-        val expectedStartHeight = roundTo3Decimals(curvedSegment.start.y)
-        val expectedEndHeight = roundTo3Decimals(curvedSegment.end.y)
-        val expectedPviHeight = roundTo3Decimals(stationPoint.y)
+        val startGradient = angleFractionBetweenPoints(stationPoint, curvedSegment.start)!!
+        val endGradient = angleFractionBetweenPoints(stationPoint, curvedSegment.end)!!
 
         // Track geometry is a straight north-going line covering all PVI stations.
         // With no km-posts and default reference line start at 0km, distance along track = address meters.
@@ -207,80 +204,42 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         val pviPoint = response.osoitevali.taitepisteet.single()
 
-        // Intersection point (taite): N2000 source → korkeus_n2000 equals original, no height transformation
-        assertEquals(expectedPviHeight.toDouble(), pviPoint.taite.korkeus_alkuperäinen.toDouble(), "PVI height")
-        assertEquals(
-            pviPoint.taite.korkeus_alkuperäinen.toDouble(),
-            pviPoint.taite.korkeus_n2000?.toDouble(),
-            "N2000 height should equal original for N2000 source data",
-        )
-        assertEquals(expectedAddress(stationPoint.x), pviPoint.taite.sijainti.rataosoite, "PVI point track address")
-        assertEquals(0.0, pviPoint.taite.sijainti.x?.toDouble(), "PVI point X coordinate (line along Y axis)")
-        assertEquals(
-            roundTo3Decimals(stationPoint.x),
-            pviPoint.taite.sijainti.y?.toDouble(),
-            "PVI point Y coordinate (= station along north-going line)",
+        assertIntersectionPoint(
+            pviPoint.taite,
+            expectedHeight = stationPoint.y,
+            expectedHeightN2000 = stationPoint.y,
+            expectedAddress = expectedAddress(stationPoint.x),
+            expectedLocation = Point(0.0, stationPoint.x),
+            label = "PVI point",
         )
 
-        // Curved section start (pyoristyksen_alku)
-        assertEquals(
-            expectedStartHeight.toDouble(),
-            pviPoint.pyoristyksen_alku.korkeus_alkuperäinen.toDouble(),
-            "Curve start height",
-        )
-        assertEquals(
-            pviPoint.pyoristyksen_alku.korkeus_alkuperäinen.toDouble(),
-            pviPoint.pyoristyksen_alku.korkeus_n2000?.toDouble(),
-            "Curve start N2000 height should equal original",
-        )
-        assertEquals(
-            expectedStartGradient.toDouble(),
-            pviPoint.pyoristyksen_alku.kaltevuus.toDouble(),
-            "Curve start gradient",
-        )
-        assertEquals(
-            expectedAddress(curvedSegment.start.x),
-            pviPoint.pyoristyksen_alku.sijainti.rataosoite,
-            "Curve start track address",
-        )
-        assertEquals(0.0, pviPoint.pyoristyksen_alku.sijainti.x?.toDouble(), "Curve start X coordinate")
-        assertEquals(
-            roundTo3Decimals(curvedSegment.start.x),
-            pviPoint.pyoristyksen_alku.sijainti.y?.toDouble(),
-            "Curve start Y coordinate",
+        assertCurvedSectionEndpoint(
+            pviPoint.pyoristyksen_alku,
+            expectedHeight = curvedSegment.start.y,
+            expectedHeightN2000 = curvedSegment.start.y,
+            expectedGradient = startGradient,
+            expectedAddress = expectedAddress(curvedSegment.start.x),
+            expectedLocation = Point(0.0, curvedSegment.start.x),
+            label = "Curve start",
         )
 
-        // Curved section end (pyoristyksen_loppu)
-        assertEquals(
-            expectedEndHeight.toDouble(),
-            pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen.toDouble(),
-            "Curve end height",
-        )
-        assertEquals(
-            pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen.toDouble(),
-            pviPoint.pyoristyksen_loppu.korkeus_n2000?.toDouble(),
-            "Curve end N2000 height should equal original",
-        )
-        assertEquals(
-            expectedEndGradient.toDouble(),
-            pviPoint.pyoristyksen_loppu.kaltevuus.toDouble(),
-            "Curve end gradient",
-        )
-        assertEquals(
-            expectedAddress(curvedSegment.end.x),
-            pviPoint.pyoristyksen_loppu.sijainti.rataosoite,
-            "Curve end track address",
-        )
-        assertEquals(0.0, pviPoint.pyoristyksen_loppu.sijainti.x?.toDouble(), "Curve end X coordinate")
-        assertEquals(
-            roundTo3Decimals(curvedSegment.end.x),
-            pviPoint.pyoristyksen_loppu.sijainti.y?.toDouble(),
-            "Curve end Y coordinate",
+        assertCurvedSectionEndpoint(
+            pviPoint.pyoristyksen_loppu,
+            expectedHeight = curvedSegment.end.y,
+            expectedHeightN2000 = curvedSegment.end.y,
+            expectedGradient = endGradient,
+            expectedAddress = expectedAddress(curvedSegment.end.x),
+            expectedLocation = Point(0.0, curvedSegment.end.x),
+            label = "Curve end",
         )
 
         // Radius and tangent
-        assertEquals(curveRadius.toDouble(), pviPoint.pyoristyssade.toDouble(), "Rounding radius")
-        assertEquals(expectedTangent.toDouble(), pviPoint.tangentti?.toDouble(), "Tangent length")
+        assertEquals(curveRadius.toString(), pviPoint.pyoristyssade, "Rounding radius")
+        assertEquals(
+            roundTo3Decimals(lineLength(tangentPoints.first, stationPoint)).toString(),
+            pviPoint.tangentti,
+            "Tangent length",
+        )
 
         // Linear sections (kaltevuusjaksot)
         assertNotNull(pviPoint.kaltevuusjakso_taaksepain.pituus, "Backward linear section should have length")
@@ -289,17 +248,12 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         assertNotNull(pviPoint.kaltevuusjakso_eteenpain.suora_osa, "Forward linear section should have linear part")
 
         // Station values (paaluluku)
-        assertEquals(
-            roundTo3Decimals(curvedSegment.start.x),
-            pviPoint.paaluluku.alku?.toDouble(),
-            "Station value start",
+        assertStationValues(
+            pviPoint.paaluluku,
+            expectedStart = curvedSegment.start.x,
+            expectedIntersection = stationPoint.x,
+            expectedEnd = curvedSegment.end.x,
         )
-        assertEquals(
-            roundTo3Decimals(stationPoint.x),
-            pviPoint.paaluluku.taite?.toDouble(),
-            "Station value intersection",
-        )
-        assertEquals(roundTo3Decimals(curvedSegment.end.x), pviPoint.paaluluku.loppu?.toDouble(), "Station value end")
 
         // Metadata
         assertEquals("N2000", pviPoint.suunnitelman_korkeusjärjestelmä, "Vertical coordinate system should be N2000")
@@ -322,29 +276,27 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(trackId),
         )
 
-        val response = api.locationTrackProfile.get(oid)
-        assertEquals(1, response.osoitevali.taitepisteet.size)
-        val breakPoint = response.osoitevali.taitepisteet[0]
+        val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
 
         assertEquals(
-            breakPoint.pyoristyksen_alku.korkeus_alkuperäinen.toDouble(),
-            breakPoint.pyoristyksen_alku.korkeus_n2000?.toDouble(),
+            pviPoint.pyoristyksen_alku.korkeus_alkuperäinen,
+            pviPoint.pyoristyksen_alku.korkeus_n2000,
             "N2000 height should equal original for N2000 source data (start)",
         )
         assertEquals(
-            breakPoint.taite.korkeus_alkuperäinen.toDouble(),
-            breakPoint.taite.korkeus_n2000?.toDouble(),
+            pviPoint.taite.korkeus_alkuperäinen,
+            pviPoint.taite.korkeus_n2000,
             "N2000 height should equal original for N2000 source data (intersection)",
         )
         assertEquals(
-            breakPoint.pyoristyksen_loppu.korkeus_alkuperäinen.toDouble(),
-            breakPoint.pyoristyksen_loppu.korkeus_n2000?.toDouble(),
+            pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen,
+            pviPoint.pyoristyksen_loppu.korkeus_n2000,
             "N2000 height should equal original for N2000 source data (end)",
         )
     }
 
     @Test
-    fun `N43 source data returns korkeus_n2000 as null`() {
+    fun `N43 source data returns korkeus_n2000 as null but includes original height`() {
         val plan = insertPlan(listOf(profileAlignment()), verticalCoordinateSystem = VerticalCoordinateSystem.N43)
         val elements = plan.alignments[0].elements
         val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements)
@@ -356,16 +308,57 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(trackId),
         )
 
-        val response = api.locationTrackProfile.get(oid)
-        assertEquals(1, response.osoitevali.taitepisteet.size)
-        val breakPoint = response.osoitevali.taitepisteet[0]
+        val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
 
+        assertNotNull(pviPoint.pyoristyksen_alku.korkeus_alkuperäinen, "Original height should be present (start)")
         assertNull(
-            breakPoint.pyoristyksen_alku.korkeus_n2000,
+            pviPoint.pyoristyksen_alku.korkeus_n2000,
             "N2000 height should be null for N43 source data (start)",
         )
-        assertNull(breakPoint.taite.korkeus_n2000, "N2000 height should be null for N43 source data (intersection)")
-        assertNull(breakPoint.pyoristyksen_loppu.korkeus_n2000, "N2000 height should be null for N43 source data (end)")
+        assertNotNull(pviPoint.taite.korkeus_alkuperäinen, "Original height should be present (intersection)")
+        assertNull(pviPoint.taite.korkeus_n2000, "N2000 height should be null for N43 source data (intersection)")
+        assertNotNull(pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen, "Original height should be present (end)")
+        assertNull(pviPoint.pyoristyksen_loppu.korkeus_n2000, "N2000 height should be null for N43 source data (end)")
+    }
+
+    @Test
+    fun `N60 source data returns converted korkeus_n2000`() {
+        // Coordinates must be within Finland for N60→N2000 triangulation to work
+        val finlandOffset = Point(332000.0, 6817000.0)
+        val plan =
+            insertPlan(
+                listOf(
+                    profileAlignment(start = Point(0.0, 0.0) + finlandOffset, end = Point(0.0, 100.0) + finlandOffset)
+                ),
+                verticalCoordinateSystem = VerticalCoordinateSystem.N60,
+            )
+        val elements = plan.alignments[0].elements
+        val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(referenceLineId),
+            locationTracks = listOf(trackId),
+        )
+
+        val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
+
+        assertNotNull(pviPoint.pyoristyksen_alku.korkeus_alkuperäinen, "Original height should be present (start)")
+        assertNotNull(
+            pviPoint.pyoristyksen_alku.korkeus_n2000,
+            "N2000 height should be present for N60 source data (start)",
+        )
+        assertNotNull(pviPoint.taite.korkeus_alkuperäinen, "Original height should be present (intersection)")
+        assertNotNull(
+            pviPoint.taite.korkeus_n2000,
+            "N2000 height should be present for N60 source data (intersection)",
+        )
+        assertNotNull(pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen, "Original height should be present (end)")
+        assertNotNull(
+            pviPoint.pyoristyksen_loppu.korkeus_n2000,
+            "N2000 height should be present for N60 source data (end)",
+        )
     }
 
     @Test
@@ -381,14 +374,14 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(trackId),
         )
 
-        val response = api.locationTrackProfile.get(oid)
-        assertNotNull(response.osoitevali.alku, "Address range start should be present")
-        assertNotNull(response.osoitevali.loppu, "Address range end should be present")
-        assertEquals(1, response.osoitevali.taitepisteet.size, "Expected one break point for one curve")
+        val addressRange = api.locationTrackProfile.get(oid).osoitevali
+        assertNotNull(addressRange.alku, "Address range start should be present")
+        assertNotNull(addressRange.loppu, "Address range end should be present")
+        assertEquals(1, addressRange.taitepisteet.size, "Expected one PVI point for one curve")
     }
 
     @Test
-    fun `Gap in plan linkage still returns all break points in single address range`() {
+    fun `Gap in plan linkage still returns all PVI points in single address range`() {
         val plan1 = insertPlan(listOf(profileAlignment()), fileName = FileName("profile_gap_1.xml"))
         val plan2 = insertPlan(listOf(profileAlignment()), fileName = FileName("profile_gap_2.xml"))
         val sourceElement1 = plan1.alignments[0].elements[0]
@@ -418,14 +411,12 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(trackId),
         )
 
-        val response = api.locationTrackProfile.get(oid)
-        // With the new spec, osoitevali always covers the full track range,
-        // break points from both linked sections are included in the single range
-        assertNotNull(response.osoitevali.alku, "Address range start should be present")
-        assertNotNull(response.osoitevali.loppu, "Address range end should be present")
+        val addressRange = api.locationTrackProfile.get(oid).osoitevali
+        assertNotNull(addressRange.alku, "Address range start should be present")
+        assertNotNull(addressRange.loppu, "Address range end should be present")
         assertTrue(
-            response.osoitevali.taitepisteet.size >= 2,
-            "Expected break points from both linked sections in the single address range",
+            addressRange.taitepisteet.size >= 2,
+            "Expected PVI points from both linked sections in the single address range",
         )
     }
 
@@ -458,29 +449,10 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(trackId),
         )
 
-        val response = api.locationTrackProfile.get(oid)
-        val allRemarks = response.osoitevali.taitepisteet.flatMap { it.huomiot }
-        val overlapRemarks = allRemarks.filter { it.koodi == "kaltevuusjakso_limittain" }
+        val pviPoints = api.locationTrackProfile.get(oid).osoitevali.taitepisteet
+        val overlapRemarks = pviPoints.flatMap { it.huomiot }.filter { it.koodi == "kaltevuusjakso_limittain" }
         assertTrue(overlapRemarks.isNotEmpty(), "Expected kaltevuusjakso_limittain remarks for overlapping profiles")
         overlapRemarks.forEach { remark -> assertTrue(remark.selite.isNotBlank(), "Remark selite should be non-blank") }
-    }
-
-    @Test
-    fun `No overlap produces empty huomiot`() {
-        val plan = insertPlan(listOf(profileAlignment()))
-        val elements = plan.alignments[0].elements
-        val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements)
-        val (trackId, oid) =
-            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
-        extTestDataService.publishInMain(
-            trackNumbers = listOf(trackNumberId),
-            referenceLines = listOf(referenceLineId),
-            locationTracks = listOf(trackId),
-        )
-
-        val response = api.locationTrackProfile.get(oid)
-        val allRemarks = response.osoitevali.taitepisteet.flatMap { it.huomiot }
-        assertEquals(0, allRemarks.size, "Expected no remarks when there is no overlap")
     }
 
     @Test
@@ -508,25 +480,23 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(sleeperTrackId, railTrackId),
         )
 
-        val sleeperResponse = api.locationTrackProfile.get(sleeperOid)
-        assertEquals(1, sleeperResponse.osoitevali.taitepisteet.size)
+        val sleeperPviPoint = api.locationTrackProfile.get(sleeperOid).osoitevali.taitepisteet.single()
         assertEquals(
             "Korkeusviiva",
-            sleeperResponse.osoitevali.taitepisteet[0].suunnitelman_korkeusasema,
+            sleeperPviPoint.suunnitelman_korkeusasema,
             "TOP_OF_SLEEPER should map to 'Korkeusviiva'",
         )
 
-        val railResponse = api.locationTrackProfile.get(railOid)
-        assertEquals(1, railResponse.osoitevali.taitepisteet.size)
+        val railPviPoint = api.locationTrackProfile.get(railOid).osoitevali.taitepisteet.single()
         assertEquals(
             "Kiskon selkä",
-            railResponse.osoitevali.taitepisteet[0].suunnitelman_korkeusasema,
+            railPviPoint.suunnitelman_korkeusasema,
             "TOP_OF_RAIL should map to 'Kiskon selkä'",
         )
     }
 
     @Test
-    fun `Location track with no vertical geometry returns 200 with empty break points`() {
+    fun `Location track with no vertical geometry returns 200 with no PVI points`() {
         val refLineSegment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val referenceLineId =
@@ -539,10 +509,10 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(trackId),
         )
 
-        val response = api.locationTrackProfile.get(oid)
-        assertNotNull(response.osoitevali.alku, "Address range start should be present for existing track")
-        assertNotNull(response.osoitevali.loppu, "Address range end should be present for existing track")
-        assertEquals(0, response.osoitevali.taitepisteet.size, "Expected no break points when no profile exists")
+        val addressRange = api.locationTrackProfile.get(oid).osoitevali
+        assertNotNull(addressRange.alku, "Address range start should be present for existing track")
+        assertNotNull(addressRange.loppu, "Address range end should be present for existing track")
+        assertEquals(0, addressRange.taitepisteet.size, "Expected no PVI points when no profile exists")
     }
 
     private fun assertProfileResponseTopLevel(
@@ -571,11 +541,86 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         interval: ExtTestProfileAddressRangeV1,
         expectedStart: String?,
         expectedEnd: String?,
-        expectedBreakPointCount: Int,
+        expectedPviPointCount: Int,
     ) {
         assertEquals(expectedStart, interval.alku, "Interval start address")
         assertEquals(expectedEnd, interval.loppu, "Interval end address")
-        assertEquals(expectedBreakPointCount, interval.taitepisteet.size, "Break point count in interval")
+        assertEquals(expectedPviPointCount, interval.taitepisteet.size, "PVI point count in interval")
+    }
+
+    private fun assertCurvedSectionEndpoint(
+        endpoint: ExtTestProfileCurvedSectionEndpointV1,
+        expectedHeight: Double,
+        expectedHeightN2000: Double?,
+        expectedGradient: Double,
+        expectedAddress: String,
+        expectedLocation: Point,
+        label: String,
+    ) {
+        assertEquals(roundTo3Decimals(expectedHeight).toString(), endpoint.korkeus_alkuperäinen, "$label height")
+        assertEquals(
+            expectedHeightN2000?.let(::roundTo3Decimals)?.toString(),
+            endpoint.korkeus_n2000,
+            "$label N2000 height",
+        )
+        assertEquals(roundTo6Decimals(expectedGradient).toString(), endpoint.kaltevuus, "$label gradient")
+        assertEquals(expectedAddress, endpoint.sijainti.rataosoite, "$label track address")
+        assertEquals(
+            expectedLocation.x,
+            endpoint.sijainti.x!!.toDouble(),
+            LAYOUT_COORDINATE_DELTA,
+            "$label X coordinate",
+        )
+        assertEquals(
+            expectedLocation.y,
+            endpoint.sijainti.y!!.toDouble(),
+            LAYOUT_COORDINATE_DELTA,
+            "$label Y coordinate",
+        )
+    }
+
+    private fun assertIntersectionPoint(
+        point: ExtTestProfileIntersectionPointV1,
+        expectedHeight: Double,
+        expectedHeightN2000: Double?,
+        expectedAddress: String,
+        expectedLocation: Point,
+        label: String,
+    ) {
+        assertEquals(roundTo3Decimals(expectedHeight).toString(), point.korkeus_alkuperäinen, "$label height")
+        assertEquals(
+            expectedHeightN2000?.let(::roundTo3Decimals)?.toString(),
+            point.korkeus_n2000,
+            "$label N2000 height",
+        )
+        assertEquals(expectedAddress, point.sijainti.rataosoite, "$label track address")
+        assertEquals(expectedLocation.x, point.sijainti.x!!.toDouble(), LAYOUT_COORDINATE_DELTA, "$label X coordinate")
+        assertEquals(expectedLocation.y, point.sijainti.y!!.toDouble(), LAYOUT_COORDINATE_DELTA, "$label Y coordinate")
+    }
+
+    private fun assertLinearSection(
+        section: ExtTestProfileLinearSectionV1,
+        expectedLength: BigDecimal?,
+        expectedLinearPart: BigDecimal?,
+        label: String,
+    ) {
+        assertEquals(expectedLength?.toString(), section.pituus, "$label length")
+        assertEquals(expectedLinearPart?.toString(), section.suora_osa, "$label linear part")
+    }
+
+    private fun assertStationValues(
+        stationValues: ExtTestProfileStationValuesV1,
+        expectedStart: Double?,
+        expectedIntersection: Double?,
+        expectedEnd: Double?,
+    ) {
+        assertEquals(expectedStart?.let(::roundTo3Decimals)?.toString(), stationValues.alku, "Station value start")
+        assertEquals(
+            expectedIntersection?.let(::roundTo3Decimals)?.toString(),
+            stationValues.taite,
+            "Station value intersection",
+        )
+        assertEquals(expectedEnd?.let(::roundTo3Decimals)?.toString(), stationValues.loppu, "Station value end")
     }
 
     private fun insertTrackNumberWithReferenceLine(

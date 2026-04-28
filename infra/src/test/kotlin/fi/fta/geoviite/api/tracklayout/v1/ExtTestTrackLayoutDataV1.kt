@@ -323,8 +323,8 @@ data class ExtTestProfileBreakPointV1(
     val pyoristyksen_alku: ExtTestProfileCurvedSectionEndpointV1,
     val taite: ExtTestProfileIntersectionPointV1,
     val pyoristyksen_loppu: ExtTestProfileCurvedSectionEndpointV1,
-    val pyoristyssade: Number,
-    val tangentti: Number?,
+    val pyoristyssade: String,
+    val tangentti: String?,
     val kaltevuusjakso_taaksepain: ExtTestProfileLinearSectionV1,
     val kaltevuusjakso_eteenpain: ExtTestProfileLinearSectionV1,
     val paaluluku: ExtTestProfileStationValuesV1,
@@ -334,33 +334,33 @@ data class ExtTestProfileBreakPointV1(
 )
 
 data class ExtTestProfileCurvedSectionEndpointV1(
-    @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: Number,
-    val korkeus_n2000: Number?,
-    val kaltevuus: Number,
+    @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: String,
+    val korkeus_n2000: String?,
+    val kaltevuus: String,
     val sijainti: ExtTestProfileLocationV1,
 )
 
 data class ExtTestProfileIntersectionPointV1(
-    @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: Number,
-    val korkeus_n2000: Number?,
+    @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: String,
+    val korkeus_n2000: String?,
     val sijainti: ExtTestProfileLocationV1,
 )
 
 data class ExtTestProfileLocationV1(
     val rataosoite: String?,
-    val x: Number?,
-    val y: Number?,
+    val x: String?,
+    val y: String?,
 )
 
 data class ExtTestProfileLinearSectionV1(
-    val pituus: Number?,
-    val suora_osa: Number?,
+    val pituus: String?,
+    val suora_osa: String?,
 )
 
 data class ExtTestProfileStationValuesV1(
-    val alku: Number?,
-    val taite: Number?,
-    val loppu: Number?,
+    val alku: String?,
+    val taite: String?,
+    val loppu: String?,
 )
 
 data class ExtTestProfileRemarkV1(
