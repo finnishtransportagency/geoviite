@@ -104,7 +104,7 @@ dependencies {
     }
     implementation("org.apache.commons:commons-csv:1.14.1")
     implementation("commons-io:commons-io:2.21.0")
-    implementation("com.auth0:jwks-rsa:0.23.0")
+    implementation("com.auth0:jwks-rsa:0.23.1")
     implementation("com.auth0:java-jwt:4.5.1")
     implementation("io.netty:netty-resolver-dns-native-macos:4.2.10.Final:osx-aarch_64")
     implementation("org.postgresql:postgresql:42.7.10")
