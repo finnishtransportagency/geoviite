@@ -541,6 +541,69 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         assertEquals(0, addressRange.taitepisteet.size, "Expected no PVI points when no profile exists")
     }
 
+    @Test
+    fun `Changes endpoint returns modified PVI points when profile data changes between versions`() {
+        val trackStart = Point(0.0, 0.0)
+        val trackEnd = Point(0.0, 700.0)
+        val expectedStartAddress = "0000+0000.000"
+        val expectedEndAddress = "0000+0700.000"
+
+        // Publication 1: track linked to plan with original profile
+        val plan1 =
+            insertPlan(
+                listOf(
+                    profileAlignment(
+                        start = trackStart,
+                        end = trackEnd,
+                        profileElements =
+                            listOf(
+                                VIPoint(PlanElementName("start"), Point(0.0, 50.0)),
+                                VICircularCurve(PlanElementName("curve"), Point(500.0, 50.0), BigDecimal(20000), BigDecimal(155)),
+                                VIPoint(PlanElementName("end"), Point(600.0, 51.0)),
+                            ),
+                    )
+                ),
+                fileName = FileName("profile_v1.xml"),
+            )
+        val elements1 = plan1.alignments[0].elements
+        val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements1)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements1))
+        val publication1 =
+            extTestDataService.publishInMain(
+                trackNumbers = listOf(trackNumberId),
+                referenceLines = listOf(referenceLineId),
+                locationTracks = listOf(trackId),
+            )
+
+        // Publication 2: re-link the same track to a different plan with modified profile
+        val plan2 =
+            insertPlan(
+                listOf(
+                    profileAlignment(
+                        start = trackStart,
+                        end = trackEnd,
+                        profileElements =
+                            listOf(
+                                VIPoint(PlanElementName("start"), Point(0.0, 55.0)),
+                                VICircularCurve(PlanElementName("curve"), Point(500.0, 55.0), BigDecimal(15000), BigDecimal(155)),
+                                VIPoint(PlanElementName("end"), Point(600.0, 56.0)),
+                            ),
+                    )
+                ),
+                fileName = FileName("profile_v2.xml"),
+            )
+        val elements2 = plan2.alignments[0].elements
+        val (track, _) = mainDraftContext.fetchLocationTrackWithGeometry(trackId)!!
+        mainDraftContext.save(track, trackGeometryOfElements(elements2))
+        val publication2 = extTestDataService.publishInMain(locationTracks = listOf(trackId))
+
+        // Changes endpoint should report the modification
+        val response = api.locationTrackProfile.getModifiedBetween(oid, publication1.uuid, publication2.uuid)
+        assertProfileChangesTopLevel(response, oid, publication1.uuid, publication2.uuid)
+        assertProfileInterval(response.osoitevalit.single(), expectedStartAddress, expectedEndAddress, 1)
+    }
+
     private fun assertProfileResponseTopLevel(
         response: ExtTestLocationTrackProfileResponseV1,
         oid: Oid<LocationTrack>,
