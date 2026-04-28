@@ -32,6 +32,8 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getAddress } from 'common/geocoding-api';
 import { ChangeTimes } from 'common/common-slice';
 import { geocodingChangeTime } from 'common/change-time-api';
+import { ShowMoreButton } from 'show-more-button/show-more-button';
+import styles from './operational-point-infobox.scss';
 
 type OperationalPointLocationInfoboxProps = {
     operationalPoint: OperationalPoint;
@@ -47,6 +49,8 @@ type OperationalPointLocationInfoboxProps = {
     onClearArea: () => void;
     changeTimes: ChangeTimes;
 };
+
+const MAX_UNEXPANDED_TRACK_ADDRESSES = 8;
 
 export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationInfoboxProps> = ({
     operationalPoint,
@@ -65,6 +69,7 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
     const { t } = useTranslation();
 
     const [locationUpdateInProgress, setLocationUpdateInProgress] = React.useState(false);
+    const [trackAddressesExpanded, setTrackAddressesExpanded] = React.useState(false);
     const isExternal = operationalPoint.origin === 'RATKO';
 
     const validPolygon =
@@ -124,7 +129,7 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
         [operationalPoint.id, layoutContext, changeTimes.layoutLocationTrack],
     );
 
-    const trackAddresses = useLoader(async () => {
+    const allTrackAddresses = useLoader(async () => {
         const location = operationalPoint.location;
         if (location === undefined || linkedLocationTrackIds === undefined) {
             return undefined;
@@ -146,6 +151,8 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
         linkedLocationTrackIds,
         geocodingChangeTime(changeTimes),
     ]);
+    const slicedTrackAddresses = allTrackAddresses?.slice(0, MAX_UNEXPANDED_TRACK_ADDRESSES);
+    const trackAddressesToShow = trackAddressesExpanded ? allTrackAddresses : slicedTrackAddresses;
 
     return (
         <Infobox
@@ -162,22 +169,32 @@ export const OperationalPointLocationInfobox: React.FC<OperationalPointLocationI
                             : '-'
                     }
                 />
-                {linkedLocationTrackIds?.length === 0 && (
+                {linkedLocationTrackIds?.length === 0 && operationalPoint.ratoType !== 'OLP' && (
                     <InfoboxField label={t('tool-panel.operational-point.no-linked-tracks-label')}>
                         {t('tool-panel.operational-point.no-linked-tracks-text')}
                     </InfoboxField>
                 )}
-                {trackAddresses?.map(([trackNumber, address]) => (
-                    <InfoboxField
-                        key={trackNumber}
-                        label={t('tool-panel.operational-point.address', {
-                            trackNumber,
-                        })}>
-                        {address
-                            ? formatTrackMeter(address)
-                            : t('tool-panel.operational-point.address-unknown')}
-                    </InfoboxField>
-                ))}
+                <div className={styles['operational-point-infobox__track-addresses']}>
+                    {trackAddressesToShow?.map(([trackNumber, address]) => (
+                        <InfoboxField
+                            key={trackNumber}
+                            label={t('tool-panel.operational-point.address', {
+                                trackNumber,
+                            })}>
+                            {address
+                                ? formatTrackMeter(address)
+                                : t('tool-panel.operational-point.address-unknown')}
+                        </InfoboxField>
+                    ))}
+                </div>
+                {allTrackAddresses && allTrackAddresses.length > MAX_UNEXPANDED_TRACK_ADDRESSES && (
+                    <div className={styles['operational-point-infobox__show-more-track-addresses']}>
+                        <ShowMoreButton
+                            expanded={trackAddressesExpanded}
+                            onShowMore={() => setTrackAddressesExpanded(!trackAddressesExpanded)}
+                        />
+                    </div>
+                )}
                 <InfoboxButtons>
                     <Button
                         variant={ButtonVariant.SECONDARY}
