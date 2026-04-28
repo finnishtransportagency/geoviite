@@ -19,8 +19,8 @@ plugins {
     id("org.springframework.boot") version "3.5.13"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.2"
-    kotlin("jvm") version "2.3.20"
-    kotlin("plugin.spring") version "2.3.20"
+    kotlin("jvm") version "2.3.21"
+    kotlin("plugin.spring") version "2.3.21"
     id("com.ncorti.ktfmt.gradle") version "0.26.0"
 }
 
@@ -103,7 +103,7 @@ dependencies {
         exclude("it.geosolutions.jgridshift", "jgridshift-core")
     }
     implementation("org.apache.commons:commons-csv:1.14.1")
-    implementation("commons-io:commons-io:2.21.0")
+    implementation("commons-io:commons-io:2.22.0")
     implementation("com.auth0:jwks-rsa:0.23.0")
     implementation("com.auth0:java-jwt:4.5.1")
     implementation("io.netty:netty-resolver-dns-native-macos:4.2.10.Final:osx-aarch_64")
