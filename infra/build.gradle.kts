@@ -13,7 +13,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "34.3"
-val kotlinVersion = "2.3.20"
+val kotlinVersion = "2.3.21"
 
 plugins {
     id("org.springframework.boot") version "3.5.13"
