@@ -3,7 +3,7 @@ import 'i18n/config';
 import { Route, Routes } from 'react-router-dom';
 import styles from './main.module.scss';
 import { TrackLayoutContainer } from 'track-layout/track-layout-container';
-import { Slide, ToastContainer } from 'react-toastify';
+import { Slide, ToastContainer } from 'react-toastify/unstyled';
 import { I18nDemo } from 'i18n/i18n-demo';
 import { AppBar } from 'app-bar/app-bar';
 import { GeoviiteLibDemo } from 'geoviite-design-lib/demo/demo';
