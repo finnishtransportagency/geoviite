@@ -70,8 +70,9 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     fun `Profile API versioning works across multiple publications`() {
         val trackStart = Point(0.0, 0.0)
         val trackEnd = Point(0.0, 700.0)
-        val expectedStartAddress = "0000+0000.000"
-        val expectedEndAddress = "0000+0700.000"
+        val expectedTrackStartAddress = "0000+0000.000"
+        val expectedTrackEndAddress = "0000+0700.000"
+        val expectedPviAddress = "0000+0350.000"
 
         val plan = insertPlan(listOf(profileAlignment(
             start = trackStart,
@@ -110,13 +111,13 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         // Latest (after publication 3) should have no PVI points (profile removed but track exists)
         api.locationTrackProfile.get(oid).also { response ->
             assertProfileResponseTopLevel(response, oid, publication3.uuid)
-            assertProfileInterval(response.osoitevali, expectedStartAddress, expectedEndAddress, 0)
+            assertProfileInterval(response.osoitevali, expectedTrackStartAddress, expectedTrackEndAddress, 0)
         }
 
         // Explicit v1 still has profile; v2 has identical content (no change between v1 and v2)
         api.locationTrackProfile.getAtVersion(oid, publication1.uuid).also { v1 ->
             assertProfileResponseTopLevel(v1, oid, publication1.uuid)
-            assertProfileInterval(v1.osoitevali, expectedStartAddress, expectedEndAddress, 1)
+            assertProfileInterval(v1.osoitevali, expectedTrackStartAddress, expectedTrackEndAddress, 1)
 
             api.locationTrackProfile.getAtVersion(oid, publication2.uuid).also { v2 ->
                 assertProfileResponseTopLevel(v2, oid, publication2.uuid)
@@ -127,7 +128,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         // Explicit v3 should have no PVI points (profile removed)
         api.locationTrackProfile.getAtVersion(oid, publication3.uuid).also { response ->
             assertProfileResponseTopLevel(response, oid, publication3.uuid)
-            assertProfileInterval(response.osoitevali, expectedStartAddress, expectedEndAddress, 0)
+            assertProfileInterval(response.osoitevali, expectedTrackStartAddress, expectedTrackEndAddress, 0)
         }
 
         // --- Changes endpoint assertions ---
@@ -141,13 +142,13 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         // Modification between v2 and v3 (profile was removed)
         api.locationTrackProfile.getModifiedBetween(oid, publication2.uuid, publication3.uuid).also { response ->
             assertProfileChangesTopLevel(response, oid, publication2.uuid, publication3.uuid)
-            assertProfileInterval(response.osoitevalit.single(), expectedStartAddress, expectedEndAddress, 0)
+            assertProfileInterval(response.osoitevalit.single(), expectedPviAddress, expectedPviAddress, 0)
         }
 
         // Modification between v1 and v3 (profile was removed)
         api.locationTrackProfile.getModifiedBetween(oid, publication1.uuid, publication3.uuid).also { response ->
             assertProfileChangesTopLevel(response, oid, publication1.uuid, publication3.uuid)
-            assertProfileInterval(response.osoitevalit.single(), expectedStartAddress, expectedEndAddress, 0)
+            assertProfileInterval(response.osoitevalit.single(), expectedPviAddress, expectedPviAddress, 0)
         }
 
         // No modification since latest
@@ -553,8 +554,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     fun `Changes endpoint returns modified PVI points when profile data changes between versions`() {
         val trackStart = Point(0.0, 0.0)
         val trackEnd = Point(0.0, 700.0)
-        val expectedStartAddress = "0000+0000.000"
-        val expectedEndAddress = "0000+0700.000"
+        val expectedPviAddress = "0000+0500.000"
 
         // Publication 1: track linked to plan with original profile
         val plan1 =
@@ -609,7 +609,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         // Changes endpoint should report the modification
         val response = api.locationTrackProfile.getModifiedBetween(oid, publication1.uuid, publication2.uuid)
         assertProfileChangesTopLevel(response, oid, publication1.uuid, publication2.uuid)
-        assertProfileInterval(response.osoitevalit.single(), expectedStartAddress, expectedEndAddress, 1)
+        assertProfileInterval(response.osoitevalit.single(), expectedPviAddress, expectedPviAddress, 1)
     }
 
     private fun assertProfileResponseTopLevel(
