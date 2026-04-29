@@ -53,8 +53,10 @@ import {
     NoticeWithNavigationLink,
 } from 'tool-panel/location-track/splitting/location-track-split-notices';
 import { LocationTrackSplitRelinkingNotice } from 'tool-panel/location-track/splitting/location-track-split-relinking-notice';
+import { ConfirmSplitDialog } from 'tool-panel/location-track/splitting/confirm-split-dialog';
 import {
     findFirstErroredField,
+    getSwitchNameParts,
     hasUnrelinkableSwitches,
     mandatoryFieldMissing,
     otherError,
@@ -272,6 +274,7 @@ const createSplitComponent = (
     setHighlightedSplitPoint: (splitPoint: undefined | SplitPoint) => void,
     setNameRef: (key: SplitTargetId, value: HTMLInputElement | null) => void,
     setDescriptionBaseRef: (key: SplitTargetId, value: HTMLInputElement | null) => void,
+    endSplitPoint: SplitPoint,
 ) => {
     const splitPoint = validatedSplit.split.splitPoint;
     const splitPointExists =
@@ -279,6 +282,9 @@ const createSplitComponent = (
         (splitPoint.type === 'SWITCH_SPLIT_POINT' &&
             switches.find((s) => s.id === splitPoint.switchId)?.stateCategory !== 'NOT_EXISTING');
     const { split, nameIssues, descriptionIssues, switchIssues } = validatedSplit;
+
+    const startSwitchNameParts = getSwitchNameParts(split.splitPoint, switches);
+    const endSwitchNameParts = getSwitchNameParts(endSplitPoint, switches);
 
     return {
         component: (
@@ -302,6 +308,8 @@ const createSplitComponent = (
                 setFocusedSplit={setFocusedSplit}
                 setHighlightedSplit={setHighlightedSplit}
                 setHighlightedSplitPoint={setHighlightedSplitPoint}
+                startSwitchNameParts={startSwitchNameParts}
+                endSwitchNameParts={endSwitchNameParts}
             />
         ),
 
@@ -361,6 +369,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const { t } = useTranslation();
     const [confirmExit, setConfirmExit] = React.useState(false);
     const [confirmOpenTaskListAndExit, setConfirmOpenTaskListAndExit] = React.useState(false);
+    const [confirmSplit, setConfirmSplit] = React.useState(false);
     const allSplits = useMinimallyUpdatedList(
         [splittingState.firstSplit, ...splittingState.splits],
         (split) => splitKey(split),
@@ -471,7 +480,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
 
     const splitComponents = useMinimallyUpdatedMappedList(
         splitsValidated,
-        (split) =>
+        (split, index) =>
             createSplitComponent(
                 split,
                 switches,
@@ -486,6 +495,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 setHighlightedSplitPoint,
                 setNameRef,
                 setDescriptionBaseRef,
+                allSplits[index + 1]?.splitPoint ?? splittingState.endSplitPoint,
             ),
         (split) => split.split.id,
     );
@@ -564,7 +574,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         </Button>
                         <Button
                             size={ButtonSize.SMALL}
-                            onClick={() => postSplit()}
+                            onClick={() => setConfirmSplit(true)}
                             isProcessing={isPostingSplit}
                             disabled={
                                 splittingState.disabled ||
@@ -592,6 +602,16 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                     closeDialog={() => setConfirmOpenTaskListAndExit(false)}
                     stopSplitting={stopSplitting}
                     showTaskList={() => onShowTaskList(locationTrack.id)}
+                />
+            )}
+            {confirmSplit && (
+                <ConfirmSplitDialog
+                    sourceTrackName={locationTrack.name}
+                    allSplits={allSplits}
+                    switches={switches}
+                    endSplitPoint={splittingState.endSplitPoint}
+                    onConfirm={postSplit}
+                    onCancel={() => setConfirmSplit(false)}
                 />
             )}
         </React.Fragment>

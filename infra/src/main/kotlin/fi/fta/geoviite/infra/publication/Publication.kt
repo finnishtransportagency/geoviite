@@ -729,6 +729,7 @@ data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
     val name: Change<AlignmentName>,
     val namingScheme: Change<LocationTrackNamingScheme>,
+    val description: Change<FreeText>,
     val descriptionBase: Change<LocationTrackDescriptionBase>,
     val descriptionSuffix: Change<LocationTrackDescriptionSuffix>,
     val state: Change<LocationTrackState>,
@@ -821,8 +822,9 @@ data class SwitchChanges(
     private fun getTrackNumberJointLocation(
         trackNumberId: IntId<LayoutTrackNumber>,
         jointNumber: JointNumber,
-    ): Change<Point?> =
-        trackConnections.map { tracks -> getTrackNumberJointLocation(tracks, trackNumberId, jointNumber) }
+    ): Change<Point?> = trackConnections.map { tracks ->
+        getTrackNumberJointLocation(tracks, trackNumberId, jointNumber)
+    }
 
     private fun getTrackNumberJointLocation(
         tracks: List<SwitchLocationTrack>,

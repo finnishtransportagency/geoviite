@@ -165,6 +165,7 @@ class E2ELocationTrackSplittingInfobox(infoboxBy: By = byQaId("location-track-sp
 
     fun confirmSplit() {
         clickWhenClickable(byQaId("confirm-split"))
+        clickWhenClickable(byQaId("confirm-split-dialog-execute"))
         waitAndClearToast("splitting-success")
     }
 

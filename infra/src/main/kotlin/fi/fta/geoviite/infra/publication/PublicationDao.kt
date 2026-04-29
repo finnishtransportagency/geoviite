@@ -55,6 +55,7 @@ import fi.fta.geoviite.infra.tracklayout.OperationalPointState
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getBooleanOrNull
 import fi.fta.geoviite.infra.util.getChange
@@ -873,6 +874,8 @@ class PublicationDao(
               old_ltv.name as old_name,
               ltv.naming_scheme,
               old_ltv.naming_scheme as old_naming_scheme,
+              ltv.description,
+              old_ltv.description as old_description,
               ltv.description_base,
               old_ltv.description_base as old_description_base,
               ltv.description_suffix,
@@ -931,6 +934,7 @@ class PublicationDao(
                         name = rs.getChange("name") { rs.getString(it)?.let(::AlignmentName) },
                         namingScheme =
                             rs.getChange("naming_scheme") { rs.getEnumOrNull<LocationTrackNamingScheme>(it) },
+                        description = rs.getChange("description") { rs.getString(it)?.let(::FreeText) },
                         descriptionBase =
                             rs.getChange("description_base") { rs.getString(it)?.let(::LocationTrackDescriptionBase) },
                         descriptionSuffix =
