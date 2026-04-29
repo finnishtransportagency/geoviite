@@ -5,14 +5,7 @@ import { useTranslation } from 'react-i18next';
 import styles from './preview-view.scss';
 import { mergeCandidatesToMain, publishPublicationCandidates } from 'publication/publication-api';
 import { filterNotEmpty } from 'utils/array-utils';
-import {
-    updateKmPostChangeTime,
-    updateLocationTrackChangeTime,
-    updateOperationalPointsChangeTime,
-    updateReferenceLineChangeTime,
-    updateSwitchChangeTime,
-    updateTrackNumberChangeTime,
-} from 'common/change-time-api';
+import { updateAllChangeTimes } from 'common/change-time-api';
 import {
     LayoutValidationIssue,
     LayoutValidationIssueType,
@@ -82,15 +75,6 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
 
     const publishPreviewChanges = previewChangesCanBePublished(props.stagedPublicationCandidates);
 
-    const updateChangeTimes = (result: PublicationResultSummary | undefined) => {
-        if (result?.trackNumbers || 0 > 0) updateTrackNumberChangeTime();
-        if (result?.kmPosts || 0 > 0) updateKmPostChangeTime();
-        if (result?.referenceLines || 0 > 0) updateReferenceLineChangeTime();
-        if (result?.locationTracks || 0 > 0) updateLocationTrackChangeTime();
-        if (result?.switches || 0 > 0) updateSwitchChangeTime();
-        if (result?.operationalPoints || 0 > 0) updateOperationalPointsChangeTime();
-    };
-
     const { t } = useTranslation();
     const [publishConfirmVisible, setPublishConfirmVisible] = React.useState(false);
 
@@ -103,7 +87,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         publicationPromise
             .then((r) => {
                 Snackbar.success(successLocalizationKey, describeResult(r));
-                updateChangeTimes(r);
+                void updateAllChangeTimes();
                 props.onPublish();
             })
             .finally(() => {
