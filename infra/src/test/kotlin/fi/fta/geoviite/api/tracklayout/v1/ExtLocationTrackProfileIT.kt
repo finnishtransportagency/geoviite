@@ -74,15 +74,26 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val expectedTrackEndAddress = "0000+0700.000"
         val expectedPviAddress = "0000+0350.000"
 
-        val plan = insertPlan(listOf(profileAlignment(
-            start = trackStart,
-            end = trackEnd,
-            profileElements = listOf(
-                VIPoint(PlanElementName("start"), Point(0.0, 50.0)),
-                VICircularCurve(PlanElementName("curve"), Point(350.0, 50.0), BigDecimal(20000), BigDecimal(155)),
-                VIPoint(PlanElementName("end"), Point(700.0, 51.0)),
-            ),
-        )))
+        val plan =
+            insertPlan(
+                listOf(
+                    profileAlignment(
+                        start = trackStart,
+                        end = trackEnd,
+                        profileElements =
+                            listOf(
+                                VIPoint(PlanElementName("start"), Point(0.0, 50.0)),
+                                VICircularCurve(
+                                    PlanElementName("curve"),
+                                    Point(350.0, 50.0),
+                                    BigDecimal(20000),
+                                    BigDecimal(155),
+                                ),
+                                VIPoint(PlanElementName("end"), Point(700.0, 51.0)),
+                            ),
+                    )
+                )
+            )
         val elements = plan.alignments[0].elements
         val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
@@ -331,10 +342,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
 
         assertNotNull(pviPoint.pyoristyksen_alku.korkeus_alkuperäinen, "Original height should be present (start)")
-        assertNull(
-            pviPoint.pyoristyksen_alku.korkeus_n2000,
-            "N2000 height should be null for N43 source data (start)",
-        )
+        assertNull(pviPoint.pyoristyksen_alku.korkeus_n2000, "N2000 height should be null for N43 source data (start)")
         assertNotNull(pviPoint.taite.korkeus_alkuperäinen, "Original height should be present (intersection)")
         assertNull(pviPoint.taite.korkeus_n2000, "N2000 height should be null for N43 source data (intersection)")
         assertNotNull(pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen, "Original height should be present (end)")
@@ -375,10 +383,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             "N2000 height should differ from original for N60 source data (start)",
         )
         assertNotNull(pviPoint.taite.korkeus_alkuperäinen, "Original height should be present (intersection)")
-        assertNotNull(
-            pviPoint.taite.korkeus_n2000,
-            "N2000 height should be present for N60 source data (intersection)",
-        )
+        assertNotNull(pviPoint.taite.korkeus_n2000, "N2000 height should be present for N60 source data (intersection)")
         assertNotEquals(
             pviPoint.taite.korkeus_alkuperäinen,
             pviPoint.taite.korkeus_n2000,
@@ -419,36 +424,56 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     @Test
     fun `Gap in plan linkage still returns all PVI points in single address range`() {
         // Plan 1: alignment 0-600m, curve at station 300
-        val plan1 = insertPlan(
-            listOf(profileAlignment(
-                end = Point(0.0, 600.0),
-                profileElements = listOf(
-                    VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
-                    VICircularCurve(PlanElementName("curve"), Point(300.0, 100.0), BigDecimal(20000), BigDecimal(155)),
-                    VIPoint(PlanElementName("end"), Point(600.0, 101.0)),
+        val plan1 =
+            insertPlan(
+                listOf(
+                    profileAlignment(
+                        end = Point(0.0, 600.0),
+                        profileElements =
+                            listOf(
+                                VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
+                                VICircularCurve(
+                                    PlanElementName("curve"),
+                                    Point(300.0, 100.0),
+                                    BigDecimal(20000),
+                                    BigDecimal(155),
+                                ),
+                                VIPoint(PlanElementName("end"), Point(600.0, 101.0)),
+                            ),
+                    )
                 ),
-            )),
-            fileName = FileName("profile_gap_1.xml"),
-        )
+                fileName = FileName("profile_gap_1.xml"),
+            )
         // Plan 2: alignment at track position 800-1400, curve at station 300 (different heights from plan1)
-        val plan2 = insertPlan(
-            listOf(profileAlignment(
-                start = Point(0.0, 800.0),
-                end = Point(0.0, 1400.0),
-                profileElements = listOf(
-                    VIPoint(PlanElementName("start"), Point(0.0, 102.0)),
-                    VICircularCurve(PlanElementName("curve"), Point(300.0, 102.0), BigDecimal(20000), BigDecimal(155)),
-                    VIPoint(PlanElementName("end"), Point(600.0, 103.0)),
+        val plan2 =
+            insertPlan(
+                listOf(
+                    profileAlignment(
+                        start = Point(0.0, 800.0),
+                        end = Point(0.0, 1400.0),
+                        profileElements =
+                            listOf(
+                                VIPoint(PlanElementName("start"), Point(0.0, 102.0)),
+                                VICircularCurve(
+                                    PlanElementName("curve"),
+                                    Point(300.0, 102.0),
+                                    BigDecimal(20000),
+                                    BigDecimal(155),
+                                ),
+                                VIPoint(PlanElementName("end"), Point(600.0, 103.0)),
+                            ),
+                    )
                 ),
-            )),
-            fileName = FileName("profile_gap_2.xml"),
-        )
+                fileName = FileName("profile_gap_2.xml"),
+            )
         val sourceElement1 = plan1.alignments[0].elements[0]
         val sourceElement2 = plan2.alignments[0].elements[0]
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val referenceLineId =
             mainDraftContext
-                .saveReferenceLine(referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 2000.0))))
+                .saveReferenceLine(
+                    referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 2000.0)))
+                )
                 .id
 
         // Segment 1 (0..600) linked to plan1, gap (600..800) unlinked, segment 2 (800..1400) linked to plan2
@@ -471,7 +496,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         // Plan1 curve at station 300 → track address 0+300. Plan2 curve at station 300 → track address 800+300=1100.
-        val pviAddresses = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.map { it.taite.sijainti.rataosoite }
+        val pviAddresses =
+            api.locationTrackProfile.get(oid).osoitevali.taitepisteet.map { it.taite.sijainti.rataosoite }
         assertEquals(
             listOf(expectedAddress(300.0), expectedAddress(1100.0)),
             pviAddresses,
@@ -485,34 +511,60 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         // Plan 1 has its curve at station 450 (in element 1's range 0-500).
         // Plan 2 has its curve at station 550 (in element 2's range 500-1000).
         // The two curves describe overlapping profile regions near the connection point.
-        val plan1 = insertPlan(
-            listOf(geometryAlignment(
-                elements = listOf(
-                    line(Point(0.0, 0.0), Point(0.0, 500.0), staStart = 0.0, name = "elem1"),
-                    line(Point(0.0, 500.0), Point(0.0, 1000.0), staStart = 500.0, name = "elem2"),
+        val plan1 =
+            insertPlan(
+                listOf(
+                    geometryAlignment(
+                        elements =
+                            listOf(
+                                line(Point(0.0, 0.0), Point(0.0, 500.0), staStart = 0.0, name = "elem1"),
+                                line(Point(0.0, 500.0), Point(0.0, 1000.0), staStart = 500.0, name = "elem2"),
+                            ),
+                        profile =
+                            GeometryProfile(
+                                PlanElementName("profile"),
+                                listOf(
+                                    VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
+                                    VICircularCurve(
+                                        PlanElementName("curve"),
+                                        Point(490.0, 100.0),
+                                        BigDecimal(20000),
+                                        BigDecimal(155),
+                                    ),
+                                    VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
+                                ),
+                            ),
+                    )
                 ),
-                profile = GeometryProfile(PlanElementName("profile"), listOf(
-                    VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
-                    VICircularCurve(PlanElementName("curve"), Point(490.0, 100.0), BigDecimal(20000), BigDecimal(155)),
-                    VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
-                )),
-            )),
-            fileName = FileName("overlap_1.xml"),
-        )
-        val plan2 = insertPlan(
-            listOf(geometryAlignment(
-                elements = listOf(
-                    line(Point(0.0, 0.0), Point(0.0, 500.0), staStart = 0.0, name = "elem1"),
-                    line(Point(0.0, 500.0), Point(0.0, 1000.0), staStart = 500.0, name = "elem2"),
+                fileName = FileName("overlap_1.xml"),
+            )
+        val plan2 =
+            insertPlan(
+                listOf(
+                    geometryAlignment(
+                        elements =
+                            listOf(
+                                line(Point(0.0, 0.0), Point(0.0, 500.0), staStart = 0.0, name = "elem1"),
+                                line(Point(0.0, 500.0), Point(0.0, 1000.0), staStart = 500.0, name = "elem2"),
+                            ),
+                        profile =
+                            GeometryProfile(
+                                PlanElementName("profile"),
+                                listOf(
+                                    VIPoint(PlanElementName("start"), Point(0.0, 99.0)),
+                                    VICircularCurve(
+                                        PlanElementName("curve"),
+                                        Point(510.0, 100.0),
+                                        BigDecimal(20000),
+                                        BigDecimal(155),
+                                    ),
+                                    VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
+                                ),
+                            ),
+                    )
                 ),
-                profile = GeometryProfile(PlanElementName("profile"), listOf(
-                    VIPoint(PlanElementName("start"), Point(0.0, 99.0)),
-                    VICircularCurve(PlanElementName("curve"), Point(510.0, 100.0), BigDecimal(20000), BigDecimal(155)),
-                    VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
-                )),
-            )),
-            fileName = FileName("overlap_2.xml"),
-        )
+                fileName = FileName("overlap_2.xml"),
+            )
         // Segment 1 linked to plan1's first element (stations 0-500, contains curve at 450)
         // Segment 2 linked to plan2's second element (stations 500-1000, contains curve at 550)
         val sourceElement1 = plan1.alignments[0].elements[0]
@@ -520,7 +572,9 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val referenceLineId =
             mainDraftContext
-                .saveReferenceLine(referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 1000.0))))
+                .saveReferenceLine(
+                    referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 1000.0)))
+                )
                 .id
 
         val points1 = (0..500).map { Point(0.0, it.toDouble()) }
@@ -586,11 +640,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         val railPviPoint = api.locationTrackProfile.get(railOid).osoitevali.taitepisteet.single()
-        assertEquals(
-            "Kiskon selkä",
-            railPviPoint.suunnitelman_korkeusasema,
-            "TOP_OF_RAIL should map to 'Kiskon selkä'",
-        )
+        assertEquals("Kiskon selkä", railPviPoint.suunnitelman_korkeusasema, "TOP_OF_RAIL should map to 'Kiskon selkä'")
     }
 
     @Test
@@ -617,7 +667,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     fun `Changes endpoint returns modified PVI points when profile data changes between versions`() {
         val trackStart = Point(0.0, 0.0)
         val trackEnd = Point(0.0, 700.0)
-        val expectedPviAddress = "0000+0500.000"
+        val expectedOldPviAddress = "0000+0500.000"
+        val expectedNewPviAddress = "0000+0550.000"
 
         // Publication 1: track linked to plan with original profile
         val plan1 =
@@ -629,7 +680,12 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                         profileElements =
                             listOf(
                                 VIPoint(PlanElementName("start"), Point(0.0, 50.0)),
-                                VICircularCurve(PlanElementName("curve"), Point(500.0, 50.0), BigDecimal(20000), BigDecimal(155)),
+                                VICircularCurve(
+                                    PlanElementName("curve"),
+                                    Point(500.0, 50.0),
+                                    BigDecimal(20000),
+                                    BigDecimal(155),
+                                ),
                                 VIPoint(PlanElementName("end"), Point(600.0, 51.0)),
                             ),
                     )
@@ -657,7 +713,12 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                         profileElements =
                             listOf(
                                 VIPoint(PlanElementName("start"), Point(0.0, 55.0)),
-                                VICircularCurve(PlanElementName("curve"), Point(500.0, 55.0), BigDecimal(15000), BigDecimal(155)),
+                                VICircularCurve(
+                                    PlanElementName("curve"),
+                                    Point(550.0, 55.0),
+                                    BigDecimal(15000),
+                                    BigDecimal(155),
+                                ),
                                 VIPoint(PlanElementName("end"), Point(600.0, 56.0)),
                             ),
                     )
@@ -672,7 +733,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         // Changes endpoint should report the modification
         val response = api.locationTrackProfile.getModifiedBetween(oid, publication1.uuid, publication2.uuid)
         assertProfileChangesTopLevel(response, oid, publication1.uuid, publication2.uuid)
-        assertProfileInterval(response.osoitevalit.single(), expectedPviAddress, expectedPviAddress, 1)
+        assertProfileInterval(response.osoitevalit.single(), expectedOldPviAddress, expectedNewPviAddress, 1)
     }
 
     private fun assertProfileResponseTopLevel(
