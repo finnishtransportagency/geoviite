@@ -19,6 +19,8 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.CompanyName
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
 import fi.fta.geoviite.infra.math.Point
@@ -453,6 +455,14 @@ class TestDBService(
             parentId = null,
         )
     }
+
+    fun savePlan(
+        plan: GeometryPlan,
+        file: InfraModelFile = InfraModelFile(plan.fileName, "<a></a>"),
+    ): GeometryPlan {
+        val planVersion = geometryDao.insertPlan(plan, file, null)
+        return geometryDao.fetchPlan(planVersion)
+    }
 }
 
 data class TestLayoutContext(val context: LayoutContext, val testService: TestDBService) : TestDB by testService {
@@ -491,6 +501,18 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
 
     inline fun <reified T : LayoutAsset<T>> generateOid(id: IntId<T>): Oid<T> =
         testService.generateOid(id, context.branch)
+
+    fun saveWithOid(asset: LocationTrack, geometry: LocationTrackGeometry): Pair<IntId<LocationTrack>, Oid<LocationTrack>> =
+        save(asset, geometry).id.let { id -> id to generateOid(id) }
+
+    fun saveWithOid(asset: LayoutSwitch): Pair<IntId<LayoutSwitch>, Oid<LayoutSwitch>> =
+        save(asset).id.let { id -> id to generateOid(id) }
+
+    fun saveWithOid(asset: LayoutTrackNumber): Pair<IntId<LayoutTrackNumber>, Oid<LayoutTrackNumber>> =
+        saveTrackNumber(asset).id.let { id -> id to generateOid(id) }
+
+    fun saveWithOid(asset: OperationalPoint): Pair<IntId<OperationalPoint>, Oid<OperationalPoint>> =
+        save(asset).id.let { id -> id to generateOid(id) }
 
     /**
      * Copies the asset identified by [rowVersion] to the current context. Note, that this does not create linking to

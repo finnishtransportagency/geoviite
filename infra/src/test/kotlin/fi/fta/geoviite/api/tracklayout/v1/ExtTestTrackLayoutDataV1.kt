@@ -305,3 +305,73 @@ data class ExtTestStationLinkCollectionResponseV1(
     val rataverkon_versio: String,
     val liikennepaikkavalit: List<ExtTestStationLinkV1>,
 )
+
+data class ExtTestLocationTrackProfileResponseV1(
+    val rataverkon_versio: String,
+    val sijaintiraide_oid: String,
+    val koordinaatisto: String,
+    val osoitevali: ExtTestProfileAddressRangeV1,
+)
+
+data class ExtTestProfileAddressRangeV1(
+    val alku: String?,
+    val loppu: String?,
+    val taitepisteet: List<ExtTestProfileBreakPointV1>,
+)
+
+data class ExtTestProfileBreakPointV1(
+    val pyoristyksen_alku: ExtTestProfileCurvedSectionEndpointV1,
+    val taite: ExtTestProfileIntersectionPointV1,
+    val pyoristyksen_loppu: ExtTestProfileCurvedSectionEndpointV1,
+    val pyoristyssade: String,
+    val tangentti: String?,
+    val kaltevuusjakso_taaksepain: ExtTestProfileLinearSectionV1,
+    val kaltevuusjakso_eteenpain: ExtTestProfileLinearSectionV1,
+    val paaluluku: ExtTestProfileStationValuesV1,
+    @Suppress("NonAsciiCharacters") val suunnitelman_korkeusjärjestelmä: String?,
+    val suunnitelman_korkeusasema: String?,
+    val huomiot: List<ExtTestProfileRemarkV1>,
+)
+
+data class ExtTestProfileCurvedSectionEndpointV1(
+    @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: String,
+    val korkeus_n2000: String?,
+    val kaltevuus: String,
+    val sijainti: ExtTestProfileLocationV1,
+)
+
+data class ExtTestProfileIntersectionPointV1(
+    @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: String,
+    val korkeus_n2000: String?,
+    val sijainti: ExtTestProfileLocationV1,
+)
+
+data class ExtTestProfileLocationV1(
+    val rataosoite: String?,
+    val x: String?,
+    val y: String?,
+)
+
+data class ExtTestProfileLinearSectionV1(
+    val pituus: String?,
+    val suora_osa: String?,
+)
+
+data class ExtTestProfileStationValuesV1(
+    val alku: String?,
+    val taite: String?,
+    val loppu: String?,
+)
+
+data class ExtTestProfileRemarkV1(
+    val koodi: String,
+    val selite: String,
+)
+
+data class ExtTestModifiedLocationTrackProfileResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val sijaintiraide_oid: String,
+    val koordinaatisto: String,
+    val osoitevalit: List<ExtTestProfileAddressRangeV1>,
+)
