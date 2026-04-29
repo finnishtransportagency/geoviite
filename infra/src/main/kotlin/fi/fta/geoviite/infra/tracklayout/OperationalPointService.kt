@@ -58,6 +58,7 @@ class OperationalPointService(
                 location = null,
                 origin = OperationalPointOrigin.GEOVIITE,
                 ratkoVersion = null,
+                hasExternalChanges = false,
                 contextData = LayoutContextData.newDraft(branch, dao.createId()),
                 rinfIdOverride = request.rinfIdOverride,
                 rinfIdGenerated = null,

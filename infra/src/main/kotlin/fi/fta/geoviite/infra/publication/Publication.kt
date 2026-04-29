@@ -691,6 +691,7 @@ data class OperationalPointPublicationCandidate(
     override val publicationGroup: PublicationGroup? = null,
     override val designAssetState: DesignAssetState?,
     val location: Point?,
+    val externalChange: Boolean,
 ) : PublicationCandidate<OperationalPoint> {
     override val type = PublishableObjectType.OPERATIONAL_POINT
 }

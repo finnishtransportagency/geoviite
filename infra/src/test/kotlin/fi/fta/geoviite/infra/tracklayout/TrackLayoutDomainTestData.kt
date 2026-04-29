@@ -1212,6 +1212,7 @@ fun operationalPoint(
         polygon = polygon,
         origin = origin,
         ratkoVersion = ratkoVersion,
+        hasExternalChanges = false,
         contextData = contextData,
         rinfIdGenerated = rinfIdGenerated?.let(::RinfId),
         rinfIdOverride = rinfIdOverride?.let(::RinfId),
