@@ -418,8 +418,31 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     @Test
     fun `Gap in plan linkage still returns all PVI points in single address range`() {
-        val plan1 = insertPlan(listOf(profileAlignment()), fileName = FileName("profile_gap_1.xml"))
-        val plan2 = insertPlan(listOf(profileAlignment()), fileName = FileName("profile_gap_2.xml"))
+        // Plan 1: alignment 0-600m, curve at station 300
+        val plan1 = insertPlan(
+            listOf(profileAlignment(
+                end = Point(0.0, 600.0),
+                profileElements = listOf(
+                    VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
+                    VICircularCurve(PlanElementName("curve"), Point(300.0, 100.0), BigDecimal(20000), BigDecimal(155)),
+                    VIPoint(PlanElementName("end"), Point(600.0, 101.0)),
+                ),
+            )),
+            fileName = FileName("profile_gap_1.xml"),
+        )
+        // Plan 2: alignment at track position 800-1400, curve at station 300 (different heights from plan1)
+        val plan2 = insertPlan(
+            listOf(profileAlignment(
+                start = Point(0.0, 800.0),
+                end = Point(0.0, 1400.0),
+                profileElements = listOf(
+                    VIPoint(PlanElementName("start"), Point(0.0, 102.0)),
+                    VICircularCurve(PlanElementName("curve"), Point(300.0, 102.0), BigDecimal(20000), BigDecimal(155)),
+                    VIPoint(PlanElementName("end"), Point(600.0, 103.0)),
+                ),
+            )),
+            fileName = FileName("profile_gap_2.xml"),
+        )
         val sourceElement1 = plan1.alignments[0].elements[0]
         val sourceElement2 = plan2.alignments[0].elements[0]
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
@@ -428,10 +451,10 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 .saveReferenceLine(referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 2000.0))))
                 .id
 
-        // Segments with a gap (0..1000 linked to plan1, 1000..1200 not linked, 1200..2000 linked to plan2)
-        val points1 = (0..1000).map { Point(0.0, it.toDouble()) }
-        val pointsGap = (1000..1200).map { Point(0.0, it.toDouble()) }
-        val points2 = (1200..2000).map { Point(0.0, it.toDouble()) }
+        // Segment 1 (0..600) linked to plan1, gap (600..800) unlinked, segment 2 (800..1400) linked to plan2
+        val points1 = (0..600).map { Point(0.0, it.toDouble()) }
+        val pointsGap = (600..800).map { Point(0.0, it.toDouble()) }
+        val points2 = (800..1400).map { Point(0.0, it.toDouble()) }
         val (trackId, oid) =
             mainDraftContext.saveWithOid(
                 locationTrack(trackNumberId),
@@ -447,12 +470,10 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(trackId),
         )
 
-        // Default profile has VICircularCurve at station 500.
-        // Segment 1 (0..1000, sourceStartM=0) covers stations 0-1000 → PVI at track address 0+500
-        // Segment 2 (1200..2000, sourceStartM=0) covers stations 0-800 → PVI at track address 1200+500=1700
+        // Plan1 curve at station 300 → track address 0+300. Plan2 curve at station 300 → track address 800+300=1100.
         val pviAddresses = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.map { it.taite.sijainti.rataosoite }
         assertEquals(
-            listOf("0000+0500.000", "0000+1700.000"),
+            listOf(expectedAddress(300.0), expectedAddress(1100.0)),
             pviAddresses,
             "Expected PVI points from both linked sections",
         )
@@ -460,17 +481,48 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     @Test
     fun `overlapsAnother produces kaltevuusjakso_limittain remark`() {
-        val plan1 = insertPlan(listOf(profileAlignment()), fileName = FileName("overlap_1.xml"))
-        val plan2 = insertPlan(listOf(profileAlignment()), fileName = FileName("overlap_2.xml"))
+        // Both plans cover full 0-1000m alignment with 2 elements each.
+        // Plan 1 has its curve at station 450 (in element 1's range 0-500).
+        // Plan 2 has its curve at station 550 (in element 2's range 500-1000).
+        // The two curves describe overlapping profile regions near the connection point.
+        val plan1 = insertPlan(
+            listOf(geometryAlignment(
+                elements = listOf(
+                    line(Point(0.0, 0.0), Point(0.0, 500.0), staStart = 0.0, name = "elem1"),
+                    line(Point(0.0, 500.0), Point(0.0, 1000.0), staStart = 500.0, name = "elem2"),
+                ),
+                profile = GeometryProfile(PlanElementName("profile"), listOf(
+                    VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
+                    VICircularCurve(PlanElementName("curve"), Point(490.0, 100.0), BigDecimal(20000), BigDecimal(155)),
+                    VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
+                )),
+            )),
+            fileName = FileName("overlap_1.xml"),
+        )
+        val plan2 = insertPlan(
+            listOf(geometryAlignment(
+                elements = listOf(
+                    line(Point(0.0, 0.0), Point(0.0, 500.0), staStart = 0.0, name = "elem1"),
+                    line(Point(0.0, 500.0), Point(0.0, 1000.0), staStart = 500.0, name = "elem2"),
+                ),
+                profile = GeometryProfile(PlanElementName("profile"), listOf(
+                    VIPoint(PlanElementName("start"), Point(0.0, 99.0)),
+                    VICircularCurve(PlanElementName("curve"), Point(510.0, 100.0), BigDecimal(20000), BigDecimal(155)),
+                    VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
+                )),
+            )),
+            fileName = FileName("overlap_2.xml"),
+        )
+        // Segment 1 linked to plan1's first element (stations 0-500, contains curve at 450)
+        // Segment 2 linked to plan2's second element (stations 500-1000, contains curve at 550)
         val sourceElement1 = plan1.alignments[0].elements[0]
-        val sourceElement2 = plan2.alignments[0].elements[0]
+        val sourceElement2 = plan2.alignments[0].elements[1]
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val referenceLineId =
             mainDraftContext
                 .saveReferenceLine(referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 1000.0))))
                 .id
 
-        // Two consecutive segments both linked to different plans (whose profiles overlap in station range)
         val points1 = (0..500).map { Point(0.0, it.toDouble()) }
         val points2 = (500..1000).map { Point(0.0, it.toDouble()) }
         val (trackId, oid) =
@@ -478,7 +530,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 locationTrack(trackNumberId),
                 trackGeometryOfSegments(
                     segment(toSegmentPoints(to3DMPoints(points1)), sourceId = sourceElement1.id, sourceStartM = 0.0),
-                    segment(toSegmentPoints(to3DMPoints(points2)), sourceId = sourceElement2.id, sourceStartM = 0.0),
+                    segment(toSegmentPoints(to3DMPoints(points2)), sourceId = sourceElement2.id, sourceStartM = 500.0),
                 ),
             )
         extTestDataService.publishInMain(
@@ -487,19 +539,16 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(trackId),
         )
 
-        // Default profile has VICircularCurve at station 500.
-        // Segment 1 (0..500, sourceStartM=0) covers stations 0-500 → PVI at boundary
-        // Segment 2 (500..1000, sourceStartM=0) covers stations 0-500 → PVI at track address 500+500=1000
-        // Both plans have full 0-1000 station range profiles, so their coverage overlaps
-        val pviAddresses = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.map { it.taite.sijainti.rataosoite }
+        // Plan1 curve at station 490 → track address ~490. Plan2 curve at station 510 → track address ~510.
+        // Both curves describe overlapping profile near the connection point.
+        val pviPoints = api.locationTrackProfile.get(oid).osoitevali.taitepisteet
+        val pviAddresses = pviPoints.map { it.taite.sijainti.rataosoite }
         assertEquals(
-            listOf("0000+0500.000", "0000+1000.000"),
+            listOf(expectedAddress(490.0), expectedAddress(510.0)),
             pviAddresses,
-            "Expected PVI points from both overlapping plan segments",
+            "Expected PVI points from both plans near the connection point",
         )
-        val overlapRemarks = api.locationTrackProfile.get(oid).osoitevali.taitepisteet
-            .flatMap { it.huomiot }
-            .filter { it.koodi == "kaltevuusjakso_limittain" }
+        val overlapRemarks = pviPoints.flatMap { it.huomiot }.filter { it.koodi == "kaltevuusjakso_limittain" }
         assertTrue(overlapRemarks.isNotEmpty(), "Expected kaltevuusjakso_limittain remarks for overlapping profiles")
         overlapRemarks.forEach { remark -> assertTrue(remark.selite.isNotBlank(), "Remark selite should be non-blank") }
     }
