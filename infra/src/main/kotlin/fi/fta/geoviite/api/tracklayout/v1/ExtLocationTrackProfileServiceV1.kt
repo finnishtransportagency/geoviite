@@ -15,9 +15,12 @@ import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
+import fi.fta.geoviite.infra.geometry.CurvedSectionEndpoint
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
+import fi.fta.geoviite.infra.geometry.IntersectionPoint
+import fi.fta.geoviite.infra.geometry.LinearSection
 import fi.fta.geoviite.infra.geometry.VerticalGeometryListing
 import fi.fta.geoviite.infra.geometry.toVerticalGeometryListing
 import fi.fta.geoviite.infra.math.IPoint
@@ -93,7 +96,8 @@ constructor(
                 val geometry = alignmentDao.fetch(track.getVersionOrThrow())
                 val geocodingContext = geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
                 val listings = getVerticalGeometryListings(track, geometry, geocodingContext)
-                val (startAddress, endAddress) = getTrackAddresses(geometry, geocodingContext)
+                val (startAddress, endAddress) =
+                    geocodingContext?.let { getTrackAddresses(geometry, it) } ?: (null to null)
 
                 ExtLocationTrackProfileResponseV1(
                     layoutVersion = ExtLayoutVersionV1(publication),
@@ -126,7 +130,11 @@ constructor(
                 val listings =
                     newGeometry?.let { g -> getVerticalGeometryListings(newTrack, g, geocodingContext) } ?: emptyList()
                 val (startAddress, endAddress) =
-                    newGeometry?.let { g -> getTrackAddresses(g, geocodingContext) } ?: (null to null)
+                    if (newGeometry != null && geocodingContext != null) {
+                        getTrackAddresses(newGeometry, geocodingContext)
+                    } else {
+                        null to null
+                    }
 
                 ExtLocationTrackModifiedProfileResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),
@@ -159,24 +167,6 @@ constructor(
         return header to geometryAlignment
     }
 
-    private fun getTrackAddresses(
-        geometry: LocationTrackGeometry,
-        geocodingContext: GeocodingContext<ReferenceLineM>?,
-    ): Pair<String?, String?> {
-        val startPoint = geometry.start ?: return (null to null)
-        val endPoint = geometry.end ?: return (null to null)
-
-        val startAddress =
-            geocodingContext?.getAddress(startPoint)?.let { (address, intersect) ->
-                if (intersect == IntersectType.WITHIN) address else null
-            }
-        val endAddress =
-            geocodingContext?.getAddress(endPoint)?.let { (address, intersect) ->
-                if (intersect == IntersectType.WITHIN) address else null
-            }
-        return (startAddress?.formatFixedDecimals(3) to endAddress?.formatFixedDecimals(3))
-    }
-
     private fun toProfileAddressRange(
         startAddress: String?,
         endAddress: String?,
@@ -204,146 +194,142 @@ constructor(
         val boundingBox = boundingBoxAroundPoints(allPoints)
         return heightTriangleDao.fetchTriangles(boundingBox.polygonFromCorners)
     }
+}
 
-    private fun toIntersectionPoint(
-        listing: VerticalGeometryListing,
-        coordinateSystem: Srid,
-        heightTriangles: List<HeightTriangle>,
-    ): ExtProfilePviPointV1 {
-        val remarks = mutableListOf<ExtProfileRemarkV1>()
-        if (listing.overlapsAnother) {
-            remarks.add(
-                ExtProfileRemarkV1(
-                    code = "kaltevuusjakso_limittain",
-                    description = "Kaltevuusjakso on limittäin toisen jakson kanssa",
-                )
+private fun getTrackAddresses(
+    geometry: LocationTrackGeometry,
+    geocodingContext: GeocodingContext<ReferenceLineM>,
+): Pair<String?, String?> {
+    val startAddress = geometry.start?.let { toAddress(it, geocodingContext) }
+    val endAddress = geometry.end?.let { toAddress(it, geocodingContext) }
+    return if (startAddress != null && endAddress != null) startAddress to endAddress else null to null
+}
+
+private fun toAddress(point: IPoint, geocodingContext: GeocodingContext<ReferenceLineM>): String? =
+    geocodingContext
+        .getAddress(point)
+        ?.takeIf { (_, intersect) -> intersect == IntersectType.WITHIN }
+        ?.first
+        ?.formatFixedDecimals(3)
+
+private fun toIntersectionPoint(
+    listing: VerticalGeometryListing,
+    coordinateSystem: Srid,
+    heightTriangles: List<HeightTriangle>,
+): ExtProfilePviPointV1 {
+    val remarks = mutableListOf<ExtProfileRemarkV1>()
+    if (listing.overlapsAnother) {
+        remarks.add(
+            ExtProfileRemarkV1(
+                code = "kaltevuusjakso_limittain",
+                description = "Kaltevuusjakso on limittäin toisen jakson kanssa",
             )
-        }
-
-        return ExtProfilePviPointV1(
-            curvedSectionStart =
-                toProfileCurvedSectionEndpoint(
-                    listing.start.height,
-                    listing.start.angle,
-                    listing.start.address,
-                    listing.start.location,
-                    listing.verticalCoordinateSystem,
-                    heightTriangles,
-                    coordinateSystem,
-                ),
-            intersectionPoint =
-                toProfileIntersectionPoint(
-                    listing.point.height,
-                    listing.point.address,
-                    listing.point.location,
-                    listing.verticalCoordinateSystem,
-                    heightTriangles,
-                    coordinateSystem,
-                ),
-            curvedSectionEnd =
-                toProfileCurvedSectionEndpoint(
-                    listing.end.height,
-                    listing.end.angle,
-                    listing.end.address,
-                    listing.end.location,
-                    listing.verticalCoordinateSystem,
-                    heightTriangles,
-                    coordinateSystem,
-                ),
-            roundingRadius = listing.radius,
-            tangent = listing.tangent,
-            linearSectionBackward =
-                ExtProfileLinearSectionV1(
-                    length = listing.linearSectionBackward.stationValueDistance,
-                    linearPartLength = listing.linearSectionBackward.linearSegmentLength,
-                ),
-            linearSectionForward =
-                ExtProfileLinearSectionV1(
-                    length = listing.linearSectionForward.stationValueDistance,
-                    linearPartLength = listing.linearSectionForward.linearSegmentLength,
-                ),
-            stationValues =
-                ExtProfileStationValuesV1(
-                    start = listing.alignmentStartStation?.let(::roundTo3Decimals),
-                    intersectionPoint = listing.alignmentPointStation?.let(::roundTo3Decimals),
-                    end = listing.alignmentEndStation?.let(::roundTo3Decimals),
-                ),
-            planVerticalCoordinateSystem = listing.verticalCoordinateSystem?.toExtString(),
-            planElevationMeasurementMethod = listing.elevationMeasurementMethod?.toExtString(),
-            remarks = remarks,
         )
     }
 
-    private fun toProfileCurvedSectionEndpoint(
-        height: BigDecimal,
-        gradient: BigDecimal?,
-        address: fi.fta.geoviite.infra.common.TrackMeter?,
-        location: fi.fta.geoviite.infra.math.RoundedPoint?,
-        verticalCoordinateSystem: VerticalCoordinateSystem?,
-        heightTriangles: List<HeightTriangle>,
-        coordinateSystem: Srid,
-    ): ExtProfileCurvedSectionEndpointV1 =
-        ExtProfileCurvedSectionEndpointV1(
-            heightOriginal = height,
-            heightN2000 = computeN2000Height(height, location, verticalCoordinateSystem, heightTriangles),
-            gradient = gradient ?: BigDecimal.ZERO,
-            location = toProfileLocation(address, location, coordinateSystem),
-        )
+    return ExtProfilePviPointV1(
+        curvedSectionStart =
+            toProfileCurvedSectionEndpoint(
+                listing.start,
+                listing.verticalCoordinateSystem,
+                heightTriangles,
+                coordinateSystem,
+            ),
+        intersectionPoint =
+            toProfileIntersectionPoint(
+                listing.point,
+                listing.verticalCoordinateSystem,
+                heightTriangles,
+                coordinateSystem,
+            ),
+        curvedSectionEnd =
+            toProfileCurvedSectionEndpoint(
+                listing.end,
+                listing.verticalCoordinateSystem,
+                heightTriangles,
+                coordinateSystem,
+            ),
+        roundingRadius = listing.radius,
+        tangent = listing.tangent,
+        linearSectionBackward = toProfileLinearSection(listing.linearSectionBackward),
+        linearSectionForward = toProfileLinearSection(listing.linearSectionForward),
+        stationValues =
+            ExtProfileStationValuesV1(
+                start = listing.alignmentStartStation?.let(::roundTo3Decimals),
+                intersectionPoint = listing.alignmentPointStation?.let(::roundTo3Decimals),
+                end = listing.alignmentEndStation?.let(::roundTo3Decimals),
+            ),
+        planVerticalCoordinateSystem = listing.verticalCoordinateSystem?.toExtString(),
+        planElevationMeasurementMethod = listing.elevationMeasurementMethod?.toExtString(),
+        remarks = remarks,
+    )
+}
 
-    private fun toProfileIntersectionPoint(
-        height: BigDecimal,
-        address: fi.fta.geoviite.infra.common.TrackMeter?,
-        location: fi.fta.geoviite.infra.math.RoundedPoint?,
-        verticalCoordinateSystem: VerticalCoordinateSystem?,
-        heightTriangles: List<HeightTriangle>,
-        coordinateSystem: Srid,
-    ): ExtProfileIntersectionPointV1 =
-        ExtProfileIntersectionPointV1(
-            heightOriginal = height,
-            heightN2000 = computeN2000Height(height, location, verticalCoordinateSystem, heightTriangles),
-            location = toProfileLocation(address, location, coordinateSystem),
-        )
+private fun toProfileCurvedSectionEndpoint(
+    endpoint: CurvedSectionEndpoint,
+    verticalCoordinateSystem: VerticalCoordinateSystem?,
+    heightTriangles: List<HeightTriangle>,
+    coordinateSystem: Srid,
+): ExtProfileCurvedSectionEndpointV1 =
+    ExtProfileCurvedSectionEndpointV1(
+        heightOriginal = endpoint.height,
+        heightN2000 = computeN2000Height(endpoint.height, endpoint.location, verticalCoordinateSystem, heightTriangles),
+        gradient = endpoint.angle ?: BigDecimal.ZERO,
+        location = toProfileLocation(endpoint.address, endpoint.location, coordinateSystem),
+    )
 
-    private fun computeN2000Height(
-        height: BigDecimal,
-        location: IPoint?,
-        verticalCoordinateSystem: VerticalCoordinateSystem?,
-        heightTriangles: List<HeightTriangle>,
-    ): BigDecimal? =
-        when (verticalCoordinateSystem) {
-            VerticalCoordinateSystem.N2000 -> height
-            VerticalCoordinateSystem.N60 -> {
-                if (location != null) {
-                    try {
-                        roundTo3Decimals(
-                            transformHeightValue(height.toDouble(), location, heightTriangles, verticalCoordinateSystem)
-                        )
-                    } catch (_: IllegalArgumentException) {
-                        null
-                    }
-                } else null
+private fun toProfileIntersectionPoint(
+    point: IntersectionPoint,
+    verticalCoordinateSystem: VerticalCoordinateSystem?,
+    heightTriangles: List<HeightTriangle>,
+    coordinateSystem: Srid,
+): ExtProfileIntersectionPointV1 =
+    ExtProfileIntersectionPointV1(
+        heightOriginal = point.height,
+        heightN2000 = computeN2000Height(point.height, point.location, verticalCoordinateSystem, heightTriangles),
+        location = toProfileLocation(point.address, point.location, coordinateSystem),
+    )
+
+private fun toProfileLinearSection(section: LinearSection): ExtProfileLinearSectionV1 =
+    ExtProfileLinearSectionV1(length = section.stationValueDistance, linearPartLength = section.linearSegmentLength)
+
+private fun computeN2000Height(
+    height: BigDecimal,
+    location: IPoint?,
+    verticalCoordinateSystem: VerticalCoordinateSystem?,
+    heightTriangles: List<HeightTriangle>,
+): BigDecimal? =
+    when (verticalCoordinateSystem) {
+        VerticalCoordinateSystem.N2000 -> height
+        VerticalCoordinateSystem.N60 ->
+            location?.let {
+                try {
+                    transformHeightValue(height.toDouble(), location, heightTriangles, verticalCoordinateSystem)
+                        .let(::roundTo3Decimals)
+                } catch (_: IllegalArgumentException) {
+                    null
+                }
             }
-            VerticalCoordinateSystem.N43 -> null
-            null -> null
-        }
-
-    private fun toProfileLocation(
-        address: fi.fta.geoviite.infra.common.TrackMeter?,
-        location: fi.fta.geoviite.infra.math.RoundedPoint?,
-        coordinateSystem: Srid,
-    ): ExtProfileLocationV1 {
-        val transformedPoint = location?.let { point ->
-            when (coordinateSystem) {
-                LAYOUT_SRID -> point
-                else -> transformNonKKJCoordinate(LAYOUT_SRID, coordinateSystem, point)
-            }
-        }
-        return ExtProfileLocationV1(
-            trackAddress = address?.formatFixedDecimals(3),
-            x = transformedPoint?.let { BigDecimal(it.x.toString()) },
-            y = transformedPoint?.let { BigDecimal(it.y.toString()) },
-        )
+        VerticalCoordinateSystem.N43 -> null
+        null -> null
     }
+
+private fun toProfileLocation(
+    address: fi.fta.geoviite.infra.common.TrackMeter?,
+    location: fi.fta.geoviite.infra.math.RoundedPoint?,
+    coordinateSystem: Srid,
+): ExtProfileLocationV1 {
+    val transformedPoint = location?.let { point ->
+        when (coordinateSystem) {
+            LAYOUT_SRID -> point
+            else -> transformNonKKJCoordinate(LAYOUT_SRID, coordinateSystem, point)
+        }
+    }
+    return ExtProfileLocationV1(
+        trackAddress = address?.formatFixedDecimals(3),
+        x = transformedPoint?.let { BigDecimal(it.x.toString()) },
+        y = transformedPoint?.let { BigDecimal(it.y.toString()) },
+    )
 }
 
 private fun VerticalCoordinateSystem.toExtString(): String =
