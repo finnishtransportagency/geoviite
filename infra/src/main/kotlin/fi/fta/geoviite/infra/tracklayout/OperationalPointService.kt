@@ -1,10 +1,12 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.GeoviiteOidDao
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.OidType
 import fi.fta.geoviite.infra.error.SavingFailureException
@@ -184,6 +186,26 @@ class OperationalPointService(
             }
             draftVersion
         }
+    }
+
+    override fun mergeToMainBranch(
+        fromBranch: DesignBranch,
+        id: IntId<OperationalPoint>,
+    ): LayoutRowVersion<OperationalPoint> {
+        val designBranchPoint = fetchAndCheckForMerging(fromBranch, id).first
+        val mainBranchPoint = dao.fetchVersion(MainLayoutContext.draft, id)?.let(operationalPointDao::fetch)
+        val isRatkoPoint = mainBranchPoint?.origin == OperationalPointOrigin.RATKO
+        return dao.save(
+            asMainDraft(
+                // If an operational point is synced from Ratko, its ratko version and state are handled by the Ratko
+                // sync. Ratko sync only runs in main, so that data should be used over whatever exists in the design.
+                // If the operational point is from Geoviite, we can just take the state info from the design branch.
+                designBranchPoint.copy(
+                    ratkoVersion = if (isRatkoPoint) mainBranchPoint.ratkoVersion else null,
+                    state = if (isRatkoPoint) mainBranchPoint.state else designBranchPoint.state,
+                )
+            )
+        )
     }
 
     private fun clearOperationalPointReferences(branch: LayoutBranch, id: IntId<OperationalPoint>) {
