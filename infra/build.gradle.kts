@@ -12,16 +12,16 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val geotoolsVersion = "33.2"
+val geotoolsVersion = "34.3"
 val kotlinVersion = "2.3.20"
 
 plugins {
-    id("org.springframework.boot") version "3.5.12"
+    id("org.springframework.boot") version "3.5.13"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.github.jk1.dependency-license-report") version "3.0.1"
+    id("com.github.jk1.dependency-license-report") version "3.1.2"
     kotlin("jvm") version "2.3.20"
     kotlin("plugin.spring") version "2.3.20"
-    id("com.ncorti.ktfmt.gradle") version "0.25.0"
+    id("com.ncorti.ktfmt.gradle") version "0.26.0"
 }
 
 group = "fi.fta.geoviite"
@@ -55,8 +55,8 @@ dependencies {
     implementation("org.apache.commons:commons-text:1.15.0")
     implementation("org.apache.commons:commons-lang3:3.20.0")
     implementation("com.fasterxml.jackson.core:jackson-core:2.21.2")
-    testImplementation("com.nimbusds:nimbus-jose-jwt:10.8")
-    testImplementation("org.mozilla:rhino:1.7.15.1")
+    testImplementation("com.nimbusds:nimbus-jose-jwt:10.9")
+    testImplementation("org.mozilla:rhino:1.9.1")
     constraints {
         // org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.16 has a vulnerable transitive dependency
         implementation("org.apache.commons:commons-text:1.15.0")
@@ -66,13 +66,13 @@ dependencies {
         implementation("com.fasterxml.jackson.core:jackson-core:2.21.2")
 
         // org.mock-server:mockserver-netty:5.15.0 has a vulnerable transitive dependency
-        testImplementation("com.nimbusds:nimbus-jose-jwt:10.8")
-        testImplementation("org.mozilla:rhino:1.7.15.1")
+        testImplementation("com.nimbusds:nimbus-jose-jwt:10.9")
+        testImplementation("org.mozilla:rhino:1.9.1")
     }
 
     // Actual deps
     implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.797") { exclude("commons-logging", "commons-logging") }
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.83")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -81,7 +81,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.16")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
@@ -116,7 +116,7 @@ dependencies {
         exclude("commons-collections", "commons-collections")
     }
     implementation("org.aspectj:aspectjweaver:1.9.25.1")
-    implementation("org.jgrapht:jgrapht-core:1.5.2")
+    implementation("org.jgrapht:jgrapht-core:1.5.3")
     compileOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.7")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
@@ -124,8 +124,8 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
     testImplementation("org.seleniumhq.selenium:selenium-java:4.41.0")
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
-    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6")
-    testImplementation("io.projectreactor:reactor-test:3.8.4")
+    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.1")
+    testImplementation("io.projectreactor:reactor-test:3.8.5")
 }
 
 licenseReport {

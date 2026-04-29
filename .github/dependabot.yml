@@ -3,11 +3,104 @@ updates:
   - package-ecosystem: "gradle"
     directory: "/infra"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 0
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "org.seleniumhq*"
+      - dependency-name: "*"
+        update-types: [ "version-update:semver-major" ]
+    groups:
+      spring-boot:
+        patterns:
+          - "org.springframework*"
+          - "io.spring*"
+          - "org.springdoc*"
+          - "com.fasterxml.jackson*"
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+      flyway:
+        patterns:
+          - "org.flywaydb*"
+      geotools:
+        patterns:
+          - "org.geotools*"
+      auth0:
+        patterns:
+          - "com.auth0*"
+      jakarta-xml:
+        patterns:
+          - "jakarta.activation*"
+          - "jakarta.xml.bind*"
+          - "org.glassfish.jaxb*"
+      test-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "org.mock-server*"
+          - "org.apache.httpcomponents*"
+          - "io.projectreactor:reactor-test"
+      gradle:
+        patterns:
+          - "gradle"
+          - "gradle-wrapper"
+      other:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/ui"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 0
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: "*"
+        update-types: [ "version-update:semver-major" ]
+    groups:
+      toolchain:
+        patterns:
+          - "webpack"
+          - "webpack-*"
+          - "*-webpack-plugin"
+          - "*-loader"
+          - "eslint*"
+          - "@eslint/*"
+          - "*eslint*"
+          - "typescript-eslint"
+          - "jest"
+          - "jest-*"
+          - "@jest/*"
+          - "ts-jest"
+          - "typescript"
+          - "ts-node"
+          - "prettier"
+          - "sass"
+      react:
+        patterns:
+          - "react"
+          - "react-*"
+          - "@types/react*"
+          - "@reduxjs/*"
+          - "redux"
+          - "redux-*"
+          - "i18next"
+          - "i18next-*"
+      openlayers:
+        patterns:
+          - "ol"
+          - "proj4"
+      other:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"

@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-NVM_VERSION="v0.38.0"
+NVM_VERSION="v0.40.4"
 NVM_DIR="${HOME}/.nvm"
 
-rm -rf NVM_DIR
+rm -rf "$NVM_DIR"
 set +e
 git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
 set -e
