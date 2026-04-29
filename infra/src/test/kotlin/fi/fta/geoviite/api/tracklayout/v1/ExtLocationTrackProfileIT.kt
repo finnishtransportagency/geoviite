@@ -410,9 +410,10 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         val addressRange = api.locationTrackProfile.get(oid).osoitevali
-        assertNotNull(addressRange.alku, "Address range start should be present")
-        assertNotNull(addressRange.loppu, "Address range end should be present")
-        assertEquals(1, addressRange.taitepisteet.size, "Expected one PVI point for one curve")
+        assertEquals("0000+0000.000", addressRange.alku, "Address range should start at track start")
+        assertEquals("0000+1000.000", addressRange.loppu, "Address range should end at track end")
+        val pviAddresses = addressRange.taitepisteet.map { it.taite.sijainti.rataosoite }
+        assertEquals(listOf("0000+0500.000"), pviAddresses, "Expected one PVI point at station 500")
     }
 
     @Test
@@ -446,12 +447,14 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(trackId),
         )
 
-        val addressRange = api.locationTrackProfile.get(oid).osoitevali
-        assertNotNull(addressRange.alku, "Address range start should be present")
-        assertNotNull(addressRange.loppu, "Address range end should be present")
-        assertTrue(
-            addressRange.taitepisteet.size >= 2,
-            "Expected PVI points from both linked sections in the single address range",
+        // Default profile has VICircularCurve at station 500.
+        // Segment 1 (0..1000, sourceStartM=0) covers stations 0-1000 → PVI at track address 0+500
+        // Segment 2 (1200..2000, sourceStartM=0) covers stations 0-800 → PVI at track address 1200+500=1700
+        val pviAddresses = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.map { it.taite.sijainti.rataosoite }
+        assertEquals(
+            listOf("0000+0500.000", "0000+1700.000"),
+            pviAddresses,
+            "Expected PVI points from both linked sections",
         )
     }
 
@@ -484,8 +487,19 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             locationTracks = listOf(trackId),
         )
 
-        val pviPoints = api.locationTrackProfile.get(oid).osoitevali.taitepisteet
-        val overlapRemarks = pviPoints.flatMap { it.huomiot }.filter { it.koodi == "kaltevuusjakso_limittain" }
+        // Default profile has VICircularCurve at station 500.
+        // Segment 1 (0..500, sourceStartM=0) covers stations 0-500 → PVI at boundary
+        // Segment 2 (500..1000, sourceStartM=0) covers stations 0-500 → PVI at track address 500+500=1000
+        // Both plans have full 0-1000 station range profiles, so their coverage overlaps
+        val pviAddresses = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.map { it.taite.sijainti.rataosoite }
+        assertEquals(
+            listOf("0000+0500.000", "0000+1000.000"),
+            pviAddresses,
+            "Expected PVI points from both overlapping plan segments",
+        )
+        val overlapRemarks = api.locationTrackProfile.get(oid).osoitevali.taitepisteet
+            .flatMap { it.huomiot }
+            .filter { it.koodi == "kaltevuusjakso_limittain" }
         assertTrue(overlapRemarks.isNotEmpty(), "Expected kaltevuusjakso_limittain remarks for overlapping profiles")
         overlapRemarks.forEach { remark -> assertTrue(remark.selite.isNotBlank(), "Remark selite should be non-blank") }
     }
