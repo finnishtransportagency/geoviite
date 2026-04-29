@@ -69,11 +69,19 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     @Test
     fun `Profile API versioning works across multiple publications`() {
         val trackStart = Point(0.0, 0.0)
-        val trackEnd = Point(0.0, 100.0)
+        val trackEnd = Point(0.0, 700.0)
         val expectedStartAddress = "0000+0000.000"
-        val expectedEndAddress = "0000+0100.000"
+        val expectedEndAddress = "0000+0700.000"
 
-        val plan = insertPlan(listOf(profileAlignment(start = trackStart, end = trackEnd)))
+        val plan = insertPlan(listOf(profileAlignment(
+            start = trackStart,
+            end = trackEnd,
+            profileElements = listOf(
+                VIPoint(PlanElementName("start"), Point(0.0, 50.0)),
+                VICircularCurve(PlanElementName("curve"), Point(350.0, 50.0), BigDecimal(20000), BigDecimal(155)),
+                VIPoint(PlanElementName("end"), Point(700.0, 51.0)),
+            ),
+        )))
         val elements = plan.alignments[0].elements
         val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements)
         val (trackId, oid) =
@@ -339,7 +347,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val plan =
             insertPlan(
                 listOf(
-                    profileAlignment(start = Point(0.0, 0.0) + finlandOffset, end = Point(0.0, 100.0) + finlandOffset)
+                    profileAlignment(start = Point(0.0, 0.0) + finlandOffset, end = Point(0.0, 1000.0) + finlandOffset)
                 ),
                 verticalCoordinateSystem = VerticalCoordinateSystem.N60,
             )
@@ -415,13 +423,13 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val referenceLineId =
             mainDraftContext
-                .saveReferenceLine(referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 200.0))))
+                .saveReferenceLine(referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 2000.0))))
                 .id
 
-        // Segments with a gap (0..80 linked, 80..120 not linked, 120..200 linked)
-        val points1 = (0..80).map { Point(0.0, it.toDouble()) }
-        val pointsGap = (80..120).map { Point(0.0, it.toDouble()) }
-        val points2 = (120..200).map { Point(0.0, it.toDouble()) }
+        // Segments with a gap (0..1000 linked to plan1, 1000..1200 not linked, 1200..2000 linked to plan2)
+        val points1 = (0..1000).map { Point(0.0, it.toDouble()) }
+        val pointsGap = (1000..1200).map { Point(0.0, it.toDouble()) }
+        val points2 = (1200..2000).map { Point(0.0, it.toDouble()) }
         val (trackId, oid) =
             mainDraftContext.saveWithOid(
                 locationTrack(trackNumberId),
@@ -455,12 +463,12 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val referenceLineId =
             mainDraftContext
-                .saveReferenceLine(referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 100.0))))
+                .saveReferenceLine(referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 1000.0))))
                 .id
 
-        // Two segments overlapping (0..70 and 30..100)
-        val points1 = (0..70).map { Point(0.0, it.toDouble()) }
-        val points2 = (30..100).map { Point(0.0, it.toDouble()) }
+        // Two consecutive segments both linked to different plans (whose profiles overlap in station range)
+        val points1 = (0..500).map { Point(0.0, it.toDouble()) }
+        val points2 = (500..1000).map { Point(0.0, it.toDouble()) }
         val (trackId, oid) =
             mainDraftContext.saveWithOid(
                 locationTrack(trackNumberId),
@@ -723,12 +731,12 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     private fun profileAlignment(
         start: Point = Point(0.0, 0.0),
-        end: Point = Point(0.0, 100.0),
+        end: Point = Point(0.0, 1000.0),
         profileElements: List<VerticalIntersection> =
             listOf(
-                VIPoint(PlanElementName("start"), Point(0.0, 50.0)),
-                VICircularCurve(PlanElementName("curve"), Point(500.0, 50.0), BigDecimal(20000), BigDecimal(155)),
-                VIPoint(PlanElementName("end"), Point(600.0, 51.0)),
+                VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
+                VICircularCurve(PlanElementName("curve"), Point(500.0, 100.0), BigDecimal(20000), BigDecimal(155)),
+                VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
             ),
     ): GeometryAlignment =
         geometryAlignment(
