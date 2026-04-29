@@ -116,4 +116,13 @@
         gap: 4px;
         padding-left: 16px;
     }
+
+    &__track-addresses {
+        max-height: 280px;
+        overflow-y: auto;
+    }
+
+    &__show-more-track-addresses {
+        margin-bottom: 10px;
+    }
 }
