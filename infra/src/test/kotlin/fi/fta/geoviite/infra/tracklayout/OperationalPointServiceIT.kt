@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.error.SavingFailureException
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -389,6 +390,98 @@ constructor(
         assertEquals(setOf(opId), trackAfter.operationalPointIds)
         val switchAfter = switchService.getOrThrow(mainDraftContext.context, switchVersion.id)
         assertEquals(opId, switchAfter.operationalPointId)
+    }
+
+    @Test
+    fun `mergeToMainBranch syncs all fields from design branch for Geoviite points`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, PublicationState.OFFICIAL)
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val officialVersion =
+            mainOfficialContext.save(
+                operationalPoint(name = "original", state = OperationalPointState.IN_USE, draft = false)
+            )
+
+        mainDraftContext.save(
+            asMainDraft(mainOfficialContext.fetch(officialVersion.id)!!).copy(state = OperationalPointState.DELETED)
+        )
+
+        designOfficialContext.moveFrom(
+            designDraftContext.save(
+                asDesignDraft(
+                    mainOfficialContext
+                        .fetch(officialVersion.id)!!
+                        .copy(
+                            name = OperationalPointName("edited in design"),
+                            rinfType = OperationalPointRinfType.FREIGHT_TERMINAL,
+                            state = OperationalPointState.IN_USE,
+                        ),
+                    designBranch.designId,
+                )
+            )
+        )
+
+        operationalPointService.mergeToMainBranch(designBranch, officialVersion.id)
+
+        val merged = mainDraftContext.fetch(officialVersion.id)
+        assertNotNull(merged)
+        assertEquals("edited in design", merged.name.toString())
+        assertEquals(OperationalPointRinfType.FREIGHT_TERMINAL, merged.rinfType)
+        assertEquals(OperationalPointState.IN_USE, merged.state)
+        assertNull(merged.ratkoVersion)
+    }
+
+    @Test
+    fun `mergeToMainBranch preserves ratkoVersion and state from existing main-draft for Ratko points`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, PublicationState.OFFICIAL)
+        val designDraftContext = testDBService.testContext(designBranch, PublicationState.DRAFT)
+
+        val externalPointId =
+            ratkoTestService.setupRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", name = "ratko op"))[0]
+
+        testDBService.save(
+            operationalPoint(
+                contextData = createMainContext(externalPointId, false),
+                origin = OperationalPointOrigin.RATKO,
+                ratkoVersion = 1,
+                rinfType = OperationalPointRinfType.STATION,
+            )
+        )
+
+        designOfficialContext.moveFrom(
+            designDraftContext.save(
+                asDesignDraft(
+                    mainOfficialContext
+                        .fetch(externalPointId)!!
+                        .copy(rinfType = OperationalPointRinfType.FREIGHT_TERMINAL),
+                    designBranch.designId,
+                )
+            )
+        )
+
+        // Delete operational point from Ratko
+        ratkoTestService.updateRatkoOperationalPoints()
+        val mainDraftPointAfterDelete = mainDraftContext.fetch(externalPointId)!!
+        assertEquals(2, mainDraftPointAfterDelete.ratkoVersion)
+        assertEquals(OperationalPointState.DELETED, mainDraftPointAfterDelete.state)
+
+        // Make sure the operational point still exists in design
+        val designDraftAfterMainDelete = designDraftContext.fetch(externalPointId)!!
+        assertEquals(OperationalPointState.IN_USE, designDraftAfterMainDelete.state)
+        assertEquals(1, designDraftAfterMainDelete.ratkoVersion)
+
+        // Merge to main
+        operationalPointService.mergeToMainBranch(designBranch, externalPointId)
+
+        // Make sure that the operational point in main draft is an unholy union of the design point's user modifiable
+        // fields and the Ratko version's state and Ratko version
+        val merged = mainDraftContext.fetch(externalPointId)
+        assertNotNull(merged)
+        assertEquals(OperationalPointRinfType.FREIGHT_TERMINAL, merged.rinfType)
+        assertEquals(OperationalPointState.DELETED, merged.state)
+        assertEquals(2, merged.ratkoVersion)
     }
 
     private fun internalPointSaveRequest(
