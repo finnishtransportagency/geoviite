@@ -620,6 +620,16 @@ fun geometryAlignment(
         cant = cant,
     )
 
+fun geometryProfile(
+    elements: List<VerticalIntersection> =
+        listOf(
+            VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
+            VICircularCurve(PlanElementName("curve"), Point(500.0, 100.0), BigDecimal(20000), BigDecimal(155)),
+            VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
+        ),
+    name: String = "profile",
+): GeometryProfile = GeometryProfile(PlanElementName(name), elements)
+
 fun linearCant(startDistance: Double, endDistance: Double, startValue: Double, endValue: Double): GeometryCant {
     val point1 =
         GeometryCantPoint(

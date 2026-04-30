@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.geometry.CurvedProfileSegment
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.geometry.GeometryProfile
 import fi.fta.geoviite.infra.geometry.VICircularCurve
 import fi.fta.geoviite.infra.geometry.VIPoint
 import fi.fta.geoviite.infra.geometry.VerticalIntersection
@@ -22,6 +21,7 @@ import fi.fta.geoviite.infra.geometry.angleFractionBetweenPoints
 import fi.fta.geoviite.infra.geometry.circCurveStationPoint
 import fi.fta.geoviite.infra.geometry.circularCurveCenterPoint
 import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.geometryProfile
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.tangentPointsOfPvi
@@ -521,8 +521,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                                 line(Point(0.0, 500.0), Point(0.0, 1000.0), staStart = 500.0, name = "elem2"),
                             ),
                         profile =
-                            GeometryProfile(
-                                PlanElementName("profile"),
+                            geometryProfile(
                                 listOf(
                                     VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
                                     VICircularCurve(
@@ -532,7 +531,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                                         BigDecimal(155),
                                     ),
                                     VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
-                                ),
+                                )
                             ),
                     )
                 ),
@@ -548,8 +547,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                                 line(Point(0.0, 500.0), Point(0.0, 1000.0), staStart = 500.0, name = "elem2"),
                             ),
                         profile =
-                            GeometryProfile(
-                                PlanElementName("profile"),
+                            geometryProfile(
                                 listOf(
                                     VIPoint(PlanElementName("start"), Point(0.0, 99.0)),
                                     VICircularCurve(
@@ -559,7 +557,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                                         BigDecimal(155),
                                     ),
                                     VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
-                                ),
+                                )
                             ),
                     )
                 ),
@@ -853,10 +851,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                 VIPoint(PlanElementName("end"), Point(1000.0, 101.0)),
             ),
     ): GeometryAlignment =
-        geometryAlignment(
-            elements = listOf(line(start, end)),
-            profile = GeometryProfile(PlanElementName("profile"), profileElements),
-        )
+        geometryAlignment(elements = listOf(line(start, end)), profile = geometryProfile(profileElements))
 
     private fun insertPlan(
         alignments: List<GeometryAlignment>,

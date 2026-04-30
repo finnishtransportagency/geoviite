@@ -8,13 +8,10 @@ import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.kkjSrids
-import fi.fta.geoviite.infra.geometry.GeometryProfile
-import fi.fta.geoviite.infra.geometry.VICircularCurve
-import fi.fta.geoviite.infra.geometry.VIPoint
 import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.geometryProfile
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
-import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -41,7 +38,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -543,21 +539,8 @@ constructor(
                     alignments =
                         listOf(
                             geometryAlignment(
-                                elements = listOf(line(Point(0.0, 0.0), Point(100.0, 0.0))),
-                                profile =
-                                    GeometryProfile(
-                                        PlanElementName("profile"),
-                                        listOf(
-                                            VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
-                                            VICircularCurve(
-                                                PlanElementName("curve"),
-                                                Point(50.0, 100.0),
-                                                BigDecimal(20000),
-                                                BigDecimal(155),
-                                            ),
-                                            VIPoint(PlanElementName("end"), Point(100.0, 100.5)),
-                                        ),
-                                    ),
+                                elements = listOf(line(Point(0.0, 0.0), Point(1000.0, 0.0))),
+                                profile = geometryProfile(),
                             )
                         ),
                 )
