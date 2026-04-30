@@ -337,36 +337,20 @@ data class ExtTestProfileCurvedSectionEndpointV1(
     @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: String,
     val korkeus_n2000: String?,
     val kaltevuus: String,
-    val sijainti: ExtTestProfileLocationV1,
+    val sijainti: ExtTestAddressPointV1,
 )
 
 data class ExtTestProfileIntersectionPointV1(
     @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: String,
     val korkeus_n2000: String?,
-    val sijainti: ExtTestProfileLocationV1,
+    val sijainti: ExtTestAddressPointV1,
 )
 
-data class ExtTestProfileLocationV1(
-    val rataosoite: String?,
-    val x: String?,
-    val y: String?,
-)
+data class ExtTestProfileLinearSectionV1(val pituus: String?, val suora_osa: String?)
 
-data class ExtTestProfileLinearSectionV1(
-    val pituus: String?,
-    val suora_osa: String?,
-)
+data class ExtTestProfileStationValuesV1(val alku: String?, val taite: String?, val loppu: String?)
 
-data class ExtTestProfileStationValuesV1(
-    val alku: String?,
-    val taite: String?,
-    val loppu: String?,
-)
-
-data class ExtTestProfileRemarkV1(
-    val koodi: String,
-    val selite: String,
-)
+data class ExtTestProfileRemarkV1(val koodi: String, val selite: String)
 
 data class ExtTestModifiedLocationTrackProfileResponseV1(
     val alkuversio: String,
