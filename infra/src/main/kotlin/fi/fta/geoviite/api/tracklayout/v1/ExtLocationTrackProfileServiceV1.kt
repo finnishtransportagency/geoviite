@@ -402,7 +402,7 @@ private fun toProfileCurvedSectionEndpoint(
     ExtProfileCurvedSectionEndpointV1(
         heightOriginal = endpoint.height,
         heightN2000 = computeN2000Height(endpoint.height, endpoint.location, verticalCoordinateSystem, heightTriangles),
-        gradient = endpoint.angle ?: BigDecimal.ZERO,
+        gradient = endpoint.angle,
         location = endpoint.location?.let { toExtAddressPoint(it, endpoint.address, coordinateSystem) },
     )
 

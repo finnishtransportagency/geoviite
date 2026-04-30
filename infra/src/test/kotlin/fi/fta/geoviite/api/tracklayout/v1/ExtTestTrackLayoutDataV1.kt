@@ -336,7 +336,7 @@ data class ExtTestProfileBreakPointV1(
 data class ExtTestProfileCurvedSectionEndpointV1(
     val korkeus_alkuperainen: String,
     val korkeus_n2000: String?,
-    val kaltevuus: String,
+    val kaltevuus: String?,
     val sijainti: ExtTestAddressPointV1?,
 )
 

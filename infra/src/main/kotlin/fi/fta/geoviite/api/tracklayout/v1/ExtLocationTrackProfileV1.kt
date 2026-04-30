@@ -48,8 +48,7 @@ data class ExtProfilePviPointV1(
     @JsonProperty(LINEAR_SECTION_BACKWARD) val linearSectionBackward: ExtProfileLinearSectionV1,
     @JsonProperty(LINEAR_SECTION_FORWARD) val linearSectionForward: ExtProfileLinearSectionV1,
     @JsonProperty(STATION_VALUES) val stationValues: ExtProfileStationValuesV1,
-    @JsonProperty(PLAN_VERTICAL_COORDINATE_SYSTEM)
-    val planVerticalCoordinateSystem: String?,
+    @JsonProperty(PLAN_VERTICAL_COORDINATE_SYSTEM) val planVerticalCoordinateSystem: String?,
     @JsonProperty(PLAN_ELEVATION_MEASUREMENT_METHOD) val planElevationMeasurementMethod: String?,
     @JsonProperty(REMARKS) val remarks: List<ExtProfileRemarkV1>,
 )
@@ -59,7 +58,7 @@ data class ExtProfilePviPointV1(
 data class ExtProfileCurvedSectionEndpointV1(
     @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
     @JsonProperty(HEIGHT_N2000) val heightN2000: BigDecimal?,
-    @JsonProperty(GRADIENT) val gradient: BigDecimal,
+    @JsonProperty(GRADIENT) val gradient: BigDecimal?,
     @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1?,
 )
 
