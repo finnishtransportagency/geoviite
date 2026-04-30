@@ -48,7 +48,6 @@ data class ExtProfilePviPointV1(
     @JsonProperty(LINEAR_SECTION_BACKWARD) val linearSectionBackward: ExtProfileLinearSectionV1,
     @JsonProperty(LINEAR_SECTION_FORWARD) val linearSectionForward: ExtProfileLinearSectionV1,
     @JsonProperty(STATION_VALUES) val stationValues: ExtProfileStationValuesV1,
-    @Suppress("NonAsciiCharacters")
     @JsonProperty(PLAN_VERTICAL_COORDINATE_SYSTEM)
     val planVerticalCoordinateSystem: String?,
     @JsonProperty(PLAN_ELEVATION_MEASUREMENT_METHOD) val planElevationMeasurementMethod: String?,
@@ -58,7 +57,7 @@ data class ExtProfilePviPointV1(
 @Schema(name = "Pyöristyksen alku-/loppupiste")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileCurvedSectionEndpointV1(
-    @Suppress("NonAsciiCharacters") @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
+    @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
     @JsonProperty(HEIGHT_N2000) val heightN2000: BigDecimal?,
     @JsonProperty(GRADIENT) val gradient: BigDecimal,
     @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1?,
@@ -67,7 +66,7 @@ data class ExtProfileCurvedSectionEndpointV1(
 @Schema(name = "Taitepiste (leikkauspiste)")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileIntersectionPointV1(
-    @Suppress("NonAsciiCharacters") @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
+    @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
     @JsonProperty(HEIGHT_N2000) val heightN2000: BigDecimal?,
     @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1?,
 )

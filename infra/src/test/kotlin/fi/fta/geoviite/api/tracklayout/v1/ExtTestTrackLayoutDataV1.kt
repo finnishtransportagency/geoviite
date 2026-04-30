@@ -328,20 +328,20 @@ data class ExtTestProfileBreakPointV1(
     val kaltevuusjakso_taaksepain: ExtTestProfileLinearSectionV1,
     val kaltevuusjakso_eteenpain: ExtTestProfileLinearSectionV1,
     val paaluluku: ExtTestProfileStationValuesV1,
-    @Suppress("NonAsciiCharacters") val suunnitelman_korkeusjärjestelmä: String?,
+    val suunnitelman_korkeusjarjestelma: String?,
     val suunnitelman_korkeusasema: String?,
     val huomiot: List<ExtTestProfileRemarkV1>,
 )
 
 data class ExtTestProfileCurvedSectionEndpointV1(
-    @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: String,
+    val korkeus_alkuperainen: String,
     val korkeus_n2000: String?,
     val kaltevuus: String,
     val sijainti: ExtTestAddressPointV1,
 )
 
 data class ExtTestProfileIntersectionPointV1(
-    @Suppress("NonAsciiCharacters") val korkeus_alkuperäinen: String,
+    val korkeus_alkuperainen: String,
     val korkeus_n2000: String?,
     val sijainti: ExtTestAddressPointV1,
 )

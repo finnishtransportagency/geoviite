@@ -287,7 +287,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         // Metadata
-        assertEquals("N2000", pviPoint.suunnitelman_korkeusjärjestelmä, "Vertical coordinate system should be N2000")
+        assertEquals("N2000", pviPoint.suunnitelman_korkeusjarjestelma, "Vertical coordinate system should be N2000")
         assertEquals("Korkeusviiva", pviPoint.suunnitelman_korkeusasema, "Elevation method should be Korkeusviiva")
 
         // Remarks
@@ -310,17 +310,17 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
 
         assertEquals(
-            pviPoint.pyoristyksen_alku.korkeus_alkuperäinen,
+            pviPoint.pyoristyksen_alku.korkeus_alkuperainen,
             pviPoint.pyoristyksen_alku.korkeus_n2000,
             "N2000 height should equal original for N2000 source data (start)",
         )
         assertEquals(
-            pviPoint.taite.korkeus_alkuperäinen,
+            pviPoint.taite.korkeus_alkuperainen,
             pviPoint.taite.korkeus_n2000,
             "N2000 height should equal original for N2000 source data (intersection)",
         )
         assertEquals(
-            pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen,
+            pviPoint.pyoristyksen_loppu.korkeus_alkuperainen,
             pviPoint.pyoristyksen_loppu.korkeus_n2000,
             "N2000 height should equal original for N2000 source data (end)",
         )
@@ -341,11 +341,11 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
 
-        assertNotNull(pviPoint.pyoristyksen_alku.korkeus_alkuperäinen, "Original height should be present (start)")
+        assertNotNull(pviPoint.pyoristyksen_alku.korkeus_alkuperainen, "Original height should be present (start)")
         assertNull(pviPoint.pyoristyksen_alku.korkeus_n2000, "N2000 height should be null for N43 source data (start)")
-        assertNotNull(pviPoint.taite.korkeus_alkuperäinen, "Original height should be present (intersection)")
+        assertNotNull(pviPoint.taite.korkeus_alkuperainen, "Original height should be present (intersection)")
         assertNull(pviPoint.taite.korkeus_n2000, "N2000 height should be null for N43 source data (intersection)")
-        assertNotNull(pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen, "Original height should be present (end)")
+        assertNotNull(pviPoint.pyoristyksen_loppu.korkeus_alkuperainen, "Original height should be present (end)")
         assertNull(pviPoint.pyoristyksen_loppu.korkeus_n2000, "N2000 height should be null for N43 source data (end)")
     }
 
@@ -372,30 +372,30 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
 
-        assertNotNull(pviPoint.pyoristyksen_alku.korkeus_alkuperäinen, "Original height should be present (start)")
+        assertNotNull(pviPoint.pyoristyksen_alku.korkeus_alkuperainen, "Original height should be present (start)")
         assertNotNull(
             pviPoint.pyoristyksen_alku.korkeus_n2000,
             "N2000 height should be present for N60 source data (start)",
         )
         assertNotEquals(
-            pviPoint.pyoristyksen_alku.korkeus_alkuperäinen,
+            pviPoint.pyoristyksen_alku.korkeus_alkuperainen,
             pviPoint.pyoristyksen_alku.korkeus_n2000,
             "N2000 height should differ from original for N60 source data (start)",
         )
-        assertNotNull(pviPoint.taite.korkeus_alkuperäinen, "Original height should be present (intersection)")
+        assertNotNull(pviPoint.taite.korkeus_alkuperainen, "Original height should be present (intersection)")
         assertNotNull(pviPoint.taite.korkeus_n2000, "N2000 height should be present for N60 source data (intersection)")
         assertNotEquals(
-            pviPoint.taite.korkeus_alkuperäinen,
+            pviPoint.taite.korkeus_alkuperainen,
             pviPoint.taite.korkeus_n2000,
             "N2000 height should differ from original for N60 source data (intersection)",
         )
-        assertNotNull(pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen, "Original height should be present (end)")
+        assertNotNull(pviPoint.pyoristyksen_loppu.korkeus_alkuperainen, "Original height should be present (end)")
         assertNotNull(
             pviPoint.pyoristyksen_loppu.korkeus_n2000,
             "N2000 height should be present for N60 source data (end)",
         )
         assertNotEquals(
-            pviPoint.pyoristyksen_loppu.korkeus_alkuperäinen,
+            pviPoint.pyoristyksen_loppu.korkeus_alkuperainen,
             pviPoint.pyoristyksen_loppu.korkeus_n2000,
             "N2000 height should differ from original for N60 source data (end)",
         )
@@ -778,7 +778,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         expectedLocation: Point,
         label: String,
     ) {
-        assertEquals(roundTo3Decimals(expectedHeight).toString(), endpoint.korkeus_alkuperäinen, "$label height")
+        assertEquals(roundTo3Decimals(expectedHeight).toString(), endpoint.korkeus_alkuperainen, "$label height")
         assertEquals(
             expectedHeightN2000?.let(::roundTo3Decimals)?.toString(),
             endpoint.korkeus_n2000,
@@ -808,7 +808,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         expectedLocation: Point,
         label: String,
     ) {
-        assertEquals(roundTo3Decimals(expectedHeight).toString(), point.korkeus_alkuperäinen, "$label height")
+        assertEquals(roundTo3Decimals(expectedHeight).toString(), point.korkeus_alkuperainen, "$label height")
         assertEquals(
             expectedHeightN2000?.let(::roundTo3Decimals)?.toString(),
             point.korkeus_n2000,
