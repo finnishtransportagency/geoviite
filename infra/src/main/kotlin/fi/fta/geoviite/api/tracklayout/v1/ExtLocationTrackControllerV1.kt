@@ -259,7 +259,7 @@ class ExtLocationTrackControllerV1(
                 ApiResponse(
                     responseCode = "204",
                     description =
-                        "Sijaintiraiteen OID-tunnus löytyi, mutta sille ei ole olemassa geometriaa annetussa rataverkon versiossa.",
+                        "Sijaintiraiteen OID-tunnus löytyi, mutta se on poistettu, joten sille ei ole olemassa geometriaa annetussa rataverkon versiossa.",
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(
@@ -385,7 +385,7 @@ class ExtLocationTrackControllerV1(
                 ApiResponse(
                     responseCode = "204",
                     description =
-                        "Sijaintiraiteen OID-tunnus löytyi, mutta sille ei ole olemassa pystygeometriaa annetussa rataverkon versiossa.",
+                        "Sijaintiraiteen OID-tunnus löytyi, mutta se on poistettu, joten sille ei ole geometriaa annetussa rataverkon versiossa.",
                     content = [Content(schema = Schema(hidden = true))],
                 ),
                 ApiResponse(

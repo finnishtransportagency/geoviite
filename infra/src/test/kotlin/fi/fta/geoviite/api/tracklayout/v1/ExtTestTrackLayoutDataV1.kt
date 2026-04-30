@@ -337,13 +337,13 @@ data class ExtTestProfileCurvedSectionEndpointV1(
     val korkeus_alkuperainen: String,
     val korkeus_n2000: String?,
     val kaltevuus: String,
-    val sijainti: ExtTestAddressPointV1,
+    val sijainti: ExtTestAddressPointV1?,
 )
 
 data class ExtTestProfileIntersectionPointV1(
     val korkeus_alkuperainen: String,
     val korkeus_n2000: String?,
-    val sijainti: ExtTestAddressPointV1,
+    val sijainti: ExtTestAddressPointV1?,
 )
 
 data class ExtTestProfileLinearSectionV1(val pituus: String?, val suora_osa: String?)

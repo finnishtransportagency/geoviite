@@ -4,6 +4,7 @@ import LazyMap
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
@@ -26,7 +27,7 @@ import fi.fta.geoviite.infra.geometry.toVerticalGeometryListing
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
@@ -39,6 +40,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineM
 import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
+import java.time.Instant
 
 @GeoviiteService
 class ExtLocationTrackProfileServiceV1
@@ -122,26 +124,12 @@ constructor(
             ?.map(locationTrackDao::fetch)
             ?.takeIf { (oldTrack, newTrack) -> oldTrack?.exists == true || newTrack.exists }
             ?.let { (oldTrack, newTrack) ->
-                val oldListings =
-                    oldTrack
-                        ?.takeIf { it.exists }
-                        ?.let { track ->
-                            val geometry = alignmentDao.fetch(track.getVersionOrThrow())
-                            val geocodingContext =
-                                geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, startMoment)
-                            getVerticalGeometryListings(track, geometry, geocodingContext)
-                        }
-                val newListings =
-                    newTrack
-                        .takeIf { it.exists }
-                        ?.let { track ->
-                            val geometry = alignmentDao.fetch(track.getVersionOrThrow())
-                            val geocodingContext =
-                                geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, endMoment)
-                            getVerticalGeometryListings(track, geometry, geocodingContext)
-                        }
-                val trackIntervals = createProfileChangeIntervals(oldListings, newListings, coordinateSystem)
-
+                val oldListings = oldTrack?.let { getVerticalGeometryListings(it, branch, startMoment) } ?: emptyList()
+                val newListings = getVerticalGeometryListings(newTrack, branch, endMoment)
+                createProfileChangeIntervals(oldListings, newListings, coordinateSystem)
+            }
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { trackIntervals ->
                 ExtLocationTrackModifiedProfileResponseV1(
                     layoutVersionFrom = ExtLayoutVersionV1(publications.from),
                     layoutVersionTo = ExtLayoutVersionV1(publications.to),
@@ -151,6 +139,17 @@ constructor(
                 )
             }
     }
+
+    private fun getVerticalGeometryListings(
+        track: LocationTrack,
+        branch: LayoutBranch,
+        moment: Instant,
+    ): List<VerticalGeometryListing> =
+        if (track.exists) {
+            val geometry = alignmentDao.fetch(track.getVersionOrThrow())
+            val geocodingContext = geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
+            getVerticalGeometryListings(track, geometry, geocodingContext)
+        } else emptyList()
 
     private fun getVerticalGeometryListings(
         track: LocationTrack,
@@ -179,7 +178,7 @@ constructor(
         listings: List<VerticalGeometryListing>,
         coordinateSystem: Srid,
     ): ExtProfileAddressRangeV1 {
-        val heightTriangles = fetchHeightTrianglesIfNeeded(listings)
+        val heightTriangles = fetchN60HeightTriangles(listings)
         return ExtProfileAddressRangeV1(
             start = startAddress,
             end = endAddress,
@@ -189,30 +188,28 @@ constructor(
     }
 
     private fun createProfileChangeIntervals(
-        oldListings: List<VerticalGeometryListing>?,
-        newListings: List<VerticalGeometryListing>?,
+        oldListings: List<VerticalGeometryListing>,
+        newListings: List<VerticalGeometryListing>,
         coordinateSystem: Srid,
     ): List<ExtProfileAddressRangeV1> {
-        val allNewListings = newListings ?: emptyList()
-        val heightTriangles = fetchHeightTrianglesIfNeeded(allNewListings)
         return when {
-            oldListings == null && newListings == null -> error("Must have some listings to compare")
-            oldListings == null || oldListings.isEmpty() -> {
+            oldListings.isEmpty() -> {
                 // All new — single interval covering everything
-                if (allNewListings.isEmpty()) emptyList()
+                if (newListings.isEmpty()) emptyList()
                 else {
-                    val addresses = allNewListings.mapNotNull { it.point.address?.round(3) }
+                    val addresses = newListings.mapNotNull { it.point.address?.round(3) }
+                    val heightTriangles = fetchN60HeightTriangles(newListings)
                     listOf(
                         ExtProfileAddressRangeV1(
                             start = addresses.minOrNull()?.format(),
                             end = addresses.maxOrNull()?.format(),
                             intersectionPoints =
-                                allNewListings.map { toIntersectionPoint(it, coordinateSystem, heightTriangles) },
+                                newListings.map { toIntersectionPoint(it, coordinateSystem, heightTriangles) },
                         )
                     )
                 }
             }
-            newListings == null || newListings.isEmpty() -> {
+            newListings.isEmpty() -> {
                 // All removed — single interval covering old addresses, empty points
                 val addresses = oldListings.mapNotNull { it.point.address?.round(3) }
                 if (addresses.isEmpty()) emptyList()
@@ -226,22 +223,19 @@ constructor(
                     )
                 }
             }
-            else -> diffProfileListings(oldListings, newListings, coordinateSystem, heightTriangles)
+            else -> {
+                val heightTriangles = fetchN60HeightTriangles(newListings + oldListings)
+                diffProfileListings(oldListings, newListings, coordinateSystem, heightTriangles)
+            }
         }
     }
 
-    private fun fetchHeightTrianglesIfNeeded(listings: List<VerticalGeometryListing>): List<HeightTriangle> {
-        val needsN60Conversion = listings.any { it.verticalCoordinateSystem == VerticalCoordinateSystem.N60 }
-        if (!needsN60Conversion) return emptyList()
-
-        val allPoints = listings.flatMap { listing ->
-            listOfNotNull(listing.start.location, listing.point.location, listing.end.location)
-        }
-        if (allPoints.isEmpty()) return emptyList()
-
-        val boundingBox = boundingBoxAroundPoints(allPoints)
-        return heightTriangleDao.fetchTriangles(boundingBox.polygonFromCorners)
-    }
+    private fun fetchN60HeightTriangles(listings: List<VerticalGeometryListing>): List<HeightTriangle> =
+        listings
+            .filter { it.verticalCoordinateSystem == VerticalCoordinateSystem.N60 }
+            .flatMap { l -> listOfNotNull(l.start.location, l.point.location, l.end.location) }
+            .let { n60Points -> boundingBoxAroundPointsOrNull(n60Points) }
+            ?.let { bbox -> heightTriangleDao.fetchTriangles(bbox.polygonFromCorners) } ?: emptyList()
 }
 
 private fun diffProfileListings(

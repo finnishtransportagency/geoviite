@@ -417,7 +417,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val addressRange = api.locationTrackProfile.get(oid).osoitevali
         assertEquals("0000+0000.000", addressRange.alku, "Address range should start at track start")
         assertEquals("0000+1000.000", addressRange.loppu, "Address range should end at track end")
-        val pviAddresses = addressRange.taitepisteet.map { it.taite.sijainti.rataosoite }
+        val pviAddresses = addressRange.taitepisteet.map { it.taite.sijainti?.rataosoite }
         assertEquals(listOf("0000+0500.000"), pviAddresses, "Expected one PVI point at station 500")
     }
 
@@ -497,7 +497,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         // Plan1 curve at station 300 → track address 0+300. Plan2 curve at station 300 → track address 800+300=1100.
         val pviAddresses =
-            api.locationTrackProfile.get(oid).osoitevali.taitepisteet.map { it.taite.sijainti.rataosoite }
+            api.locationTrackProfile.get(oid).osoitevali.taitepisteet.map { it.taite.sijainti?.rataosoite }
         assertEquals(
             listOf(expectedAddress(300.0), expectedAddress(1100.0)),
             pviAddresses,
@@ -596,7 +596,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         // Plan1 curve at station 490 → track address ~490. Plan2 curve at station 510 → track address ~510.
         // Both curves describe overlapping profile near the connection point.
         val pviPoints = api.locationTrackProfile.get(oid).osoitevali.taitepisteet
-        val pviAddresses = pviPoints.map { it.taite.sijainti.rataosoite }
+        val pviAddresses = pviPoints.map { it.taite.sijainti?.rataosoite }
         assertEquals(
             listOf(expectedAddress(490.0), expectedAddress(510.0)),
             pviAddresses,
@@ -785,19 +785,9 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             "$label N2000 height",
         )
         assertEquals(roundTo6Decimals(expectedGradient).toString(), endpoint.kaltevuus, "$label gradient")
-        assertEquals(expectedAddress, endpoint.sijainti.rataosoite, "$label track address")
-        assertEquals(
-            expectedLocation.x,
-            endpoint.sijainti.x!!.toDouble(),
-            LAYOUT_COORDINATE_DELTA,
-            "$label X coordinate",
-        )
-        assertEquals(
-            expectedLocation.y,
-            endpoint.sijainti.y!!.toDouble(),
-            LAYOUT_COORDINATE_DELTA,
-            "$label Y coordinate",
-        )
+        assertEquals(expectedAddress, endpoint.sijainti?.rataosoite, "$label track address")
+        assertEquals(expectedLocation.x, endpoint.sijainti!!.x, LAYOUT_COORDINATE_DELTA, "$label X coordinate")
+        assertEquals(expectedLocation.y, endpoint.sijainti.y, LAYOUT_COORDINATE_DELTA, "$label Y coordinate")
     }
 
     private fun assertIntersectionPoint(
@@ -814,9 +804,9 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             point.korkeus_n2000,
             "$label N2000 height",
         )
-        assertEquals(expectedAddress, point.sijainti.rataosoite, "$label track address")
-        assertEquals(expectedLocation.x, point.sijainti.x!!.toDouble(), LAYOUT_COORDINATE_DELTA, "$label X coordinate")
-        assertEquals(expectedLocation.y, point.sijainti.y!!.toDouble(), LAYOUT_COORDINATE_DELTA, "$label Y coordinate")
+        assertEquals(expectedAddress, point.sijainti?.rataosoite, "$label track address")
+        assertEquals(expectedLocation.x, point.sijainti?.x!!.toDouble(), LAYOUT_COORDINATE_DELTA, "$label X coordinate")
+        assertEquals(expectedLocation.y, point.sijainti?.y!!.toDouble(), LAYOUT_COORDINATE_DELTA, "$label Y coordinate")
     }
 
     private fun assertLinearSection(

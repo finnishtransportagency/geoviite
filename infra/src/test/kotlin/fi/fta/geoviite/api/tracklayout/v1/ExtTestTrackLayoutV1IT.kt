@@ -6,21 +6,33 @@ import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.kkjSrids
+import fi.fta.geoviite.infra.geometry.GeometryProfile
+import fi.fta.geoviite.infra.geometry.VICircularCurve
+import fi.fta.geoviite.infra.geometry.VIPoint
+import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.line
+import fi.fta.geoviite.infra.geometry.plan
+import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
+import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfElements
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -29,6 +41,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -259,7 +272,7 @@ constructor(
     }
 
     @Test
-    fun `Ext api asset modification endpoints should return HTTP 204 when the asset has no modifications`() {
+    fun `Ext api asset modification endpoints should return HTTP 204 when there are no more publications`() {
         val expectedStatus = HttpStatus.NO_CONTENT
 
         noContentModificationTests
@@ -302,6 +315,29 @@ constructor(
             .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
             .forEach { (oid, apiCall) ->
                 apiCall(oid, arrayOf("alkuversio" to validButEmptyPublication.uuid.toString()))
+            }
+    }
+
+    @Test
+    fun `Ext api asset modification endpoints should return HTTP 204 when there are no changes in the publication range`() {
+        val expectedStatus = HttpStatus.NO_CONTENT
+
+        noContentModificationTests
+            .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
+            .forEach { (oid, apiCall) ->
+                val publicationAfterSetup =
+                    publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, publicationUuid = null)
+                initUser()
+                val publicationWithNoChanges = extTestDataService.publishInMain()
+
+                apiCall(
+                    oid,
+                    arrayOf(
+                        "alkuversio" to publicationAfterSetup.uuid.toString(),
+                        "loppuversio" to publicationWithNoChanges.uuid.toString(),
+                    ),
+                    expectedStatus,
+                )
             }
     }
 
@@ -499,16 +535,41 @@ constructor(
     }
 
     private fun setupValidLocationTrack(): Oid<LocationTrack> {
-        val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val plan =
+            testDBService.savePlan(
+                plan(
+                    srid = LAYOUT_SRID,
+                    verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
+                    alignments =
+                        listOf(
+                            geometryAlignment(
+                                elements = listOf(line(Point(0.0, 0.0), Point(100.0, 0.0))),
+                                profile =
+                                    GeometryProfile(
+                                        PlanElementName("profile"),
+                                        listOf(
+                                            VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
+                                            VICircularCurve(
+                                                PlanElementName("curve"),
+                                                Point(50.0, 100.0),
+                                                BigDecimal(20000),
+                                                BigDecimal(155),
+                                            ),
+                                            VIPoint(PlanElementName("end"), Point(100.0, 100.5)),
+                                        ),
+                                    ),
+                            )
+                        ),
+                )
+            )
+        val elements = plan.alignments[0].elements
 
-        val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
-
-        val oid =
-            someOid<LocationTrack>().also { oid ->
-                locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
-            }
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id.also { mainDraftContext.generateOid(it) }
+        val referenceLineId =
+            mainDraftContext.saveReferenceLine(referenceLineAndGeometryOfElements(trackNumberId, elements)).id
+        val trackId =
+            mainDraftContext.saveLocationTrack(locationTrack(trackNumberId) to trackGeometryOfElements(elements)).id
+        val oid = mainDraftContext.generateOid(trackId)
 
         extTestDataService.publishInMain(
             trackNumbers = listOf(trackNumberId),
