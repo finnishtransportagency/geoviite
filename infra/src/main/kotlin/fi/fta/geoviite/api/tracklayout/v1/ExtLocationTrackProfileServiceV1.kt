@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.geometry.VerticalGeometryListing
 import fi.fta.geoviite.infra.geometry.toVerticalGeometryListing
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.publication.Publication
@@ -200,11 +201,11 @@ constructor(
                 // All new — single interval covering everything
                 if (allNewListings.isEmpty()) emptyList()
                 else {
-                    val addresses = allNewListings.mapNotNull { it.point.address }
+                    val addresses = allNewListings.mapNotNull { it.point.address?.round(3) }
                     listOf(
                         ExtProfileAddressRangeV1(
-                            start = addresses.minOrNull()?.formatFixedDecimals(3),
-                            end = addresses.maxOrNull()?.formatFixedDecimals(3),
+                            start = addresses.minOrNull()?.format(),
+                            end = addresses.maxOrNull()?.format(),
                             intersectionPoints =
                                 allNewListings.map { toIntersectionPoint(it, coordinateSystem, heightTriangles) },
                         )
@@ -213,13 +214,13 @@ constructor(
             }
             newListings == null || newListings.isEmpty() -> {
                 // All removed — single interval covering old addresses, empty points
-                val addresses = oldListings.mapNotNull { it.point.address }
+                val addresses = oldListings.mapNotNull { it.point.address?.round(3) }
                 if (addresses.isEmpty()) emptyList()
                 else {
                     listOf(
                         ExtProfileAddressRangeV1(
-                            start = addresses.minOrNull()?.formatFixedDecimals(3),
-                            end = addresses.maxOrNull()?.formatFixedDecimals(3),
+                            start = addresses.minOrNull()?.format(),
+                            end = addresses.maxOrNull()?.format(),
                             intersectionPoints = emptyList(),
                         )
                     )
@@ -249,69 +250,85 @@ private fun diffProfileListings(
     coordinateSystem: Srid,
     heightTriangles: List<HeightTriangle>,
 ): List<ExtProfileAddressRangeV1> {
-    val oldByAddress = oldListings.filter { it.point.address != null }.associateBy { it.point.address!! }
-    val newByAddress = newListings.filter { it.point.address != null }.associateBy { it.point.address!! }
-    val allAddresses = (oldByAddress.keys + newByAddress.keys).sorted()
-
-    val intervals = mutableListOf<ExtProfileAddressRangeV1>()
-    var intervalStart: TrackMeter? = null
-    var intervalEnd: TrackMeter? = null
-    var intervalListings = mutableListOf<VerticalGeometryListing>()
-
-    fun flushInterval() {
-        if (intervalStart != null && intervalEnd != null) {
-            intervals.add(
-                ExtProfileAddressRangeV1(
-                    start = intervalStart!!.formatFixedDecimals(3),
-                    end = intervalEnd!!.formatFixedDecimals(3),
-                    intersectionPoints =
-                        intervalListings.map { toIntersectionPoint(it, coordinateSystem, heightTriangles) },
-                )
-            )
-        }
-        intervalStart = null
-        intervalEnd = null
-        intervalListings = mutableListOf()
-    }
-
-    for (address in allAddresses) {
-        val oldListing = oldByAddress[address]
-        val newListing = newByAddress[address]
-        when {
-            // Address only in old (removed) or only in new (added) → change
-            oldListing == null || newListing == null -> {
-                if (intervalStart == null) intervalStart = address
-                intervalEnd = address
-                if (newListing != null) intervalListings.add(newListing)
-            }
-            // Both exist — check if changed
-            !isProfileListingEqual(oldListing, newListing) -> {
-                if (intervalStart == null) intervalStart = address
-                intervalEnd = address
-                intervalListings.add(newListing)
-            }
-            // Unchanged — flush any pending interval
-            else -> flushInterval()
+    // Convert listings to final PVI points, rounding addresses up front so range checks use the same precision
+    val oldPoints = oldListings.mapNotNull { listing ->
+        listing.point.address?.round(3)?.let { addr ->
+            addr to toIntersectionPoint(listing, coordinateSystem, heightTriangles)
         }
     }
-    flushInterval()
-    return intervals
+    val newPoints = newListings.mapNotNull { listing ->
+        listing.point.address?.round(3)?.let { addr ->
+            addr to toIntersectionPoint(listing, coordinateSystem, heightTriangles)
+        }
+    }
+
+    val changedRanges = findChangedRanges(oldPoints, newPoints)
+
+    // For each range, collect ALL new-state points whose address falls within it.
+    // The API semantic is "replace all points in this range with the returned list".
+    return changedRanges.map { range ->
+        val pointsInRange = newPoints.filter { (addr, _) -> range.contains(addr) }.map { (_, point) -> point }
+        ExtProfileAddressRangeV1(
+            start = range.min.format(),
+            end = range.max.format(),
+            intersectionPoints = pointsInRange,
+        )
+    }
 }
 
-private fun isProfileListingEqual(old: VerticalGeometryListing, new: VerticalGeometryListing): Boolean =
-    old.start == new.start &&
-        old.end == new.end &&
-        old.point == new.point &&
-        old.radius == new.radius &&
-        old.tangent == new.tangent &&
-        old.linearSectionForward == new.linearSectionForward &&
-        old.linearSectionBackward == new.linearSectionBackward &&
-        old.overlapsAnother == new.overlapsAnother &&
-        old.elevationMeasurementMethod == new.elevationMeasurementMethod &&
-        old.verticalCoordinateSystem == new.verticalCoordinateSystem &&
-        old.alignmentStartStation == new.alignmentStartStation &&
-        old.alignmentPointStation == new.alignmentPointStation &&
-        old.alignmentEndStation == new.alignmentEndStation
+private fun findChangedRanges(
+    oldPoints: List<Pair<TrackMeter, ExtProfilePviPointV1>>,
+    newPoints: List<Pair<TrackMeter, ExtProfilePviPointV1>>,
+): List<Range<TrackMeter>> {
+    val ranges = mutableListOf<Range<TrackMeter>>()
+    var range: Range<TrackMeter>? = null
+
+    var oldIdx = 0
+    var newIdx = 0
+
+    while (oldIdx <= oldPoints.lastIndex && newIdx <= newPoints.lastIndex) {
+        val (oldAddr, oldPoint) = oldPoints[oldIdx]
+        val (newAddr, newPoint) = newPoints[newIdx]
+
+        when {
+            // No change at this address, close any open range
+            oldAddr == newAddr && oldPoint == newPoint -> {
+                range?.let(ranges::add)
+                range = null
+                oldIdx++
+                newIdx++
+            }
+            // Same address but different content: the iteration is in sync but content changed
+            newAddr == oldAddr -> {
+                range = range?.extend(newAddr) ?: Range(newAddr, newAddr)
+                oldIdx++
+                newIdx++
+            }
+            // If addresses differ, we have a change but we're also out-of-sync. Advance the lesser iteration only.
+            newAddr > oldAddr -> {
+                range = range?.extend(oldAddr) ?: Range(oldAddr, oldAddr)
+                oldIdx++
+            }
+            else -> {
+                range = range?.extend(newAddr) ?: Range(newAddr, newAddr)
+                newIdx++
+            }
+        }
+    }
+    // Any remaining old/new points are obviously changed
+    if (oldIdx <= oldPoints.lastIndex) {
+        val last = oldPoints.last().first
+        range = range?.extend(last) ?: Range(oldPoints[oldIdx].first, last)
+    }
+    if (newIdx <= newPoints.lastIndex) {
+        val last = newPoints.last().first
+        range = range?.extend(last) ?: Range(newPoints[newIdx].first, last)
+    }
+    // Add final range if still open
+    range?.let(ranges::add)
+
+    return ranges
+}
 
 private fun getTrackAddresses(
     geometry: LocationTrackGeometry,
