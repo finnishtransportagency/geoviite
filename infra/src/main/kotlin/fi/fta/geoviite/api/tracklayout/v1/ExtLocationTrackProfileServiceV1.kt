@@ -15,7 +15,6 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geography.transformHeightValue
-import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.CurvedSectionEndpoint
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryDao
@@ -32,7 +31,6 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -207,7 +205,8 @@ constructor(
                         ExtProfileAddressRangeV1(
                             start = addresses.minOrNull()?.formatFixedDecimals(3),
                             end = addresses.maxOrNull()?.formatFixedDecimals(3),
-                            intersectionPoints = allNewListings.map { toIntersectionPoint(it, coordinateSystem, heightTriangles) },
+                            intersectionPoints =
+                                allNewListings.map { toIntersectionPoint(it, coordinateSystem, heightTriangles) },
                         )
                     )
                 }
@@ -393,7 +392,7 @@ private fun toProfileCurvedSectionEndpoint(
         heightOriginal = endpoint.height,
         heightN2000 = computeN2000Height(endpoint.height, endpoint.location, verticalCoordinateSystem, heightTriangles),
         gradient = endpoint.angle ?: BigDecimal.ZERO,
-        location = toProfileLocation(endpoint.address, endpoint.location, coordinateSystem),
+        location = endpoint.location?.let { toExtAddressPoint(it, endpoint.address, coordinateSystem) },
     )
 
 private fun toProfileIntersectionPoint(
@@ -405,7 +404,7 @@ private fun toProfileIntersectionPoint(
     ExtProfileIntersectionPointV1(
         heightOriginal = point.height,
         heightN2000 = computeN2000Height(point.height, point.location, verticalCoordinateSystem, heightTriangles),
-        location = toProfileLocation(point.address, point.location, coordinateSystem),
+        location = point.location?.let { toExtAddressPoint(it, point.address, coordinateSystem) },
     )
 
 private fun toProfileLinearSection(section: LinearSection): ExtProfileLinearSectionV1 =
@@ -431,24 +430,6 @@ private fun computeN2000Height(
         VerticalCoordinateSystem.N43 -> null
         null -> null
     }
-
-private fun toProfileLocation(
-    address: fi.fta.geoviite.infra.common.TrackMeter?,
-    location: fi.fta.geoviite.infra.math.RoundedPoint?,
-    coordinateSystem: Srid,
-): ExtProfileLocationV1 {
-    val transformedPoint = location?.let { point ->
-        when (coordinateSystem) {
-            LAYOUT_SRID -> point
-            else -> transformNonKKJCoordinate(LAYOUT_SRID, coordinateSystem, point)
-        }
-    }
-    return ExtProfileLocationV1(
-        trackAddress = address?.formatFixedDecimals(3),
-        x = transformedPoint?.let { BigDecimal(it.x.toString()) },
-        y = transformedPoint?.let { BigDecimal(it.y.toString()) },
-    )
-}
 
 private fun VerticalCoordinateSystem.toExtString(): String =
     when (this) {

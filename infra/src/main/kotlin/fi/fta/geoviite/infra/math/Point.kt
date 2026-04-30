@@ -118,27 +118,21 @@ data class Point(override val x: Double, override val y: Double) : IPoint {
     }
 }
 
-data class RoundedPoint(val roundedX: BigDecimal, val roundedY: BigDecimal) : IPoint {
-    override val x: Double
-        get() = roundedX.toDouble()
+data class RoundedPoint(override val x: Double, override val y: Double, private val scale: Int) : IPoint {
+    val roundedX: BigDecimal
+        get() = round(x, scale)
 
-    override val y: Double
-        get() = roundedY.toDouble()
-
-    constructor(x: Double, y: Double, scale: Int) : this(round(x, scale), round(y, scale))
-
-    init {
-        require(roundedX.scale() == roundedY.scale()) {
-            "Point X & Y must be rounded to the same scale: x=$roundedX y=$roundedY"
-        }
-    }
+    val roundedY: BigDecimal
+        get() = round(y, scale)
 }
 
-fun minPoint(points: List<IPoint>): IPoint =
-    points.reduceRight { acc, point -> Point(min(acc.x, point.x), min(acc.y, point.y)) }
+fun minPoint(points: List<IPoint>): IPoint = points.reduceRight { acc, point ->
+    Point(min(acc.x, point.x), min(acc.y, point.y))
+}
 
-fun maxPoint(points: List<IPoint>): IPoint =
-    points.reduceRight { acc, point -> Point(max(acc.x, point.x), max(acc.y, point.y)) }
+fun maxPoint(points: List<IPoint>): IPoint = points.reduceRight { acc, point ->
+    Point(max(acc.x, point.x), max(acc.y, point.y))
+}
 
 fun parsePointPair(value: String): Pair<Double, Double> {
     val values = value.split("_").map(String::toDouble)

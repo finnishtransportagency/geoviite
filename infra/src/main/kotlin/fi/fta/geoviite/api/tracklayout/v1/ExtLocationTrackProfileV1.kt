@@ -61,7 +61,7 @@ data class ExtProfileCurvedSectionEndpointV1(
     @Suppress("NonAsciiCharacters") @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
     @JsonProperty(HEIGHT_N2000) val heightN2000: BigDecimal?,
     @JsonProperty(GRADIENT) val gradient: BigDecimal,
-    @JsonProperty(COORDINATE_LOCATION) val location: ExtProfileLocationV1,
+    @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1?,
 )
 
 @Schema(name = "Taitepiste (leikkauspiste)")
@@ -69,15 +69,7 @@ data class ExtProfileCurvedSectionEndpointV1(
 data class ExtProfileIntersectionPointV1(
     @Suppress("NonAsciiCharacters") @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
     @JsonProperty(HEIGHT_N2000) val heightN2000: BigDecimal?,
-    @JsonProperty(COORDINATE_LOCATION) val location: ExtProfileLocationV1,
-)
-
-@Schema(name = "Sijainti")
-@JsonInclude(JsonInclude.Include.ALWAYS)
-data class ExtProfileLocationV1(
-    @JsonProperty(TRACK_ADDRESS) val trackAddress: String?,
-    @JsonProperty("x") val x: BigDecimal?,
-    @JsonProperty("y") val y: BigDecimal?,
+    @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1?,
 )
 
 @Schema(name = "Kaltevuusjakso")
