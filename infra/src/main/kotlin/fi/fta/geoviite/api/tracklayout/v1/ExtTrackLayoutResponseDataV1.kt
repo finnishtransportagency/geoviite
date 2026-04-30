@@ -7,9 +7,11 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.api.tracklayout.v1.ExtKmPostLocationConfirmedV1.CONFIRMED
 import fi.fta.geoviite.api.tracklayout.v1.ExtKmPostLocationConfirmedV1.NOT_CONFIRMED
+import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.Uuid
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.UnsupportedSridException
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.isKKJ
@@ -324,6 +326,51 @@ enum class ExtTrackBoundaryGeometryChangeTypeV1(val value: String) {
                 SplitTargetOperation.CREATE -> CREATE_NEW
                 SplitTargetOperation.OVERWRITE -> REPLACE_DUPLICATE
                 SplitTargetOperation.TRANSFER -> REPLACE_DUPLICATE_PARTIAL
+            }
+    }
+}
+
+const val FI_N2000 = "N2000"
+const val FI_N60 = "N60"
+const val FI_N43 = "N43"
+
+@Schema(name = "Korkeusjarjestelma", type = "string", allowableValues = [FI_N2000, FI_N60, FI_N43])
+enum class ExtVerticalCoordinateSystemV1(val value: String) {
+    N2000(FI_N2000),
+    N60(FI_N60),
+    N43(FI_N43);
+
+    @JsonValue override fun toString() = value
+
+    companion object {
+        fun of(system: VerticalCoordinateSystem): ExtVerticalCoordinateSystemV1 =
+            when (system) {
+                VerticalCoordinateSystem.N2000 -> N2000
+                VerticalCoordinateSystem.N60 -> N60
+                VerticalCoordinateSystem.N43 -> N43
+            }
+    }
+}
+
+const val FI_TOP_OF_SLEEPER = "Korkeusviiva"
+const val FI_TOP_OF_RAIL = "Kiskon selkä"
+
+@Schema(
+    name = "Korkeusaseman mittaustapa",
+    type = "string",
+    allowableValues = [FI_TOP_OF_SLEEPER, FI_TOP_OF_RAIL],
+)
+enum class ExtElevationMeasurementMethodV1(val value: String) {
+    TOP_OF_SLEEPER(FI_TOP_OF_SLEEPER),
+    TOP_OF_RAIL(FI_TOP_OF_RAIL);
+
+    @JsonValue override fun toString() = value
+
+    companion object {
+        fun of(method: ElevationMeasurementMethod): ExtElevationMeasurementMethodV1 =
+            when (method) {
+                ElevationMeasurementMethod.TOP_OF_SLEEPER -> TOP_OF_SLEEPER
+                ElevationMeasurementMethod.TOP_OF_RAIL -> TOP_OF_RAIL
             }
     }
 }

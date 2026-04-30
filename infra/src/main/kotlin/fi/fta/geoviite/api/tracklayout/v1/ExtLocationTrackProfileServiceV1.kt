@@ -2,7 +2,6 @@ package fi.fta.geoviite.api.tracklayout.v1
 
 import LazyMap
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
@@ -387,8 +386,8 @@ private fun toIntersectionPoint(
                 intersectionPoint = listing.alignmentPointStation?.let(::roundTo3Decimals),
                 end = listing.alignmentEndStation?.let(::roundTo3Decimals),
             ),
-        planVerticalCoordinateSystem = listing.verticalCoordinateSystem?.toExtString(),
-        planElevationMeasurementMethod = listing.elevationMeasurementMethod?.toExtString(),
+        planVerticalCoordinateSystem = listing.verticalCoordinateSystem?.let(ExtVerticalCoordinateSystemV1::of),
+        planElevationMeasurementMethod = listing.elevationMeasurementMethod?.let(ExtElevationMeasurementMethodV1::of),
         remarks = remarks,
     )
 }
@@ -442,15 +441,4 @@ private fun computeN2000Height(
         null -> null
     }
 
-private fun VerticalCoordinateSystem.toExtString(): String =
-    when (this) {
-        VerticalCoordinateSystem.N2000 -> "N2000"
-        VerticalCoordinateSystem.N60 -> "N60"
-        VerticalCoordinateSystem.N43 -> "N43"
-    }
 
-private fun ElevationMeasurementMethod.toExtString(): String =
-    when (this) {
-        ElevationMeasurementMethod.TOP_OF_SLEEPER -> "Korkeusviiva"
-        ElevationMeasurementMethod.TOP_OF_RAIL -> "Kiskon selkä"
-    }
