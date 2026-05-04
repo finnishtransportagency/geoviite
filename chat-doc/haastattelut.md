@@ -2,6 +2,68 @@
 
 ---
 
+## 2026-04-24 — KS
+
+**K: Mikä on projektisi nimi ja lyhyt kuvaus siitä, mitä se tekee?**
+
+V: Projekti on Geoviite, se on tietojärjestelmä, jolla ylläpidetään Suomen rataverkon ratageometrioita.
+
+---
+
+**K: Ketkä ovat projektin pääkäyttäjäryhmät tai sidosryhmät? (esim. loppukäyttäjät, tilaajat, integraatiokumppanit)**
+
+V: Tilaaja on Väylävirasto. Loppukäyttäjät ovat pääasiassa Geoviite-operaattoreita, jotka ylläpitävät tietoja. Geoviitettä käyttää myös joukko lukuoikeuksilla varustettuja konsulttikäyttäjiä, jotka tarkastavat rataverkon tietoja. Geoviite on integroitunut Ratko-järjestelmään, jonne Geoviitteestä viedään mm. raiteiden, vaihteiden ja ratanumeroiden geometriset tiedot sekä hallinnolliset perustiedot. Geoviitteestä rataverkon tietoja lukee myös Projektivelho, Kuvatieto, Raita ja Väylän analytiikka.
+
+---
+
+**K: Mikä on projektin tekninen arkkitehtuuri pääpiirteissään? (esim. käytetyt teknologiat, frontend/backend, tietokanta)**
+
+V: Arkkitehtuuri on pääpiirteissään: Selainkäyttöliittymä (Typescript, React, Openlayers), Backend (Kotlin, Spring), tietokanta Postgres + PostGis. Järjestelmä on kontitettu ja suoritetaan AWS ympäristössä.
+
+---
+
+**K: Mitkä ovat projektin keskeisimmät toiminnallisuudet tai ominaisuudet tällä hetkellä?**
+
+V: Keskeisimmät ominaisuudet ovat yhtenäisen rataverkon geometrioiden ylläpito ja rataverkon tiedoista hakeminen/raportointi, geometriasuunnitelmakirjaston ylläpito.
+
+---
+
+**K: Missä vaiheessa projekti on tällä hetkellä? (esim. kehitysvaihe, tuotanto, ylläpito) Ja onko projektilla erityisiä lähiajan tavoitteita tai kehityskohteita?**
+
+V: Projekti on ollut kehityksessä 1-2021 alken ja tuotannossa 11-2022 alkaen, kehitystä on jatkettu koko tuotannossaolon ajan. Kehitys jatkuu edelleen. Lähiajan suurempia tavoitteita ovat: 1. Geoviitteen ja Ratkon välisen integraation kääntäminen niin, että Ratko lukee tiedot Geoviiteestä (PULL-integraatioksi) 2. Suunnitelmatilaisen rataverkon tarjoaminen API:sta, niin että suunnitelmatilaisuus saataisiin käytöön myös Ratkon puolella. Pienempinä tavoitteina on mm. hallinnollisten alueiden (esim. tilirataosa) geometrian ylläpidon siirto Geoviitteeseen.
+
+---
+
+**K: Onko projektilla erityisiä teknisiä haasteita tai tunnettuja ongelmakohtia, joita kannattaa dokumentoida?**
+
+V: Erityisiä teknisiä haasteita ei ole tiedossa, muita kuin Geoviite-Ratko integraation suunnan kääntäminen PUSH mallista PULL malliin, mutta kaikkiaan tietomalli on melko kompleksinen, joten sitä on varmaan syytä dokumentoida uusia kehittäjiä varten.
+
+---
+
+**K: Kuvaile lyhyesti keskeisimmät tietomallin käsitteet — esim. mitä tarkoittavat "raide", "ratageometria", "ratanumero" ja muut projektin ydinkäsitteet?**
+
+V: Voisin ensin luetella keskeisimmät käsitteet ja sitten yksitellen kuvailla kunkin käsitteen. Käsitteet ovat: raide, vaihde, ratanumero, pituusmittauslinja, tasakilometripiste, rataosoitejärjestelmä, geometriasuunnitelma, geometriaelementti, vaakageometria, pystygeometria, toiminnallinen piste, paikannuspohja, rataverkko, linkitys
+
+---
+
+**K: Kuvaile "raide" — mitä se tarkoittaa Geoviitteessä?**
+
+V: "raide" tai tarkemmin sanottuna "sijaintiraide" on Geoviitteessä tunniste ja joukko muita ominaisuustietoja yhtenäiselle geometriselle osuudelle rataverkolla. Rataverkkoa voi ajatella graaffina, jossa vaihteet ovat solmukohtia ja vaihteiden väliset kiskot linkkejä. Sijaintiraide määrittää tunnisteen ja ominaisuustietojoukon n-kappaleelle peräkkäisiä linkkejä. Vaikka rataverkkoa on helpompi hahmottaa maastoon rakennetun rataverkon avulla, Geoviitteessä raiteen geometrinen muoto on raiteen suunniteltu muoto. Maastoon raide (eli fyysinen raide) pyritään kuitenkin rakentamaan tarkasti suunnitelman mukaan, joten Geoviitteen raiteen muodon pitäisi melko hyvin täsmätä maastossa olevaan raiteeseen, mutta todellisuudessa näiden välillä on poikkeamaa. Maastossa raide myös liikkuu ajan saatossa, maan liikkumisen ja liikennöinnin seurauksena. Raiteiden kunnossapito palauttaa raiteita maastossa niiden suunniteltuihin sijainteihin.
+
+---
+
+**K: Kuvaile "vaihde" — mitä se tarkoittaa Geoviitteessä?**
+
+V: "vaihde" kuvaa Geoviitteessä rataverkon solmukohtaa, jossa junan on mahdollista siirtyä raiteelta toiselle. Vaihde sisältää tunnisteen, tyypin ja joukon ominaisuustietoja. Vaiheita on eri tyyppisiä. Vaihteen koko tyyppi koostuu vaihdetyypistä sekä vaihteen tarkemmista mitoista. Vaihdetyyppi määrittää vaihteen periaatteellisen toiminnan. Vaihdetyyppejä ovat esim. yksinkertainen vaihde (lyhenne YV), josta voi kulkea suoraan tai kääntyä yhdelle poikkeavalle raiteelle, tai kaksoisvaihde (lyhenne KV), josta voi kulkea suoraan tai kääntyä toiselle poikkeavista raiteista. Vaihteen koko tyyppi voi olla esim. "YV54-200N-1:9-O", jossa "YV" on vaihdetyyppi, "54" tarkoittaa kiskopainoa, "200" tarkoittaa poikkeavan raiteen kaaren sädettä, "N" tarkoittaa vaihdetyypin levittämätöntä versiota, "1:9" tarkoittaa risteyksen suhdetta (eli juinka "jyrkkään" suoraan menevä ja poikkeava raide sijoittuvat toisiinsa nähden), "O" tarkoittaa oikealle kääntyvää poikkeavaa raidetta. Geoviitteen vaihde on periaatteessa luonteeltaan looginen esiintymä rataverkon vaihteesta, eli Geoviitteessä on tieto siitä, millainen vaihde missäkin kohtaa on, joten maastossa pitäisi voida vaihtaa vaihteen tilalle uusi samanlainen vaihde, ilman että Geoviitteen rataverkkoon tehdään muutoksia. Tämä loogisuus on kuitenkin edelleen periaatteellisella tasolla ja vaihteen vaihto maastossa aiheuttaa tarpeen vaihtaa vaihde myös Geoviitteessä. Tämä fyysisen ja loogisen maailman eroavaisuus on kuitenkin hyvä pitää mielessä, kun tulevaisuuden ratkaisuja mietitään.
+
+---
+
+**K: Haluatko jatkaa muiden käsitteiden (ratanumero, pituusmittauslinja, tasakilometripiste jne.) kuvailua nyt, vai tallennetaanko tähän mennessä kerätyt tiedot ensin?**
+
+V: Tallennetaan ensin kerätyt tiedot.
+
+---
+
 ## 2026-04-28 — KS
 
 **K: Kuvaile "ratanumero" — mitä se tarkoittaa Geoviitteessä?**
@@ -86,3 +148,84 @@ V: "linkitys" tarkoittaa Geoviitteessä operaattorin suorittamaa toimenpidettä,
 
 ---
 
+## 2026-04-29 — KS
+
+**K: Kuvaile "segmentti" — mitä se tarkoittaa Geoviitteessä, ja miten se eroaa geometriaelementistä?**
+
+V: "segmentti" kuuluu paikannuspohjan käsitteisiin on sijaintiraiteen geometrian pienin osanen. Segmentti sisältää geometrian pisteviivana. Mikäli segmentti on syntynyt linkityksessä geometriaelementin geometrian, se sisältää myös linkin geometriaelementtiin. Geoviitteen linkki-solmu-mallin linkin (edge) geometria koostuu peräkkäisitä segmenteistä, sijaintiraiteen geometria koostuu peräkkäisistä linkeistä.
+
+---
+
+**K: Kuvaile "taitepiste" — mitä se tarkoittaa Geoviitteessä?**
+
+V: "taitepiste" on pystygeometrian määrityksessä käytettävä elementti, joka kertoo kuinka pystygeometria muuttuu taitepisteen matkalla. Taitepiste on matemaattinen esitys pystygeometrian muutoksesta ja siten äärettömän tarkka. Taitepisteitä käytetään Geoviitteessä laskettaessa sijaintiraiteen pisteille korkeus merenpinnasta. Taitepisteiden tietojen mukaan esitetään myös raiteen pystygeometrian kuvaaja, eli pituusleikkaus. Taitepisteiden välissä sijaitsee kaltevuusjakso.
+
+"kaltevuusjakso" on pystygeometrian kahden taitepisteiden välinen osuus. Kaltevuusjaksot lasketaan Geoviitteessä taitepisteiden tietojen mukaan.
+
+---
+
+**K: Kuvaile "liikennepaikka" — miten se eroaa toiminnallisesta pisteestä, ja mitä tietoja siihen liittyy Geoviitteessä?**
+
+V: "liikennepaikka" ja sen ero toiminnalliseen pisteesen on kuvattu "toiminnallinen piste" käsitteessä.
+
+---
+
+**K: Mitä tarkoittaa "RINF" — mikä se on ja mikä on Geoviitteen rooli siihen liittyen?**
+
+V: RINF tarkoittaa Geoviitteen kontekstissa Euroopan laajuista rataverkon infrastruktuurirekisteriä (Register of Infrastructure, https://rinf.data.era.europa.eu). Geoviitteeseen RINF liittyy siksi, että EU:n säädösten mukaan RINF:ille täytyy toimittaa kansallisen rataverkon tietoja ja osa toimitettavista tiedoista on Geoviitteessä ylläpidettäviä, mm. raiteiden perustiedot sekä pystygeometria, toiminnalliset pisteet, toiminnallisten pisteiden väliset yhteydet (on sama kuin liikennepaikkojen väliset yhteydet) sekä rataverkon topologia. Geoviitteessä on toteutettuna API, josta suurimman osan tarvittavista tiedoista voi jo lukea. Geoviitteen API ei suoraan palauta tietoja RINF:in tarvitsemassa muodossa, vaan Geoviitteen ja RINF:in välissä on muita järjestelmiä tiedon kokoamista ja tiedon muodon muuntamista varten (Väylän analytiikka ja Paikkatietopalvelu PTP).
+
+---
+
+**K: Kuvaile "suunnitelmatilainen rataverkko" — mitä se tarkoittaa ja miksi se on tärkeä kehitystavoite?**
+
+V: "suunnitelmatilainen rataverkko" on tapa mallintaa tulevaisuudessa rakennettavia rataverkon muutoksia Geoviitteen tietomalliin. Rataverkolla suuremmat muutokset tapahtuvat yleensä melko pitkäkestoisen prosessin seurauksena. Ensimmäistä kertaa Geoviite osallistuu prosessiin tarjoamalla pohjatietoja päätöksenteolle ja ratasuunnittelulle. Kun ratasuunnittelija on saanut hankkeen rakennussuunnitelman toteutettua, tiedot toimitetaan Geoviite-operaattorille. Rakennussuunnitelma sisältää myös rataverkon muutokseen liittyvät geometriasuunnitelmat. Geoviite-operaattori tallentaa geometriasuunnitelmat Geoviitteeseen, luo muutosta varten uuden suunnitelmatilan (eli suunnitelmakontekstin) ja linkittää geometriasuunnitelmien sisältämän geometrian suunnitelmatilan rataverkolle (tämä on Geoviitten osalta mahdollista, mutta ei vielä yleinen menettelytapa). Suunnitelmatilainen rataverkko on erillään virallisesta rataverkosta, eli suunnitelmatilainen rataverkko ei sotke virallisen rataverkon tietoja. Ratko-järjestelmä lukee suunnitelmatilaisen rataverkon tiedot Geoviitteestä (tätä toiminnallisuutta ei vielä ole toteutettu). Geoviite- ja Ratko-järjestelmissä on nyt tulevaisuudessa mahdollisesti rakennettava rataverkko jäsennettynä tietona. Rakentamisen aloittamiseen maastoon voi kulua vuosia, tai rakentamista ei välttämättä aloiteta koskaan. Jos rataverkon muutos rakennetaan maastoon, ratakohteiden valmistuessa niitä kirjataan Ratko-järjestelmään, jolloin ratakohteet yhdistetään suunnitelmatilaisen rataverkon raiteille. Kun rataverkon muutos on kokonaisuudessaan valmis, Geoviite-operaattori siirtää Geoviitteessä suunnitelmatilaisen rataverkon muutokset viralliseen rataverkkoon. Ratko-järjestelmä lukee virallisen rataverkon tiedot Geoviitteestä ja huomaa suunnitelmatilaisen rataverkon toteutuneen, joten Ratko ottaa Ratkon suunnitelmatilassa olevat raiteet käyttöön, jolloin niihin rakennusaikana yhdistetyt ratakohteet tulevat myös käyttöön (tämä Ratko:n toiminnallisuuden kuvaus on suuntaa antava, toimintoa ei vielä ole toteutettu).
+
+Suunnitelmatila (tai suunnitelmakonteksti) on erillinen versio rataverkosta, se rakentuu virallisen rataverkon päälle ja sisältää vain suunnitelmatilassa muokattujen kohteiden (raide, vaihde, ratanumero jne.) tiedot. Jos viralliseen rataverkkoon tekee muutoksen sellaiseen kohteeseen (raide, vaihde, ratanumero jne.), jota ei ole muokattu suunnitelmatilassa, viralliseen rataverkkoon tehty muutos näkyy myös suunnitelmatilassa. Mutta jos viralliseen rataverkkoon tekee muutoksen sellaiseen kohteeseen, jota on muokattu myös suunnitelmatilassa, suunnitelmatilassa näkyy kohteesta suunnitelmatilan versio. Muutos on rajattu kohteen tarkkuudella, jos esim. raiteen nimeä muuttaa suunnitelmatilassa, raide kokonaisuudessaan katsotaan muuttuneksi suunnitelmatilassa. Samoin jos suunnitelmatilassa raiteen toisen pään geometriaa muokkaa vaikka lyhyeltäkin matkalta, koko raide katsotaan muuttuneeksi suunnitelmatilassa, joten samaan raiteeseen tehdyt virallisen rataverkon muutokset eivät näy suunnitelmatilassa. Koska suunnitelmatilaan tehdyt muutokset voivat odottaa viralliseen rataverkkoon siirtämistä useita vuosia, on melko todennäköistä, että suunnitelmatilassa muokattuun pitkään raiteeseen tehdään myös virallisen rataverkon puolella muutoksia, esim. datan eheyteen liittyviä korjauksia. Tällöin syntyy tilanne, että virallisen ja suunnitelmatilaisen rataverkon tiedot pitäisi saada yhdistettyä. Kirjoitushetkellä tällaista yhdistävää toiminnallisuutta ei vielä ollut olemassa, joten siirrettäessä raiteen tietoja suunnitelmatilasta viralliseen rataverkkoon, täytyy valita kumman rataverkon raiteen versio jää voimaan ja toistaa sitten toiseen rataverkkoon tehdyt muutokset raiteelle manuaalisesti. Sovelluskehittäjälle voi olla luontevaa verrata suunnitelmatilaa GIT-versionhallinnan haaraksi.
+
+Samalla tavoin kuin virallisen rataverkon muutokset tehdään ensin luonnostilaiseen rataverkkoon ja julkaistaan sieltä viralliseen rataverkkoon, myös suunnitelmatilan muutokset tehdään ensin suunnitelmatilan luonnostilan ratavekkoon ja julkaistaan sitten suunnitelmatilan rataverkkoon. Suunnitelmatilan rataverkosta muutoksia on sitten mahdollista siirtä virallisen luonnostilan rataverkkoon ja sieltä julkaista viralliseen rataverkkoon. Tämä lisävaihe on tarpeen, jotta suunnitelmatilan muutokset voidaan luotettavasti sovittaa sen hetkiseen viralliseen rataverkkon ja että rataverkon muutokset saadaan validoitua. Muutosten julkaisu luonnostilasta viralliseen rataverkkoon vaatii kattavien validointisääntöjen läpäisyä, koska virallinen rataverkko halutaan pitää mahdollisimman ehyenä. Muutosten siirto suunnitelmatilasta viralliseen luonnostilaan on kevyemmin validoitu prosessi.
+
+---
+
+**K: Kuvaile "tilirataosa" — mitä se tarkoittaa ja miksi sen geometrian ylläpito halutaan siirtää Geoviitteeseen?**
+
+V: "tilirataosa" on tällä hetkellä Ratko-järjestelmässä ylläpidettävä ja hyödynnettävä tieto. Tilirataosa on polygonimaisella alueella rajattu joukko raiteita (ja varmaan myös muita kohteita), joita halutaan käsitellä yhtenä kokonaisuutena. Nykyisessä raiteiden ylläpitoprosessissa on sellainen hankaluus, että raiteen geometrian muokkaaminen tapahtuu Geoviitteessä ja raiteen muuttunut geometria voi sijaita (osin) tilirataosan alueen ulkopuolella, jolloin raide (tai ehkä sen kohteet) eivät sisälly oikein tilirataosaan. Geoviite-operaattori usein kyllä huomaa tämän, kun hän raiteen geometrian muutoksen jälkeen tarkastelee tilannetta Ratko-järjestelmässä. Tässä tilanteessa Geoviite-operaattori pyytää tilirataosan alueen kasvattamista niin, että raiteen muuttunut geometria mahtuu alueen sisälle. Alueen päivittäminen Ratkoon kestää kuitenkin nykyisellä prosessilla viikkoja (tapahtuu erillisillä GIS-työkaluilla ja semi-manuaalisilla toimenpiteillä), ja koko päivittämistä odottava ajan tiedot ovat tilirataosan näkökulmasta väärin.
+
+Geoviitteeseen on toteutettu toiminnallisten pisteiden polygonimaisten alueiden ylläpitämiseksi työkalu, jota Geoviite-operaattori käyttää. Operaattori on esittänyt toiveen, että myös tilirataosan aluetta voisi muokata Geoviitteessä, jolloin muokkaaminen tapahtuisi yhtä aikaa raiteen geometrian muokkaamisen kanssa, jolloin operaattori voisi varmistaa, että raiteen geometria pysyy tilirataosan alueen sisällä ja tilirataosan alue myös päivittyisi Ratkoon yhtä aikaa raiteen geometriamuutoksen kanssa. Tällä tavoin tiedot pysyisivät tilirataosan näkökulmasta oikeina jatkuvasti. Haasteena tilirataosien alueiden ylläpitoon Geoviitteessä on ainakin se, että tilirataosien muita tietoja ja elinkaarta hallittaisiin edelleen Ratkossa, jolloin integraatio olisi melko erikoinen. Integraatiossa Geoviitteen pitäisi lukea muuttuneet tilirataosat Ratkosta, Geoviitteessä tilirataosan alueita muokattaisiin ja Ratko lukisi muokatutu alueet takaisin Ratkoon. Tilanne on tosin jokseenkin sama jo liikennepaikkojen osalta, mutta Ratko ei toistaiseksi lue niiden alueita Geoviitteestä.
+
+---
+
+**K: Tarkennuskysymys rataverkon graafimallista: Käsiteluettelossa "Rataverkko — periaate" -osio sanoo verkon linkkien olevan "vaihteiden väliset kiskot", mutta toiminnallinen piste -kuvauksessa sanotaan "geometriat linkkejä solmujen välillä". Tarkoittavatko nämä samaa asiaa, vai onko eroa?**
+
+V: Jos linkkejä ajattelee maastossa olevan rataverkon näkökulmasta, silloin "kiskot vaihteiden välillä" on oikea käsite, mutta Geoviitteen tietomallissa ei kuvata kiskoja, vaan raiteen suunniteltua geometriaa, joten Geoviitteen rataverkossa linkit ovat geometrisia pätkiä vaihteiden välillä.
+
+---
+
+**K: Tarkennuskysymys toiminnallisesta pisteestä: Toiminnallinen piste on määritelty osin "risteyskohta rataverkolla (eli käytännössä vaihde)". Onko toiminnallinen piste kuitenkin eri käsite kuin vaihde — eli voiko yksittäinen vaihde olla toiminnallinen piste, vai onko toiminnallinen piste aina useammasta vaihteesta koostuva kokonaisuus?**
+
+V: Toiminnallinen piste on eri käsite kuin vaihde, kuitenkin yksi vaihde voi olla toiminnallinen piste, jonka RINF-tyyppi on "linjavaihde".
+
+---
+
+---
+
+## 2026-04-30 — KS
+
+**K: Kuvaile "luonnostila" — mitä se tarkoittaa Geoviitteessä ja miten se eroaa virallisesta rataverkosta?**
+
+V: "luonnostila" on rateverkon versio, johon käyttäjä tekee rataverkon muutoksia ja josta muutokset julkaistaan varsinaiseen rataverkkoon. Sekä virallisella rataverkolla että kaikilla suunnitelmatilaisilla rataverkoilla on oma luonnostilansa. Luonnostilan muutokset julkaistaan esikatselunäkymässä.
+
+---
+
+**K: Kuvaile "ratakohteet" — mitä ne ovat Ratko-järjestelmässä ja miten ne liittyvät Geoviitteen rataverkkoon?**
+
+V: Ratkossa ratakohteet ovat rataverkkoon liittyviä konkreettisia asioita, esim. radan liikennemerkkejä tai kiskotus. Ratkon tietomallissa ratakohteet ovat ilmeisesti aina yhdistetty raiteeseen. Geoviite näyttää kartalla Ratkon opastimia, jotka ovat myös ratakohteita, mutta muutoin Geoviite ei käsittele Ratkon ratakohteita.
+
+---
+
+**K: Kuvaile "Inframodel" — mikä se on ja miksi sitä käytetään geometriasuunnitelmien tiedostomuotona?**
+
+V: "Inframodel" on standardi, jolla kuvataan infrarakenteita digitaalisessa muodossa niin, että eri ohjelmistot ja toimijat ymmärtävät tiedot samalla tavalla. Se perustuu kansainväliseen LandXML-formaattiin, mutta on sovitettu Suomen käytäntöihin. Kirjoitushetkellä Inframodel on Suomessa vakiintunut formaatti tarkan ratageometrian siirtämiseen.
+
+Geoviite osaa lukea inframodel-tiedostoista raiteiden geometriaan liittyviä tietoja, mm. vaaka- ja pystygeometria, mutta ei esim. maaston pintamalleja. Geoviitte tukee inframodel versiota 4.0.3. Geoviite ei luo inframodel-tiedostoja.
+
+---

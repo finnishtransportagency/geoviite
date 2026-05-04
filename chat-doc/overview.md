@@ -31,11 +31,13 @@ Geoviite on tietojärjestelmä, jolla ylläpidetään Suomen rataverkon ratageom
 
 | Järjestelmä | Integraation kuvaus |
 |---|---|
-| **Ratko** | Geoviitteestä viedään raiteiden, vaihteiden ja ratanumeroiden geometriset tiedot sekä hallinnolliset perustiedot |
+| **Ratko** | Geoviitteestä viedään raiteiden, vaihteiden ja ratanumeroiden geometriset tiedot sekä hallinnolliset perustiedot (nykyinen PUSH-malli; tavoitteena PULL) |
 | **Projektivelho** | Lukee rataverkon tietoja Geoviitteestä |
 | **Kuvatieto** | Lukee rataverkon tietoja Geoviitteestä |
 | **Raita** | Lukee rataverkon tietoja Geoviitteestä |
-| **Väylän analytiikka** | Lukee rataverkon tietoja Geoviitteestä |
+| **Väylän analytiikka** | Lukee rataverkon tietoja Geoviitteestä; osallistuu RINF-raportointiketjuun |
+| **Paikkatietopalvelu PTP** | Osallistuu RINF-raportointiketjuun |
+| **RINF** | EU:n rataverkon infrastruktuurirekisteri (Register of Infrastructure). Geoviitteen tietoja raportoidaan RINF:iin EU-säädösten velvoittamana Väylän analytiikan ja PTP:n kautta. |
 
 ## Lähiajan kehitystavoitteet
 
@@ -44,7 +46,7 @@ Geoviite on tietojärjestelmä, jolla ylläpidetään Suomen rataverkon ratageom
 2. **Suunnitelmatilaisen rataverkon tarjoaminen API:sta** — Suunnitelmatilaisuus saataisiin käyttöön myös Ratkon puolella.
 
 ### Pienemmät tavoitteet
-- Hallinnollisten alueiden (esim. tilirataosa) geometrian ylläpidon siirto Geoviitteeseen.
+- **Tilirataosan alueen ylläpito Geoviitteessä:** Tilirataosa on Ratkossa ylläpidettävä polygonimainen alue, joka rajaa yhtenä kokonaisuutena käsiteltävän joukon raiteita. Kun raiteen geometriaa muokataan Geoviitteessä, raide voi siirtyä tilirataosan alueen ulkopuolelle. Alueen korjaaminen Ratkoon kestää nykyisellä prosessilla viikkoja. Tavoitteena on mahdollistaa tilirataosan alueen muokkaus Geoviitteessä samanaikaisesti geometrian muokkaamisen kanssa, jolloin Ratko lukisi päivitetyn alueen suoraan Geoviitteestä.
 
 ## Tekniset haasteet
 

@@ -1,7 +1,7 @@
 # Geoviite — Tietomalli
 
 > Tietomalli on kompleksinen. Tämä dokumentti on tarkoitettu erityisesti uusien kehittäjien perehdyttämiseksi.
-> Käsitteiden kuvaukset perustuvat haastatteluihin — katso raakadata tiedostoista [haastattelu-2026-04-24.md](./haastattelu-2026-04-24.md) ja [haastattelut.md](./haastattelut.md).
+> Käsitteiden kuvaukset perustuvat haastatteluihin — katso raakadata tiedostosta [haastattelut.md](./haastattelut.md).
 
 ## Käsiteluettelo
 
@@ -17,20 +17,28 @@ Alla listattu kaikki tunnistetut ydinkäsitteet. ✅ = kuvattu, ⬜ = kuvaus puu
 | Rataosoitejärjestelmä | ✅ |
 | Geometriasuunnitelma | ✅ |
 | Geometriaelementti | ✅ |
+| Segmentti | ✅ |
 | Vaakageometria | ✅ |
 | Pystygeometria | ✅ |
+| Taitepiste | ✅ |
+| Kaltevuusjakso | ✅ |
 | Toiminnallinen piste | ✅ |
 | Paikannuspohja | ✅ |
 | Rataverkko | ✅ |
 | Linkitys | ✅ |
+| Suunnitelmatila | ✅ |
+| Luonnostila | ✅ |
+| Inframodel | ✅ |
 
 ---
 
 ## Rataverkko — periaate
 
-Rataverkkoa voi ajatella **suunnattuna graafina**:
+Rataverkkoa voi ajatella **graafina**:
 - **Solmukohdat** = vaihteet
-- **Linkit** = vaihteiden väliset kiskot
+- **Linkit** = vaihteiden välinen geometria (suunniteltu geometrinen pätkä)
+
+> Huom: Maastossa linkkejä vastaavat fyysiset kiskot vaihteiden välillä, mutta Geoviitteen tietomallissa kuvataan raiteen **suunniteltua geometriaa**, ei kiskoja.
 
 ---
 
@@ -44,6 +52,37 @@ Sijaintiraide on tunniste ja joukko ominaisuustietoja yhtenäiselle geometrisell
 - Geoviitteessä raiteen geometria on raiteen **suunniteltu muoto**, ei fyysinen sijainti maastossa.
 - Fyysinen raide pyritään rakentamaan suunnitelman mukaan, mutta käytännössä poikkeamaa esiintyy.
 - Maastossa raide liikkuu ajan saatossa (maan liikkuminen, liikenne). Kunnossapito palauttaa raiteita suunniteltuihin sijainteihinsa.
+
+---
+
+### Vaihde
+
+Vaihde kuvaa rataverkon solmukohtaa, jossa junan on mahdollista siirtyä raiteelta toiselle. Se sisältää tunnisteen, tyypin ja joukon ominaisuustietoja.
+
+#### Vaihteen tyyppi
+
+Vaihteen **koko tyyppi** koostuu vaihdetyypistä ja tarkemmista mitoista.
+
+Esimerkki: `YV54-200N-1:9-O`
+
+| Osa | Arvo | Selitys |
+|---|---|---|
+| Vaihdetyyppi | `YV` | Yksinkertainen vaihde |
+| Kiskopaino | `54` | kg/m |
+| Poikkeavan raiteen kaaren säde | `200` | metriä |
+| Versio | `N` | Levittämätön versio |
+| Risteyksen suhde | `1:9` | Suoran ja poikkeavan raiteen kulmasuhde |
+| Suunta | `O` | Oikealle kääntyvä poikkeava raide |
+
+#### Vaihdetyyppejä
+
+| Lyhenne | Nimi | Kuvaus |
+|---|---|---|
+| YV | Yksinkertainen vaihde | Suoraan tai kääntyy yhdelle poikkeavalle raiteelle |
+| KV | Kaksoisvaihde | Suoraan tai kääntyy toiselle kahdesta poikkeavasta raiteesta |
+
+**Tärkeä huomio — looginen vs. fyysinen vaihde:**
+Geoviitteen vaihde on **looginen esiintymä** — siinä on tieto siitä, millainen vaihde missäkin kohtaa on. Periaatteessa maastossa voisi vaihtaa vaihteen uuteen samantyyppiseen ilman muutoksia Geoviitteeseen. Käytännössä kuitenkin vaihteen vaihto maastossa aiheuttaa tarpeen päivittää myös Geoviitettä. Fyysisen ja loogisen maailman ero on syytä pitää mielessä tulevaisuuden ratkaisuja suunniteltaessa.
 
 ---
 
@@ -106,7 +145,7 @@ Suomen rataverkolla on alueita ilman laadukkaita digitaalisia suunnitelmia, kosk
 
 #### Tiedostomuodot
 
-- **Nykytila:** Inframodel-muotoiset XML-tiedostot
+- **Nykytila:** Inframodel-muotoiset XML-tiedostot (ks. [Inframodel](#inframodel))
 - **Tuleva:** IFC-tiedostot (ei vielä yleisesti käytössä ratasuunnittelujärjestelmissä)
 
 Alkuperäinen tiedosto tallennetaan Geoviitteeseen, mutta järjestelmä käyttää sisäistä tietorakennetta. Alkuperäistä tiedostoa käytetään vain vientitilanteessa.
@@ -165,7 +204,9 @@ Pystygeometriaa esitetään Geoviitteessä **viivadiagrammina**: vaaka-akselilla
 
 ### Toiminnallinen piste
 
-**Solmukohta rataverkolla**, jossa on matkustajien tai rahdin käsittelyyn liittyviä toimintoja, tai joka on rataverkon risteyskohta (vaihde). Esimerkkejä: rautatieasema, varikko, linjavaihde.
+**Eri käsite kuin vaihde** — toiminnallinen piste on korkeamman abstraktiotason käsite, joka voi sisältää yhden tai useamman vaihteen ja raiteita. Toiminnallinen piste on solmukohta rataverkolla, jossa on matkustajien tai rahdin käsittelyyn liittyviä toimintoja, tai joka on merkittävä risteyskohta rataverkolla. Esimerkkejä: rautatieasema, varikko, linjavaihde.
+
+> **Huom:** Yksittäinen vaihde voi olla toiminnallinen piste, jonka RINF-tyyppi on `linjavaihde`. Tällöin toiminnallinen piste koostuu vain yhdestä vaihteesta. Tyypillisesti toiminnallinen piste kuitenkin kokoaa useamman vaihteen ja raiteen yhteen.
 
 #### Rooli verkossa
 
@@ -225,5 +266,113 @@ Geoviite-operaattorin suorittama toimenpide, jolla käsitteiden välille luodaan
 | Geometriasuunnitelman tasakilometripiste → paikannuspohjan tasakilometripiste | Yhdistää suunnitelman tasakilometripisteen verkon pisteeseen |
 | Paikannuspohjan vaihde → sijaintiraide | Kytkee vaihteen sijaintiraiteeseen verkossa |
 | Vaihteet ja sijaintiraiteet → toiminnallinen piste | Kokoaa rataverkon elementtejä toiminnallisen pisteen alle |
+
+---
+
+### Segmentti
+
+Sijaintiraiteen geometrian **pienin yksikkö**. Segmentti sisältää geometrian pisteviivana.
+
+Segmenttejä on kahta tyyppiä:
+- **Linkitetty segmentti:** syntynyt geometriaelementin linkityksessä, sisältää viittauksen geometriaelementtiin → geometrian alkuperä on jäljitettävissä.
+- **Generoitu segmentti:** suora täydennyssegmentti, joka generoidaan kahden peräkkäisen linkitetyn osuuden väliin, jos ne eivät yhdisty saumattomasti. Sillä ei ole viittausta geometriaelementtiin.
+
+#### Hierarkia
+
+```
+Geometriaelementti  (matemaattinen, suunnitelmassa)
+     ↓ linkitys
+  Segmentti         (pisteviivaosanen, paikannuspohjassa)
+     ↓ peräkkäin
+  Linkki / Edge     (linkin geometria = peräkkäiset segmentit)
+     ↓ peräkkäin
+  Sijaintiraide     (= peräkkäiset linkit)
+```
+
+---
+
+### Taitepiste
+
+Geometriasuunnitelman pystygeometrian **matemaattinen perusyksikkö**. Taitepiste kuvaa miten pystygeometria muuttuu taitepisteessä — esitys on matemaattinen ja siten äärettömän tarkka.
+
+Käyttö Geoviitteessä:
+- Taitepisteiden tietojen avulla lasketaan sijaintiraiteen pisteviivan pisteille korkeus merenpinnasta.
+- Taitepisteet näkyvät raiteen pystygeometrian kuvaajassa (**pituusleikkaus**).
+
+---
+
+### Kaltevuusjakso
+
+Pystygeometrian kahden taitepisteen välinen osuus. Kaltevuusjakso on tasaisesti kalteva osuus, joka lasketaan Geoviitteessä taitepisteiden tietojen perusteella. Kaltevuusjaksot esitetään raiteen pituusleikkauskuvaajassa.
+
+---
+
+### Suunnitelmatila (suunnitelmakonteksti)
+
+Erillinen **versio rataverkosta**, joka rakentuu virallisen rataverkon päälle ja sisältää vain suunnitelmatilassa muokattujen kohteiden tiedot. Analogia sovelluskehittäjälle: suunnitelmatila vastaa GIT-versionhallinnan haaraa (branch).
+
+#### Toimintaperiaate
+
+- Jos viralliseen rataverkkoon tekee muutoksen kohteeseen, jota **ei ole muokattu** suunnitelmatilassa → muutos näkyy myös suunnitelmatilassa.
+- Jos viralliseen rataverkkoon tekee muutoksen kohteeseen, jota **on muokattu** suunnitelmatilassa → suunnitelmatilassa näkyy suunnitelmatilan versio (ei virallisen rataverkon muutos).
+- Muutos on **kohdetason granulariteetilla**: jos yhtäkin raiteen ominaisuutta tai geometrian osaa muuttaa suunnitelmatilassa, koko raide katsotaan muuttuneeksi suunnitelmatilassa.
+
+#### Julkaisuprosessi
+
+```
+Suunnitelmatilan luonnostila
+     ↓ julkaisu
+Suunnitelmatilan rataverkko
+     ↓ siirto (kevyt validointi)
+Virallinen luonnostila
+     ↓ julkaisu (kattava validointi)
+Virallinen rataverkko
+```
+
+#### Tunnettu haaste
+
+Koska suunnitelmatilassa olevat muutokset voivat odottaa toteutumistaan vuosia, viralliseen rataverkkoon tehdään samaan aikaan muutoksia samoihin kohteisiin (esim. datan eheyskorjauksia). Kun suunnitelmatilan muutokset siirretään viralliseen rataverkkoon, täytyy valita kumpi versio jää voimaan ja toistaa toisen rataverkon muutokset manuaalisesti. Yhdistävää (merge) toiminnallisuutta ei kirjoitushetkellä vielä ollut.
+
+#### Käyttötapaus: rataverkon muutoshanke
+
+1. Geoviite tarjoaa pohjatietoja päätöksenteolle ja ratasuunnittelulle.
+2. Rakennussuunnitelma valmistuu → geometriasuunnitelmat toimitetaan Geoviite-operaattorille.
+3. Operaattori tallentaa geometriasuunnitelmat ja luo uuden suunnitelmatilan.
+4. Operaattori linkittää geometrian suunnitelmatilan rataverkolle.
+5. Ratko lukee suunnitelmatilaisen rataverkon tiedot *(ei vielä toteutettu)*.
+6. Rakentamisen edetessä ratakohteet kirjataan Ratkoon ja yhdistetään suunnitelmatilan raiteisiin.
+7. Kun muutos on valmis, operaattori siirtää suunnitelmatilan muutokset viralliseen rataverkkoon.
+8. Ratko huomaa suunnitelmatilaisen rataverkon toteutuneen ja ottaa Ratkon suunnitelmatilaiset raiteet käyttöön *(ei vielä toteutettu)*.
+
+---
+
+### Luonnostila
+
+Rataverkon versio, johon käyttäjä tekee muutoksia ennen niiden julkaisua viralliseen rataverkkoon. Muutokset esikatsellaan esikatselunäkymässä ennen julkaisua.
+
+Sekä **virallisella rataverkolla** että kaikilla **suunnitelmatilaisilla rataverkoilla** on oma luonnostilansa:
+
+```
+Luonnostila  →  julkaisu  →  Virallinen rataverkko
+Suunnitelmatilan luonnostila  →  julkaisu  →  Suunnitelmatilan rataverkko
+```
+
+Virallisen rataverkon julkaisu vaatii kattavien validointisääntöjen läpäisyä. Suunnitelmatilan julkaisu on kevyemmin validoitu.
+
+---
+
+### Inframodel
+
+Suomessa vakiintunut standardi infrarakenteiden digitaaliseen kuvaamiseen. Perustuu kansainväliseen **LandXML**-formaattiin, mutta on sovitettu suomalaisiin käytäntöihin. Tiedostomuoto on XML.
+
+#### Geoviitteen tuki
+
+- **Tuettu versio:** Inframodel 4.0.3
+- **Mitä luetaan:** Raiteiden vaaka- ja pystygeometria (ei esim. maaston pintamalleja)
+- **Mitä ei tueta:** Inframodel-tiedostojen luonti — Geoviite ainoastaan lukee tiedostoja tuonnissa
+
+Alkuperäinen tiedosto tallennetaan Geoviitteeseen, mutta järjestelmä käyttää sisäistä tietorakennetta. Alkuperäistä tiedostoa käytetään vain vientitilanteessa.
+
+> **Tuleva:** IFC-tiedostojen tuki suunnitteilla, mutta ratasuunnittelujärjestelmät eivät vielä tue IFC:tä riittävän hyvin.
 
 <!-- Lisää käsitteet tähän sitä mukaa kun haastatteluja tehdään -->
