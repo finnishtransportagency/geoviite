@@ -19,6 +19,7 @@ plugins {
     id("org.springframework.boot") version "3.5.14"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.2"
+    // Should match kotlinVersion above, but the val isn't usable in the plugins block
     kotlin("jvm") version "2.3.21"
     kotlin("plugin.spring") version "2.3.21"
     id("com.ncorti.ktfmt.gradle") version "0.26.0"
@@ -122,7 +123,8 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
-    testImplementation("org.seleniumhq.selenium:selenium-java:4.41.0")
+    // Version controlled by ext["selenium.version"] above. That one is needed to manage transitive spring deps as well.
+    testImplementation("org.seleniumhq.selenium:selenium-java")
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.6.1")
     testImplementation("io.projectreactor:reactor-test:3.8.5")
