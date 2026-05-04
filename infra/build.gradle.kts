@@ -19,8 +19,8 @@ plugins {
     id("org.springframework.boot") version "3.5.14"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.2"
-    kotlin("jvm") version "2.3.20"
-    kotlin("plugin.spring") version "2.3.20"
+    kotlin("jvm") version "2.3.21"
+    kotlin("plugin.spring") version "2.3.21"
     id("com.ncorti.ktfmt.gradle") version "0.26.0"
 }
 
@@ -89,7 +89,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:7.0.2")
     implementation("org.flywaydb:flyway-core:11.20.3")
     implementation("org.flywaydb:flyway-database-postgresql:11.20.3")
-    implementation("com.github.ben-manes.caffeine:caffeine:3.2.3")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.2.4")
     implementation("org.geotools:gt-main:$geotoolsVersion") {
         // Excluded as the license (JDL or JRL) compatibility is unconfirmed. We don't need this.
         exclude("javax.media", "jai_core")
@@ -103,11 +103,11 @@ dependencies {
         exclude("it.geosolutions.jgridshift", "jgridshift-core")
     }
     implementation("org.apache.commons:commons-csv:1.14.1")
-    implementation("commons-io:commons-io:2.21.0")
+    implementation("commons-io:commons-io:2.22.0")
     implementation("com.auth0:jwks-rsa:0.23.1")
     implementation("com.auth0:java-jwt:4.5.1")
     implementation("io.netty:netty-resolver-dns-native-macos:4.2.10.Final:osx-aarch_64")
-    implementation("org.postgresql:postgresql:42.7.10")
+    implementation("org.postgresql:postgresql:42.7.11")
     implementation("jakarta.activation:jakarta.activation-api:2.1.4")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.5")
     implementation("com.github.davidmoten:rtree2:0.9.3")
