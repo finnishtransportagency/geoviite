@@ -16,7 +16,7 @@ val geotoolsVersion = "34.3"
 val kotlinVersion = "2.3.21"
 
 plugins {
-    id("org.springframework.boot") version "3.5.13"
+    id("org.springframework.boot") version "3.5.14"
     id("io.spring.dependency-management") version "1.1.7"
     id("com.github.jk1.dependency-license-report") version "3.1.2"
     kotlin("jvm") version "2.3.20"
@@ -54,7 +54,7 @@ dependencies {
     // The dep itself needs to be explicit or the constraints below won't work
     implementation("org.apache.commons:commons-text:1.15.0")
     implementation("org.apache.commons:commons-lang3:3.20.0")
-    implementation("com.fasterxml.jackson.core:jackson-core:2.21.2")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.21.3")
     testImplementation("com.nimbusds:nimbus-jose-jwt:10.9")
     testImplementation("org.mozilla:rhino:1.9.1")
     constraints {
@@ -63,7 +63,7 @@ dependencies {
         implementation("org.apache.commons:commons-lang3:3.20.0")
 
         // com.amazonaws:aws-java-sdk-cloudfront:1.12.797 has a vulnerable transitive dependency
-        implementation("com.fasterxml.jackson.core:jackson-core:2.21.2")
+        implementation("com.fasterxml.jackson.core:jackson-core:2.21.3")
 
         // org.mock-server:mockserver-netty:5.15.0 has a vulnerable transitive dependency
         testImplementation("com.nimbusds:nimbus-jose-jwt:10.9")
@@ -84,8 +84,8 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.2")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.3")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.3")
     implementation("com.zaxxer:HikariCP:7.0.2")
     implementation("org.flywaydb:flyway-core:11.20.3")
     implementation("org.flywaydb:flyway-database-postgresql:11.20.3")
