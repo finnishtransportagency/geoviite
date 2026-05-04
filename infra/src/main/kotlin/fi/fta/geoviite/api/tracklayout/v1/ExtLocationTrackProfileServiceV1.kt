@@ -172,15 +172,15 @@ constructor(
     }
 
     private fun toProfileAddressRange(
-        startAddress: String?,
-        endAddress: String?,
+        startAddress: TrackMeter?,
+        endAddress: TrackMeter?,
         listings: List<VerticalGeometryListing>,
         coordinateSystem: Srid,
     ): ExtProfileAddressRangeV1 {
         val heightTriangles = fetchN60HeightTriangles(listings)
         return ExtProfileAddressRangeV1(
-            start = startAddress,
-            end = endAddress,
+            start = startAddress?.formatFixedDecimals(3),
+            end = endAddress?.formatFixedDecimals(3),
             intersectionPoints =
                 listings.map { listing -> toIntersectionPoint(listing, coordinateSystem, heightTriangles) },
         )
@@ -200,8 +200,8 @@ constructor(
                     val heightTriangles = fetchN60HeightTriangles(newListings)
                     listOf(
                         ExtProfileAddressRangeV1(
-                            start = addresses.minOrNull()?.format(),
-                            end = addresses.maxOrNull()?.format(),
+                            start = addresses.firstOrNull()?.format(),
+                            end = addresses.lastOrNull()?.format(),
                             intersectionPoints =
                                 newListings.map { toIntersectionPoint(it, coordinateSystem, heightTriangles) },
                         )
@@ -215,8 +215,8 @@ constructor(
                 else {
                     listOf(
                         ExtProfileAddressRangeV1(
-                            start = addresses.minOrNull()?.format(),
-                            end = addresses.maxOrNull()?.format(),
+                            start = addresses.firstOrNull()?.format(),
+                            end = addresses.lastOrNull()?.format(),
                             intersectionPoints = emptyList(),
                         )
                     )
@@ -326,18 +326,14 @@ private fun findChangedRanges(
 private fun getTrackAddresses(
     geometry: LocationTrackGeometry,
     geocodingContext: GeocodingContext<ReferenceLineM>,
-): Pair<String?, String?> {
+): Pair<TrackMeter?, TrackMeter?> {
     val startAddress = geometry.start?.let { toAddress(it, geocodingContext) }
     val endAddress = geometry.end?.let { toAddress(it, geocodingContext) }
     return if (startAddress != null && endAddress != null) startAddress to endAddress else null to null
 }
 
-private fun toAddress(point: IPoint, geocodingContext: GeocodingContext<ReferenceLineM>): String? =
-    geocodingContext
-        .getAddress(point)
-        ?.takeIf { (_, intersect) -> intersect == IntersectType.WITHIN }
-        ?.first
-        ?.formatFixedDecimals(3)
+private fun toAddress(point: IPoint, geocodingContext: GeocodingContext<ReferenceLineM>): TrackMeter? =
+    geocodingContext.getAddress(point)?.takeIf { (_, intersect) -> intersect == IntersectType.WITHIN }?.first
 
 private fun toIntersectionPoint(
     listing: VerticalGeometryListing,
@@ -440,5 +436,3 @@ private fun computeN2000Height(
         VerticalCoordinateSystem.N43 -> null
         null -> null
     }
-
-
