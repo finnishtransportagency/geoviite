@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.SwitchNameParts
@@ -23,6 +24,7 @@ import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.MetaDataName
@@ -337,8 +339,9 @@ fun referenceLineAndGeometryOfElements(
     trackNumberId: IntId<LayoutTrackNumber>,
     elements: List<GeometryElement>,
     startAddress: TrackMeter = TrackMeter.ZERO,
+    planSrid: Srid = LAYOUT_SRID,
 ): Pair<ReferenceLine, ReferenceLineGeometry> {
-    val geometry = referenceLineGeometryOfElements(elements)
+    val geometry = referenceLineGeometryOfElements(elements, planSrid)
     val referenceLine = referenceLine(trackNumberId = trackNumberId, geometry = geometry, startAddress = startAddress)
     return referenceLine to geometry
 }
@@ -536,10 +539,10 @@ fun referenceLineGeometry(vararg segments: LayoutSegment): ReferenceLineGeometry
 fun referenceLineGeometry(segments: List<LayoutSegment>): ReferenceLineGeometry =
     ReferenceLineGeometry(segments = segments)
 
-fun referenceLineGeometryOfElements(elements: List<GeometryElement>): ReferenceLineGeometry =
-    referenceLineGeometry(elements.map { element ->
-        segment(element.start, element.end, sourceId = element.id, sourceStartM = 0.0)
-    })
+fun referenceLineGeometryOfElements(
+    elements: List<GeometryElement>,
+    planSrid: Srid = LAYOUT_SRID,
+): ReferenceLineGeometry = referenceLineGeometry(toSegments(elements, planSrid))
 
 fun trackGeometryOfSegments(vararg segments: LayoutSegment): TmpLocationTrackGeometry =
     trackGeometryOfSegments(segments.toList())
@@ -557,10 +560,20 @@ fun trackGeometryOfSegments(segments: List<LayoutSegment>): TmpLocationTrackGeom
             )
         )
 
-fun trackGeometryOfElements(elements: List<GeometryElement>): TmpLocationTrackGeometry =
-    trackGeometryOfSegments(elements.map { element ->
-        segment(element.start, element.end, sourceId = element.id, sourceStartM = 0.0)
-    })
+fun trackGeometryOfElements(elements: List<GeometryElement>, planSrid: Srid = LAYOUT_SRID): TmpLocationTrackGeometry =
+    trackGeometryOfSegments(toSegments(elements, planSrid))
+
+fun toSegments(elements: List<GeometryElement>, planSrid: Srid = LAYOUT_SRID): List<LayoutSegment> =
+    elements.map { element ->
+        if (planSrid == LAYOUT_SRID) segment(element.start, element.end, sourceId = element.id, sourceStartM = 0.0)
+        else
+            segment(
+                transformNonKKJCoordinate(planSrid, LAYOUT_SRID, element.start),
+                transformNonKKJCoordinate(planSrid, LAYOUT_SRID, element.end),
+                sourceId = element.id,
+                sourceStartM = 0.0,
+            )
+    }
 
 class BuildTrackTopology {
     constructor() {
@@ -792,21 +805,20 @@ fun toSegmentPoints(vararg points: Point3DZ) = toSegmentPoints(to3DMPoints(point
 
 fun toSegmentPoints(vararg points: IPoint3DM<SegmentM>) = toSegmentPoints(points.asList())
 
-fun toSegmentPoints(points: List<IPoint3DM<SegmentM>>) =
-    points.map { point ->
-        SegmentPoint(
-            x = point.x,
-            y = point.y,
-            z =
-                when (point) {
-                    is AlignmentPoint -> point.z
-                    is IPoint3DZ -> point.z
-                    else -> null
-                },
-            m = point.m - points.first().m,
-            cant = (point as? AlignmentPoint)?.cant,
-        )
-    }
+fun toSegmentPoints(points: List<IPoint3DM<SegmentM>>) = points.map { point ->
+    SegmentPoint(
+        x = point.x,
+        y = point.y,
+        z =
+            when (point) {
+                is AlignmentPoint -> point.z
+                is IPoint3DZ -> point.z
+                else -> null
+            },
+        m = point.m - points.first().m,
+        cant = (point as? AlignmentPoint)?.cant,
+    )
+}
 
 fun <M : AlignmentM<M>> toAlignmentPoints(vararg points: IPoint) = toAlignmentPoints(to3DMPoints<M>(points.asList()))
 
@@ -814,20 +826,19 @@ fun <M : AlignmentM<M>> toAlignmentPoints(vararg points: Point3DZ) = toAlignment
 
 fun <M : AlignmentM<M>> toAlignmentPoints(vararg points: IPoint3DM<M>) = toAlignmentPoints(points.asList())
 
-fun <M : AlignmentM<M>> toAlignmentPoints(points: List<IPoint3DM<M>>) =
-    points.map { point ->
-        AlignmentPoint(
-            point.x,
-            point.y,
-            when (point) {
-                is AlignmentPoint -> point.z
-                is IPoint3DZ -> point.z
-                else -> null
-            },
-            point.m,
-            if (point is AlignmentPoint) point.cant else null,
-        )
-    }
+fun <M : AlignmentM<M>> toAlignmentPoints(points: List<IPoint3DM<M>>) = points.map { point ->
+    AlignmentPoint(
+        point.x,
+        point.y,
+        when (point) {
+            is AlignmentPoint -> point.z
+            is IPoint3DZ -> point.z
+            else -> null
+        },
+        point.m,
+        if (point is AlignmentPoint) point.cant else null,
+    )
+}
 
 enum class M_CALC {
     SIMPLE,
@@ -845,11 +856,10 @@ fun <M : AnyM<M>> to3DMPoints(
     start: Double = 0.0,
     calc: M_CALC = M_CALC.SIMPLE,
 ): List<IPoint3DM<M>> {
-    val pointsWithDistance =
-        points.mapIndexed { index, point ->
-            val distance = points.getOrNull(index - 1)?.let { prev -> calc.length(prev, point) } ?: 0.0
-            point to distance
-        }
+    val pointsWithDistance = points.mapIndexed { index, point ->
+        val distance = points.getOrNull(index - 1)?.let { prev -> calc.length(prev, point) } ?: 0.0
+        point to distance
+    }
     return pointsWithDistance.mapIndexed { index, (point, _) ->
         val m = pointsWithDistance.subList(0, index + 1).foldRight(start) { (_, distance), acc -> acc + distance }
         when (point) {

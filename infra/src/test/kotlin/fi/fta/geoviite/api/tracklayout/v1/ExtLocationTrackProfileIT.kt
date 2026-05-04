@@ -7,9 +7,12 @@ import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
+import fi.fta.geoviite.infra.geography.FIN_GK24_SRID
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.CurvedProfileSegment
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
@@ -22,6 +25,7 @@ import fi.fta.geoviite.infra.geometry.circCurveStationPoint
 import fi.fta.geoviite.infra.geometry.circularCurveCenterPoint
 import fi.fta.geoviite.infra.geometry.geometryAlignment
 import fi.fta.geoviite.infra.geometry.geometryProfile
+import fi.fta.geoviite.infra.geometry.kmPosts
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.tangentPointsOfPvi
@@ -833,12 +837,139 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
     }
 
     private fun insertTrackNumberWithReferenceLine(
-        elements: List<GeometryElement>
+        elements: List<GeometryElement>,
+        planSrid: Srid = LAYOUT_SRID,
     ): Pair<IntId<LayoutTrackNumber>, IntId<ReferenceLine>> {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val referenceLineId =
-            mainDraftContext.saveReferenceLine(referenceLineAndGeometryOfElements(trackNumberId, elements)).id
+            mainDraftContext
+                .saveReferenceLine(referenceLineAndGeometryOfElements(trackNumberId, elements, planSrid = planSrid))
+                .id
         return Pair(trackNumberId, referenceLineId)
+    }
+
+    @Test
+    fun `Profile locations are returned in LAYOUT_SRID when geometry plan uses different SRID`() {
+        // Define alignment directly in GK24 with exact 1000m length (north-south line)
+        val layoutStart = Point(332000.0, 6817000.0)
+        val gk24Start = transformNonKKJCoordinate(LAYOUT_SRID, FIN_GK24_SRID, layoutStart)
+        val gk24End = Point(gk24Start.x, gk24Start.y + 1000.0)
+
+        // Explicit profile: single PVI at station 500 with height 105.5m
+        val pviHeight = 105.5
+        val plan =
+            insertPlan(
+                listOf(
+                    profileAlignment(
+                        start = gk24Start,
+                        end = gk24End,
+                        profileElements =
+                            listOf(
+                                VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
+                                VICircularCurve(
+                                    PlanElementName("curve"),
+                                    Point(500.0, pviHeight),
+                                    BigDecimal(20000),
+                                    BigDecimal(155),
+                                ),
+                                VIPoint(PlanElementName("end"), Point(1000.0, 108.0)),
+                            ),
+                    )
+                ),
+                srid = FIN_GK24_SRID,
+            )
+        val elements = plan.alignments[0].elements
+        val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements, FIN_GK24_SRID)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements, FIN_GK24_SRID))
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(referenceLineId),
+            locationTracks = listOf(trackId),
+        )
+
+        val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
+        val location = pviPoint.taite.sijainti!!
+
+        // PVI is at station 500 (midpoint) — compute expected LAYOUT_SRID location
+        val expectedLayout = layoutStart + Point(0.0, 500.0)
+        assertEquals(expectedLayout.x, location.x, LAYOUT_COORDINATE_DELTA, "X coordinate should be in LAYOUT_SRID")
+        assertEquals(expectedLayout.y, location.y, LAYOUT_COORDINATE_DELTA, "Y coordinate should be in LAYOUT_SRID")
+        assertEquals(pviHeight.toString(), pviPoint.taite.korkeus_alkuperainen, "PVI height")
+        assertEquals(pviHeight.toString(), pviPoint.taite.korkeus_n2000, "PVI height")
+    }
+
+    @Test
+    fun `N60 height transform works when geometry plan uses different SRID`() {
+        // Define alignment directly in GK24 with exact 1000m length (north-south line)
+        val layoutStart = Point(332000.0, 6817000.0)
+        val gk24Start = transformNonKKJCoordinate(LAYOUT_SRID, FIN_GK24_SRID, layoutStart)
+        val gk24End = Point(gk24Start.x, gk24Start.y + 1000.0)
+
+        // Explicit profile: single PVI at station 500 with height 105.5m
+        val pviHeightN60 = BigDecimal("105.500")
+        val pviHeightN2000 = 100005.5
+        val pviStartN60 = 10
+        val pviStartN2000 = 10
+        val pviEndN60 = 10
+        val pviEndN2000 = 10
+        val plan =
+            insertPlan(
+                listOf(
+                    profileAlignment(
+                        start = gk24Start,
+                        end = gk24End,
+                        profileElements =
+                            listOf(
+                                VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
+                                VICircularCurve(
+                                    PlanElementName("curve"),
+                                    Point(500.0, pviHeightN60.toDouble()),
+                                    BigDecimal(20000),
+                                    BigDecimal(155),
+                                ),
+                                VIPoint(PlanElementName("end"), Point(1000.0, 108.0)),
+                            ),
+                    )
+                ),
+                srid = FIN_GK24_SRID,
+                verticalCoordinateSystem = VerticalCoordinateSystem.N60,
+            )
+        val elements = plan.alignments[0].elements
+        val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements, FIN_GK24_SRID)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements, FIN_GK24_SRID))
+        extTestDataService.publishInMain(
+            trackNumbers = listOf(trackNumberId),
+            referenceLines = listOf(referenceLineId),
+            locationTracks = listOf(trackId),
+        )
+
+        val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
+
+        assertEquals("N60", pviPoint.suunnitelman_korkeusjarjestelma)
+        assertEquals(pviHeightN60.toString(), pviPoint.taite.korkeus_alkuperainen, "PVI height")
+        assertEquals(pviHeightN2000.toString(), pviPoint.taite.korkeus_n2000, "PVI height")
+        assertEquals(
+            pviStartN60.toString(),
+            pviPoint.pyoristyksen_alku.korkeus_alkuperainen,
+            "N2000 height should be present for N60 source data at curved section start",
+        )
+        assertEquals(
+            pviStartN2000.toString(),
+            pviPoint.pyoristyksen_alku.korkeus_n2000,
+            "N2000 height should be present for N60 source data at curved section start",
+        )
+        assertEquals(
+            pviEndN60.toString(),
+            pviPoint.pyoristyksen_loppu.korkeus_alkuperainen,
+            "N2000 height should be present for N60 source data at curved section end",
+        )
+        assertEquals(
+            pviEndN2000.toString(),
+            pviPoint.pyoristyksen_loppu.korkeus_n2000,
+            "N2000 height should be present for N60 source data at curved section end",
+        )
     }
 
     private fun profileAlignment(
@@ -855,17 +986,19 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     private fun insertPlan(
         alignments: List<GeometryAlignment>,
+        srid: Srid = LAYOUT_SRID,
         verticalCoordinateSystem: VerticalCoordinateSystem = VerticalCoordinateSystem.N2000,
         elevationMeasurementMethod: ElevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
         fileName: FileName = FileName("test_profile.xml"),
     ): GeometryPlan =
         testDBService.savePlan(
             plan(
-                srid = LAYOUT_SRID,
+                srid = srid,
                 verticalCoordinateSystem = verticalCoordinateSystem,
                 elevationMeasurementMethod = elevationMeasurementMethod,
                 fileName = fileName,
                 alignments = alignments,
+                kmPosts = if (srid == LAYOUT_SRID) kmPosts(srid) else emptyList(),
             )
         )
 
