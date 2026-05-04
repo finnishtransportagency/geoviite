@@ -16,6 +16,7 @@ import getNonNullAttribute
 import org.openqa.selenium.By
 import waitUntilExists
 import waitUntilNotExist
+import waitUntilVisible
 
 class E2EAppBar : E2EViewFragment(By.className("app-bar")) {
 
@@ -117,6 +118,7 @@ class E2EAppBar : E2EViewFragment(By.className("app-bar")) {
         waitUntilNotExist(byQaId("app-bar-more-menu"))
 
         waitForCookie(DESIRED_ROLE_COOKIE_NAME, roleCode)
+        waitUntilVisible(byQaId("show-app-bar-more-menu"))
     }
 
     fun dataProductNavLinkExists(dataProductNavLink: DataProductNavLink): Boolean {

@@ -1,6 +1,7 @@
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.browser
 import org.openqa.selenium.By
+import org.openqa.selenium.WebDriverException
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.Actions
 import org.openqa.selenium.support.ui.ExpectedCondition
@@ -77,7 +78,7 @@ fun waitUntilExists(by: By, timeout: Duration = defaultWait) {
 }
 
 fun waitUntilNotExist(by: By, timeout: Duration = defaultWait) {
-    tryWait(timeout, not(visibilityOfElementLocated(by))) { "Wait for element disappearing failed: seekBy=$by" }
+    tryWait(timeout, elementNotPresent(by)) { "Wait for element disappearing failed: seekBy=$by" }
 }
 
 fun waitUntilVisible(by: By, timeout: Duration = defaultWait) {
@@ -85,7 +86,7 @@ fun waitUntilVisible(by: By, timeout: Duration = defaultWait) {
 }
 
 fun waitUntilInvisible(by: By, timeout: Duration = defaultWait) {
-    tryWait(timeout, not(visibilityOfElementLocated(by))) { "Wait for element to disappear failed: seekBy=$by" }
+    tryWait(timeout, elementNotVisible(by)) { "Wait for element to disappear failed: seekBy=$by" }
 }
 
 fun waitUntilElementClickable(by: By, timeout: Duration = defaultWait) {
@@ -119,6 +120,23 @@ fun clickWhenClickable(by: By, timeout: Duration = defaultWait) {
 }
 
 fun exists(by: By): Boolean = getElements(by).isNotEmpty()
+
+private fun elementNotPresent(by: By): ExpectedCondition<Boolean> = ExpectedCondition { driver ->
+    try {
+        driver.findElements(by).isEmpty()
+    } catch (e: WebDriverException) {
+        true
+    }
+}
+
+private fun elementNotVisible(by: By): ExpectedCondition<Boolean> = ExpectedCondition { driver ->
+    try {
+        val elements = driver.findElements(by)
+        elements.isEmpty() || elements.none { it.isDisplayed }
+    } catch (e: WebDriverException) {
+        true
+    }
+}
 
 fun tryWait(condition: ExpectedCondition<Boolean>, lazyErrorMessage: () -> String): Boolean =
     tryWait(defaultWait, defaultPoll, condition, lazyErrorMessage)
