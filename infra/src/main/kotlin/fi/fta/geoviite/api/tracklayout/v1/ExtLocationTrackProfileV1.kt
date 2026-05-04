@@ -32,8 +32,8 @@ data class ExtLocationTrackModifiedProfileResponseV1(
 @Schema(name = "Pystygeometriaolio")
 @JsonInclude(JsonInclude.Include.ALWAYS)
 data class ExtProfileAddressRangeV1(
-    @JsonProperty(INTERVAL_START) val start: String?,
-    @JsonProperty(INTERVAL_END) val end: String?,
+    @JsonProperty(INTERVAL_START) val start: String,
+    @JsonProperty(INTERVAL_END) val end: String,
     @JsonProperty(INTERSECTION_POINTS) val intersectionPoints: List<ExtProfilePviPointV1>,
 )
 
@@ -44,7 +44,7 @@ data class ExtProfilePviPointV1(
     @JsonProperty(INTERSECTION_POINT) val intersectionPoint: ExtProfileIntersectionPointV1,
     @JsonProperty(CURVED_SECTION_END) val curvedSectionEnd: ExtProfileCurvedSectionEndpointV1,
     @JsonProperty(ROUNDING_RADIUS) val roundingRadius: BigDecimal,
-    @JsonProperty(TANGENT) val tangent: BigDecimal?,
+    @JsonProperty(TANGENT) val tangent: BigDecimal,
     @JsonProperty(LINEAR_SECTION_BACKWARD) val linearSectionBackward: ExtProfileLinearSectionV1,
     @JsonProperty(LINEAR_SECTION_FORWARD) val linearSectionForward: ExtProfileLinearSectionV1,
     @JsonProperty(STATION_VALUES) val stationValues: ExtProfileStationValuesV1,
@@ -68,7 +68,7 @@ data class ExtProfileCurvedSectionEndpointV1(
 data class ExtProfileIntersectionPointV1(
     @JsonProperty(HEIGHT_ORIGINAL) val heightOriginal: BigDecimal,
     @JsonProperty(HEIGHT_N2000) val heightN2000: BigDecimal?,
-    @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1?,
+    @JsonProperty(COORDINATE_LOCATION) val location: ExtAddressPointV1,
 )
 
 @Schema(name = "Kaltevuusjakso")

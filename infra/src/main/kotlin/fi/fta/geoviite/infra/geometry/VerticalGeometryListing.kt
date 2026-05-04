@@ -89,17 +89,17 @@ fun toLinearSection(stationValueDistance: Double?, linearSegmentLength: Double?)
 
 data class VerticalGeometryListing(
     val id: StringId<ElementListing>,
-    val planId: DomainId<GeometryPlan>?,
-    val planSource: PlanSource?,
-    val fileName: FileName?,
-    val alignmentId: DomainId<GeometryAlignment>?,
-    val alignmentName: AlignmentName?,
+    val planId: DomainId<GeometryPlan>,
+    val planSource: PlanSource,
+    val fileName: FileName,
+    val alignmentId: DomainId<GeometryAlignment>,
+    val alignmentName: AlignmentName,
     val locationTrackName: AlignmentName?,
     val start: CurvedSectionEndpoint,
     val end: CurvedSectionEndpoint,
     val point: IntersectionPoint,
     val radius: BigDecimal,
-    val tangent: BigDecimal?,
+    val tangent: BigDecimal,
     val linearSectionForward: LinearSection,
     val linearSectionBackward: LinearSection,
     val overlapsAnother: Boolean,
@@ -108,9 +108,9 @@ data class VerticalGeometryListing(
     val coordinateSystemSrid: Srid?,
     val coordinateSystemName: CoordinateSystemName?,
     val creationTime: Instant?,
-    val alignmentStartStation: Double? = null,
-    val alignmentPointStation: Double? = null,
-    val alignmentEndStation: Double? = null,
+    val alignmentStartStation: Double?,
+    val alignmentPointStation: Double?,
+    val alignmentEndStation: Double?,
     val trackNumber: TrackNumber? = null,
 )
 
@@ -203,20 +203,19 @@ fun toVerticalGeometryListing(
     val entryLayoutStations =
         if (geocodingContext == null) null else getEntryLayoutStations(listings, geocodingContext, geometry)
 
-    val withStations =
-        curveAndListingPairs.mapIndexed { index, (curve, entry) ->
-            val start = entryLayoutStations?.get(index)?.get(0)
-            val point = entryLayoutStations?.get(index)?.get(1)
-            val end = entryLayoutStations?.get(index)?.get(2)
-            val enriched =
-                entry.copy(
-                    alignmentStartStation = start?.distance,
-                    alignmentPointStation = point?.distance,
-                    alignmentEndStation = end?.distance,
-                )
-            val isLinkedAtLocation = isLinkedAtLocation(start, point, end, linkedElements, headersAndAlignments, entry)
-            Triple(isLinkedAtLocation, curve, enriched)
-        }
+    val withStations = curveAndListingPairs.mapIndexed { index, (curve, entry) ->
+        val start = entryLayoutStations?.get(index)?.get(0)
+        val point = entryLayoutStations?.get(index)?.get(1)
+        val end = entryLayoutStations?.get(index)?.get(2)
+        val enriched =
+            entry.copy(
+                alignmentStartStation = start?.distance,
+                alignmentPointStation = point?.distance,
+                alignmentEndStation = end?.distance,
+            )
+        val isLinkedAtLocation = isLinkedAtLocation(start, point, end, linkedElements, headersAndAlignments, entry)
+        Triple(isLinkedAtLocation, curve, enriched)
+    }
 
     val deduped = removeDuplicatesPreferringLinkedLocations(withStations)
 
@@ -484,11 +483,10 @@ fun previousLinearSection(
     linearSegments: List<LinearProfileSegment>,
 ): LinearSection {
     val previousCurvedSegment = curvedSegments.findLast { it.start.x < currentSegment.start.x }
-    val previousLinearSegment =
-        linearSegments.findLast {
-            it.start.x < currentSegment.start.x &&
-                (previousCurvedSegment == null || it.start.x > previousCurvedSegment.start.x)
-        }
+    val previousLinearSegment = linearSegments.findLast {
+        it.start.x < currentSegment.start.x &&
+            (previousCurvedSegment == null || it.start.x > previousCurvedSegment.start.x)
+    }
     return toLinearSection(
         linearSegmentLength =
             previousLinearSegment?.let { previousLinearSegment.end.x - previousLinearSegment.start.x },
@@ -508,10 +506,9 @@ fun nextLinearSection(
     linearSegments: List<LinearProfileSegment>,
 ): LinearSection {
     val nextCurvedSegment = curvedSegments.find { it.start.x > currentSegment.start.x }
-    val nextLinearSegment =
-        linearSegments.find {
-            it.start.x > currentSegment.start.x && (nextCurvedSegment == null || it.start.x < nextCurvedSegment.start.x)
-        }
+    val nextLinearSegment = linearSegments.find {
+        it.start.x > currentSegment.start.x && (nextCurvedSegment == null || it.start.x < nextCurvedSegment.start.x)
+    }
     return toLinearSection(
         linearSegmentLength = nextLinearSegment?.let { nextLinearSegment.end.x - nextLinearSegment.start.x },
         stationValueDistance =

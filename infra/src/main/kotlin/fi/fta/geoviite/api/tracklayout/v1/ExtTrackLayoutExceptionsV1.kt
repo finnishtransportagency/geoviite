@@ -8,8 +8,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import java.time.Instant
 import org.springframework.http.HttpStatus
+import java.time.Instant
 
 class ExtOidNotFoundExceptionV1(
     message: String,
@@ -58,3 +58,5 @@ fun throwGeocodingContextNotFound(
 
 fun throwLocationTrackNotFound(version: LayoutRowVersion<LocationTrack>): Nothing =
     error("${LocationTrack::class.simpleName} was not found: version=$version")
+
+fun throwNonGeocodablePvi(): Nothing = error("Non geocodable points should not be included in profile")

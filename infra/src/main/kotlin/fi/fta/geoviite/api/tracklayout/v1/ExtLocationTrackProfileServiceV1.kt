@@ -95,10 +95,11 @@ constructor(
             ?.takeIf { it.exists }
             ?.let { track ->
                 val geometry = alignmentDao.fetch(track.getVersionOrThrow())
-                val geocodingContext = geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
-                val listings = getVerticalGeometryListings(track, geometry, geocodingContext)
-                val (startAddress, endAddress) =
-                    geocodingContext?.let { getTrackAddresses(geometry, it) } ?: (null to null)
+                val geocodingContext =
+                    geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
+                        ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
+                val listings = getVerticalGeometryListings(track, geometry, geocodingContext).filter(::isValid)
+                val (startAddress, endAddress) = getTrackAddresses(geometry, geocodingContext)
 
                 ExtLocationTrackProfileResponseV1(
                     layoutVersion = ExtLayoutVersionV1(publication),
@@ -123,8 +124,10 @@ constructor(
             ?.map(locationTrackDao::fetch)
             ?.takeIf { (oldTrack, newTrack) -> oldTrack?.exists == true || newTrack.exists }
             ?.let { (oldTrack, newTrack) ->
-                val oldListings = oldTrack?.let { getVerticalGeometryListings(it, branch, startMoment) } ?: emptyList()
-                val newListings = getVerticalGeometryListings(newTrack, branch, endMoment)
+                val oldListings =
+                    oldTrack?.let { getVerticalGeometryListings(it, branch, startMoment) }?.filter(::isValid)
+                        ?: emptyList()
+                val newListings = getVerticalGeometryListings(newTrack, branch, endMoment).filter(::isValid)
                 createProfileChangeIntervals(oldListings, newListings, coordinateSystem)
             }
             ?.takeIf { it.isNotEmpty() }
@@ -146,14 +149,16 @@ constructor(
     ): List<VerticalGeometryListing> =
         if (track.exists) {
             val geometry = alignmentDao.fetch(track.getVersionOrThrow())
-            val geocodingContext = geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
+            val geocodingContext =
+                geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
+                    ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
             getVerticalGeometryListings(track, geometry, geocodingContext)
         } else emptyList()
 
     private fun getVerticalGeometryListings(
         track: LocationTrack,
         geometry: LocationTrackGeometry,
-        geocodingContext: GeocodingContext<ReferenceLineM>?,
+        geocodingContext: GeocodingContext<ReferenceLineM>,
     ): List<VerticalGeometryListing> =
         toVerticalGeometryListing(
             track,
@@ -172,15 +177,15 @@ constructor(
     }
 
     private fun toProfileAddressRange(
-        startAddress: TrackMeter?,
-        endAddress: TrackMeter?,
+        startAddress: TrackMeter,
+        endAddress: TrackMeter,
         listings: List<VerticalGeometryListing>,
         coordinateSystem: Srid,
     ): ExtProfileAddressRangeV1 {
         val heightTriangles = fetchN60HeightTriangles(listings)
         return ExtProfileAddressRangeV1(
-            start = startAddress?.formatFixedDecimals(3),
-            end = endAddress?.formatFixedDecimals(3),
+            start = startAddress.formatFixedDecimals(3),
+            end = endAddress.formatFixedDecimals(3),
             intersectionPoints =
                 listings.map { listing -> toIntersectionPoint(listing, coordinateSystem, heightTriangles) },
         )
@@ -192,35 +197,28 @@ constructor(
         coordinateSystem: Srid,
     ): List<ExtProfileAddressRangeV1> {
         return when {
+            oldListings.isEmpty() && newListings.isEmpty() -> emptyList()
             oldListings.isEmpty() -> {
                 // All new — single interval covering everything
-                if (newListings.isEmpty()) emptyList()
-                else {
-                    val addresses = newListings.mapNotNull { it.point.address?.round(3) }
-                    val heightTriangles = fetchN60HeightTriangles(newListings)
-                    listOf(
-                        ExtProfileAddressRangeV1(
-                            start = addresses.firstOrNull()?.format(),
-                            end = addresses.lastOrNull()?.format(),
-                            intersectionPoints =
-                                newListings.map { toIntersectionPoint(it, coordinateSystem, heightTriangles) },
-                        )
+                val heightTriangles = fetchN60HeightTriangles(newListings)
+                listOf(
+                    ExtProfileAddressRangeV1(
+                        start = newListings.first().point.address?.formatFixedDecimals(3) ?: throwNonGeocodablePvi(),
+                        end = newListings.last().point.address?.formatFixedDecimals(3) ?: throwNonGeocodablePvi(),
+                        intersectionPoints =
+                            newListings.map { toIntersectionPoint(it, coordinateSystem, heightTriangles) },
                     )
-                }
+                )
             }
             newListings.isEmpty() -> {
                 // All removed — single interval covering old addresses, empty points
-                val addresses = oldListings.mapNotNull { it.point.address?.round(3) }
-                if (addresses.isEmpty()) emptyList()
-                else {
-                    listOf(
-                        ExtProfileAddressRangeV1(
-                            start = addresses.firstOrNull()?.format(),
-                            end = addresses.lastOrNull()?.format(),
-                            intersectionPoints = emptyList(),
-                        )
+                listOf(
+                    ExtProfileAddressRangeV1(
+                        start = oldListings.first().point.address?.formatFixedDecimals(3) ?: throwNonGeocodablePvi(),
+                        end = oldListings.last().point.address?.formatFixedDecimals(3) ?: throwNonGeocodablePvi(),
+                        intersectionPoints = emptyList(),
                     )
-                }
+                )
             }
             else -> {
                 val heightTriangles = fetchN60HeightTriangles(newListings + oldListings)
@@ -237,6 +235,9 @@ constructor(
             ?.let { bbox -> heightTriangleDao.fetchTriangles(bbox.polygonFromCorners) } ?: emptyList()
 }
 
+private fun isValid(listing: VerticalGeometryListing): Boolean =
+    listing.point.address != null && listing.point.location != null
+
 private fun diffProfileListings(
     oldListings: List<VerticalGeometryListing>,
     newListings: List<VerticalGeometryListing>,
@@ -244,15 +245,13 @@ private fun diffProfileListings(
     heightTriangles: List<HeightTriangle>,
 ): List<ExtProfileAddressRangeV1> {
     // Convert listings to final PVI points, rounding addresses up front so range checks use the same precision
-    val oldPoints = oldListings.mapNotNull { listing ->
-        listing.point.address?.round(3)?.let { addr ->
-            addr to toIntersectionPoint(listing, coordinateSystem, heightTriangles)
-        }
+    val oldPoints = oldListings.map { listing ->
+        val addr = listing.point.address?.round(3) ?: throwNonGeocodablePvi()
+        addr to toIntersectionPoint(listing, coordinateSystem, heightTriangles)
     }
-    val newPoints = newListings.mapNotNull { listing ->
-        listing.point.address?.round(3)?.let { addr ->
-            addr to toIntersectionPoint(listing, coordinateSystem, heightTriangles)
-        }
+    val newPoints = newListings.map { listing ->
+        val addr = listing.point.address?.round(3) ?: throwNonGeocodablePvi()
+        addr to toIntersectionPoint(listing, coordinateSystem, heightTriangles)
     }
 
     val changedRanges = findChangedRanges(oldPoints, newPoints)
@@ -326,10 +325,10 @@ private fun findChangedRanges(
 private fun getTrackAddresses(
     geometry: LocationTrackGeometry,
     geocodingContext: GeocodingContext<ReferenceLineM>,
-): Pair<TrackMeter?, TrackMeter?> {
-    val startAddress = geometry.start?.let { toAddress(it, geocodingContext) }
-    val endAddress = geometry.end?.let { toAddress(it, geocodingContext) }
-    return if (startAddress != null && endAddress != null) startAddress to endAddress else null to null
+): Pair<TrackMeter, TrackMeter> {
+    val startAddress = geometry.start?.let { toAddress(it, geocodingContext) } ?: throwNonGeocodablePvi()
+    val endAddress = geometry.end?.let { toAddress(it, geocodingContext) } ?: throwNonGeocodablePvi()
+    return startAddress to endAddress
 }
 
 private fun toAddress(point: IPoint, geocodingContext: GeocodingContext<ReferenceLineM>): TrackMeter? =
@@ -410,7 +409,12 @@ private fun toProfileIntersectionPoint(
     ExtProfileIntersectionPointV1(
         heightOriginal = point.height,
         heightN2000 = computeN2000Height(point.height, point.location, verticalCoordinateSystem, heightTriangles),
-        location = point.location?.let { toExtAddressPoint(it, point.address, coordinateSystem) },
+        location =
+            toExtAddressPoint(
+                requireNotNull(point.location) { "PVI point not along track" },
+                point.address,
+                coordinateSystem,
+            ),
     )
 
 private fun toProfileLinearSection(section: LinearSection): ExtProfileLinearSectionV1 =
