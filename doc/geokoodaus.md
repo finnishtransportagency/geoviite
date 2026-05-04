@@ -31,14 +31,15 @@ Oleellisia huomioita:
 Osoitteet muodostetaan ratanumeroon (TrackNumber) liittyvän pituusmittauslinjan (ReferenceLine) ja
 tasakilometripisteiden (KmPost) avulla. Nämä käsitteet kootaan laskentaa varten kokonaisuudeksi nimeltä
 geokoodauskonteksti. Koska jokainen noista käsitteistä voi päivittyä itsenäisesti, geokoodauskontekstin haku on sidottu
-avaimeen (GeocodingContextCacheKey), joka sisältää kaikkien käsitteiden versiot (RowVersion). Näin kontekstit voidaan
-cachettaa tuolla avaimella, jolloin sitä ei tarvitse muodostaa aina uudelleen.
+avaimeen (GeocodingContextCacheKey), joka sisältää kaikkien käsitteiden versiot (LayoutRowVersion). Näin kontekstit
+voidaan cachettaa tuolla avaimella, jolloin sitä ei tarvitse muodostaa aina uudelleen.
 
 ## Geokoodaus (osoitteesta pituusmittauslinjan koordinaateiksi)
 
 Rataosoitteesta voidaan laskea koordinaatti tietyssä geokoodauskontekstissa, eli tietylle ratanumerolle. Osoite on
 tällöin piste pituusmittauslinjalla. Koska osoite on sama myös kaikille koordinaateille jotka ovat tuon kohdan sivuilla
-kohtisuoraan, käänteisen geokoodauksen ja geokoodauksen yhdistelmä ei aina tuota samaa koordinaattia josta aloitettiin.
+kohtisuoraan, ja koska osoitteen muodostuksessa tapahtuu pyöristyksiä, käänteisen geokoodauksen ja geokoodauksen
+yhdistelmä ei aina tuota samaa koordinaattia josta aloitettiin.
 
 Osoitteen koordinaatti haetaan seuraavasti:
 
@@ -48,29 +49,56 @@ Osoitteen koordinaatti haetaan seuraavasti:
   m-arvo
 - Haetaan pituusmittauslinjan koordinaatit tuolle m-arvolle
 
+## Varsinainen geokoodaus yleensä
+
+Jos ollaan hakemassa muuta tietoa kuin muunnosta osoitteesta pituusmittauslinjan koordinaateiksi, pitää käyttää
+projektioviivoja. Projektioviivoja lähtee pituusmittauslinjalta:
+
+- Tasametripisteiltä
+- Pituusmittauslinjan alku- ja loppupisteeltä, jos ne ovat riittävän kaukana lähimmästä tasametripisteestä
+- Kohdilta metrin ennen pituusmittauslinjan alkua ja jälkeen sen loppua
+
+Esimerkki projektioviivoista (pituusmittauslinjalla KV 225). Linja kääntyy pohjoiseen, joten mutkan koveralla puolella
+projektioviivat yhdentyvät, kun taas kuperalla puolella ne loittonevat:
+
+![](images/kouvolan_mutka.png)
+
+Kullakin projektioviivalla on rataosoite. (Ekstrapoloiduilla ennen linjaa ja sen jälkeen tulevilla pisteillä on
+osoitteina pituusmittauslinjan alku- ja loppuosoite; ne ovat olemassa sitä varten, että käänteinen geokoodaus
+pystyy armahtamaan pienet laskentojen pyöristykset pituusmittauslinjan alku- ja loppupäissä.)
+
+Geokoodaus kumpaan tahansa suuntaan toimii konseptitasolla niin, että haetaan projektioviivaväli, jolla geokoodattava
+asia on, ja interpoloidaan tältä väliltä projektioviiva, joka osoittaa varsinaiseen geokoodattavaan asiaan.
+Projektioviivavälin voi käsittää viuhkamaisena muotona, josssa jos ollaan vaikkapa kohdassa 0.6, niin interpoloitu
+viiva:
+
+- Lähtee interpoloidulta pisteeltä 0.4 x välin alkuprojektion lähtöpiste, 0.6 x loppuprojektion lähtöpiste. Lähtöpisteet
+  ovat pituusmittauslinjalla, mutta nämä interpoloidut pisteet eivät välttämättä ole.
+- Menee kulmassa 0.4 x alkuprojektion kulma, 0.6 x loppuprojektion kulma. Kulmien yhdistely olettaa, että
+  vierekkäisten projektioviivojen kulmien ero on pieni.
+- Saa osoitteekseen alkupisteen osoite + 0.6 x projektioviivojen etäisyys.
+
+Projektioviivavälit määrittävät tällä tavalla yksiselitteisesti osoitteen jokaiselle pisteelle, joka on mahdollista
+geokoodata pituusmittauslinjalle.
+
 ### Geokoodaus raiteelle (osoitteesta raiteen koordinaateiksi)
 
-Geokoodaus voidaan tehdä myös niin että koordinaatti poimitaan tietyltä raiteelta, eikä pituusmittauslinjalta. Tämä
-tapahtuu muuten kuten tavallinen geokoodaus, mutta pituusmittauslinjan koordinaattia ei käytetä sellaisenaan, vaan
-tuosta kohdasta projisoidaan kohtisuora viiva raiteelle ja koordinaatti poimitaan projektioviivan ja raiteen
-kohtauspisteestä.
+Kun lähtötieto on rataosoite, haetaan ensiksi tätä osoitetta vastaava projektioviiva. Tasametriosoitteilla tämä on
+tasametripisteen projektioviiva, tarkemmilla osoitteilla interpoloitu projektioviiva. Koordinaatti raiteella on sitten
+projektioviivan alkukohtaa lähin piste, jossa se leikkaa raiteen.
 
-![](images/osoitteen_koordinaatti.png)
+### Käänteinen geokoodaus (koordinaateista osoitteeksi)
 
-## Käänteinen geokoodaus (koordinaateista osoitteeksi)
+Kun lähtötieto on koordinaatti, haetaan ensiksi koordinaatin sisältävä projektioviivaväli. Teoriassa tämä löytyy
+yksinkertaisesti hakemalla haettavaa koordinaattia lähimmän pituusmittauslinjan pisteen; käytännössä, koska laskennassa
+on pakosta pyöristyksiä, ja koska pituusmittauslinja itsessään esitetään murtoviivana, tässä on toteutuksessa
+välivaihe, joka askeltaa projektioviivavälejä pitkin etsiessään varsinaisesti haettavan koordinaatin sisältävää väliä
+(ProjectionLineSearch).
 
-Mielivaltaiselle koordinaatille voidaan laskea osoite tietyssä geokoodauskontekstissa, eli tietylle ratanumerolle.
-Toimiakseen, tämä edellyttää että pituusmittauslinja jatkuu kyseisen kohdan yli. Poikkeamaa voi olla sivusuunnassa
-(kohtisuoraan raiteelta), mutta jos koitetaan tehdä käänteinen geokoodaus koordinaatille, joka on ennen raiteen alkua
-tai sen lopun jälkeen, osoite ei ole määritelty.
-
-Alla oleva kuva havainnollistaa koordinaatin osoitteen laskentaa. Algoritmi toimii ylätasolla seuraavasti:
-
-- Haetaan pituusmittauslinjalta kohdepistettä lähin kohta (= kohtisuora projektio)
-- Haetaan kyseisen kohdan m-arvolla lähin tasakilometripiste (KmPost)
-- Lisätään osoitteen m-arvoksi kohdepisteen m-arvon ja tasakilometripisteen m-arvon erotus
-
-![](images/koordinaatin_osoite.png)
+Kun oikea projektioviivaväli tiedetään, oikean interpoloidun projektioviivan osoite (eli käänteisen geokoodauksen
+tulos) löydetään hakemalla suora, jonka kulma on sama kuin projektioviivojen alkupisteiden välinen kulma, ja jolla
+haettava piste on: Tämä suora sitten leikkaa alku- ja loppuprojektioviivan, ja pisteen interpolaatioarvo on se kohta,
+millä etäisyydellä se on näiden leikkauspisteiden välillä.
 
 ## Raiteen osoitepisteiden tuottaminen (RATKOn malli)
 
