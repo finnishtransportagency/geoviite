@@ -389,6 +389,11 @@ data class SegmentGeometry(
     val id: DomainId<SegmentGeometry> = StringId(),
 ) : ISegmentGeometry, Loggable {
 
+    fun isSame(other: SegmentGeometry): Boolean =
+        resolution == other.resolution &&
+            segmentPoints.size == other.segmentPoints.size &&
+            segmentPoints.zip(other.segmentPoints) { a, b -> a.isSame(b) }.all { it }
+
     override val boundingBox: BoundingBox by lazy { boundingBoxAroundPoints(segmentPoints) }
 
     override val startDirection: Double by lazy { directionBetweenPoints(segmentPoints[0], segmentPoints[1]) }
@@ -525,6 +530,12 @@ data class LayoutSegment(
     override val sourceStartM: BigDecimal?,
     override val source: GeometrySource,
 ) : ISegmentGeometry by geometry, ISegment, Loggable {
+
+    fun isSame(other: LayoutSegment): Boolean =
+        sourceId == other.sourceId &&
+            sourceStartM == other.sourceStartM &&
+            source == other.source &&
+            geometry.isSame(other.geometry)
 
     companion object {
         const val SOURCE_START_M_SCALE = 6

@@ -20,42 +20,39 @@ class LocationTrackGeometryTest {
         fun track124() = IntId<LocationTrack>(124)
 
         assertEquals(
-            TmpTrackBoundaryNode(track123(), START).contentHash,
-            TmpTrackBoundaryNode(track123(), START).contentHash,
+            TmpTrackBoundaryNode(track123(), START).contentKey,
+            TmpTrackBoundaryNode(track123(), START).contentKey,
         )
         assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START)).contentHash,
-            TmpTrackBoundaryNode(track123(), START).contentHash,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START)).contentKey,
+            TmpTrackBoundaryNode(track123(), START).contentKey,
         )
         assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START)).contentHash,
-            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), START)).contentHash,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), START)).contentKey,
+            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), START)).contentKey,
         )
         assertNotEquals(
-            TmpTrackBoundaryNode(track123(), START).contentHash,
-            TmpTrackBoundaryNode(track124(), START).contentHash,
+            TmpTrackBoundaryNode(track123(), START).contentKey,
+            TmpTrackBoundaryNode(track124(), START).contentKey,
         )
 
+        assertEquals(TmpTrackBoundaryNode(track123(), END).contentKey, TmpTrackBoundaryNode(track123(), END).contentKey)
         assertEquals(
-            TmpTrackBoundaryNode(track123(), END).contentHash,
-            TmpTrackBoundaryNode(track123(), END).contentHash,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END)).contentKey,
+            TmpTrackBoundaryNode(track123(), END).contentKey,
         )
         assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END)).contentHash,
-            TmpTrackBoundaryNode(track123(), END).contentHash,
-        )
-        assertEquals(
-            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END)).contentHash,
-            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), END)).contentHash,
+            DbTrackBoundaryNode(IntId(456), TrackBoundary(track123(), END)).contentKey,
+            DbTrackBoundaryNode(IntId(654), TrackBoundary(track123(), END)).contentKey,
         )
         assertNotEquals(
-            TmpTrackBoundaryNode(track123(), END).contentHash,
-            TmpTrackBoundaryNode(track124(), END).contentHash,
+            TmpTrackBoundaryNode(track123(), END).contentKey,
+            TmpTrackBoundaryNode(track124(), END).contentKey,
         )
 
         assertNotEquals(
-            TmpTrackBoundaryNode(track123(), START).contentHash,
-            TmpTrackBoundaryNode(track123(), END).contentHash,
+            TmpTrackBoundaryNode(track123(), START).contentKey,
+            TmpTrackBoundaryNode(track123(), END).contentKey,
         )
     }
 
@@ -65,17 +62,14 @@ class LocationTrackGeometryTest {
         fun switch124Main1() = SwitchLink(IntId(124), MAIN, JointNumber(1))
         fun switch123Connection1() = SwitchLink(IntId(123), CONNECTION, JointNumber(1))
         fun switch123Main2() = SwitchLink(IntId(123), MAIN, JointNumber(2))
+        assertEquals(TmpSwitchNode(switch123Main1(), null).contentKey, TmpSwitchNode(switch123Main1(), null).contentKey)
         assertEquals(
-            TmpSwitchNode(switch123Main1(), null).contentHash,
-            TmpSwitchNode(switch123Main1(), null).contentHash,
+            DbSwitchNode(IntId(789), switch123Main1(), null).contentKey,
+            TmpSwitchNode(switch123Main1(), null).contentKey,
         )
         assertEquals(
-            DbSwitchNode(IntId(789), switch123Main1(), null).contentHash,
-            TmpSwitchNode(switch123Main1(), null).contentHash,
-        )
-        assertEquals(
-            DbSwitchNode(IntId(789), switch123Main1(), null).contentHash,
-            DbSwitchNode(IntId(987), switch123Main1(), null).contentHash,
+            DbSwitchNode(IntId(789), switch123Main1(), null).contentKey,
+            DbSwitchNode(IntId(987), switch123Main1(), null).contentKey,
         )
         assertNotEquals(
             TmpSwitchNode(switch123Main1(), switch124Main1()),
@@ -84,12 +78,12 @@ class LocationTrackGeometryTest {
         assertNotEquals(TmpSwitchNode(switch123Main1(), null), TmpSwitchNode(switch124Main1(), null))
         assertNotEquals(TmpSwitchNode(switch123Main1(), switch124Main1()), TmpSwitchNode(switch123Main1(), null))
         assertNotEquals(
-            TmpSwitchNode(switch123Main1(), null).contentHash,
-            TmpSwitchNode(switch123Connection1(), null).contentHash,
+            TmpSwitchNode(switch123Main1(), null).contentKey,
+            TmpSwitchNode(switch123Connection1(), null).contentKey,
         )
         assertNotEquals(
-            TmpSwitchNode(switch123Main1(), null).contentHash,
-            TmpSwitchNode(switch123Main2(), null).contentHash,
+            TmpSwitchNode(switch123Main1(), null).contentKey,
+            TmpSwitchNode(switch123Main2(), null).contentKey,
         )
     }
 
@@ -119,38 +113,38 @@ class LocationTrackGeometryTest {
 
         // Sanity check: we should get the same hashes despite recreating the edge
         assertEquals(
-            TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentHash,
-            TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentHash,
+            TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentKey,
+            TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentKey,
         )
         assertEquals(
-            TmpLayoutEdge(trackNode1(), trackNode2(), segments1()).contentHash,
-            TmpLayoutEdge(trackNode1(), trackNode2(), segments1()).contentHash,
+            TmpLayoutEdge(trackNode1(), trackNode2(), segments1()).contentKey,
+            TmpLayoutEdge(trackNode1(), trackNode2(), segments1()).contentKey,
         )
 
         // The actual verifications: different edges need different hashes
         assertNotEquals(
-            TmpLayoutEdge(switchNode1(), trackNode2(), segments1()).contentHash,
-            TmpLayoutEdge(switchNode2(), trackNode2(), segments1()).contentHash,
+            TmpLayoutEdge(switchNode1(), trackNode2(), segments1()).contentKey,
+            TmpLayoutEdge(switchNode2(), trackNode2(), segments1()).contentKey,
         )
         assertNotEquals(
-            TmpLayoutEdge(switchNode1(), trackNode2(), segments1()).contentHash,
-            TmpLayoutEdge(trackNode1(), switchNode1(), segments1()).contentHash,
+            TmpLayoutEdge(switchNode1(), trackNode2(), segments1()).contentKey,
+            TmpLayoutEdge(trackNode1(), switchNode1(), segments1()).contentKey,
         )
         assertNotEquals(
-            TmpLayoutEdge(switchNode1(), trackNode2(), segments1()).contentHash,
-            TmpLayoutEdge(switchNode1(), trackNode2(), segments2()).contentHash,
+            TmpLayoutEdge(switchNode1(), trackNode2(), segments1()).contentKey,
+            TmpLayoutEdge(switchNode1(), trackNode2(), segments2()).contentKey,
         )
         assertNotEquals(
-            TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentHash,
-            TmpLayoutEdge(switchNode2(), switchNode1(), segments1()).contentHash,
+            TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentKey,
+            TmpLayoutEdge(switchNode2(), switchNode1(), segments1()).contentKey,
         )
         assertNotEquals(
-            TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentHash,
-            TmpLayoutEdge(switchNode1(), switchNode2Reverse(), segments1()).contentHash,
+            TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentKey,
+            TmpLayoutEdge(switchNode1(), switchNode2Reverse(), segments1()).contentKey,
         )
         assertNotEquals(
-            TmpLayoutEdge(switchNode2(), switchNode1(), segments1()).contentHash,
-            TmpLayoutEdge(switchNode2Reverse(), switchNode1(), segments1()).contentHash,
+            TmpLayoutEdge(switchNode2(), switchNode1(), segments1()).contentKey,
+            TmpLayoutEdge(switchNode2Reverse(), switchNode1(), segments1()).contentKey,
         )
     }
 
@@ -279,7 +273,7 @@ class LocationTrackGeometryTest {
 
         val result =
             geometry.withNodeReplacements(
-                mapOf(startNode.contentHash to startCombined, endNode.contentHash to endCombined)
+                mapOf(startNode.contentKey to startCombined, endNode.contentKey to endCombined)
             )
         assertEquals(listOf(startCombined, middleNode, endCombined), result.nodes)
     }
@@ -303,7 +297,7 @@ class LocationTrackGeometryTest {
 
         val result =
             geometry.withNodeReplacements(
-                mapOf(startNode.contentHash to startCombined, endNode.contentHash to endCombined)
+                mapOf(startNode.contentKey to startCombined, endNode.contentKey to endCombined)
             )
         assertEquals(listOf(startCombined, endCombined), result.nodes)
     }
@@ -331,7 +325,7 @@ class LocationTrackGeometryTest {
         val combined23 = TmpSwitchNode(switchLinkYV(IntId(1), 1), switchLinkYV(IntId(2), 1))
 
         val result =
-            geometry.withNodeReplacements(mapOf(node2.contentHash to combined23, node3.contentHash to combined23))
+            geometry.withNodeReplacements(mapOf(node2.contentKey to combined23, node3.contentKey to combined23))
         assertEquals(listOf(node1, combined23), result.nodes)
         assertMatches(
             trackGeometry(
@@ -370,7 +364,7 @@ class LocationTrackGeometryTest {
         val combined12 = TmpSwitchNode(switchLinkYV(IntId(1), 1), switchLinkYV(IntId(2), 1))
 
         val result =
-            geometry.withNodeReplacements(mapOf(node1.contentHash to combined12, node2.contentHash to combined12))
+            geometry.withNodeReplacements(mapOf(node1.contentKey to combined12, node2.contentKey to combined12))
         assertEquals(listOf(combined12, node3), result.nodes)
         assertMatches(
             trackGeometry(
@@ -415,7 +409,7 @@ class LocationTrackGeometryTest {
         val combined23 = TmpSwitchNode(switchLinkYV(IntId(1), 1), switchLinkYV(IntId(2), 1))
 
         val result =
-            geometry.withNodeReplacements(mapOf(node2.contentHash to combined23, node3.contentHash to combined23))
+            geometry.withNodeReplacements(mapOf(node2.contentKey to combined23, node3.contentKey to combined23))
         assertEquals(listOf(node1, combined23, node4), result.nodes)
         assertMatches(
             trackGeometry(
@@ -455,7 +449,7 @@ class LocationTrackGeometryTest {
         val combined = TmpSwitchNode(switchLinkYV(IntId(1), 1), switchLinkYV(IntId(2), 1))
 
         val result =
-            geometry.withNodeReplacements(mapOf(startNode.contentHash to combined, endNode.contentHash to combined))
+            geometry.withNodeReplacements(mapOf(startNode.contentKey to combined, endNode.contentKey to combined))
         assertEquals(geometry, result)
     }
 
