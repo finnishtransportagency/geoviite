@@ -67,10 +67,11 @@ Kullakin projektioviivalla on rataosoite. (Ekstrapoloiduilla ennen linjaa ja sen
 osoitteina pituusmittauslinjan alku- ja loppuosoite; ne ovat olemassa sitä varten, että käänteinen geokoodaus
 pystyy armahtamaan pienet laskentojen pyöristykset pituusmittauslinjan alku- ja loppupäissä.)
 
-Geokoodaus kumpaan tahansa suuntaan toimii konseptitasolla niin, että haetaan projektioviivaväli, jolla geokoodattava
-asia on, ja interpoloidaan tältä väliltä projektioviiva, joka osoittaa varsinaiseen geokoodattavaan asiaan.
-Projektioviivavälin voi käsittää viuhkamaisena muotona, josssa jos ollaan vaikkapa kohdassa 0.6, niin interpoloitu
-viiva:
+Geokoodaus kumpaan tahansa suuntaan toimii konseptitasolla niin, että haetaan se vierekkäisten projektioviivojen väli,
+jolla geokoodattava asia on, ja interpoloidaan tältä väliltä projektioviiva, joka osoittaa varsinaiseen geokoodattavaan
+asiaan. Projektioviivavälin voi käsittää viuhkamaisena muotona, jossa jos ollaan vaikkapa kohdassa 0.6, niin
+interpoloitu viiva kullekin kohdalle saadaan interpoloimalla lineaarisesti erikseen lähtöpiste (alun ja lopun
+projektioviivojen alkujen välisellä janalla), viivan kulma, ja osoite.:
 
 - Lähtee interpoloidulta pisteeltä 0.4 x välin alkuprojektion lähtöpiste, 0.6 x loppuprojektion lähtöpiste. Lähtöpisteet
   ovat pituusmittauslinjalla, mutta nämä interpoloidut pisteet eivät välttämättä ole.
@@ -80,6 +81,8 @@ viiva:
 
 Projektioviivavälit määrittävät tällä tavalla yksiselitteisesti osoitteen jokaiselle pisteelle, joka on mahdollista
 geokoodata pituusmittauslinjalle.
+
+![](images/geokoodaus_interpolaatio.svg)
 
 ### Geokoodaus raiteelle (osoitteesta raiteen koordinaateiksi)
 
@@ -99,6 +102,8 @@ Kun oikea projektioviivaväli tiedetään, oikean interpoloidun projektioviivan 
 tulos) löydetään hakemalla suora, jonka kulma on sama kuin projektioviivojen alkupisteiden välinen kulma, ja jolla
 haettava piste on: Tämä suora sitten leikkaa alku- ja loppuprojektioviivan, ja pisteen interpolaatioarvo on se kohta,
 millä etäisyydellä se on näiden leikkauspisteiden välillä.
+
+![](images/geokoodaus_kaanteinen.svg)
 
 ## Raiteen osoitepisteiden tuottaminen (RATKOn malli)
 
