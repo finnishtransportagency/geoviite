@@ -10,14 +10,14 @@ import fi.fta.geoviite.infra.tracklayout.LayoutNodeType.TRACK_BOUNDARY
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
-import fi.fta.geoviite.infra.tracklayout.NodeHash
+import fi.fta.geoviite.infra.tracklayout.NodeKey
 import fi.fta.geoviite.infra.tracklayout.NodePort
 import fi.fta.geoviite.infra.tracklayout.PlaceholderNode
 import fi.fta.geoviite.infra.tracklayout.SwitchLink
 import fi.fta.geoviite.infra.tracklayout.TrackBoundary
 
 data class NodeCombinations(
-    val replacements: Map<NodeHash, LayoutNode>,
+    val replacements: Map<NodeKey, LayoutNode>,
     val targetTracks: List<Pair<LocationTrack, LocationTrackGeometry>>,
 )
 
@@ -50,7 +50,7 @@ data class NodeTrackConnections(val node: DbLayoutNode, val trackVersions: Set<L
 
 fun mergeNodeConnections(connections: List<NodeReplacementTarget>): List<NodeReplacementTarget> =
     connections
-        .groupBy { c -> c.node.contentHash }
+        .groupBy { c -> c.node.contentKey }
         .map { (_, sameNodeConnections) ->
             NodeReplacementTarget(
                 node = sameNodeConnections.first().node,
@@ -62,17 +62,17 @@ fun resolveNodeCombinations(connections: List<NodeReplacementTarget>): NodeCombi
     val replacements = combineEligibleNodes(connections.map { c -> c.node })
     val replaced = connections.mapNotNull { c -> replacements[c.node]?.let { replacement -> c to replacement } }
     return NodeCombinations(
-        replaced.associate { (connection, replacement) -> connection.node.contentHash to replacement },
+        replaced.associate { (connection, replacement) -> connection.node.contentKey to replacement },
         replaced.flatMap { (connection, _) -> connection.tracks }.distinctBy { (t, _) -> t.id },
     )
 }
 
 fun mergeNodeCombinations(combinations: List<NodeCombinations>): NodeCombinations {
     val merged =
-        buildMap<NodeHash, LayoutNode> {
+        buildMap<NodeKey, LayoutNode> {
             combinations
                 .flatMap { r -> r.replacements.entries }
-                .forEach { (target: NodeHash, replacement: LayoutNode) ->
+                .forEach { (target: NodeKey, replacement: LayoutNode) ->
                     compute(target) { _, prev ->
                         prev?.also {
                             require(prev == replacement) {

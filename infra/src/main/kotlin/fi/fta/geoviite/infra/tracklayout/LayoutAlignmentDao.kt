@@ -316,17 +316,16 @@ class LayoutAlignmentDao(
 
     private fun saveEdges(
         edges: List<TmpLayoutEdge>,
-        savedNodes: Map<NodeHash, IntId<LayoutNode>>,
+        savedNodes: Map<NodeKey, IntId<LayoutNode>>,
         savedGeometries: Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>>,
     ): List<IntId<LayoutEdge>> {
         val startNodeIds =
             edges.map { edge ->
-                (edge.startNode.node as? DbLayoutNode)?.id
-                    ?: requireNotNull(savedNodes[edge.startNode.node.contentHash])
+                (edge.startNode.node as? DbLayoutNode)?.id ?: requireNotNull(savedNodes[edge.startNode.node.contentKey])
             }
         val endNodeIds =
             edges.map { edge ->
-                (edge.endNode.node as? DbLayoutNode)?.id ?: requireNotNull(savedNodes[edge.endNode.node.contentHash])
+                (edge.endNode.node as? DbLayoutNode)?.id ?: requireNotNull(savedNodes[edge.endNode.node.contentKey])
             }
         val sql =
             """
@@ -390,7 +389,7 @@ class LayoutAlignmentDao(
 
     private fun saveEdge(
         content: TmpLayoutEdge,
-        savedNodes: Map<NodeHash, IntId<LayoutNode>>,
+        savedNodes: Map<NodeKey, IntId<LayoutNode>>,
         savedGeometries: Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>>,
     ): IntId<LayoutEdge> = saveEdges(listOf(content), savedNodes, savedGeometries)[0]
 
@@ -453,7 +452,7 @@ class LayoutAlignmentDao(
         val savedNodes =
             tmpEdges
                 .flatMap { e -> listOfNotNull(e.startNode.node as? TmpLayoutNode, e.endNode.node as? TmpLayoutNode) }
-                .associateBy { it.contentHash }
+                .associateBy { it.contentKey }
                 .entries
                 .let { nodesByHash ->
                     val saved = saveNodes(nodesByHash.map { it.value })
@@ -466,7 +465,7 @@ class LayoutAlignmentDao(
 
         val savedEdges =
             tmpEdges
-                .associateBy { it.contentHash }
+                .associateBy { it.contentKey }
                 .entries
                 .let { edgesByHash ->
                     val saved = saveEdges(edgesByHash.map { it.value }, savedNodes, savedGeometries)
@@ -494,7 +493,7 @@ class LayoutAlignmentDao(
             ps.setInt(1, trackVersion.id.intValue)
             ps.setString(2, trackVersion.context.toSqlString())
             ps.setInt(3, trackVersion.version)
-            ps.setInt(4, ((edge as? DbLayoutEdge)?.id ?: requireNotNull(savedEdges[edge.contentHash])).intValue)
+            ps.setInt(4, ((edge as? DbLayoutEdge)?.id ?: requireNotNull(savedEdges[edge.contentKey])).intValue)
             ps.setInt(5, index)
             ps.setBigDecimal(6, roundTo6Decimals(m.min.distance))
         }
@@ -1468,7 +1467,7 @@ private fun createEdges(
                     endNode = edgeData.endNode.let { (id, port) -> getConnection(id, port) },
                     segments = createSegments(edgeData.segments, geometries),
                 )
-                .also { it.contentHash }
+                .also { it.contentKey }
         }
         .collect(Collectors.toList())
 }
