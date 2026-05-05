@@ -20,6 +20,8 @@ updates:
       kotlin:
         patterns:
           - "org.jetbrains.kotlin*"
+          - "jvm"
+          - "plugin.spring"
       flyway:
         patterns:
           - "org.flywaydb*"
