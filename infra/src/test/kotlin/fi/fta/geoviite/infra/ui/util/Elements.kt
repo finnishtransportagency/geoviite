@@ -1,7 +1,8 @@
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.browser
 import org.openqa.selenium.By
-import org.openqa.selenium.WebDriverException
+import org.openqa.selenium.NoSuchElementException
+import org.openqa.selenium.StaleElementReferenceException
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.Actions
 import org.openqa.selenium.support.ui.ExpectedCondition
@@ -124,16 +125,19 @@ fun exists(by: By): Boolean = getElements(by).isNotEmpty()
 private fun elementNotPresent(by: By): ExpectedCondition<Boolean> = ExpectedCondition { driver ->
     try {
         driver.findElements(by).isEmpty()
-    } catch (e: WebDriverException) {
+    } catch (_: NoSuchElementException) {
+        true
+    } catch (_: StaleElementReferenceException) {
         true
     }
 }
 
 private fun elementNotVisible(by: By): ExpectedCondition<Boolean> = ExpectedCondition { driver ->
     try {
-        val elements = driver.findElements(by)
-        elements.isEmpty() || elements.none { it.isDisplayed }
-    } catch (e: WebDriverException) {
+        driver.findElements(by).none { it.isDisplayed }
+    } catch (_: NoSuchElementException) {
+        true
+    } catch (_: StaleElementReferenceException) {
         true
     }
 }
