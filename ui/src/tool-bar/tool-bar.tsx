@@ -30,6 +30,7 @@ import {
     refreshOperationalPointSelection,
     refreshSwitchSelection,
     refreshTrackNumberSelection,
+    useOperationalPoints,
 } from 'track-layout/track-layout-react-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
@@ -61,6 +62,7 @@ import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-
 import { SearchDropdown, SearchItemType, SearchItemValue } from 'asset-search/search-dropdown';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { OperationalPointEditDialogContainer } from 'tool-panel/operational-point/dialog/operational-point-edit-dialog-container';
+import { ExclamationPoint } from 'geoviite-design-lib/exclamation-point/exclamation-point';
 
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_SELECTED = 6;
 const DESIGN_SELECT_POPUP_MARGIN_WHEN_NOT_SELECTED = 3;
@@ -116,6 +118,10 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
         [getChangeTimes().layoutDesign, designId],
     );
+    const hasRatkoChanges = useOperationalPoints(
+        layoutContext,
+        getChangeTimes().operationalPoints,
+    ).some((point) => point.hasExternalChanges);
     const currentDesignExists =
         designLoadStatus === LoaderStatus.Ready && currentDesign !== undefined;
 
@@ -330,6 +336,9 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             return undefined;
         }
     };
+    const hasRatkoChangesTooltip = hasRatkoChanges
+        ? t('tool-bar.preview-mode.has-ratko-changes')
+        : undefined;
 
     const newMenuTooltip = splittingState ? t('tool-bar.splitting-in-progress') : t('tool-bar.new');
 
@@ -490,10 +499,13 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         <Button
                             disabled={!canEnterPreview}
                             variant={ButtonVariant.PRIMARY}
-                            title={modeNavigationButtonsDisabledReason()}
+                            title={modeNavigationButtonsDisabledReason() ?? hasRatkoChangesTooltip}
                             qa-id="open-preview-view"
                             onClick={() => openPreviewAndStopLinking()}>
-                            {t('tool-bar.preview-mode.enable')}
+                            <span className={styles['tool-bar__preview-button']}>
+                                <span>{t('tool-bar.preview-mode.enable')}</span>
+                                {hasRatkoChanges && <ExclamationPoint />}
+                            </span>
                         </Button>
                     </PrivilegeRequired>
                 )}

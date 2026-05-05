@@ -107,8 +107,22 @@ class OperationalPointDao(
               op.ratko_operational_point_version,
               op.origin,
               op.rinf_id_generated,
-              op.rinf_id_override
+              op.rinf_id_override,
+              (op.ratko_operational_point_version is distinct from
+                  (select ratko_operational_point_version
+                   from layout.operational_point_in_layout_context('OFFICIAL', null)
+                   where id = op.id)
+              ) as external_change
             from layout.operational_point_version_view op
+              inner join lateral
+                (
+                  select
+                    unnest(:ids) id,
+                    unnest(:layout_context_ids) layout_context_id,
+                    unnest(:versions) version
+                ) args on args.id = op.id 
+                and args.layout_context_id = op.layout_context_id 
+                and args.version = op.version
               left join common.rinf_operational_point_type rt on op.rinf_type = rt.enum_name
             where not op.deleted
             """
@@ -370,6 +384,7 @@ class OperationalPointDao(
             polygon = rs.getPolygonPointListOrNull("polygon")?.let(::Polygon),
             origin = rs.getEnum("origin"),
             ratkoVersion = rs.getIntOrNull("ratko_operational_point_version"),
+            hasExternalChanges = rs.getBoolean("external_change"),
             contextData =
                 rs.getLayoutContextData(
                     "id",

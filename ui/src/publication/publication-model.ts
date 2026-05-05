@@ -177,6 +177,7 @@ export type OperationalPointPublicationCandidate = BasePublicationCandidate &
         id: OperationalPointId;
         type: DraftChangeType.OPERATIONAL_POINT;
         name: string;
+        externalChange: boolean;
     };
 
 export type ValidatedPublicationCandidates = {
