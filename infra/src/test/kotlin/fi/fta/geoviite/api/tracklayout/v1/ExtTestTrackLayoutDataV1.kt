@@ -1,5 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import fi.fta.geoviite.infra.math.IPoint
+
 data class ExtTestTrackLayoutVersionV1(val rataverkon_versio: String, val aikaleima: String, val kuvaus: String)
 
 data class ExtTestTrackLayoutVersionCollectionResponseV1(
@@ -10,7 +12,7 @@ data class ExtTestTrackLayoutVersionCollectionResponseV1(
 
 data class ExtTestCoordinateV1(val x: Double, val y: Double)
 
-data class ExtTestAddressPointV1(val x: Double, val y: Double, val rataosoite: String?)
+data class ExtTestAddressPointV1(override val x: Double, override val y: Double, val rataosoite: String?) : IPoint
 
 data class ExtTestLocationTrackV1(
     val sijaintiraide_oid: String,
@@ -304,4 +306,58 @@ data class ExtTestStationLinkV1(
 data class ExtTestStationLinkCollectionResponseV1(
     val rataverkon_versio: String,
     val liikennepaikkavalit: List<ExtTestStationLinkV1>,
+)
+
+data class ExtTestLocationTrackProfileResponseV1(
+    val rataverkon_versio: String,
+    val sijaintiraide_oid: String,
+    val koordinaatisto: String,
+    val osoitevali: ExtTestProfileAddressRangeV1,
+)
+
+data class ExtTestProfileAddressRangeV1(
+    val alku: String?,
+    val loppu: String?,
+    val taitepisteet: List<ExtTestProfileBreakPointV1>,
+)
+
+data class ExtTestProfileBreakPointV1(
+    val pyoristyksen_alku: ExtTestProfileCurvedSectionEndpointV1,
+    val taite: ExtTestProfileIntersectionPointV1,
+    val pyoristyksen_loppu: ExtTestProfileCurvedSectionEndpointV1,
+    val pyoristyssade: String,
+    val tangentti: String?,
+    val kaltevuusjakso_taaksepain: ExtTestProfileLinearSectionV1,
+    val kaltevuusjakso_eteenpain: ExtTestProfileLinearSectionV1,
+    val paaluluku: ExtTestProfileStationValuesV1,
+    val suunnitelman_korkeusjarjestelma: String?,
+    val suunnitelman_korkeusasema: String?,
+    val huomiot: List<ExtTestProfileRemarkV1>,
+)
+
+data class ExtTestProfileCurvedSectionEndpointV1(
+    val korkeus_alkuperainen: String,
+    val korkeus_n2000: String?,
+    val kaltevuus: String?,
+    val sijainti: ExtTestAddressPointV1?,
+)
+
+data class ExtTestProfileIntersectionPointV1(
+    val korkeus_alkuperainen: String,
+    val korkeus_n2000: String?,
+    val sijainti: ExtTestAddressPointV1?,
+)
+
+data class ExtTestProfileLinearSectionV1(val pituus: String?, val suora_osa: String?)
+
+data class ExtTestProfileStationValuesV1(val alku: String?, val taite: String?, val loppu: String?)
+
+data class ExtTestProfileRemarkV1(val koodi: String, val selite: String)
+
+data class ExtTestModifiedLocationTrackProfileResponseV1(
+    val alkuversio: String,
+    val loppuversio: String,
+    val sijaintiraide_oid: String,
+    val koordinaatisto: String,
+    val osoitevalit: List<ExtTestProfileAddressRangeV1>,
 )

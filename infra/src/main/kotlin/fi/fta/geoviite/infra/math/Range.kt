@@ -30,6 +30,8 @@ data class Range<T : Comparable<T>>(val min: T, val max: T) {
         require(contains(value)) { "Split value must be within the range: value=$value range=[$min, $max]" }
         return Range(min, value) to Range(value, max)
     }
+
+    fun extend(value: T): Range<T> = Range(minOf(min, value), maxOf(max, value))
 }
 
 fun Range<Double>.length(): Double = max - min
@@ -48,8 +50,9 @@ fun <T : Comparable<T>> combineContinuous(ranges: List<Range<T>>): List<Range<T>
 
 fun <T : Comparable<T>> combine(vararg ranges: Range<T>): Range<T> = combine(ranges.toList())
 
-fun <T : Comparable<T>> combine(ranges: List<Range<T>>): Range<T> =
-    ranges.reduceRight { r, acc -> Range(minOf(r.min, acc.min), maxOf(r.max, acc.max)) }
+fun <T : Comparable<T>> combine(ranges: List<Range<T>>): Range<T> = ranges.reduceRight { r, acc ->
+    Range(minOf(r.min, acc.min), maxOf(r.max, acc.max))
+}
 
 fun <T : Comparable<T>> maxNonNull(o1: T?, o2: T?): T? =
     if (o1 == null) o2 else if (o2 == null) o1 else if (o1 > o2) o1 else o2
