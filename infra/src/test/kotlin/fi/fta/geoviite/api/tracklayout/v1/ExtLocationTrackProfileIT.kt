@@ -11,7 +11,9 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.Uuid
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
-import fi.fta.geoviite.infra.geography.FIN_GK24_SRID
+import fi.fta.geoviite.infra.geography.FIN_GK25_SRID
+import fi.fta.geoviite.infra.geography.HeightTriangleDao
+import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.CurvedProfileSegment
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -30,7 +32,9 @@ import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.tangentPointsOfPvi
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.math.roundTo6Decimals
@@ -67,7 +71,12 @@ import java.math.BigDecimal
 @AutoConfigureMockMvc
 class ExtLocationTrackProfileIT
 @Autowired
-constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServiceV1) : DBTestBase() {
+constructor(
+    mockMvc: MockMvc,
+    private val extTestDataService: ExtApiTestDataServiceV1,
+    private val heightTriangleDao: HeightTriangleDao,
+) : DBTestBase() {
+
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @Test
@@ -807,8 +816,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             "$label N2000 height",
         )
         assertEquals(expectedAddress, point.sijainti?.rataosoite, "$label track address")
-        assertEquals(expectedLocation.x, point.sijainti?.x!!.toDouble(), LAYOUT_COORDINATE_DELTA, "$label X coordinate")
-        assertEquals(expectedLocation.y, point.sijainti?.y!!.toDouble(), LAYOUT_COORDINATE_DELTA, "$label Y coordinate")
+        assertEquals(expectedLocation.x, point.sijainti?.x!!, LAYOUT_COORDINATE_DELTA, "$label X coordinate")
+        assertEquals(expectedLocation.y, point.sijainti?.y!!, LAYOUT_COORDINATE_DELTA, "$label Y coordinate")
     }
 
     private fun assertLinearSection(
@@ -850,38 +859,37 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     @Test
     fun `Profile locations are returned in LAYOUT_SRID when geometry plan uses different SRID`() {
-        // Define alignment directly in GK24 with exact 1000m length (north-south line)
-        val layoutStart = Point(332000.0, 6817000.0)
-        val gk24Start = transformNonKKJCoordinate(LAYOUT_SRID, FIN_GK24_SRID, layoutStart)
-        val gk24End = Point(gk24Start.x, gk24Start.y + 1000.0)
+        // Define alignment in sane GK25 coordinates (north-south line, 1000m long)
+        val gk25Start = Point(25502020.0, 6974470.0)
+        val gk25End = Point(gk25Start.x, gk25Start.y + 1000.0)
+        val gk25Pvi = Point(gk25Start.x, gk25Start.y + 500.0)
 
-        // Explicit profile: single PVI at station 500 with height 105.5m
-        val pviHeight = 105.5
+        val pviHeight = BigDecimal("105.000")
         val plan =
             insertPlan(
                 listOf(
                     profileAlignment(
-                        start = gk24Start,
-                        end = gk24End,
+                        start = gk25Start,
+                        end = gk25End,
                         profileElements =
                             listOf(
                                 VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
                                 VICircularCurve(
                                     PlanElementName("curve"),
-                                    Point(500.0, pviHeight),
+                                    Point(500.0, pviHeight.toDouble()),
                                     BigDecimal(20000),
-                                    BigDecimal(155),
+                                    BigDecimal(150),
                                 ),
-                                VIPoint(PlanElementName("end"), Point(1000.0, 108.0)),
+                                VIPoint(PlanElementName("end"), Point(1000.0, 100.0)),
                             ),
                     )
                 ),
-                srid = FIN_GK24_SRID,
+                srid = FIN_GK25_SRID,
             )
         val elements = plan.alignments[0].elements
-        val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements, FIN_GK24_SRID)
+        val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements, FIN_GK25_SRID)
         val (trackId, oid) =
-            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements, FIN_GK24_SRID))
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements, FIN_GK25_SRID))
         extTestDataService.publishInMain(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
@@ -891,34 +899,35 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
         val location = pviPoint.taite.sijainti!!
 
-        // PVI is at station 500 (midpoint) — compute expected LAYOUT_SRID location
-        val expectedLayout = layoutStart + Point(0.0, 500.0)
-        assertEquals(expectedLayout.x, location.x, LAYOUT_COORDINATE_DELTA, "X coordinate should be in LAYOUT_SRID")
-        assertEquals(expectedLayout.y, location.y, LAYOUT_COORDINATE_DELTA, "Y coordinate should be in LAYOUT_SRID")
-        assertEquals(pviHeight.toString(), pviPoint.taite.korkeus_alkuperainen, "PVI height")
-        assertEquals(pviHeight.toString(), pviPoint.taite.korkeus_n2000, "PVI height")
+        // Compute expected LAYOUT_SRID location by transforming the GK25 PVI point
+        val expectedPvi = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25Pvi)
+        val expectedStart = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25Start)
+        val expectedEnd = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25End)
+        assertEquals(expectedPvi.x, location.x, LAYOUT_COORDINATE_DELTA)
+        assertEquals(expectedPvi.y, location.y, LAYOUT_COORDINATE_DELTA)
+        assertTrue(pviPoint.pyoristyksen_alku.sijainti!!.x in expectedStart.x..expectedPvi.x)
+        assertTrue(pviPoint.pyoristyksen_alku.sijainti!!.y in expectedStart.y..expectedPvi.y)
+        assertTrue(pviPoint.pyoristyksen_loppu.sijainti!!.x in expectedPvi.x..expectedEnd.x)
+        assertTrue(pviPoint.pyoristyksen_loppu.sijainti!!.y in expectedPvi.y..expectedEnd.y)
+
+        assertEquals(pviHeight.toString(), pviPoint.taite.korkeus_alkuperainen)
+        assertEquals(pviHeight.toString(), pviPoint.taite.korkeus_n2000)
     }
 
     @Test
     fun `N60 height transform works when geometry plan uses different SRID`() {
-        // Define alignment directly in GK24 with exact 1000m length (north-south line)
-        val layoutStart = Point(332000.0, 6817000.0)
-        val gk24Start = transformNonKKJCoordinate(LAYOUT_SRID, FIN_GK24_SRID, layoutStart)
-        val gk24End = Point(gk24Start.x, gk24Start.y + 1000.0)
+        // Define alignment in sane GK25 coordinates (north-south line, 1000m long)
+        val gk25Start = Point(25502020.0, 6974470.0)
+        val gk25End = Point(gk25Start.x, gk25Start.y + 1000.0)
+        val gk25Pvi = Point(gk25Start.x, gk25Start.y + 500.0)
 
-        // Explicit profile: single PVI at station 500 with height 105.5m
-        val pviHeightN60 = BigDecimal("105.500")
-        val pviHeightN2000 = 100005.5
-        val pviStartN60 = 10
-        val pviStartN2000 = 10
-        val pviEndN60 = 10
-        val pviEndN2000 = 10
+        val pviHeightN60 = BigDecimal("105.000")
         val plan =
             insertPlan(
                 listOf(
                     profileAlignment(
-                        start = gk24Start,
-                        end = gk24End,
+                        start = gk25Start,
+                        end = gk25End,
                         profileElements =
                             listOf(
                                 VIPoint(PlanElementName("start"), Point(0.0, 100.0)),
@@ -928,17 +937,17 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
                                     BigDecimal(20000),
                                     BigDecimal(155),
                                 ),
-                                VIPoint(PlanElementName("end"), Point(1000.0, 108.0)),
+                                VIPoint(PlanElementName("end"), Point(1000.0, 100.0)),
                             ),
                     )
                 ),
-                srid = FIN_GK24_SRID,
+                srid = FIN_GK25_SRID,
                 verticalCoordinateSystem = VerticalCoordinateSystem.N60,
             )
         val elements = plan.alignments[0].elements
-        val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements, FIN_GK24_SRID)
+        val (trackNumberId, referenceLineId) = insertTrackNumberWithReferenceLine(elements, FIN_GK25_SRID)
         val (trackId, oid) =
-            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements, FIN_GK24_SRID))
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements, FIN_GK25_SRID))
         extTestDataService.publishInMain(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
@@ -946,30 +955,38 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         )
 
         val pviPoint = api.locationTrackProfile.get(oid).osoitevali.taitepisteet.single()
+        val pviLayout = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25Pvi)
+        val startLayout = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25Start)
+        val endLayout = transformNonKKJCoordinate(FIN_GK25_SRID, LAYOUT_SRID, gk25End)
+        val heightTriangles =
+            heightTriangleDao.fetchTriangles(
+                boundingBoxAroundPoints(pviLayout, startLayout, endLayout).polygonFromCorners
+            )
+        val transformToN2000 = { n60: Double, point: IPoint ->
+            roundTo3Decimals(transformHeightValue(n60, point, heightTriangles, VerticalCoordinateSystem.N60))
+        }
 
         assertEquals("N60", pviPoint.suunnitelman_korkeusjarjestelma)
-        assertEquals(pviHeightN60.toString(), pviPoint.taite.korkeus_alkuperainen, "PVI height")
-        assertEquals(pviHeightN2000.toString(), pviPoint.taite.korkeus_n2000, "PVI height")
-        assertEquals(
-            pviStartN60.toString(),
-            pviPoint.pyoristyksen_alku.korkeus_alkuperainen,
-            "N2000 height should be present for N60 source data at curved section start",
-        )
-        assertEquals(
-            pviStartN2000.toString(),
-            pviPoint.pyoristyksen_alku.korkeus_n2000,
-            "N2000 height should be present for N60 source data at curved section start",
-        )
-        assertEquals(
-            pviEndN60.toString(),
-            pviPoint.pyoristyksen_loppu.korkeus_alkuperainen,
-            "N2000 height should be present for N60 source data at curved section end",
-        )
-        assertEquals(
-            pviEndN2000.toString(),
-            pviPoint.pyoristyksen_loppu.korkeus_n2000,
-            "N2000 height should be present for N60 source data at curved section end",
-        )
+        assertEquals(pviHeightN60.toString(), pviPoint.taite.korkeus_alkuperainen)
+        assertEquals(transformToN2000(pviHeightN60.toDouble(), pviLayout).toString(), pviPoint.taite.korkeus_n2000)
+        pviPoint.pyoristyksen_alku.also { alku ->
+            assertTrue(alku.korkeus_alkuperainen.toDouble() in 100.0..pviHeightN60.toDouble())
+            assertNotNull(alku.sijainti)
+            assertNotNull(alku.korkeus_n2000)
+            assertEquals(
+                transformToN2000(alku.korkeus_alkuperainen.toDouble(), alku.sijainti!!).toString(),
+                pviPoint.pyoristyksen_alku.korkeus_n2000,
+            )
+        }
+        pviPoint.pyoristyksen_loppu.also { loppu ->
+            assertTrue(loppu.korkeus_alkuperainen.toDouble() in 100.0..pviHeightN60.toDouble())
+            assertNotNull(loppu.sijainti)
+            assertNotNull(loppu.korkeus_n2000)
+            assertEquals(
+                transformToN2000(loppu.korkeus_alkuperainen.toDouble(), loppu.sijainti!!).toString(),
+                pviPoint.pyoristyksen_alku.korkeus_n2000,
+            )
+        }
     }
 
     private fun profileAlignment(

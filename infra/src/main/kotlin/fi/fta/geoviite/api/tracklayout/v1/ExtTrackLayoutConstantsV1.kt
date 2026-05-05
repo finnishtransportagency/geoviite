@@ -141,7 +141,6 @@ const val STATION_LINK_LENGTH = "pituus"
 const val STATION_LINK_START = "alku"
 const val STATION_LINK_END = "loppu"
 
-const val VERTICAL_GEOMETRY = "pystygeometria"
 const val INTERSECTION_POINTS = "taitepisteet"
 const val CURVED_SECTION_START = "pyoristyksen_alku"
 const val INTERSECTION_POINT = "taite"

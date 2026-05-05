@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geography.transformHeightValue
+import fi.fta.geoviite.infra.geometry.COORDINATE_DECIMALS
 import fi.fta.geoviite.infra.geometry.CurvedSectionEndpoint
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryDao
@@ -26,12 +27,14 @@ import fi.fta.geoviite.infra.geometry.toVerticalGeometryListing
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.math.RoundedPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationComparison
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -98,7 +101,9 @@ constructor(
                 val geocodingContext =
                     geocodingService.getGeocodingContextAtMoment(branch, track.trackNumberId, moment)
                         ?: throwGeocodingContextNotFound(branch, moment, track.trackNumberId)
-                val listings = getVerticalGeometryListings(track, geometry, geocodingContext).filter(::isValid)
+                val listings =
+                    getVerticalGeometryListings(track, geometry, geocodingContext)
+                        .mapNotNull(::validateAndTransformToLayout)
                 val (startAddress, endAddress) = getTrackAddresses(geometry, geocodingContext)
 
                 ExtLocationTrackProfileResponseV1(
@@ -125,9 +130,11 @@ constructor(
             ?.takeIf { (oldTrack, newTrack) -> oldTrack?.exists == true || newTrack.exists }
             ?.let { (oldTrack, newTrack) ->
                 val oldListings =
-                    oldTrack?.let { getVerticalGeometryListings(it, branch, startMoment) }?.filter(::isValid)
-                        ?: emptyList()
-                val newListings = getVerticalGeometryListings(newTrack, branch, endMoment).filter(::isValid)
+                    oldTrack
+                        ?.let { getVerticalGeometryListings(it, branch, startMoment) }
+                        ?.mapNotNull(::validateAndTransformToLayout) ?: emptyList()
+                val newListings =
+                    getVerticalGeometryListings(newTrack, branch, endMoment).mapNotNull(::validateAndTransformToLayout)
                 createProfileChangeIntervals(oldListings, newListings, coordinateSystem)
             }
             ?.takeIf { it.isNotEmpty() }
@@ -230,9 +237,34 @@ constructor(
     private fun fetchN60HeightTriangles(listings: List<VerticalGeometryListing>): List<HeightTriangle> =
         listings
             .filter { it.verticalCoordinateSystem == VerticalCoordinateSystem.N60 }
-            .flatMap { l -> listOfNotNull(l.start.location, l.point.location, l.end.location) }
+            .flatMap { l ->
+                require(l.coordinateSystemSrid == LAYOUT_SRID) {
+                    "Tranform to Layout SRID before height transformation: srid=${l.coordinateSystemSrid}"
+                }
+                listOfNotNull(l.start.location, l.point.location, l.end.location)
+            }
             .let { n60Points -> boundingBoxAroundPointsOrNull(n60Points) }
             ?.let { bbox -> heightTriangleDao.fetchTriangles(bbox.polygonFromCorners) } ?: emptyList()
+
+    private fun validateAndTransformToLayout(listing: VerticalGeometryListing): VerticalGeometryListing? =
+        listing.takeIf(::isValid)?.coordinateSystemSrid?.let { srid ->
+            when (srid) {
+                LAYOUT_SRID -> listing
+                else -> {
+                    val transform = coordinateTransformationService.getLayoutTransformation(srid)
+                    fun transformPoint(p: RoundedPoint?): RoundedPoint? = p?.let {
+                        transform.transform(it).round(COORDINATE_DECIMALS)
+                    }
+                    return listing.copy(
+                        coordinateSystemSrid = LAYOUT_SRID,
+                        coordinateSystemName = null,
+                        start = listing.start.copy(location = transformPoint(listing.start.location)),
+                        point = listing.point.copy(location = transformPoint(listing.point.location)),
+                        end = listing.end.copy(location = transformPoint(listing.end.location)),
+                    )
+                }
+            }
+        }
 }
 
 private fun isValid(listing: VerticalGeometryListing): Boolean =
@@ -388,54 +420,51 @@ private fun toIntersectionPoint(
 }
 
 private fun toProfileCurvedSectionEndpoint(
-    endpoint: CurvedSectionEndpoint,
+    endPoint: CurvedSectionEndpoint,
     verticalCoordinateSystem: VerticalCoordinateSystem?,
     heightTriangles: List<HeightTriangle>,
     coordinateSystem: Srid,
 ): ExtProfileCurvedSectionEndpointV1 =
     ExtProfileCurvedSectionEndpointV1(
-        heightOriginal = endpoint.height,
-        heightN2000 = computeN2000Height(endpoint.height, endpoint.location, verticalCoordinateSystem, heightTriangles),
-        gradient = endpoint.angle,
-        location = endpoint.location?.let { toExtAddressPoint(it, endpoint.address, coordinateSystem) },
+        heightOriginal = endPoint.height,
+        heightN2000 =
+            endPoint.location?.let {
+                computeN2000Height(endPoint.height, it, verticalCoordinateSystem, heightTriangles)
+            },
+        gradient = endPoint.angle,
+        location = endPoint.location?.let { toExtAddressPoint(it, endPoint.address, coordinateSystem) },
     )
 
 private fun toProfileIntersectionPoint(
     point: IntersectionPoint,
-    verticalCoordinateSystem: VerticalCoordinateSystem?,
+    verticalCS: VerticalCoordinateSystem?,
     heightTriangles: List<HeightTriangle>,
     coordinateSystem: Srid,
-): ExtProfileIntersectionPointV1 =
-    ExtProfileIntersectionPointV1(
+): ExtProfileIntersectionPointV1 {
+    val location = requireNotNull(point.location) { "PVI point not along track" }
+    return ExtProfileIntersectionPointV1(
         heightOriginal = point.height,
-        heightN2000 = computeN2000Height(point.height, point.location, verticalCoordinateSystem, heightTriangles),
-        location =
-            toExtAddressPoint(
-                requireNotNull(point.location) { "PVI point not along track" },
-                point.address,
-                coordinateSystem,
-            ),
+        heightN2000 = computeN2000Height(point.height, location, verticalCS, heightTriangles),
+        location = toExtAddressPoint(location, point.address, coordinateSystem),
     )
+}
 
 private fun toProfileLinearSection(section: LinearSection): ExtProfileLinearSectionV1 =
     ExtProfileLinearSectionV1(length = section.stationValueDistance, linearPartLength = section.linearSegmentLength)
 
 private fun computeN2000Height(
     height: BigDecimal,
-    location: IPoint?,
-    verticalCoordinateSystem: VerticalCoordinateSystem?,
+    location: IPoint,
+    verticalCS: VerticalCoordinateSystem?,
     heightTriangles: List<HeightTriangle>,
 ): BigDecimal? =
-    when (verticalCoordinateSystem) {
+    when (verticalCS) {
         VerticalCoordinateSystem.N2000 -> height
         VerticalCoordinateSystem.N60 ->
-            location?.let {
-                try {
-                    transformHeightValue(height.toDouble(), location, heightTriangles, verticalCoordinateSystem)
-                        .let(::roundTo3Decimals)
-                } catch (_: IllegalArgumentException) {
-                    null
-                }
+            try {
+                transformHeightValue(height.toDouble(), location, heightTriangles, verticalCS).let(::roundTo3Decimals)
+            } catch (_: IllegalArgumentException) {
+                null
             }
         VerticalCoordinateSystem.N43 -> null
         null -> null

@@ -1,5 +1,7 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
+import fi.fta.geoviite.infra.math.IPoint
+
 data class ExtTestTrackLayoutVersionV1(val rataverkon_versio: String, val aikaleima: String, val kuvaus: String)
 
 data class ExtTestTrackLayoutVersionCollectionResponseV1(
@@ -10,7 +12,7 @@ data class ExtTestTrackLayoutVersionCollectionResponseV1(
 
 data class ExtTestCoordinateV1(val x: Double, val y: Double)
 
-data class ExtTestAddressPointV1(val x: Double, val y: Double, val rataosoite: String?)
+data class ExtTestAddressPointV1(override val x: Double, override val y: Double, val rataosoite: String?) : IPoint
 
 data class ExtTestLocationTrackV1(
     val sijaintiraide_oid: String,
