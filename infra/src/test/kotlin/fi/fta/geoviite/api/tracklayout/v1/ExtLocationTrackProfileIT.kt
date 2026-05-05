@@ -595,7 +595,7 @@ constructor(
                 locationTrack(trackNumberId),
                 trackGeometryOfSegments(
                     segment(toSegmentPoints(to3DMPoints(points1)), sourceId = sourceElement1.id, sourceStartM = 0.0),
-                    segment(toSegmentPoints(to3DMPoints(points2)), sourceId = sourceElement2.id, sourceStartM = 500.0),
+                    segment(toSegmentPoints(to3DMPoints(points2)), sourceId = sourceElement2.id, sourceStartM = 0.0),
                 ),
             )
         extTestDataService.publishInMain(
