@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.INNER
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.OUTER
+import fi.fta.geoviite.infra.util.equalsBy
 import java.util.*
 import kotlin.math.PI
 import kotlin.math.abs
@@ -388,8 +389,7 @@ private constructor(
 
         return start.isSame(other.start) &&
             end.isSame(other.end) &&
-            segments.size == other.segments.size &&
-            segments.zip(other.segments) { a, b -> a.isSame(b) }.all { it }
+            segments.equalsBy(other.segments) { a, b -> a.isSame(b) }
     }
 
     override fun hashCode(): Int = nodesHash

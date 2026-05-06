@@ -43,6 +43,7 @@ import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.equalsBy
 import java.math.BigDecimal
 import java.time.Instant
 import kotlin.math.abs
@@ -390,9 +391,7 @@ data class SegmentGeometry(
 ) : ISegmentGeometry, Loggable {
 
     fun isSame(other: SegmentGeometry): Boolean =
-        resolution == other.resolution &&
-            segmentPoints.size == other.segmentPoints.size &&
-            segmentPoints.zip(other.segmentPoints) { a, b -> a.isSame(b) }.all { it }
+        resolution == other.resolution && segmentPoints.equalsBy(other.segmentPoints) { a, b -> a.isSame(b) }
 
     override val boundingBox: BoundingBox by lazy { boundingBoxAroundPoints(segmentPoints) }
 
