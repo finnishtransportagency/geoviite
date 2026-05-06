@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -44,8 +45,7 @@ class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase(
     @Test
     fun `Track number kms API should return correct kms`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val tnId = mainDraftContext.createLayoutTrackNumber(trackNumber).id
-        val tnOid = mainDraftContext.generateOid(tnId)
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(trackNumber))
         val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter(10, 100)), rlGeom).id
         val kmp13Id =
@@ -124,8 +124,7 @@ class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase(
     @Test
     fun `Track number kms API respects the coordinate system argument`() {
         val trackNumber = testDBService.getUnusedTrackNumber()
-        val tnId = mainDraftContext.createLayoutTrackNumber(trackNumber).id
-        val tnOid = mainDraftContext.generateOid(tnId)
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(trackNumber))
         val rlGeom = referenceLineGeometry(segment(Point(1000.0, 1000.0), Point(2000.0, 1000.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter.ZERO), rlGeom).id
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(1500.0, 1002.0))).id
@@ -170,8 +169,7 @@ class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase(
 
     @Test
     fun `A deleted track number has no kms`() {
-        val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val tnOid = mainDraftContext.generateOid(tnId)
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter.ZERO), rlGeom).id
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(500.0, 0.0))).id

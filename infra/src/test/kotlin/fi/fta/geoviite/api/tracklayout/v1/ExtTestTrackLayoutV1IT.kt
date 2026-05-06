@@ -21,13 +21,16 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometryOfElements
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -499,8 +502,8 @@ constructor(
 
     private fun setupValidTrackNumber(): Oid<LayoutTrackNumber> {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId, oid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
         testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
@@ -512,11 +515,9 @@ constructor(
 
         val trackNumbersAndReferenceLines =
             listOf(1, 2, 3).map { _ ->
-                val (trackNumberId, referenceLineId, _) =
-                    extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                        mainDraftContext,
-                        segments = listOf(segment),
-                    )
+                val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+                val referenceLineId =
+                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
                 trackNumberId to referenceLineId
             }
@@ -544,7 +545,7 @@ constructor(
             )
         val elements = plan.alignments[0].elements
 
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id.also { mainDraftContext.generateOid(it) }
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val referenceLineId =
             mainDraftContext.saveReferenceLine(referenceLineAndGeometryOfElements(trackNumberId, elements)).id
         val (trackId, oid) =
@@ -562,8 +563,8 @@ constructor(
     private fun setupValidLocationTrackCollection(): Publication {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
         val tracks =
             listOf(1, 2, 3).map { _ ->

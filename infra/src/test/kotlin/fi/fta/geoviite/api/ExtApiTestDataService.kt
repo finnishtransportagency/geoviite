@@ -5,8 +5,6 @@ import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -25,12 +23,14 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.linkedTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
-import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -81,7 +81,8 @@ constructor(
 
     fun insertGeocodableTrack(
         layoutContext: TestLayoutContext = mainOfficialContext,
-        trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        trackNumberId: IntId<LayoutTrackNumber> =
+            mainOfficialContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber())).first,
         referenceLineId: IntId<ReferenceLine>? = null,
         locationTrackName: String = "Test track-${UUID.randomUUID()}",
         locationTrackType: LocationTrackType = LocationTrackType.MAIN,
@@ -117,42 +118,6 @@ constructor(
         )
     }
 
-    fun insertTrackNumberAndReferenceLine(
-        layoutContext: TestLayoutContext,
-        trackNumberName: String = testDBService.getUnusedTrackNumber().value,
-        segments: List<LayoutSegment>,
-        startAddress: TrackMeter = TrackMeter.ZERO,
-    ): Pair<IntId<LayoutTrackNumber>, IntId<ReferenceLine>> {
-        val trackNumberId = layoutContext.createLayoutTrackNumber(TrackNumber(trackNumberName)).id
-
-        val referenceLine =
-            layoutContext.saveReferenceLine(
-                referenceLineAndGeometry(
-                    trackNumberId = trackNumberId,
-                    segments = segments,
-                    startAddress = startAddress,
-                )
-            )
-
-        return trackNumberId to referenceLine.id
-    }
-
-    fun insertTrackNumberAndReferenceLineWithOid(
-        layoutContext: TestLayoutContext,
-        trackNumberName: String = testDBService.getUnusedTrackNumber().value,
-        segments: List<LayoutSegment>,
-        startAddress: TrackMeter = TrackMeter.ZERO,
-    ): Triple<IntId<LayoutTrackNumber>, IntId<ReferenceLine>, Oid<LayoutTrackNumber>> {
-        val (trackNumberId, referenceLineId) =
-            insertTrackNumberAndReferenceLine(layoutContext, trackNumberName, segments, startAddress)
-        val oid =
-            someOid<LayoutTrackNumber>().also { oid ->
-                trackNumberDao.insertExternalId(trackNumberId, layoutContext.context.branch, oid)
-            }
-
-        return Triple(trackNumberId, referenceLineId, oid)
-    }
-
     data class IdAndOid<T>(val id: IntId<T>, val oid: Oid<T>)
 
     data class SwitchAndTrackIds(
@@ -177,8 +142,9 @@ constructor(
                 Point(allJoints.minOf { it.location.x }, allJoints.minOf { it.location.y }),
                 Point(allJoints.maxOf { it.location.x }, allJoints.maxOf { it.location.y }),
             )
-        val (trackNumberId, referenceLineId) =
-            insertTrackNumberAndReferenceLine(layoutContext, segments = listOf(segment))
+        val (trackNumberId, trackNumberOid) =
+            layoutContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId = layoutContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
         val trackIds = joints.map { (start, end) ->
             val geom = linkedTrackGeometry(savedSwitch, start.number, end.number, structure)
             layoutContext.save(locationTrack(trackNumberId), geom).id
@@ -187,7 +153,7 @@ constructor(
         return SwitchAndTrackIds(
             switch = IdAndOid(switchId, layoutContext.generateOid(switchId)),
             tracks = trackIds.map { id -> IdAndOid(id, layoutContext.generateOid(id)) },
-            trackNumber = IdAndOid(trackNumberId, layoutContext.generateOid(trackNumberId)),
+            trackNumber = IdAndOid(trackNumberId, trackNumberOid),
             referenceLineId = referenceLineId,
         )
     }

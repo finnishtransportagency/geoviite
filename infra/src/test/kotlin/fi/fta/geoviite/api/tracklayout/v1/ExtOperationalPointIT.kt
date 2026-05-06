@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -363,30 +364,23 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
         val (opId, opOid) = mainDraftContext.saveWithOid(operationalPoint(location = Point(5.0, 0.0)))
 
         // Create track number and reference line
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
         val rlId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
         // Create switch linked to operational point
         val structure = switchStructureYV60_300_1_9()
-        val switchId =
-            mainDraftContext
-                .save(
-                    switch(structure.id, joints = listOf(switchJoint(1, Point(0.0, 0.0))))
-                        .copy(operationalPointId = opId)
-                )
-                .id
-        val switchOid = mainDraftContext.generateOid(switchId)
+        val (switchId, switchOid) =
+            mainDraftContext.saveWithOid(
+                switch(structure.id, joints = listOf(switchJoint(1, Point(0.0, 0.0)))).copy(operationalPointId = opId)
+            )
 
         // Create track linked to operational point
-        val trackId =
-            mainDraftContext
-                .save(
-                    locationTrack(trackNumberId).copy(operationalPointIds = setOf(opId)),
-                    trackGeometryOfSegments(segment),
-                )
-                .id
-        val trackOid = mainDraftContext.generateOid(trackId)
+        val (trackId, trackOid) =
+            mainDraftContext.saveWithOid(
+                locationTrack(trackNumberId).copy(operationalPointIds = setOf(opId)),
+                trackGeometryOfSegments(segment),
+            )
 
         testDBService.publish(
             operationalPoints = listOf(opId),
@@ -416,17 +410,14 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
         // Phase 1: Create and link a switch to the operational point (calculated change)
         initUser()
         val structure = switchStructureYV60_300_1_9()
-        val switchId =
-            mainDraftContext
-                .save(
-                    switch(
-                            structure.id,
-                            joints = listOf(switchJoint(1, Point(0.0, 0.0)), switchJoint(2, Point(10.0, 0.0))),
-                        )
-                        .copy(operationalPointId = opId)
+        val (switchId, _) =
+            mainDraftContext.saveWithOid(
+                switch(
+                    structure.id,
+                    joints = listOf(switchJoint(1, Point(0.0, 0.0)), switchJoint(2, Point(10.0, 0.0))),
+                    operationalPointId = opId,
                 )
-                .id
-        mainDraftContext.generateOid(switchId)
+            )
 
         val switchPublication = testDBService.publish(switches = listOf(switchId))
 
@@ -446,20 +437,17 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
         // Phase 2: Create and link a location track to the operational point (calculated change)
         initUser()
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val rlId =
             mainDraftContext
                 .save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
                 .id
 
-        val trackId =
-            mainDraftContext
-                .save(
-                    locationTrack(trackNumberId).copy(operationalPointIds = setOf(opId)),
-                    trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
-                )
-                .id
-        mainDraftContext.generateOid(trackId)
+        val (trackId, _) =
+            mainDraftContext.saveWithOid(
+                locationTrack(trackNumberId).copy(operationalPointIds = setOf(opId)),
+                trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(100.0, 0.0))),
+            )
 
         val trackPublication =
             testDBService.publish(
@@ -521,8 +509,7 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
     fun `Operational point collection is filtered by name`() {
         val (matchingOpId, matchingOpOid) = mainDraftContext.saveWithOid(operationalPoint(name = "OP MATCHING 001"))
 
-        val otherOpId = mainDraftContext.save(operationalPoint(name = "OP OTHER 999")).id
-        mainDraftContext.generateOid(otherOpId)
+        val (otherOpId, _) = mainDraftContext.saveWithOid(operationalPoint(name = "OP OTHER 999"))
 
         testDBService.publish(operationalPoints = listOf(matchingOpId, otherOpId))
 
@@ -539,8 +526,7 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
     fun `Operational point change-list is filtered by name`() {
         val (matchingOpId, matchingOpOid) = mainDraftContext.saveWithOid(operationalPoint(name = "OP MATCHING 001"))
 
-        val otherOpId = mainDraftContext.save(operationalPoint(name = "OP OTHER 999")).id
-        mainDraftContext.generateOid(otherOpId)
+        val (otherOpId, _) = mainDraftContext.saveWithOid(operationalPoint(name = "OP OTHER 999"))
 
         val fromPublication = testDBService.publish(operationalPoints = listOf(matchingOpId, otherOpId)).uuid
 

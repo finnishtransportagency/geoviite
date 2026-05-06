@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.tracklayout.switchLinkYV
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -48,8 +49,7 @@ class ExtTrackBoundaryChangeIT @Autowired constructor(mockMvc: MockMvc, private 
     @Test
     fun `LocationTrack split shows up a boundary change`() {
         val tn = testDBService.getUnusedTrackNumber()
-        val tnId = mainDraftContext.createLayoutTrackNumber(tn).id
-        val tnOid = mainDraftContext.generateOid(tnId)
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(tn))
         val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(500.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
 

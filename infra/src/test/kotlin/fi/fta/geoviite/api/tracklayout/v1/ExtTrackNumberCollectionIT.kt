@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.IntId
@@ -8,6 +7,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState
@@ -15,11 +15,12 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someSegment
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -33,11 +34,7 @@ import org.springframework.test.web.servlet.MockMvc
 @AutoConfigureMockMvc
 class ExtTrackNumberCollectionIT
 @Autowired
-constructor(
-    mockMvc: MockMvc,
-    private val layoutTrackNumberService: LayoutTrackNumberService,
-    private val extTestDataService: ExtApiTestDataServiceV1,
-) : DBTestBase() {
+constructor(mockMvc: MockMvc, private val layoutTrackNumberService: LayoutTrackNumberService) : DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -51,10 +48,11 @@ constructor(
 
         val trackNumbers =
             listOf(1, 2, 3).map { _ ->
-                extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                    mainDraftContext,
-                    segments = listOf(segment),
-                )
+                val (trackNumberId, trackNumberOid) =
+                    mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+                val referenceLineId =
+                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+                Triple(trackNumberId, referenceLineId, trackNumberOid)
             }
 
         testDBService.publish(
@@ -67,9 +65,10 @@ constructor(
 
         assertEquals(newestButEmptyPublication.uuid.toString(), response.rataverkon_versio)
         assertEquals(trackNumbers.size, response.ratanumerot.size)
-
-        val responseOids = response.ratanumerot.map { trackNumber -> trackNumber.ratanumero_oid }
-        trackNumbers.forEach { (_, _, oid) -> assertTrue(oid.toString() in responseOids) }
+        assertEquals(
+            trackNumbers.map { it.third.toString() }.toSet(),
+            response.ratanumerot.map { it.ratanumero_oid }.toSet(),
+        )
     }
 
     @Test
@@ -78,10 +77,11 @@ constructor(
 
         val officialTrackNumbers =
             listOf(1, 2, 3).map { _ ->
-                extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                    mainDraftContext,
-                    segments = listOf(segment),
-                )
+                val (trackNumberId, trackNumberOid) =
+                    mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+                val referenceLineId =
+                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+                Triple(trackNumberId, referenceLineId, trackNumberOid)
             }
 
         val newestPublication =
@@ -101,7 +101,8 @@ constructor(
         }
 
         // Also save an additional draft track
-        extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (draftTrackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        mainDraftContext.save(referenceLine(draftTrackNumberId), referenceLineGeometry(segment))
 
         val response = api.trackNumberCollection.get()
         assertEquals(newestPublication.uuid.toString(), response.rataverkon_versio)
@@ -126,11 +127,9 @@ constructor(
 
         val expectedAmountToPublications =
             listOf(1, 2, 3).map { totalAmountOfTrackNumbers ->
-                val (trackNumberId, referenceLineId, _) =
-                    extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                        mainDraftContext,
-                        segments = listOf(segment),
-                    )
+                val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+                val referenceLineId =
+                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
                 val publication =
                     testDBService.publish(
@@ -162,8 +161,8 @@ constructor(
 
         val segment = segment(helsinkiRailwayStationTm35Fin, helsinkiRailwayStationTm35FinPlus10000)
 
-        val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
         testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
@@ -188,11 +187,10 @@ constructor(
 
         val allTrackNumbers =
             listOf(1, 2, 3, 4).map { _ ->
-                val (trackNumberId, referenceLineId, oid) =
-                    extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                        mainDraftContext,
-                        segments = listOf(segment),
-                    )
+                val (trackNumberId, oid) =
+                    mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+                val referenceLineId =
+                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
                 val trackNumber =
                     layoutTrackNumberService.get(MainLayoutContext.draft, trackNumberId).let(::requireNotNull)
@@ -232,11 +230,9 @@ constructor(
 
         val trackNumbers =
             LayoutState.entries.map { _ ->
-                val (trackNumberId, referenceLineId, _) =
-                    extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                        mainDraftContext,
-                        segments = listOf(segment),
-                    )
+                val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+                val referenceLineId =
+                    mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
                 val trackNumber =
                     layoutTrackNumberService.get(MainLayoutContext.draft, trackNumberId).let(::requireNotNull)
@@ -269,8 +265,8 @@ constructor(
 
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
         val publicationStart =
             testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
@@ -303,8 +299,8 @@ constructor(
     fun `Track number modification listing should use the newest track layout version if end version is not supplied`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
-        val (trackNumberId, referenceLineId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
         val publicationStart =
             testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
@@ -329,10 +325,12 @@ constructor(
     @Test
     fun `Track number modifications listing lists track numbers with calculated changes`() {
         val segment = segment(Point(0.0, 0.0), Point(10.0, 0.0))
-        val (trackNumberId1, referenceLineId1, trackNumberOid1) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
-        val (trackNumberId2, referenceLineId2, trackNumberOid2) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId1, trackNumberOid1) =
+            mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId1 = mainDraftContext.save(referenceLine(trackNumberId1), referenceLineGeometry(segment)).id
+        val (trackNumberId2, trackNumberOid2) =
+            mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId2 = mainDraftContext.save(referenceLine(trackNumberId2), referenceLineGeometry(segment)).id
 
         val basePublication =
             testDBService.publish(
@@ -382,18 +380,10 @@ constructor(
 
     @Test
     fun `Track number collection is filtered by track number name`() {
-        val (matchingId, matchingRefId, matchingOid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                trackNumberName = "001 MATCHING",
-                segments = listOf(someSegment()),
-            )
-        val (otherId, otherRefId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                trackNumberName = "999 OTHER",
-                segments = listOf(someSegment()),
-            )
+        val (matchingId, matchingOid) = mainDraftContext.saveWithOid(trackNumber(TrackNumber("001 MATCHING")))
+        val matchingRefId = mainDraftContext.save(referenceLine(matchingId), referenceLineGeometry(someSegment())).id
+        val (otherId, _) = mainDraftContext.saveWithOid(trackNumber(TrackNumber("999 OTHER")))
+        val otherRefId = mainDraftContext.save(referenceLine(otherId), referenceLineGeometry(someSegment())).id
 
         testDBService.publish(
             trackNumbers = listOf(matchingId, otherId),
@@ -410,18 +400,10 @@ constructor(
 
     @Test
     fun `Track number change-list is filtered by track number name`() {
-        val (matchingId, matchingRefId, matchingOid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                trackNumberName = "001 MATCHING",
-                segments = listOf(someSegment()),
-            )
-        val (otherId, otherRefId, _) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                trackNumberName = "999 OTHER",
-                segments = listOf(someSegment()),
-            )
+        val (matchingId, matchingOid) = mainDraftContext.saveWithOid(trackNumber(TrackNumber("001 MATCHING")))
+        val matchingRefId = mainDraftContext.save(referenceLine(matchingId), referenceLineGeometry(someSegment())).id
+        val (otherId, _) = mainDraftContext.saveWithOid(trackNumber(TrackNumber("999 OTHER")))
+        val otherRefId = mainDraftContext.save(referenceLine(otherId), referenceLineGeometry(someSegment())).id
 
         val fromPublication =
             testDBService

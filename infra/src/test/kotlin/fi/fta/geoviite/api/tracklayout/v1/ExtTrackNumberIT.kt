@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.KmNumber
@@ -42,11 +41,7 @@ import org.springframework.test.web.servlet.MockMvc
 @AutoConfigureMockMvc
 class ExtTrackNumberIT
 @Autowired
-constructor(
-    mockMvc: MockMvc,
-    private val extTestDataService: ExtApiTestDataServiceV1,
-    private val layoutTrackNumberDao: LayoutTrackNumberDao,
-) : DBTestBase() {
+constructor(mockMvc: MockMvc, private val layoutTrackNumberDao: LayoutTrackNumberDao) : DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -57,8 +52,8 @@ constructor(
     @Test
     fun `Newest official track number is returned by default`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId, oid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
         val publication1 =
             testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
@@ -75,8 +70,8 @@ constructor(
     @Test
     fun `Track number api respects the track layout version argument`() {
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId, oid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
         val publication1 =
             testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
@@ -117,8 +112,8 @@ constructor(
 
         val segment = segment(helsinkiRailwayStationTm35Fin, helsinkiRailwayStationTm35FinPlus10000)
 
-        val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
+        val (trackNumberId, oid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId = mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
 
         testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
@@ -137,10 +132,9 @@ constructor(
 
     @Test
     fun `Official geometry is returned at correct track layout version state`() {
-        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0100.000")), geometry).id
-        val tnOid = mainDraftContext.generateOid(tnId)
 
         val publication1 = testDBService.publish(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
 
@@ -242,12 +236,14 @@ constructor(
                 HelsinkiTestData.HKI_BASE_POINT + Point(endM - startM, 0.0),
                 startM,
             )
-        val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                segments = listOf(segment),
-                startAddress = TrackMeter(KmNumber("0000"), startM.toBigDecimal()),
-            )
+        val (trackNumberId, oid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId =
+            mainDraftContext
+                .save(
+                    referenceLine(trackNumberId, startAddress = TrackMeter(KmNumber("0000"), startM.toBigDecimal())),
+                    referenceLineGeometry(segment),
+                )
+                .id
 
         testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
@@ -274,12 +270,11 @@ constructor(
                 HelsinkiTestData.HKI_BASE_POINT + Point(0.0, endM - startM),
                 startM,
             )
-        val (trackNumberId, referenceLineId, oid) =
-            extTestDataService.insertTrackNumberAndReferenceLineWithOid(
-                mainDraftContext,
-                segments = listOf(segment),
-                startAddress = intervalStartAddress,
-            )
+        val (trackNumberId, oid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+        val referenceLineId =
+            mainDraftContext
+                .save(referenceLine(trackNumberId, startAddress = intervalStartAddress), referenceLineGeometry(segment))
+                .id
 
         testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
@@ -300,8 +295,7 @@ constructor(
 
     @Test
     fun `Track number modification API should show modifications for calculated change`() {
-        val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val tnOid = mainDraftContext.generateOid(tnId)
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
 
@@ -341,10 +335,9 @@ constructor(
 
     @Test
     fun `Deleted track numbers don't have geometry`() {
-        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0100.000")), geometry).id
-        val tnOid = mainDraftContext.generateOid(tnId)
 
         val publication1 = testDBService.publish(trackNumbers = listOf(tnId), referenceLines = listOf(rlId))
 
@@ -365,8 +358,7 @@ constructor(
 
     @Test
     fun `Deleted track numbers have no addresses exposed through the API`() {
-        val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val tnOid = mainDraftContext.generateOid(tnId)
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val rlGeom = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId), rlGeom).id
         val startWithAddress = ExtTestAddressPointV1(0.0, 0.0, "0000+0000.000")
@@ -405,20 +397,18 @@ constructor(
         // Add "some" publication to have a baseline version for queries prior to the track number creation
         val publication0 =
             mainDraftContext
-                .createLayoutTrackNumber()
-                .id
-                .let { tnId -> tnId to mainDraftContext.save(referenceLine(tnId)).id }
+                .saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
+                .let { (tnId, _) -> tnId to mainDraftContext.save(referenceLine(tnId)).id }
                 .let { (tn, rl) -> testDBService.publish(trackNumbers = listOf(tn), referenceLines = listOf(rl)) }
 
         // Publication 1 adds a new track number
-        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val alignment1 = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         // Straight reference line initially
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0100.000")), alignment1).id
         // Use km-posts to reset address calculation, as otherwise any change would change the geometry until the end
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(2), gkLocation = kmPostGkLocation(15.0, 0.0))).id
         val kmp2Id = mainDraftContext.save(kmPost(tnId, KmNumber(3), gkLocation = kmPostGkLocation(65.0, 0.0))).id
-        val tnOid = mainDraftContext.generateOid(tnId)
         val publication1 =
             testDBService.publish(
                 trackNumbers = listOf(tnId),
@@ -543,12 +533,11 @@ constructor(
 
     @Test
     fun `Geometry modifications API shows calculated changes correctly`() {
-        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val (tnId, tnOid) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val geometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter("0001+0100.000")), geometry).id
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(2), gkLocation = kmPostGkLocation(15.0, 0.0))).id
         val kmp2Id = mainDraftContext.save(kmPost(tnId, KmNumber(4), gkLocation = kmPostGkLocation(65.0, 0.0))).id
-        val tnOid = mainDraftContext.generateOid(tnId)
 
         val basePub =
             testDBService.publish(

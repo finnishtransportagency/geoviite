@@ -44,13 +44,15 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometryOfElements
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.to3DMPoints
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -476,12 +478,10 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
             )
         val sourceElement1 = plan1.alignments[0].elements[0]
         val sourceElement2 = plan2.alignments[0].elements[0]
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val referenceLineId =
             mainDraftContext
-                .saveReferenceLine(
-                    referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 2000.0)))
-                )
+                .save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 2000.0))))
                 .id
 
         // Segment 1 (0..600) linked to plan1, gap (600..800) unlinked, segment 2 (800..1400) linked to plan2
@@ -575,12 +575,10 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
         // Segment 2 linked to plan2's second element (stations 500-1000, contains curve at 550)
         val sourceElement1 = plan1.alignments[0].elements[0]
         val sourceElement2 = plan2.alignments[0].elements[1]
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val referenceLineId =
             mainDraftContext
-                .saveReferenceLine(
-                    referenceLineAndGeometry(trackNumberId, segment(Point(0.0, 0.0), Point(0.0, 1000.0)))
-                )
+                .save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(0.0, 1000.0))))
                 .id
 
         val points1 = (0..500).map { Point(0.0, it.toDouble()) }
@@ -652,9 +650,9 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
     @Test
     fun `Location track with no vertical geometry returns 200 with no PVI points`() {
         val refLineSegment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val referenceLineId =
-            mainDraftContext.saveReferenceLine(referenceLineAndGeometry(trackNumberId, refLineSegment)).id
+            mainDraftContext.save(referenceLine(trackNumberId), referenceLineGeometry(refLineSegment)).id
         val (trackId, oid) =
             mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(refLineSegment))
         testDBService.publish(
@@ -846,7 +844,7 @@ constructor(mockMvc: MockMvc, private val heightTriangleDao: HeightTriangleDao) 
         elements: List<GeometryElement>,
         planSrid: Srid = LAYOUT_SRID,
     ): Pair<IntId<LayoutTrackNumber>, IntId<ReferenceLine>> {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
+        val (trackNumberId, _) = mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
         val referenceLineId =
             mainDraftContext
                 .saveReferenceLine(referenceLineAndGeometryOfElements(trackNumberId, elements, planSrid = planSrid))
