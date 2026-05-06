@@ -22,7 +22,9 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
+import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -396,15 +398,14 @@ constructor(
                 )
                 .id
 
-        val tracksUnderTest =
-            positionedTrackSegments.map { trackSegments ->
-                extTestDataService.insertGeocodableTrack(
-                    layoutContext = layoutContext,
-                    trackNumberId = trackNumber.id as IntId,
-                    referenceLineId = referenceLineId,
-                    segments = trackSegments,
-                )
-            }
+        val tracksUnderTest = positionedTrackSegments.map { trackSegments ->
+            extTestDataService.insertGeocodableTrack(
+                layoutContext = layoutContext,
+                trackNumberId = trackNumber.id as IntId,
+                referenceLineId = referenceLineId,
+                segments = trackSegments,
+            )
+        }
 
         val request =
             TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 500, ratanumero = trackNumberName)
@@ -426,19 +427,11 @@ constructor(
 
     @Test
     fun `Request matching the address of some location tracks should succeed and return data only for the matches`() {
-        val layoutContext = mainOfficialContext
-        val trackNumberName = testDBService.getUnusedTrackNumber().value
-        val trackNumber =
-            layoutTrackNumberDao.save(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
-                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
-            }
-
-        val referenceLineSegments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val referenceLineId =
-            layoutContext
-                .saveReferenceLine(
-                    referenceLineAndGeometry(trackNumberId = trackNumber.id as IntId, segments = referenceLineSegments)
-                )
+            mainOfficialContext
+                .save(referenceLine(trackNumberId), referenceLineGeometry(segment(Point(0.0, 0.0), Point(1000.0, 0.0))))
                 .id
 
         val tracksUnderTest =
@@ -451,15 +444,15 @@ constructor(
                 )
                 .map { trackSegments ->
                     extTestDataService.insertGeocodableTrack(
-                        layoutContext = layoutContext,
-                        trackNumberId = trackNumber.id,
+                        layoutContext = mainOfficialContext,
+                        trackNumberId = trackNumberId,
                         referenceLineId = referenceLineId,
                         segments = trackSegments,
                     )
                 }
 
         val request =
-            TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 500, ratanumero = trackNumberName)
+            TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 500, ratanumero = trackNumber.toString())
 
         val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
         assertEquals(3, featureCollection.features.size)
@@ -1075,15 +1068,14 @@ constructor(
                 trackNumberName
             }
 
-        val requests =
-            trackNumberNames.mapIndexed { index, trackNumberName ->
-                TestTrackAddressToCoordinateRequest(
-                    ratakilometri = 0,
-                    ratametri = 500,
-                    ratanumero = trackNumberName,
-                    tunniste = "req $index",
-                )
-            }
+        val requests = trackNumberNames.mapIndexed { index, trackNumberName ->
+            TestTrackAddressToCoordinateRequest(
+                ratakilometri = 0,
+                ratametri = 500,
+                ratanumero = trackNumberName,
+                tunniste = "req $index",
+            )
+        }
 
         val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, requests)
         val propertiess = featureCollection.features.map { it.properties!! }

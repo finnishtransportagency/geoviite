@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -32,10 +31,10 @@ import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
-import java.util.*
 import org.junit.jupiter.api.Assertions.assertNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.util.*
 
 data class GeocodableTrack(
     val layoutContext: LayoutContext,
@@ -78,7 +77,6 @@ constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
-    private val switchDao: LayoutSwitchDao,
 ) : DBTestBase() {
 
     fun insertGeocodableTrack(
@@ -181,11 +179,10 @@ constructor(
             )
         val (trackNumberId, referenceLineId) =
             insertTrackNumberAndReferenceLine(layoutContext, segments = listOf(segment))
-        val trackIds =
-            joints.map { (start, end) ->
-                val geom = linkedTrackGeometry(savedSwitch, start.number, end.number, structure)
-                layoutContext.save(locationTrack(trackNumberId), geom).id
-            }
+        val trackIds = joints.map { (start, end) ->
+            val geom = linkedTrackGeometry(savedSwitch, start.number, end.number, structure)
+            layoutContext.save(locationTrack(trackNumberId), geom).id
+        }
 
         return SwitchAndTrackIds(
             switch = IdAndOid(switchId, layoutContext.generateOid(switchId)),
