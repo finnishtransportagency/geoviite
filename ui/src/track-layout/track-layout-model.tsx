@@ -25,7 +25,7 @@ import {
 } from 'common/common-model';
 import { deduplicateById } from 'utils/array-utils';
 import { AlignmentPolyLine, GeometryAlignmentHeader } from './layout-map-api';
-import { GeometryPlanLinkStatus, LocationTrackSaveRequest } from 'linking/linking-model';
+import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
 import { Brand } from 'common/brand';
 import { isNilOrBlank } from 'utils/string-utils';
@@ -209,14 +209,14 @@ export function getNameSpecifier(
 }
 
 export const locationTrackNameFieldsSanitized = (
-    saveRequest: LocationTrackSaveRequest,
-): Pick<LocationTrackSaveRequest, 'nameFreeText' | 'nameSpecifier'> => {
-    const freeText = !isNilOrBlank(saveRequest.nameFreeText)
-        ? saveRequest.nameFreeText?.trim()
-        : undefined;
-    const specifier = saveRequest.nameSpecifier;
+    namingScheme: LocationTrackNamingScheme | undefined,
+    nameFreeText: string | undefined,
+    nameSpecifier: LocationTrackNameSpecifier | undefined,
+): { nameFreeText: string | undefined; nameSpecifier: LocationTrackNameSpecifier | undefined } => {
+    const freeText = !isNilOrBlank(nameFreeText) ? nameFreeText?.trim() : undefined;
+    const specifier = nameSpecifier;
 
-    switch (saveRequest.namingScheme) {
+    switch (namingScheme) {
         case LocationTrackNamingScheme.FREE_TEXT:
         case LocationTrackNamingScheme.WITHIN_OPERATIONAL_POINT:
             return {
@@ -241,7 +241,7 @@ export const locationTrackNameFieldsSanitized = (
         case undefined:
             throw Error('Naming scheme is mandatory for location track save request!');
         default:
-            return exhaustiveMatchingGuard(saveRequest.namingScheme);
+            return exhaustiveMatchingGuard(namingScheme);
     }
 };
 

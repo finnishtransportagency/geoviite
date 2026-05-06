@@ -38,12 +38,14 @@ export const ConfirmSplitDialog: React.FC<ConfirmSplitDialogProps> = ({
         target: FirstSplitTargetCandidate | SplitTargetCandidate,
         index: number,
     ): string {
-        if (target.suffixMode === 'NONE') return target.descriptionBase;
+        const descriptionBaseTrimmed = target.descriptionBase.trim();
+
+        if (target.suffixMode === 'NONE') return descriptionBaseTrimmed;
         const startSwitchNameParts = getSwitchNameParts(target.splitPoint, switches);
         const endSplitPointForTarget = allSplits[index + 1]?.splitPoint ?? endSplitPoint;
         const endSwitchNameParts = getSwitchNameParts(endSplitPointForTarget, switches);
         return formatTrackDescription(
-            target.descriptionBase,
+            descriptionBaseTrimmed,
             target.suffixMode,
             startSwitchNameParts,
             endSwitchNameParts,
