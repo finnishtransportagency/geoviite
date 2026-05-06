@@ -239,7 +239,7 @@ export const locationTrackNameFieldsSanitized = (
                 nameSpecifier: undefined,
             };
         case undefined:
-            throw Error('Naming scheme is mandatory for location track save request!');
+            throw Error('Naming scheme is mandatory for location track.');
         default:
             return exhaustiveMatchingGuard(namingScheme);
     }
