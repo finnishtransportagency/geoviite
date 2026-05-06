@@ -297,16 +297,13 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
     const showNameSpecifierInput =
         split.namingScheme === LocationTrackNamingScheme.BETWEEN_OPERATIONAL_POINTS;
     const showFullName = !showFreeTextInput;
-    const showFullDescription = split.suffixMode !== 'NONE';
-    const fullDescription = showFullDescription
-        ? formatTrackDescription(
-              split.descriptionBase,
-              split.suffixMode,
-              startSwitchNameParts,
-              endSwitchNameParts,
-              t,
-          )
-        : undefined;
+    const fullDescription = formatTrackDescription(
+        split.descriptionBase,
+        split.suffixMode,
+        startSwitchNameParts,
+        endSwitchNameParts,
+        t,
+    );
 
     function updateName(
         namingScheme: LocationTrackNamingScheme,
@@ -624,25 +621,20 @@ const LocationTrackSplitM: React.FC<SplitProps> = ({
                             hasError={descriptionSuffixErrorsVisible}
                         />
                     </InfoboxField>
-                    {showFullDescription && (
-                        <InfoboxField
-                            className={
-                                styles['location-track-infobox__split-item-field-label--low']
-                            }
-                            label={t('tool-panel.location-track.splitting.full-description')}
-                            hasErrors={descriptionErrorsVisible}>
-                            <span
-                                className={createClassName(
-                                    styles['location-track-infobox__split-full-name'],
-                                    descriptionErrorsVisible &&
-                                        styles[
-                                            'location-track-infobox__split-full-name--has-errors'
-                                        ],
-                                )}>
-                                {fullDescription}
-                            </span>
-                        </InfoboxField>
-                    )}
+                    <InfoboxField
+                        className={styles['location-track-infobox__split-item-field-label--low']}
+                        label={t('tool-panel.location-track.splitting.full-description')}
+                        hasErrors={descriptionErrorsVisible}>
+                        <span
+                            className={createClassName(
+                                styles['location-track-infobox__split-full-name'],
+                                descriptionErrorsVisible &&
+                                    styles['location-track-infobox__split-full-name--has-errors'],
+                            )}>
+                            {fullDescription}
+                        </span>
+                    </InfoboxField>
+
                     {descriptionSuffixErrorsVisible && (
                         <InfoboxField
                             className={createClassName(
