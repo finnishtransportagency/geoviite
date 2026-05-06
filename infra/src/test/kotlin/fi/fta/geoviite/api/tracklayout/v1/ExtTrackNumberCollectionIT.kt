@@ -57,12 +57,12 @@ constructor(
                 )
             }
 
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = trackNumbers.map { (trackNumberId, _, _) -> trackNumberId },
             referenceLines = trackNumbers.map { (_, referenceLineId, _) -> referenceLineId },
         )
 
-        val newestButEmptyPublication = extTestDataService.publishInMain()
+        val newestButEmptyPublication = testDBService.publish()
         val response = api.trackNumberCollection.get()
 
         assertEquals(newestButEmptyPublication.uuid.toString(), response.rataverkon_versio)
@@ -85,7 +85,7 @@ constructor(
             }
 
         val newestPublication =
-            extTestDataService.publishInMain(
+            testDBService.publish(
                 trackNumbers = officialTrackNumbers.map { it.first },
                 referenceLines = officialTrackNumbers.map { it.second },
             )
@@ -133,7 +133,7 @@ constructor(
                     )
 
                 val publication =
-                    extTestDataService.publishInMain(
+                    testDBService.publish(
                         trackNumbers = listOf(trackNumberId),
                         referenceLines = listOf(referenceLineId),
                     )
@@ -165,7 +165,7 @@ constructor(
         val (trackNumberId, referenceLineId, _) =
             extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
-        extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
+        testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
         tests.forEach { (epsgCode, expectedStart, expectedEnd) ->
             val response = api.trackNumberCollection.get("koordinaatisto" to epsgCode)
@@ -201,7 +201,7 @@ constructor(
             }
 
         val initialPublication =
-            extTestDataService.publishInMain(
+            testDBService.publish(
                 trackNumbers = allTrackNumbers.map { (_, trackNumber, _) -> trackNumber.id as IntId },
                 referenceLines = allTrackNumbers.map { (_, _, referenceLineId) -> referenceLineId },
             )
@@ -216,8 +216,7 @@ constructor(
                 oid to trackNumber.id as IntId
             }
 
-        val secondPublication =
-            extTestDataService.publishInMain(trackNumbers = modifiedTrackNumbers.map { (_, id) -> id })
+        val secondPublication = testDBService.publish(trackNumbers = modifiedTrackNumbers.map { (_, id) -> id })
 
         val response = api.trackNumberCollection.getModified("alkuversio" to initialPublication.uuid.toString())
 
@@ -246,7 +245,7 @@ constructor(
             }
 
         val initialPublication =
-            extTestDataService.publishInMain(
+            testDBService.publish(
                 trackNumbers = trackNumbers.map { (trackNumber, _) -> trackNumber.id as IntId },
                 referenceLines = trackNumbers.map { (_, referenceLineId) -> referenceLineId },
             )
@@ -257,9 +256,7 @@ constructor(
             .forEach { (trackNumber, newState) -> mainDraftContext.saveTrackNumber(trackNumber.copy(state = newState)) }
 
         val secondPublication =
-            extTestDataService.publishInMain(
-                trackNumbers = trackNumbers.map { (trackNumber, _) -> trackNumber.id as IntId }
-            )
+            testDBService.publish(trackNumbers = trackNumbers.map { (trackNumber, _) -> trackNumber.id as IntId })
 
         val response = api.trackNumberCollection.getModified("alkuversio" to initialPublication.uuid.toString())
 
@@ -268,7 +265,7 @@ constructor(
 
     @Test
     fun `Track number modification listing respects start & end track layout version arguments`() {
-        extTestDataService.publishInMain() // Purposeful empty publication which should not be in any of the responses
+        testDBService.publish() // Purposeful empty publication which should not be in any of the responses
 
         val segment = segment(Point(0.0, 0.0), Point(100.0, 0.0))
 
@@ -276,10 +273,7 @@ constructor(
             extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val publicationStart =
-            extTestDataService.publishInMain(
-                trackNumbers = listOf(trackNumberId),
-                referenceLines = listOf(referenceLineId),
-            )
+            testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
         val modifiedDescription = "modified description after publication ${publicationStart.uuid}"
         layoutTrackNumberService.get(MainLayoutContext.official, trackNumberId).let(::requireNotNull).let { trackNumber
@@ -287,10 +281,10 @@ constructor(
             mainDraftContext.save(trackNumber.copy(description = TrackNumberDescription(modifiedDescription)))
         }
 
-        val publicationEnd = extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId))
+        val publicationEnd = testDBService.publish(trackNumbers = listOf(trackNumberId))
 
         // Publish one more time, this should also not be in the response
-        extTestDataService.publishInMain()
+        testDBService.publish()
 
         val response =
             api.trackNumberCollection.getModified(
@@ -313,10 +307,7 @@ constructor(
             extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val publicationStart =
-            extTestDataService.publishInMain(
-                trackNumbers = listOf(trackNumberId),
-                referenceLines = listOf(referenceLineId),
-            )
+            testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
         val modifiedDescription = "modified description after publication ${publicationStart.uuid}"
         layoutTrackNumberService.get(MainLayoutContext.official, trackNumberId).let(::requireNotNull).let { trackNumber
@@ -324,7 +315,7 @@ constructor(
             mainDraftContext.save(trackNumber.copy(description = TrackNumberDescription(modifiedDescription)))
         }
 
-        val publicationEnd = extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId))
+        val publicationEnd = testDBService.publish(trackNumbers = listOf(trackNumberId))
 
         val response = api.trackNumberCollection.getModified("alkuversio" to publicationStart.uuid.toString())
 
@@ -344,7 +335,7 @@ constructor(
             extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val basePublication =
-            extTestDataService.publishInMain(
+            testDBService.publish(
                 trackNumbers = listOf(trackNumberId1, trackNumberId2),
                 referenceLines = listOf(referenceLineId1, referenceLineId2),
             )
@@ -356,7 +347,7 @@ constructor(
             mainOfficialContext.fetch(referenceLineId1)!!.copy(startAddress = TrackMeter("0001+0010.000")),
             referenceLineGeometry(segment),
         )
-        val rlPublication = extTestDataService.publishInMain(referenceLines = listOf(referenceLineId1))
+        val rlPublication = testDBService.publish(referenceLines = listOf(referenceLineId1))
         assertAddressRange(getExtTrackNumberInCollection(trackNumberOid1)!!, "0001+0010.000", "0001+0020.000")
         api.trackNumberCollection.getModifiedBetween(basePublication.uuid, rlPublication.uuid).let { mods ->
             assertEquals(listOf(trackNumberOid1.toString()), mods.ratanumerot.map { it.ratanumero_oid })
@@ -367,7 +358,7 @@ constructor(
         initUser()
         val kmpId =
             mainDraftContext.save(kmPost(trackNumberId1, KmNumber(4), gkLocation = kmPostGkLocation(5.0, 0.0))).id
-        val kmpPublication = extTestDataService.publishInMain(kmPosts = listOf(kmpId))
+        val kmpPublication = testDBService.publish(kmPosts = listOf(kmpId))
         assertAddressRange(getExtTrackNumberInCollection(trackNumberOid1)!!, "0001+0010.000", "0004+0005.000")
         api.trackNumberCollection.getModifiedBetween(rlPublication.uuid, kmpPublication.uuid).let { mods ->
             assertEquals(listOf(trackNumberOid1.toString()), mods.ratanumerot.map { it.ratanumero_oid })
@@ -404,7 +395,7 @@ constructor(
                 segments = listOf(someSegment()),
             )
 
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(matchingId, otherId),
             referenceLines = listOf(matchingRefId, otherRefId),
         )
@@ -433,11 +424,8 @@ constructor(
             )
 
         val fromPublication =
-            extTestDataService
-                .publishInMain(
-                    trackNumbers = listOf(matchingId, otherId),
-                    referenceLines = listOf(matchingRefId, otherRefId),
-                )
+            testDBService
+                .publish(trackNumbers = listOf(matchingId, otherId), referenceLines = listOf(matchingRefId, otherRefId))
                 .uuid
 
         layoutTrackNumberService.get(MainLayoutContext.official, matchingId).let(::requireNotNull).also { tn ->
@@ -447,7 +435,7 @@ constructor(
             mainDraftContext.saveTrackNumber(tn.copy(description = TrackNumberDescription("changed")))
         }
 
-        extTestDataService.publishInMain(trackNumbers = listOf(matchingId, otherId))
+        testDBService.publish(trackNumbers = listOf(matchingId, otherId))
 
         api.trackNumberCollection.getModifiedSince(fromPublication, TRACK_NUMBER to "001 MATCHING").also { response ->
             assertEquals(listOf(matchingOid.toString()), response.ratanumerot.map { it.ratanumero_oid })

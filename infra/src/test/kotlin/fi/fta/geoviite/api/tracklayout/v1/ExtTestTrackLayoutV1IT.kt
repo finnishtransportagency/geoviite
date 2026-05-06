@@ -151,7 +151,7 @@ constructor(
     fun `Ext api asset endpoints should return HTTP 400 if the OID is invalid format`() {
         val invalidOid = "asd"
         val expectedStatus = HttpStatus.BAD_REQUEST
-        val validButEmptyPublication = extTestDataService.publishInMain()
+        val validButEmptyPublication = testDBService.publish()
 
         errorTests.forEach { (_, apiCall) -> apiCall(invalidOid, emptyArray(), expectedStatus) }
         modificationErrorTests.forEach { (_, apiCall) ->
@@ -163,7 +163,7 @@ constructor(
     fun `Ext api asset endpoints should return HTTP 404 if the OID is not found`() {
         val expectedStatus = HttpStatus.NOT_FOUND
         val nonExistingOid = someOid<Nothing>().toString()
-        val validButEmptyPublication = extTestDataService.publishInMain()
+        val validButEmptyPublication = testDBService.publish()
 
         errorTests.forEach { (_, apiCall) -> apiCall(nonExistingOid, emptyArray(), expectedStatus) }
         modificationErrorTests.forEach { (_, apiCall) ->
@@ -215,8 +215,8 @@ constructor(
 
     @Test
     fun `Ext api asset modification endpoints should return HTTP 400 if the start and end track layout versions are in the incorrect order`() {
-        val startPublication = extTestDataService.publishInMain()
-        val endPublication = extTestDataService.publishInMain()
+        val startPublication = testDBService.publish()
+        val endPublication = testDBService.publish()
         val expectedStatus = HttpStatus.BAD_REQUEST
 
         modificationErrorTests
@@ -235,7 +235,7 @@ constructor(
 
     @Test
     fun `Ext api asset modification endpoints should return HTTP 404 if either the start or end track layout version is not found`() {
-        val emptyButExistingPublication = extTestDataService.publishInMain()
+        val emptyButExistingPublication = testDBService.publish()
         val validButNonExistingUuid = "00000000-0000-0000-0000-000000000000"
 
         val expectedStatus = HttpStatus.NOT_FOUND
@@ -258,7 +258,7 @@ constructor(
     @Test
     fun `Ext api asset endpoints should return HTTP 204 when the asset does not exist in the specified track layout version`() {
         val expectedStatus = HttpStatus.NO_CONTENT
-        val validButEmptyPublication = extTestDataService.publishInMain()
+        val validButEmptyPublication = testDBService.publish()
 
         noContentTests
             .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
@@ -284,8 +284,8 @@ constructor(
     @Test
     fun `Ext api asset modification endpoints should return HTTP 204 when the asset does not exist between track layout versions`() {
         val expectedStatus = HttpStatus.NO_CONTENT
-        val firstPublication = extTestDataService.publishInMain()
-        val secondPublication = extTestDataService.publishInMain()
+        val firstPublication = testDBService.publish()
+        val secondPublication = testDBService.publish()
 
         noContentModificationTests
             .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
@@ -305,7 +305,7 @@ constructor(
 
     @Test
     fun `Ext api asset modification endpoints should return HTTP 200 when the asset has been created after the start track layout version`() {
-        val validButEmptyPublication = extTestDataService.publishInMain()
+        val validButEmptyPublication = testDBService.publish()
 
         modificationSuccessTests
             .map { (oidSetup, apiCall) -> oidSetup() to apiCall }
@@ -324,7 +324,7 @@ constructor(
                 val publicationAfterSetup =
                     publicationService.getPublicationByUuidOrLatest(LayoutBranchType.MAIN, publicationUuid = null)
                 initUser()
-                val publicationWithNoChanges = extTestDataService.publishInMain()
+                val publicationWithNoChanges = testDBService.publish()
 
                 apiCall(
                     oid,
@@ -340,7 +340,7 @@ constructor(
     @Test
     fun `Ext api asset collection modification endpoints should return HTTP 404 if either start or end track layout version is not found`() {
         val nonExistingTrackLayoutVersion = "00000000-0000-0000-0000-000000000000"
-        val emptyButRealPublication = extTestDataService.publishInMain()
+        val emptyButRealPublication = testDBService.publish()
 
         collectionModificationErrorTests.forEach { apiCall ->
             apiCall(arrayOf("alkuversio" to nonExistingTrackLayoutVersion), HttpStatus.NOT_FOUND)
@@ -368,7 +368,7 @@ constructor(
     @Test
     fun `Ext api asset collection modification endpoints should return HTTP 400 if the start or end track layout versions is in invalid format`() {
         val invalidTrackLayoutVersion = "asd"
-        val emptyButRealPublication = extTestDataService.publishInMain()
+        val emptyButRealPublication = testDBService.publish()
 
         collectionModificationErrorTests.forEach { apiCall ->
             apiCall(arrayOf("alkuversio" to invalidTrackLayoutVersion), HttpStatus.BAD_REQUEST)
@@ -395,8 +395,8 @@ constructor(
 
     @Test
     fun `Ext api asset collection modification endpoints should return HTTP 400 if the start and end track layout versions are in the incorrect order`() {
-        val startPublication = extTestDataService.publishInMain()
-        val endPublication = extTestDataService.publishInMain()
+        val startPublication = testDBService.publish()
+        val endPublication = testDBService.publish()
 
         collectionModificationErrorTests.forEach { apiCall ->
             apiCall(
@@ -418,7 +418,7 @@ constructor(
 
     @Test
     fun `Ext api asset collection endpoints should return HTTP 404 if the track layout version is not found`() {
-        extTestDataService.publishInMain() // Purposefully a publication so that it does not answer based on this
+        testDBService.publish() // Purposefully a publication so that it does not answer based on this
 
         collectionErrorTests.forEach { apiCall ->
             apiCall(arrayOf("rataverkon_versio" to "00000000-0000-0000-0000-000000000000"), HttpStatus.NOT_FOUND)
@@ -428,7 +428,7 @@ constructor(
     @Test
     fun `Ext api asset collection modification endpoints should return HTTP 204 when there are no modifications`() {
         val lastContentPublication = collectionNoContentTests.map { (setupCollection, _) -> setupCollection() }.last()
-        val lastButEmptyPublication = extTestDataService.publishInMain()
+        val lastButEmptyPublication = testDBService.publish()
 
         collectionNoContentTests.forEach { (_, apiCall) ->
             apiCall(
@@ -505,7 +505,7 @@ constructor(
         val (trackNumberId, referenceLineId, oid) =
             extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
-        extTestDataService.publishInMain(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
+        testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
         return oid
     }
@@ -524,7 +524,7 @@ constructor(
                 trackNumberId to referenceLineId
             }
 
-        return extTestDataService.publishInMain(
+        return testDBService.publish(
             trackNumbers = trackNumbersAndReferenceLines.map { it.first },
             referenceLines = trackNumbersAndReferenceLines.map { it.second },
         )
@@ -554,7 +554,7 @@ constructor(
             mainDraftContext.saveLocationTrack(locationTrack(trackNumberId) to trackGeometryOfElements(elements)).id
         val oid = mainDraftContext.generateOid(trackId)
 
-        extTestDataService.publishInMain(
+        testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = listOf(trackId),
@@ -577,7 +577,7 @@ constructor(
                 trackId
             }
 
-        return extTestDataService.publishInMain(
+        return testDBService.publish(
             trackNumbers = listOf(trackNumberId),
             referenceLines = listOf(referenceLineId),
             locationTracks = tracks,
@@ -615,7 +615,7 @@ constructor(
                 .id
         val oid = mainDraftContext.generateOid(opId)
 
-        extTestDataService.publishInMain(operationalPoints = listOf(opId))
+        testDBService.publish(operationalPoints = listOf(opId))
 
         return oid
     }
@@ -635,6 +635,6 @@ constructor(
                     .also { opId -> mainDraftContext.generateOid(opId) }
             }
 
-        return extTestDataService.publishInMain(operationalPoints = ops)
+        return testDBService.publish(operationalPoints = ops)
     }
 }

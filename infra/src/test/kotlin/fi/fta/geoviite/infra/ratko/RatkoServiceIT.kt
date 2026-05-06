@@ -32,6 +32,7 @@ import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationResult
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.PublicationTestSupportService
+import fi.fta.geoviite.infra.publication.publicationRequest
 import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.ratko.model.OperationalPointRatoType
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
@@ -1781,7 +1782,7 @@ constructor(
         fakeRatko.acceptsNewDesignGivingItId(123)
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
+            publicationRequest(message = "aoeu"),
         )
         ratkoService.pushChangesToRatko(design)
         assertEquals(123, layoutDesignDao.fetchRatkoId(design.designId)?.intValue)
@@ -1793,7 +1794,7 @@ constructor(
         fakeRatko.acceptsNewDesignGivingItId(123)
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
+            publicationRequest(message = "aoeu"),
         )
         layoutDesignDao.update(
             design.designId,
@@ -1805,7 +1806,7 @@ constructor(
         )
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
+            publicationRequest(message = "aoeu"),
         )
         ratkoService.pushChangesToRatko(design)
         layoutDesignDao.update(
@@ -1818,7 +1819,7 @@ constructor(
         )
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
+            publicationRequest(message = "aoeu"),
         )
         ratkoService.pushChangesToRatko(design)
         assertEquals(
@@ -1842,11 +1843,11 @@ constructor(
         publishAndPush()
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("aoeu")),
+            publicationRequest(message = "aoeu"),
         )
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(publicationRequestIds(), message = PublicationMessage.of("uuba aaba")),
+            publicationRequest(message = "uuba aaba"),
         )
         ratkoService.pushChangesToRatko(design)
         assertEquals(listOf<RatkoPlan>(), fakeRatko.getUpdatesToDesign(123))
@@ -1883,10 +1884,7 @@ constructor(
         fakeRatko.acceptsNewSwitchGivingItOid("3.3.3.3.3")
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(locationTracks = listOf(locationTrack), switches = listOf(switch)),
-                message = PublicationMessage.of("aoeu"),
-            ),
+            publicationRequest(locationTracks = listOf(locationTrack), switches = listOf(switch), message = "aoeu"),
         )
 
         fakeRatko.acceptsNewDesignGivingItId(123)

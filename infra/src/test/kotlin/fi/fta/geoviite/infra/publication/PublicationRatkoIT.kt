@@ -178,7 +178,7 @@ constructor(
         fakeRatko.acceptsNewSwitchGivingItOid(designSwitchOid)
         publicationService.publishManualPublication(
             someDesign,
-            PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), PublicationMessage.of("aoeu")),
+            publicationRequest(kmPosts = listOf(kmPost), message = "aoeu"),
         )
 
         // GVT-2798 will implement properly querying Ratko for the inherited ext IDs; for now, we
@@ -286,10 +286,7 @@ constructor(
         assertThrows<PublicationFailureException> {
             publicationService.publishManualPublication(
                 LayoutBranch.main,
-                PublicationRequest(
-                    publicationRequestIds(switches = listOf(switch), locationTracks = listOf(locationTrack)),
-                    PublicationMessage.of(""),
-                ),
+                publicationRequest(switches = listOf(switch), locationTracks = listOf(locationTrack)),
             )
         }
         // ... and the OID we tried to use didn't get recorded as being a proper OID
@@ -299,10 +296,7 @@ constructor(
         // ... then publication does succeed
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(
-                publicationRequestIds(switches = listOf(switch), locationTracks = listOf(locationTrack)),
-                PublicationMessage.of(""),
-            ),
+            publicationRequest(switches = listOf(switch), locationTracks = listOf(locationTrack)),
         )
         assertEquals(Oid("1.2.3.4.5"), switchDao.fetchExternalId(LayoutBranch.main, switch)?.oid)
     }
@@ -355,15 +349,12 @@ constructor(
         designDraftContext.save(mainOfficialContext.fetch(kmPost)!!)
 
         val requestPublishAll =
-            PublicationRequest(
-                publicationRequestIds(
-                    trackNumbers = listOf(trackNumber),
-                    referenceLines = listOf(referenceLine),
-                    locationTracks = listOf(locationTrack),
-                    switches = listOf(switch),
-                    kmPosts = listOf(kmPost),
-                ),
-                PublicationMessage.of(""),
+            publicationRequest(
+                trackNumbers = listOf(trackNumber),
+                referenceLines = listOf(referenceLine),
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+                kmPosts = listOf(kmPost),
             )
 
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("1.1.1.1.1"))

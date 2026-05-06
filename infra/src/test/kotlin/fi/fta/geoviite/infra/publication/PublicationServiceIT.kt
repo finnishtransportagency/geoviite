@@ -1967,7 +1967,7 @@ constructor(
         val id = mainDraftContext.save(op).id
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(operationalPoints = listOf(id)), PublicationMessage.of("foo")),
+            publicationRequest(operationalPoints = listOf(id), message = "foo"),
         )
         val publishedVersion = mainOfficialContext.fetchVersion(id)!!
         assertEquals(id, publishedVersion.id)
@@ -1981,7 +1981,7 @@ constructor(
         mainDraftContext.save(official.copy(name = OperationalPointName("Lordistan")))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(operationalPoints = listOf(id)), PublicationMessage.of("bar")),
+            publicationRequest(operationalPoints = listOf(id), message = "bar"),
         )
         val editedOfficial = mainOfficialContext.fetch(id)!!
         assertEquals("Lordistan", editedOfficial.name.toString())
@@ -2013,7 +2013,7 @@ constructor(
         assertEquals("Aaponen", candidates.operationalPoints[0].name.toString())
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(operationalPoints = listOf(pointId)), PublicationMessage.of("aa")),
+            publicationRequest(operationalPoints = listOf(pointId), message = "aa"),
         )
         assertEquals("Aaponen", operationalPointService.get(mainOfficialContext.context, pointId)!!.name.toString())
         ratkoTestService.updateRatkoOperationalPoints(ratkoOperationalPoint("1.2.3.4.5", "Beepponen"))
@@ -2023,7 +2023,7 @@ constructor(
         assertEquals("Beepponen", editCandidates.operationalPoints[0].name.toString())
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(operationalPoints = listOf(pointId)), PublicationMessage.of("bee")),
+            publicationRequest(operationalPoints = listOf(pointId), message = "bee"),
         )
         assertEquals("Beepponen", operationalPointService.get(mainOfficialContext.context, pointId)!!.name.toString())
     }
@@ -2038,10 +2038,7 @@ constructor(
         val ordinaryPoint = mainDraftContext.save(operationalPoint(ratoType = OperationalPointRatoType.LP)).id
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(
-                publicationRequestIds(operationalPoints = listOf(olpPoint, overriddenIdPoint, ordinaryPoint)),
-                PublicationMessage.of("publish all"),
-            ),
+            publicationRequest(operationalPoints = listOf(olpPoint, overriddenIdPoint, ordinaryPoint), message = "publish all"),
         )
         assertEquals(null, operationalPointDao.getRinfIdGenerated(olpPoint))
         assertEquals(null, operationalPointDao.getRinfIdGenerated(overriddenIdPoint))
@@ -2051,10 +2048,7 @@ constructor(
         mainDraftContext.save(mainOfficialContext.fetch(overriddenIdPoint)!!.copy(rinfIdOverride = null))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(
-                publicationRequestIds(operationalPoints = listOf(olpPoint, overriddenIdPoint)),
-                PublicationMessage.of("change points to want rinf_id_generated"),
-            ),
+            publicationRequest(operationalPoints = listOf(olpPoint, overriddenIdPoint), message = "change points to want rinf_id_generated"),
         )
         assertTrue(operationalPointDao.getRinfIdGenerated(olpPoint) != null)
         assertTrue(operationalPointDao.getRinfIdGenerated(overriddenIdPoint) != null)
@@ -2269,16 +2263,6 @@ constructor(
         assertEquals(2, officialVersion2.version)
     }
 }
-
-fun publicationRequestIds(
-    trackNumbers: List<IntId<LayoutTrackNumber>> = listOf(),
-    locationTracks: List<IntId<LocationTrack>> = listOf(),
-    referenceLines: List<IntId<ReferenceLine>> = listOf(),
-    switches: List<IntId<LayoutSwitch>> = listOf(),
-    kmPosts: List<IntId<LayoutKmPost>> = listOf(),
-    operationalPoints: List<IntId<OperationalPoint>> = listOf(),
-): PublicationRequestIds =
-    PublicationRequestIds(trackNumbers, locationTracks, referenceLines, switches, kmPosts, operationalPoints)
 
 fun <T : LayoutAsset<T>, S : LayoutAssetDao<T, *>> publishAndCheck(
     rowVersion: LayoutRowVersion<T>,

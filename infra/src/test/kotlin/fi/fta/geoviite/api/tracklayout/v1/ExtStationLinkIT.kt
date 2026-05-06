@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestLayoutContext
@@ -37,9 +36,7 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtStationLinkIT
-@Autowired
-constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServiceV1) : DBTestBase() {
+class ExtStationLinkIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -49,7 +46,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
     @Test
     fun `Station links API returns correct object versions`() {
-        val baseVersion = extTestDataService.publishInMain().uuid
+        val baseVersion = testDBService.publish().uuid
         val baseResponse =
             api.stationLinkCollection.get().also { response ->
                 assertEquals(baseVersion.toString(), response.rataverkon_versio)
@@ -72,8 +69,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             createConnectionTrack(mainDraftContext, tnId, switch1Id, switch2Id, Point(45.0, 5.0), Point(155.0, 5.0))
 
         val version1 =
-            extTestDataService
-                .publishInMain(
+            testDBService
+                .publish(
                     operationalPoints = listOf(op1Id, op2Id),
                     switches = listOf(switch1Id, switch2Id),
                     locationTracks = listOf(track1Id),
@@ -103,7 +100,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val (track2Id, track2Oid) =
             createConnectionTrack(mainDraftContext, tnId, switch1Id, switch2Id, Point(45.0, 0.0), Point(155.0, 10.0))
 
-        val updatedVersion = extTestDataService.publishInMain(locationTracks = listOf(track2Id)).uuid
+        val updatedVersion = testDBService.publish(locationTracks = listOf(track2Id)).uuid
 
         // Verify updated state shows both tracks
         api.stationLinkCollection.get().also { response ->
@@ -138,8 +135,8 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val switch2Id = mainDraftContext.save(switch(operationalPointId = op2Id)).id
 
         val baseVersion =
-            extTestDataService
-                .publishInMain(operationalPoints = listOf(op1Id, op2Id), switches = listOf(switch1Id, switch2Id))
+            testDBService
+                .publish(operationalPoints = listOf(op1Id, op2Id), switches = listOf(switch1Id, switch2Id))
                 .uuid
 
         api.stationLinkCollection.get().also { response ->
@@ -158,7 +155,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         }
 
         initUser() // Re-initUser after the API calls (thread context reset)
-        extTestDataService.publishInMain(locationTracks = listOf(trackId)).uuid
+        testDBService.publish(locationTracks = listOf(trackId)).uuid
 
         // Now the link should appear
         api.stationLinkCollection.get().also { response ->
@@ -187,7 +184,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val (trackId, trackOid) =
             createConnectionTrack(mainOfficialContext, tnId, switch1Id, switch2Id, Point(45.0, 1.0), Point(155.0, 1.0))
 
-        val baseVersion = extTestDataService.publishInMain().uuid
+        val baseVersion = testDBService.publish().uuid
 
         // Verify link exists
         api.stationLinkCollection.get().also { response ->
@@ -204,7 +201,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         initUser() // Re-initUser after the API calls (thread context reset)
         mainDraftContext.mutate(trackId) { track -> track.copy(state = LocationTrackState.DELETED) }
-        val deletedVersion = extTestDataService.publishInMain(locationTracks = listOf(trackId)).uuid
+        val deletedVersion = testDBService.publish(locationTracks = listOf(trackId)).uuid
 
         // Link should no longer appear
         api.stationLinkCollection.get().also { response ->
@@ -243,7 +240,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val (_, tn2TrackOid) =
             createConnectionTrack(mainOfficialContext, tn2Id, switch1Id, switch2Id, Point(45.0, 0.0), Point(155.0, 0.0))
 
-        val layoutVersion = extTestDataService.publishInMain().uuid
+        val layoutVersion = testDBService.publish().uuid
 
         // Verify API returns separate link objects for each track number
         api.stationLinkCollection.get().also { response ->

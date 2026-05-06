@@ -99,16 +99,13 @@ constructor(
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("2.2.2.2.2"))
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(referenceLines = listOf(referenceLine)),
-                PublicationMessage.of("ref line to design"),
-            ),
+            publicationRequest(referenceLines = listOf(referenceLine), message = "ref line to design"),
         )
 
         mainDraftContext.save(mainDraftContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), PublicationMessage.of("km post")),
+            publicationRequest(kmPosts = listOf(kmPost), message = "km post"),
         )
 
         val designPublications = publicationLogService.fetchPublications(design)
@@ -146,16 +143,13 @@ constructor(
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("2.2.2.2.2"))
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(trackNumbers = listOf(trackNumber)),
-                PublicationMessage.of("track number to design"),
-            ),
+            publicationRequest(trackNumbers = listOf(trackNumber), message = "track number to design"),
         )
 
         mainDraftContext.save(mainDraftContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), PublicationMessage.of("km post")),
+            publicationRequest(kmPosts = listOf(kmPost), message = "km post"),
         )
 
         val designPublications = publicationLogService.fetchPublications(design)
@@ -196,16 +190,13 @@ constructor(
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.2.2.2.2")
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(locationTracks = listOf(locationTrack)),
-                PublicationMessage.of("location track to design"),
-            ),
+            publicationRequest(locationTracks = listOf(locationTrack), message = "location track to design"),
         )
 
         mainDraftContext.save(mainDraftContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), PublicationMessage.of("km post")),
+            publicationRequest(kmPosts = listOf(kmPost), message = "km post"),
         )
 
         val designPublications = publicationLogService.fetchPublications(design)
@@ -245,16 +236,13 @@ constructor(
 
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(locationTracks = listOf(locationTrack)),
-                PublicationMessage.of("location track in design"),
-            ),
+            publicationRequest(locationTracks = listOf(locationTrack), message = "location track in design"),
         )
 
         mainDraftContext.save(mainDraftContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
         publicationService.publishManualPublication(
             LayoutBranch.main,
-            PublicationRequest(publicationRequestIds(kmPosts = listOf(kmPost)), PublicationMessage.of("km post")),
+            publicationRequest(kmPosts = listOf(kmPost), message = "km post"),
         )
 
         val designPublications = publicationLogService.fetchPublications(design)
@@ -295,10 +283,7 @@ constructor(
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("3.3.3.3.3"))
         publicationService.publishManualPublication(
             design,
-            PublicationRequest(
-                publicationRequestIds(kmPosts = listOf(kmPost)),
-                PublicationMessage.of("edit km post in design"),
-            ),
+            publicationRequest(kmPosts = listOf(kmPost), message = "edit km post in design"),
         )
         assertEquals("2.2.2.2.2", locationTrackDao.fetchExternalId(design, locationTrack)?.oid?.toString())
         assertEquals("3.3.3.3.3", trackNumberDao.fetchExternalId(design, trackNumber)?.oid?.toString())

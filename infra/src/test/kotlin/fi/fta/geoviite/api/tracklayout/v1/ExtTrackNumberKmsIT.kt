@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.common.KmNumber
@@ -16,8 +15,6 @@ import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
-import java.math.BigDecimal
-import kotlin.math.abs
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -30,13 +27,13 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import java.math.BigDecimal
+import kotlin.math.abs
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtTrackNumberKmsIT
-@Autowired
-constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServiceV1) : DBTestBase() {
+class ExtTrackNumberKmsIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -65,7 +62,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
             mainDraftContext.save(kmPost(tnId, KmNumber(16), gkLocation = kmPostGkLocation(600.0, 0.0, true))).id
 
         val publication =
-            extTestDataService.publishInMain(
+            testDBService.publish(
                 trackNumbers = listOf(tnId),
                 referenceLines = listOf(rlId),
                 kmPosts = listOf(kmp13Id, kmp14Id, deletedKmp15Id, kmp16Id),
@@ -134,11 +131,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(1500.0, 1002.0))).id
 
         val publication =
-            extTestDataService.publishInMain(
-                trackNumbers = listOf(tnId),
-                referenceLines = listOf(rlId),
-                kmPosts = listOf(kmp1Id),
-            )
+            testDBService.publish(trackNumbers = listOf(tnId), referenceLines = listOf(rlId), kmPosts = listOf(kmp1Id))
         val response = api.trackNumberKms.get(tnOid, COORDINATE_SYSTEM to "EPSG:4326")
         assertEquals(publication.uuid.toString(), response.rataverkon_versio)
         assertEquals(Srid(4326).toString(), response.koordinaatisto)
@@ -183,11 +176,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
         val rlId = mainDraftContext.save(referenceLine(tnId, startAddress = TrackMeter.ZERO), rlGeom).id
         val kmp1Id = mainDraftContext.save(kmPost(tnId, KmNumber(1), gkLocation = kmPostGkLocation(500.0, 0.0))).id
         val basePublication =
-            extTestDataService.publishInMain(
-                trackNumbers = listOf(tnId),
-                referenceLines = listOf(rlId),
-                kmPosts = listOf(kmp1Id),
-            )
+            testDBService.publish(trackNumbers = listOf(tnId), referenceLines = listOf(rlId), kmPosts = listOf(kmp1Id))
 
         api.trackNumberKms.get(tnOid).also { response ->
             assertEquals(basePublication.uuid.toString(), response.rataverkon_versio)
@@ -203,7 +192,7 @@ constructor(mockMvc: MockMvc, private val extTestDataService: ExtApiTestDataServ
 
         initUser()
         mainDraftContext.mutate(tnId) { tn -> tn.copy(state = LayoutState.DELETED) }
-        val deletePublication = extTestDataService.publishInMain(trackNumbers = listOf(tnId))
+        val deletePublication = testDBService.publish(trackNumbers = listOf(tnId))
         api.trackNumberKms.getWithEmptyBody(tnOid, httpStatus = HttpStatus.NO_CONTENT)
         api.trackNumberKms.assertDoesntExist(tnOid)
         assertNull(

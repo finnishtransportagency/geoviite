@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
@@ -28,6 +29,9 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationCause
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationMessage
+import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.publicationRequest
+import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.tracklayout.DbLocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.DesignAssetState
@@ -143,6 +147,8 @@ class TestDBService(
     override val operationalPointDao: OperationalPointDao,
     private val layoutDesignDao: LayoutDesignDao,
     private val publicationDao: PublicationDao,
+    private val publicationService: PublicationService,
+    private val calculatedChangesService: CalculatedChangesService,
 ) : TestDB {
 
     override val jdbc by lazy { jdbcTemplate ?: error("JDBC not initialized") }
@@ -462,6 +468,45 @@ class TestDBService(
     ): GeometryPlan {
         val planVersion = geometryDao.insertPlan(plan, file, null)
         return geometryDao.fetchPlan(planVersion)
+    }
+
+    fun publish(
+        branch: LayoutBranch = LayoutBranch.main,
+        trackNumbers: List<IntId<LayoutTrackNumber>> = emptyList(),
+        referenceLines: List<IntId<ReferenceLine>> = emptyList(),
+        locationTracks: List<IntId<LocationTrack>> = emptyList(),
+        switches: List<IntId<LayoutSwitch>> = emptyList(),
+        kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
+        operationalPoints: List<IntId<OperationalPoint>> = emptyList(),
+    ): Publication {
+        val requestIds =
+            publicationRequestIds(trackNumbers, locationTracks, referenceLines, switches, kmPosts, operationalPoints)
+        val versions = publicationService.getValidationVersions(branch, requestIds)
+        val calculatedChanges = calculatedChangesService.getCalculatedChanges(versions)
+        val result =
+            publicationService.publishChanges(
+                branch,
+                versions,
+                calculatedChanges,
+                PublicationMessage.of("test"),
+                PublicationCause.MANUAL,
+            )
+        return publicationDao.getPublication(requireNotNull(result.publicationId))
+    }
+
+    fun publishAndValidate(
+        branch: LayoutBranch = LayoutBranch.main,
+        trackNumbers: List<IntId<LayoutTrackNumber>> = emptyList(),
+        referenceLines: List<IntId<ReferenceLine>> = emptyList(),
+        locationTracks: List<IntId<LocationTrack>> = emptyList(),
+        switches: List<IntId<LayoutSwitch>> = emptyList(),
+        kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
+        operationalPoints: List<IntId<OperationalPoint>> = emptyList(),
+    ): Publication {
+        val request =
+            publicationRequest(trackNumbers, locationTracks, referenceLines, switches, kmPosts, operationalPoints)
+        val result = publicationService.publishManualPublication(branch, request)
+        return publicationDao.getPublication(requireNotNull(result.publicationId))
     }
 }
 

@@ -85,7 +85,7 @@ constructor(
         // Update switch 1
         initUser()
         mainDraftContext.mutate(switch1.switch.id) { s -> s.copy(name = SwitchName(s.name.toString() + "-EDIT")) }
-        val updatedVersion = extTestDataService.publishInMain(switches = listOf(switch1.switch.id)).uuid
+        val updatedVersion = testDBService.publish(switches = listOf(switch1.switch.id)).uuid
         val switch1AfterUpdate = mainOfficialContext.fetch(switch1.switch.id)!!
         assertNotEquals(switch1BeforeUpdate, switch1AfterUpdate)
         assertEquals(switch2BeforeUpdate, mainOfficialContext.fetch(switch2.switch.id)!!)
@@ -128,7 +128,7 @@ constructor(
         // Update both, but now only publish switch 2 (wasn't published before)
         mainDraftContext.mutate(switch1Id) { s -> s.copy(name = SwitchName(s.name.toString() + "-EDIT1")) }
         mainDraftContext.mutate(switch2Id) { s -> s.copy(name = SwitchName(s.name.toString() + "-EDIT2")) }
-        val updatedVersion = extTestDataService.publishInMain(switches = listOf(switch2.switch.id)).uuid
+        val updatedVersion = testDBService.publish(switches = listOf(switch2.switch.id)).uuid
 
         assertEquals(switch1Base, mainOfficialContext.fetch(switch1Id))
         val switch2Updated = mainOfficialContext.fetch(switch2Id)!!
@@ -161,8 +161,8 @@ constructor(
         mainDraftContext.mutate(switch.switch.id) { s -> s.copy(stateCategory = LayoutStateCategory.NOT_EXISTING) }
 
         val deletedVersion =
-            extTestDataService
-                .publishInMain(switches = listOf(switch.switch.id), locationTracks = switch.tracks.map { it.id })
+            testDBService
+                .publish(switches = listOf(switch.switch.id), locationTracks = switch.tracks.map { it.id })
                 .uuid
         val deletedSwitch =
             mainOfficialContext.fetch(id)!!.also { assertEquals(LayoutStateCategory.NOT_EXISTING, it.stateCategory) }
@@ -206,8 +206,8 @@ constructor(
             )
         val (switch3Id, switch3Oid) = switch3.switch
         val update1Version =
-            extTestDataService
-                .publishInMain(
+            testDBService
+                .publish(
                     switches = listOf(switch2Id, switch3Id),
                     locationTracks = switch3.tracks.map { it.id },
                     trackNumbers = listOf(switch3.trackNumber.id),
@@ -234,7 +234,7 @@ constructor(
         // Update switch 2 again
         initUser()
         mainDraftContext.mutate(switch2.switch.id) { s -> s.copy(name = SwitchName(s.name.toString() + "-EDIT2")) }
-        val update2Version = extTestDataService.publishInMain(switches = listOf(switch2Id)).uuid
+        val update2Version = testDBService.publish(switches = listOf(switch2Id)).uuid
         val switch2Update2 = mainOfficialContext.fetch(switch2.switch.id)!!
 
         // Changes since base version: s1 unchanged, s2 changed twice, s3 added
@@ -314,7 +314,7 @@ constructor(
         val track2Id = mainDraftContext.save(locationTrack(tn2Id), track2Geom).id
         val track2Oid = mainDraftContext.generateOid(track2Id)
 
-        extTestDataService.publishInMain(
+        testDBService.publish(
             switches = listOf(switchId),
             locationTracks = listOf(track1Id, track2Id),
             trackNumbers = listOf(tn1Id, tn2Id),
@@ -373,8 +373,8 @@ constructor(
         val track2Oid = mainDraftContext.generateOid(track2Id)
 
         val baseVersion =
-            extTestDataService
-                .publishInMain(
+            testDBService
+                .publish(
                     switches = listOf(switch1Id, switch2Id),
                     locationTracks = listOf(track1Id, track2Id),
                     trackNumbers = listOf(tn1Id, tn2Id),
@@ -399,7 +399,7 @@ constructor(
         // Update reference line 2 start -> should produce calculated change for track 2, affecting switch2 links
         initUser()
         mainDraftContext.mutate(rl2Id) { rl -> rl.copy(startAddress = TrackMeter("0003+0300.000")) }
-        val updateVersion = extTestDataService.publishInMain(referenceLines = listOf(rl2Id)).uuid
+        val updateVersion = testDBService.publish(referenceLines = listOf(rl2Id)).uuid
 
         // Different track number -> should not affect switch1
         api.switch.assertNoModificationSince(switch1Oid, baseVersion)
@@ -494,7 +494,7 @@ constructor(
 
         initUser()
         mainDraftContext.mutate(switch.tracks[0].id) { lt -> lt.copy(state = LocationTrackState.DELETED) }
-        val updateVersion = extTestDataService.publishInMain(locationTracks = switch.tracks.map { it.id }).uuid
+        val updateVersion = testDBService.publish(locationTracks = switch.tracks.map { it.id }).uuid
 
         api.switch.get(switchOid).let { response ->
             assertEquals(updateVersion.toString(), response.rataverkon_versio)
@@ -521,7 +521,7 @@ constructor(
 
         initUser()
         mainDraftContext.mutate(switch.tracks[0].id) { lt -> lt.copy(state = LocationTrackState.DELETED) }
-        val updateVersion = extTestDataService.publishInMain(locationTracks = switch.tracks.map { it.id }).uuid
+        val updateVersion = testDBService.publish(locationTracks = switch.tracks.map { it.id }).uuid
 
         api.switch.getModifiedSince(switchOid, baseVersion).let { response ->
             assertEquals(baseVersion.toString(), response.alkuversio)
@@ -583,7 +583,7 @@ constructor(
             s.copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
         }
         mainDraftContext.mutate(otherSwitch.switch.id) { s -> s.copy(stateCategory = LayoutStateCategory.NOT_EXISTING) }
-        extTestDataService.publishInMain(switches = listOf(matchingSwitch.switch.id, otherSwitch.switch.id))
+        testDBService.publish(switches = listOf(matchingSwitch.switch.id, otherSwitch.switch.id))
 
         api.switchCollection.getModifiedSince(fromPublication, SWITCH_NAME to "VMATCH").also { response ->
             assertEquals(listOf(matchingOid.toString()), response.vaihteet.map { it.vaihde_oid })
@@ -720,7 +720,7 @@ constructor(
             actual.turvavaihde,
         )
 
-        assertEquals(switchLibrary.getSwitchOwner(switch.ownerId)!!.name.toString(), actual.omistaja)
+        assertEquals(switchLibrary.getSwitchOwner(switch.ownerId).name.toString(), actual.omistaja)
 
         val structure = switchLibrary.getSwitchStructure(switch.switchStructureId)
         assertEquals(structure.type.toString(), actual.tyyppi)

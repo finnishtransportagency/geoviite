@@ -3,18 +3,13 @@ package fi.fta.geoviite.api
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.publication.PublicationDao
-import fi.fta.geoviite.infra.publication.PublicationTestSupportService
-import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.LayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -26,7 +21,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
-import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.linkedTrackGeometry
@@ -85,8 +79,6 @@ constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val switchDao: LayoutSwitchDao,
-    private val publicationTestSupportService: PublicationTestSupportService,
-    private val publicationDao: PublicationDao,
 ) : DBTestBase() {
 
     fun insertGeocodableTrack(
@@ -204,52 +196,10 @@ constructor(
     }
 
     fun publishInMain(switchAndTrackIds: List<SwitchAndTrackIds>): Publication =
-        publishInMain(
+        testDBService.publish(
             trackNumbers = switchAndTrackIds.map { it.trackNumber.id },
             referenceLines = switchAndTrackIds.map { it.referenceLineId },
             locationTracks = switchAndTrackIds.flatMap { it.tracks.map { track -> track.id } },
             switches = switchAndTrackIds.map { it.switch.id },
         )
-
-    fun publishInMain(
-        trackNumbers: List<IntId<LayoutTrackNumber>> = emptyList(),
-        referenceLines: List<IntId<ReferenceLine>> = emptyList(),
-        locationTracks: List<IntId<LocationTrack>> = emptyList(),
-        switches: List<IntId<LayoutSwitch>> = emptyList(),
-        kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
-        operationalPoints: List<IntId<OperationalPoint>> = emptyList(),
-    ): Publication =
-        publishInBranch(
-            LayoutBranch.main,
-            trackNumbers = trackNumbers,
-            referenceLines = referenceLines,
-            locationTracks = locationTracks,
-            switches = switches,
-            kmPosts = kmPosts,
-            operationalPoints = operationalPoints,
-        )
-
-    fun publishInBranch(
-        branch: LayoutBranch,
-        trackNumbers: List<IntId<LayoutTrackNumber>> = emptyList(),
-        referenceLines: List<IntId<ReferenceLine>> = emptyList(),
-        locationTracks: List<IntId<LocationTrack>> = emptyList(),
-        switches: List<IntId<LayoutSwitch>> = emptyList(),
-        kmPosts: List<IntId<LayoutKmPost>> = emptyList(),
-        operationalPoints: List<IntId<OperationalPoint>> = emptyList(),
-    ): Publication {
-        return publicationTestSupportService
-            .publish(
-                branch,
-                publicationRequestIds(
-                    trackNumbers = trackNumbers,
-                    referenceLines = referenceLines,
-                    locationTracks = locationTracks,
-                    switches = switches,
-                    kmPosts = kmPosts,
-                    operationalPoints = operationalPoints,
-                ),
-            )
-            .let { summary -> publicationDao.getPublication(requireNotNull(summary.publicationId)) }
-    }
 }

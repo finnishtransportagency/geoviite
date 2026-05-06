@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.tracklayout.v1
 
-import fi.fta.geoviite.api.ExtApiTestDataServiceV1
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackBoundaryGeometryChangeTypeV1.CREATE_NEW
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackBoundaryGeometryChangeTypeV1.REPLACE_DUPLICATE
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackBoundaryGeometryChangeTypeV1.REPLACE_DUPLICATE_PARTIAL
@@ -37,13 +36,8 @@ import org.springframework.test.web.servlet.MockMvc
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
-class ExtTrackBoundaryChangeIT
-@Autowired
-constructor(
-    mockMvc: MockMvc,
-    private val extTestDataService: ExtApiTestDataServiceV1,
-    private val splitService: SplitService,
-) : DBTestBase() {
+class ExtTrackBoundaryChangeIT @Autowired constructor(mockMvc: MockMvc, private val splitService: SplitService) :
+    DBTestBase() {
     private val api = ExtTrackLayoutTestApiService(mockMvc)
 
     @BeforeEach
@@ -131,7 +125,7 @@ constructor(
 
         // Base publication before the split
         val basePublication =
-            extTestDataService.publishInMain(
+            testDBService.publish(
                 trackNumbers = listOf(tnId),
                 referenceLines = listOf(rlId),
                 locationTracks = listOf(sourceId, target2Id, target3Id),
@@ -154,7 +148,7 @@ constructor(
 
         // Publication for the split should carry the new boundary changes
         val splitPublication =
-            extTestDataService.publishInMain(locationTracks = split.locationTracks, switches = split.relinkedSwitches)
+            testDBService.publish(locationTracks = split.locationTracks, switches = split.relinkedSwitches)
 
         // Verify results
         api.trackBoundaryCollection.getModifiedBetween(basePublication.uuid, splitPublication.uuid).let { response ->
