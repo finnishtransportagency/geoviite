@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
@@ -73,8 +72,6 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import kotlin.collections.plus
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -88,6 +85,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import publicationRequest
 import publish
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -1841,8 +1839,8 @@ constructor(
     @Test
     fun `switch draft OIDs are checked for uniqueness vs existing OIDs`() {
         testDBService.deleteFromTables("layout", "switch_external_id")
-        switchDao.insertExternalId(mainOfficialContext.save(switch()).id, LayoutBranch.main, Oid("1.2.3.4.5"))
-        val draftSwitch = mainDraftContext.save(switch(draftOid = Oid("1.2.3.4.5"))).id
+        val existingOid = testDBService.generateOid(mainOfficialContext.save(switch()).id, LayoutBranch.main)
+        val draftSwitch = mainDraftContext.save(switch(draftOid = existingOid)).id
         assertContains(
             publicationValidationService
                 .validateSwitches(LayoutBranch.main, PublicationState.DRAFT, listOf(draftSwitch))[0]

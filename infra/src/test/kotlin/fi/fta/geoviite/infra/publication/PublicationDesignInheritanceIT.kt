@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.math.Point
@@ -45,6 +44,7 @@ constructor(
     val locationTrackDao: LocationTrackDao,
     val fakeRatkoService: FakeRatkoService,
 ) : DBTestBase() {
+
     @BeforeEach
     fun cleanup() {
         val sql =
@@ -83,7 +83,7 @@ constructor(
         // case: track number is only in main-official, but reference line is also edited in design, and km post on
         // the track number is changed -> inherited change is recorded on the track number version in main
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid("1.1.1.1.1"))
+        testDBService.generateOid(trackNumber, LayoutBranch.main)
         val referenceLine =
             mainOfficialContext
                 .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
@@ -126,7 +126,7 @@ constructor(
         // case: track number is edited in design, and km post on the track number is changed -> inherited change is
         // recorded on the track number version in the design
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid("1.1.1.1.1"))
+        testDBService.generateOid(trackNumber, LayoutBranch.main)
         mainOfficialContext
             .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
             .id
@@ -170,7 +170,7 @@ constructor(
         // case: location track is create in main and edited in design, then a km post change is edited in main,
         // causing an inherited change
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid("1.1.1.1.1"))
+        testDBService.generateOid(trackNumber, LayoutBranch.main)
         mainOfficialContext
             .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
             .id
@@ -216,7 +216,7 @@ constructor(
         // case: location track is created in design, then a km post change is edited in main, causing an inherited
         // change
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid("1.1.1.1.1"))
+        testDBService.generateOid(trackNumber, LayoutBranch.main)
         mainOfficialContext
             .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
             .id
@@ -260,7 +260,7 @@ constructor(
     @Test
     fun `self-inherited changes both assign oids and record indirect changes for the inheritance targets`() {
         val trackNumber = mainOfficialContext.save(trackNumber()).id
-        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid("1.1.1.1.1"))
+        testDBService.generateOid(trackNumber, LayoutBranch.main)
         mainOfficialContext
             .save(referenceLine(trackNumber), referenceLineGeometry(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
             .id

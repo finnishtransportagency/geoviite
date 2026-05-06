@@ -11,12 +11,10 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineGeometry
-import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
@@ -54,7 +52,6 @@ constructor(
     private val kmPostDao: LayoutKmPostDao,
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
-    private val locationTrackDao: LocationTrackDao,
 ) : SeleniumTest() {
     lateinit var WEST_LT: Pair<LocationTrack, LocationTrackGeometry>
     lateinit var GEOMETRY_PLAN: GeometryPlan
@@ -80,7 +77,7 @@ constructor(
         val eastLocationTrack = eastLocationTrack(trackNumberEastId.id)
 
         val westLtId = mainOfficialContext.saveLocationTrack(WEST_LT).id
-        locationTrackDao.insertExternalId(westLtId, LayoutBranch.main, someOid())
+        testDBService.generateOid(westLtId, LayoutBranch.main)
         mainOfficialContext.saveLocationTrack(eastLocationTrack)
         insertReferenceLine(WEST_REFERENCE_LINE)
         insertReferenceLine(eastReferenceLine)

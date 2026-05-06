@@ -1090,33 +1090,6 @@ fun offsetSegment(segment: LayoutSegment, amount: Point): LayoutSegment {
     return segment.copy(geometry = segment.geometry.withPoints(newPoints))
 }
 
-fun externalIdForLocationTrack(): Oid<LocationTrack> {
-    val first = nextInt(100, 999)
-    val second = nextInt(100, 999)
-    val third = nextInt(100, 999)
-    val fourth = nextInt(100, 999)
-
-    return Oid("$first.$second.$third.$fourth")
-}
-
-fun externalIdForTrackNumber(): Oid<LayoutTrackNumber> {
-    val first = nextInt(100, 999)
-    val second = nextInt(100, 999)
-    val third = nextInt(100, 999)
-    val fourth = nextInt(100, 999)
-
-    return Oid("$first.$second.$third.$fourth")
-}
-
-fun externalIdForSwitch(): Oid<LayoutSwitch> {
-    val first = nextInt(100, 999)
-    val second = nextInt(100, 999)
-    val third = nextInt(100, 999)
-    val fourth = nextInt(100, 999)
-
-    return Oid("$first.$second.$third.$fourth")
-}
-
 fun switchLinkingAtStart(
     locationTrackId: DomainId<LocationTrack>,
     geometry: LocationTrackGeometry,

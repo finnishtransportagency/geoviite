@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
-import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -37,6 +36,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -193,7 +193,7 @@ constructor(
 
         assertNull(locationTrackDao.fetchExternalId(LayoutBranch.main, id))
 
-        locationTrackService.insertExternalId(LayoutBranch.main, id, externalIdForLocationTrack())
+        locationTrackService.insertExternalId(LayoutBranch.main, id, someOid())
 
         assertNotNull(locationTrackDao.fetchExternalId(LayoutBranch.main, id))
     }
@@ -686,27 +686,25 @@ constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(someReferenceLineGeometry()).id
 
         val (originalLocationTrack, _) = insertAndFetchDraft(locationTrack(trackNumberId, draft = true), geometry)
-        publish(originalLocationTrack.id as IntId)
-        val originalLocationTrackId = originalLocationTrack.id
+        val originalTrackId = originalLocationTrack.id as IntId
+        publish(originalTrackId)
 
         val (duplicateInOfficial, _) =
-            insertAndFetchDraft(
-                locationTrack(trackNumberId, duplicateOf = originalLocationTrackId, draft = true),
-                geometry,
-            )
-        publish(duplicateInOfficial.id as IntId<LocationTrack>)
+            insertAndFetchDraft(locationTrack(trackNumberId, duplicateOf = originalTrackId, draft = true), geometry)
+        val duplicateTrackId = duplicateInOfficial.id as IntId
+        publish(duplicateTrackId)
 
         val newTrackName = trackNameStructure(duplicateInOfficial.name.toString() + " NEW NAME FOR DRAFT")
         val duplicateInDraftVersion =
             locationTrackService.update(
                 LayoutBranch.main,
-                duplicateInOfficial.id,
+                duplicateTrackId,
                 saveRequest(trackNumberId, 1)
                     .copy(
                         namingScheme = newTrackName.scheme,
                         nameFreeText = newTrackName.freeText,
                         nameSpecifier = newTrackName.specifier,
-                        duplicateOf = originalLocationTrackId,
+                        duplicateOf = originalTrackId,
                     ),
             )
         val duplicateInDraft = locationTrackService.get(MainLayoutContext.draft, duplicateInDraftVersion.id)!!
@@ -714,7 +712,7 @@ constructor(
         assertEquals(
             duplicateInOfficial.name,
             locationTrackService
-                .getInfoboxExtras(MainLayoutContext.official, originalLocationTrackId)
+                .getInfoboxExtras(MainLayoutContext.official, originalTrackId)
                 ?.duplicates
                 ?.firstOrNull()
                 ?.name,
@@ -722,7 +720,7 @@ constructor(
         assertEquals(
             duplicateInDraft.name,
             locationTrackService
-                .getInfoboxExtras(MainLayoutContext.draft, originalLocationTrackId)
+                .getInfoboxExtras(MainLayoutContext.draft, originalTrackId)
                 ?.duplicates
                 ?.firstOrNull()
                 ?.name,
@@ -1183,7 +1181,7 @@ constructor(
     fun `idMatches finds tracks even if ids or oids need trimming`() {
         val track1 = createPublishedLocationTrack(1)
         val track2 = createPublishedLocationTrack(2)
-        val track2oid = externalIdForLocationTrack()
+        val track2oid = someOid<LocationTrack>()
         locationTrackService.insertExternalId(LayoutBranch.main, track2.track.id as IntId, track2oid)
 
         val intIdTerm = FreeText(" ${track1.track.id} ")

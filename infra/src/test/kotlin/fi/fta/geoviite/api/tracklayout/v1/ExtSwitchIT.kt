@@ -280,8 +280,8 @@ constructor(
         val joint2 = switchJoint(2, Point(10.0, 0.0))
         val joint3 = switchJoint(3, Point(10.0, 5.0))
         val structure = switchStructureYV60_300_1_9()
-        val switchId = mainDraftContext.save(switch(structure.id, joints = listOf(joint1, joint2, joint3))).id
-        val switchOid = mainDraftContext.generateOid(switchId)
+        val (switchId, switchOid) =
+            mainDraftContext.saveWithOid(switch(structure.id, joints = listOf(joint1, joint2, joint3)))
         val switch = mainDraftContext.fetch(switchId)!!
 
         val segment1to2 = segment(joint1.location, joint2.location)
@@ -292,8 +292,7 @@ constructor(
                 segments = listOf(segment1to2),
             )
         val track1Geom = linkedTrackGeometry(switch, joint1.number, joint2.number, structure)
-        val track1Id = mainDraftContext.save(locationTrack(tn1Id), track1Geom).id
-        val track1Oid = mainDraftContext.generateOid(track1Id)
+        val (track1Id, track1Oid) = mainDraftContext.saveWithOid(locationTrack(tn1Id), track1Geom)
 
         // Intentionally offset track 2 & it's reference line a bit: the link points be the points-on-track
         val segment1to3 = segment(joint1.location + 0.5, joint3.location + 0.5)
@@ -311,8 +310,7 @@ constructor(
                     endInnerSwitch = switchLinkYV(switchId, 3),
                 )
             )
-        val track2Id = mainDraftContext.save(locationTrack(tn2Id), track2Geom).id
-        val track2Oid = mainDraftContext.generateOid(track2Id)
+        val (track2Id, track2Oid) = mainDraftContext.saveWithOid(locationTrack(tn2Id), track2Geom)
 
         testDBService.publish(
             switches = listOf(switchId),
@@ -342,14 +340,14 @@ constructor(
 
         val s1Joint1 = switchJoint(1, Point(0.0, 0.0))
         val s1Joint2 = switchJoint(2, Point(10.0, 0.0))
-        val switch1Id = mainDraftContext.save(switch(structure.id, joints = listOf(s1Joint1, s1Joint2))).id
-        val switch1Oid = mainDraftContext.generateOid(switch1Id)
+        val (switch1Id, switch1Oid) =
+            mainDraftContext.saveWithOid(switch(structure.id, joints = listOf(s1Joint1, s1Joint2)))
         val switch1 = mainDraftContext.fetch(switch1Id)!!
 
         val s2Joint1 = switchJoint(1, Point(0.0, 0.0))
         val s2Joint2 = switchJoint(2, Point(10.0, 0.0))
-        val switch2Id = mainDraftContext.save(switch(structure.id, joints = listOf(s2Joint1, s2Joint2))).id
-        val switch2Oid = mainDraftContext.generateOid(switch2Id)
+        val (switch2Id, switch2Oid) =
+            mainDraftContext.saveWithOid(switch(structure.id, joints = listOf(s2Joint1, s2Joint2)))
         val switch2 = mainDraftContext.fetch(switch2Id)!!
 
         val (tn1Id, rl1Id) =
@@ -369,8 +367,7 @@ constructor(
                 segments = listOf(segment(s2Joint1.location, s2Joint2.location)),
             )
         val track2Geom = linkedTrackGeometry(switch2, s2Joint1.number, s2Joint2.number, structure)
-        val track2Id = mainDraftContext.save(locationTrack(tn2Id), track2Geom).id
-        val track2Oid = mainDraftContext.generateOid(track2Id)
+        val (track2Id, track2Oid) = mainDraftContext.saveWithOid(locationTrack(tn2Id), track2Geom)
 
         val baseVersion =
             testDBService

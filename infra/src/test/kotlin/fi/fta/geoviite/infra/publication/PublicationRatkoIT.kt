@@ -49,9 +49,6 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.queryOne
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -59,6 +56,9 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -118,8 +118,7 @@ constructor(
     @Test
     fun `external ids are fetched for calculated changes affecting assets not published in design`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        val mainTrackNumberOid = "1.2.3.4.5"
-        trackNumberDao.insertExternalId(trackNumber, LayoutBranch.main, Oid(mainTrackNumberOid))
+        testDBService.generateOid(trackNumber, LayoutBranch.main)
 
         mainOfficialContext.save(
             referenceLine(trackNumber),
@@ -138,10 +137,8 @@ constructor(
             mainOfficialContext.save(
                 switch(joints = listOf(LayoutSwitchJoint(JointNumber(1), SwitchJointRole.MAIN, Point(10.0, 0.0), null)))
             )
-        val mainSwitchAtStartOid = "2.2.3.4.5"
-        val mainSwitchAtEndOid = "2.2.3.4.6"
-        switchDao.insertExternalId(switchAtStart.id, LayoutBranch.main, Oid(mainSwitchAtStartOid))
-        switchDao.insertExternalId(switchAtEnd.id, LayoutBranch.main, Oid(mainSwitchAtEndOid))
+        testDBService.generateOid(switchAtStart.id, LayoutBranch.main)
+        testDBService.generateOid(switchAtEnd.id, LayoutBranch.main)
 
         val locationTrack1 =
             mainOfficialContext.save(
@@ -159,10 +156,8 @@ constructor(
                 locationTrack(trackNumber),
                 trackGeometryOfSegments(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             )
-        val mainLocationTrack1Oid = "3.2.3.4.5"
-        val mainLocationTrack2Oid = "3.2.3.4.6"
-        locationTrackDao.insertExternalId(locationTrack1.id, LayoutBranch.main, Oid(mainLocationTrack1Oid))
-        locationTrackDao.insertExternalId(locationTrack2.id, LayoutBranch.main, Oid(mainLocationTrack2Oid))
+        testDBService.generateOid(locationTrack1.id, LayoutBranch.main)
+        testDBService.generateOid(locationTrack2.id, LayoutBranch.main)
 
         val someDesign = testDBService.createDesignBranch()
         val designDraftContext = testDBService.testContext(someDesign, PublicationState.DRAFT)

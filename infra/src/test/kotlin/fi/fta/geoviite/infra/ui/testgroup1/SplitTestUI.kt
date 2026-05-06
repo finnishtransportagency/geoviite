@@ -23,15 +23,15 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -84,7 +84,7 @@ constructor(
                 .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(geometry.segments), trackNumber)
                 .id
         val sourceTrackId = mainOfficialContext.save(locationTrack(trackNumberId), geometry).id
-        locationTrackService.insertExternalId(LayoutBranch.main, sourceTrackId, someOid())
+        testDBService.generateOid(sourceTrackId, LayoutBranch.main)
 
         val sourceTrackName = locationTrackService.get(MainLayoutContext.official, sourceTrackId)!!.name.toString()
         mainOfficialContext.save(locationTrack(trackNumberId), trackGeometry(turningEdges1))

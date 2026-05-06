@@ -3,7 +3,6 @@ import fi.fta.geoviite.api.tracklayout.v1.COORDINATE_SYSTEM
 import fi.fta.geoviite.api.tracklayout.v1.ExtTrackLayoutTestApiService
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
@@ -19,10 +18,8 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.OperationalPoint
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.operationalPoint
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometryOfElements
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -30,6 +27,7 @@ import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfElements
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -46,7 +44,6 @@ class ExtTestTrackLayoutV1IT
 @Autowired
 constructor(
     mockMvc: MockMvc,
-    private val locationTrackService: LocationTrackService,
     private val extTestDataService: ExtApiTestDataServiceV1,
     private val publicationService: PublicationService,
 ) : DBTestBase() {
@@ -550,9 +547,8 @@ constructor(
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id.also { mainDraftContext.generateOid(it) }
         val referenceLineId =
             mainDraftContext.saveReferenceLine(referenceLineAndGeometryOfElements(trackNumberId, elements)).id
-        val trackId =
-            mainDraftContext.saveLocationTrack(locationTrack(trackNumberId) to trackGeometryOfElements(elements)).id
-        val oid = mainDraftContext.generateOid(trackId)
+        val (trackId, oid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfElements(elements))
 
         testDBService.publish(
             trackNumbers = listOf(trackNumberId),
@@ -571,9 +567,8 @@ constructor(
 
         val tracks =
             listOf(1, 2, 3).map { _ ->
-                val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
-                locationTrackService.insertExternalId(LayoutBranch.main, trackId, someOid())
-
+                val (trackId, _) =
+                    mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
                 trackId
             }
 

@@ -51,17 +51,15 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
     @Test
     fun `Operational point APIs should return correct object versions`() {
-        val op1Id =
-            mainDraftContext
-                .save(operationalPoint(name = "Test Point 1", abbreviation = "TP1", location = Point(0.5, 0.5)))
-                .id
-        val op1Oid = mainDraftContext.generateOid(op1Id)
+        val (op1Id, op1Oid) =
+            mainDraftContext.saveWithOid(
+                operationalPoint(name = "Test Point 1", abbreviation = "TP1", location = Point(0.5, 0.5))
+            )
 
-        val op2Id =
-            mainDraftContext
-                .save(operationalPoint(name = "Test Point 2", abbreviation = "TP2", location = Point(10.5, 10.5)))
-                .id
-        val op2Oid = mainDraftContext.generateOid(op2Id)
+        val (op2Id, op2Oid) =
+            mainDraftContext.saveWithOid(
+                operationalPoint(name = "Test Point 2", abbreviation = "TP2", location = Point(10.5, 10.5))
+            )
 
         val baseVersion = testDBService.publish(operationalPoints = listOf(op1Id, op2Id)).uuid
 
@@ -90,17 +88,15 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
     @Test
     fun `Operational point API does not contain draft objects or changes`() {
-        val op1Id =
-            mainDraftContext
-                .save(operationalPoint(name = "Test Point 1", abbreviation = "TP1", location = Point(0.5, 0.5)))
-                .id
-        val op1Oid = mainDraftContext.generateOid(op1Id)
+        val (op1Id, op1Oid) =
+            mainDraftContext.saveWithOid(
+                operationalPoint(name = "Test Point 1", abbreviation = "TP1", location = Point(0.5, 0.5))
+            )
 
-        val op2Id =
-            mainDraftContext
-                .save(operationalPoint(name = "Test Point 2", abbreviation = "TP2", location = Point(10.5, 10.5)))
-                .id
-        val op2Oid = mainDraftContext.generateOid(op2Id)
+        val (op2Id, op2Oid) =
+            mainDraftContext.saveWithOid(
+                operationalPoint(name = "Test Point 2", abbreviation = "TP2", location = Point(10.5, 10.5))
+            )
 
         // Only publish op1 at first
         val baseVersion = testDBService.publish(operationalPoints = listOf(op1Id)).uuid
@@ -125,11 +121,10 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
     @Test
     fun `Deleted operational point should be returned in single-fetch API but not collection API`() {
-        val opId =
-            mainDraftContext
-                .save(operationalPoint(name = "Test Point", abbreviation = "TP", location = Point(0.5, 0.5)))
-                .id
-        val oid = mainDraftContext.generateOid(opId)
+        val (opId, oid) =
+            mainDraftContext.saveWithOid(
+                operationalPoint(name = "Test Point", abbreviation = "TP", location = Point(0.5, 0.5))
+            )
 
         val baseVersion = testDBService.publish(operationalPoints = listOf(opId)).uuid
         val baseOp = mainOfficialContext.fetch(opId)!!.also { assertEquals(OperationalPointState.IN_USE, it.state) }
@@ -156,17 +151,15 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
     @Test
     fun `Operational point modification APIs should return correct versions`() {
-        val op1Id =
-            mainDraftContext
-                .save(operationalPoint(name = "Test Point 1", abbreviation = "TP1", location = Point(0.5, 0.5)))
-                .id
-        val op1Oid = mainDraftContext.generateOid(op1Id)
+        val (op1Id, op1Oid) =
+            mainDraftContext.saveWithOid(
+                operationalPoint(name = "Test Point 1", abbreviation = "TP1", location = Point(0.5, 0.5))
+            )
 
-        val op2Id =
-            mainDraftContext
-                .save(operationalPoint(name = "Test Point 2", abbreviation = "TP2", location = Point(10.5, 10.5)))
-                .id
-        val op2Oid = mainDraftContext.generateOid(op2Id)
+        val (op2Id, op2Oid) =
+            mainDraftContext.saveWithOid(
+                operationalPoint(name = "Test Point 2", abbreviation = "TP2", location = Point(10.5, 10.5))
+            )
 
         val baseVersion = testDBService.publish(operationalPoints = listOf(op1Id, op2Id)).uuid
 
@@ -177,11 +170,10 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
         // Update op2 and add op3
         initUser()
         mainDraftContext.mutate(op2Id) { op -> op.copy(name = op.name.copy(value = "${op.name}-EDIT")) }
-        val op3Id =
-            mainDraftContext
-                .save(operationalPoint(name = "Test Point 3", abbreviation = "TP3", location = Point(20.5, 20.5)))
-                .id
-        val op3Oid = mainDraftContext.generateOid(op3Id)
+        val (op3Id, op3Oid) =
+            mainDraftContext.saveWithOid(
+                operationalPoint(name = "Test Point 3", abbreviation = "TP3", location = Point(20.5, 20.5))
+            )
 
         val update1Version = testDBService.publish(operationalPoints = listOf(op2Id, op3Id)).uuid
         val op2Update1 = mainOfficialContext.fetch(op2Id)!!
@@ -236,11 +228,10 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
     @Test
     fun `Operational point API returns no changes when versions are the same`() {
-        val opId =
-            mainDraftContext
-                .save(operationalPoint(name = "Test Point", abbreviation = "TP", location = Point(0.5, 0.5)))
-                .id
-        val oid = mainDraftContext.generateOid(opId)
+        val (opId, oid) =
+            mainDraftContext.saveWithOid(
+                operationalPoint(name = "Test Point", abbreviation = "TP", location = Point(0.5, 0.5))
+            )
 
         val publication = testDBService.publish(operationalPoints = listOf(opId))
 
@@ -255,39 +246,33 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
         // Test all RINF type variations
         OperationalPointRinfType.entries.forEach { rinfType ->
-            val opId = mainDraftContext.save(operationalPoint(rinfType = rinfType)).id
-            val oid = mainDraftContext.generateOid(opId)
+            val (opId, oid) = mainDraftContext.saveWithOid(operationalPoint(rinfType = rinfType))
             testOperationalPoints.add(oid to mainDraftContext.fetch(opId)!!)
         }
 
         // Test all RATO type variations
         OperationalPointRatoType.entries.forEach { ratoType ->
-            val opId = mainDraftContext.save(operationalPoint(rinfType = null).copy(ratoType = ratoType)).id
-            val oid = mainDraftContext.generateOid(opId)
+            val (opId, oid) = mainDraftContext.saveWithOid(operationalPoint(rinfType = null).copy(ratoType = ratoType))
             testOperationalPoints.add(oid to mainDraftContext.fetch(opId)!!)
         }
 
         // Test all state variations
         OperationalPointState.entries.forEach { state ->
-            val opId = mainDraftContext.save(operationalPoint(state = state)).id
-            val oid = mainDraftContext.generateOid(opId)
+            val (opId, oid) = mainDraftContext.saveWithOid(operationalPoint(state = state))
             testOperationalPoints.add(oid to mainDraftContext.fetch(opId)!!)
         }
 
         // Test other fields with random values
         repeat(3) {
-            val opId =
-                mainDraftContext
-                    .save(
-                        operationalPoint(
-                            name = randomString(),
-                            abbreviation = randomString(),
-                            uicCode = randomNumericString(),
-                            location = Point(randomDouble(), randomDouble()),
-                        )
+            val (opId, oid) =
+                mainDraftContext.saveWithOid(
+                    operationalPoint(
+                        name = randomString(),
+                        abbreviation = randomString(),
+                        uicCode = randomNumericString(),
+                        location = Point(randomDouble(), randomDouble()),
                     )
-                    .id
-            val oid = mainDraftContext.generateOid(opId)
+                )
             testOperationalPoints.add(oid to mainDraftContext.fetch(opId)!!)
         }
 
@@ -324,8 +309,7 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
         val location3067 = Point(385782.89, 6672277.83)
         val location4326 = Point(24.9414003, 60.1713788)
 
-        val opId = mainDraftContext.save(operationalPoint(location = location3067)).id
-        val oid = mainDraftContext.generateOid(opId)
+        val (opId, oid) = mainDraftContext.saveWithOid(operationalPoint(location = location3067))
 
         testDBService.publish(operationalPoints = listOf(opId))
 
@@ -358,8 +342,8 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
         val polygon =
             Polygon(listOf(Point(0.0, 0.0), Point(100.0, 0.0), Point(100.0, 50.0), Point(0.0, 50.0), Point(0.0, 0.0)))
 
-        val opId = mainDraftContext.save(operationalPoint(polygon = polygon, location = Point(50.0, 25.0))).id
-        val oid = mainDraftContext.generateOid(opId)
+        val (opId, oid) =
+            mainDraftContext.saveWithOid(operationalPoint(polygon = polygon, location = Point(50.0, 25.0)))
 
         testDBService.publish(operationalPoints = listOf(opId))
 
@@ -376,8 +360,7 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
     @Test
     fun `Operational point with tracks and switches shows associations correctly`() {
-        val opId = mainDraftContext.save(operationalPoint(location = Point(5.0, 0.0))).id
-        val opOid = mainDraftContext.generateOid(opId)
+        val (opId, opOid) = mainDraftContext.saveWithOid(operationalPoint(location = Point(5.0, 0.0)))
 
         // Create track number and reference line
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
@@ -422,8 +405,7 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
     @Test
     fun `Operational point shows as changed when track or switch is linked to it`() {
-        val opId = mainDraftContext.save(operationalPoint(location = Point(5.0, 0.0))).id
-        val opOid = mainDraftContext.generateOid(opId)
+        val (opId, opOid) = mainDraftContext.saveWithOid(operationalPoint(location = Point(5.0, 0.0)))
 
         val basePublication = testDBService.publish(operationalPoints = listOf(opId))
 
@@ -537,8 +519,7 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
     @Test
     fun `Operational point collection is filtered by name`() {
-        val matchingOpId = mainDraftContext.save(operationalPoint(name = "OP MATCHING 001")).id
-        val matchingOpOid = mainDraftContext.generateOid(matchingOpId)
+        val (matchingOpId, matchingOpOid) = mainDraftContext.saveWithOid(operationalPoint(name = "OP MATCHING 001"))
 
         val otherOpId = mainDraftContext.save(operationalPoint(name = "OP OTHER 999")).id
         mainDraftContext.generateOid(otherOpId)
@@ -556,8 +537,7 @@ class ExtOperationalPointIT @Autowired constructor(mockMvc: MockMvc) : DBTestBas
 
     @Test
     fun `Operational point change-list is filtered by name`() {
-        val matchingOpId = mainDraftContext.save(operationalPoint(name = "OP MATCHING 001")).id
-        val matchingOpOid = mainDraftContext.generateOid(matchingOpId)
+        val (matchingOpId, matchingOpOid) = mainDraftContext.saveWithOid(operationalPoint(name = "OP MATCHING 001"))
 
         val otherOpId = mainDraftContext.save(operationalPoint(name = "OP OTHER 999")).id
         mainDraftContext.generateOid(otherOpId)

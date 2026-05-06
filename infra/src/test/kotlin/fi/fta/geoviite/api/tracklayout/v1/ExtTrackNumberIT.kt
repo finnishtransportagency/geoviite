@@ -176,11 +176,8 @@ constructor(
     fun `Track number api should return track number information regardless of its state`() {
         val trackNumbers =
             LayoutState.entries.map { state ->
-                val tnId =
-                    mainDraftContext
-                        .saveTrackNumber(trackNumber(testDBService.getUnusedTrackNumber(), state = state))
-                        .id
-                val tnOid = mainDraftContext.generateOid(tnId)
+                val (tnId, tnOid) =
+                    mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber(), state = state))
                 val referenceLineId = mainDraftContext.saveReferenceLine(referenceLineAndGeometry(tnId)).id
                 testDBService.publish(trackNumbers = listOf(tnId), referenceLines = listOf(referenceLineId))
                 tnOid to state
@@ -198,11 +195,9 @@ constructor(
     fun `Track number modifications api should return track number regardless of its state`() {
         val trackNumbers =
             LayoutState.entries.map { state ->
-                val id =
-                    mainDraftContext
-                        .saveTrackNumber(trackNumber(testDBService.getUnusedTrackNumber(), state = state))
-                        .id
-                Triple(id, mainDraftContext.generateOid(id), state)
+                val (id, oid) =
+                    mainDraftContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber(), state = state))
+                Triple(id, oid, state)
             }
 
         val publication1 =

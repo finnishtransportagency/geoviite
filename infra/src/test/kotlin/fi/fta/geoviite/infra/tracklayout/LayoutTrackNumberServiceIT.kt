@@ -63,7 +63,7 @@ constructor(
 
         assertNull(trackNumberDao.fetchExternalId(LayoutBranch.main, trackNumber.id as IntId))
 
-        val newExternalId = externalIdForTrackNumber()
+        val newExternalId = someOid<LayoutTrackNumber>()
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumber.id, newExternalId)
 
         assertEquals(newExternalId, trackNumberDao.fetchExternalId(LayoutBranch.main, trackNumber.id)?.oid)
@@ -96,7 +96,7 @@ constructor(
     fun `should return correct lengths for km posts`() {
         val trackNumber =
             trackNumberDao.fetch(trackNumberDao.save(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)))
-        val trackOid = externalIdForTrackNumber()
+        val trackOid = someOid<LayoutTrackNumber>()
         trackNumberService.insertExternalId(LayoutBranch.main, trackNumber.id as IntId, trackOid)
 
         referenceLineAndGeometry(
@@ -548,7 +548,7 @@ constructor(
     fun `idMatches finds track numbers even if ids or oids need trimming`() {
         val tn1 = mainOfficialContext.save(trackNumber(TrackNumber("001"))).let { mainOfficialContext.fetch(it.id) }!!
         val tn2 = mainOfficialContext.save(trackNumber(TrackNumber("002"))).let { mainOfficialContext.fetch(it.id) }!!
-        val track2oid = externalIdForTrackNumber()
+        val track2oid = someOid<LayoutTrackNumber>()
         trackNumberService.insertExternalId(LayoutBranch.main, tn2.id as IntId, track2oid)
 
         val intIdTerm = FreeText(" ${tn1.id} ")

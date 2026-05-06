@@ -87,8 +87,8 @@ class ExtTrackBoundaryChangeIT @Autowired constructor(mockMvc: MockMvc, private 
                     startOuterSwitch = switchLinkYV(switch2Id, 2),
                 ),
             )
-        val sourceId = mainDraftContext.save(locationTrack(tnId, name = "SourceTrack"), sourceTrackGeom).id
-        val sourceOid = mainDraftContext.generateOid(sourceId)
+        val (sourceId, sourceOid) =
+            mainDraftContext.saveWithOid(locationTrack(tnId, name = "SourceTrack"), sourceTrackGeom)
 
         // Split target tracks:
 
@@ -115,13 +115,13 @@ class ExtTrackBoundaryChangeIT @Autowired constructor(mockMvc: MockMvc, private 
                     endInnerSwitch = switchLinkYV(switch2Id, 2),
                 ),
             )
-        val target2Id = mainDraftContext.save(locationTrack(tnId, name = "PartialDuplicate"), target2Geom).id
-        val target2Oid = mainDraftContext.generateOid(target2Id)
+        val (target2Id, target2Oid) =
+            mainDraftContext.saveWithOid(locationTrack(tnId, name = "PartialDuplicate"), target2Geom)
 
         // Third target is a duplicate to be fully overridden: original geom doesn't matter
         val target3Geom = trackGeometryOfSegments(segment(Point(10.0, 10.0), Point(20.0, 10.0)))
-        val target3Id = mainDraftContext.save(locationTrack(tnId, name = "FullDuplicate"), target3Geom).id
-        val target3Oid = mainDraftContext.generateOid(target3Id)
+        val (target3Id, target3Oid) =
+            mainDraftContext.saveWithOid(locationTrack(tnId, name = "FullDuplicate"), target3Geom)
 
         // Base publication before the split
         val basePublication =

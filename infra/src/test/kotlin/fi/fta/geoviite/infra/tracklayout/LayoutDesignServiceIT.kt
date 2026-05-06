@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranchType
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationCause
@@ -223,8 +222,8 @@ constructor(
         // at the time of writing this test, we don't actually have support for updating designs
         // on inheriting calculated changes from main; but once we do, they will be identified by
         // those objects having an extId in the design
-        locationTrackDao.insertExternalId(locationTrack, designBranch, Oid("1.2.3.4.5"))
-        switchDao.insertExternalId(switch, designBranch, Oid("2.3.4.5.6"))
+        testDBService.generateOid(locationTrack, designBranch)
+        testDBService.generateOid(switch, designBranch)
 
         val latestPublicationBeforeDelete = publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 1)
         deleteDesign(designId)

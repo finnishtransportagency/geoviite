@@ -11,17 +11,13 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
-import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -41,7 +37,6 @@ class ExtLocationTrackCollectionIT
 @Autowired
 constructor(
     mockMvc: MockMvc,
-    private val layoutTrackNumberService: LayoutTrackNumberService,
     private val locationTrackService: LocationTrackService,
     private val extTestDataService: ExtApiTestDataServiceV1,
 ) : DBTestBase() {
@@ -60,17 +55,12 @@ constructor(
         val (trackNumberId, referenceLineId) =
             extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+        mainDraftContext.generateOid(trackNumberId)
 
         val tracks =
-            listOf(1, 2, 3)
-                .map { _ -> mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id }
-                .map { trackId ->
-                    trackId to
-                        someOid<LocationTrack>().also { oid ->
-                            locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
-                        }
-                }
+            listOf(1, 2, 3).map { _ ->
+                mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
+            }
 
         testDBService.publish(
             trackNumbers = listOf(trackNumberId),
@@ -95,27 +85,15 @@ constructor(
         val (trackNumberId, referenceLineId) =
             extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+        mainDraftContext.generateOid(trackNumberId)
 
         val officialTracks =
-            listOf(1, 2, 3)
-                .map { index ->
-                    mainDraftContext
-                        .saveLocationTrack(
-                            locationTrackAndGeometry(
-                                trackNumberId,
-                                segment,
-                                description = "official description $index",
-                            )
-                        )
-                        .id
-                }
-                .map { trackId ->
-                    trackId to
-                        someOid<LocationTrack>().also { oid ->
-                            locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
-                        }
-                }
+            listOf(1, 2, 3).map { index ->
+                mainDraftContext.saveWithOid(
+                    locationTrack(trackNumberId, description = "official description $index"),
+                    trackGeometryOfSegments(segment),
+                )
+            }
 
         val newestPublication =
             testDBService.publish(
@@ -138,11 +116,10 @@ constructor(
                 )
             }
 
-        mainDraftContext
-            .saveLocationTrack(
-                locationTrackAndGeometry(trackNumberId, segment, description = "some draft-only track description")
-            )
-            .id
+        mainDraftContext.save(
+            locationTrack(trackNumberId, description = "some draft-only track description"),
+            trackGeometryOfSegments(segment),
+        )
 
         val response = api.locationTrackCollection.get()
 
@@ -168,19 +145,15 @@ constructor(
         val (trackNumberId, referenceLineId) =
             extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+        mainDraftContext.generateOid(trackNumberId)
 
         testDBService.publish(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
 
         val tracksToPublications =
             listOf(1, 2, 3).map { totalAmountOfLocationTracks ->
-                val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
+                val (trackId, trackOid) =
+                    mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
                 val publication = testDBService.publish(locationTracks = listOf(trackId))
-
-                val trackOid =
-                    someOid<LocationTrack>().also { oid ->
-                        locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
-                    }
 
                 Triple(totalAmountOfLocationTracks, trackOid, publication)
             }
@@ -211,13 +184,10 @@ constructor(
         val (trackNumberId, referenceLineId) =
             extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+        mainDraftContext.generateOid(trackNumberId)
 
-        val trackId = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment)).id
-        val trackOid =
-            someOid<LocationTrack>().also { oid ->
-                locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
-            }
+        val (trackId, trackOid) =
+            mainDraftContext.saveWithOid(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
 
         val publication =
             testDBService.publish(
@@ -255,14 +225,13 @@ constructor(
         val (trackNumberId, referenceLineId) =
             extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+        mainDraftContext.generateOid(trackNumberId)
 
-        val deletedTrackId =
-            mainDraftContext
-                .saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment, state = LocationTrackState.DELETED))
-                .id
-
-        locationTrackService.insertExternalId(LayoutBranch.main, deletedTrackId, someOid())
+        val (deletedTrackId, _) =
+            mainDraftContext.saveWithOid(
+                locationTrack(trackNumberId, state = LocationTrackState.DELETED),
+                trackGeometryOfSegments(segment),
+            )
 
         testDBService.publish(
             trackNumbers = listOf(trackNumberId),
@@ -281,20 +250,17 @@ constructor(
         val (trackNumberId, referenceLineId) =
             extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+        mainDraftContext.generateOid(trackNumberId)
 
         val tracks =
             LocationTrackState.entries
                 .filter { it != LocationTrackState.DELETED }
                 .map { state ->
-                    val trackId =
-                        mainDraftContext
-                            .saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment, state = state))
-                            .id
-                    val trackOid =
-                        someOid<LocationTrack>().also { oid ->
-                            locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
-                        }
+                    val (trackId, trackOid) =
+                        mainDraftContext.saveWithOid(
+                            locationTrack(trackNumberId, state = state),
+                            trackGeometryOfSegments(segment),
+                        )
 
                     trackOid to trackId
                 }
@@ -322,16 +288,13 @@ constructor(
         val (trackNumberId, referenceLineId) =
             extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+        mainDraftContext.generateOid(trackNumberId)
 
         val allTracks =
             listOf(1, 2, 3, 4).map { _ ->
-                val trackVersion = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment))
+                val trackVersion = mainDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
 
-                val oid =
-                    someOid<LocationTrack>().also { oid ->
-                        locationTrackService.insertExternalId(LayoutBranch.main, trackVersion.id, oid)
-                    }
+                val oid = mainDraftContext.generateOid(trackVersion.id)
 
                 val (track, geometry) = locationTrackService.getWithGeometry(trackVersion)
 
@@ -348,7 +311,7 @@ constructor(
         val modifiedDescription = "this is a modified description, previous publication uuid=${initialPublication.uuid}"
         val modifiedTracks =
             listOf(allTracks[1], allTracks[2]).map { (oid, track, geometry) ->
-                mainDraftContext.saveLocationTrack(track.copy(description = FreeText(modifiedDescription)) to geometry)
+                mainDraftContext.save(track.copy(description = FreeText(modifiedDescription)), geometry)
 
                 oid to track.id as IntId
             }
@@ -373,18 +336,9 @@ constructor(
             extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val trackGeom = trackGeometryOfSegments(segment(Point(20.0, 0.0), Point(40.0, 0.0)))
-        val (trackId1, trackOid1) =
-            mainDraftContext.save(locationTrack(trackNumberId1), trackGeom).id.let {
-                it to mainDraftContext.generateOid(it)
-            }
-        val (trackId2, trackOid2) =
-            mainDraftContext.save(locationTrack(trackNumberId1), trackGeom).id.let {
-                it to mainDraftContext.generateOid(it)
-            }
-        val (trackId3, _) =
-            mainDraftContext.save(locationTrack(trackNumberId2), trackGeom).id.let {
-                it to mainDraftContext.generateOid(it)
-            }
+        val (trackId1, trackOid1) = mainDraftContext.saveWithOid(locationTrack(trackNumberId1), trackGeom)
+        val (trackId2, trackOid2) = mainDraftContext.saveWithOid(locationTrack(trackNumberId1), trackGeom)
+        val (trackId3, _) = mainDraftContext.saveWithOid(locationTrack(trackNumberId2), trackGeom)
 
         val basePublication =
             testDBService.publish(
@@ -450,15 +404,14 @@ constructor(
         val (trackNumberId, referenceLineId) =
             extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+        mainDraftContext.generateOid(trackNumberId)
 
         val tracks =
             LocationTrackState.entries.map { state ->
-                val trackId =
-                    mainDraftContext
-                        .saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment, state = state))
-                        .id
-                trackId to mainDraftContext.generateOid(trackId)
+                mainDraftContext.saveWithOid(
+                    locationTrack(trackNumberId, state = state),
+                    trackGeometryOfSegments(segment),
+                )
             }
 
         val initialPublication =
@@ -496,14 +449,11 @@ constructor(
         val (trackNumberId, referenceLineId) =
             extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+        mainDraftContext.generateOid(trackNumberId)
 
-        val trackVersion = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment))
+        val trackVersion = mainDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
         val trackId = trackVersion.id
-        val trackOid =
-            someOid<LocationTrack>().also { oid ->
-                locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
-            }
+        val trackOid = mainDraftContext.generateOid(trackId)
 
         val publicationStart =
             testDBService.publish(
@@ -545,14 +495,11 @@ constructor(
         val (trackNumberId, referenceLineId) =
             extTestDataService.insertTrackNumberAndReferenceLine(mainDraftContext, segments = listOf(segment))
 
-        layoutTrackNumberService.insertExternalId(LayoutBranch.main, trackNumberId, someOid())
+        mainDraftContext.generateOid(trackNumberId)
 
-        val trackVersion = mainDraftContext.saveLocationTrack(locationTrackAndGeometry(trackNumberId, segment))
+        val trackVersion = mainDraftContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segment))
         val trackId = trackVersion.id
-        val trackOid =
-            someOid<LocationTrack>().also { oid ->
-                locationTrackService.insertExternalId(LayoutBranch.main, trackId, oid)
-            }
+        val trackOid = mainDraftContext.generateOid(trackId)
 
         val publicationStart =
             testDBService.publish(
@@ -588,14 +535,16 @@ constructor(
         val (otherTnId, otherRlId, _) =
             extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
-        val matchingTrackId =
-            mainDraftContext
-                .saveLocationTrack(locationTrackAndGeometry(matchingTnId, segment, name = "MATCHING TRACK"))
-                .id
-        val matchingOid = testDBService.generateOid(matchingTrackId, LayoutBranch.main)
-        val otherTrackId =
-            mainDraftContext.saveLocationTrack(locationTrackAndGeometry(otherTnId, segment, name = "OTHER TRACK")).id
-        testDBService.generateOid(otherTrackId, LayoutBranch.main)
+        val (matchingTrackId, matchingOid) =
+            mainDraftContext.saveWithOid(
+                locationTrack(matchingTnId, name = "MATCHING TRACK"),
+                trackGeometryOfSegments(segment),
+            )
+        val (otherTrackId, _) =
+            mainDraftContext.saveWithOid(
+                locationTrack(otherTnId, name = "OTHER TRACK"),
+                trackGeometryOfSegments(segment),
+            )
 
         testDBService.publish(
             trackNumbers = listOf(matchingTnId, otherTnId),
@@ -627,18 +576,16 @@ constructor(
             extTestDataService.insertTrackNumberAndReferenceLineWithOid(mainDraftContext, segments = listOf(segment))
 
         val matchingTrackVersion =
-            mainDraftContext.saveLocationTrack(locationTrackAndGeometry(matchingTnId, segment, name = "MATCHING TRACK"))
+            mainDraftContext.save(
+                locationTrack(matchingTnId, name = "MATCHING TRACK"),
+                trackGeometryOfSegments(segment),
+            )
         val matchingTrackId = matchingTrackVersion.id
-        val matchingOid =
-            someOid<LocationTrack>().also { oid ->
-                locationTrackService.insertExternalId(LayoutBranch.main, matchingTrackId, oid)
-            }
+        val matchingOid = mainDraftContext.generateOid(matchingTrackId)
         val otherTrackVersion =
-            mainDraftContext.saveLocationTrack(locationTrackAndGeometry(otherTnId, segment, name = "OTHER TRACK"))
+            mainDraftContext.save(locationTrack(otherTnId, name = "OTHER TRACK"), trackGeometryOfSegments(segment))
         val otherTrackId = otherTrackVersion.id
-        someOid<LocationTrack>().also { oid ->
-            locationTrackService.insertExternalId(LayoutBranch.main, otherTrackId, oid)
-        }
+        mainDraftContext.generateOid(otherTrackId)
 
         val fromPublication =
             testDBService
