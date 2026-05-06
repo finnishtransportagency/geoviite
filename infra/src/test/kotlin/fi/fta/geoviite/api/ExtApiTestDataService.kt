@@ -45,7 +45,7 @@ data class GeocodableTrack(
 
 fun assertContainsErrorMessage(expectedErrorMessage: String, errorMessages: Any?, contextMessage: String = "") {
     assert((errorMessages as List<*>).contains(expectedErrorMessage)) {
-        "$expectedErrorMessage is not in the list of errors $contextMessage"
+        "$expectedErrorMessage is not in the list of errors ($errorMessages) $contextMessage"
     }
 }
 
