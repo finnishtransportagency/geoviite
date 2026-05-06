@@ -68,7 +68,7 @@ const splitToRequestTarget = (
             split.nameFreeText,
             split.nameSpecifier,
         ),
-        descriptionBase: split.descriptionBase?.trim() ?? '',
+        descriptionBase: split.descriptionBase.trim(),
         descriptionSuffix: split.suffixMode ?? 'NONE',
         duplicateTrack: duplicateTrack,
         startAtSwitchId:
