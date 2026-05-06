@@ -394,7 +394,7 @@ private constructor(
 
     override fun hashCode(): Int = nodesHash
 
-    override fun toString(): String = "EdgeKey(nodesHash=$nodesHash, start=$start, end=$end, segments=$segments)"
+    override fun toString(): String = "EdgeContentKey(nodesHash=$nodesHash, start=$start, end=$end, segments=$segments)"
 }
 
 sealed class LayoutEdge : IAlignment<EdgeM> {

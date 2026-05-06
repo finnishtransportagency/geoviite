@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test
 class LocationTrackGeometryTest {
 
     @Test
-    fun `Start & End node content hash works`() {
+    fun `Start & End node content key works`() {
         fun track123() = IntId<LocationTrack>(123)
         fun track124() = IntId<LocationTrack>(124)
 
@@ -57,7 +57,7 @@ class LocationTrackGeometryTest {
     }
 
     @Test
-    fun `Switch node content hash works`() {
+    fun `Switch node content key works`() {
         fun switch123Main1() = SwitchLink(IntId(123), MAIN, JointNumber(1))
         fun switch124Main1() = SwitchLink(IntId(124), MAIN, JointNumber(1))
         fun switch123Connection1() = SwitchLink(IntId(123), CONNECTION, JointNumber(1))
@@ -88,7 +88,7 @@ class LocationTrackGeometryTest {
     }
 
     @Test
-    fun `Edge content hash works`() {
+    fun `Edge content key works`() {
         fun switchNode1() = NodeConnection.switch(SwitchLink(IntId(1), MAIN, JointNumber(1)), null)
         fun switchNode2() =
             NodeConnection.switch(
@@ -111,7 +111,7 @@ class LocationTrackGeometryTest {
         fun segments1() = listOf(segment1)
         fun segments2() = listOf(segment1, segment2)
 
-        // Sanity check: we should get the same hashes despite recreating the edge
+        // Sanity check: we should get the same keys despite recreating the edge
         assertEquals(
             TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentKey,
             TmpLayoutEdge(switchNode1(), switchNode2(), segments1()).contentKey,
@@ -121,7 +121,7 @@ class LocationTrackGeometryTest {
             TmpLayoutEdge(trackNode1(), trackNode2(), segments1()).contentKey,
         )
 
-        // The actual verifications: different edges need different hashes
+        // The actual verifications: different edges need different keys
         assertNotEquals(
             TmpLayoutEdge(switchNode1(), trackNode2(), segments1()).contentKey,
             TmpLayoutEdge(switchNode2(), trackNode2(), segments1()).contentKey,
