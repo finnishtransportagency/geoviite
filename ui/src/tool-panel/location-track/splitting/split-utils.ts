@@ -3,6 +3,7 @@ import {
     LayoutSwitch,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
+    locationTrackNameFieldsSanitized,
     LocationTrackNamingScheme,
     SplitPoint,
     splitPointsAreSame,
@@ -62,9 +63,12 @@ const splitToRequestTarget = (
             : undefined;
     return {
         namingScheme: split.namingScheme,
-        nameFreeText: split.nameFreeText,
-        nameSpecifier: split.nameSpecifier,
-        descriptionBase: split.descriptionBase ?? '',
+        ...locationTrackNameFieldsSanitized(
+            split.namingScheme,
+            split.nameFreeText,
+            split.nameSpecifier,
+        ),
+        descriptionBase: split.descriptionBase.trim(),
         descriptionSuffix: split.suffixMode ?? 'NONE',
         duplicateTrack: duplicateTrack,
         startAtSwitchId:

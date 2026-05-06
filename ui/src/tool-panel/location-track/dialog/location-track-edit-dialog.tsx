@@ -296,7 +296,11 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         if (canSaveLocationTrack(state) && state.locationTrack) {
             const saveRequestWithSanitizedNameAndDescription = {
                 ...state.locationTrack,
-                ...locationTrackNameFieldsSanitized(state.locationTrack),
+                ...locationTrackNameFieldsSanitized(
+                    state.locationTrack.namingScheme,
+                    state.locationTrack.nameFreeText,
+                    state.locationTrack.nameSpecifier,
+                ),
                 descriptionBase: state.locationTrack.descriptionBase?.trim(),
             };
 
