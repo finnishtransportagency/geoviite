@@ -73,14 +73,17 @@ class ExtApiTestDataServiceV1 : DBTestBase() {
         val switchId = layoutContext.save(switch(structure.id, allJoints)).id
         val savedSwitch = layoutContext.fetch(switchId)!!
 
-        val segment =
-            segment(
-                Point(allJoints.minOf { it.location.x }, allJoints.minOf { it.location.y }),
-                Point(allJoints.maxOf { it.location.x }, allJoints.maxOf { it.location.y }),
-            )
         val (trackNumberId, trackNumberOid) =
             layoutContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber()))
-        val referenceLineId = layoutContext.save(referenceLine(trackNumberId), referenceLineGeometry(segment)).id
+        val rlGeometry =
+            referenceLineGeometry(
+                segment(
+                    Point(allJoints.minOf { it.location.x }, allJoints.minOf { it.location.y }),
+                    Point(allJoints.maxOf { it.location.x }, allJoints.maxOf { it.location.y }),
+                )
+            )
+        val referenceLineId = layoutContext.save(referenceLine(trackNumberId), rlGeometry).id
+
         val trackIds = joints.map { (start, end) ->
             val geom = linkedTrackGeometry(savedSwitch, start.number, end.number, structure)
             layoutContext.save(locationTrack(trackNumberId), geom).id
