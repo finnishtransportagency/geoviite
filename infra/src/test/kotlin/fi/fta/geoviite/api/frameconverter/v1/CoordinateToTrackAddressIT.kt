@@ -485,8 +485,8 @@ constructor(
         assertEquals(track.description.toString(), properties["sijaintiraide_kuvaus"])
         assertEquals("kujaraide", properties["sijaintiraide_tyyppi"])
         assertEquals(0, properties["ratakilometri"])
-        assertEquals("10", properties["ratametri"])
-        assertEquals("0", properties["ratametri_desimaalit"])
+        assertEquals(10, properties["ratametri"])
+        assertEquals(0, properties["ratametri_desimaalit"])
     }
 
     @Test

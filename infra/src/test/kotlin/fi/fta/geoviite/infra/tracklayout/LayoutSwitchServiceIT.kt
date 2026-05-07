@@ -255,8 +255,9 @@ constructor(
         val switches = pageSwitches(getSwitches(), 0, null, Point(422222.2, 7222222.2)).items
 
         val indexOfRandomSwitch = switches.indexOfFirst { s -> s.id == idOfRandomSwitch }
-        val indexOfSwitchLocatedAtComparisonPoint =
-            switches.indexOfFirst { s -> s.id == idOfSwitchLocatedAtComparisonPoint }
+        val indexOfSwitchLocatedAtComparisonPoint = switches.indexOfFirst { s ->
+            s.id == idOfSwitchLocatedAtComparisonPoint
+        }
 
         assertTrue(indexOfRandomSwitch >= 0)
         assertTrue(indexOfSwitchLocatedAtComparisonPoint >= 0)
@@ -515,11 +516,11 @@ constructor(
 
     @Test
     fun `idMatches finds switches even if ids or oids need trimming`() {
-        val switch1 = mainOfficialContext.save(switch()).let { mainOfficialContext.fetch(it.id) }!!
-        val switch2 = mainOfficialContext.save(switch()).let { mainOfficialContext.fetch(it.id) }!!
-        val switch2oid = testDBService.generateOid(switch2.id as IntId, LayoutBranch.main)
+        val (switch1Id, switch1) = mainOfficialContext.save(switch()).id.let { it to mainOfficialContext.fetch(it)!! }
+        val (switch2Id, switch2) = mainOfficialContext.save(switch()).id.let { it to mainOfficialContext.fetch(it)!! }
+        val switch2oid = testDBService.generateOid(switch2Id, LayoutBranch.main)
 
-        val intIdTerm = FreeText(" ${switch1.id} ")
+        val intIdTerm = FreeText(" $switch1Id ")
         val intIdMatchFunction = switchService.idMatches(MainLayoutContext.official, intIdTerm, null)
 
         val oidTerm = FreeText(" $switch2oid ")
@@ -711,12 +712,8 @@ constructor(
     @Test
     fun `deleteSwitchLinks removes switch references from location tracks when set to true`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val switch =
-            switchService.getOrThrow(
-                MainLayoutContext.draft,
-                switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id,
-            )
-        val switchId = switch.id as IntId
+        val switchId = switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id
+        val switch = switchService.getOrThrow(MainLayoutContext.draft, switchId)
 
         val (track, _) =
             insertDraft(
@@ -761,12 +758,8 @@ constructor(
     @Test
     fun `deleteSwitchLinks keeps switch references when set to false`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val switch =
-            switchService.getOrThrow(
-                MainLayoutContext.draft,
-                switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id,
-            )
-        val switchId = switch.id as IntId
+        val switchId = switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id
+        val switch = switchService.getOrThrow(MainLayoutContext.draft, switchId)
 
         val (track, _) =
             insertDraft(
