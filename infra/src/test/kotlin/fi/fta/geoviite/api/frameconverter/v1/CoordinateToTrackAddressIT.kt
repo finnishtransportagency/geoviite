@@ -5,10 +5,7 @@ import fi.fta.geoviite.api.assertNullDetailedProperties
 import fi.fta.geoviite.api.assertNullSimpleProperties
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
-import fi.fta.geoviite.infra.TestLayoutContext
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -18,23 +15,22 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointDistanceToLine
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
-import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.kmPostGkLocation
+import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someOid
+import fi.fta.geoviite.infra.tracklayout.someTrackGeometry
+import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -50,13 +46,6 @@ import kotlin.math.hypot
 import kotlin.test.assertEquals
 
 private const val API_TRACK_ADDRESSES: FrameConverterUrl = "/rata-vkm/v1/rataosoitteet"
-
-private data class GeocodableTrack(
-    val layoutContext: LayoutContext,
-    val trackNumber: LayoutTrackNumber,
-    val referenceLine: ReferenceLine,
-    val locationTrack: LocationTrack,
-)
 
 // Purposefully different data structure as the actual logic to imitate a user.
 private data class TestCoordinateToTrackAddressRequest(
@@ -79,8 +68,6 @@ class CoordinateToTrackAddressIT
 constructor(
     mockMvc: MockMvc,
     val trackNumberDao: LayoutTrackNumberDao,
-    val referenceLineDao: ReferenceLineDao,
-    val locationTrackService: LocationTrackService,
     val locationTrackDao: LocationTrackDao,
     val layoutKmPostDao: LayoutKmPostDao,
     val geocodingService: GeocodingService,
@@ -186,7 +173,8 @@ constructor(
 
     @Test
     fun `Valid multi request with some matches should succeed but return error features`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))))
+        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        mainOfficialContext.createLocationTrackWithReferenceLine(trackGeometryOfSegments(segments))
 
         val requests =
             listOf(
@@ -214,7 +202,8 @@ constructor(
 
     @Test
     fun `Valid single request using request params should succeed`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))))
+        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        mainOfficialContext.createLocationTrackWithReferenceLine(trackGeometryOfSegments(segments))
 
         val params = mapOf("x" to "0.0", "y" to "0.0")
         api.fetchFeatureCollectionSingle(API_TRACK_ADDRESSES, params)
@@ -222,7 +211,8 @@ constructor(
 
     @Test
     fun `Response feature should include identifier of the request if submitted`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))))
+        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        mainOfficialContext.createLocationTrackWithReferenceLine(trackGeometryOfSegments(segments))
 
         val identifiers = listOf("some-identifier-${UUID.randomUUID()}", "some-identifier-${UUID.randomUUID()}")
 
@@ -240,7 +230,15 @@ constructor(
 
     @Test
     fun `Basic request should default to return feature with basic and detailed data`() {
-        val geocodableTrack = insertGeocodableTrack(segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))))
+        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId =
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val (track, _) =
+            mainOfficialContext.saveAndFetch(
+                locationTrack(trackNumberId, type = LocationTrackType.MAIN),
+                trackGeometryOfSegments(segments),
+            )
 
         val yDifferenceToTargetLocation = 5.0
 
@@ -251,9 +249,9 @@ constructor(
                 "x" to 0.0,
                 "y" to 0.0,
                 "valimatka" to yDifferenceToTargetLocation,
-                "ratanumero" to geocodableTrack.trackNumber.number.toString(),
-                "sijaintiraide" to geocodableTrack.locationTrack.name.toString(),
-                "sijaintiraide_kuvaus" to geocodableTrack.locationTrack.description.toString(),
+                "ratanumero" to trackNumber.toString(),
+                "sijaintiraide" to track.name.toString(),
+                "sijaintiraide_kuvaus" to track.description.toString(),
                 "sijaintiraide_tyyppi" to "pääraide",
                 "ratakilometri" to 0,
                 "ratametri" to 10,
@@ -276,7 +274,8 @@ constructor(
 
     @Test
     fun `Request with all-false response data settings should succeed but not return any actual data`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))))
+        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        mainOfficialContext.createLocationTrackWithReferenceLine(trackGeometryOfSegments(segments))
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0)
         val params =
@@ -299,7 +298,8 @@ constructor(
 
     @Test
     fun `Basic filtering with radius works`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))))
+        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        mainOfficialContext.createLocationTrackWithReferenceLine(trackGeometryOfSegments(segments))
 
         val requestsToExpectedError =
             mapOf(
@@ -326,17 +326,18 @@ constructor(
 
     @Test
     fun `Filtering with track number works`() {
-        val trackNumberIds = (0..2).map { _ -> mainOfficialContext.createLayoutTrackNumber().id }
-
-        // Purposefully uses the same segments for overlap in order to determine
+        // Purposefully uses the same geometry for overlap in order to determine
         // that the filtering works based on the track number.
-        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
-        val tracks = trackNumberIds.map { trackNumberId ->
-            insertGeocodableTrack(trackNumberId = trackNumberId, segments = segments)
-        }
+        val geometry = trackGeometryOfSegments(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        val tracks =
+            (0..2).map { _ ->
+                testDBService.getUnusedTrackNumber().also {
+                    mainOfficialContext.createLocationTrackWithReferenceLine(geometry, it)
+                }
+            }
 
-        tracks.forEach { geocodableTrack ->
-            val trackNumberName = geocodableTrack.trackNumber.number.toString()
+        tracks.forEach { trackNumber ->
+            val trackNumberName = trackNumber.toString()
 
             val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, ratanumero = trackNumberName)
             val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
@@ -351,13 +352,17 @@ constructor(
         // Purposefully uses the same segments for overlap in order to determine
         // that the filtering works based on the location track name.
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        val trackNumberId = mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments)).id
         val tracks =
             (0..2).map { _ ->
-                insertGeocodableTrack(locationTrackName = "Test track-${UUID.randomUUID()}", segments = segments)
+                val name = "Test track-${UUID.randomUUID()}"
+                mainOfficialContext
+                    .saveAndFetch(locationTrack(trackNumberId, name = name), trackGeometryOfSegments(segments))
+                    .first
             }
 
-        tracks.forEach { geocodableTrack ->
-            val locationTrackName = geocodableTrack.locationTrack.name.toString()
+        tracks.forEach { track ->
+            val locationTrackName = track.name.toString()
 
             val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide = locationTrackName)
             val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
@@ -372,9 +377,10 @@ constructor(
         // Purposefully uses the same segments for overlap in order to determine
         // that the filtering works based on the location track type.
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        val trackNumberId = mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments)).id
 
-        LocationTrackType.entries.forEach { locationTrackType ->
-            insertGeocodableTrack(segments = segments, locationTrackType = locationTrackType)
+        LocationTrackType.entries.forEach { type ->
+            mainOfficialContext.save(locationTrack(trackNumberId, type = type), trackGeometryOfSegments(segments))
         }
 
         listOf("pääraide", "sivuraide", "kujaraide", "turvaraide").forEach { trackType ->
@@ -388,7 +394,8 @@ constructor(
 
     @Test
     fun `Response output data can be set to only return basic feature data`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))))
+        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        mainOfficialContext.createLocationTrackWithReferenceLine(trackGeometryOfSegments(segments))
 
         val yDifference = 1.0
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = yDifference)
@@ -413,7 +420,8 @@ constructor(
 
     @Test
     fun `Response output data can be set to only return feature geometry data`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))))
+        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        mainOfficialContext.createLocationTrackWithReferenceLine(trackGeometryOfSegments(segments))
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 1.0)
         val params =
@@ -443,10 +451,14 @@ constructor(
 
     @Test
     fun `Response output data can be set to only return detailed feature data`() {
-        val geocodableTrack =
-            insertGeocodableTrack(
-                segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
-                locationTrackType = LocationTrackType.CHORD,
+        val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId =
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val (track, _) =
+            mainOfficialContext.saveAndFetch(
+                locationTrack(trackNumberId, type = LocationTrackType.CHORD),
+                trackGeometryOfSegments(segments),
             )
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 1.0)
@@ -469,9 +481,9 @@ constructor(
 
         assertNullSimpleProperties(properties)
 
-        assertEquals(geocodableTrack.trackNumber.number.toString(), properties["ratanumero"])
-        assertEquals(geocodableTrack.locationTrack.name.toString(), properties["sijaintiraide"])
-        assertEquals(geocodableTrack.locationTrack.description.toString(), properties["sijaintiraide_kuvaus"])
+        assertEquals(trackNumber.toString(), properties["ratanumero"])
+        assertEquals(track.name.toString(), properties["sijaintiraide"])
+        assertEquals(track.description.toString(), properties["sijaintiraide_kuvaus"])
         assertEquals("kujaraide", properties["sijaintiraide_tyyppi"])
         assertEquals(0, properties["ratakilometri"])
         assertEquals(10, properties["ratametri"] as Int)
@@ -480,13 +492,14 @@ constructor(
 
     @Test
     fun `Response output data setting combination works`() {
-        val layoutContext = mainOfficialContext
-
-        val geocodableTrack =
-            insertGeocodableTrack(
-                layoutContext = layoutContext,
-                segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-                locationTrackType = LocationTrackType.TRAP,
+        val segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId =
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        val (track, _) =
+            mainOfficialContext.saveAndFetch(
+                locationTrack(trackNumberId, type = LocationTrackType.TRAP),
+                trackGeometryOfSegments(segments),
             )
 
         val xPositionOnTrack = 3.0
@@ -521,9 +534,9 @@ constructor(
         assertEquals(yPositionOnTrack, ((properties["y"] as? Double)!!), 0.001)
         assertEquals(yDifference, ((properties["valimatka"] as? Double)!!), 0.001)
 
-        assertEquals(geocodableTrack.trackNumber.number.toString(), properties["ratanumero"])
-        assertEquals(geocodableTrack.locationTrack.name.toString(), properties["sijaintiraide"])
-        assertEquals(geocodableTrack.locationTrack.description.toString(), properties["sijaintiraide_kuvaus"])
+        assertEquals(trackNumber.toString(), properties["ratanumero"])
+        assertEquals(track.name.toString(), properties["sijaintiraide"])
+        assertEquals(track.description.toString(), properties["sijaintiraide_kuvaus"])
         assertEquals("turvaraide", properties["sijaintiraide_tyyppi"])
         assertEquals(0, properties["ratakilometri"])
         assertEquals(xPositionOnTrack.toInt(), properties["ratametri"] as? Int)
@@ -532,14 +545,14 @@ constructor(
 
     @Test
     fun `Track km position is returned correctly`() {
-        val layoutContext = mainOfficialContext
-
-        val geocodableTrack =
-            insertGeocodableTrack(
-                layoutContext = layoutContext,
-                segments = listOf(segment(Point(0.0, 0.0), Point(3000.0, 0.0))),
-                locationTrackType = LocationTrackType.TRAP,
-            )
+        val segments = listOf(segment(Point(0.0, 0.0), Point(3000.0, 0.0)))
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId =
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+        mainOfficialContext.save(
+            locationTrack(trackNumberId, type = LocationTrackType.TRAP),
+            trackGeometryOfSegments(segments),
+        )
 
         val secondKmNumberXLocation = 2000.0 - 50
 
@@ -554,7 +567,7 @@ constructor(
         listOf(Point(900.0, 0.0), Point(secondKmNumberXLocation, 0.0))
             .mapIndexed { index, kmPostLocation ->
                 kmPost(
-                    trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                    trackNumberId = trackNumberId,
                     km = KmNumber(index + 1),
                     gkLocation = kmPostGkLocation(kmPostLocation),
                     draft = false,
@@ -580,7 +593,7 @@ constructor(
 
     @Test
     fun `Search radius under supported range should result in an error`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.createLocationTrackWithReferenceLine(someTrackGeometry())
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sade = 0.9)
 
@@ -596,7 +609,7 @@ constructor(
 
     @Test
     fun `Search radius over supported range should result in an error`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.createLocationTrackWithReferenceLine(someTrackGeometry())
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sade = 1000.1)
 
@@ -612,7 +625,7 @@ constructor(
 
     @Test
     fun `Invalid location track type should result in an error`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.createLocationTrackWithReferenceLine(someTrackGeometry())
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide_tyyppi = "something")
 
@@ -628,7 +641,7 @@ constructor(
 
     @Test
     fun `Invalid location track name should result in an error`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.createLocationTrackWithReferenceLine(someTrackGeometry())
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide = "@")
 
@@ -641,7 +654,7 @@ constructor(
 
     @Test
     fun `Invalid track number should result in an error`() {
-        insertGeocodableTrack(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+        mainOfficialContext.createLocationTrackWithReferenceLine(someTrackGeometry())
 
         val request =
             TestCoordinateToTrackAddressRequest(
@@ -658,8 +671,9 @@ constructor(
 
     @Test
     fun `Deleted track is not found`() {
-        val track = insertGeocodableTrack(segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
-        testDBService.update(track.locationTrack.version!!) { t -> t.copy(state = LocationTrackState.DELETED) }
+        val trackNumberId = mainOfficialContext.createTrackNumberAndReferenceLine().id
+        val trackVersion = mainOfficialContext.save(locationTrack(trackNumberId), someTrackGeometry())
+        testDBService.update(trackVersion) { t -> t.copy(state = LocationTrackState.DELETED) }
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0)
 
@@ -676,7 +690,7 @@ constructor(
     fun `Reverse geocoded address should match the returned coordinate`() {
         val referenceLineSegments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
         val trackNumberVersion =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(referenceLineSegments))
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(referenceLineSegments))
         val trackNumberId = trackNumberVersion.id
         val trackNumber = trackNumberDao.fetch(trackNumberVersion)
 
@@ -729,13 +743,10 @@ constructor(
     fun `Location track OID filter does not find any results when the location track OID does not match`() {
         val trackOid = Oid<LocationTrack>("000.000.000")
         val searchOid = Oid<LocationTrack>("111.111.111")
-        val geocodableTrack = insertGeocodableTrack()
+        val trackVersion = mainOfficialContext.createLocationTrackWithReferenceLine(someTrackGeometry())
+        val trackId = trackVersion.id
 
-        locationTrackDao.insertExternalId(
-            geocodableTrack.locationTrack.id as IntId,
-            geocodableTrack.layoutContext.branch,
-            trackOid,
-        )
+        locationTrackDao.insertExternalId(trackId, mainOfficialContext.context.branch, trackOid)
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, sijaintiraide_oid = searchOid.toString())
         val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
@@ -749,13 +760,11 @@ constructor(
         val testOids = listOf<Oid<LocationTrack>>(someOid(), someOid())
 
         testOids.forEach { oid ->
-            val geocodableTrack = insertGeocodableTrack()
+            val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
+            val trackVersion =
+                mainOfficialContext.createLocationTrackWithReferenceLine(trackGeometryOfSegments(segments))
 
-            locationTrackDao.insertExternalId(
-                geocodableTrack.locationTrack.id as IntId,
-                geocodableTrack.layoutContext.branch,
-                oid,
-            )
+            locationTrackDao.insertExternalId(trackVersion.id, mainOfficialContext.context.branch, oid)
         }
 
         testOids.forEach { oid ->
@@ -784,16 +793,11 @@ constructor(
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
 
         mainOfficialContext.createLayoutTrackNumberWithOid(trackNumberOid).let { trackNumber ->
-            val referenceLine =
-                mainOfficialContext.saveReferenceLine(
-                    referenceLineAndGeometry(trackNumberId = trackNumber.id, segments = segments)
-                )
-
-            insertGeocodableTrack(
-                trackNumberId = trackNumber.id,
-                segments = segments,
-                referenceLineId = referenceLine.id,
+            mainOfficialContext.saveReferenceLine(
+                referenceLineAndGeometry(trackNumberId = trackNumber.id, segments = segments)
             )
+
+            mainOfficialContext.save(locationTrack(trackNumber.id), trackGeometryOfSegments(segments))
         }
 
         val request = TestCoordinateToTrackAddressRequest(x = 0.0, y = 0.0, ratanumero_oid = searchOid.toString())
@@ -813,16 +817,11 @@ constructor(
 
         testOids.forEach { oid ->
             val trackNumber = mainOfficialContext.createLayoutTrackNumberWithOid(oid)
-            val referenceLine =
-                mainOfficialContext.saveReferenceLine(
-                    referenceLineAndGeometry(trackNumberId = trackNumber.id, segments = segments)
-                )
-
-            insertGeocodableTrack(
-                trackNumberId = trackNumber.id,
-                segments = segments,
-                referenceLineId = referenceLine.id,
+            mainOfficialContext.saveReferenceLine(
+                referenceLineAndGeometry(trackNumberId = trackNumber.id, segments = segments)
             )
+
+            mainOfficialContext.save(locationTrack(trackNumber.id), trackGeometryOfSegments(segments))
         }
 
         testOids.forEach { oid ->
@@ -858,7 +857,9 @@ constructor(
     fun `Coordinate system argument is respected`() {
         // Helsinki Railway Station area: TM35FIN (385782.89, 6672277.83) ↔ WGS84 (24.9414003, 60.1713788)
         val trackStart = Point(385782.89, 6672277.83)
-        insertGeocodableTrack(segments = listOf(segment(trackStart, trackStart + Point(100.0, 100.0))))
+        mainOfficialContext.createLocationTrackWithReferenceLine(
+            trackGeometryOfSegments(listOf(segment(trackStart, trackStart + Point(100.0, 100.0))))
+        )
 
         // With EPSG:4326: x/y in the request body are WGS84, and the response x/y are also WGS84
         val trackStartWgs84 = transformNonKKJCoordinate(LAYOUT_SRID, WGS_84_SRID, trackStart)
@@ -869,36 +870,5 @@ constructor(
         assertNull(wgs84Response.features[0].properties?.get("virheet"))
         assertEquals(trackStartWgs84.x, wgs84Response.features[0].properties?.get("x") as Double, 0.0000001)
         assertEquals(trackStartWgs84.y, wgs84Response.features[0].properties?.get("y") as Double, 0.0000001)
-    }
-
-    private fun insertGeocodableTrack(
-        layoutContext: TestLayoutContext = mainOfficialContext,
-        trackNumberId: IntId<LayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
-        locationTrackName: String = "Test location track",
-        locationTrackType: LocationTrackType = LocationTrackType.MAIN,
-        segments: List<LayoutSegment> = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
-        referenceLineId: IntId<ReferenceLine> =
-            layoutContext
-                .saveReferenceLine(referenceLineAndGeometry(trackNumberId = trackNumberId, segments = segments))
-                .id,
-    ): GeocodableTrack {
-        val locationTrackId =
-            layoutContext
-                .saveLocationTrack(
-                    locationTrackAndGeometry(
-                        trackNumberId = trackNumberId,
-                        name = locationTrackName,
-                        type = locationTrackType,
-                        segments = segments,
-                    )
-                )
-                .id
-
-        return GeocodableTrack(
-            layoutContext = layoutContext.context,
-            trackNumber = trackNumberDao.get(layoutContext.context, trackNumberId)!!,
-            referenceLine = referenceLineDao.get(layoutContext.context, referenceLineId)!!,
-            locationTrack = locationTrackDao.get(layoutContext.context, locationTrackId)!!,
-        )
     }
 }

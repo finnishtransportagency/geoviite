@@ -17,8 +17,6 @@ import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.util.FreeText
-import java.math.BigDecimal
-import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -30,6 +28,8 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
+import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -387,7 +387,7 @@ constructor(
         val referenceLineSegment = segment(Point(0.0, 0.0), Point(2000.0, 0.0))
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(
+                .createTrackNumberAndReferenceLine(
                     referenceLineGeometry = referenceLineGeometry(referenceLineSegment),
                     startAddress = TrackMeter(KmNumber(0), BigDecimal(0.0)),
                 )
@@ -402,7 +402,7 @@ constructor(
     fun `ReferenceLine polygon is resolved correctly without cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(
+                .createTrackNumberAndReferenceLine(
                     referenceLineGeometry(segment(Point(32.0, 0.0), Point(50.0, 0.0))),
                     startAddress = TrackMeter(KmNumber(0), BigDecimal(32.0)),
                 )
@@ -445,9 +445,7 @@ constructor(
     fun `ReferenceLine polygon is resolved correctly with cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0)))
-                )
+                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
                 .id
 
         mainOfficialContext.saveAndFetch(
@@ -498,7 +496,7 @@ constructor(
     fun `overlapping plan search cropping works correctly in different edge cases`() {
         val id =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(
+                .createTrackNumberAndReferenceLine(
                     referenceLineGeometry(segment(Point(1500.0, 0.0), Point(3500.0, 0.0))),
                     startAddress = TrackMeter(KmNumber(1), BigDecimal(500.0)),
                 )

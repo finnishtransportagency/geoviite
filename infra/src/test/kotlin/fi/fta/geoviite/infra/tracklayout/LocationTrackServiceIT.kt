@@ -683,7 +683,7 @@ constructor(
     @Test
     fun fetchDuplicatesIsVersioned() {
         val geometry = someTrackGeometry()
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(someReferenceLineGeometry()).id
+        val trackNumberId = mainOfficialContext.createTrackNumberAndReferenceLine(someReferenceLineGeometry()).id
 
         val (originalLocationTrack, _) = insertAndFetchDraft(locationTrack(trackNumberId, draft = true), geometry)
         val originalTrackId = originalLocationTrack.id as IntId
@@ -838,9 +838,7 @@ constructor(
     fun `LocationTrack polygon is simplified to reduce point count`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(2000.0, 0.0)))
-                )
+                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(2000.0, 0.0))))
                 .id
         val trackSegment = segment(Point(0.0, 0.0), Point(1000.0, 0.0))
         assertTrue(trackSegment.segmentPoints.size > 900)
@@ -854,9 +852,7 @@ constructor(
     fun `LocationTrack polygon is resolved correctly without cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
-                )
+                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
                 .id
         val (track, _) =
             mainOfficialContext.save(
@@ -900,9 +896,7 @@ constructor(
     fun `LocationTrack polygon is resolved correctly with cropping`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0)))
-                )
+                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
                 .id
         val (track, _) =
             mainOfficialContext.save(
@@ -958,7 +952,7 @@ constructor(
     fun `overlapping plan search cropping works correctly in different edge cases`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(
+                .createTrackNumberAndReferenceLine(
                     referenceLineGeometry(segment(Point(2000.0, 0.0), Point(5000.0, 0.0)))
                 )
                 .id
@@ -1198,9 +1192,7 @@ constructor(
     fun `getInfoboxExtras includes operational point addresses`() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(
-                    referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
-                )
+                .createTrackNumberAndReferenceLine(referenceLineGeometry(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
                 .id
 
         val op1Id =

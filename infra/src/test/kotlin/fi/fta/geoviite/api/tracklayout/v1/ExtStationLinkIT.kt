@@ -299,7 +299,7 @@ class ExtStationLinkIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase() {
     ): Triple<IntId<LayoutTrackNumber>, Oid<LayoutTrackNumber>, TrackNumber> =
         testDBService.getUnusedTrackNumber().let { trackNumber ->
             val geometry = referenceLineGeometry(segment(start, end))
-            val tnId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(geometry, trackNumber).id
+            val tnId = mainOfficialContext.createTrackNumberAndReferenceLine(geometry, trackNumber).id
             val tnOid = mainOfficialContext.generateOid(tnId)
             return Triple(tnId, tnOid, trackNumber)
         }

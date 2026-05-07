@@ -2568,7 +2568,7 @@ constructor(
 
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(straightGeometry.segments), trackNumber)
+                .createTrackNumberAndReferenceLine(referenceLineGeometry(straightGeometry.segments), trackNumber)
                 .id
 
         val splitSourceTrackId = layoutContext.save(locationTrack(trackNumberId), straightGeometry).id

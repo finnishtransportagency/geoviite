@@ -86,10 +86,10 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.transaction.support.TransactionTemplate
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -667,12 +667,11 @@ data class TestLayoutContext(val context: LayoutContext, val testService: TestDB
         geometry: LocationTrackGeometry,
         trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
     ): LayoutRowVersion<LocationTrack> {
-        val trackNumberId =
-            createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(geometry.segments), trackNumber).id
+        val trackNumberId = createTrackNumberAndReferenceLine(referenceLineGeometry(geometry.segments), trackNumber).id
         return save(locationTrack(trackNumberId), geometry)
     }
 
-    fun createLayoutTrackNumberAndReferenceLine(
+    fun createTrackNumberAndReferenceLine(
         referenceLineGeometry: ReferenceLineGeometry = referenceLineGeometry(),
         trackNumber: TrackNumber = testService.getUnusedTrackNumber(),
         startAddress: TrackMeter = TrackMeter.ZERO,

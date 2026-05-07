@@ -28,6 +28,10 @@ import fi.fta.geoviite.infra.tracklayout.someReferenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.someTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.trackGeometryOfSegments
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import java.util.*
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -36,10 +40,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import java.util.*
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 private const val API_COORDINATES: FrameConverterUrl = "/rata-vkm/v1/koordinaatit"
 
@@ -60,11 +60,8 @@ private data class TestTrackAddressToCoordinateRequest(
 @AutoConfigureMockMvc
 class TrackAddressToCoordinateIT
 @Autowired
-constructor(
-    mockMvc: MockMvc,
-    val locationTrackDao: LocationTrackDao,
-    val locationTrackService: LocationTrackService,
-) : DBTestBase() {
+constructor(mockMvc: MockMvc, val locationTrackDao: LocationTrackDao, val locationTrackService: LocationTrackService) :
+    DBTestBase() {
 
     private val api = FrameConverterTestApiService(mockMvc)
 
@@ -209,7 +206,7 @@ constructor(
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
 
         val tracksUnderTest =
             (0..3).map { _ ->
@@ -238,7 +235,7 @@ constructor(
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
 
         val tracksUnderTest =
             listOf(
@@ -249,10 +246,12 @@ constructor(
                 )
                 .map { (locationTrackTypeName, locationTrackType) ->
                     val track =
-                        mainOfficialContext.saveAndFetch(
-                            locationTrack(trackNumberId, type = locationTrackType),
-                            trackGeometryOfSegments(segments),
-                        ).first
+                        mainOfficialContext
+                            .saveAndFetch(
+                                locationTrack(trackNumberId, type = locationTrackType),
+                                trackGeometryOfSegments(segments),
+                            )
+                            .first
 
                     locationTrackTypeName to track
                 }
@@ -303,7 +302,7 @@ constructor(
         val referenceLineSegments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(referenceLineSegments), trackNumber)
+                .createTrackNumberAndReferenceLine(referenceLineGeometry(referenceLineSegments), trackNumber)
                 .id
 
         val amountOfLocationTracks = 4
@@ -340,7 +339,7 @@ constructor(
         val refLineSegments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(refLineSegments), trackNumber)
+                .createTrackNumberAndReferenceLine(referenceLineGeometry(refLineSegments), trackNumber)
                 .id
 
         val tracksUnderTest =
@@ -352,10 +351,9 @@ constructor(
                     listOf(segment(Point(100.0, 0.0), Point(501.0, 0.0))), // Should be in the response
                 )
                 .map { trackSegments ->
-                    mainOfficialContext.saveAndFetch(
-                        locationTrack(trackNumberId),
-                        trackGeometryOfSegments(trackSegments),
-                    ).first
+                    mainOfficialContext
+                        .saveAndFetch(locationTrack(trackNumberId), trackGeometryOfSegments(trackSegments))
+                        .first
                 }
 
         val request =
@@ -379,7 +377,7 @@ constructor(
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val segments2 = listOf(segment(Point(0.0, 100.0), Point(1000.0, 100.0)))
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
 
         mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segments))
         mainOfficialContext.save(locationTrack(trackNumberId), trackGeometryOfSegments(segments2))
@@ -480,7 +478,7 @@ constructor(
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
 
         val (track, _) =
             mainOfficialContext.saveAndFetch(
@@ -614,7 +612,7 @@ constructor(
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
         val (track, _) =
             mainOfficialContext.saveAndFetch(
                 locationTrack(trackNumberId, type = LocationTrackType.CHORD),
@@ -651,7 +649,7 @@ constructor(
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
 
         val (track, _) =
             mainOfficialContext.saveAndFetch(
@@ -702,7 +700,7 @@ constructor(
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
 
         mainOfficialContext.save(
             locationTrack(trackNumberId, type = LocationTrackType.CHORD),
@@ -732,7 +730,7 @@ constructor(
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
 
         mainOfficialContext.save(
             locationTrack(trackNumberId, type = LocationTrackType.CHORD),
@@ -759,7 +757,7 @@ constructor(
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
 
         mainOfficialContext.save(
             locationTrack(trackNumberId, type = LocationTrackType.CHORD),
@@ -807,7 +805,7 @@ constructor(
         val trackNumber = testDBService.getUnusedTrackNumber()
         val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
 
         val (track, _) =
             mainOfficialContext.saveAndFetch(
@@ -842,7 +840,7 @@ constructor(
                 val trackNumber = testDBService.getUnusedTrackNumber()
                 val trackNumberId =
                     mainOfficialContext
-                        .createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber)
+                        .createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber)
                         .id
 
                 // different numbers of overlapping location tracks on each track number, including
@@ -892,9 +890,10 @@ constructor(
 
         val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
 
-        val (track, _) = mainOfficialContext.saveAndFetch(locationTrack(trackNumberId), trackGeometryOfSegments(segments))
+        val (track, _) =
+            mainOfficialContext.saveAndFetch(locationTrack(trackNumberId), trackGeometryOfSegments(segments))
         locationTrackDao.insertExternalId(track.id as IntId, mainOfficialContext.context.branch, testOid)
 
         val request =
@@ -922,7 +921,7 @@ constructor(
 
         val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberId =
-            mainOfficialContext.createLayoutTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
+            mainOfficialContext.createTrackNumberAndReferenceLine(referenceLineGeometry(segments), trackNumber).id
 
         testOids.forEach { oid ->
             val (track, _) =

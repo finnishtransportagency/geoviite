@@ -398,7 +398,7 @@ constructor(
     fun publishingLocationTrackChangesWorks() {
         val trackNumberId =
             mainOfficialContext
-                .createLayoutTrackNumberAndReferenceLine(
+                .createTrackNumberAndReferenceLine(
                     referenceLineGeometry = referenceLineGeometry(segment(Point(0.0, 0.0), Point(4.0, 4.0)))
                 )
                 .id
