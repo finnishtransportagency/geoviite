@@ -1,6 +1,5 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
-import fi.fta.geoviite.api.GeocodableTrack
 import fi.fta.geoviite.api.assertContainsErrorMessage
 import fi.fta.geoviite.api.assertNullDetailedProperties
 import fi.fta.geoviite.api.assertNullSimpleProperties
@@ -9,6 +8,7 @@ import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -50,6 +50,13 @@ import kotlin.math.hypot
 import kotlin.test.assertEquals
 
 private const val API_TRACK_ADDRESSES: FrameConverterUrl = "/rata-vkm/v1/rataosoitteet"
+
+private data class GeocodableTrack(
+    val layoutContext: LayoutContext,
+    val trackNumber: LayoutTrackNumber,
+    val referenceLine: ReferenceLine,
+    val locationTrack: LocationTrack,
+)
 
 // Purposefully different data structure as the actual logic to imitate a user.
 private data class TestCoordinateToTrackAddressRequest(
@@ -324,10 +331,9 @@ constructor(
         // Purposefully uses the same segments for overlap in order to determine
         // that the filtering works based on the track number.
         val segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
-        val tracks =
-            trackNumberIds.map { trackNumberId ->
-                insertGeocodableTrack(trackNumberId = trackNumberId, segments = segments)
-            }
+        val tracks = trackNumberIds.map { trackNumberId ->
+            insertGeocodableTrack(trackNumberId = trackNumberId, segments = segments)
+        }
 
         tracks.forEach { geocodableTrack ->
             val trackNumberName = geocodableTrack.trackNumber.number.toString()

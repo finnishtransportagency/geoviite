@@ -3,28 +3,18 @@ package fi.fta.geoviite.api
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
-import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
-import fi.fta.geoviite.infra.tracklayout.LocationTrackState
-import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.linkedTrackGeometry
 import fi.fta.geoviite.infra.tracklayout.locationTrack
-import fi.fta.geoviite.infra.tracklayout.locationTrackAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLine
-import fi.fta.geoviite.infra.tracklayout.referenceLineAndGeometry
 import fi.fta.geoviite.infra.tracklayout.referenceLineGeometry
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -32,16 +22,7 @@ import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertNull
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.util.*
-
-data class GeocodableTrack(
-    val layoutContext: LayoutContext,
-    val trackNumber: LayoutTrackNumber,
-    val referenceLine: ReferenceLine,
-    val locationTrack: LocationTrack,
-)
 
 fun assertContainsErrorMessage(expectedErrorMessage: String, errorMessages: Any?, contextMessage: String = "") {
     assert((errorMessages as List<*>).contains(expectedErrorMessage)) {
@@ -71,52 +52,7 @@ private fun assertNullProperties(properties: Map<String, Any>, vararg propertyNa
 }
 
 @Service
-class ExtApiTestDataServiceV1
-@Autowired
-constructor(
-    private val trackNumberDao: LayoutTrackNumberDao,
-    private val referenceLineDao: ReferenceLineDao,
-    private val locationTrackDao: LocationTrackDao,
-) : DBTestBase() {
-
-    fun insertGeocodableTrack(
-        layoutContext: TestLayoutContext = mainOfficialContext,
-        trackNumberId: IntId<LayoutTrackNumber> =
-            mainOfficialContext.saveWithOid(trackNumber(testDBService.getUnusedTrackNumber())).first,
-        referenceLineId: IntId<ReferenceLine>? = null,
-        locationTrackName: String = "Test track-${UUID.randomUUID()}",
-        locationTrackType: LocationTrackType = LocationTrackType.MAIN,
-        segments: List<LayoutSegment> = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
-        state: LocationTrackState = LocationTrackState.IN_USE,
-        owner: IntId<LocationTrackOwner> = IntId(1),
-    ): GeocodableTrack {
-        val usedReferenceLineId =
-            referenceLineId
-                ?: layoutContext
-                    .saveReferenceLine(referenceLineAndGeometry(trackNumberId = trackNumberId, segments = segments))
-                    .id
-
-        val locationTrackId =
-            layoutContext
-                .saveLocationTrack(
-                    locationTrackAndGeometry(
-                        trackNumberId = trackNumberId,
-                        name = locationTrackName,
-                        type = locationTrackType,
-                        segments = segments,
-                        state = state,
-                        ownerId = owner,
-                    )
-                )
-                .id
-
-        return GeocodableTrack(
-            layoutContext = layoutContext.context,
-            trackNumber = trackNumberDao.get(layoutContext.context, trackNumberId)!!,
-            referenceLine = referenceLineDao.get(layoutContext.context, usedReferenceLineId)!!,
-            locationTrack = locationTrackDao.get(layoutContext.context, locationTrackId)!!,
-        )
-    }
+class ExtApiTestDataServiceV1 : DBTestBase() {
 
     data class IdAndOid<T>(val id: IntId<T>, val oid: Oid<T>)
 
