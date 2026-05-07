@@ -266,8 +266,8 @@ constructor(
             "Duplicate tracks in changes to save: ${maybeChanged.map { (t,_) -> t.id }}"
         }
         val originalGeoms = original.map { (_, trackAndGeom) -> trackAndGeom.second }
-        val dbEdges = originalGeoms.flatMap { g -> g.edges }.associateBy { it.contentHash }
-        val dbNodes = originalGeoms.flatMap { g -> g.nodes }.associateBy { it.contentHash }
+        val dbEdges = originalGeoms.flatMap { g -> g.edges }.associateBy { it.contentKey }
+        val dbNodes = originalGeoms.flatMap { g -> g.nodes }.associateBy { it.contentKey }
 
         maybeChanged.forEach { (track, geometry) ->
             val id = track.id as IntId

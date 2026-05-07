@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.END
 import fi.fta.geoviite.infra.tracklayout.TrackBoundaryType.START
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.INNER
 import fi.fta.geoviite.infra.tracklayout.TrackSwitchLinkType.OUTER
+import fi.fta.geoviite.infra.util.equalsBy
 import java.util.*
 import kotlin.math.PI
 import kotlin.math.abs
@@ -188,11 +189,11 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
     fun containsSwitch(switchId: IntId<LayoutSwitch>): Boolean = switchIds.contains(switchId)
 
     fun withDbComponents(
-        dbNodes: Map<NodeHash, DbLayoutNode>,
-        dbEdges: Map<EdgeHash, DbLayoutEdge>,
+        dbNodes: Map<NodeContentKey, DbLayoutNode>,
+        dbEdges: Map<EdgeContentKey, DbLayoutEdge>,
     ): LocationTrackGeometry =
         edges
-            .map { edge -> (edge as? DbLayoutEdge) ?: dbEdges[edge.contentHash] ?: edge.withDbNodes(dbNodes) }
+            .map { edge -> (edge as? DbLayoutEdge) ?: dbEdges[edge.contentKey] ?: edge.withDbNodes(dbNodes) }
             .let { newEdges -> if (newEdges == edges) this else TmpLocationTrackGeometry.of(newEdges, trackId) }
 
     fun withLocationTrackId(id: IntId<LocationTrack>): LocationTrackGeometry =
@@ -223,8 +224,8 @@ sealed class LocationTrackGeometry : IAlignment<LocationTrackM> {
             else -> TmpLocationTrackGeometry.of(combineEdges(edges.map { e -> e.withoutSwitch(switchId) }), trackId)
         }
 
-    fun withNodeReplacements(nodeSwaps: Map<NodeHash, LayoutNode>): LocationTrackGeometry =
-        this.takeIf { nodes.none { nodeSwaps.containsKey(it.contentHash) } }
+    fun withNodeReplacements(nodeSwaps: Map<NodeContentKey, LayoutNode>): LocationTrackGeometry =
+        this.takeIf { nodes.none { nodeSwaps.containsKey(it.contentKey) } }
             ?: TmpLocationTrackGeometry.of(processNodeReplacements(nodeSwaps, edges), trackId)
 
     fun getEdgeAtMOrThrow(m: LineM<LocationTrackM>): Pair<LayoutEdge, Range<LineM<LocationTrackM>>> {
@@ -256,7 +257,7 @@ fun calculateEdgeMValues(edges: List<LayoutEdge>): List<Range<LineM<LocationTrac
 
 fun verifyTrackGeometry(trackId: IntId<LocationTrack>?, edges: List<LayoutEdge>) {
     edges.zipWithNext().forEach { (prev, next) ->
-        require(prev.endNode.node.contentHash == next.startNode.node.contentHash) {
+        require(prev.endNode.node.contentKey == next.startNode.node.contentKey) {
             "Edges should be connected: prev=${prev.endNode} next=${next.startNode}"
         }
         require(prev.endNode.type == SWITCH) {
@@ -283,16 +284,16 @@ fun verifyTrackGeometry(trackId: IntId<LocationTrack>?, edges: List<LayoutEdge>)
             "Track geometry end node must have the correct track ID: trackId=$trackId trackBoundary=$boundary"
         }
     }
-    val nodes = mutableSetOf<NodeHash>()
+    val nodes = mutableSetOf<NodeContentKey>()
     edges
         .asSequence()
         .flatMapIndexed { i, edge -> listOfNotNull(edge.startNode.node.takeIf { i == 0 }, edge.endNode.node) }
         .filter { node -> node !is PlaceholderNode }
         .forEach { node ->
-            require(!nodes.contains(node.contentHash)) {
+            require(!nodes.contains(node.contentKey)) {
                 "Track geometry cannot contain the same node twice: trackId=$trackId node=$node"
             }
-            nodes.add(node.contentHash)
+            nodes.add(node.contentKey)
         }
 }
 
@@ -361,22 +362,39 @@ data class DbLocationTrackGeometry(
         get() = edges.lastOrNull()?.endNode
 }
 
-data class EdgeHash private constructor(val value: Int) {
+/**
+ * The content of an edge (its start and end node connections, and segments), with identity that survives a database
+ * roundtrip.
+ */
+class EdgeContentKey
+private constructor(
+    val nodesHash: Int,
+    val start: NodeConnection,
+    val end: NodeConnection,
+    val segments: List<LayoutSegment>,
+) {
     companion object {
-        fun of(start: NodeConnection, end: NodeConnection, segments: List<LayoutSegment>): EdgeHash =
-            EdgeHash(Objects.hash(nodeConnectionHash(start), nodeConnectionHash(end), segmentsHash(segments)))
+        fun of(start: NodeConnection, end: NodeConnection, segments: List<LayoutSegment>): EdgeContentKey =
+            EdgeContentKey(Objects.hash(nodeConnectionHash(start), nodeConnectionHash(end)), start, end, segments)
 
         private fun nodeConnectionHash(nodeConnection: NodeConnection): Int =
-            Objects.hash(nodeConnection.portConnection, nodeConnection.node.contentHash)
-
-        private fun segmentsHash(segments: List<LayoutSegment>): Int = Objects.hash(segments.map(::segmentHash))
-
-        // Note: the segment hash isn't similarly stable by content as node hash is:
-        // This can change after save & read. However, the db-function for inserting segments does
-        // normalize the hash and result in re-using any identical edge, so even at worst it's just
-        // an extra round-trip to the db.
-        private fun segmentHash(segment: LayoutSegment): Int = segment.hashCode()
+            Objects.hash(nodeConnection.portConnection, nodeConnection.node.contentKey)
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as EdgeContentKey
+
+        return start.isSame(other.start) &&
+            end.isSame(other.end) &&
+            segments.equalsBy(other.segments) { a, b -> a.isSame(b) }
+    }
+
+    override fun hashCode(): Int = nodesHash
+
+    override fun toString(): String = "EdgeContentKey(nodesHash=$nodesHash, start=$start, end=$end, segments=$segments)"
 }
 
 sealed class LayoutEdge : IAlignment<EdgeM> {
@@ -412,7 +430,7 @@ sealed class LayoutEdge : IAlignment<EdgeM> {
         }
     }
 
-    @get:JsonIgnore val contentHash: EdgeHash by lazy { EdgeHash.of(startNode, endNode, segments) }
+    @get:JsonIgnore val contentKey: EdgeContentKey by lazy { EdgeContentKey.of(startNode, endNode, segments) }
 
     fun isSwitchInnerLink(): Boolean = startNode.switchIn?.id != null && startNode.switchIn?.id == endNode.switchIn?.id
 
@@ -431,12 +449,12 @@ sealed class LayoutEdge : IAlignment<EdgeM> {
             segments = segments,
         )
 
-    fun withDbNodes(dbNodes: Map<NodeHash, DbLayoutNode>): LayoutEdge {
+    fun withDbNodes(dbNodes: Map<NodeContentKey, DbLayoutNode>): LayoutEdge {
         val newStart =
-            startNode.let { it as? TmpNodeConnection }?.let { dbNodes[it.node.contentHash]?.let(it::withDbNode) }
+            startNode.let { it as? TmpNodeConnection }?.let { dbNodes[it.node.contentKey]?.let(it::withDbNode) }
                 ?: startNode
         val newEnd =
-            endNode.let { it as? TmpNodeConnection }?.let { dbNodes[it.node.contentHash]?.let(it::withDbNode) }
+            endNode.let { it as? TmpNodeConnection }?.let { dbNodes[it.node.contentKey]?.let(it::withDbNode) }
                 ?: endNode
         return if (newStart == startNode && newEnd == endNode) {
             this
@@ -619,6 +637,8 @@ sealed class NodeConnection {
         }
 
     fun flipPort(): TmpNodeConnection = TmpNodeConnection(portConnection.opposite, node)
+
+    fun isSame(other: NodeConnection): Boolean = portConnection == other.portConnection && node.isSame(other.node)
 }
 
 data class DbNodeConnection(override val portConnection: NodePortType, override val node: DbLayoutNode) :
@@ -655,9 +675,9 @@ enum class NodePortType {
         get() = if (this == A) B else A
 }
 
-data class NodeHash private constructor(val value: Int) {
+data class NodeContentKey private constructor(val portA: NodePort, val portB: NodePort?) {
     companion object {
-        fun of(portA: NodePort, portB: NodePort?): NodeHash = NodeHash(Objects.hash(portA, portB))
+        fun of(portA: NodePort, portB: NodePort?): NodeContentKey = NodeContentKey(portA, portB)
     }
 }
 
@@ -697,7 +717,7 @@ sealed class LayoutNode {
             inNodeOrder(link1, link2).let { (portA, portB) -> TmpTrackBoundaryNode(portA, portB) }
     }
 
-    @get:JsonIgnore val contentHash: NodeHash by lazy { NodeHash.of(portA, portB) }
+    @get:JsonIgnore val contentKey: NodeContentKey by lazy { NodeContentKey.of(portA, portB) }
 
     fun isSame(other: LayoutNode): Boolean = other.portA == portA && other.portB == portB
 }
@@ -820,7 +840,7 @@ fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
         // Both edges agree there's a switch node between them
         else if (previous.endNode.type == SWITCH && next.startNode.type == SWITCH) {
             // Both edges agree on the switch content -> move on
-            if (next.startNode.node.contentHash == previous.endNode.node.contentHash) {
+            if (next.startNode.node.contentKey == previous.endNode.node.contentKey) {
                 combined.add(previous)
                 previous = next
             }
@@ -831,7 +851,7 @@ fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
                     NodeConnection.switch(inner = previous.endNode.switchIn, outer = next.startNode.switchIn)
                 val startingNode =
                     NodeConnection.switch(inner = next.startNode.switchIn, outer = previous.endNode.switchIn)
-                require(endingNode.node.contentHash == startingNode.node.contentHash) {
+                require(endingNode.node.contentKey == startingNode.node.contentKey) {
                     "Failed to resolve dual-switch node: previous=$endingNode next=$startingNode"
                 }
                 combined.add(previous.withEndNode(endingNode))
@@ -865,7 +885,7 @@ fun combineEdges(edges: List<LayoutEdge>): List<LayoutEdge> {
 private fun verifyEdgeContent(edge: LayoutEdge) {
     val startNode = edge.startNode.node
     val endNode = edge.endNode.node
-    require(startNode is PlaceholderNode || startNode.contentHash != endNode.contentHash) {
+    require(startNode is PlaceholderNode || startNode.contentKey != endNode.contentKey) {
         "Start and end node must be different (edge cannot loop back on itself): start=$startNode end=$endNode"
     }
     require(edge.segments.isNotEmpty()) { "LayoutEdge must have at least one segment" }
@@ -922,7 +942,7 @@ private fun <T : NodePort> inNodeOrder(linkIn: T?, linkOut: T?): Pair<T, T?> {
 }
 
 private fun processNodeReplacements(
-    replacements: Map<NodeHash, LayoutNode>,
+    replacements: Map<NodeContentKey, LayoutNode>,
     edges: List<LayoutEdge>,
 ): List<LayoutEdge> = buildList {
     // This is notably stateful as each change is simpler to handle as an operation, but multiple
@@ -959,16 +979,16 @@ private fun replaceNodes(
     previous: LayoutEdge?,
     current: LayoutEdge,
     next: LayoutEdge?,
-    replacements: Map<NodeHash, LayoutNode>,
+    replacements: Map<NodeContentKey, LayoutNode>,
 ): Triple<LayoutEdge?, LayoutEdge?, LayoutEdge?> {
-    val newStartNode = replacements[current.startNode.node.contentHash]
-    val newEndNode = replacements[current.endNode.node.contentHash]
-    val newStartHash = newStartNode?.contentHash ?: current.startNode.node.contentHash
-    val newEndHash = newEndNode?.contentHash ?: current.endNode.node.contentHash
+    val newStartNode = replacements[current.startNode.node.contentKey]
+    val newEndNode = replacements[current.endNode.node.contentKey]
+    val newStartKey = newStartNode?.contentKey ?: current.startNode.node.contentKey
+    val newEndKey = newEndNode?.contentKey ?: current.endNode.node.contentKey
     return when {
         newStartNode == null && newEndNode == null -> Triple(previous, current, next)
         // Special case where both ends would connect to the same node -> one of them needs to go
-        newStartHash == newEndHash ->
+        newStartKey == newEndKey ->
             mergeEdgeWithPeers(previous, current, next, requireNotNull(newStartNode ?: newEndNode))
         newStartNode == null -> Triple(previous, current.withEndNode(requireNotNull(newEndNode)), next)
         newEndNode == null -> Triple(previous, current.withStartNode(newStartNode), next)
